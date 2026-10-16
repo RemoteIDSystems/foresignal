@@ -88,10 +88,12 @@ class PortWatchAdapterTest extends WireMockSupport {
             scoped.add(scope + "/" + ArcGisQueryClient.LAST_EDIT_KEY);
         }
         List<String> cpKeys = new ArrayList<>(scoped);
-        cpKeys.addAll(List.of(PortWatchChokepointsAdapter.POINTS_KEY, PortWatchChokepointsAdapter.LAST_DATE_KEY));
+        cpKeys.addAll(List.of(PortWatchChokepointsAdapter.POINTS_KEY, PortWatchChokepointsAdapter.LAST_DATE_KEY,
+                PortWatchChokepointsAdapter.RESUME_KEY));
         harness.reset(chokepoints.id(), cpKeys.toArray(String[]::new));
         List<String> portKeys = new ArrayList<>(scoped);
         portKeys.addAll(List.of(PortWatchPortsAdapter.POINTS_KEY, PortWatchPortsAdapter.LAST_DATE_KEY,
+                PortWatchPortsAdapter.RESUME_KEY,
                 PortWatchPortsAdapter.SCOPE_KEY, LiveIdSet.LIVE_PREFIX + PortWatchPortsAdapter.PORT_KIND,
                 LiveIdSet.GONE_PREFIX + PortWatchPortsAdapter.PORT_KIND));
         harness.reset(ports.id(), portKeys.toArray(String[]::new));
@@ -172,7 +174,7 @@ class PortWatchAdapterTest extends WireMockSupport {
     }
 
     @Test
-    @DisplayName("chokepoints: an unchanged daily table sends no table query; a new edit date queries after lastDate")
+    @DisplayName("chokepoints: an unchanged daily table sends no table query; a new edit date re-reads a week before lastDate")
     void unchangedThenIncremental() throws Exception {
         serveChokepoints(1791288541457L);
         serveQuery(CP_DAILY, "date > DATE '2026-09-14'", 0,
@@ -187,12 +189,14 @@ class PortWatchAdapterTest extends WireMockSupport {
         WIREMOCK.verify(0, getRequestedFor(urlPathEqualTo(CP + "/query")));
 
         serveLayer(CP_DAILY, "daily-chokepoints-layer.json", 1791893341457L);
-        serveQuery(CP_DAILY, "date > DATE '2026-10-04'", 0, collection(List.of(), false));
+        serveQuery(CP_DAILY, "date > DATE '2026-09-27'", 0, collection(List.of(), false));
         FetchResult incremental = chokepoints.fetch(harness.context(chokepoints, Map.of()));
         assertThat(incremental.notModified()).isFalse();
         assertThat(incremental.records()).isEmpty();
         WIREMOCK.verify(1, getRequestedFor(urlPathEqualTo(CP_DAILY + "/query"))
-                .withQueryParam("where", equalTo("date > DATE '2026-10-04'")));
+                .withQueryParam("where", equalTo("date > DATE '2026-09-27'")));
+        assertThat(harness.client.stateStore(chokepoints.id()).get(PortWatchChokepointsAdapter.LAST_DATE_KEY))
+                .as("an empty overlap read never moves lastDate back").contains("2026-10-04");
     }
 
     @Test
@@ -209,11 +213,14 @@ class PortWatchAdapterTest extends WireMockSupport {
     }
 
     @Test
-    @DisplayName("window arithmetic: backfill bound, resume after a cut read, never backwards")
+    @DisplayName("window arithmetic: backfill bound, a week of overlap, resume after a cut read, never backwards")
     void window() {
         LocalDate today = LocalDate.parse("2026-10-14");
-        assertThat(PortWatchSupport.from(null, today, 30)).isEqualTo(LocalDate.parse("2026-09-14"));
-        assertThat(PortWatchSupport.from(LocalDate.parse("2026-10-01"), today, 30)).isEqualTo("2026-10-01");
+        assertThat(PortWatchSupport.from(null, null, today, 30)).isEqualTo(LocalDate.parse("2026-09-14"));
+        assertThat(PortWatchSupport.from(LocalDate.parse("2026-10-01"), null, today, 30)).as("overlap")
+                .isEqualTo("2026-09-24");
+        assertThat(PortWatchSupport.from(LocalDate.parse("2026-10-01"), LocalDate.parse("2026-09-28"), today, 30))
+                .as("a pass in progress continues").isEqualTo("2026-09-28");
         LocalDate from = LocalDate.parse("2026-09-14");
         assertThat(PortWatchSupport.nextLastDate(from, LocalDate.parse("2026-10-04"), true)).isEqualTo("2026-10-04");
         assertThat(PortWatchSupport.nextLastDate(from, LocalDate.parse("2026-10-04"), false)).isEqualTo("2026-10-03");
@@ -222,6 +229,67 @@ class PortWatchAdapterTest extends WireMockSupport {
         assertThat(PortWatchSupport.dateWhere(from)).isEqualTo("date > DATE '2026-09-14'");
         assertThat(PortWatchSupport.date(JSON.readTree("1759536000000"))).isEqualTo("2025-10-04");
         assertThat(PortWatchSupport.date(JSON.readTree("\"2026-10-04\""))).isEqualTo("2026-10-04");
+    }
+
+    @Test
+    @DisplayName("window state: a cut pass stores a resume point that always advances; a complete pass clears it and"
+            + " never moves lastDate back")
+    void windowState() {
+        Map<String, String> values = new java.util.HashMap<>();
+        ai.foresignal.source.spi.AdapterStateStore state = new ai.foresignal.source.spi.AdapterStateStore() {
+            @Override
+            public java.util.Optional<String> get(String key) {
+                return java.util.Optional.ofNullable(values.get(key));
+            }
+
+            @Override
+            public void put(String key, String value) {
+                values.put(key, value);
+            }
+
+            @Override
+            public void remove(String key) {
+                values.remove(key);
+            }
+        };
+        LocalDate today = LocalDate.parse("2026-10-14");
+        values.put("last", "2026-10-04");
+        LocalDate from = PortWatchSupport.readFrom(state, "last", "resume", today, 14);
+        assertThat(from).isEqualTo("2026-09-27");
+        PortWatchSupport.advance(state, "last", "resume", from, LocalDate.parse("2026-10-01"), false);
+        assertThat(values).containsEntry("resume", "2026-09-30").containsEntry("last", "2026-10-04");
+        LocalDate next = PortWatchSupport.readFrom(state, "last", "resume", today, 14);
+        assertThat(next).as("the next run continues the pass, not the overlap").isEqualTo("2026-09-30");
+        PortWatchSupport.advance(state, "last", "resume", next, LocalDate.parse("2026-10-11"), true);
+        assertThat(values).containsEntry("last", "2026-10-11").doesNotContainKey("resume");
+        PortWatchSupport.advance(state, "last", "resume", LocalDate.parse("2026-10-04"), LocalDate.parse("2026-10-06"),
+                true);
+        assertThat(values).as("a revision-only pass keeps the newest day").containsEntry("last", "2026-10-11");
+    }
+
+    @Test
+    @DisplayName("chokepoints: a changed table re-reads the overlap, so a revised day is emitted again with its new"
+            + " values")
+    void overlapRereadsRevisions() throws Exception {
+        serveChokepoints(1791288541457L);
+        List<JsonNode> rows = features("daily-chokepoints-page.json");
+        serveQuery(CP_DAILY, "date > DATE '2026-09-14'", 0, collection(rows, false));
+        chokepoints.fetch(harness.context(chokepoints, Map.of()));
+
+        List<JsonNode> revised = new ArrayList<>();
+        for (JsonNode row : rows) {
+            JsonNode copy = row.deepCopy();
+            if ("chokepoint1".equals(copy.get("properties").get("portid").asString())
+                    && "2026-10-03".equals(PortWatchSupport.date(copy.get("properties").get("date")).toString())) {
+                ((ObjectNode) copy.get("properties")).put("n_total", 47);
+            }
+            revised.add(copy);
+        }
+        serveLayer(CP_DAILY, "daily-chokepoints-layer.json", 1791893341457L);
+        serveQuery(CP_DAILY, "date > DATE '2026-09-27'", 0, collection(revised, false));
+        FetchResult again = chokepoints.fetch(harness.context(chokepoints, Map.of()));
+        assertThat(again.records()).filteredOn(r -> r.externalId().equals("chokepoint1:2026-10-03"))
+                .singleElement().satisfies(r -> assertThat(r.payload()).containsEntry("nTotal", 47L));
     }
 
     /** The port catalog edited at {@code catalogEdit} and the daily table edited at {@code dailyEdit}. */
@@ -270,6 +338,28 @@ class PortWatchAdapterTest extends WireMockSupport {
         assertThat(changed.records()).filteredOn(NormalizedRecord::tombstone).extracting(NormalizedRecord::externalId)
                 .containsExactly(catalog.get(0).get("properties").get("portid").asString());
         assertThat(changed.records()).filteredOn(r -> r.kind().equals(PortWatchPortsAdapter.ACTIVITY_KIND)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("ports: narrowing the port filter starts a new live set, so the ports outside it are not tombstoned")
+    void narrowedFilterTombstonesNothing() throws Exception {
+        List<JsonNode> catalog = features("ports-page.json");
+        servePorts(1789742026415L, "1=1", catalog, 1791312087589L);
+        serveQuery(PORTS_DAILY, "date > DATE '2026-09-30'", 0, collection(List.of(), false));
+        ports.fetch(harness.context(ports, Map.of()));
+        assertThat(LiveIdSet.read(harness.client.stateStore(ports.id()), LiveIdSet.LIVE_PREFIX
+                + PortWatchPortsAdapter.PORT_KIND)).hasSize(20);
+
+        String filter = "portid IN ('port1325')";
+        List<JsonNode> one = catalog.stream().filter(f -> "port1325".equals(f.get("properties").get("portid")
+                .asString())).toList();
+        serveQuery(PORTS, filter, 0, collection(one, false));
+        serveQuery(PORTS_DAILY, "date > DATE '2026-09-30' AND " + filter, 0, collection(List.of(), false));
+        FetchResult narrowed = ports.fetch(harness.context(ports, Map.of(PortWatchPortsAdapter.PORTS_PARAM,
+                List.of("port1325"))));
+        assertThat(narrowed.records()).noneMatch(NormalizedRecord::tombstone);
+        assertThat(LiveIdSet.read(harness.client.stateStore(ports.id()), LiveIdSet.LIVE_PREFIX
+                + PortWatchPortsAdapter.PORT_KIND)).containsExactly("port1325");
     }
 
     @Test

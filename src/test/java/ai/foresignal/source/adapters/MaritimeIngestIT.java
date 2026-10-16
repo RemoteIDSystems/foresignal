@@ -53,6 +53,7 @@ class MaritimeIngestIT extends WeatherIngestSupport {
     void setUp() {
         AdapterStateStore cp = client.stateStore(PortWatchChokepointsAdapter.ID);
         for (String key : List.of(PortWatchChokepointsAdapter.POINTS_KEY, PortWatchChokepointsAdapter.LAST_DATE_KEY,
+                PortWatchChokepointsAdapter.RESUME_KEY,
                 "points/" + ArcGisQueryClient.META_KEY, "points/" + ArcGisQueryClient.LAST_EDIT_KEY,
                 "daily/" + ArcGisQueryClient.META_KEY, "daily/" + ArcGisQueryClient.LAST_EDIT_KEY)) {
             cp.remove(key);

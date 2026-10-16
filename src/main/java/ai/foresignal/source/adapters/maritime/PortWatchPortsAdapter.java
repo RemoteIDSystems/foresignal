@@ -45,15 +45,17 @@ import tools.jackson.databind.JsonNode;
  * report). After a complete read, ports missing from it are tombstoned ({@link LiveIdSet}, scope {@value #PORT_KIND}).
  * The points are also kept in the state ({@value #POINTS_KEY}) to place the daily rows.
  *
- * <p><strong>Activity</strong> ({@code Daily_Ports_Data}): {@code date > DATE '{lastDate}'} (first run:
- * {@value #BACKFILL_PARAM} days, default 14), ordered by date and paged, at most {@value #MAX_PAGES} pages per run
- * (about 2,000 rows a day, so a 14-day backfill takes two runs). Kind {@value #ACTIVITY_KIND}, externalId
- * {@code portid:YYYY-MM-DD}, {@code eventTime} = {@code observedAt} = the day, payload {@code name, portcalls,
- * portcallsTanker, portcallsContainer, importTonnes, exportTonnes}.
+ * <p><strong>Activity</strong> ({@code Daily_Ports_Data}): {@code date > DATE '{lastDate − 7 days}'} (the overlap
+ * re-reads a week so IMF revisions produce versions; first run: {@value #BACKFILL_PARAM} days, default 14), ordered
+ * by date and paged, at most {@value #MAX_PAGES} pages per run (about 2,000 rows a day, so a 14-day backfill, or the
+ * overlap plus a weekly update of all ports, takes two runs; a cut pass resumes from {@value #RESUME_KEY}).
+ * Kind {@value #ACTIVITY_KIND}, externalId {@code portid:YYYY-MM-DD}, {@code eventTime} = {@code observedAt} = the
+ * day, payload {@code name, portcalls, portcallsTanker, portcallsContainer, importTonnes, exportTonnes}.
  *
  * <p><strong>Scope:</strong> param {@value #PORTS_PARAM} (port ids, default empty = all) narrows both reads with
- * {@code portid IN (…)}; changing it starts over (a full catalog read and a new backfill). When neither layer changed,
- * no query is sent and the run is {@link FetchResult#unchanged() unchanged}.
+ * {@code portid IN (…)}; changing it starts over (a full catalog read, a new backfill and a new live set of ports,
+ * so ports outside the new filter are not tombstoned). When neither layer changed, no query is sent and the run is
+ * {@link FetchResult#unchanged() unchanged}.
  *
  * <p>12-hour poll, budget 20/min and 200/day. Retention: 90 days for the catalog ({@code reference}), 3650 days for the
  * activity ({@code series}).
@@ -96,6 +98,9 @@ public class PortWatchPortsAdapter implements PollingAdapter {
 
     /** The state key of the newest day read (ISO date). */
     public static final String LAST_DATE_KEY = "ports:lastDate";
+
+    /** The state key of the resume point of a pass cut short by the page cap (ISO date). */
+    public static final String RESUME_KEY = "ports:resume";
 
     /** The state key of the port filter the stored state belongs to. */
     public static final String SCOPE_KEY = "ports:scope";
@@ -179,6 +184,10 @@ public class PortWatchPortsAdapter implements PollingAdapter {
         if (!scope.equals(state.get(SCOPE_KEY).orElse(null))) {
             state.remove(POINTS_KEY);
             state.remove(LAST_DATE_KEY);
+            state.remove(RESUME_KEY);
+            // The live set belongs to the old filter: kept, it would tombstone every port outside the new one.
+            state.remove(LiveIdSet.LIVE_PREFIX + PORT_KIND);
+            state.remove(LiveIdSet.GONE_PREFIX + PORT_KIND);
             PortWatchSupport.forceRead(state, CATALOG_SCOPE);
             PortWatchSupport.forceRead(state, PortWatchSupport.DAILY_SCOPE);
             state.put(SCOPE_KEY, scope);
@@ -217,8 +226,7 @@ public class PortWatchPortsAdapter implements PollingAdapter {
             state.put(POINTS_KEY, PortWatchSupport.encode(points));
         }
         LocalDate today = now.atZone(ZoneOffset.UTC).toLocalDate();
-        LocalDate from = PortWatchSupport.from(PortWatchSupport.storedDate(state.get(LAST_DATE_KEY).orElse(null)),
-                today, backfill);
+        LocalDate from = PortWatchSupport.readFrom(state, LAST_DATE_KEY, RESUME_KEY, today, backfill);
         String where = PortWatchSupport.dateWhere(from) + (ports.isEmpty() ? "" : " AND " + portFilter(ports));
         FeatureFetch daily = PortWatchSupport.read(arcgis, ctx, PortWatchSupport.DAILY_SCOPE,
                 PortWatchSupport.request(dailyUrl, where, DAILY_FIELDS, MAX_PAGES, PortWatchSupport.DAILY_ORDER));
@@ -239,7 +247,7 @@ public class PortWatchPortsAdapter implements PollingAdapter {
                 activity++;
                 newest = newest == null || day.isAfter(newest) ? day : newest;
             }
-            state.put(LAST_DATE_KEY, PortWatchSupport.nextLastDate(from, newest, daily.complete()).toString());
+            PortWatchSupport.advance(state, LAST_DATE_KEY, RESUME_KEY, from, newest, daily.complete());
             if (!daily.complete()) {
                 ctx.log().info("{}: the daily read stopped early ({}); the next run resumes", ctx.sourceId(),
                         daily.stopReason());

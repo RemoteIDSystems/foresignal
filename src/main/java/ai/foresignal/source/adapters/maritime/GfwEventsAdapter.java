@@ -58,8 +58,9 @@ import tools.jackson.databind.node.ObjectNode;
  * <p><strong>Window and paging:</strong> each run reads the last {@value #WINDOW_PARAM} days (default 10; GFW
  * publishes with a lag of several days), one dataset after another, following {@code nextOffset} until {@code total}.
  * At most {@value #MAX_PAGES_PER_RUN} pages are read per run; a run cut there stores its place ({@value #CURSOR_KEY})
- * and the next run resumes the same window, so 24 hourly runs stay inside the 300-a-day budget. Re-read events are
- * identical and the ingest hash drops them.
+ * and the next run resumes the same window, so 24 hourly runs stay inside the 300-a-day budget. A saved window that
+ * ended before the configured window would start (the source was disabled for a while) is dropped and a fresh window
+ * read instead. Re-read events are identical and the ingest hash drops them.
  *
  * <p><strong>Record:</strong> kind by event type ({@code fishing} {@value #FISHING_KIND}, {@code encounter}
  * {@value #ENCOUNTER_KIND}, {@code loitering} {@value #LOITERING_KIND}, {@code port_visit} {@value #PORT_VISIT_KIND};
@@ -210,8 +211,11 @@ public class GfwEventsAdapter implements PollingAdapter {
         String scope = String.join(",", datasets) + "|" + window + "|" + (box == null ? "" : boxText(box));
         AdapterStateStore state = ctx.state();
         Cursor cursor = Cursor.read(state.get(CURSOR_KEY).orElse(null));
-        if (cursor == null || !cursor.scope().equals(scope) || cursor.dataset() >= datasets.size()) {
-            LocalDate today = ctx.now().atZone(ZoneOffset.UTC).toLocalDate();
+        LocalDate today = ctx.now().atZone(ZoneOffset.UTC).toLocalDate();
+        // A saved window that ended before the configured window starts (the source was disabled for a while) is
+        // stale: resuming it would spend the budget on days a fresh window no longer covers.
+        if (cursor == null || !cursor.scope().equals(scope) || cursor.dataset() >= datasets.size()
+                || cursor.end().isBefore(today.minusDays(window))) {
             cursor = new Cursor(scope, today.minusDays(window), today, 0, 0);
         }
         Map<String, String> headers = Map.of("Authorization", "Bearer " + token.strip());
