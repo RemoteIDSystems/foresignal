@@ -45,9 +45,10 @@ public interface FlashSink {
 
     /**
      * Appends flashes tagged with their origin (prompt 107): {@code internet} for the NODD
-     * {@code goes-glm} source, {@code local} for a {@code glm-local-{station}} GRB station. The default
-     * delegates to {@link #append(String, FlashBatch, Instant)}; the ring is shared, so the origin is
-     * informational (for metrics) while de-duplication happens before the call.
+     * {@code goes-glm} source, {@code local} for a {@code glm-local-{station}} GRB station. The ring is
+     * shared: the store drops a flash when the ring already holds the same flash (±1 s, ±0.05°) from the
+     * other origin, so the copy that arrives second is dropped whichever feed delivered first. The
+     * default delegates to {@link #append(String, FlashBatch, Instant)} (test fakes and probe views).
      *
      * @param origin {@code internet} or {@code local}
      */

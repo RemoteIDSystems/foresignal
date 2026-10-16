@@ -24,6 +24,12 @@ final class FlashRing {
 
     private static final long MINUTE_MS = 60_000L;
 
+    /** The origin code of a flash from the internet {@code goes-glm} feed. */
+    static final byte INTERNET = 0;
+
+    /** The origin code of a flash from a {@code glm-local-{station}} GRB station (prompt 107). */
+    static final byte LOCAL = 1;
+
     private final Bucket[] buckets = new Bucket[BUCKETS];
     private long newestMinute = Long.MIN_VALUE;
 
@@ -42,24 +48,27 @@ final class FlashRing {
         float[] lat = new float[0];
         float[] lon = new float[0];
         float[] energy = new float[0];
+        byte[] origin = new byte[0];
 
         void reset(long minute) {
             this.minute = minute;
             this.size = 0;
         }
 
-        void add(long time, float la, float lo, float e) {
+        void add(long time, float la, float lo, float e, byte o) {
             if (size == t.length) {
                 int c = Math.max(16, t.length * 2);
                 t = Arrays.copyOf(t, c);
                 lat = Arrays.copyOf(lat, c);
                 lon = Arrays.copyOf(lon, c);
                 energy = Arrays.copyOf(energy, c);
+                origin = Arrays.copyOf(origin, c);
             }
             t[size] = time;
             lat[size] = la;
             lon[size] = lo;
             energy[size] = e;
+            origin[size] = o;
             size++;
         }
     }
@@ -73,11 +82,23 @@ final class FlashRing {
     }
 
     /**
-     * Adds one flash; returns false when it is older than the window and was dropped.
+     * Adds one flash of origin {@link #INTERNET}; returns false when it is older than the window and was
+     * dropped.
      *
      * @param timeMs the flash time, epoch milliseconds
      */
     boolean add(long timeMs, float lat, float lon, float energyFj) {
+        return add(timeMs, lat, lon, energyFj, INTERNET);
+    }
+
+    /**
+     * Adds one flash tagged with its origin (prompt 107); returns false when it is older than the window
+     * and was dropped.
+     *
+     * @param timeMs the flash time, epoch milliseconds
+     * @param origin {@link #INTERNET} or {@link #LOCAL}
+     */
+    boolean add(long timeMs, float lat, float lon, float energyFj, byte origin) {
         long minute = Math.floorDiv(timeMs, MINUTE_MS);
         if (newestMinute != Long.MIN_VALUE && minute <= newestMinute - BUCKETS) {
             return false;
@@ -89,8 +110,37 @@ final class FlashRing {
         if (bucket.minute != minute) {
             bucket.reset(minute);
         }
-        bucket.add(timeMs, lat, lon, energyFj);
+        bucket.add(timeMs, lat, lon, energyFj, origin);
         return true;
+    }
+
+    /**
+     * True when the ring holds a flash of an origin other than {@code origin} within {@code toleranceMs}
+     * of {@code timeMs} and within {@code toleranceDeg} of the position in both latitude and longitude
+     * (prompt 107: the same flash seen by the internet feed and by a local GRB station). Flashes of the
+     * same origin never match each other, so two real flashes close together in one file are both kept.
+     */
+    boolean hasOtherOriginNear(long timeMs, float lat, float lon, byte origin, long toleranceMs, double toleranceDeg) {
+        if (newestMinute == Long.MIN_VALUE) {
+            return false;
+        }
+        long fromMs = timeMs - toleranceMs;
+        long toMs = timeMs + toleranceMs;
+        long firstMinute = Math.max(Math.floorDiv(fromMs, MINUTE_MS), newestMinute - BUCKETS + 1);
+        long lastMinute = Math.min(Math.floorDiv(toMs, MINUTE_MS), newestMinute);
+        for (long minute = firstMinute; minute <= lastMinute; minute++) {
+            Bucket b = buckets[(int) Math.floorMod(minute, (long) BUCKETS)];
+            if (b.minute != minute || !live(b)) {
+                continue;
+            }
+            for (int i = 0; i < b.size; i++) {
+                if (b.origin[i] != origin && b.t[i] >= fromMs && b.t[i] <= toMs
+                        && Math.abs(b.lat[i] - lat) <= toleranceDeg && Math.abs(b.lon[i] - lon) <= toleranceDeg) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** True when {@code bucket} holds minutes still inside the window. */

@@ -4306,11 +4306,18 @@ decommissioned in 2025.
 
 **DCS.** Enable `parse_dcs` in SatDump (GOES-R HRIT pipeline) and, at the source, set `tracked_addresses` to
 cut volume. Then set `dcsEnabled` on the `satdump-{station}` source and a `dcsBbox` (or configure places, whose
-AOI is the default): **DCS cannot be enabled without an effective bbox**. Put a `dcp_locations.csv`
+AOI is the default; the built-in default box in force without places does not count): **DCS cannot be enabled
+without an effective bbox**, and if places are later removed, no DCS message is processed and health says
+so. Put a `dcp_locations.csv`
 (`address,lat,lon,name,agency`) at `${FORESIGNAL_INBOX_DIR}/dcs/dcp_locations.csv`; it is re-read on change.
 Messages with no location, outside the bbox or not allowlisted are dropped and counted. Over `dcsMaxPerScan`
 (500) the newest per address are kept and health degrades with "DCS volume over cap" — tighten `dcsBbox` or
 `dcsAddresses`. DCS is hemisphere-wide from a GOES antenna; expect high volume without a filter.
+
+DCS and EMWIN files are read **as they settle**, on every inbox scan, wherever `dcsGlob`/`emwinGlob` match
+below `inboxPath` (not only in finished pass folders), so continuous HRIT reception delivers warnings within
+about two scan intervals. A file is read once it is unchanged since the previous scan, and once per size and
+modification time; `IMAGES` trees are not searched.
 
 **EMWIN.** Enable `emwinEnabled`; products in `emwinProducts` (AWIPS categories) become `emwin-product`
 records and P-VTEC warnings with a polygon become `emwin-warning`, filtered to the places AOI. While
@@ -4324,11 +4331,18 @@ records and P-VTEC warnings with a polygon become `emwin-warning`, filtered to t
 
 EMWIN is never more authoritative than NWS; messages render "Received via GOES HRIT EMWIN".
 
+Products are applied in issue-time order (the WMO heading's time), and an older product never overrides a
+newer one of the same warning, so a late copy of a `NEW` cannot revive a canceled warning. An
+`emwin-product` id is `{wmoHeading}:{awipsId}:{issue time}` and its `observedAt` is the issue time.
+
 **Local GLM (GRB).** A GOES GRB station (1686.6 MHz; a larger dish than HRIT) writes L2 LCFA NetCDF files;
 set `FORESIGNAL_GLM_LOCAL_STATIONS` to the station names (use the same names as `FORESIGNAL_SATDUMP_STATIONS`)
 and point `inboxPath` at the GLM output. Local flashes join the shared AOI ring and de-duplicate against the
-internet `goes-glm`; `lightning-cluster` records keep flowing from local flashes while the internet feed is
-down. Health degrades if no file arrives for 5 minutes during a pass.
+internet `goes-glm` in both directions (whichever copy of a flash arrives second is dropped, within 1 s and
+0.05°, inside the ring's scope); `lightning-cluster` records keep flowing from local flashes while the
+internet feed is down, and the local clusters end as soon as it recovers. A GLM file is read once it has
+been unmodified for 10 s; a young file that does not parse is retried. Health degrades if no file arrives for
+5 minutes during a pass.
 
 **Elements feed (TLE).** For SatDump, Gpredict and Look4Sat, point the TLE update at Foresignal:
 `/compat/celestrak/NORAD/elements/{group}.txt` (groups `weather`, `noaa`, `goes`, `resource`, `amateur`,
@@ -4340,7 +4354,9 @@ prefix `/compat/celestrak/`), or enable `openReads`.
 **SatDump 2.0 hook.** If the station runs SatDump 2.0 (alpha only as of 2026-10; 1.2.2 is stable), set
 `satdumpVersion` to `2.0` and install `contrib/satdump/foresignal_hook.as` (MIT, separate, experimental). It
 writes equirectangular composites and a `foresignal-manifest.json` that Foresignal recognises
-version-agnostically; an unknown manifest schema is rejected with a health reason.
+version-agnostically: listed GeoTIFFs go through the overlay pipeline, and listed PNGs through the image
+guard, georeferenced from the product's `bounds [w,s,e,n]` (`projection: equirec`). An unknown manifest
+schema, or a PNG without valid bounds, is rejected with a health reason.
 
 ## Space sources (prompt 064)
 

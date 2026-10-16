@@ -191,7 +191,7 @@ public class FlashStore implements FlashSink, IngestStateReset {
             for (String satellite : archive.satellites()) {
                 for (LocalDate day = fromDay; !day.isAfter(today); day = day.plusDays(1)) {
                     FlashBatch tail = archive.read(satellite, day, fromMs, toMs);
-                    kept += addInScope(tail);
+                    kept += addInScope(tail, originOf(satellite, null));
                 }
             }
             log.info("GLM ring rebuilt from the archive: {} flash(es) in the {} scope", kept,
@@ -219,16 +219,40 @@ public class FlashStore implements FlashSink, IngestStateReset {
         }
     }
 
+    /**
+     * Appends flashes whose origin follows the archive directory: {@code local} for a GRB station, the
+     * internet feed for anything else (the NODD {@code goes-glm} source); see
+     * {@link #append(String, String, FlashBatch, Instant)}.
+     */
     @Override
     public void append(String satellite, FlashBatch flashes, Instant fileTime) {
+        append(satellite, null, flashes, fileTime);
+    }
+
+    /**
+     * Appends the flashes of one processed file, de-duplicated across origins (prompt 107).
+     *
+     * <p>A flash is dropped, from both the archive and the ring, when the ring already holds a flash of
+     * the <em>other</em> origin within ±{@value #DEDUP_TIME_MS} ms and ±{@value #DEDUP_DEG}° of it. The
+     * check runs here, in the one append path both {@code goes-glm} and {@code glm-local-{station}} use, so
+     * the copy that arrives second is dropped whichever feed delivered first. Flashes of the same origin
+     * never de-duplicate each other. Only flashes inside the ring's scope can be checked (the ring is the
+     * only in-memory index), so a flash outside the scope is archived by both origins.
+     *
+     * @param origin {@code local} for a GRB station, anything else (or null) for the internet feed
+     */
+    @Override
+    public void append(String satellite, String origin, FlashBatch flashes, Instant fileTime) {
+        byte code = originOf(satellite, origin);
         lock.writeLock().lock();
         try {
             if (refreshAoi(false)) {
                 // The AOI moved: the ring was filtered with the old geometry (the lock is reentrant).
                 rebuild();
             }
-            archive.append(satellite, flashes);
-            addInScope(flashes);
+            FlashBatch kept = dedup(flashes, code);
+            archive.append(satellite, kept);
+            addInScope(kept, code);
             if (fileTime != null && (newestFileTime == null || fileTime.isAfter(newestFileTime))) {
                 newestFileTime = fileTime;
             }
@@ -237,13 +261,53 @@ public class FlashStore implements FlashSink, IngestStateReset {
         }
     }
 
-    /** Adds the flashes inside the scope to the ring; returns how many were kept. Caller holds the write lock. */
+    /** The time tolerance of cross-origin de-duplication, milliseconds (prompt 107). */
+    public static final long DEDUP_TIME_MS = 1000;
+
+    /** The position tolerance of cross-origin de-duplication, degrees (prompt 107). */
+    public static final double DEDUP_DEG = 0.05;
+
+    /** The origin tag of a local GRB station's flashes and the archive directory it writes. */
+    public static final String LOCAL_ORIGIN = "local";
+
+    /** The ring origin code of {@code origin}, falling back to the archive directory name. */
+    static byte originOf(String satellite, String origin) {
+        String o = origin != null ? origin : satellite;
+        return LOCAL_ORIGIN.equalsIgnoreCase(o) ? FlashRing.LOCAL : FlashRing.INTERNET;
+    }
+
+    /** The flashes of {@code flashes} the ring does not already hold from the other origin. Caller holds the write lock. */
+    private FlashBatch dedup(FlashBatch flashes, byte origin) {
+        if (flashes == null || flashes.isEmpty()) {
+            return flashes == null ? FlashBatch.EMPTY : flashes;
+        }
+        int[] keep = new int[flashes.size()];
+        int n = 0;
+        for (int i = 0; i < flashes.size(); i++) {
+            float lat = flashes.lat()[i];
+            float lon = flashes.lon()[i];
+            if (!ring.hasOtherOriginNear(flashes.timesMs()[i], lat, lon, origin, DEDUP_TIME_MS, DEDUP_DEG)) {
+                keep[n++] = i;
+            }
+        }
+        if (n == flashes.size()) {
+            return flashes;
+        }
+        return flashes.select(java.util.Arrays.copyOf(keep, n));
+    }
+
+    /** Adds the internet-origin flashes inside the scope to the ring; returns how many were kept. Caller holds the write lock. */
     private int addInScope(FlashBatch flashes) {
+        return addInScope(flashes, FlashRing.INTERNET);
+    }
+
+    /** Adds the flashes inside the scope to the ring with their origin; returns how many were kept. Caller holds the write lock. */
+    private int addInScope(FlashBatch flashes, byte origin) {
         int kept = 0;
         for (int i = 0; i < flashes.size(); i++) {
             float lat = flashes.lat()[i];
             float lon = flashes.lon()[i];
-            if (inScope(lon, lat) && ring.add(flashes.timesMs()[i], lat, lon, flashes.energyFj()[i])) {
+            if (inScope(lon, lat) && ring.add(flashes.timesMs()[i], lat, lon, flashes.energyFj()[i], origin)) {
                 kept++;
             }
         }

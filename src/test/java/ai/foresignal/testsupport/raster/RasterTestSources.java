@@ -39,8 +39,10 @@ public class RasterTestSources {
     public ai.foresignal.source.adapters.satdump.SatDumpAdapter satDumpTestStation(
             org.springframework.beans.factory.ObjectProvider<ai.foresignal.source.spi.PlacePoints> places,
             org.springframework.beans.factory.ObjectProvider<ai.foresignal.source.spi.LiveImageHolder> liveImages,
-            org.springframework.beans.factory.ObjectProvider<ai.foresignal.source.spi.RemoteMediaReceivers> receivers) {
+            org.springframework.beans.factory.ObjectProvider<ai.foresignal.source.spi.RemoteMediaReceivers> receivers,
+            org.springframework.beans.factory.ObjectProvider<ai.foresignal.source.adapters.satdump.SatDumpExtras> extras) {
+        // Prompt 107: the real DCS/EMWIN/manifest extras; they stay off until a test enables them.
         return new ai.foresignal.source.adapters.satdump.SatDumpAdapter(SATDUMP_STATION, places::getIfAvailable,
-                liveImages::getIfAvailable, receivers::getIfAvailable);
+                liveImages::getIfAvailable, receivers::getIfAvailable, () -> null, extras::getIfAvailable);
     }
 }

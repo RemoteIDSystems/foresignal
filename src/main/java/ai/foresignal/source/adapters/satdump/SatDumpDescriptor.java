@@ -143,7 +143,8 @@ public final class SatDumpDescriptor {
                 .kindRetention(SatDumpExtras.DCP_KIND, Duration.ofDays(3))
                 .kindRetention(SatDumpExtras.EMWIN_PRODUCT_KIND, Duration.ofDays(3))
                 .kindRetention(SatDumpExtras.EMWIN_WARNING_KIND, Duration.ofDays(3))
-                .significantFields("address", "data")
+                // dcp-observation (prompt 107): the address, the data and the failure code are significant.
+                .significantFields("address", "dataAscii", "dataHex", "failureCode")
                 .volatileFields("signalDbm", "freqOffsetHz")
                 .embedFields("text")
                 .kindDisplay(SatDumpExtras.DCP_KIND, new ai.foresignal.source.spi.KindDisplay("DCP {address}", "water",
@@ -186,7 +187,7 @@ public final class SatDumpDescriptor {
                         "Ingest SatDump parse_dcs JSON (DCS environmental platforms). Requires an effective bbox"
                                 + " (dcsBbox, else the places AOI).", false))
                 .param(ParamSpec.optional(SatDumpExtras.DCS_GLOB, ParamType.STRING,
-                        "Which files of a ready pass folder hold DCS JSON.", SatDumpExtras.DEFAULT_DCS_GLOB))
+                        "Which files hold DCS JSON, matched relative to inboxPath (or a remote upload folder); processed as each file settles.", SatDumpExtras.DEFAULT_DCS_GLOB))
                 .param(ParamSpec.optional(SatDumpExtras.DCS_BBOX, ParamType.BBOX,
                         "The DCS bounding box minLon,minLat,maxLon,maxLat; defaults to the places AOI.", null))
                 .param(ParamSpec.optional(SatDumpExtras.DCS_ADDRESSES, ParamType.STRING_LIST,
@@ -199,7 +200,7 @@ public final class SatDumpDescriptor {
                 .param(ParamSpec.optional(SatDumpExtras.EMWIN_ENABLED, ParamType.BOOLEAN,
                         "Ingest EMWIN products and warnings from the GOES HRIT reception.", false))
                 .param(ParamSpec.optional(SatDumpExtras.EMWIN_GLOB, ParamType.STRING,
-                        "Which files of a ready pass folder hold EMWIN products.", SatDumpExtras.DEFAULT_EMWIN_GLOB))
+                        "Which files hold EMWIN products, matched relative to inboxPath (or a remote upload folder); processed as each file settles.", SatDumpExtras.DEFAULT_EMWIN_GLOB))
                 .param(ParamSpec.optional(SatDumpExtras.EMWIN_PRODUCTS, ParamType.STRING_LIST,
                         "The AWIPS product categories to keep (the first three letters of the AWIPS id).",
                         SatDumpExtras.DEFAULT_EMWIN_PRODUCTS))
