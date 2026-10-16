@@ -32,7 +32,8 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p><strong>Privacy.</strong> When {@code locationPrivate} is true (often a home), the coordinates are rounded
  * to {@value #PRIVATE_DEGREES}° and the record carries {@link Quality#accuracyMeters()} of
- * {@value #PRIVATE_ACCURACY_METERS}; {@code locName} is omitted entirely. Only a bird's {@code subId},
+ * {@value #PRIVATE_ACCURACY_METERS}; {@code locName} and {@code locId} (which resolves to the exact location on
+ * eBird) are omitted entirely. Only a bird's {@code subId},
  * {@code speciesCode}, common and scientific names, counts and review flags are read.
  */
 public final class EbirdParser {
@@ -136,9 +137,10 @@ public final class EbirdParser {
         b.put("howMany", integral(row.get("howMany")));
         b.put("obsValid", bool(row.get("obsValid")));
         b.put("obsReviewed", bool(row.get("obsReviewed")));
-        b.put("locId", locId(row));
         b.put("obsDtLocal", obsDt);
         if (!privateLocation) {
+            // A private location's id resolves to its exact position on eBird, so it goes with the name.
+            b.put("locId", locId(row));
             b.put("locName", text(row.get("locName")));
         }
         if (privateLocation) {

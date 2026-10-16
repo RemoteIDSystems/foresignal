@@ -4818,18 +4818,26 @@ docker compose exec -T db dropdb -U foresignal restore_drill
 
 - **`inat-observations` needs an area.** iNaturalist asks that its API be used for application development, not
   scraping, so the `aoi` parameter (a `west,south,east,north` box or a place id) is required and the source
-  cannot be enabled without it. Each run reads new observations in the area and one round of revisions
-  (quality-grade changes, re-identifications).
+  cannot be enabled without it. A box must not cross the antimeridian (split it into two sources) and may be at
+  most 15° on a side. Each run reads one round of revisions (quality-grade changes, re-identifications) and new
+  observations in the area, sending no more requests than the per-minute budget (2 by default: one page of each);
+  a busy area catches up over the following runs from the stored cursor, and a run inside the upstream's
+  `Cache-Control: max-age` sends nothing.
 - **The privacy choices are deliberate.** No contributor usernames, descriptions or comments are ever stored.
-  Obscured and `private` observations keep their randomised upstream coordinates (or are skipped), and the
-  upstream's own positional accuracy is recorded. iNaturalist photo links are kept only when the photo's licence
-  is open and it is on the iNaturalist open-data host; licences are per record (see `licenseCode`).
+  Obscured observations keep their randomised upstream coordinates with the upstream's own positional accuracy;
+  `private` observations and observations without coordinates are skipped. iNaturalist photo links are kept only
+  when the photo's licence is open and its host is exactly the open-data bucket
+  (`inaturalist-open-data.s3.amazonaws.com`); licences are per record (see `licenseCode`).
 - **`ebird-notable` is off by default and non-commercial.** It needs your own eBird key (`apiKey`, one per eBird
-  account). Private locations are rounded to 0.05 degrees with a 5000 m accuracy and their place name is not
-  stored. eBird's terms are non-commercial with attribution and the source is local-only for 109/110.
+  account). Private locations are rounded to 0.05 degrees with a 5000 m accuracy, and neither their place name
+  nor their eBird location id is stored. eBird's terms are non-commercial with attribution and the source is
+  local-only for 109/110.
 - **CDC wastewater.** `cdc-nwss-wval` reads site viral-activity levels and `cdc-nwss-detections` reads pathogen
   detections, both from the current datasets (the pre-September-2025 datasets are archived). Add an optional
-  Socrata `appToken` to avoid the shared anonymous IP pool and its 429s. **A detection flip (`detected == true`)
+  Socrata `appToken` to avoid the shared anonymous IP pool and its 429s. Each run sends at most its per-minute
+  budget of requests (4), shared among the configured detection datasets in turn, and a weekly update larger
+  than that is read over the following runs; only the latest week (or sample) of each site is kept current, so a
+  re-dated older row never replaces a newer one. **A detection flip (`detected == true`)
   is the signal**; a rule with `detected == true` in `enter` catches it. All rows are public-domain US
   government data **except WastewaterSCAN rows, which are CC BY-NC 4.0**; those are dropped unless
   `includeWastewaterScan` is set, and then each carries `licenceOverride: "CC BY-NC 4.0 (WastewaterSCAN)"`, which

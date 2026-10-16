@@ -33,7 +33,8 @@ import java.util.Set;
  * count alone is not an event; the count is reported in every emitted surge.
  *
  * <p><strong>Bounded.</strong> At most {@code maxPages} pages are tracked; the least recently updated is
- * evicted and the eviction counted.
+ * evicted and the eviction counted. An evicted page that had surged gets its tombstone from the next
+ * {@link #sweep}, so its record never stays live with no one left to end it (2026-10 review).
  *
  * <p>Deterministic for identical inputs and a fixed clock (INT-1); no external state.
  */
@@ -95,6 +96,7 @@ public final class SurgeDetector {
 
     private final Config config;
     private final LinkedHashMap<String, PageState> pages = new LinkedHashMap<>(16, 0.75f, true);
+    private final List<Surge> evictedTombstones = new ArrayList<>();
     private long evictions;
 
     /** Creates the detector. */
@@ -157,7 +159,8 @@ public final class SurgeDetector {
      * @return the tombstones to emit, in a stable order
      */
     public List<Surge> sweep(Instant now) {
-        List<Surge> out = new ArrayList<>();
+        List<Surge> out = new ArrayList<>(evictedTombstones);
+        evictedTombstones.clear();
         Iterator<Map.Entry<String, PageState>> iterator = pages.entrySet().iterator();
         while (iterator.hasNext()) {
             PageState state = iterator.next().getValue();
@@ -266,9 +269,13 @@ public final class SurgeDetector {
             if (!iterator.hasNext()) {
                 return;
             }
-            iterator.next();
+            PageState evicted = iterator.next().getValue();
             iterator.remove();
             evictions++;
+            if (evicted.everActive) {
+                Instant at = evicted.lastEditAt != null ? evicted.lastEditAt : evicted.firstEditAt;
+                evictedTombstones.add(tombstone(evicted, at));
+            }
         }
     }
 

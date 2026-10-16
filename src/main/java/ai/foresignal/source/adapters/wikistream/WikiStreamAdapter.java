@@ -58,7 +58,14 @@ import org.springframework.stereotype.Component;
  * stored; only a hashed editor name is held in memory inside the detector.
  *
  * <p>A surge's page is geotagged with one budgeted {@code action=query&prop=coordinates} request against the
- * wiki's own API, restricted to a {@code *.wikipedia.org} host and cached 24 h.
+ * wiki's own API, restricted to a {@code *.wikipedia.org} host and cached 24 h; every phase of the surge carries
+ * the point.
+ *
+ * <p><strong>State writes are periodic</strong> (2026-10 review). A stream's adapter state writes through to the
+ * database (it is not staged like a polling fetch's), so the last event id is kept in memory and persisted every
+ * {@value #EVENT_ID_PERSIST_EVERY} events, every 30 s while events arrive, and when a connection ends; a restart
+ * replays at most that much, which the writer deduplicates. The detector is swept every minute while a
+ * connection is open, so ended and evicted surges are tombstoned without waiting for the server's close.
  */
 @Component
 public final class WikiStreamAdapter implements StreamingAdapter {
@@ -90,6 +97,18 @@ public final class WikiStreamAdapter implements StreamingAdapter {
 
     /** The state key of the last SSE event id, stored verbatim. */
     static final String LAST_EVENT_ID_KEY = "wiki:lastEventId";
+
+    /**
+     * Persist the last event id after this many events (2026-10 review: once per event was millions of database
+     * writes a day). It is also persisted every {@link #EVENT_ID_PERSIST_INTERVAL} and when a connection ends.
+     */
+    static final int EVENT_ID_PERSIST_EVERY = 1_000;
+
+    /** Persist the last event id at least this often while events arrive. */
+    static final Duration EVENT_ID_PERSIST_INTERVAL = Duration.ofSeconds(30);
+
+    /** How often the detector is swept for ended surges while a connection is open. */
+    static final Duration SWEEP_INTERVAL = Duration.ofMinutes(1);
 
     /** The geotag cache time-to-live. */
     static final Duration GEO_CACHE_TTL = Duration.ofHours(24);
@@ -270,6 +289,13 @@ public final class WikiStreamAdapter implements StreamingAdapter {
         private volatile Throwable lastFailure;
         private Thread thread;
 
+        /** The newest event id read, kept in memory and persisted periodically. */
+        private volatile String lastEventId;
+        private String persistedEventId;
+        private int eventsSincePersist;
+        private Instant persistedAt = Instant.EPOCH;
+        private Instant lastSweep = Instant.EPOCH;
+
         private record CachedPoint(Instant at, double[] point) {}
 
         WikiSession(WikiStreamAdapter adapter, StreamContext ctx, RecordSink sink, Set<String> wikis,
@@ -288,7 +314,6 @@ public final class WikiStreamAdapter implements StreamingAdapter {
         @Override
         public void run() {
             int attempt = 0;
-            Instant lastSweep = Instant.EPOCH;
             try {
                 while (running) {
                     long began = System.nanoTime();
@@ -305,11 +330,7 @@ public final class WikiStreamAdapter implements StreamingAdapter {
                         break;
                     }
                     long connectedMs = (System.nanoTime() - began) / 1_000_000L;
-                    Instant now = ctx.clock().instant();
-                    if (lastSweep == Instant.EPOCH || Duration.between(lastSweep, now).compareTo(Duration.ofMinutes(1)) >= 0) {
-                        lastSweep = now;
-                        emit(detector.sweep(now));
-                    }
+                    sweepIfDue(true);
                     Duration delay;
                     if (failure == null && connectedMs >= NORMAL_CLOSE.toMillis()) {
                         delay = Duration.ofMillis(50);
@@ -323,6 +344,7 @@ public final class WikiStreamAdapter implements StreamingAdapter {
                 }
             } finally {
                 running = false;
+                persistEventId();
                 try {
                     onClose.accept(lastFailure);
                 } catch (RuntimeException ignored) {
@@ -336,7 +358,10 @@ public final class WikiStreamAdapter implements StreamingAdapter {
             Map<String, String> headers = new LinkedHashMap<>();
             headers.put("Accept", "text/event-stream");
             headers.put("Cache-Control", "no-cache");
-            ctx.state().get(LAST_EVENT_ID_KEY).ifPresent(id -> headers.put("Last-Event-ID", id));
+            String resumeFrom = lastEventId != null ? lastEventId : ctx.state().get(LAST_EVENT_ID_KEY).orElse(null);
+            if (resumeFrom != null) {
+                headers.put("Last-Event-ID", resumeFrom);
+            }
             HttpStream stream = ctx.http().openStream(adapter.streamUri(), headers);
             current = stream;
             if (!everConnected) {
@@ -365,6 +390,49 @@ public final class WikiStreamAdapter implements StreamingAdapter {
             } finally {
                 current = null;
                 stream.close();
+                persistEventId();
+            }
+        }
+
+        /**
+         * Sweeps the detector for ended (and evicted) surges once per {@link #SWEEP_INTERVAL}, also while a
+         * connection stays open, so a surge's tombstone does not wait for the server's 15-minute close.
+         *
+         * @param force sweep on the first call even before the interval has elapsed
+         */
+        private void sweepIfDue(boolean force) {
+            Instant now = ctx.clock().instant();
+            if ((force && lastSweep == Instant.EPOCH)
+                    || Duration.between(lastSweep, now).compareTo(SWEEP_INTERVAL) >= 0) {
+                lastSweep = now;
+                emit(detector.sweep(now));
+            }
+        }
+
+        /** Remembers the newest event id; writes it to the adapter state every N events or seconds. */
+        private void noteEventId(String eventId) {
+            lastEventId = eventId;
+            eventsSincePersist++;
+            Instant now = ctx.clock().instant();
+            if (eventsSincePersist >= EVENT_ID_PERSIST_EVERY
+                    || Duration.between(persistedAt, now).compareTo(EVENT_ID_PERSIST_INTERVAL) >= 0) {
+                persistEventId();
+            }
+        }
+
+        /** Writes the newest event id to the adapter state, when it changed since the last write. */
+        private synchronized void persistEventId() {
+            String id = lastEventId;
+            eventsSincePersist = 0;
+            persistedAt = ctx.clock().instant();
+            if (id == null || id.equals(persistedEventId)) {
+                return;
+            }
+            try {
+                ctx.state().put(LAST_EVENT_ID_KEY, id);
+                persistedEventId = id;
+            } catch (RuntimeException e) {
+                ctx.log().debug("{}: could not persist the last event id: {}", ID, e.getMessage());
             }
         }
 
@@ -390,8 +458,9 @@ public final class WikiStreamAdapter implements StreamingAdapter {
 
         private void dispatch(String eventId, String data) {
             if (eventId != null && !eventId.isBlank()) {
-                ctx.state().put(LAST_EVENT_ID_KEY, eventId);
+                noteEventId(eventId);
             }
+            sweepIfDue(false);
             if (data == null) {
                 return;
             }
@@ -418,11 +487,11 @@ public final class WikiStreamAdapter implements StreamingAdapter {
                 }
                 NormalizedRecord.Builder b = NormalizedRecord.builder(externalId(surge), KIND)
                         .observedAt(surge.observedAt());
-                if (SurgeDetector.RISING.equals(surge.phase())) {
-                    double[] point = geotag(surge);
-                    if (point != null) {
-                        b.point(point[0], point[1]);
-                    }
+                // Every phase carries the page's geometry (2026-10 review): the geotag is requested once per
+                // surge and cached, so a peak or fading record no longer drops the point its rising one had.
+                double[] point = geotag(surge);
+                if (point != null) {
+                    b.point(point[0], point[1]);
                 }
                 b.put("wiki", surge.wiki());
                 b.put("title", surge.title());
@@ -440,7 +509,7 @@ public final class WikiStreamAdapter implements StreamingAdapter {
             return surge.wiki() + ":" + surge.title();
         }
 
-        /** The cached geotag point of a rising surge, fetched once with one budgeted request. */
+        /** The cached geotag point of a surge, fetched once (per 24 h) with one budgeted request. */
         private double[] geotag(SurgeDetector.Surge surge) {
             URI uri = geotagUri(surge.url() == null ? null : serverUrl(surge.url()), surge.title());
             if (uri == null) {

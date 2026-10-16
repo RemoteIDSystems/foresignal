@@ -96,6 +96,24 @@ class WikiStreamAdapterTest extends WireMockSupport {
     }
 
     @Test
+    @DisplayName("the last event id is persisted when a connection ends, not once per event")
+    void eventIdPersistedPeriodically() throws Exception {
+        serve(sseBody(15, "http://localhost/wiki/Example", "enwiki"));
+        WikiTestContext ctx = context();
+        String lastId = "[{\"topic\":\"t\",\"partition\":0,\"offset\":14}]";
+
+        StreamHandle handle = adapter.start(ctx, record -> {});
+        try {
+            await(() -> lastId.equals(ctx.stateValue(WikiStreamAdapter.LAST_EVENT_ID_KEY)));
+        } finally {
+            handle.close();
+        }
+
+        assertThat(ctx.stateValue(WikiStreamAdapter.LAST_EVENT_ID_KEY)).isEqualTo(lastId);
+        assertThat(ctx.statePuts()).isLessThan(15);
+    }
+
+    @Test
     @DisplayName("a 429 waits thirty seconds, and the ladder is 1 s, 5 s, 30 s, 120 s")
     void throttleAndLadder() {
         assertThat(adapter.delayFor(0, new UpstreamHttpException(429, "slow down")))

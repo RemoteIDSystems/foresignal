@@ -51,10 +51,14 @@ import org.springframework.stereotype.Component;
  * {@code aoi} parameter (a {@code west,south,east,north} box or a 036 place id) is required, so the source
  * cannot be enabled without one.
  *
- * <p><strong>Two requests per run:</strong> one ascending {@code id_above} walk (at most
- * {@value #MAX_PAGES} pages) for new observations, and one {@code updated_since} request for revisions
- * (quality-grade changes, re-identifications), each limited to the AOI. {@code id_above} and the run time are
- * kept in adapter state.
+ * <p><strong>Requests per run fit the budget</strong> (2026-10 review). One {@code updated_since} request for
+ * revisions (quality-grade changes, re-identifications) and an ascending {@code id_above} walk for new
+ * observations, each limited to the AOI, together send at most as many requests as the descriptor's per-minute
+ * budget allows (2 by default, so one page of new observations and one of revisions; never more than
+ * {@value #MAX_PAGES} pages). A walk that does not finish resumes from the stored {@code id_above} cursor on the
+ * next run, and a request the budget or the network refuses part-way ends the run with what was already read
+ * instead of failing it. {@code id_above}, the revision watermark and the {@code Cache-Control: max-age}
+ * freshness are kept in adapter state; a run inside the upstream's {@code max-age} sends nothing.
  *
  * <p><strong>Privacy</strong> (Core-Data-Model §3, prompt 039): obscured and geoprivacy-private observations
  * are handled by {@link InatParser}; contributor usernames, descriptions and comments are never read.
@@ -102,6 +106,11 @@ public class InatObservationsAdapter implements PollingAdapter {
     /** The state key of the last run time, the next {@code updated_since}. */
     static final String LAST_RUN_KEY = "inat:lastRun";
 
+    /** The state key of the instant until which the last response is fresh ({@code Cache-Control: max-age}). */
+    static final String FRESH_UNTIL_KEY = "inat:freshUntil";
+
+    private static final Pattern MAX_AGE = Pattern.compile("(?:^|[,\\s])max-age\\s*=\\s*(\\d+)");
+
     /** The page size. */
     public static final int PER_PAGE = 200;
 
@@ -110,6 +119,12 @@ public class InatObservationsAdapter implements PollingAdapter {
 
     /** The half-width of the box built around a place point, degrees. */
     static final double PLACE_DEGREES = 0.25;
+
+    /**
+     * The largest AOI side, degrees of longitude or latitude (2026-10 review). iNaturalist asks not to be polled
+     * globally; a box this size already covers a large state.
+     */
+    static final double MAX_AOI_DEGREES = 15.0;
 
     /** Raw retention: observations are the {@code event} analytic class (Conventions), 1825 days. */
     static final Duration RETENTION = Duration.ofDays(1825);
@@ -177,10 +192,43 @@ public class InatObservationsAdapter implements PollingAdapter {
         if (aoi == null || aoi.isBlank()) {
             problems.put(AOI_PARAM, "is required: iNaturalist must not be polled globally; give a bbox"
                     + " (west,south,east,north) or a place id");
-        } else if (!isBbox(aoi) && resolvePlace(aoi) == null) {
+        } else if (isBbox(aoi)) {
+            String problem = bboxProblem(aoi);
+            if (problem != null) {
+                problems.put(AOI_PARAM, problem);
+            }
+        } else if (resolvePlace(aoi) == null) {
             problems.put(AOI_PARAM, "'" + aoi + "' is neither a west,south,east,north box nor a known place id");
         }
         return problems;
+    }
+
+    /**
+     * What is wrong with a {@code west,south,east,north} box, or null when it is usable: out-of-range
+     * coordinates, south above north, a box crossing the antimeridian (west east of east; swapping the two would
+     * silently turn it into a near-global box), or a side longer than {@value #MAX_AOI_DEGREES}°.
+     */
+    static String bboxProblem(String aoi) {
+        String[] parts = aoi.split(",");
+        double west = Double.parseDouble(parts[0].strip());
+        double south = Double.parseDouble(parts[1].strip());
+        double east = Double.parseDouble(parts[2].strip());
+        double north = Double.parseDouble(parts[3].strip());
+        if (Math.abs(west) > 180 || Math.abs(east) > 180 || Math.abs(south) > 90 || Math.abs(north) > 90) {
+            return "the box is out of range: longitudes are -180..180 and latitudes -90..90";
+        }
+        if (south >= north) {
+            return "south (" + south + ") must be below north (" + north + ")";
+        }
+        if (west >= east) {
+            return "west (" + west + ") must be west of east (" + east + "); a box across the antimeridian is not"
+                    + " supported, so split it into two sources";
+        }
+        if (east - west > MAX_AOI_DEGREES || north - south > MAX_AOI_DEGREES) {
+            return "the box is larger than " + MAX_AOI_DEGREES + "° on a side; iNaturalist must not be polled"
+                    + " over large areas";
+        }
+        return null;
     }
 
     /**
@@ -197,12 +245,57 @@ public class InatObservationsAdapter implements PollingAdapter {
             throw new AdapterException(ID + ": the aoi parameter is required and must resolve to a box");
         }
         InatParser.Options options = options(params);
+        Instant now = ctx.now();
+        Optional<Instant> freshUntil = ctx.state().get(FRESH_UNTIL_KEY).flatMap(InatObservationsAdapter::parseInstant);
+        if (freshUntil.isPresent() && now.isBefore(freshUntil.get())) {
+            // iNaturalist's Cache-Control: max-age says the last answer is still current.
+            return FetchResult.unchanged();
+        }
         Map<String, NormalizedRecord> out = new LinkedHashMap<>();
+        int allowance = requestsPerRun(ctx.descriptor());
+        Instant fresh = null;
+
+        // Revisions first: one request, whose watermark only moves when it was read.
+        Optional<Instant> lastRun = ctx.state().get(LAST_RUN_KEY).flatMap(InatObservationsAdapter::parseInstant);
+        if (lastRun.isPresent()) {
+            UpstreamResponse response =
+                    ctx.http().get(revisionUri(box, options, lastRun.get()), Map.of("Accept", "application/json"));
+            allowance--;
+            if (response.truncated()) {
+                throw new UpstreamFormatException("iNaturalist revisions exceeded maxResponseBytes", null);
+            }
+            InatParser.Result parsed = InatParser.parse(response.body(), options);
+            Instant newest = null;
+            for (NormalizedRecord record : parsed.records()) {
+                putNewest(out, record);
+                if (record.observedAt() != null && (newest == null || record.observedAt().isAfter(newest))) {
+                    newest = record.observedAt();
+                }
+            }
+            // A full page may have more behind it: continue from its newest update next run, not from now.
+            ctx.state().put(LAST_RUN_KEY,
+                    (parsed.rows() >= PER_PAGE && newest != null ? newest : now).toString());
+            fresh = later(fresh, freshUntil(response, now));
+        } else {
+            ctx.state().put(LAST_RUN_KEY, now.toString());
+        }
 
         Optional<String> cursor = ctx.state().get(MAX_ID_KEY);
         long maxId = cursor.map(InatObservationsAdapter::parseLong).orElse(0L);
-        for (int page = 0; page < MAX_PAGES; page++) {
-            UpstreamResponse response = ctx.http().get(idUri(box, options, cursor), Map.of("Accept", "application/json"));
+        // At least one page of new observations per run, even when the revisions used the allowance up.
+        int pages = Math.min(MAX_PAGES, Math.max(1, allowance));
+        for (int page = 0; page < pages; page++) {
+            UpstreamResponse response;
+            try {
+                response = ctx.http().get(idUri(box, options, cursor), Map.of("Accept", "application/json"));
+            } catch (AdapterException e) {
+                if ((page == 0 && lastRun.isEmpty()) || e.httpStatus().isPresent()) {
+                    throw e;
+                }
+                // Refused by the budget or the network part-way: keep what was read; the cursor resumes it.
+                ctx.log().info("{}: stopped after {} page(s): {}", ID, page, e.getMessage());
+                break;
+            }
             if (response.truncated()) {
                 throw new UpstreamFormatException("iNaturalist observations page exceeded maxResponseBytes", null);
             }
@@ -211,28 +304,56 @@ public class InatObservationsAdapter implements PollingAdapter {
                 putNewest(out, record);
             }
             maxId = Math.max(maxId, parsed.maxId());
+            fresh = later(fresh, freshUntil(response, now));
+            if (maxId > 0) {
+                ctx.state().put(MAX_ID_KEY, Long.toString(maxId));
+            }
             if (parsed.rows() < PER_PAGE) {
                 break;
             }
             cursor = Optional.of(Long.toString(maxId));
         }
-        ctx.state().put(MAX_ID_KEY, Long.toString(maxId));
-
-        Optional<Instant> lastRun = ctx.state().get(LAST_RUN_KEY).flatMap(InatObservationsAdapter::parseInstant);
-        if (lastRun.isPresent()) {
-            UpstreamResponse response =
-                    ctx.http().get(revisionUri(box, options, lastRun.get()), Map.of("Accept", "application/json"));
-            if (response.truncated()) {
-                throw new UpstreamFormatException("iNaturalist revisions exceeded maxResponseBytes", null);
-            }
-            for (NormalizedRecord record : InatParser.parse(response.body(), options).records()) {
-                putNewest(out, record);
-            }
+        if (fresh != null) {
+            ctx.state().put(FRESH_UNTIL_KEY, fresh.toString());
         }
-        ctx.state().put(LAST_RUN_KEY, ctx.now().toString());
         ctx.log().debug("{}: {} observation(s) from box {},{},{},{}", ID, out.size(), box.getMinX(), box.getMinY(),
                 box.getMaxX(), box.getMaxY());
         return FetchResult.of(new ArrayList<>(out.values()));
+    }
+
+    /**
+     * The requests one run may send: the descriptor's per-minute budget (the bucket refills fully between the
+     * 30-minute runs), at least 1 and at most {@value #MAX_PAGES} + 1.
+     */
+    static int requestsPerRun(SourceDescriptor descriptor) {
+        Budget budget = descriptor.defaultBudget();
+        int perMinute = budget == null ? 1 : (int) Math.min(Integer.MAX_VALUE, budget.perMinute());
+        return Math.max(1, Math.min(MAX_PAGES + 1, perMinute));
+    }
+
+    /** {@code now} plus the response's {@code Cache-Control: max-age}, or null when it sends none. */
+    static Instant freshUntil(UpstreamResponse response, Instant now) {
+        String cacheControl = response.header("Cache-Control");
+        if (cacheControl == null) {
+            return null;
+        }
+        java.util.regex.Matcher m = MAX_AGE.matcher(cacheControl.toLowerCase(Locale.ROOT));
+        if (!m.find()) {
+            return null;
+        }
+        try {
+            long seconds = Long.parseLong(m.group(1));
+            return seconds <= 0 ? null : now.plusSeconds(Math.min(seconds, Duration.ofHours(1).toSeconds()));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static Instant later(Instant a, Instant b) {
+        if (a == null) {
+            return b;
+        }
+        return b == null || a.isAfter(b) ? a : b;
     }
 
     /** The new-observation request: ascending {@code id_above} once a cursor exists, else newest-first seeding. */
@@ -275,13 +396,15 @@ public class InatObservationsAdapter implements PollingAdapter {
             return null;
         }
         if (isBbox(aoi)) {
+            if (bboxProblem(aoi) != null) {
+                return null;
+            }
             String[] parts = aoi.split(",");
-            double minLon = Double.parseDouble(parts[0].strip());
-            double minLat = Double.parseDouble(parts[1].strip());
-            double maxLon = Double.parseDouble(parts[2].strip());
-            double maxLat = Double.parseDouble(parts[3].strip());
-            return new Envelope(Math.min(minLon, maxLon), Math.max(minLon, maxLon),
-                    Math.min(minLat, maxLat), Math.max(minLat, maxLat));
+            double west = Double.parseDouble(parts[0].strip());
+            double south = Double.parseDouble(parts[1].strip());
+            double east = Double.parseDouble(parts[2].strip());
+            double north = Double.parseDouble(parts[3].strip());
+            return new Envelope(west, east, south, north);
         }
         double[] point = resolvePlace(aoi);
         if (point == null) {
@@ -343,9 +466,10 @@ public class InatObservationsAdapter implements PollingAdapter {
         SourceDescriptor.Builder b = SourceDescriptor.builder(ID)
                 .name("iNaturalist observations")
                 .description("Recent iNaturalist observations in an operator's area, from the v1 observations API."
-                        + " An AOI is required (iNaturalist asks clients not to poll globally). Obscured and"
-                        + " geoprivacy-private observations are placed at their randomised upstream coordinates;"
-                        + " contributor usernames, descriptions and comments are never stored. Per-record CC"
+                        + " An AOI is required (iNaturalist asks clients not to poll globally). Obscured"
+                        + " observations are placed at their randomised upstream coordinates with their positional"
+                        + " accuracy; geoprivacy-private observations and observations without coordinates are"
+                        + " skipped; contributor usernames, descriptions and comments are never stored. Per-record CC"
                         + " licences; photos are linked only when their licence is open and they are on the"
                         + " iNaturalist open-data host.")
                 .kind(KIND)

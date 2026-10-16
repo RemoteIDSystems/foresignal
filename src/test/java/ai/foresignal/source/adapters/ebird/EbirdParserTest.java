@@ -48,10 +48,10 @@ class EbirdParserTest {
     }
 
     @Test
-    @DisplayName("a private location is rounded, flagged 5000 m and has no locName")
+    @DisplayName("a private location is rounded, flagged 5000 m and has no locName or locId")
     void privateLocation() {
         NormalizedRecord record = bySubId(EbirdParser.parse(FIXTURE, CHICAGO).records(), "S222222");
-        assertThat(record.payload()).doesNotContainKey("locName");
+        assertThat(record.payload()).doesNotContainKey("locName").doesNotContainKey("locId");
         assertThat(record.quality().accuracyMeters()).isEqualTo(5000.0);
         assertThat(record.geometry().getCoordinate().getX()).isEqualTo(-97.75);
         assertThat(record.geometry().getCoordinate().getY()).isEqualTo(30.30);

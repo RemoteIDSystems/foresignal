@@ -54,4 +54,27 @@ class NwssWvalParserTest {
         assertThat(ca.observedAt()).isEqualTo(Instant.parse("2026-09-11T00:00:00Z"));
         assertThat(ca.payload().get("geometryApproximate")).isNull();
     }
+
+    @Test
+    @DisplayName("several weeks of one site and pathogen fold to the latest week, whatever the row order")
+    void latestWeekWins() {
+        String rows = """
+                [
+                 {"site":"CA-9","pathogen_target":"RSV","wval":"2.0","week_end":"2026-09-12",
+                  "date_updated":"2026-09-18T00:00:00.000","source":"CDC","state":"CA"},
+                 {"site":"CA-9","pathogen_target":"RSV","wval":"9.0","week_end":"2026-09-05",
+                  "date_updated":"2026-09-25T00:00:00.000","source":"CDC","state":"CA"},
+                 {"site":"CA-9","pathogen_target":"RSV","wval":"3.0","week_end":"2026-09-12",
+                  "date_updated":"2026-09-19T00:00:00.000","source":"CDC","state":"CA"}
+                ]
+                """;
+        NwssWvalParser.Result result = NwssWvalParser.parse(
+                rows.getBytes(java.nio.charset.StandardCharsets.UTF_8), new NwssWvalParser.Options(false));
+
+        assertThat(result.levels()).hasSize(1);
+        NwssWvalParser.Level level = result.levels().get(0);
+        assertThat(level.weekEndInstant()).isEqualTo(Instant.parse("2026-09-12T00:00:00Z"));
+        assertThat(level.wval()).isEqualTo(3.0);
+        assertThat(result.skipped()).isEqualTo(2);
+    }
 }

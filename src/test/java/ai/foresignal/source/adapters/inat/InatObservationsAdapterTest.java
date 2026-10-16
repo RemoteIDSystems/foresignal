@@ -42,11 +42,24 @@ class InatObservationsAdapterTest extends WireMockSupport {
 
     @BeforeEach
     void setUp() {
-        harness = new AdapterHttpHarness(jdbc, jsonMapper, properties, install, new MutableClock(NOON),
-                Budget.of(100, 10_000));
-        harness.reset(InatObservationsAdapter.ID, InatObservationsAdapter.MAX_ID_KEY,
-                InatObservationsAdapter.LAST_RUN_KEY);
         adapter = new InatObservationsAdapter(baseUrl(), PlaceTimeZones.none(), () -> null);
+        // The descriptor's own budget (2/min, 500/day): a run must fit it, not a raised test budget.
+        harness = harness(adapter.descriptor().defaultBudget());
+    }
+
+    private AdapterHttpHarness harness(Budget budget) {
+        AdapterHttpHarness h = new AdapterHttpHarness(jdbc, jsonMapper, properties, install, new MutableClock(NOON),
+                budget);
+        h.reset(InatObservationsAdapter.ID, InatObservationsAdapter.MAX_ID_KEY,
+                InatObservationsAdapter.LAST_RUN_KEY, InatObservationsAdapter.FRESH_UNTIL_KEY);
+        return h;
+    }
+
+    @Test
+    @DisplayName("the default budget is the documented 2/min and 500/day")
+    void defaultBudget() {
+        assertThat(adapter.descriptor().defaultBudget()).isEqualTo(Budget.of(2, 500));
+        assertThat(InatObservationsAdapter.requestsPerRun(adapter.descriptor())).isEqualTo(2);
     }
 
     @Test
@@ -78,16 +91,57 @@ class InatObservationsAdapterTest extends WireMockSupport {
     }
 
     @Test
-    @DisplayName("a first run seeds the cursor newest-first and stops after at most five pages")
-    void atMostFivePages() throws Exception {
+    @DisplayName("a first run seeds the cursor newest-first and sends no more requests than the budget allows")
+    void runFitsTheBudget() throws Exception {
         WIREMOCK.stubFor(get(urlPathEqualTo("/v1/observations")).willReturn(aResponse().withStatus(200)
                 .withHeader("Content-Type", "application/json").withBody(fullPage())));
+
+        var result = adapter.fetch(context());
+
+        assertThat(WIREMOCK.getAllServeEvents()).hasSize(2);
+        assertThat(result.records()).hasSize(InatObservationsAdapter.PER_PAGE);
+        assertThat(harness.client.stateStore(InatObservationsAdapter.ID).get(InatObservationsAdapter.MAX_ID_KEY))
+                .contains("200");
+        assertThat(harness.client.stateStore(InatObservationsAdapter.ID).get(InatObservationsAdapter.LAST_RUN_KEY))
+                .contains(NOON.toString());
+    }
+
+    @Test
+    @DisplayName("a page the budget refuses part-way ends the run with what was read; the cursor resumes it")
+    void refusalPartWayKeepsProgress() throws Exception {
+        harness = harness(Budget.of(1, 500));
+        WIREMOCK.stubFor(get(urlPathEqualTo("/v1/observations")).willReturn(aResponse().withStatus(200)
+                .withHeader("Content-Type", "application/json").withBody(fullPage())));
+
+        var result = adapter.fetch(context());
+
+        assertThat(WIREMOCK.getAllServeEvents()).hasSize(1);
+        assertThat(result.records()).hasSize(InatObservationsAdapter.PER_PAGE);
+        assertThat(harness.client.stateStore(InatObservationsAdapter.ID).get(InatObservationsAdapter.MAX_ID_KEY))
+                .contains("200");
+    }
+
+    @Test
+    @DisplayName("Cache-Control max-age is honored: a run inside it sends nothing")
+    void honorsMaxAge() throws Exception {
+        WIREMOCK.stubFor(get(urlPathEqualTo("/v1/observations")).willReturn(aResponse().withStatus(200)
+                .withHeader("Content-Type", "application/json").withHeader("Cache-Control", "public, max-age=300")
+                .withBody(AdapterFixtures.text(InatObservationsAdapter.ID, "observations.json"))));
         adapter.fetch(context());
-        assertThat(WIREMOCK.getAllServeEvents()).hasSize(InatObservationsAdapter.MAX_PAGES);
+        int sent = WIREMOCK.getAllServeEvents().size();
+
+        harness.clock.advance(java.time.Duration.ofSeconds(120));
+        var inside = adapter.fetch(context());
+        assertThat(inside.notModified()).isTrue();
+        assertThat(WIREMOCK.getAllServeEvents()).hasSize(sent);
+
+        harness.clock.advance(java.time.Duration.ofSeconds(240));
+        adapter.fetch(context());
+        assertThat(WIREMOCK.getAllServeEvents().size()).isGreaterThan(sent);
     }
 
     private DefaultFetchContext context() {
-        return harness.context(adapter, Map.of(InatObservationsAdapter.AOI_PARAM, "30,-98,31,-97"), null);
+        return harness.context(adapter, Map.of(InatObservationsAdapter.AOI_PARAM, "-98,30,-97,31"), null);
     }
 
     private static void serveFixture() {

@@ -83,6 +83,19 @@ class InatParserTest {
     }
 
     @Test
+    @DisplayName("the photo host must equal the open-data bucket host, not merely contain its name")
+    void photoHostEquality() {
+        assertThat(InatParser.isOpenDataUrl("https://inaturalist-open-data.s3.amazonaws.com/photos/1/a.jpg")).isTrue();
+        assertThat(InatParser.isOpenDataUrl("https://INATURALIST-OPEN-DATA.s3.amazonaws.com/photos/1/a.jpg")).isTrue();
+        assertThat(InatParser.isOpenDataUrl("https://inaturalist-open-data.example.net/a.jpg")).isFalse();
+        assertThat(InatParser.isOpenDataUrl("https://static.inaturalist.org/photos/1/a.jpg?inaturalist-open-data"))
+                .isFalse();
+        assertThat(InatParser.isOpenDataUrl("http://inaturalist-open-data.s3.amazonaws.com/a.jpg")).isFalse();
+        assertThat(InatParser.isOpenDataUrl("not a url")).isFalse();
+        assertThat(InatParser.isOpenDataUrl(null)).isFalse();
+    }
+
+    @Test
     @DisplayName("no contributor identity, description or comment is ever stored")
     void noUserFields() {
         for (NormalizedRecord record : InatParser.parse(FIXTURE, defaults()).records()) {

@@ -271,7 +271,8 @@ public class EbirdNotableAdapter implements PollingAdapter {
                 + " observation valid", null, Set.of()));
         b.fieldSpec("obsReviewed", new FieldSpec(FieldType.BOOLEAN, null, "Reviewed",
                 "Whether a reviewer has looked at the observation", null, Set.of()));
-        b.fieldSpec("locId", new FieldSpec(FieldType.STRING, null, "Location id", "eBird location id", null,
+        b.fieldSpec("locId", new FieldSpec(FieldType.STRING, null, "Location id",
+                "eBird location id, omitted when the location is private", null,
                 Set.of()));
         b.fieldSpec("locName", new FieldSpec(FieldType.STRING, null, "Location name",
                 "Location name, omitted when the location is private", null, Set.of()));

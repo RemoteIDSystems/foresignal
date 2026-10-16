@@ -5,7 +5,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.locationtech.jts.geom.Geometry;
 import tools.jackson.databind.JsonNode;
 
@@ -15,7 +17,10 @@ import tools.jackson.databind.JsonNode;
  *
  * <p>A pure function of its inputs (adapter rule 3); the geometry is resolved by the adapter through
  * {@link NwssGeometry} and passed to {@link #toRecord}. {@code externalId} is {@code {site}:{pathogen_target}};
- * {@code observedAt} is {@code date_updated}, {@code eventTime} is {@code week_end}.
+ * {@code observedAt} is {@code date_updated}, {@code eventTime} is {@code week_end}. The rows are folded to
+ * <strong>one level per site and pathogen: its latest {@code week_end}</strong> (a later {@code date_updated}
+ * breaks a tie), so a batch holding several weeks, or a re-dated older week, never leaves an older week current
+ * (2026-10 review).
  *
  * <p><strong>Licence split.</strong> Rows with {@code source = WastewaterSCAN} are CC BY-NC 4.0 (Stanford) and
  * are dropped unless {@code includeWastewaterScan} is set; when kept they carry a {@code licenceOverride}
@@ -68,9 +73,9 @@ public final class NwssWvalParser {
 
     /** One parsed dataset.
      *
-     * @param levels the kept levels, in response order
+     * @param levels the kept levels, one per site and pathogen, in order of first appearance
      * @param rows the length of the array
-     * @param skipped rows dropped for a missing key, value or time
+     * @param skipped rows dropped for a missing key, value or time, or folded into a later week of their key
      * @param wastewaterScanSkipped rows dropped because they were WastewaterSCAN and the parameter was off
      */
     public record Result(List<Level> levels, int rows, int skipped, int wastewaterScanSkipped) {
@@ -88,7 +93,7 @@ public final class NwssWvalParser {
 
     /** Parses a decoded JSON array. */
     public static Result parse(JsonNode array, Options options) {
-        List<Level> levels = new ArrayList<>();
+        Map<String, Level> latest = new LinkedHashMap<>();
         int skipped = 0;
         int wwscan = 0;
         for (JsonNode row : array) {
@@ -111,11 +116,36 @@ public final class NwssWvalParser {
                 wwscan++;
                 continue;
             }
-            levels.add(new Level(site, pathogen, oneDecimal(wval), CdcText.text(row.get("site_wval_category")),
+            Level level = new Level(site, pathogen, oneDecimal(wval), CdcText.text(row.get("site_wval_category")),
                     eventTime, CdcText.text(row.get("state")), CdcText.text(row.get("counties_served")),
-                    CdcText.integral(row.get("population_served")), source, observedAt, eventTime, wastewaterScan));
+                    CdcText.integral(row.get("population_served")), source, observedAt, eventTime, wastewaterScan);
+            Level current = latest.get(level.key());
+            if (current == null) {
+                latest.put(level.key(), level);
+            } else {
+                skipped++;
+                if (newer(level, current)) {
+                    latest.put(level.key(), level);
+                }
+            }
         }
-        return new Result(levels, array.size(), skipped, wwscan);
+        return new Result(new ArrayList<>(latest.values()), array.size(), skipped, wwscan);
+    }
+
+    /**
+     * True when {@code a} describes a later week than {@code b}; for the same week, a later {@code date_updated}
+     * (or, for equal ones, the later row) wins. A level without a week end is older than one with.
+     */
+    static boolean newer(Level a, Level b) {
+        Instant aw = a.weekEndInstant();
+        Instant bw = b.weekEndInstant();
+        if (aw == null || bw == null) {
+            return aw != null || (bw == null && !a.observedAt().isBefore(b.observedAt()));
+        }
+        if (!aw.equals(bw)) {
+            return aw.isAfter(bw);
+        }
+        return !a.observedAt().isBefore(b.observedAt());
     }
 
     /** The {@code wastewater-level} record of one level. */

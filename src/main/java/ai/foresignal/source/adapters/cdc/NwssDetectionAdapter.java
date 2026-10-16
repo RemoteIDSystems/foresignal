@@ -4,6 +4,7 @@ import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.CountyGeometries;
 import ai.foresignal.source.spi.CredentialField;
+import ai.foresignal.source.spi.CurrentRecords;
 import ai.foresignal.source.spi.FetchContext;
 import ai.foresignal.source.spi.FetchResult;
 import ai.foresignal.source.spi.FieldSpec;
@@ -23,15 +24,17 @@ import ai.foresignal.source.spi.ValidatedParams;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import org.locationtech.jts.geom.Point;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import tools.jackson.databind.JsonNode;
 
 /**
  * {@code cdc-nwss-detections} (prompt 095): CDC NWSS wastewater detections of select pathogens, from one current
@@ -87,27 +90,47 @@ public class NwssDetectionAdapter implements PollingAdapter {
 
     private static final SourceDescriptor DESCRIPTOR = buildDescriptor();
 
+    /** The state key of the index of the dataset the next run reads first (round-robin across runs). */
+    static final String NEXT_DATASET_KEY = "nwss-det:next";
+
+    /** The most current heads read to reject a re-dated older sample. */
+    static final int CURRENT_LIMIT = 100_000;
+
     private final SodaClient soda;
     private final NwssGeometry geometry;
+    private final Supplier<CurrentRecords> current;
 
     /**
      * Creates the adapter.
      *
      * @param baseUrlOverride the value of {@value #BASE_URL_PROPERTY}; blank means {@value #DEFAULT_BASE_URL}
      * @param counties the 040 county outlines for geometry
+     * @param current this source's current heads, to reject a re-dated older sample; resolved lazily
      */
     @Autowired
     public NwssDetectionAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride,
-            CountyGeometries counties) {
-        this.soda = new SodaClient(baseUrlOverride == null || baseUrlOverride.isBlank()
-                ? DEFAULT_BASE_URL : baseUrlOverride.trim());
-        this.geometry = new NwssGeometry(counties);
+            CountyGeometries counties, ObjectProvider<CurrentRecords> current) {
+        this(new SodaClient(baseUrlOverride == null || baseUrlOverride.isBlank()
+                ? DEFAULT_BASE_URL : baseUrlOverride.trim()), counties,
+                current == null ? () -> null : (Supplier<CurrentRecords>) current::getIfAvailable);
+    }
+
+    /** Creates the adapter without access to current heads (tests). */
+    public NwssDetectionAdapter(String baseUrlOverride, CountyGeometries counties) {
+        this(new SodaClient(baseUrlOverride == null || baseUrlOverride.isBlank()
+                ? DEFAULT_BASE_URL : baseUrlOverride.trim()), counties, () -> null);
     }
 
     /** Creates the adapter with a prebuilt reader (tests). */
     public NwssDetectionAdapter(SodaClient soda, CountyGeometries counties) {
+        this(soda, counties, () -> null);
+    }
+
+    /** Creates the adapter with a prebuilt reader and a current-heads view (tests). */
+    public NwssDetectionAdapter(SodaClient soda, CountyGeometries counties, Supplier<CurrentRecords> current) {
         this.soda = soda;
         this.geometry = new NwssGeometry(counties);
+        this.current = current == null ? () -> null : current;
     }
 
     @Override
@@ -131,7 +154,11 @@ public class NwssDetectionAdapter implements PollingAdapter {
     }
 
     /**
-     * Reads one dataset per configured pathogen and emits one record per site and target.
+     * Reads the configured pathogens' datasets within the per-minute request budget and emits one record per site
+     * and target: its latest sample. The datasets share the budget: each gets an equal number of pages, and the
+     * run starts with the dataset after the last one the previous run reached, so every dataset is read even when
+     * there are more datasets than requests; each dataset's own cursor resumes what a run did not finish. A sample
+     * older than the one already stored for its site and target (a re-dated older sample) is dropped.
      *
      * @throws AdapterException when a request fails
      */
@@ -141,23 +168,69 @@ public class NwssDetectionAdapter implements PollingAdapter {
         boolean includeWastewaterScan = ctx.params().bool("includeWastewaterScan", false);
         String token = ctx.credentials() == null ? null : ctx.credentials().get(APP_TOKEN);
         Map<String, NormalizedRecord> out = new LinkedHashMap<>();
-        for (String pathogen : pathogens) {
+        if (pathogens.isEmpty()) {
+            return FetchResult.of(List.of());
+        }
+        int allowance = NwssWvalAdapter.requestsPerRun(descriptor());
+        int perDataset = Math.max(1, allowance / pathogens.size());
+        int start = Math.floorMod(parseInt(ctx.state().get(NEXT_DATASET_KEY).orElse("0")), pathogens.size());
+        Map<String, Instant> stored = storedSamples();
+        int reached = 0;
+        int stale = 0;
+        while (reached < pathogens.size() && allowance > 0) {
+            String pathogen = pathogens.get((start + reached) % pathogens.size());
             String dataset = DATASETS.get(pathogen);
             String cursorKey = cursorKey(dataset);
-            String cursor = ctx.state().get(cursorKey).orElse(null);
-            JsonNode rows = soda.read(ctx, dataset, cursor, token);
+            SodaClient.Cursor cursor = SodaClient.Cursor.load(ctx.state(), cursorKey);
+            SodaClient.Batch batch = soda.read(ctx, dataset, cursor, token, Math.min(perDataset, allowance));
+            allowance -= batch.requests();
+            reached++;
             NwssDetectionParser.Result parsed =
-                    NwssDetectionParser.parse(rows, new NwssDetectionParser.Options(includeWastewaterScan));
+                    NwssDetectionParser.parse(batch.rows(), new NwssDetectionParser.Options(includeWastewaterScan));
             for (NwssDetectionParser.Detection detection : parsed.detections()) {
+                Instant storedSample = stored.get(detection.key());
+                if (storedSample != null && detection.sampleCollectDate().isBefore(storedSample)) {
+                    stale++;
+                    continue;
+                }
                 Point point = geometry.forCounty(detection.countyFips());
                 out.putIfAbsent(detection.key(), NwssDetectionParser.toRecord(detection, point));
             }
-            advanceCursor(ctx, cursorKey, rows, cursor);
-            ctx.log().debug("{} {}: {} detection(s) from {} row(s), {} skipped, {} WastewaterSCAN skipped", ID,
-                    pathogen, parsed.detections().size(), parsed.rows(), parsed.skipped(),
-                    parsed.wastewaterScanSkipped());
+            batch.next().store(ctx.state(), cursorKey);
+            ctx.log().debug("{} {}: {} detection(s) from {} row(s) in {} request(s), {} skipped, {} WastewaterSCAN"
+                    + " skipped{}", ID, pathogen, parsed.detections().size(), parsed.rows(), batch.requests(),
+                    parsed.skipped(), parsed.wastewaterScanSkipped(), batch.exhausted() ? "" : "; more next run");
+        }
+        ctx.state().put(NEXT_DATASET_KEY, Integer.toString((start + reached) % pathogens.size()));
+        if (stale > 0) {
+            ctx.log().debug("{}: {} sample(s) older than the stored one dropped", ID, stale);
         }
         return FetchResult.of(new ArrayList<>(out.values()));
+    }
+
+    /** The sample date of every stored detection, by external id; empty without a current-heads view. */
+    private Map<String, Instant> storedSamples() {
+        CurrentRecords view = current.get();
+        if (view == null) {
+            return Map.of();
+        }
+        Map<String, Instant> samples = new HashMap<>();
+        for (CurrentRecords.Row row : view.current(List.of(ID), List.of(KIND), CURRENT_LIMIT)) {
+            Object sample = row.payload() == null ? null : row.payload().get("sampleCollectDate");
+            Instant instant = sample == null ? null : CdcDates.instant(sample.toString());
+            if (instant != null) {
+                samples.put(row.externalId(), instant);
+            }
+        }
+        return samples;
+    }
+
+    private static int parseInt(String value) {
+        try {
+            return Integer.parseInt(value.strip());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     /** The configured pathogens, lower-cased and de-duplicated; the defaults when none are set. */
@@ -180,21 +253,6 @@ public class NwssDetectionAdapter implements PollingAdapter {
         return "nwss-det:" + dataset + ":cursor";
     }
 
-    private void advanceCursor(FetchContext ctx, String cursorKey, JsonNode rows, String cursor) {
-        String newest = null;
-        Instant newestInstant = null;
-        for (JsonNode row : rows) {
-            String raw = CdcText.text(row.get("date_updated"));
-            Instant instant = CdcDates.instant(raw);
-            if (instant != null && (newestInstant == null || instant.isAfter(newestInstant))) {
-                newestInstant = instant;
-                newest = raw;
-            }
-        }
-        if (newest != null && (cursor == null || newest.compareTo(cursor) > 0)) {
-            ctx.state().put(cursorKey, newest);
-        }
-    }
 
     static SourceDescriptor buildDescriptor() {
         SourceDescriptor.Builder b = SourceDescriptor.builder(ID)

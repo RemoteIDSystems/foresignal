@@ -28,6 +28,7 @@ final class WikiTestContext implements StreamContext {
     private final ValidatedParams params;
     private final Map<String, String> state = new ConcurrentHashMap<>();
     private final AtomicLong reportedBytes = new AtomicLong();
+    private final java.util.concurrent.atomic.AtomicInteger puts = new java.util.concurrent.atomic.AtomicInteger();
     private final AtomicBoolean connected = new AtomicBoolean();
     private volatile Throwable disconnected;
 
@@ -40,6 +41,16 @@ final class WikiTestContext implements StreamContext {
 
     long reportedBytes() {
         return reportedBytes.get();
+    }
+
+    /** How many adapter-state writes the stream made. */
+    int statePuts() {
+        return puts.get();
+    }
+
+    /** The adapter-state value of {@code key}, or null. */
+    String stateValue(String key) {
+        return state.get(key);
     }
 
     boolean everConnected() {
@@ -91,6 +102,7 @@ final class WikiTestContext implements StreamContext {
 
             @Override
             public void put(String key, String value) {
+                puts.incrementAndGet();
                 state.put(key, value);
             }
 

@@ -121,7 +121,7 @@ class SignalsIngestIT extends WireMockSupport {
     @DisplayName("an iNaturalist revision creates a SIGNIFICANT version and no payload stores a username")
     void inatRevision() {
         serveInat("observations.json");
-        enable(INAT, Map.of(InatObservationsAdapter.AOI_PARAM, "30,-98,31,-97"));
+        enable(INAT, Map.of(InatObservationsAdapter.AOI_PARAM, "-98,30,-97,31"));
         await().atMost(Duration.ofSeconds(15)).until(() -> fetchRows(INAT) >= 1);
         disable(INAT);
         int firstVersions = versions(INAT, null);

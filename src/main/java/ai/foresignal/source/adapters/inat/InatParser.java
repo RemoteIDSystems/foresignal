@@ -48,6 +48,9 @@ public final class InatParser {
     /** The open-data photo host a {@code photoUrl} must be on. */
     public static final String OPEN_DATA_HOST = "inaturalist-open-data";
 
+    /** The exact host of the open-data photo bucket ({@value #OPEN_DATA_HOST} on Amazon S3). */
+    public static final String OPEN_DATA_BUCKET_HOST = OPEN_DATA_HOST + ".s3.amazonaws.com";
+
     /** {@code license_code} values iNaturalist treats as open. */
     private static final Pattern OPEN_LICENSE = Pattern.compile("^cc(0|-.+)$");
 
@@ -260,10 +263,26 @@ public final class InatParser {
             return null;
         }
         String url = text(first.get("url"));
-        if (url == null || !url.toLowerCase(Locale.ROOT).contains(OPEN_DATA_HOST)) {
-            return null;
+        return isOpenDataUrl(url) ? url : null;
+    }
+
+    /**
+     * True when {@code url} is an {@code https} URL whose host is exactly the open-data bucket host
+     * {@value #OPEN_DATA_BUCKET_HOST} (2026-10 review: a substring test accepted any host or path that merely
+     * contained the name, such as {@code inaturalist-open-data.example.net} or {@code ?x=inaturalist-open-data}).
+     */
+    static boolean isOpenDataUrl(String url) {
+        if (url == null) {
+            return false;
         }
-        return url;
+        try {
+            java.net.URI uri = java.net.URI.create(url.strip());
+            String host = uri.getHost();
+            return "https".equalsIgnoreCase(uri.getScheme()) && host != null
+                    && host.toLowerCase(Locale.ROOT).equals(OPEN_DATA_BUCKET_HOST);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     private static Instant parseInstant(JsonNode node) {

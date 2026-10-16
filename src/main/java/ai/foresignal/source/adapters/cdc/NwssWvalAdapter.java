@@ -4,6 +4,7 @@ import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.CountyGeometries;
 import ai.foresignal.source.spi.CredentialField;
+import ai.foresignal.source.spi.CurrentRecords;
 import ai.foresignal.source.spi.FetchContext;
 import ai.foresignal.source.spi.FetchResult;
 import ai.foresignal.source.spi.FieldSpec;
@@ -23,23 +24,28 @@ import ai.foresignal.source.spi.ValidatedParams;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import org.locationtech.jts.geom.Point;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import tools.jackson.databind.JsonNode;
 
 /**
  * {@code cdc-nwss-wval} (prompt 095): CDC NWSS site viral-activity levels for SARS-CoV-2, Influenza A and RSV,
  * from the current dataset {@code atcp-73re} (the older {@code 2ew6-ywp6}/{@code g653-rqe2} were archived on
  * 2025-09-12).
  *
- * <p>Each run reads rows newer than the stored {@code date_updated} cursor through {@link SodaClient}
- * (optionally with an {@code X-App-Token}), folds them into {@code wastewater-level} records
- * ({@link NwssWvalParser}) and places each at the interior point of the state's county union. WastewaterSCAN
- * rows are CC BY-NC 4.0 and are dropped unless {@code includeWastewaterScan} is set.
+ * <p>Each run reads rows after the stored resumable cursor through {@link SodaClient} (optionally with an
+ * {@code X-App-Token}), at most as many pages as its per-minute budget allows, and folds them into one
+ * {@code wastewater-level} record per site and pathogen: its latest {@code week_end} ({@link NwssWvalParser}). A
+ * row whose week is older than the one already stored for that site and pathogen is dropped, so a re-dated older
+ * sample never becomes current. Each record is placed at the interior point of the state's county union.
+ * WastewaterSCAN rows are CC BY-NC 4.0 and are dropped unless {@code includeWastewaterScan} is set.
  */
 @Component
 public class NwssWvalAdapter implements PollingAdapter {
@@ -67,26 +73,44 @@ public class NwssWvalAdapter implements PollingAdapter {
 
     private static final SourceDescriptor DESCRIPTOR = buildDescriptor();
 
+    /** The most current heads read to reject re-dated older weeks. */
+    static final int CURRENT_LIMIT = 100_000;
+
     private final SodaClient soda;
     private final NwssGeometry geometry;
+    private final Supplier<CurrentRecords> current;
 
     /**
      * Creates the adapter.
      *
      * @param baseUrlOverride the value of {@value #BASE_URL_PROPERTY}; blank means {@value #DEFAULT_BASE_URL}
      * @param counties the 040 county outlines for geometry
+     * @param current this source's current heads, to reject a re-dated older week; resolved lazily
      */
     @Autowired
-    public NwssWvalAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride, CountyGeometries counties) {
-        this.soda = new SodaClient(baseUrlOverride == null || baseUrlOverride.isBlank()
-                ? DEFAULT_BASE_URL : baseUrlOverride.trim());
-        this.geometry = new NwssGeometry(counties);
+    public NwssWvalAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride, CountyGeometries counties,
+            ObjectProvider<CurrentRecords> current) {
+        this(new SodaClient(baseUrlOverride == null || baseUrlOverride.isBlank()
+                ? DEFAULT_BASE_URL : baseUrlOverride.trim()), counties,
+                current == null ? () -> null : (Supplier<CurrentRecords>) current::getIfAvailable);
+    }
+
+    /** Creates the adapter without access to current heads (tests). */
+    public NwssWvalAdapter(String baseUrlOverride, CountyGeometries counties) {
+        this(new SodaClient(baseUrlOverride == null || baseUrlOverride.isBlank()
+                ? DEFAULT_BASE_URL : baseUrlOverride.trim()), counties, () -> null);
     }
 
     /** Creates the adapter with a prebuilt reader (tests). */
     public NwssWvalAdapter(SodaClient soda, CountyGeometries counties) {
+        this(soda, counties, () -> null);
+    }
+
+    /** Creates the adapter with a prebuilt reader and a current-heads view (tests). */
+    public NwssWvalAdapter(SodaClient soda, CountyGeometries counties, Supplier<CurrentRecords> current) {
         this.soda = soda;
         this.geometry = new NwssGeometry(counties);
+        this.current = current == null ? () -> null : current;
     }
 
     @Override
@@ -95,45 +119,62 @@ public class NwssWvalAdapter implements PollingAdapter {
     }
 
     /**
-     * Reads every row newer than the cursor and emits one record per site and pathogen.
+     * Reads the rows after the cursor, at most as many pages as the per-minute budget allows (the rest resume
+     * next run), and emits one record per site and pathogen: its latest week. A row whose week is older than the
+     * week already stored for its site and pathogen (a re-dated older sample) is dropped.
      *
      * @throws AdapterException when a request fails
      */
     @Override
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
-        String cursor = ctx.state().get(CURSOR_KEY).orElse(null);
+        SodaClient.Cursor cursor = SodaClient.Cursor.load(ctx.state(), CURSOR_KEY);
         String token = ctx.credentials() == null ? null : ctx.credentials().get(APP_TOKEN);
         NwssWvalParser.Options options = new NwssWvalParser.Options(
                 ctx.params().bool("includeWastewaterScan", false));
 
-        JsonNode rows = soda.read(ctx, NwssWvalParser.DATASET, cursor, token);
-        NwssWvalParser.Result parsed = NwssWvalParser.parse(rows, options);
+        SodaClient.Batch batch = soda.read(ctx, NwssWvalParser.DATASET, cursor, token, requestsPerRun(descriptor()));
+        NwssWvalParser.Result parsed = NwssWvalParser.parse(batch.rows(), options);
+        Map<String, Instant> stored = storedWeeks();
 
         List<NormalizedRecord> out = new ArrayList<>(parsed.levels().size());
+        int stale = 0;
         for (NwssWvalParser.Level level : parsed.levels()) {
+            Instant storedWeek = stored.get(level.key());
+            if (storedWeek != null && level.weekEndInstant() != null && level.weekEndInstant().isBefore(storedWeek)) {
+                stale++;
+                continue;
+            }
             Point point = geometry.forState(level.state());
             out.add(NwssWvalParser.toRecord(level, point));
         }
-        advanceCursor(ctx, rows, cursor);
-        ctx.log().debug("{}: {} level(s) from {} row(s), {} skipped, {} WastewaterSCAN skipped", ID, parsed.levels()
-                .size(), parsed.rows(), parsed.skipped(), parsed.wastewaterScanSkipped());
+        batch.next().store(ctx.state(), CURSOR_KEY);
+        ctx.log().debug("{}: {} level(s) from {} row(s) in {} request(s), {} skipped, {} WastewaterSCAN skipped,"
+                + " {} older than the stored week{}", ID, out.size(), parsed.rows(), batch.requests(),
+                parsed.skipped(), parsed.wastewaterScanSkipped(), stale, batch.exhausted() ? "" : "; more next run");
         return FetchResult.of(out);
     }
 
-    private void advanceCursor(FetchContext ctx, JsonNode rows, String cursor) {
-        String newest = null;
-        Instant newestInstant = null;
-        for (JsonNode row : rows) {
-            String raw = CdcText.text(row.get("date_updated"));
-            Instant instant = CdcDates.instant(raw);
-            if (instant != null && (newestInstant == null || instant.isAfter(newestInstant))) {
-                newestInstant = instant;
-                newest = raw;
+    /** The requests one run may send: the per-minute budget (the bucket refills between the 12-hour runs). */
+    static int requestsPerRun(SourceDescriptor descriptor) {
+        Budget budget = descriptor.defaultBudget();
+        return Math.max(1, Math.min(SodaClient.MAX_PAGES, budget == null ? 1 : budget.perMinute()));
+    }
+
+    /** The week end of every stored level, by external id; empty without a current-heads view. */
+    private Map<String, Instant> storedWeeks() {
+        CurrentRecords view = current.get();
+        if (view == null) {
+            return Map.of();
+        }
+        Map<String, Instant> weeks = new HashMap<>();
+        for (CurrentRecords.Row row : view.current(List.of(ID), List.of(KIND), CURRENT_LIMIT)) {
+            Object week = row.payload() == null ? null : row.payload().get("weekEnd");
+            Instant instant = week == null ? null : CdcDates.instant(week.toString());
+            if (instant != null) {
+                weeks.put(row.externalId(), instant);
             }
         }
-        if (newest != null && (cursor == null || newest.compareTo(cursor) > 0)) {
-            ctx.state().put(CURSOR_KEY, newest);
-        }
+        return weeks;
     }
 
     static SourceDescriptor buildDescriptor() {

@@ -87,6 +87,28 @@ class SurgeDetectorTest {
         detector.onEdit("enwiki", "C", "url", false, editor(3), T0.plusSeconds(2));
         assertThat(detector.size()).isEqualTo(2);
         assertThat(detector.evictions()).isEqualTo(1);
+        // A page that never surged leaves nothing to tombstone.
+        assertThat(detector.sweep(T0.plusSeconds(3))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("an evicted page that had surged is tombstoned by the next sweep")
+    void evictedSurgeTombstoned() {
+        SurgeDetector detector = new SurgeDetector(new SurgeDetector.Config(15, 5, 10, 5, Duration.ofMinutes(15),
+                Duration.ofMinutes(30), Duration.ofMinutes(60), 1));
+        Optional<SurgeDetector.Surge> surge = Optional.empty();
+        for (int i = 0; i < 15; i++) {
+            surge = detector.onEdit("enwiki", "Hot", "url", false, editor(i), T0.plusSeconds(i * 30L));
+        }
+        assertThat(surge).isPresent();
+        detector.onEdit("enwiki", "Other", "url", false, editor(99), T0.plusSeconds(500));
+
+        var swept = detector.sweep(T0.plusSeconds(501));
+
+        assertThat(swept).hasSize(1);
+        assertThat(swept.get(0).tombstone()).isTrue();
+        assertThat(swept.get(0).title()).isEqualTo("Hot");
+        assertThat(detector.sweep(T0.plusSeconds(502))).isEmpty();
     }
 
     @Test
