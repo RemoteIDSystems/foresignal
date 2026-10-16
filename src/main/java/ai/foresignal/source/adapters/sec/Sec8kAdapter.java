@@ -4,6 +4,7 @@ import ai.foresignal.source.adapters.humanitarian.HtmlText;
 import ai.foresignal.source.adapters.humanitarian.Instants;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.CredentialField;
+import ai.foresignal.source.spi.CredentialsRejectedException;
 import ai.foresignal.source.spi.FetchContext;
 import ai.foresignal.source.spi.FetchResult;
 import ai.foresignal.source.spi.HistoryTier;
@@ -16,12 +17,14 @@ import ai.foresignal.source.spi.ParamSpec;
 import ai.foresignal.source.spi.ParamType;
 import ai.foresignal.source.spi.PollingAdapter;
 import ai.foresignal.source.spi.SourceDescriptor;
+import ai.foresignal.source.spi.SourceHttp;
 import ai.foresignal.source.spi.TtlAnchor;
 import ai.foresignal.source.spi.UpstreamFormatException;
 import ai.foresignal.source.spi.UpstreamResponse;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -33,11 +36,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * {@code sec-8k} (prompt 091): SEC EDGAR's current 8-K Atom feed, up to three pages per run.
+ * {@code sec-8k} (prompt 091): SEC EDGAR's current 8-K Atom feed, up to three pages per run; a further page is
+ * read only while the page before it was full and entirely newer than the last run's newest entry.
  *
- * <p>The SEC requires a declared User-Agent with contact details; the {@code contactEmail} param is appended
- * to Foresignal's own User-Agent (never another product's). The feed is rolling, so it never tombstones
- * ({@code complete=false}).
+ * <p>The SEC requires a declared User-Agent with contact details. The {@code contactEmail} credential (the
+ * operator sets it like any other credential) is appended to Foresignal's own User-Agent as
+ * {@code ; contact=<email>} by the shared client ({@link SourceHttp#USER_AGENT_CONTACT_CREDENTIAL}); never
+ * another product's User-Agent. The optional {@value #CONTACT_PROPERTY} setting is a fallback used only while
+ * the credential is unset. Without either, the fetch is refused rather than sent anonymously. The feed is
+ * rolling, so it never tombstones ({@code complete=false}).
  */
 @Component
 public final class Sec8kAdapter implements PollingAdapter {
@@ -54,15 +61,19 @@ public final class Sec8kAdapter implements PollingAdapter {
     /** Test-only base override. */
     public static final String BASE_URL_PROPERTY = "foresignal.test.adapters.sec-8k.base-url";
 
-    /** The contact email setting used for the User-Agent (the SEC requires contact details). */
+    /** A fallback contact e-mail setting, used only while the {@code contactEmail} credential is unset. */
     public static final String CONTACT_PROPERTY = "foresignal.adapters.sec-8k.contact-email";
 
-    /** The credential name. */
-    public static final String CONTACT_EMAIL = "contactEmail";
+    /** The credential name; the shared client appends its value to the User-Agent. */
+    public static final String CONTACT_EMAIL = SourceHttp.USER_AGENT_CONTACT_CREDENTIAL;
 
     static final String PATH = "/cgi-bin/browse-edgar?action=getcurrent&type=8-K&output=atom&count=100";
     static final Duration RETENTION = Duration.ofDays(1825);
     static final int MAX_PAGES = 3;
+    static final int PAGE_SIZE = 100;
+
+    /** The adapter-state key of the newest entry {@code updated} seen, which bounds paging. */
+    static final String NEWEST_KEY = "sec:newest";
 
     static final Pattern TITLE = Pattern.compile("^(\\S+)\\s*-\\s*(.+?)\\s*\\((\\d{10})\\)\\s*\\(Filer\\)");
     // The summary is escaped HTML (`<b>Filed:</b> …`), decoded by Xml; a label is followed by the
@@ -75,7 +86,12 @@ public final class Sec8kAdapter implements PollingAdapter {
     private final URI baseUrl;
     private final SourceDescriptor descriptor;
 
-    /** Creates the adapter. */
+    /**
+     * Creates the adapter.
+     *
+     * @param baseUrlOverride test-only base URL, blank for the real one
+     * @param contactEmail the fallback contact from {@value #CONTACT_PROPERTY}, blank for none
+     */
     @Autowired
     public Sec8kAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride,
             @Value("${" + CONTACT_PROPERTY + ":}") String contactEmail) {
@@ -91,18 +107,41 @@ public final class Sec8kAdapter implements PollingAdapter {
 
     @Override
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
+        String credential = ctx.credentials().get(CONTACT_EMAIL);
+        String fallback = ctx.descriptor().userAgentContact();
+        if ((credential == null || credential.isBlank()) && (fallback == null || fallback.isBlank())) {
+            throw new CredentialsRejectedException("sec-8k needs the contactEmail credential: the SEC requires a "
+                    + "User-Agent with contact details");
+        }
         List<NormalizedRecord> records = new ArrayList<>();
+        Instant previousNewest = Instants.parse(ctx.state().get(NEWEST_KEY).orElse(null));
+        Instant newest = previousNewest;
         for (int page = 0; page < MAX_PAGES; page++) {
-            String suffix = page == 0 ? "" : "&start=" + (page * 100);
+            String suffix = page == 0 ? "" : "&start=" + (page * PAGE_SIZE);
             UpstreamResponse response = ctx.http().get(URI.create(baseUrl + PATH + suffix));
             if (response.status() != 200) {
                 throw new UpstreamFormatException("The SEC current feed answered HTTP " + response.status(), "");
             }
             List<NormalizedRecord> pageRecords = parse(response.body());
             records.addAll(pageRecords);
-            if (pageRecords.size() < 100) {
+            boolean allNew = true;
+            for (NormalizedRecord record : pageRecords) {
+                Instant updated = record.observedAt();
+                if (updated != null && (newest == null || updated.isAfter(newest))) {
+                    newest = updated;
+                }
+                if (previousNewest != null && (updated == null || !updated.isAfter(previousNewest))) {
+                    allNew = false;
+                }
+            }
+            // The next page is read only when this one was full and every entry on it is newer than the
+            // last run's newest: otherwise the rest was seen already.
+            if (pageRecords.size() < PAGE_SIZE || !allNew) {
                 break;
             }
+        }
+        if (newest != null) {
+            ctx.state().put(NEWEST_KEY, newest.toString());
         }
         return FetchResult.of(records);
     }

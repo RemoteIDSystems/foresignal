@@ -121,6 +121,18 @@ public interface FetchContext {
     }
 
     /**
+     * True when the operator released the shrink guard for this one run (prompt 094's
+     * {@code POST /v1/sources/{id}/fetch?allowShrink=true}). An adapter that keeps its own delisting guard
+     * (prompt 091's sanctions lists) honors it the same way the complete-set reconciliation does: the run
+     * tombstones what disappeared even when the list shrank implausibly.
+     *
+     * <p>The default is false: a scheduled run, a probe or a hand-built test context never releases the guard.
+     */
+    default boolean allowShrink() {
+        return false;
+    }
+
+    /**
      * The logger for this source, named {@code foresignal.source.<id>}, so an operator can raise
      * one source's log level without touching the rest.
      */

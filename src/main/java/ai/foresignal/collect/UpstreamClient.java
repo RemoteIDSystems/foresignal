@@ -262,12 +262,43 @@ public class UpstreamClient {
         return hostPacer;
     }
 
-    /** The User-Agent for {@code descriptor}: its override if it has one, else Foresignal's own. */
+    /**
+     * The User-Agent for {@code descriptor}: its override if it has one, else Foresignal's own, with a
+     * {@code ; contact=} suffix from the source's {@link SourceHttp#USER_AGENT_CONTACT_CREDENTIAL} credential
+     * when it declares one and it is set (prompt 091), else from the descriptor's {@code userAgentContact}.
+     */
     String userAgent(SourceDescriptor descriptor) {
         String override = descriptor.userAgentOverride();
         String base = override == null || override.isBlank() ? install.userAgent() : override;
-        String contact = descriptor.userAgentContact();
+        String contact = contactCredential(descriptor);
+        if (contact == null) {
+            contact = descriptor.userAgentContact();
+        }
         return contact == null || contact.isBlank() ? base : base + "; contact=" + contact;
+    }
+
+    /**
+     * The value of the source's declared contact credential, or null when it declares none, it is unset, or it
+     * holds anything but printable ASCII (a header value must never carry a line break).
+     */
+    private String contactCredential(SourceDescriptor descriptor) {
+        boolean declared = descriptor.credentialFields().stream()
+                .anyMatch(field -> SourceHttp.USER_AGENT_CONTACT_CREDENTIAL.equals(field.name()));
+        if (!declared || credentials == null) {
+            return null;
+        }
+        String value;
+        try {
+            value = credentials.forSource(descriptor.id()).get(SourceHttp.USER_AGENT_CONTACT_CREDENTIAL);
+        } catch (RuntimeException e) {
+            log.warn("{}: could not read the contact credential for the User-Agent", descriptor.id());
+            return null;
+        }
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String stripped = value.strip();
+        return stripped.chars().allMatch(c -> c >= 0x20 && c < 0x7f) ? stripped : null;
     }
 
     /**

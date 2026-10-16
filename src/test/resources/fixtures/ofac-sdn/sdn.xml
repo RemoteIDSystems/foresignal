@@ -1222,4 +1222,986 @@
       </id>
     </idList>
   </sdnEntry>
+  <sdnEntry>
+    <uid>10923</uid>
+    <lastName>REVIVAL OF ISLAMIC HERITAGE SOCIETY</lastName>
+    <sdnType>Entity</sdnType>
+    <remarks>Website www.alturath.org. Revival of Islamic Heritage Society Offices Worldwide.</remarks>
+    <programList>
+      <program>SDGT</program>
+    </programList>
+    <idList>
+      <id>
+        <uid>186371</uid>
+        <idType>Secondary sanctions risk:</idType>
+        <idNumber>section 1(b) of Executive Order 13224, as amended by Executive Order 13886</idNumber>
+      </id>
+    </idList>
+    <akaList>
+      <aka>
+        <uid>11134</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS</lastName>
+      </aka>
+      <aka>
+        <uid>11135</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS HEADQUARTERS-KUWAIT</lastName>
+      </aka>
+      <aka>
+        <uid>11136</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>REVIVAL OF ISLAMIC HERITAGE FOUNDATION</lastName>
+      </aka>
+      <aka>
+        <uid>11137</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHF</lastName>
+      </aka>
+      <aka>
+        <uid>11138</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>SOCIETY FOR THE REVIVAL OF ISLAMIC HERITAGE</lastName>
+      </aka>
+      <aka>
+        <uid>11139</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>ISLAMIC HERITAGE REVIVAL PARTY</lastName>
+      </aka>
+      <aka>
+        <uid>11140</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>ISLAMIC HERITAGE RESTORATION SOCIETY</lastName>
+      </aka>
+      <aka>
+        <uid>11141</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>IHRS</lastName>
+      </aka>
+      <aka>
+        <uid>11142</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>KUWAITI HERITAGE</lastName>
+      </aka>
+      <aka>
+        <uid>11143</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>IHYA TURAS AL-ISLAMI</lastName>
+      </aka>
+      <aka>
+        <uid>11144</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>IJHA TURATH  AL-ISLAMI</lastName>
+      </aka>
+      <aka>
+        <uid>11145</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>JAMIA IHYA UL TURATH</lastName>
+      </aka>
+      <aka>
+        <uid>11146</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>JAMIAT IHIA AL-TURATH AL-ISLAMIYA</lastName>
+      </aka>
+      <aka>
+        <uid>11147</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>JAM'IYAT IHYA' AL-TURATH AL-ISLAMI</lastName>
+      </aka>
+      <aka>
+        <uid>11148</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>JAMI'AT IHY'A AL-TIRATH AL-ISLAMIA</lastName>
+      </aka>
+      <aka>
+        <uid>11149</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>JAMIATUL IHYA UL TURATH</lastName>
+      </aka>
+      <aka>
+        <uid>11150</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>JAMIYAT IKHYA AT-TURAZ AL-ISLAMI, SOCIETY OF THE REBIRTH OF THE ISLAMIC PEOPLE</lastName>
+      </aka>
+      <aka>
+        <uid>11151</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>JAMIATUL-YAHYA UT TURAZ</lastName>
+      </aka>
+      <aka>
+        <uid>11152</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>JOMIATUL EHYA-UT TURAJ</lastName>
+      </aka>
+      <aka>
+        <uid>11153</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>JOMIYATU-EHYA-UT TURAS AL ISLAMI</lastName>
+      </aka>
+      <aka>
+        <uid>11154</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>JAMA'AH IHYA AL-TURAZ AL-ISLAMI</lastName>
+      </aka>
+      <aka>
+        <uid>11155</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>JAMI'AH AL-HIYA AL-TURATH AL ISLAMIYAH</lastName>
+      </aka>
+      <aka>
+        <uid>11156</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>LAJNAT IHYA AL-TURATH AL-ISLAMI</lastName>
+      </aka>
+      <aka>
+        <uid>11157</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>LAJNAT AL-IHYA AL-TURATH AL-ISLAMI</lastName>
+      </aka>
+      <aka>
+        <uid>11158</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS ADMINISTRATION FOR THE BUILDING OF MOSQUES AND ISLAMIC PROJECTS</lastName>
+      </aka>
+      <aka>
+        <uid>11159</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS MOSQUES COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11160</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>ADMINISTRATION OF THE REVIVAL OF ISLAMIC HERITAGE SOCIETY COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11161</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS ARAB WORLD COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11162</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS COMMITTEE FOR THE ARAB WORLD</lastName>
+      </aka>
+      <aka>
+        <uid>11163</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS COMMITTEE FOR WEST ASIA</lastName>
+      </aka>
+      <aka>
+        <uid>11164</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS CENTRAL ASIA COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11165</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>COMMITTEE FOR EUROPE AND THE AMERICAS</lastName>
+      </aka>
+      <aka>
+        <uid>11166</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS EUROPE AND THE AMERICAS COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11167</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS TWO AMERICAS AND EUROPEAN MUSLIM COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11168</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS EUROPE AMERICA MUSLIMS COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11169</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS SOUTHEAST ASIA COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11170</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS COMMITTEE FOR SOUTH EAST ASIA</lastName>
+      </aka>
+      <aka>
+        <uid>11171</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS INDIAN CONTINENT COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11172</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS INDIAN SUBCONTINENT COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11173</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS COMMITTEE FOR INDIA</lastName>
+      </aka>
+      <aka>
+        <uid>11174</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS AFRICAN CONTINENT COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11175</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>REVIVAL OF ISLAMIC SOCIETY HERITAGE ON THE AFRICAN CONTINENT</lastName>
+      </aka>
+      <aka>
+        <uid>11176</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS PUBLIC RELATIONS COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11177</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS CULTURAL COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11178</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS PRINCIPLE COMMITTEE FOR THE CENTER FOR PRESERVATION OF THE HOLY QU'ARAN</lastName>
+      </aka>
+      <aka>
+        <uid>11179</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS GENERAL COMMITTEE FOR DONATIONS</lastName>
+      </aka>
+      <aka>
+        <uid>11180</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS YOUTH CENTER COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11181</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS SCIENTIFIC COMMITTEE-BRANCH OF SABAH AL-NASIR</lastName>
+      </aka>
+      <aka>
+        <uid>11182</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS FATWAS COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11183</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS CENTER FOR MANUSCRIPTS COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11184</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS EDUCATING COMMITTEES, AL-JAHRA'</lastName>
+      </aka>
+      <aka>
+        <uid>11185</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS AUDIO RECORDINGS COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11186</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS PROJECT OF ASSIGNING PREACHERS COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11187</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS OFFICE OF PRINTING AND PUBLISHING</lastName>
+      </aka>
+      <aka>
+        <uid>11188</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS COMMITTEE FOR WOMEN</lastName>
+      </aka>
+      <aka>
+        <uid>11194</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS COMMITTEE FOR WOMEN, ADMINISTRATION FOR THE BUILDING OF MOSQUES</lastName>
+      </aka>
+      <aka>
+        <uid>11196</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS ADMINISTRATION FOR THE COMMITTEES OF ALMSGIVING</lastName>
+      </aka>
+      <aka>
+        <uid>11197</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS WOMEN'S BRANCH FOR THE PROJECT OF ENDOWMENT</lastName>
+      </aka>
+      <aka>
+        <uid>11198</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS COMMITTEE FOR ALMSGIVING AND CHARITIES</lastName>
+      </aka>
+      <aka>
+        <uid>11207</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS COMMITTEE FOR THE CALL AND GUIDANCE</lastName>
+      </aka>
+      <aka>
+        <uid>11229</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-CAMBODIA</lastName>
+      </aka>
+      <aka>
+        <uid>11230</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>THE KUWAITI-CAMBODIAN ORPHANAGE CENTER</lastName>
+      </aka>
+      <aka>
+        <uid>11231</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS CAMBODIA-KUWAIT ORPHANAGE CENTER</lastName>
+      </aka>
+      <aka>
+        <uid>11232</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS CHAOM CHAU CENTER</lastName>
+      </aka>
+      <aka>
+        <uid>11233</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>THE KUWAIT-CAMBODIA ISLAMIC CULTURAL TRAINING CENTER</lastName>
+      </aka>
+      <aka>
+        <uid>11234</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>NARA WELFARE AND EDUCATION ASSOCIATION</lastName>
+      </aka>
+      <aka>
+        <uid>11236</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-BOSNIA AND HERZEGOVINA</lastName>
+      </aka>
+      <aka>
+        <uid>11237</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>KUWAITI JOINT RELIEF COMMITTEE, BOSNIA AND HERZEGOVINA</lastName>
+      </aka>
+      <aka>
+        <uid>11238</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>KJRC-BOSNIA AND HERZEGOVINA</lastName>
+      </aka>
+      <aka>
+        <uid>11239</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>PLANDISTE SCHOOL, BOSNIA AND HERZEGOVINA</lastName>
+      </aka>
+      <aka>
+        <uid>11240</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>ORGANIZACIJA PREPORODA ISLAMSKE TRADICIJE KUVAJT</lastName>
+      </aka>
+      <aka>
+        <uid>11241</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>KUWAIT GENERAL COMMITTEE FOR AID</lastName>
+      </aka>
+      <aka>
+        <uid>11242</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>GENERAL KUWAIT COMMITTEE</lastName>
+      </aka>
+      <aka>
+        <uid>11243</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-ALBANIA</lastName>
+      </aka>
+      <aka>
+        <uid>11244</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>CENTER OF CALL FOR WISDOM</lastName>
+      </aka>
+      <aka>
+        <uid>11245</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>CCFW</lastName>
+      </aka>
+      <aka>
+        <uid>11246</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>THIRRJA PER UTESI</lastName>
+      </aka>
+      <aka>
+        <uid>11247</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>NGO TURATH</lastName>
+      </aka>
+      <aka>
+        <uid>11248</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-KOSOVO</lastName>
+      </aka>
+      <aka>
+        <uid>11249</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>DORA E MIRESISE</lastName>
+      </aka>
+      <aka>
+        <uid>11250</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>HAND OF MERCY</lastName>
+      </aka>
+      <aka>
+        <uid>11251</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-AZERBAIJAN</lastName>
+      </aka>
+      <aka>
+        <uid>11252</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-RUSSIA</lastName>
+      </aka>
+      <aka>
+        <uid>11253</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-LEBANON</lastName>
+      </aka>
+      <aka>
+        <uid>11254</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-BANGLADESH</lastName>
+      </aka>
+      <aka>
+        <uid>11256</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-SOMALIA</lastName>
+      </aka>
+      <aka>
+        <uid>11257</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-GHANA</lastName>
+      </aka>
+      <aka>
+        <uid>11258</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-TANZANIA</lastName>
+      </aka>
+      <aka>
+        <uid>11259</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-BENIN</lastName>
+      </aka>
+      <aka>
+        <uid>11260</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-CAMEROON</lastName>
+      </aka>
+      <aka>
+        <uid>11261</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-SENEGAL</lastName>
+      </aka>
+      <aka>
+        <uid>11262</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-NIGERIA</lastName>
+      </aka>
+      <aka>
+        <uid>11263</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-LIBERIA</lastName>
+      </aka>
+      <aka>
+        <uid>11264</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS-IVORY COAST</lastName>
+      </aka>
+      <aka>
+        <uid>11265</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>RIHS COMMITTEE FOR AFRICA</lastName>
+      </aka>
+    </akaList>
+    <addressList>
+      <address>
+        <uid>15756</uid>
+        <address1>Part 5, Qurtaba, P.O. Box 5585</address1>
+        <city>Safat</city>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15757</uid>
+        <address1>House #40, Lake Drive Road, Sector #7, Uttara</address1>
+        <city>Dhaka</city>
+        <country>Bangladesh</country>
+      </address>
+      <address>
+        <uid>15758</uid>
+        <address1>Number 28 Mula Mustafe Baseskije Street</address1>
+        <city>Sarajevo</city>
+        <country>Bosnia and Herzegovina</country>
+      </address>
+      <address>
+        <uid>15759</uid>
+        <address1>Number 2 Plandiste Street</address1>
+        <city>Sarajevo</city>
+        <country>Bosnia and Herzegovina</country>
+      </address>
+      <address>
+        <uid>15760</uid>
+        <address1>M.M. Baseskije Street, No. 28p</address1>
+        <city>Sarajevo</city>
+        <country>Bosnia and Herzegovina</country>
+      </address>
+      <address>
+        <uid>15761</uid>
+        <address1>Number 6 Donji Hotonj Street</address1>
+        <city>Sarajevo</city>
+        <country>Bosnia and Herzegovina</country>
+      </address>
+      <address>
+        <uid>15762</uid>
+        <address1>RIHS Office</address1>
+        <city>Ilidza</city>
+        <country>Bosnia and Herzegovina</country>
+      </address>
+      <address>
+        <uid>15763</uid>
+        <address1>RIHS Alija House</address1>
+        <city>Ilidza</city>
+        <country>Bosnia and Herzegovina</country>
+      </address>
+      <address>
+        <uid>15764</uid>
+        <address1>RIHS Office</address1>
+        <city>Tirana</city>
+        <country>Albania</country>
+      </address>
+      <address>
+        <uid>15765</uid>
+        <address1>RIHS Office</address1>
+        <city>Pristina</city>
+        <country>Kosovo</country>
+      </address>
+      <address>
+        <uid>15766</uid>
+        <city>Tripoli</city>
+        <country>Lebanon</country>
+      </address>
+      <address>
+        <uid>15767</uid>
+        <city>City of Sidon</city>
+        <country>Lebanon</country>
+      </address>
+      <address>
+        <uid>15768</uid>
+        <address1>Dangkor District</address1>
+        <city>Phnom Penh</city>
+        <country>Cambodia</country>
+      </address>
+      <address>
+        <uid>15769</uid>
+        <city>Kismayo</city>
+        <country>Somalia</country>
+      </address>
+      <address>
+        <uid>15770</uid>
+        <city>Kaneshi Quarter of Accra</city>
+        <country>Ghana</country>
+      </address>
+      <address>
+        <uid>15771</uid>
+        <address1>Al-Andalus</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15772</uid>
+        <address1>Al-Jahra'</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15773</uid>
+        <address1>Al-Qurayn</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15774</uid>
+        <address1>Sabah Al-Nasir</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15775</uid>
+        <address1>Qurtubah</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15776</uid>
+        <address1>Hadiyah</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15777</uid>
+        <address1>Al-Qadisiyah</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15778</uid>
+        <address1>Al-Fayha'</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15779</uid>
+        <address1>Al-Riqah</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15780</uid>
+        <address1>Al-Firdaws</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15781</uid>
+        <address1>Khitan</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15783</uid>
+        <address1>Al-Sabahiyah</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15785</uid>
+        <address1>Jalib Al-Shiyukh</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15786</uid>
+        <address1>Bayan Wa Mashrif</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15787</uid>
+        <address1>Sabah Al-Salim</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15788</uid>
+        <address1>Al-Rumaythiyah</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15789</uid>
+        <address1>Al-Salimiyah</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15790</uid>
+        <address1>Al-Aridiyah</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15791</uid>
+        <address1>Al-Khalidiya</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15793</uid>
+        <address1>Al-Dhahr</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15794</uid>
+        <address1>Al-Rawdah</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15795</uid>
+        <address1>Al-Shamiyah Wa Al-Shuwaykh</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15796</uid>
+        <address1>Al-Amiriyah</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15797</uid>
+        <address1>Al-Nuzhah</address1>
+        <country>Kuwait</country>
+      </address>
+      <address>
+        <uid>15798</uid>
+        <address1>Kifan</address1>
+        <country>Kuwait</country>
+      </address>
+    </addressList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>2676</uid>
+    <firstName>Dr. Ayman</firstName>
+    <lastName>AL ZAWAHIRI</lastName>
+    <title>Operational and Military Leader of JIHAD GROUP</title>
+    <sdnType>Individual</sdnType>
+    <programList>
+      <program>SDGT</program>
+    </programList>
+    <idList>
+      <id>
+        <uid>1000</uid>
+        <idType>Passport</idType>
+        <idNumber>1084010</idNumber>
+        <idCountry>Egypt</idCountry>
+      </id>
+      <id>
+        <uid>1001</uid>
+        <idType>Passport</idType>
+        <idNumber>19820215</idNumber>
+      </id>
+      <id>
+        <uid>185812</uid>
+        <idType>Secondary sanctions risk:</idType>
+        <idNumber>section 1(b) of Executive Order 13224, as amended by Executive Order 13886</idNumber>
+      </id>
+    </idList>
+    <akaList>
+      <aka>
+        <uid>4760</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>AL-ZAWAHIRI</lastName>
+        <firstName>Ayman</firstName>
+      </aka>
+      <aka>
+        <uid>4761</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>SALIM</lastName>
+        <firstName>Ahmad Fuad</firstName>
+      </aka>
+      <aka>
+        <uid>4787</uid>
+        <type>a.k.a.</type>
+        <category>strong</category>
+        <lastName>AL-ZAWAHIRI</lastName>
+        <firstName>Aiman Muhammad Rabi</firstName>
+      </aka>
+    </akaList>
+    <dateOfBirthList>
+      <dateOfBirthItem>
+        <uid>1003</uid>
+        <dateOfBirth>19 Jun 1951</dateOfBirth>
+        <mainEntry>true</mainEntry>
+      </dateOfBirthItem>
+    </dateOfBirthList>
+    <placeOfBirthList>
+      <placeOfBirthItem>
+        <uid>1004</uid>
+        <placeOfBirth>Giza, Egypt</placeOfBirth>
+        <mainEntry>true</mainEntry>
+      </placeOfBirthItem>
+    </placeOfBirthList>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>15036</uid>
+    <lastName>ARTAVIL</lastName>
+    <sdnType>Vessel</sdnType>
+    <remarks>(Linked To: NATIONAL IRANIAN TANKER COMPANY)</remarks>
+    <programList>
+      <program>IRAN</program>
+    </programList>
+    <idList>
+      <id>
+        <uid>8045</uid>
+        <idType>Vessel Registration Identification</idType>
+        <idNumber>IMO 9187629</idNumber>
+      </id>
+      <id>
+        <uid>8114</uid>
+        <idType>MMSI</idType>
+        <idNumber>572469210</idNumber>
+      </id>
+      <id>
+        <uid>111445</uid>
+        <idType>Former Vessel Flag</idType>
+        <idNumber>Malta</idNumber>
+      </id>
+      <id>
+        <uid>112992</uid>
+        <idType>Former Vessel Flag</idType>
+        <idNumber>Tuvalu</idNumber>
+      </id>
+      <id>
+        <uid>113470</uid>
+        <idType>Former Vessel Flag</idType>
+        <idNumber>None Identified</idNumber>
+      </id>
+      <id>
+        <uid>129996</uid>
+        <idType>Former Vessel Flag</idType>
+        <idNumber>Tanzania</idNumber>
+      </id>
+      <id>
+        <uid>119227</uid>
+        <idType>Additional Sanctions Information -</idType>
+        <idNumber>Subject to Secondary Sanctions</idNumber>
+      </id>
+    </idList>
+    <akaList>
+      <aka>
+        <uid>22153</uid>
+        <type>f.k.a.</type>
+        <category>strong</category>
+        <lastName>ABADAN</lastName>
+      </aka>
+      <aka>
+        <uid>23827</uid>
+        <type>f.k.a.</type>
+        <category>weak</category>
+        <lastName>ALPHA</lastName>
+      </aka>
+      <aka>
+        <uid>40680</uid>
+        <type>f.k.a.</type>
+        <category>strong</category>
+        <lastName>SHONA</lastName>
+      </aka>
+    </akaList>
+    <vesselInfo>
+      <callSign>T2EU4</callSign>
+      <vesselType>Crude/Oil Products Tanker</vesselType>
+      <vesselFlag>Iran</vesselFlag>
+      <tonnage>99144</tonnage>
+      <grossRegisteredTonnage>56068</grossRegisteredTonnage>
+    </vesselInfo>
+  </sdnEntry>
+  <sdnEntry>
+    <uid>18150</uid>
+    <lastName>MSN 391</lastName>
+    <sdnType>Aircraft</sdnType>
+    <remarks>(Linked To: MAHAN AIR)</remarks>
+    <programList>
+      <program>IFSR</program>
+      <program>SDGT</program>
+      <program>NPWMD</program>
+    </programList>
+    <idList>
+      <id>
+        <uid>117318</uid>
+        <idType>Aircraft Manufacture Date</idType>
+        <idNumber>2002</idNumber>
+      </id>
+      <id>
+        <uid>117320</uid>
+        <idType>Aircraft Model</idType>
+        <idNumber>Airbus A340-642</idNumber>
+      </id>
+      <id>
+        <uid>117319</uid>
+        <idType>Aircraft Manufacturer's Serial Number (MSN)</idType>
+        <idNumber>391</idNumber>
+      </id>
+      <id>
+        <uid>117321</uid>
+        <idType>Aircraft Tail Number</idType>
+        <idNumber>EP-MMH</idNumber>
+      </id>
+      <id>
+        <uid>117313</uid>
+        <idType>Additional Sanctions Information -</idType>
+        <idNumber>Subject to Secondary Sanctions</idNumber>
+      </id>
+      <id>
+        <uid>186444</uid>
+        <idType>Secondary sanctions risk:</idType>
+        <idNumber>section 1(b) of Executive Order 13224, as amended by Executive Order 13886</idNumber>
+      </id>
+    </idList>
+  </sdnEntry>
 </sdnList>

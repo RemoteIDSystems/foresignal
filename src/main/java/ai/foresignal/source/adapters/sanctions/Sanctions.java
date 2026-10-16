@@ -115,4 +115,29 @@ public final class Sanctions {
         }
         return out;
     }
+
+    /**
+     * Deletes a downloaded list file once it is parsed (prompt 091: a temp file must not outlive its run). A
+     * failure to delete is ignored: the fetch result does not depend on it.
+     *
+     * @param file the file, or null
+     */
+    public static void deleteQuietly(java.nio.file.Path file) {
+        if (file == null) {
+            return;
+        }
+        try {
+            java.nio.file.Files.deleteIfExists(file);
+        } catch (java.io.IOException | RuntimeException ignored) {
+            // best effort
+        }
+    }
+
+    /** Puts {@code value} (stripped, at most 200 characters) under {@code key} unless it is null or blank. */
+    public static void putIfPresent(java.util.Map<String, Object> map, String key, String value) {
+        String trimmed = truncate(value, MAX_ALIAS_CHARS);
+        if (trimmed != null) {
+            map.put(key, trimmed);
+        }
+    }
 }

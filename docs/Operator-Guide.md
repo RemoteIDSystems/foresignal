@@ -4755,18 +4755,27 @@ docker compose exec -T db dropdb -U foresignal restore_drill
 ## Sanctions lists and the shrink guard (prompt 091)
 
 - **SEC 8-K:** the SEC requires a declared User-Agent with contact details. Set the `contactEmail` credential on
-  `sec-8k`; it is appended to Foresignal's own User-Agent as `; contact=<email>`. Never replace the User-Agent
-  with another product's.
-- **OFAC and UN redirects:** both export URLs answer 302 to a pre-signed object (S3, Azure Blob). The redirect
-  host is allowlisted; the pre-signed query string is never logged. Nothing to configure.
+  `sec-8k` (`PUT /v1/sources/sec-8k/credentials`); the shared client appends it to Foresignal's own User-Agent as
+  `; contact=<email>`. Until it is set the fetch is refused (`credentials rejected`), unless the optional
+  `foresignal.adapters.sec-8k.contact-email` property supplies a fallback. Never replace the User-Agent with
+  another product's.
+- **OFAC and UN redirects:** both export URLs answer 302 to a pre-signed object (S3 in `us-gov-west-1`, Azure Blob
+  `unsolprodfiles.blob.core.windows.net`). Only those hosts are allowed. The whole query string of a pre-signed
+  URL (AWS `X-Amz-Signature`/`X-Amz-Credential`, Azure `sig`) is replaced by `***` wherever a URL is stored or
+  logged (fetch log, traces, error messages). The UN blob is change-checked by its ETag (a conditional GET); the
+  OFAC export by its publication path and the SHA-256 of the file. Nothing to configure.
 - **The delisting shrink guard (`LIST_SHRINK_GUARD`):** a sanctions list normally only grows a little between
-  runs. If a run's entry count is below 90 % of the previous run's, Foresignal writes **no** tombstones and
-  marks the source degraded with reason `LIST_SHRINK_GUARD`, because a sudden large shrink is almost always an
-  upstream fault (a bad export, a truncated download). This protects against mass delisting by mistake.
-- **Accepting a genuinely large delisting:** verify the upstream list first, then run the fetch again so the
-  smaller list becomes the new baseline (the next run's comparison is against the new count). If a
-  `fetch-now?force=true` is available on the instance, use it to bypass backoff; otherwise two consecutive
-  successful fetches establish the new baseline. The guard only skips tombstones for the run that trips it.
+  runs. If a run's entry count is below 90 % of the previous run's, Foresignal writes **no** tombstones, keeps the
+  previous run's id set as the baseline, marks the source degraded with a reason starting `LIST_SHRINK_GUARD`
+  (naming the list and both counts), and raises a `system.sanctions_list_shrink` notification, because a sudden
+  large shrink is almost always an upstream fault (a bad export, a truncated download). Running the fetch again
+  does not accept the smaller list: the guard keeps tripping against the kept baseline.
+- **Accepting a genuinely large delisting:** verify the upstream list first, then run one manual fetch with the
+  override: `POST /v1/sources/{sourceId}/fetch?allowShrink=true` (the same one-off override as the complete-set
+  reconciliation below). That run writes the tombstones, stores the smaller list as the new baseline and clears
+  the degraded reason; the next ordinary run re-applies the guard. **Note:** the override reaches the sanctions
+  adapters through the fetch context, which the fetch executor must populate from the request; until it does, the
+  override has no effect on these three sources (see the 091 completion report).
 - **The UK source changed:** `uk-sanctions-list` (the FCDO UK Sanctions List) replaced `uk-ofsi-sanctions`,
   whose list closed on 28 January 2026.
 

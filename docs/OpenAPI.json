@@ -90746,10 +90746,13 @@
                 "mmsi",
                 "callSign",
                 "vesselFlag",
-                "aircraftTail"
+                "aircraftTail",
+                "unReference",
+                "designationSource",
+                "sanctionsImposed"
               ]
             },
-            "note": "Built in 091 (ofac-sdn with the legacy SDN.XML/CONS_PRIM.XML export, uk-sanctions-list from the FCDO list that replaced the closed OFSI list, un-sanctions from the UN consolidated XML). list `SDN|OFAC-CONS|UK|UN`; partyType `individual|entity|vessel|aircraft`; no geometry. entityKeys imo, mmsi, aircraft-tail, un-reference. A delisting is a tombstone unless the list shrank below 90% (LIST_SHRINK_GUARD)."
+            "note": "Built in 091 (ofac-sdn with the legacy SDN.XML/CONS_PRIM.XML export, uk-sanctions-list from the FCDO list that replaced the closed OFSI list, un-sanctions from the UN consolidated XML). list `SDN|OFAC-CONS|UK|UN`; partyType `individual|entity|vessel|aircraft`; no geometry. entityKeys imo, mmsi, registration (from aircraftTail, since 098), un-reference. A delisting is a tombstone unless the list shrank below 90% (LIST_SHRINK_GUARD; POST /v1/sources/{sourceId}/fetch?allowShrink=true accepts it). designationSource and sanctionsImposed are UK only (split on |)."
           },
           "filing": {
             "x-foresignal-prompt": "091",

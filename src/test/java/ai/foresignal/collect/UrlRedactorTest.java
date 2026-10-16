@@ -108,4 +108,29 @@ class UrlRedactorTest {
         assertThat(redactor.redact("a=sup3rs3cret&b=sup3rs3cret"))
                 .isEqualTo("a=***&b=***");
     }
+
+    @Test
+    @DisplayName("the whole query of an AWS pre-signed or Azure SAS URL is masked, even with no stored secrets")
+    void masksPresignedQueries() {
+        String s3 = "https://b.s3.us-gov-west-1.amazonaws.com/Published/x/SDN.XML?X-Amz-Algorithm=AWS4-HMAC-SHA256"
+                + "&X-Amz-Credential=ASIA123%2Fus-gov-west-1&X-Amz-Signature=abcdef0123";
+        assertThat(UrlRedactor.none().redact(s3))
+                .isEqualTo("https://b.s3.us-gov-west-1.amazonaws.com/Published/x/SDN.XML?***");
+        String sas = "https://unsolprodfiles.blob.core.windows.net/publiclegacyxmlfiles/EN/x.xml?sv=2024-05-04&sr=b"
+                + "&sp=r&sig=AbC%2Bdef%3D";
+        assertThat(redactor.redact("GET " + sas + " failed: timeout"))
+                .isEqualTo("GET https://unsolprodfiles.blob.core.windows.net/publiclegacyxmlfiles/EN/x.xml?*** failed:"
+                        + " timeout");
+        assertThat(UrlRedactor.none().redact(URI.create(sas))).doesNotContain("AbC");
+    }
+
+    @Test
+    @DisplayName("an ordinary query, or a parameter that merely ends in 'sig', is left alone")
+    void leavesOrdinaryQueries() {
+        assertThat(UrlRedactor.none().redact("https://api.example/data?bbox=1,2,3,4&format=json"))
+                .isEqualTo("https://api.example/data?bbox=1,2,3,4&format=json");
+        assertThat(UrlRedactor.none().redact("https://api.example/data?usig=1&designation=x"))
+                .isEqualTo("https://api.example/data?usig=1&designation=x");
+        assertThat(UrlRedactor.maskPresignedQueries("no url here ?sig=1")).isEqualTo("no url here ?sig=1");
+    }
 }
