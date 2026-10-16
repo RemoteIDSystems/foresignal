@@ -47,15 +47,51 @@ public final class ModelCycleSelector {
      * @throws IllegalArgumentException for a cadence that is not a whole number of hours dividing 24
      */
     public static List<Instant> candidates(Instant now, Duration runEvery, Duration availabilityLag, int count) {
+        return candidates(now, runEvery, Duration.ZERO, availabilityLag, count);
+    }
+
+    /**
+     * The candidate cycles of a model whose cycles sit {@code cycleOffset} after each multiple of the
+     * cadence (prompt 106: NBM runs 01/07/13/19z, a 6-hour cadence offset by one hour).
+     *
+     * @param now the clock
+     * @param runEvery the run cadence; whole hours that divide 24
+     * @param cycleOffset whole hours in {@code [0, runEvery)}; null or zero for cycles on the cadence
+     * @param availabilityLag how long after its reference time a cycle starts to appear
+     * @param count how many candidates
+     * @return {@code count} reference times, newest first, each {@code cycleOffset} plus a multiple of
+     *     {@code runEvery} after 00z
+     * @throws IllegalArgumentException for a bad cadence, or an offset that is not whole hours in
+     *     {@code [0, runEvery)}
+     */
+    public static List<Instant> candidates(Instant now, Duration runEvery, Duration cycleOffset,
+            Duration availabilityLag, int count) {
         long hours = requireCadence(runEvery);
+        long offset = requireOffset(cycleOffset, hours);
         Instant shifted = now.minus(availabilityLag == null ? Duration.ZERO : availabilityLag);
-        ZonedDateTime t = shifted.atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
-        ZonedDateTime newest = t.withHour((int) (t.getHour() / hours * hours));
+        ZonedDateTime t = shifted.atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS).minusHours(offset);
+        ZonedDateTime newest = t.withHour((int) (t.getHour() / hours * hours)).plusHours(offset);
         List<Instant> out = new ArrayList<>();
         for (int k = 0; k < count; k++) {
             out.add(newest.minusHours(hours * k).toInstant());
         }
         return out;
+    }
+
+    /**
+     * Checks a cycle offset.
+     *
+     * @return the offset in hours
+     * @throws IllegalArgumentException unless it is whole hours in {@code [0, cadenceHours)}
+     */
+    static long requireOffset(Duration cycleOffset, long cadenceHours) {
+        if (cycleOffset == null || cycleOffset.isZero()) {
+            return 0;
+        }
+        if (cycleOffset.isNegative() || cycleOffset.toSeconds() % 3600 != 0 || cycleOffset.toHours() >= cadenceHours) {
+            throw new IllegalArgumentException("A cycle offset must be whole hours below the cadence, was " + cycleOffset);
+        }
+        return cycleOffset.toHours();
     }
 
     /** The newest candidate cycle. */

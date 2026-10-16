@@ -19,13 +19,24 @@ import java.util.function.IntPredicate;
  * @param defaultLag the default availability lag
  * @param products the products, in commit order
  * @param probeProduct the product whose first field a probe reads
+ * @param cycleOffset how far after each multiple of the run cadence (from 00z) the model's cycles sit;
+ *     zero for GFS/HRRR/IFS, one hour for NBM (01/07/13/19z, prompt 106)
  */
 public record ModelDefinition(String sourceId, String label, String bucket, String defaultTemplate,
         List<String> defaultSteps, Duration defaultRunEvery, Duration defaultLag, List<Product> products,
-        String probeProduct) {
+        String probeProduct, Duration cycleOffset) {
+
+    /** A model whose cycles sit on multiples of the run cadence after 00z (the 051 shape). */
+    public ModelDefinition(String sourceId, String label, String bucket, String defaultTemplate,
+            List<String> defaultSteps, Duration defaultRunEvery, Duration defaultLag, List<Product> products,
+            String probeProduct) {
+        this(sourceId, label, bucket, defaultTemplate, defaultSteps, defaultRunEvery, defaultLag, products,
+                probeProduct, Duration.ZERO);
+    }
 
     /** Checks the parts. */
     public ModelDefinition {
+        cycleOffset = cycleOffset == null ? Duration.ZERO : cycleOffset;
         Objects.requireNonNull(sourceId, "sourceId");
         Objects.requireNonNull(bucket, "bucket");
         Objects.requireNonNull(defaultTemplate, "defaultTemplate");

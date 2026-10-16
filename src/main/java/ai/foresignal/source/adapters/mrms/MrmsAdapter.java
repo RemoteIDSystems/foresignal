@@ -1,5 +1,6 @@
 package ai.foresignal.source.adapters.mrms;
 
+import ai.foresignal.raster.ProductEnablement;
 import ai.foresignal.raster.decode.DecodeRequest;
 import ai.foresignal.raster.decode.DecodedGrid;
 import ai.foresignal.raster.decode.DecoderCapability;
@@ -57,7 +58,9 @@ import org.springframework.stereotype.Component;
  * NOAA MRMS radar mosaics (prompt 046, Weather-Imagery-Design §5.1): {@value #REFLECTIVITY},
  * {@value #PRECIP_RATE} (with PrecipFlag as band 2) and {@value #MESH}, every 2-minute frame; and the
  * second wave (prompt 053, §5.2): {@value #ROTATION}, {@value #QPE_1H}, {@value #QPE_24H} and
- * {@value #FFG_RATIO}.
+ * {@value #FFG_RATIO}; and the prompt 106 extras {@value #LIGHTNING_PROB}, {@value #VIL} and
+ * {@value #ECHO_TOP}, which sit behind the {@code products} param ({@link ProductEnablement}): off by
+ * default on the small profile, on by default on the large one ({@link #EXTRAS}).
  *
  * <p><b>Second wave thinning</b>: each second-wave product has a fixed {@code takeEvery} parameter (never
  * adaptive cadence, design §11): the first listed file of each {@code 2 min × takeEvery} bucket of the
@@ -280,6 +283,18 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
             new SecondWave(ECHO_TOP, ECHO_TOP_UPSTREAM, MrmsCodec::echoTop, ECHO_TOP_TAKE_EVERY, 2, false));
 
     /**
+     * The prompt 106 extras, the only MRMS products the {@code products} param controls; the v1 and
+     * second-wave products are always fetched.
+     */
+    public static final List<String> EXTRAS = List.of(LIGHTNING_PROB, VIL, ECHO_TOP);
+
+    /** The extras on by default on the small profile: none (prompt 106 task 1). */
+    public static final List<String> LIGHT_DEFAULT = List.of();
+
+    /** The extras on by default on the large profile: all three. */
+    public static final List<String> LARGE_DEFAULT = EXTRAS;
+
+    /**
      * One listed frame.
      *
      * @param key the S3 key
@@ -292,16 +307,25 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
 
     private final Grib2Decoder decoder;
     private final String baseUrl;
+    private final String profile;
+
+    /** Creates the adapter for the small profile (tests). */
+    public MrmsAdapter(Grib2Decoder decoder, String baseUrlOverride) {
+        this(decoder, baseUrlOverride, "small");
+    }
 
     /**
      * Creates the adapter.
      *
      * @param decoder the GRIB2 decoder
      * @param baseUrlOverride the value of {@value #BASE_URL_PROPERTY}; blank means the real bucket
+     * @param profile {@code foresignal.profile}, which decides the default {@link #EXTRAS}
      */
     @Autowired
-    public MrmsAdapter(Grib2Decoder decoder, @Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride) {
+    public MrmsAdapter(Grib2Decoder decoder, @Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride,
+            @Value("${foresignal.profile:small}") String profile) {
         this.decoder = decoder;
+        this.profile = profile;
         String chosen = baseUrlOverride == null ? "" : baseUrlOverride.trim();
         this.baseUrl = chosen.endsWith("/") ? chosen.substring(0, chosen.length() - 1) : chosen;
     }
@@ -363,7 +387,11 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
         } catch (AdapterException e) {
             failure = failure == null ? e : failure;
         }
+        Set<String> extras = enabledExtras(ctx.params());
         for (SecondWave product : SECOND_WAVE) {
+            if (EXTRAS.contains(product.productId()) && !extras.contains(product.productId())) {
+                continue;
+            }
             try {
                 records.addAll(fetchSecondWave(ctx, product));
             } catch (AdapterException e) {
@@ -377,6 +405,11 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
             ctx.log().warn("MRMS: committed {} frame(s), but a product failed: {}", records.size(), failure.getMessage());
         }
         return FetchResult.of(records);
+    }
+
+    /** The enabled {@link #EXTRAS}: the {@code products} param, else the profile default. */
+    public Set<String> enabledExtras(ValidatedParams params) {
+        return ProductEnablement.enabled(params, profile, EXTRAS, LIGHT_DEFAULT, LARGE_DEFAULT);
     }
 
     /** Fetches the new frames of a single-file product. */
@@ -1013,6 +1046,9 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
                     "Commit one " + product.productId() + " file per 2 min x takeEvery (fixed, 1 to " + MAX_TAKE_EVERY
                             + "; never adaptive)", product.defaultTakeEvery()));
         }
+        builder.param(ParamSpec.optional(ProductEnablement.PRODUCTS_PARAM, ParamType.STRING_LIST,
+                "Which MRMS extras to ingest (" + String.join(", ", EXTRAS) + "; default none on small, all on large)",
+                null));
         return builder.build();
     }
 }

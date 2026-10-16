@@ -8,8 +8,9 @@ import java.util.Optional;
  * NIDS message header and Product Description Block are parsed — the product code, the radar's
  * position and the message time. Verified against a real KFWD N0B file (2026-10-15).
  *
- * <p>Decoding the radial data is a documented gap: NetCDF-Java 5.11.0 in this build ships no NIDS
- * IOSP, and the packet layout is not implemented here. {@link #describe} is used only by the probe.
+ * <p>The radial data is decoded by {@link NidsRadialReader} (NetCDF-Java's NIDS IOSP from
+ * {@code cdm-radial}); this class only reads the product description, a dependency-free check of a
+ * downloaded file's product code and radar position.
  */
 public final class NidsDecoder {
 

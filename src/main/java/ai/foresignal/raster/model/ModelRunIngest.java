@@ -190,8 +190,8 @@ public class ModelRunIngest implements ForecastRunCadence {
             return probe(ctx, def, settings, objectUri);
         }
         Instant now = ctx.now();
-        List<Instant> candidates = ModelCycleSelector.candidates(now, settings.runEvery(), settings.availabilityLag(),
-                CANDIDATES);
+        List<Instant> candidates = ModelCycleSelector.candidates(now, settings.runEvery(), def.cycleOffset(),
+                settings.availabilityLag(), CANDIDATES);
         cleanState(ctx.state(), def, candidates, settings.runEvery());
         List<NormalizedRecord> records = new ArrayList<>();
         int[] budget = {MAX_STEPS_PER_FETCH};
@@ -508,8 +508,8 @@ public class ModelRunIngest implements ForecastRunCadence {
             throws AdapterException {
         ModelDefinition.Product product = def.product(def.probeProduct());
         int step = product.stepsOf(settings.steps()).stream().findFirst().orElse(settings.steps().get(0));
-        for (Instant cycle : ModelCycleSelector.candidates(ctx.now(), settings.runEvery(), settings.availabilityLag(),
-                CANDIDATES + 1)) {
+        for (Instant cycle : ModelCycleSelector.candidates(ctx.now(), settings.runEvery(), def.cycleOffset(),
+                settings.availabilityLag(), CANDIDATES + 1)) {
             String key = ModelCycleSelector.objectKey(settings.template(), cycle, step);
             Optional<GribIdx> idx = readIdx(ctx, def, objectUri.apply(key + ".idx"));
             if (idx.isEmpty()) {

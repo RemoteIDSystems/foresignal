@@ -3,6 +3,7 @@ package ai.foresignal.source.adapters.heatrisk;
 import ai.foresignal.raster.ProductEnablement;
 import ai.foresignal.raster.FrameStore;
 import ai.foresignal.raster.decode.GzipInputs;
+import ai.foresignal.raster.geotiff.GeoReference;
 import ai.foresignal.raster.geotiff.GeoTiffException;
 import ai.foresignal.raster.geotiff.GeoTiffValues;
 import ai.foresignal.source.spi.AdapterException;
@@ -45,8 +46,8 @@ import org.springframework.stereotype.Component;
  * WPC/NWS HeatRisk (prompt 106; Weather-Imagery-Design §5.3): the daily experimental heat-risk
  * GeoTIFFs for days 1–7. The data page is read once a day (conditional GET), each day's
  * {@code HeatRisk_{n}_Mercator.tif} (EPSG:3857) is downloaded, its palette index (0 Little/None …
- * 4 Extreme) is read as a categorical u8 product, and it is stored on an approximated WGS84 grid.
- * Off by default on the small profile. The descriptor notes "experimental NWS product"; US-PD.
+ * 4 Extreme) is read as a categorical u8 product, and it is stored on the file's own EPSG:3857
+ * {@code affine} grid. On by default on both profiles (prompt 106 task 1). The descriptor notes "experimental NWS product"; US-PD.
  *
  * <p><strong>Verified 2026-10-15</strong>: the page links {@code data/HeatRisk_{1..7}_Mercator.tif};
  * the day-1 file is 2866 × 1672, 8-bit palette, LZW, EPSG:3857, GDAL nodata 53.
@@ -72,6 +73,12 @@ public class HeatRiskAdapter implements PollingAdapter {
 
     /** The nodata code (u8). */
     static final int NO_DATA = 255;
+
+    /** The products on by default on the small profile (all: HeatRisk is light, prompt 106 task 1). */
+    public static final List<String> LIGHT_DEFAULT = PRODUCTS;
+
+    /** The products on by default on the large profile. */
+    public static final List<String> LARGE_DEFAULT = PRODUCTS;
 
     private static final int MAX_BYTES = 8 * 1024 * 1024;
     private static final Pattern LINK = Pattern.compile("data/HeatRisk_(\\d)_Mercator\\.tif");
@@ -111,7 +118,8 @@ public class HeatRiskAdapter implements PollingAdapter {
 
     @Override
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
-        Set<String> enabled = ProductEnablement.enabled(ctx.params(), profile, PRODUCTS, List.of(), PRODUCTS);
+        Set<String> enabled = ProductEnablement.enabled(ctx.params(), profile, PRODUCTS, LIGHT_DEFAULT,
+                LARGE_DEFAULT);
         if (enabled.isEmpty()) {
             return FetchResult.of(List.of());
         }
@@ -173,19 +181,34 @@ public class HeatRiskAdapter implements PollingAdapter {
         return FetchResult.of(out);
     }
 
-    /** A WGS84 grid approximated from the Mercator GeoTIFF's corners. */
+    /**
+     * The frame's grid: the GeoTIFF's own geotransform as an {@code affine} grid in its CRS
+     * (EPSG:3857 for the WPC files). Rows are spaced uniformly in Mercator meters, not in latitude, so
+     * a latlon grid with one {@code dy} would misplace mid-CONUS rows by about a degree; the affine grid
+     * inverts the Mercator projection per row exactly. The box is the WGS84 envelope of the four pixel
+     * corners.
+     */
     static GridDefinition grid(GeoTiffValues.Values v) {
-        double[] nw = v.georeference().lonLat(0, 0);
-        double[] se = v.georeference().lonLat(v.width() - 1, v.height() - 1);
-        double dx = v.width() > 1 ? (se[0] - nw[0]) / (v.width() - 1) : 0.01;
-        double dy = v.height() > 1 ? (nw[1] - se[1]) / (v.height() - 1) : 0.01;
+        GeoReference ref = v.georeference();
+        double west = Double.POSITIVE_INFINITY;
+        double east = Double.NEGATIVE_INFINITY;
+        double south = Double.POSITIVE_INFINITY;
+        double north = Double.NEGATIVE_INFINITY;
+        for (double[] corner : new double[][] {{0, 0}, {v.width(), 0}, {0, v.height()}, {v.width(), v.height()}}) {
+            double[] lonLat = ref.lonLat(corner[0], corner[1]);
+            west = Math.min(west, lonLat[0]);
+            east = Math.max(east, lonLat[0]);
+            south = Math.min(south, lonLat[1]);
+            north = Math.max(north, lonLat[1]);
+        }
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("lo1", ((nw[0] % 360) + 360) % 360);
-        params.put("la1", nw[1]);
-        params.put("dx", dx);
-        params.put("dy", dy);
-        return new GridDefinition(GridDefinition.LATLON, v.width(), v.height(), Math.max(-180, nw[0]),
-                Math.max(-90, se[1]), Math.min(180, se[0]), Math.min(90, nw[1]), params);
+        params.put("crs", ref.crs());
+        double[] gt = ref.gt();
+        for (int k = 0; k < 6; k++) {
+            params.put("gt" + k, gt[k]);
+        }
+        return new GridDefinition(GridDefinition.AFFINE, v.width(), v.height(), Math.max(-180, west),
+                Math.max(-90, south), Math.min(180, east), Math.min(90, north), params);
     }
 
     private static SourceDescriptor buildDescriptor() {
@@ -193,7 +216,7 @@ public class HeatRiskAdapter implements PollingAdapter {
                 .name("WPC HeatRisk (experimental)")
                 .description("The NWS/WPC experimental HeatRisk for days 1–7: a categorical heat-risk index"
                         + " (0 Little/None … 4 Extreme) over CONUS, read from the daily Mercator GeoTIFFs. Experimental"
-                        + " NWS product; US public domain. Off by default on the small profile.")
+                        + " NWS product; US public domain. On by default on both profiles.")
                 .kind(ProductSpec.RECORD_KIND)
                 .homepage("https://www.wpc.ncep.noaa.gov/heatrisk/")
                 .attribution("NOAA/NWS Weather Prediction Center HeatRisk (experimental)")
@@ -210,7 +233,7 @@ public class HeatRiskAdapter implements PollingAdapter {
                 .zeroResultsNormal(true)
                 .maxResponseBytes(MAX_BYTES)
                 .param(ParamSpec.optional(ProductEnablement.PRODUCTS_PARAM, ParamType.STRING_LIST,
-                        "Which HeatRisk days to ingest (default none on small, days 1-7 on large)", PRODUCTS));
+                        "Which HeatRisk days to ingest (default days 1-7 on both profiles)", null));
         for (int d = 1; d <= 7; d++) {
             b.product(ProductSpec.builder("heatrisk-day" + d)
                     .title("HeatRisk day " + d)

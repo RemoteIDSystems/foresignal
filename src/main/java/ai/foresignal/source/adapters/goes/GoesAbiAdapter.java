@@ -7,6 +7,7 @@ import ai.foresignal.raster.decode.DecodeRequest;
 import ai.foresignal.raster.decode.DecodedGrid;
 import ai.foresignal.raster.decode.DecoderCapability;
 import ai.foresignal.raster.decode.DecoderDependent;
+import ai.foresignal.raster.decode.GeosGrids;
 import ai.foresignal.raster.decode.GzipInputs;
 import ai.foresignal.raster.decode.NetcdfDecoder;
 import ai.foresignal.source.spi.AdapterException;
@@ -57,14 +58,15 @@ import org.springframework.stereotype.Component;
  * <ul>
  *   <li>{@value #IR} (band 13, clean IR) — the v1 product;</li>
  *   <li>{@value #WV8} and {@value #WV9} (bands 8/9, water vapour), u16 0.01 K;</li>
- *   <li>{@value #VIS} (band 2, 0.5 km visible), u8 reflectance, cropped to the places AOI + 300 km,
- *       and skipped when the solar zenith over the AOI exceeds 85°;</li>
+ *   <li>{@value #VIS} (band 2, 0.5 km visible), u8 reflectance, cropped in scan-angle space to the
+ *       places AOI + 300 km, and skipped when the solar zenith exceeds 85° over the whole AOI;</li>
  *   <li>{@value #MESO1} and {@value #MESO2} (mesoscale sectors 1/2, 1-minute CMIPM band 13), ingested
  *       only while their footprint intersects the AOI, keeping every 2nd frame ({@code mesoStride}).</li>
  * </ul>
  * Objects are listed per hour with {@code start-after} the last committed key and filtered by the
  * channel's key pattern; the scan mode is never hard-coded. Products are enabled per profile (small:
- * C13/C08/C09; large adds C02; mesoscale opt-in) and overridable with the {@code products} param.
+ * C13/C08/C09; large adds C02; mesoscale opt-in) and overridable with the {@code products} param; the
+ * param has no descriptor default, so an unset param means the profile default.
  */
 @Component
 public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
@@ -204,11 +206,14 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
                     "GOES-East mesoscale sector 2 (ABI band 13)", "Brightness temperature at 10.3 µm, K", Duration.ofHours(24),
                     false, true, 2));
 
-    /** The products on by default for the small profile. */
-    static final List<String> LIGHT_DEFAULT = List.of(IR, WV8, WV9);
+    /** The products on by default for the small profile (prompt 106 task 1: C13 plus C08/C09). */
+    public static final List<String> LIGHT_DEFAULT = List.of(IR, WV8, WV9);
 
-    /** The products on by default for the large profile. */
-    static final List<String> LARGE_DEFAULT = List.of(IR, WV8, WV9, VIS);
+    /**
+     * The products on by default for the large profile: also C02. The mesoscale sectors are opt-in on
+     * both profiles.
+     */
+    public static final List<String> LARGE_DEFAULT = List.of(IR, WV8, WV9, VIS);
 
     private final NetcdfDecoder decoder;
     private final String baseUrl;
@@ -253,7 +258,7 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
         this.channels = List.copyOf(channels);
         this.lightDefault = List.copyOf(lightDefault);
         this.largeDefault = List.copyOf(largeDefault);
-        this.descriptor = buildDescriptor(sourceId, bucket, label, channels);
+        this.descriptor = buildDescriptor(sourceId, bucket, label, channels, this.lightDefault, this.largeDefault);
     }
 
     /** One channel helper. */
@@ -417,56 +422,85 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
         if (aoi == null || aoi.getIfAvailable() == null) {
             return null;
         }
-        GeosGrid grid = (GeosGrid) GridDef.of(header.gridDefinition());
-        double[] env = aoi.getIfAvailable().envelope();
+        return cropWindow((GeosGrid) GridDef.of(header.gridDefinition()), aoi.getIfAvailable().envelope());
+    }
+
+    /** Points sampled along each side of the AOI box when it is mapped to scan angles. */
+    static final int CROP_EDGE_SAMPLES = 32;
+
+    /**
+     * The crop window of {@code env} (the AOI envelope {@code [west, south, east, north]}) widened by
+     * {@value #VIS_MARGIN_KM} km, worked out in scan-angle space: points along the four sides of the
+     * widened box (a geographic box's sides curve in the geostationary view, so its corners alone do
+     * not bound it) are mapped to scan angles with {@link GeosGrid#scanAngles}, which, unlike
+     * {@link GeosGrid#lonLatToIndex}, keeps points beyond the image so the window clamps to the image
+     * instead of shrinking; the min/max scan angles become column and row indices.
+     *
+     * @return {@code {col0, row0, cols, rows}}, or null when the box is not on the visible disc or does
+     *     not overlap the image
+     */
+    static int[] cropWindow(GeosGrid grid, double[] env) {
         double midLat = (env[1] + env[3]) / 2;
         double dLat = VIS_MARGIN_KM / 111.32;
         double dLon = VIS_MARGIN_KM / (111.32 * Math.max(0.2, Math.cos(Math.toRadians(midLat))));
         double w = env[0] - dLon;
         double e = env[2] + dLon;
-        double s = env[1] - dLat;
-        double n = env[3] + dLat;
+        double s = Math.max(-90, env[1] - dLat);
+        double n = Math.min(90, env[3] + dLat);
         double minCol = Double.POSITIVE_INFINITY;
         double maxCol = Double.NEGATIVE_INFINITY;
         double minRow = Double.POSITIVE_INFINITY;
         double maxRow = Double.NEGATIVE_INFINITY;
-        for (double[] lonLat : new double[][] {{w, s}, {w, n}, {e, s}, {e, n}, {(w + e) / 2, (s + n) / 2}}) {
-            double[] ij = grid.lonLatToIndex(lonLat[0], lonLat[1]);
-            if (Double.isNaN(ij[0]) || Double.isNaN(ij[1])) {
-                continue;
+        for (int k = 0; k <= CROP_EDGE_SAMPLES; k++) {
+            double f = (double) k / CROP_EDGE_SAMPLES;
+            double lon = w + f * (e - w);
+            double lat = s + f * (n - s);
+            for (double[] p : new double[][] {{lon, s}, {lon, n}, {w, lat}, {e, lat}, {lon, lat}}) {
+                double[] xy = grid.scanAngles(p[0], p[1]);
+                if (Double.isNaN(xy[0]) || Double.isNaN(xy[1])) {
+                    continue;
+                }
+                double col = (xy[0] - grid.x0()) / grid.dx();
+                double row = (xy[1] - grid.y0()) / grid.dy();
+                minCol = Math.min(minCol, col);
+                maxCol = Math.max(maxCol, col);
+                minRow = Math.min(minRow, row);
+                maxRow = Math.max(maxRow, row);
             }
-            minCol = Math.min(minCol, ij[0]);
-            maxCol = Math.max(maxCol, ij[0]);
-            minRow = Math.min(minRow, ij[1]);
-            maxRow = Math.max(maxRow, ij[1]);
         }
         if (minCol > maxCol) {
             return null;
         }
-        int col0 = Math.max(0, (int) Math.floor(minCol) - 1);
-        int row0 = Math.max(0, (int) Math.floor(minRow) - 1);
-        int col1 = Math.min(header.nx() - 1, (int) Math.ceil(maxCol) + 1);
-        int row1 = Math.min(header.ny() - 1, (int) Math.ceil(maxRow) + 1);
+        int col0 = (int) Math.max(0, Math.floor(minCol) - 1);
+        int row0 = (int) Math.max(0, Math.floor(minRow) - 1);
+        int col1 = (int) Math.min(grid.nx() - 1, Math.ceil(maxCol) + 1);
+        int row1 = (int) Math.min(grid.ny() - 1, Math.ceil(maxRow) + 1);
+        if (col1 < col0 || row1 < row0) {
+            return null;
+        }
         return new int[] {col0, row0, col1 - col0 + 1, row1 - row0 + 1};
     }
 
-    /** The GEOS grid definition of a cropped window. */
+    /**
+     * The {@code geos} grid definition of a cropped window: the scan angles of the window's first
+     * column and row ({@code x0 + col0·dx}, {@code y0 + row0·dy}, radians) with the same steps, and the
+     * WGS84 box of the cropped grid projected back from scan angles ({@link GeosGrids#boxOf}). The box
+     * is never derived from the parent box plus scan-angle steps: {@code dx}/{@code dy} are radians, not
+     * degrees.
+     */
     static ai.foresignal.source.spi.GridDefinition croppedGrid(DecodedGrid header, int[] window) {
         var def = header.gridDefinition();
         java.util.Map<String, Object> params = new java.util.LinkedHashMap<>(def.params());
-        double x0 = ((Number) params.get("x0")).doubleValue();
-        double y0 = ((Number) params.get("y0")).doubleValue();
-        double dx = ((Number) params.get("dx")).doubleValue();
-        double dy = ((Number) params.get("dy")).doubleValue();
-        int col0 = window[0];
-        int row0 = window[1];
-        double west = def.west() + col0 * Math.abs(dx);
-        double north = def.north() - row0 * Math.abs(dy);
-        params.put("x0", x0 + col0 * dx);
-        params.put("y0", y0 + row0 * dy);
+        GeosGrid parent = (GeosGrid) GridDef.of(def);
+        double x0 = parent.x0() + window[0] * parent.dx();
+        double y0 = parent.y0() + window[1] * parent.dy();
+        params.put("x0", x0);
+        params.put("y0", y0);
+        GeosGrid cropped = new GeosGrid(window[2], window[3], parent.lon0(), parent.h(), parent.a(), parent.b(),
+                parent.sweepX(), x0, parent.dx(), y0, parent.dy(), new double[] {-180, -90, 180, 90});
+        double[] box = GeosGrids.boxOf(cropped);
         return new ai.foresignal.source.spi.GridDefinition(ai.foresignal.source.spi.GridDefinition.GEOS, window[2],
-                window[3], Math.max(-180, west), def.south(), Math.min(180, west + window[2] * Math.abs(dx)),
-                Math.min(90, north), params);
+                window[3], box[0], box[1], box[2], box[3], params);
     }
 
     /** Crops a row-major north→south field. */
@@ -490,15 +524,33 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
                 box.north());
     }
 
-    /** The solar zenith at the AOI centroid at {@code time}, degrees (NOAA approximate formula). */
+    /**
+     * The smallest solar zenith over the AOI at {@code time}, degrees: the zenith at the corners, edge
+     * midpoints and center of the AOI envelope (a 3 × 3 lattice), so a frame is skipped only when the
+     * sun is more than {@value #VIS_MAX_SOLAR_ZENITH}° from the zenith over the <em>whole</em> AOI
+     * (prompt 106 task 2). Without an AOI, a central Texas point is used.
+     */
     double solarZenithOverAoi(FetchContext ctx, Instant time) {
-        double lon = -97.0;
-        double lat = 31.0;
-        if (aoi != null && aoi.getIfAvailable() != null) {
-            double[] env = aoi.getIfAvailable().envelope();
-            lon = (env[0] + env[2]) / 2;
-            lat = (env[1] + env[3]) / 2;
+        double[] env = aoi != null && aoi.getIfAvailable() != null ? aoi.getIfAvailable().envelope()
+                : new double[] {-97.0, 31.0, -97.0, 31.0};
+        return minSolarZenith(env, time);
+    }
+
+    /** The smallest solar zenith over a 3 × 3 lattice of {@code env}, degrees. */
+    static double minSolarZenith(double[] env, Instant time) {
+        double min = Double.POSITIVE_INFINITY;
+        for (int i = 0; i <= 2; i++) {
+            for (int j = 0; j <= 2; j++) {
+                double lon = env[0] + (env[2] - env[0]) * i / 2.0;
+                double lat = env[1] + (env[3] - env[1]) * j / 2.0;
+                min = Math.min(min, solarZenith(lon, lat, time));
+            }
         }
+        return min;
+    }
+
+    /** The solar zenith at a point at {@code time}, degrees (NOAA approximate formula). */
+    static double solarZenith(double lon, double lat, Instant time) {
         double dayOfYear = time.atZone(ZoneOffset.UTC).getDayOfYear();
         double hour = time.atZone(ZoneOffset.UTC).getHour() + time.atZone(ZoneOffset.UTC).getMinute() / 60.0;
         double gamma = 2 * Math.PI / 365 * (dayOfYear - 1 + (hour - 12) / 24);
@@ -660,7 +712,8 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
         }
     }
 
-    static SourceDescriptor buildDescriptor(String sourceId, String bucket, String label, List<Channel> channels) {
+    static SourceDescriptor buildDescriptor(String sourceId, String bucket, String label, List<Channel> channels,
+            List<String> lightDefault, List<String> largeDefault) {
         SourceDescriptor.Builder builder = SourceDescriptor.builder(sourceId)
                 .name(label + " ABI imagery")
                 .description(label + " ABI Level 2 Cloud and Moisture Imagery, CONUS sector: clean IR (band 13),"
@@ -682,7 +735,8 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
                 .zeroResultsNormal(true)
                 .maxResponseBytes(MAX_RESPONSE_BYTES)
                 .param(ParamSpec.optional(ProductEnablement.PRODUCTS_PARAM, ParamType.STRING_LIST,
-                        "Which ABI products to ingest (profile default)", LIGHT_DEFAULT));
+                        "Which ABI products to ingest (default: small " + lightDefault + ", large " + largeDefault
+                                + ")", null));
         for (Channel c : channels) {
             ProductSpec.Builder p = ProductSpec.builder(c.productId())
                     .title(c.title())
