@@ -172,8 +172,15 @@ public class McpOutputShaper {
         return out;
     }
 
-    /** Appends the source's {@code llmNotice} (prompt 090), when it has one, to a record item. */
-    void llmNotice(String sourceId, ObjectNode out) {
+    /**
+     * Appends the source's {@code llmNotice} (prompt 090), when it has one, to a record item. Every path that
+     * places a source's records in an LLM context calls this (or {@link #searchHitNotice}); an item that
+     * already carries a notice is left alone.
+     *
+     * @param sourceId the record's source, or null (nothing is added)
+     * @param out the item the notice is added to
+     */
+    public void llmNotice(String sourceId, ObjectNode out) {
         if (sourceId == null || out.has("llmNotice")) {
             return;
         }
@@ -182,6 +189,26 @@ public class McpOutputShaper {
         if (notice != null && !notice.isBlank()) {
             out.put("llmNotice", notice);
         }
+    }
+
+    /**
+     * Appends the {@code llmNotice} of a search hit's source (prompt 090) to its LLM-facing node. The source is
+     * the hit's {@code source} member, else the source part of a {@code source:externalId} {@code docId}; a
+     * part that names no registered source adds nothing.
+     *
+     * @param hit the search hit as {@code SearchService} produced it
+     * @param out the node the model sees
+     */
+    public void searchHitNotice(Map<?, ?> hit, ObjectNode out) {
+        Object source = hit.get("source");
+        String sourceId = source == null ? null : source.toString();
+        if (sourceId == null) {
+            Object docId = hit.get("docId");
+            String id = docId == null ? null : docId.toString();
+            int colon = id == null ? -1 : id.indexOf(':');
+            sourceId = colon > 0 ? id.substring(0, colon) : null;
+        }
+        llmNotice(sourceId, out);
     }
 
     /**

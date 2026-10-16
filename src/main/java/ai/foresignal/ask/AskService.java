@@ -351,6 +351,7 @@ public class AskService {
         if (record != null) {
             out.set("record", shaper.shortRecord(shaper.objectTree(record)));
         }
+        shaper.searchHitNotice(item, out);
         return out;
     }
 

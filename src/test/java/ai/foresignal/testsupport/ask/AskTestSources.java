@@ -29,6 +29,8 @@ import tools.jackson.databind.json.JsonMapper;
  *   <li>{@value #QUAKES}: kind {@value #QUAKE_KIND}, title field {@code place}, search field
  *       {@code place}, number field {@code mag};
  *   <li>{@value #SECRET}: private, kind {@value #QUAKE_KIND}, search field {@code place};
+ *   <li>{@value #NOTICED}: kind {@value #QUAKE_KIND}, title and search field {@code place}, with the
+ *       {@code llmNotice} {@value #NOTICE} (prompt 090);
  *   <li>{@link ScriptedLlmClients} as the primary {@link LlmClientFactory}: every provider answers with
  *       one {@link FakeLlmClient} per provider id that tests script and inspect. {@code LlmService}
  *       still wraps it, so budgets, usage and health apply as in production. No model is called.
@@ -47,7 +49,13 @@ public class AskTestSources {
     /** A private quake source. */
     public static final String SECRET = "test-ask-secret";
 
-    /** The kind of both. */
+    /** A public source carrying an {@code llmNotice} (prompt 090). */
+    public static final String NOTICED = "test-ask-noticed";
+
+    /** The {@code llmNotice} of {@value #NOTICED}. */
+    public static final String NOTICE = "Test notice: must not be used to determine eligibility.";
+
+    /** The kind of all three. */
     public static final String QUAKE_KIND = "test-ask-quake";
 
     /** {@value #QUAKES}. */
@@ -64,6 +72,12 @@ public class AskTestSources {
     @Bean
     public TestPushAdapter testAskSecretAdapter() {
         return new TestPushAdapter(base(SECRET).titleField("place").searchFields("place").privateSource(true).build());
+    }
+
+    /** {@value #NOTICED}. */
+    @Bean
+    public TestPushAdapter testAskNoticedAdapter() {
+        return new TestPushAdapter(base(NOTICED).titleField("place").searchFields("place").llmNotice(NOTICE).build());
     }
 
     /** The scripted provider clients. */

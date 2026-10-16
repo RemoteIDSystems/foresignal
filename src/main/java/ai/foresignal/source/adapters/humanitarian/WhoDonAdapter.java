@@ -16,7 +16,10 @@ import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.TtlAnchor;
 import ai.foresignal.source.spi.UpstreamFormatException;
 import ai.foresignal.source.spi.UpstreamResponse;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -24,10 +27,12 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -63,11 +68,25 @@ public final class WhoDonAdapter implements PollingAdapter {
 
     private final URI baseUrl;
     private final CountryCentroids countries;
+    private final Supplier<MeterRegistry> meters;
     private final SourceDescriptor descriptor;
 
-    /** Creates the adapter. */
+    /** Creates the adapter without a meter registry (tests). */
+    public WhoDonAdapter(String baseUrlOverride, CountryCentroids countries) {
+        this(baseUrlOverride, countries, null);
+    }
+
+    /**
+     * Creates the adapter.
+     *
+     * @param baseUrlOverride test-only base URL, blank for the real one
+     * @param countries 040's gazetteer
+     * @param meters the registry of the unresolved-country counter, resolved lazily; may be null
+     */
     @Autowired
-    public WhoDonAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride, CountryCentroids countries) {
+    public WhoDonAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride, CountryCentroids countries,
+            ObjectProvider<MeterRegistry> meters) {
+        this.meters = UnresolvedCountries.lazy(meters);
         this.baseUrl = URI.create(baseUrlOverride == null || baseUrlOverride.isBlank()
                 ? DEFAULT_BASE_URL : baseUrlOverride.strip());
         this.countries = countries;
@@ -81,23 +100,40 @@ public final class WhoDonAdapter implements PollingAdapter {
 
     @Override
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
-        UpstreamResponse response = ctx.http().get(URI.create(baseUrl
-                + "/api/emergencies/diseaseoutbreaknews?$orderby=PublicationDate desc&$top=50"));
+        UpstreamResponse response = ctx.http().get(listUri());
         if (response.status() != 200) {
             throw new UpstreamFormatException("WHO DON answered HTTP " + response.status(), "");
         }
-        return FetchResult.of(parse(response.body()));
+        UnresolvedCountries unresolved = new UnresolvedCountries();
+        List<NormalizedRecord> records = parse(response.body(), unresolved);
+        unresolved.report(ctx, meters);
+        return FetchResult.of(records);
+    }
+
+    /**
+     * The OData list URI. The {@code $orderby} value contains a space, which {@link URI#create} rejects, so the
+     * query values are percent-encoded (as {@code OpenFemaDeclarationsAdapter} does).
+     */
+    URI listUri() {
+        return URI.create(baseUrl + "/api/emergencies/diseaseoutbreaknews?$orderby="
+                + URLEncoder.encode("PublicationDate desc", StandardCharsets.UTF_8).replace("+", "%20")
+                + "&$top=50");
     }
 
     /** The records of a WHO DON OData body ({@code value} array). */
     public List<NormalizedRecord> parse(byte[] body) {
+        return parse(body, new UnresolvedCountries());
+    }
+
+    /** As {@link #parse(byte[])}, counting title countries the gazetteer cannot name. */
+    List<NormalizedRecord> parse(byte[] body, UnresolvedCountries unresolved) {
         JsonNode value = JSON.readTree(body).get("value");
         List<NormalizedRecord> out = new ArrayList<>();
         if (value == null || !value.isArray()) {
             return out;
         }
         for (JsonNode item : value) {
-            NormalizedRecord record = record(item);
+            NormalizedRecord record = record(item, unresolved);
             if (record != null) {
                 out.add(record);
             }
@@ -105,7 +141,7 @@ public final class WhoDonAdapter implements PollingAdapter {
         return out;
     }
 
-    private NormalizedRecord record(JsonNode item) {
+    private NormalizedRecord record(JsonNode item, UnresolvedCountries unresolved) {
         String id = text(item, "Id");
         if (id == null) {
             return null;
@@ -124,10 +160,10 @@ public final class WhoDonAdapter implements PollingAdapter {
                 }
                 Optional<ai.foresignal.reference.CountryRef> ref =
                         countries.byName(name.replaceFirst("(?i)^the\\s+", ""));
-                ref.ifPresent(country -> {
+                ref.ifPresentOrElse(country -> {
                     resolved.add(country.iso2());
                     points.add(Geo.point(country.labelLon(), country.labelLat()));
-                });
+                }, unresolved::miss);
             }
         }
         NormalizedRecord.Builder b = NormalizedRecord.builder(id, KIND)

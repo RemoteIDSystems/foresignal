@@ -352,6 +352,7 @@ public class LlmBriefingWriter {
                     node.set(key, shaper.tree(value));
                 }
             }
+            shaper.searchHitNotice(item, node);
         }
         return out;
     }

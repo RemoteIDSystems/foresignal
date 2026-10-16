@@ -21,6 +21,8 @@ class ReliefWebParserTest {
         assertThat(first.externalId()).isEqualTo("rw:100001");
         assertThat(first.kind()).isEqualTo("disaster");
         assertThat(first.geometry()).isNotNull();
+        assertThat(first.payload()).as("primary_country.location is a country point")
+                .containsEntry("geometryApproximate", true);
         assertThat(first.payload()).containsEntry("name", "Example flood 2026")
                 .containsEntry("status", "current");
         assertThat(first.payload().get("countries")).isEqualTo(List.of("PAK"));

@@ -442,6 +442,7 @@ public class EnrichmentContextBuilder {
                     node.set(key, shaper.tree(value));
                 }
             }
+            shaper.searchHitNotice(item, node);
             out.add(new Item(node, set -> set.addRecord(docId, seq, title)));
         }
         return out;

@@ -141,7 +141,10 @@ public class SearchTool implements ForesignalMcpTool {
         List<Map<String, Object>> items = (List<Map<String, Object>>) results.get("items");
         List<ObjectNode> out = new ArrayList<>(items.size());
         for (Map<String, Object> item : items) {
-            out.add(detail == Detail.LONG ? shaper.objectTree(item) : shortItem(item));
+            ObjectNode node = detail == Detail.LONG ? shaper.objectTree(item) : shortItem(item);
+            // Prompt 090: a source's llmNotice (OpenFEMA's eligibility notice) rides on each of its hits.
+            shaper.searchHitNotice(item, node);
+            out.add(node);
         }
         Map<String, Object> extra = new java.util.LinkedHashMap<>();
         extra.put("mode", results.get("mode"));
