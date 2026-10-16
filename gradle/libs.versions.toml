@@ -108,6 +108,14 @@ protobufJava = "4.36.1"
 # the latest release (Java 8 bytecode); no required runtime dependencies (re2j is optional and already present).
 jsoup = "1.23.2"
 
+# Bulk exports (111): parquet-java 1.18.1 (Apache-2.0) for GeoParquet 1.1; the Hadoop server stack is
+# excluded below. Verified on Maven Central 2026-10-15.
+parquetVersion = "1.18.1"
+# FlatGeobuf (111): org.wololo:flatgeobuf 3.29.0 (BSD-2-Clause); with JTS. Verified on Maven Central 2026-10-15.
+flatgeobufVersion = "3.29.0"
+# Hadoop Configuration class only (parquet-hadoop references it; all transitive deps excluded): 3.4.1.
+hadoopCommon = "3.4.1"
+
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
@@ -182,6 +190,14 @@ java-websocket = { module = "org.java-websocket:Java-WebSocket", version.ref = "
 gtfs-realtime-bindings = { module = "org.mobilitydata:gtfs-realtime-bindings", version.ref = "gtfsRealtimeBindings" }
 protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobufJava" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+# GeoParquet 1.1 exports (111): parquet-column + parquet-hadoop; Hadoop server stack excluded in build.gradle.kts.
+parquet-column = { module = "org.apache.parquet:parquet-column", version.ref = "parquetVersion" }
+parquet-hadoop = { module = "org.apache.parquet:parquet-hadoop", version.ref = "parquetVersion" }
+# Only org.apache.hadoop.conf.Configuration is needed by parquet-hadoop; added non-transitively so no
+# Hadoop server stack (hdfs/yarn/mapreduce/jetty) enters the runtime classpath.
+hadoop-common = { module = "org.apache.hadoop:hadoop-common", version.ref = "hadoopCommon" }
+# FlatGeobuf exports (111).
+flatgeobuf = { module = "org.wololo:flatgeobuf", version.ref = "flatgeobufVersion" }
 # WebP tiles and images (108): webp-imageio, Apache-2.0, bundles libwebp (BSD-3) natives for
 # linux-x86_64/aarch64 and macOS/Windows. The design cites 0.11.0; 0.10.0 is the latest on Central
 # (verified 2026-10-15).

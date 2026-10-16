@@ -94,6 +94,23 @@ dependencies {
     implementation(libs.jsoup)
     implementation(libs.webp.imageio)
     implementation(libs.sqlite.jdbc)
+    // GeoParquet exports (111): parquet-java, minus the Hadoop server stack (HDFS/YARN/MapReduce/Jetty/Jersey).
+    implementation(libs.parquet.column)
+    implementation(libs.parquet.hadoop) {
+        exclude(group = "org.apache.hadoop", module = "hadoop-hdfs")
+        exclude(group = "org.apache.hadoop", module = "hadoop-hdfs-client")
+        exclude(group = "org.apache.hadoop", module = "hadoop-yarn-api")
+        exclude(group = "org.apache.hadoop", module = "hadoop-yarn-client")
+        exclude(group = "org.apache.hadoop", module = "hadoop-yarn-common")
+        exclude(group = "org.apache.hadoop", module = "hadoop-mapreduce-client-core")
+        exclude(group = "org.apache.hadoop", module = "hadoop-mapreduce-client-common")
+        exclude(group = "org.eclipse.jetty")
+        exclude(group = "org.eclipse.jetty.websocket")
+        exclude(group = "com.sun.jersey")
+        exclude(group = "org.glassfish.jersey.core")
+    }
+    implementation(libs.hadoop.common) { isTransitive = false }
+    implementation(libs.flatgeobuf)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))
