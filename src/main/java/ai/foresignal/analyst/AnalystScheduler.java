@@ -117,12 +117,69 @@ public class AnalystScheduler {
             global.acquire();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            release(id);
             return;
         }
         try {
             profiles.findById(id).ifPresent(runner::run);
         } finally {
             global.release();
+        }
+    }
+
+    /**
+     * A manual run ({@code POST /v1/analyst/profiles/{id}/run}, MCP {@code run_analyst}) through the same
+     * guarded path as scheduled runs: the profile is claimed atomically ({@code running_since}, so at most
+     * one run per profile), the run is queued, and it executes on the scheduler's executor under the global
+     * limit of {@value #GLOBAL_LIMIT}. The daily run cap ({@code maxRunsPerDay}) is enforced by the runner.
+     *
+     * @return the queued run
+     * @throws ai.foresignal.api.error.ConflictException {@code 409 ANALYST_RUN_IN_PROGRESS} when the profile
+     *     is already running
+     */
+    public AnalystRunEntity runNow(AnalystProfileEntity profile) {
+        Instant now = clock.instant();
+        int claimed = jdbc.update("UPDATE analyst_profile SET running_since = ? WHERE id = ?"
+                + " AND (running_since IS NULL OR running_since < ?)", java.sql.Timestamp.from(now), profile.getId(),
+                java.sql.Timestamp.from(now.minus(STALE)));
+        if (claimed == 0) {
+            throw new ai.foresignal.api.error.ConflictException(ai.foresignal.api.error.ErrorCodes.ANALYST_RUN_IN_PROGRESS,
+                    "Analyst profile " + profile.getId() + " is already running.");
+        }
+        AnalystRunEntity run;
+        try {
+            run = runner.queued(profile);
+        } catch (RuntimeException e) {
+            release(profile.getId());
+            throw e;
+        }
+        String runId = run.getId();
+        executor.submit(() -> {
+            try {
+                global.acquire();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                release(profile.getId());
+                return;
+            }
+            try {
+                profiles.findById(profile.getId()).ifPresentOrElse(p -> runner.executeQueued(p, runId),
+                        () -> release(profile.getId()));
+            } finally {
+                global.release();
+            }
+        });
+        return run;
+    }
+
+    /** How long a {@code running_since} claim is honored before it is treated as stale. */
+    static final Duration STALE = Duration.ofMinutes(30);
+
+    private void release(String id) {
+        try {
+            jdbc.update("UPDATE analyst_profile SET running_since = NULL WHERE id = ?", id);
+        } catch (RuntimeException e) {
+            log.warn("Could not release analyst profile {}: {}", id, e.toString());
         }
     }
 

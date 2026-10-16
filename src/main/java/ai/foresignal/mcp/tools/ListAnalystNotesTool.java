@@ -8,6 +8,7 @@ import static ai.foresignal.mcp.JsonSchemas.string;
 
 import ai.foresignal.analyst.AnalystService;
 import ai.foresignal.analyst.AnalystViews;
+import ai.foresignal.intel.IntelVisibility;
 import ai.foresignal.mcp.ForesignalMcpTool;
 import ai.foresignal.mcp.JsonSchemas;
 import ai.foresignal.mcp.McpArgs;
@@ -37,10 +38,12 @@ public class ListAnalystNotesTool implements ForesignalMcpTool {
 
     private final AnalystService analyst;
     private final McpOutputShaper shaper;
+    private final IntelVisibility visibility;
 
     /** Creates the tool. */
-    public ListAnalystNotesTool(AnalystService analyst, McpOutputShaper shaper) {
+    public ListAnalystNotesTool(AnalystService analyst, McpOutputShaper shaper, IntelVisibility visibility) {
         this.analyst = analyst;
+        this.visibility = visibility;
         this.shaper = shaper;
     }
 
@@ -80,7 +83,7 @@ public class ListAnalystNotesTool implements ForesignalMcpTool {
         int limit = McpArgs.integer(args, "limit", 50);
         List<ObjectNode> items = new ArrayList<>();
         for (var note : analyst.listNotes(McpArgs.text(args, "profileId"), McpArgs.text(args, "status"),
-                McpArgs.text(args, "priority"), null, limit)) {
+                McpArgs.text(args, "priority"), null, limit, visibility.seesPrivate(context.caller()))) {
             items.add(shaper.objectTree(AnalystViews.note(note)));
         }
         return ToolResult.json(shaper.list(items, items.size(), false, Detail.SHORT, null));

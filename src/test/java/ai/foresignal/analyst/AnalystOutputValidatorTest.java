@@ -84,4 +84,34 @@ class AnalystOutputValidatorTest {
         assertThat(out.body().split("\\s+")).hasSize(2_000);
         assertThat(out.warnings()).anyMatch(w -> w.contains("truncated"));
     }
+
+    @Test
+    @DisplayName("an LLM-supplied confidence, weight, family and role are discarded from an event proposal")
+    void llmConfidenceDiscarded() {
+        Map<String, Object> member = new java.util.LinkedHashMap<>();
+        member.put("memberType", "record");
+        member.put("sourceId", "s");
+        member.put("externalId", "e1");
+        member.put("seq", 1L);
+        member.put("weight", 1.0);
+        member.put("signalFamily", "seismic");
+        member.put("role", "supporting");
+        Map<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put("type", "custom");
+        payload.put("title", "Pair");
+        payload.put("confidence", 0.99);
+        payload.put("members", List.of(member, Map.of("memberType", "record", "sourceId", "s", "externalId", "e2",
+                "seq", 2L)));
+
+        var out = AnalystOutputValidator.validate("t", "body", "normal", List.of(),
+                List.of(new RawProposal(AnalystActions.PROPOSE_INTEL_EVENT, payload, "why", List.of())), citations(),
+                members(2, true), Set.of(AnalystActions.PROPOSE_INTEL_EVENT), Set.of("custom"));
+
+        assertThat(out.proposals()).hasSize(1);
+        Map<String, Object> kept = out.proposals().get(0).payload();
+        assertThat(kept).containsOnlyKeys("type", "title", "members");
+        assertThat(AnalystOutputValidator.memberList(kept))
+                .allSatisfy(m -> assertThat(m).containsOnlyKeys("memberType", "sourceId", "externalId", "seq"));
+        assertThat(out.warnings()).anyMatch(w -> w.contains("confidence"));
+    }
 }

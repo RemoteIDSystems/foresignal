@@ -4,7 +4,7 @@ import static ai.foresignal.mcp.JsonSchemas.object;
 import static ai.foresignal.mcp.JsonSchemas.string;
 
 import ai.foresignal.analyst.AnalystProfileEntity;
-import ai.foresignal.analyst.AnalystRunner;
+import ai.foresignal.analyst.AnalystScheduler;
 import ai.foresignal.analyst.AnalystService;
 import ai.foresignal.analyst.AnalystViews;
 import ai.foresignal.api.error.ConflictException;
@@ -28,13 +28,13 @@ public class RunAnalystTool implements ForesignalMcpTool {
             "profileId");
 
     private final AnalystService analyst;
-    private final AnalystRunner runner;
+    private final AnalystScheduler scheduler;
     private final JsonMapper json;
 
     /** Creates the tool. */
-    public RunAnalystTool(AnalystService analyst, AnalystRunner runner, JsonMapper json) {
+    public RunAnalystTool(AnalystService analyst, AnalystScheduler scheduler, JsonMapper json) {
         this.analyst = analyst;
-        this.runner = runner;
+        this.scheduler = scheduler;
         this.json = json;
     }
 
@@ -77,14 +77,9 @@ public class RunAnalystTool implements ForesignalMcpTool {
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
         AnalystProfileEntity profile = analyst.getProfile(McpArgs.requiredText(args, "profileId"));
-        if (profile.getRunningSince() != null) {
-            throw new McpToolException("Analyst profile is already running.");
-        }
         try {
-            var run = runner.queued(profile);
-            profile.setRunningSince(run.getStartedAt());
-            Thread.ofVirtual().name("analyst-mcp-" + profile.getId())
-                    .start(() -> runner.executeQueued(profile, run.getId()));
+            // The scheduler's guarded path: one run per profile, the global limit and the daily run cap.
+            var run = scheduler.runNow(profile);
             return ToolResult.json(json.valueToTree(AnalystViews.run(run)));
         } catch (ConflictException e) {
             throw new McpToolException(e.getMessage());

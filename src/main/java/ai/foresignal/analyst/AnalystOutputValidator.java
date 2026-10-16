@@ -108,12 +108,19 @@ public final class AnalystOutputValidator {
         String trimmed = truncate(body, words, warnings);
         String normalizedPriority = List.of("low", "normal", "high").contains(priority) ? priority : "normal";
         List<AnalystProposalSpec> proposals = new ArrayList<>();
-        for (RawProposal raw : rawProposals) {
-            if (!allowedActions.contains(raw.type())) {
-                warnings.add("dropped proposal " + raw.type() + ": not in allowed_actions");
+        for (RawProposal original : rawProposals) {
+            if (!allowedActions.contains(original.type())) {
+                warnings.add("dropped proposal " + original.type() + ": not in allowed_actions");
                 continue;
             }
-            if (AnalystActions.PROPOSE_INTEL_EVENT.equals(raw.type())) {
+            RawProposal raw = original;
+            if (AnalystActions.PROPOSE_INTEL_EVENT.equals(original.type())) {
+                Map<String, Object> clean = scoreFree(original.payload());
+                if (!clean.equals(original.payload())) {
+                    warnings.add("model-supplied confidence, weights or signal families discarded; EventScorer"
+                            + " computes the score");
+                }
+                raw = new RawProposal(original.type(), clean, original.rationale(), original.citations());
                 List<Map<String, Object>> memberList = memberList(raw.payload());
                 String type = raw.payload().get("type") == null ? null : String.valueOf(raw.payload().get("type"));
                 if (type == null || !knownEventTypes.contains(type)) {
@@ -130,6 +137,25 @@ public final class AnalystOutputValidator {
             proposals.add(new AnalystProposalSpec(raw.type(), raw.payload(), raw.rationale(), keptCitations));
         }
         return new Validated(title, trimmed, normalizedPriority, claims, proposals, warnings, dropped, downgraded);
+    }
+
+    /**
+     * An event proposal without any number the model chose (principle 3, INT-3): {@code type},
+     * {@code title} and the members' identities only. Confidence, weights, signal families and roles are
+     * discarded; {@code EventScorer} computes the score from the members.
+     */
+    static Map<String, Object> scoreFree(Map<String, Object> payload) {
+        Map<String, Object> out = new java.util.LinkedHashMap<>();
+        if (payload.containsKey("type")) {
+            out.put("type", payload.get("type"));
+        }
+        if (payload.containsKey("title")) {
+            out.put("title", payload.get("title"));
+        }
+        Object members = payload.get("members");
+        out.put("members", members instanceof List<?> list ? AnalystOutputTools.identities(new ArrayList<>(list))
+                : List.of());
+        return out;
     }
 
     /** True when the text asserts an absence. */

@@ -84,7 +84,9 @@ public final class AnalystOutputTools {
             payload = new LinkedHashMap<>();
             payload.put("type", text(args.get("type")));
             payload.put("title", text(args.get("title")));
-            payload.put("members", list(args.get("members")));
+            // INT-3: only the identity of each member is kept; a model never sets a weight, family, role or
+            // confidence (the server derives them from the recipe registry and EventScorer).
+            payload.put("members", identities(list(args.get("members"))));
         } else if (PROPOSE_INVESTIGATION_ITEM.equals(name)) {
             payload = new LinkedHashMap<>();
             payload.put("investigationId", text(args.get("investigationId")));
@@ -99,6 +101,28 @@ public final class AnalystOutputTools {
         proposals.add(new AnalystOutputValidator.RawProposal(name, payload, text(args.get("rationale")),
                 AnalystClaim.strings(args.get("citations"))));
     }
+
+    /** The members a model proposed, reduced to {@code memberType}, {@code sourceId}, {@code externalId} and {@code seq}. */
+    static List<Object> identities(List<Object> members) {
+        List<Object> out = new ArrayList<>();
+        for (Object raw : members) {
+            if (!(raw instanceof Map<?, ?> member)) {
+                continue;
+            }
+            Map<String, Object> identity = new LinkedHashMap<>();
+            for (String key : MEMBER_IDENTITY) {
+                if (member.get(key) != null) {
+                    identity.put(key, member.get(key));
+                }
+            }
+            identity.putIfAbsent("memberType", "record");
+            out.add(identity);
+        }
+        return out;
+    }
+
+    /** The member fields a model may supply. */
+    static final List<String> MEMBER_IDENTITY = List.of("memberType", "sourceId", "externalId", "seq");
 
     @SuppressWarnings("unchecked")
     private static Map<String, Object> map(Object raw) {

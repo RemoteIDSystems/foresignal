@@ -19,4 +19,8 @@ public interface AnalystRunRepository extends JpaRepository<AnalystRunEntity, St
 
     /** How many runs a profile started since an instant. */
     long countByProfileIdAndStartedAtGreaterThanEqual(String profileId, Instant since);
+
+    /** How many runs of a profile with one of {@code statuses} started since an instant (the daily run cap). */
+    long countByProfileIdAndStartedAtGreaterThanEqualAndStatusIn(String profileId, Instant since,
+            java.util.Collection<String> statuses);
 }

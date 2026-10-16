@@ -137,7 +137,9 @@ public class AnalystService {
             }
         }
         if (input.has("scope") && input.get("scope").isObject()) {
-            profile.setScope(map(input.get("scope")));
+            Map<String, Object> scope = map(input.get("scope"));
+            AnalystScope.of(scope); // validates sources, kinds, places, bbox, eventTypes, ruleTags and minSeverity
+            profile.setScope(scope);
         }
         if (input.hasNonNull("lookback")) {
             profile.setLookbackSeconds((int) ai.foresignal.settings.Durations.parse(text(input, "lookback")).toSeconds());
@@ -209,8 +211,32 @@ public class AnalystService {
                 "No such analyst run: " + id));
     }
 
-    /** Notes, filtered. */
-    public List<AnalystNoteEntity> listNotes(String profileId, String status, String priority, Instant since, int limit) {
+    /**
+     * Notes the caller may see, filtered: a private note (one written from private evidence) is left out
+     * unless {@code privateAccess}.
+     */
+    public List<AnalystNoteEntity> listNotes(String profileId, String status, String priority, Instant since, int limit,
+            boolean privateAccess) {
+        List<AnalystNoteEntity> out = new ArrayList<>();
+        for (AnalystNoteEntity note : listNotes(profileId, status, priority, since, limit)) {
+            if (privateAccess || !note.isPrivateNote()) {
+                out.add(note);
+            }
+        }
+        return out;
+    }
+
+    /** One note the caller may see, or {@code 404} (a private note is not disclosed without private access). */
+    public AnalystNoteEntity visibleNote(String id, boolean privateAccess) {
+        AnalystNoteEntity note = getNote(id);
+        if (note.isPrivateNote() && !privateAccess) {
+            throw new NotFoundException(ErrorCodes.UNKNOWN_PROPOSAL, "No such analyst note: " + id);
+        }
+        return note;
+    }
+
+    /** Notes, filtered, private ones included (internal callers only; egress paths use the private-aware form). */
+    List<AnalystNoteEntity> listNotes(String profileId, String status, String priority, Instant since, int limit) {
         List<AnalystNoteEntity> rows;
         if (profileId != null && status != null) {
             rows = notes.findByProfileIdAndStatusOrderByCreatedAtDescIdDesc(profileId, status, Limit.of(limit));
@@ -240,24 +266,36 @@ public class AnalystService {
 
     /** Sets a note's read status. */
     @Transactional
-    public AnalystNoteEntity updateNoteStatus(String id, String status) {
+    public AnalystNoteEntity updateNoteStatus(String id, String status, boolean privateAccess) {
         if (!List.of("new", "read", "dismissed").contains(status)) {
             throw ValidationException.forField("status", "must be new, read or dismissed");
         }
-        AnalystNoteEntity note = getNote(id);
+        AnalystNoteEntity note = visibleNote(id, privateAccess);
         note.setStatus(status);
         return notes.save(note);
     }
 
     /** Records note feedback. */
     @Transactional
-    public AnalystFeedbackEntity noteFeedback(String id, String rating, String comment, String actor) {
-        getNote(id);
+    public AnalystFeedbackEntity noteFeedback(String id, String rating, String comment, String actor,
+            boolean privateAccess) {
+        visibleNote(id, privateAccess);
         return saveFeedback("note", id, rating, comment, actor);
     }
 
-    /** Proposals, filtered by status. */
-    public List<AnalystProposalEntity> listProposals(String status, int limit) {
+    /** Proposals the caller may see, filtered by status: a private proposal needs private access. */
+    public List<AnalystProposalEntity> listProposals(String status, int limit, boolean privateAccess) {
+        List<AnalystProposalEntity> out = new ArrayList<>();
+        for (AnalystProposalEntity proposal : listProposals(status, limit)) {
+            if (privateAccess || !proposal.isPrivateProposal()) {
+                out.add(proposal);
+            }
+        }
+        return out;
+    }
+
+    /** Proposals, filtered by status, private ones included (internal callers only). */
+    List<AnalystProposalEntity> listProposals(String status, int limit) {
         return status == null ? proposals.findAllByOrderByCreatedAtDescIdDesc(Limit.of(limit))
                 : proposals.findByStatusOrderByCreatedAtDescIdDesc(status, Limit.of(limit));
     }

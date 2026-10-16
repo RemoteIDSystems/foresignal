@@ -45,8 +45,8 @@ class AnalystControllersIT {
     @Test
     @DisplayName("notes and proposals lists are pages")
     void lists() {
-        assertThat(controller.listAnalystNotes(null, null, null, null, "10")).containsKey("items");
-        assertThat(controller.listAnalystProposals(null, "10")).containsKey("items");
+        assertThat(controller.listAnalystNotes(null, null, null, null, "10", new MockHttpServletRequest())).containsKey("items");
+        assertThat(controller.listAnalystProposals(null, "10", new MockHttpServletRequest())).containsKey("items");
         assertThat(controller.listAnalystRuns(null, null, "10")).containsKey("items");
     }
 }

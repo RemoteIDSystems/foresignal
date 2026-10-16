@@ -47,6 +47,10 @@ public class AnalystProposalEntity {
     @Column(name = "auto_executed", nullable = false)
     private boolean autoExecuted;
 
+    /** True when the run that proposed it read private evidence (039); listed only to private-access callers. */
+    @Column(name = "private", nullable = false, columnDefinition = "boolean default false")
+    private boolean privateProposal;
+
     @Column(name = "executed_ref", length = 128)
     private String executedRef;
 
@@ -129,6 +133,16 @@ public class AnalystProposalEntity {
 
     public boolean isAutoExecuted() {
         return autoExecuted;
+    }
+
+    /** True when the proposing run read private evidence. */
+    public boolean isPrivateProposal() {
+        return privateProposal;
+    }
+
+    /** Marks the proposal private (or not). */
+    public void setPrivateProposal(boolean privateProposal) {
+        this.privateProposal = privateProposal;
     }
 
     public void setAutoExecuted(boolean autoExecuted) {

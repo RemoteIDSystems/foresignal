@@ -32,11 +32,14 @@ public class ListAnalystProposalsTool implements ForesignalMcpTool {
 
     private final AnalystService analyst;
     private final McpOutputShaper shaper;
+    private final ai.foresignal.intel.IntelVisibility visibility;
 
     /** Creates the tool. */
-    public ListAnalystProposalsTool(AnalystService analyst, McpOutputShaper shaper) {
+    public ListAnalystProposalsTool(AnalystService analyst, McpOutputShaper shaper,
+            ai.foresignal.intel.IntelVisibility visibility) {
         this.analyst = analyst;
         this.shaper = shaper;
+        this.visibility = visibility;
     }
 
     @Override
@@ -74,7 +77,8 @@ public class ListAnalystProposalsTool implements ForesignalMcpTool {
     public ToolResult call(ToolContext context, JsonNode args) {
         int limit = McpArgs.integer(args, "limit", 50);
         List<ObjectNode> items = new ArrayList<>();
-        for (var proposal : analyst.listProposals(McpArgs.text(args, "status"), limit)) {
+        for (var proposal : analyst.listProposals(McpArgs.text(args, "status"), limit,
+                visibility.seesPrivate(context.caller()))) {
             items.add(shaper.objectTree(AnalystViews.proposal(proposal)));
         }
         return ToolResult.json(shaper.list(items, items.size(), false, Detail.SHORT, null));

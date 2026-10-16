@@ -8,6 +8,7 @@ import static ai.foresignal.mcp.JsonSchemas.string;
 import ai.foresignal.intel.IntelEventMapper;
 import ai.foresignal.intel.IntelligenceEventEntity;
 import ai.foresignal.intel.IntelligenceEventRepository;
+import ai.foresignal.intel.IntelVisibility;
 import ai.foresignal.mcp.ForesignalMcpTool;
 import ai.foresignal.mcp.JsonSchemas;
 import ai.foresignal.mcp.McpArgs;
@@ -50,11 +51,14 @@ public class FindSimilarEventsTool implements ForesignalMcpTool {
 
     private final IntelligenceEventRepository events;
     private final McpOutputShaper shaper;
+    private final IntelVisibility visibility;
 
     /** Creates the tool. */
-    public FindSimilarEventsTool(IntelligenceEventRepository events, McpOutputShaper shaper) {
+    public FindSimilarEventsTool(IntelligenceEventRepository events, McpOutputShaper shaper,
+            IntelVisibility visibility) {
         this.events = events;
         this.shaper = shaper;
+        this.visibility = visibility;
     }
 
     @Override
@@ -91,8 +95,10 @@ public class FindSimilarEventsTool implements ForesignalMcpTool {
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
         String id = McpArgs.requiredText(args, "eventId");
+        // Private events (EGR-1): invisible to a caller without private access, as target and as result.
+        boolean privateAccess = visibility.seesPrivate(context.caller());
         IntelligenceEventEntity target = events.findById(id).orElse(null);
-        if (target == null) {
+        if (target == null || !IntelVisibility.visible(target, privateAccess)) {
             return ToolResult.error("No such event: " + id);
         }
         double withinKm = McpArgs.integer(args, "withinKm", (int) DEFAULT_KM);
@@ -102,7 +108,8 @@ public class FindSimilarEventsTool implements ForesignalMcpTool {
         List<ObjectNode> items = new ArrayList<>();
         for (IntelligenceEventEntity event : events.findByTypeAndStatusInOrderByUpdatedAtDesc(target.getType(),
                 java.util.List.of("emerging", "active", "reopened"))) {
-            if (event.getId().equals(id) || event.getUpdatedAt() == null || event.getUpdatedAt().isBefore(since)) {
+            if (event.getId().equals(id) || event.getUpdatedAt() == null || event.getUpdatedAt().isBefore(since)
+                    || !IntelVisibility.visible(event, privateAccess)) {
                 continue;
             }
             if (withinKm < 2_000 && targetGeom != null && event.getGeom() != null
