@@ -1,11 +1,10 @@
 package ai.foresignal.export;
 
 import ai.foresignal.provenance.AttributionService;
-import ai.foresignal.provenance.LicenceCatalog;
-import ai.foresignal.provenance.LicenceEgressGuard;
 import ai.foresignal.provenance.LicenceTerms;
 import ai.foresignal.security.EgressPath;
 import ai.foresignal.security.EgressPolicy;
+import ai.foresignal.security.EgressPolicy.EgressContext;
 import ai.foresignal.security.visibility.Viewer;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.spi.SourceDescriptor;
@@ -20,11 +19,11 @@ import org.springframework.stereotype.Component;
  * Which sources an export, snapshot or pack may carry, and its license sidecar (prompt 111; 039, 062,
  * 109).
  *
- * <p>The source-level decision goes through {@link EgressPolicy#allows(EgressPath, String, Viewer)}
- * on the {@code EXPORT} path (registration, private visibility, descriptor egress), plus the license
- * table of {@link LicenceEgressGuard} with the export's {@code personalUse} flag, which
- * {@code EgressPolicy} has no parameter for yet. That one call to the guard is isolated here so it
- * can move behind {@code EgressPolicy} when the policy gains a personal-use overload.
+ * <p>Every decision goes through the single egress policy,
+ * {@link EgressPolicy#decide(EgressPath, String, LicenceTerms, Map, EgressContext)} on the {@code EXPORT}
+ * path with {@link EgressContext#export(Viewer, boolean, boolean)} ({@code docs/Conventions.md}
+ * "EgressPolicy"), and the license terms come from {@link EgressPolicy#sourceTerms(String)}, which follows
+ * {@code derivedFrom} and the operator's egress override.
  *
  * <ul>
  *   <li>A private source (039) needs an admin caller with {@code includePrivate=true} and a viewer the
@@ -42,17 +41,12 @@ public class ExportLicenceService {
     /** The sidecar sentence of a personal-use export. */
     public static final String PERSONAL_USE_NOTICE = "Personal use only — do not redistribute.";
 
-    private final LicenceCatalog catalog;
-    private final LicenceEgressGuard guard;
     private final EgressPolicy egress;
     private final SourceRegistry registry;
     private final AttributionService attributions;
 
     /** Creates the service. */
-    public ExportLicenceService(LicenceCatalog catalog, LicenceEgressGuard guard, EgressPolicy egress,
-            SourceRegistry registry, AttributionService attributions) {
-        this.catalog = catalog;
-        this.guard = guard;
+    public ExportLicenceService(EgressPolicy egress, SourceRegistry registry, AttributionService attributions) {
         this.egress = egress;
         this.registry = registry;
         this.attributions = attributions;
@@ -88,29 +82,19 @@ public class ExportLicenceService {
         List<String> allowed = new ArrayList<>();
         List<String> personal = new ArrayList<>();
         List<Map<String, Object>> excluded = new ArrayList<>();
+        EgressContext context = EgressContext.export(viewer, admin && includePrivate, personalUse);
         for (SourceDescriptor descriptor : candidates) {
             String id = descriptor.id();
-            boolean isPrivate = egress.isPrivate(id);
-            boolean policy = egress.allows(EgressPath.EXPORT, id, viewer);
-            if (isPrivate && !(admin && includePrivate && policy)) {
-                if (admin) {
-                    excluded.add(exclusion(id, "private"));
+            EgressPolicy.Decision decision = egress.decide(EgressPath.EXPORT, id, null, null, context);
+            if (!decision.allowed()) {
+                // Non-admin callers are not told which private sources exist.
+                if (!EgressPolicy.REASON_PRIVATE.equals(decision.reason()) || admin) {
+                    excluded.add(exclusion(id, decision.reason()));
                 }
                 continue;
             }
-            LicenceTerms terms = catalog.forDescriptor(descriptor);
-            if (!guard.allows(EgressPath.EXPORT, terms, personalUse, false)) {
-                excluded.add(exclusion(id, terms.effectiveRedistribution() == LicenceTerms.Redistribution.FORBIDDEN
-                        ? "licence-forbidden" : "licence-local-only"));
-                continue;
-            }
-            // A personal-use export of a non-private source needs only the license decision above; any
-            // other refusal of the policy keeps the source out.
-            if (!policy && !(personalUse && !isPrivate && registry.contains(id))) {
-                excluded.add(exclusion(id, "licence-local-only"));
-                continue;
-            }
             allowed.add(id);
+            LicenceTerms terms = decision.terms() != null ? decision.terms() : egress.sourceTerms(id);
             if (terms.effectiveRedistribution() != LicenceTerms.Redistribution.ALLOWED) {
                 personal.add(id);
             }
@@ -132,8 +116,7 @@ public class ExportLicenceService {
             if (!registry.contains(id)) {
                 continue;
             }
-            SourceDescriptor descriptor = registry.descriptor(id);
-            LicenceTerms terms = catalog.forDescriptor(descriptor);
+            LicenceTerms terms = egress.sourceTerms(id);
             long rows = rowsBySource == null ? 0L : rowsBySource.getOrDefault(id, 0L);
             Map<String, Object> entry = byLicense.computeIfAbsent(terms.id(), key -> {
                 Map<String, Object> created = new LinkedHashMap<>();
@@ -167,8 +150,9 @@ public class ExportLicenceService {
 
     /** The license summary of one source written to the cold archive ({@code ARCHIVE} path). */
     public Map<String, Object> archiveSummary(SourceDescriptor descriptor, long rows) {
-        LicenceTerms terms = catalog.forDescriptor(descriptor);
-        guard.allows(EgressPath.ARCHIVE, terms);
+        // ARCHIVE (operator-owned storage) is allowed for every license; the decision still runs so the
+        // manifest records what the single policy decided.
+        egress.decide(EgressPath.ARCHIVE, descriptor.id(), null, null, EgressContext.NONE);
         Decision decision = new Decision(List.of(descriptor.id()), List.of(), List.of());
         Map<String, Object> summary = summary(decision, Map.of(descriptor.id(), rows));
         summary.put("personalUseOnly", false);

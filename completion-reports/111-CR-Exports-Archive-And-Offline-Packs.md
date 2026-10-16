@@ -32,8 +32,9 @@ Durable, portable copies of Foresignal's data. Compiles; tests written, not run.
   identifiers), `FlatGeobufWriter` (two passes through a spill file, packed Hilbert R-tree, `Unknown` when
   mixed), `GpxWriter` (waypoints and tracks in two spill files concatenated in schema order, metadata in
   schema order, elevation in meters from the source's altitude field). `GeoParquetFiles` reads footers back.
-- **License rules (`ExportLicenceService`):** `EgressPolicy.allows(EXPORT, …)` plus the 109 guard with
-  `personalUse`; private sources need admin and `includePrivate` (`403` otherwise); the
+- **License rules (`ExportLicenceService`):** every source goes through the single
+  `EgressPolicy.decide(EXPORT, sourceId, null, null, EgressContext.export(viewer, includePrivate, personalUse))`,
+  and license terms come from `EgressPolicy.sourceTerms`; private sources need admin and `includePrivate` (`403` otherwise); the
   `ExportLicenceSummary` (`licence.json`) per license with terms, sources and rows; `ATTRIBUTION.txt` with the
   personal-use notice; `manifest.json` signed by `ManifestSigner` (`manifest.json.jws`).
 - **Snapshots and holds:** `SnapshotService` + `PointInTimePlanner` (validity at the transaction time of S,
@@ -124,9 +125,11 @@ ExportJobIT,ExportLicenceIT,SnapshotIT,HoldCopyStepIT,ArchiveStepIT,S3UploadIT,P
 10. **Downloads** use Spring MVC's resource handling for `Range` (206/416) and `If-None-Match` (304); the bundle zip
     is built once with fixed entry times so its ETag is stable. `getExport` returns an `EXPIRED` job's status (200);
     downloads and the manifest answer 410.
-11. **License decision** goes through `EgressPolicy.allows(EXPORT, sourceId, viewer)` for registration, private
-    visibility and descriptor egress; the `personalUse` license exception still calls `LicenceEgressGuard` directly,
-    isolated in `ExportLicenceService.decide`, because `EgressPolicy` has no personal-use overload yet.
+11. **License decision** goes through `EgressPolicy.decide` on the `EXPORT` path with an export context (registration,
+    private visibility, descriptor egress and the license table with `personalUse`), and the cold archive through
+    `EgressPolicy.decide` on `ARCHIVE`. This was moved onto the single policy when the branch was merged with the
+    108–110 post-review fixes, which added `decide` and `EgressContext.export`; `ExportLicenceService` no longer
+    references `LicenceEgressGuard` (enforced by `LicenceEgressGuardUsageTest`).
 12. **Configuration** lives under `foresignal.exports.*` (`pack-max-tiles` is `packs.maxTiles`, `holds-max` is
     `holds.max`), plus `page-size` and `query-timeout`.
 13. **Operator Guide** sections are appended, as earlier prompts did, rather than rewriting the 4,900-line guide.
@@ -216,9 +219,8 @@ runtime classpath without `hadoop-common` and the footer reported codec `ZSTD` i
 
 ## Notes for the next prompt
 
-- **112/113** reuse `ExportLicenceService.decide` for share and federation exports only if their paths need the
-  personal-use exception; otherwise `EgressPolicy.allows(path, …)` is the entry point. When `EgressPolicy` gains a
-  personal-use overload, move the guard call out of `ExportLicenceService`.
+- **112/113** decide share-link and federation egress with `EgressPolicy.decide(path, …)`; private records never
+  leave on `SHARE`, `PUBLIC_SHARE` or `FEDERATION` (109's rule as implemented in `EgressPolicy`).
 - Retention steps that remove rows should take their scope from `RetentionPlanner` so the hold copy and the cold
   archive keep covering exactly what is removed.
 - **144 (Flyway):** capture `export_job` (with `plan`), `hold` (with `floors_at_create`), `archive_watermark` and the

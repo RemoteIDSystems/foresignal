@@ -4,12 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import ai.foresignal.provenance.AttributionService;
 import ai.foresignal.provenance.LicenceCatalog;
 import ai.foresignal.provenance.LicenceEgressGuard;
+import ai.foresignal.provenance.LicenceTerms;
 import ai.foresignal.security.EgressPath;
 import ai.foresignal.security.EgressPolicy;
 import ai.foresignal.security.visibility.Viewer;
@@ -54,14 +56,27 @@ class ExportLicenceServiceTest {
             when(registry.contains(d.id())).thenReturn(true);
             when(registry.descriptor(d.id())).thenReturn(d);
         }
-        when(egress.isPrivate(anyString())).thenReturn(false);
-        when(egress.isPrivate("secret-src")).thenReturn(true);
-        when(egress.allows(eq(EgressPath.EXPORT), anyString(), any())).thenReturn(true);
-        when(egress.allows(eq(EgressPath.EXPORT), eq("secret-src"), any()))
-                .thenAnswer(inv -> inv.getArgument(2) instanceof Viewer v && v.canSeePrivate());
         LicenceCatalog catalog = new LicenceCatalog();
-        service = new ExportLicenceService(catalog, new LicenceEgressGuard(), egress, registry,
-                new AttributionService(registry, catalog));
+        LicenceEgressGuard guard = new LicenceEgressGuard();
+        // The policy is mocked with the real license table and the private-export rule, so the test checks
+        // how the service maps each EgressPolicy decision.
+        when(egress.sourceTerms(anyString()))
+                .thenAnswer(inv -> catalog.forDescriptor(registry.descriptor(inv.getArgument(0))));
+        when(egress.decide(eq(EgressPath.EXPORT), anyString(), isNull(), isNull(), any())).thenAnswer(inv -> {
+            String id = inv.getArgument(1);
+            EgressPolicy.EgressContext ctx = inv.getArgument(4);
+            if ("secret-src".equals(id)
+                    && !(ctx.includePrivate() && ctx.viewer() != null && ctx.viewer().isAdmin())) {
+                return new EgressPolicy.Decision(false, EgressPolicy.REASON_PRIVATE, null);
+            }
+            LicenceTerms terms = catalog.forDescriptor(registry.descriptor(id));
+            if (guard.allows(EgressPath.EXPORT, terms, ctx.personalUse(), false)) {
+                return new EgressPolicy.Decision(true, null, terms);
+            }
+            return new EgressPolicy.Decision(false, terms.forbidsRedistribution()
+                    ? EgressPolicy.REASON_LICENCE_FORBIDDEN : EgressPolicy.REASON_LICENCE_LOCAL_ONLY, terms);
+        });
+        service = new ExportLicenceService(egress, registry, new AttributionService(registry, catalog));
     }
 
     @Test
