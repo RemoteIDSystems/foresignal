@@ -444,6 +444,12 @@ public final class ErrorCodes {
     /** 503: the render queue could not start the render within 1.5 s; {@code Retry-After: 1} (prompt 045). */
     public static final String RENDER_BUSY = "RENDER_BUSY";
 
+    /** 400: a field encoding request covers more points than the encoding allows (prompt 106). */
+    public static final String FIELD_TOO_LARGE = "FIELD_TOO_LARGE";
+
+    /** 404: the record of a position sample is unknown (prompt 106). */
+    public static final String UNKNOWN_RECORD = "UNKNOWN_RECORD";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

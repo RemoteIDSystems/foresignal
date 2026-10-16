@@ -39460,7 +39460,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"record\": \"local-adsb-1/abc123\",\n  \"products\": [\n    \"mrms-reflectivity\",\n    \"gfs-gust\"\n  ],\n  \"maxGap\": \"PT20M\",\n  \"units\": \"metric\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

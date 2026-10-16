@@ -42,6 +42,11 @@ public record TimeSpec(Kind kind, Instant at, Duration offset, String text) {
     /** The largest offset accepted either way. */
     public static final Duration MAX_OFFSET = Duration.ofDays(16);
 
+    /** An absolute time (prompt 106, track sampling). */
+    public static TimeSpec at(Instant time) {
+        return new TimeSpec(Kind.AT, time, null, time.toString());
+    }
+
     /**
      * Parses an expression; blank is {@code latest}.
      *

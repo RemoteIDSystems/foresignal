@@ -63,6 +63,18 @@ public final class PlaceWeatherState {
     /** {@code forecast.ifs} (prompt 105): IFS gust and precipitation over the next 24 h. */
     WxSection ifs = new WxSection();
 
+    /** {@code marine} (prompt 106): wave height for coastal places. */
+    WxSection marine = new WxSection();
+
+    /** {@code aurora} (prompt 106): aurora probability for places at |lat| ≥ 40°. */
+    WxSection aurora = new WxSection();
+
+    /** {@code heat} (prompt 106): WPC HeatRisk. */
+    WxSection heat = new WxSection();
+
+    /** {@code uv} (prompt 106): EPA UV index. */
+    WxSection uv = new WxSection();
+
     /** {@code forecast.disagreement} (prompt 105), or null when the models agree. */
     Map<String, Object> disagreement;
 
@@ -81,6 +93,7 @@ public final class PlaceWeatherState {
     Instant smokeRun;
     Instant gfsRun;
     Instant ifsRun;
+    Instant marineRun;
     String disagreementKey;
 
     /** A new place with fresh sections. */
@@ -151,6 +164,10 @@ public final class PlaceWeatherState {
                 WxSection.restore(precipPart(precip, FFG_KEY, false), observedAt),
                 WxSection.restore(nws, observedAt));
         s.ifs = WxSection.restore(ifs, observedAt);
+        s.marine = WxSection.restore(payload.get("marine"), observedAt);
+        s.aurora = WxSection.restore(payload.get("aurora"), observedAt);
+        s.heat = WxSection.restore(payload.get("heat"), observedAt);
+        s.uv = WxSection.restore(payload.get("uv"), observedAt);
         if (disagreement instanceof Map<?, ?> d) {
             s.disagreement = (Map<String, Object>) d;
             Object spread = d.get("spread");
@@ -258,10 +275,15 @@ public final class PlaceWeatherState {
         smokeRun = null;
         gfsRun = null;
         ifsRun = null;
+        marineRun = null;
         disagreementKey = null;
         disagreement = null;
         disagreementSpread.clear();
         ifs.clear();
+        marine.clear();
+        aurora.clear();
+        heat.clear();
+        uv.clear();
     }
 
     /**
@@ -336,6 +358,10 @@ public final class PlaceWeatherState {
         p.put("lightning", l);
         p.put("cell", cell.toMap());
         p.put("smoke", smoke.toMap());
+        p.put("marine", marine.toMap());
+        p.put("aurora", aurora.toMap());
+        p.put("heat", heat.toMap());
+        p.put("uv", uv.toMap());
         Map<String, Object> forecast = new LinkedHashMap<>();
         forecast.put("gfs", gfs.toMap());
         forecast.put("ifs", ifs.toMap());

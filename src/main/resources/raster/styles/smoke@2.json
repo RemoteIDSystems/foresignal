@@ -1,0 +1,24 @@
+{
+  "id": "smoke",
+  "version": 2,
+  "type": "continuous",
+  "units": "ug/m2",
+  "stops": [
+    {"value": 100, "color": "#feedb0"},
+    {"value": 1000, "color": "#f9c187"},
+    {"value": 5000, "color": "#f29567"},
+    {"value": 10000, "color": "#e66a54"},
+    {"value": 25000, "color": "#ce4356"},
+    {"value": 50000, "color": "#a02b4d"},
+    {"value": 100000, "color": "#5c1a3f"}
+  ],
+  "categories": [],
+  "specials": [
+    {"kind": "noCoverage", "color": "transparent", "label": "No coverage"},
+    {"kind": "noData", "color": "transparent", "label": "No data"}
+  ],
+  "meaning": [
+    {"min": 25000, "max": null, "text": "Dense column smoke"}
+  ],
+  "notice": "Column-integrated smoke (HRRR-Smoke COLMD), µg/m² (Foresignal)"
+}

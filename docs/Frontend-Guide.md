@@ -485,6 +485,16 @@ web included, can show wind without them:
   winds are already rotated to earth-relative.
 - **Speed raster:** any tile URL of `gfs` or `hrrr` with `style=wind-speed@1` (the products' default
   style) colors √(u² + v²); its legend is `/v1/products/{id}/legend?style=wind-speed@1`.
+- **`velocity-json` (leaflet-velocity / wind-js, prompt 106):** `/v1/products/{id}/fields/{frameKey}.velocity-json?run=…&res=1|0.25&bbox=…`
+  returns the two-component JSON array (`u` and `v`, each `{header, data}`) that leaflet-velocity and
+  wind-js read directly. It is gzipped and capped at 300,000 points per component (`400 FIELD_TOO_LARGE`);
+  use `res=1` or a `bbox` for the whole globe. The manifest's `encodings.velocityJson.url` is the
+  content-addressed URL.
+- **`png-uv` (WebGL particles, prompt 106):** `/v1/products/{id}/fields/{frameKey}.png-uv?run=…&res=…&bbox=…`
+  is an 8-bit RGB PNG with `R = u` and `G = v` scaled over `[uMin, uMax]` and `[vMin, vMax]` (in the
+  manifest's `encodings.pngUv`, with `width`, `height` and `bounds`). Feed it to a WebGL particle layer
+  as a texture and decode with those bounds. It is served for the `gfs`, `ifs` and `aifs` wind fields
+  (the global `kind=field` products); HRRR's Lambert winds use the barb tiles or the speed raster.
 
 Flutter (both map packages) and Cesium use those two. The rest of this section is for web clients that
 want particles.

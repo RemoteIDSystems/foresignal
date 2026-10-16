@@ -6,12 +6,16 @@ import ai.foresignal.api.support.ReadCaller;
 import ai.foresignal.api.support.ReadCallerResolver;
 import ai.foresignal.raster.FrameKeys;
 import ai.foresignal.raster.FrameResolver;
+import ai.foresignal.raster.FrameStore;
 import ai.foresignal.raster.ProductCatalogService;
 import ai.foresignal.raster.ProductRegistry;
 import ai.foresignal.raster.ProductUrls;
 import ai.foresignal.raster.RasterFrameRow;
 import ai.foresignal.raster.model.FieldService;
+import ai.foresignal.raster.model.FieldStore;
+import ai.foresignal.raster.model.PngUvEncoder;
 import ai.foresignal.raster.model.VectorTileService;
+import ai.foresignal.raster.model.VelocityJsonEncoder;
 import ai.foresignal.raster.render.RasterCachePolicy;
 import ai.foresignal.raster.render.RasterRenderService;
 import ai.foresignal.security.visibility.SourceVisibility;
@@ -164,6 +168,104 @@ public class ModelFieldsController {
         headers.set(HttpHeaders.CONTENT_ENCODING, "gzip");
         return ResponseEntity.ok().headers(headers).contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .contentLength(data.gzip().length).body(data.gzip());
+    }
+
+    /** {@code getProductFieldVelocityJson}: leaflet-velocity / wind-js JSON, gzipped. */
+    @GetMapping("/v1/products/{productId}/fields/{frameKey}.velocity-json")
+    @Operation(operationId = "getProductFieldVelocityJson", tags = "Products")
+    public ResponseEntity<byte[]> getProductFieldVelocityJson(
+            @PathVariable String productId,
+            @PathVariable String frameKey,
+            @RequestParam(required = false) String run,
+            @RequestParam(required = false) String res,
+            @RequestParam(required = false) String bbox,
+            @RequestHeader(value = HttpHeaders.ACCEPT_ENCODING, required = false) String acceptEncoding,
+            HttpServletRequest request) {
+        String resolution = FieldService.resolution(res);
+        double[] box = FieldService.parseBox(bbox);
+        ReadCaller caller = callers.resolve(request);
+        ProductRegistry.Registered product = catalog.visible(productId, callers.excludedSources(caller));
+        ProductSpec spec = product.spec();
+        RasterRenderService.requireRendered(spec);
+        catalog.requireAvailable(product);
+        FieldService.requireFields(spec);
+        if (!acceptsGzip(acceptEncoding)) {
+            throw new ForesignalException(HttpStatus.NOT_ACCEPTABLE, ErrorCodes.NOT_ACCEPTABLE,
+                    "velocity-json is served precompressed with Content-Encoding: gzip; this client refuses gzip.");
+        }
+        String base = urls.base(request);
+        FrameResolver.Resolution choice = resolver.resolve(spec, frameKey, run, false, clock.instant(),
+                k -> ProductUrls.product(base, spec.id()) + "/fields/" + k + ".velocity-json" + query(request));
+        if (choice instanceof FrameResolver.Redirect redirect) {
+            return redirect(base, request, frameKey, redirect.canonicalToken(), ".velocity-json");
+        }
+        FrameResolver.Found found = (FrameResolver.Found) choice;
+        RasterFrameRow frame = found.frame();
+        FieldService.FieldData data = fields.data(spec, frame, resolution, box);
+        requireWithinPoints(data.window());
+        byte[] raw = FieldStore.gunzip(data.gzip());
+        FieldService.Window w = data.window();
+        byte[] json = VelocityJsonEncoder.encode(raw, w.cols(), w.rows(), w.lo1(), w.la1(), w.dx(), w.dy(),
+                frame.referenceTime(), frame.forecastStep() == null ? 0 : frame.forecastStep());
+        byte[] gzip = FieldStore.gzip(json);
+        String etag = "\"vj-" + FrameStore.sha256Hex(json).substring(0, 16) + "\"";
+        HttpHeaders headers = RasterCachePolicy.headers(
+                RasterCachePolicy.decide(found.contentAddressed(), publicFor(caller, product), spec), etag,
+                frame.validTime());
+        if (RasterCachePolicy.notModified(request, etag)) {
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(headers).build();
+        }
+        headers.set(HttpHeaders.CONTENT_ENCODING, "gzip");
+        return ResponseEntity.ok().headers(headers).contentType(JSON).contentLength(gzip.length).body(gzip);
+    }
+
+    /** {@code getProductFieldPngUv}: an 8-bit RGB PNG with R = u and G = v. */
+    @GetMapping("/v1/products/{productId}/fields/{frameKey}.png-uv")
+    @Operation(operationId = "getProductFieldPngUv", tags = "Products")
+    public ResponseEntity<byte[]> getProductFieldPngUv(
+            @PathVariable String productId,
+            @PathVariable String frameKey,
+            @RequestParam(required = false) String run,
+            @RequestParam(required = false) String res,
+            @RequestParam(required = false) String bbox,
+            HttpServletRequest request) {
+        String resolution = FieldService.resolution(res);
+        double[] box = FieldService.parseBox(bbox);
+        ReadCaller caller = callers.resolve(request);
+        ProductRegistry.Registered product = catalog.visible(productId, callers.excludedSources(caller));
+        ProductSpec spec = product.spec();
+        RasterRenderService.requireRendered(spec);
+        catalog.requireAvailable(product);
+        FieldService.requireFields(spec);
+        String base = urls.base(request);
+        FrameResolver.Resolution choice = resolver.resolve(spec, frameKey, run, false, clock.instant(),
+                k -> ProductUrls.product(base, spec.id()) + "/fields/" + k + ".png-uv" + query(request));
+        if (choice instanceof FrameResolver.Redirect redirect) {
+            return redirect(base, request, frameKey, redirect.canonicalToken(), ".png-uv");
+        }
+        FrameResolver.Found found = (FrameResolver.Found) choice;
+        RasterFrameRow frame = found.frame();
+        FieldService.FieldData data = fields.data(spec, frame, resolution, box);
+        FieldService.Window w = data.window();
+        requireWithinPoints(w);
+        PngUvEncoder.Result png = PngUvEncoder.encode(FieldStore.gunzip(data.gzip()), w.cols(), w.rows());
+        String etag = "\"png-" + FrameStore.sha256Hex(png.png()).substring(0, 16) + "\"";
+        HttpHeaders headers = RasterCachePolicy.headers(
+                RasterCachePolicy.decide(found.contentAddressed(), publicFor(caller, product), spec), etag,
+                frame.validTime());
+        if (RasterCachePolicy.notModified(request, etag)) {
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(headers).build();
+        }
+        return ResponseEntity.ok().headers(headers).contentType(MediaType.IMAGE_PNG).body(png.png());
+    }
+
+    /** Refuses a window over the point cap (400 {@code FIELD_TOO_LARGE}). */
+    static void requireWithinPoints(FieldService.Window window) {
+        if ((long) window.cols() * window.rows() > VelocityJsonEncoder.MAX_POINTS) {
+            throw new ForesignalException(HttpStatus.BAD_REQUEST, ErrorCodes.FIELD_TOO_LARGE,
+                    "the field encoding covers " + ((long) window.cols() * window.rows()) + " points; at most "
+                            + VelocityJsonEncoder.MAX_POINTS + " (use res=1 or a bbox)");
+        }
     }
 
     /** {@code getProductVectorTile}: a wind barb Mapbox Vector Tile. */

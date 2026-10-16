@@ -65,6 +65,7 @@ public class SampleWeatherTool implements ForesignalMcpTool {
             "lon", number("Longitude, WGS84 degrees (with lat).", -180, 180),
             "lat", number("Latitude, WGS84 degrees (with lon).", -90, 90),
             "place", string("A place id (from list_places) instead of lon/lat; needs a token.", 1, 64),
+            "record", string("A record {sourceId}/{externalId} to sample at its live position (needs a token).", 3, 256),
             "products", stringArray("Product ids (from list_products); default reflectivity, rain rate, hail, GFS gust"
                     + " and temperature.", SampleService.MAX_PRODUCTS),
             "time", string("latest (default), now, an ISO-8601 time, or an offset such as -PT1H (observed) or +PT6H"
@@ -127,7 +128,9 @@ public class SampleWeatherTool implements ForesignalMcpTool {
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
         Detail detail = Detail.of(args);
-        SampleService.Point point = support.point(args, context);
+        String record = McpArgs.text(args, "record");
+        SampleService.Point point = record == null ? support.point(args, context)
+                : RecordPositions.point(records, record, context.excludedSources(), context.restriction());
         List<String> products = McpArgs.strings(args, "products");
         if (products == null || products.isEmpty()) {
             products = DEFAULT_PRODUCTS.stream().filter(id -> registry.find(id).isPresent()
@@ -141,6 +144,9 @@ public class SampleWeatherTool implements ForesignalMcpTool {
         } else {
             out.put("lon", point.lon());
             out.put("lat", point.lat());
+        }
+        if (record != null) {
+            out.put("record", record);
         }
         out.put("timezone", point.zone().getId());
         out.put("time", time.text());

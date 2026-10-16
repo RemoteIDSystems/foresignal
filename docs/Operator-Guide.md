@@ -3731,6 +3731,30 @@ supporting evidence, so they never raise confidence — and adds the alternative
 weather-impact recipes `dry-lightning-ignition`, `airport-weather` and `smoke-aq` create events from weather
 co-occurrences.
 
+## Extended weather products (prompt 106)
+
+**Per-product enablement.** Every extended source has a `products` string-list parameter; a product not
+listed is not fetched or stored. The defaults follow the memory profile (`FORESIGNAL_PROFILE`):
+`gfs-wave` and `aifs` are on for the `large` profile only, and the other extended products follow the
+same pattern. Set the parameter with `PUT /v1/sources/{id}/params` (or the source settings API).
+
+**New models and fields.** `gfs-wave` (HTSGW/PERPW/DIRPW) feeds the place-weather `marine` section for
+places tagged `coastal`. `aifs` is the ECMWF AIFS machine-learning forecast (CC BY 4.0). The `hrrr`
+source gains `hrrr-smoke-column` (COLMD, column-integrated smoke, µg/m²); place-weather `smoke` gains
+`hrrrColumnMax24h`. MRMS lightning probability feeds `lightning.prob30mMaxInRadius`.
+
+**Products with a byte budget** set `mbPerDay`; when the projected day's download, at the rate seen so
+far, exceeds **120%** of it, the source degrades with a `projected download … exceeds …` reason
+(`BudgetOutlookHealthRule`, prompt 106), before the budget is actually refused.
+
+**Field encodings.** Besides `.f32`, each global wind field (`gfs`, `ifs`, `aifs`) serves
+`.velocity-json` (leaflet-velocity / wind-js, gzipped, ≤ 300,000 points per component) and `.png-uv`
+(R = u, G = v, an 8-bit RGB PNG for WebGL particles); both are listed in the field manifest's
+`encodings` block. **Position sampling:** `/v1/sample?record={sourceId}/{externalId}` samples at an
+entity's live position (honouring `private`); a position older than 15 minutes marks the values
+`stale-position`. `POST /v1/sample/track` samples each point of a track (given, or a record's 037
+track) at its own time.
+
 ## Lightning and fire
 
 Prompt 048 adds four more sources (installed disabled):

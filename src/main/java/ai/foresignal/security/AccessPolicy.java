@@ -303,6 +303,7 @@ public class AccessPolicy {
                 // ---- Sampling (052, Weather-Imagery-Design §6.5): reads, the POSTs included ----
                 rule(HttpMethod.GET, "/v1/sample", AccessRequirement.READ),
                 rule(HttpMethod.POST, "/v1/sample", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/sample/track", AccessRequirement.READ),
                 rule(HttpMethod.POST, "/v1/products/*/stats", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/styles", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/styles/**", AccessRequirement.READ),

@@ -1,0 +1,25 @@
+{
+  "id": "wave",
+  "version": 1,
+  "type": "continuous",
+  "units": "m",
+  "stops": [
+    {"value": 0, "color": "#eaf4ff"},
+    {"value": 1, "color": "#8dc6f0"},
+    {"value": 2, "color": "#4a90d9"},
+    {"value": 3, "color": "#2a5fae"},
+    {"value": 4, "color": "#3b2f8f"},
+    {"value": 6, "color": "#7a1f7a"},
+    {"value": 9, "color": "#c21e56"},
+    {"value": 12, "color": "#f4a641"}
+  ],
+  "categories": [],
+  "specials": [
+    {"kind": "noCoverage", "color": "transparent", "label": "No coverage"},
+    {"kind": "noData", "color": "transparent", "label": "No data"}
+  ],
+  "meaning": [
+    {"min": 4, "max": null, "text": "≥ 4 m: rough seas"}
+  ],
+  "notice": "Significant wave height (GFS-Wave HTSGW), m (Foresignal)"
+}

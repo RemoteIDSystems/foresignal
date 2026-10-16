@@ -20,7 +20,10 @@ public enum SampleStatus {
     STALE("stale", "the newest frame is older than the product's maximum gap; the value may be out of date"),
 
     /** The product is disabled, its source is failing, it has no frame, or the frame expired. */
-    UNAVAILABLE("unavailable", "the product has no usable frame; this is not evidence of clear weather");
+    UNAVAILABLE("unavailable", "the product has no usable frame; this is not evidence of clear weather"),
+
+    /** The position sample's entity was last seen more than 15 minutes ago (prompt 106). */
+    STALE_POSITION("stale-position", "the sampled entity's position is more than 15 minutes old; the location may be out of date");
 
     private final String wire;
     private final String defaultText;

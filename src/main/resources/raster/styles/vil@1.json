@@ -1,0 +1,25 @@
+{
+  "id": "vil",
+  "version": 1,
+  "type": "continuous",
+  "units": "kg/m2",
+  "stops": [
+    {"value": 0, "color": "#00000000"},
+    {"value": 1, "color": "#00e5ff"},
+    {"value": 2, "color": "#00a000"},
+    {"value": 4, "color": "#ffff00"},
+    {"value": 8, "color": "#ff9900"},
+    {"value": 16, "color": "#ff0000"},
+    {"value": 32, "color": "#c800c8"},
+    {"value": 64, "color": "#ffffff"}
+  ],
+  "categories": [],
+  "specials": [
+    {"kind": "noCoverage", "color": "transparent", "label": "No coverage"},
+    {"kind": "noData", "color": "transparent", "label": "No data"}
+  ],
+  "meaning": [
+    {"min": 16, "max": null, "text": "High vertically integrated liquid: severe storm"}
+  ],
+  "notice": "MRMS vertically integrated liquid (VIL), kg/m² (Foresignal)"
+}

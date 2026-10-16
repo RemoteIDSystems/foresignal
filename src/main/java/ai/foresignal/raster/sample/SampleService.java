@@ -76,6 +76,9 @@ public class SampleService implements RasterReader, ai.foresignal.ingest.IngestS
     /** The most products of one sample request. */
     public static final int MAX_PRODUCTS = 20;
 
+    /** The most points of one track sample (prompt 106). */
+    public static final int MAX_TRACK_POINTS = 500;
+
     private static final String[] COMPASS = {"N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW",
         "WSW", "W", "WNW", "NW", "NNW"};
 
@@ -345,6 +348,96 @@ public class SampleService implements RasterReader, ai.foresignal.ingest.IngestS
             out.put("disagreement", disagreement);
         }
         return out;
+    }
+
+    /** One point of a track sample (prompt 106). */
+    public record TrackPoint(double lon, double lat, Instant time) {}
+
+    /**
+     * Samples each point at its own time (prompt 106, {@code POST /v1/sample/track}): one value per product
+     * per point, each with its status. A {@code maxGap} marks a value stale when the chosen frame is older
+     * than it; future times use the newest complete run (or the pinned {@code run}).
+     *
+     * @return {@code {products, points:[{lon,lat,time,status,values[]}], serverTime}}
+     */
+    public Map<String, Object> sampleTrack(List<TrackPoint> points, List<String> products, Duration maxGap,
+            String run, boolean imperial, Set<String> excludedSources) {
+        if (points == null || points.isEmpty()) {
+            throw ValidationException.forField("points", "name at least one point");
+        }
+        if (points.size() > MAX_TRACK_POINTS) {
+            throw ValidationException.forField("points", "at most " + MAX_TRACK_POINTS + " points per track");
+        }
+        Instant now = clock.instant();
+        List<ProductRegistry.Registered> resolved = resolveProducts(products, excludedSources);
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (TrackPoint p : points) {
+            checkPoint(p.lon(), p.lat());
+            Point point = new Point(p.lon(), p.lat(), null, ZoneOffset.UTC);
+            TimeSpec time = TimeSpec.at(p.time());
+            List<Map<String, Object>> values = new ArrayList<>();
+            for (ProductRegistry.Registered product : resolved) {
+                Map<String, Object> value = new LinkedHashMap<>(value(product, point, time, run, imperial, now).toMap());
+                applyMaxGap(value, maxGap, p.time());
+                values.add(value);
+            }
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("lon", p.lon());
+            item.put("lat", p.lat());
+            item.put("time", p.time().toString());
+            item.put("status", worst(values));
+            item.put("values", values);
+            items.add(item);
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("products", resolved.stream().map(ProductRegistry.Registered::id).toList());
+        out.put("points", items);
+        out.put("serverTime", now.toString());
+        return out;
+    }
+
+    /** Marks a value stale when the chosen frame is older than {@code maxGap} from the point's time. */
+    static void applyMaxGap(Map<String, Object> value, Duration maxGap, Instant at) {
+        if (maxGap == null || !SampleStatus.OK.wireValue().equals(value.get("status"))) {
+            return;
+        }
+        Object validTime = value.get("validTime");
+        if (validTime == null) {
+            return;
+        }
+        try {
+            Instant v = Instant.parse(validTime.toString());
+            if (Duration.between(v, at).compareTo(maxGap) > 0) {
+                value.put("status", SampleStatus.STALE.wireValue());
+                value.put("statusText", SampleStatus.STALE.defaultText());
+            }
+        } catch (RuntimeException e) {
+            // an unparseable valid time leaves the status
+        }
+    }
+
+    /** The worst status among a point's values, for the per-point status. */
+    static String worst(List<Map<String, Object>> values) {
+        int worst = 0;
+        String wire = SampleStatus.OK.wireValue();
+        for (Map<String, Object> v : values) {
+            int rank = rank(String.valueOf(v.get("status")));
+            if (rank > worst) {
+                worst = rank;
+                wire = String.valueOf(v.get("status"));
+            }
+        }
+        return wire;
+    }
+
+    private static int rank(String status) {
+        return switch (status) {
+            case "unavailable" -> 4;
+            case "no-coverage" -> 3;
+            case "no-data" -> 2;
+            case "stale", "stale-position" -> 1;
+            default -> 0;
+        };
     }
 
     /**

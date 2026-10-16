@@ -288,7 +288,72 @@ public class FieldService {
         out.put("sha256", data.sha256());
         out.put("attribution", spec.attribution() == null ? null : ProductSpecJson.attribution(spec.attribution()));
         out.put("dataUrl", dataUrl(base, spec, frame, res, w));
+        out.put("encodings", encodings(base, spec, frame, res, w, data));
         return out;
+    }
+
+    /** The alternative field encodings (prompt 106): {@code velocity-json} and {@code png-uv}. */
+    static Map<String, Object> encodings(String base, ProductSpec spec, RasterFrameRow frame, String res, Window w,
+            FieldData data) {
+        double[] uv = uvBounds(FieldStore.gunzip(data.gzip()));
+        Map<String, Object> png = new LinkedHashMap<>();
+        png.put("url", encodingUrl(base, spec, frame, res, w, "png-uv"));
+        png.put("uMin", uv[0]);
+        png.put("uMax", uv[1]);
+        png.put("vMin", uv[2]);
+        png.put("vMax", uv[3]);
+        png.put("width", w.cols());
+        png.put("height", w.rows());
+        double[] box = w.box();
+        png.put("bounds", List.of(box[0], box[1], box[2], box[3]));
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("velocityJson", Map.of("url", encodingUrl(base, spec, frame, res, w, "velocity-json")));
+        out.put("pngUv", png);
+        return out;
+    }
+
+    /** {@code {uMin, uMax, vMin, vMax}} over planar u/v Float32 bytes. */
+    static double[] uvBounds(byte[] raw) {
+        ByteBuffer in = ByteBuffer.wrap(raw).order(ByteOrder.LITTLE_ENDIAN);
+        int cells = raw.length / 8;
+        double uMin = Double.POSITIVE_INFINITY;
+        double uMax = Double.NEGATIVE_INFINITY;
+        double vMin = Double.POSITIVE_INFINITY;
+        double vMax = Double.NEGATIVE_INFINITY;
+        for (int k = 0; k < cells; k++) {
+            float u = in.getFloat(k * 4);
+            float v = in.getFloat((cells + k) * 4);
+            if (Float.isFinite(u)) {
+                uMin = Math.min(uMin, u);
+                uMax = Math.max(uMax, u);
+            }
+            if (Float.isFinite(v)) {
+                vMin = Math.min(vMin, v);
+                vMax = Math.max(vMax, v);
+            }
+        }
+        if (!(uMax >= uMin)) {
+            uMin = 0;
+            uMax = 1;
+        }
+        if (!(vMax >= vMin)) {
+            vMin = 0;
+            vMax = 1;
+        }
+        return new double[] {uMin, uMax, vMin, vMax};
+    }
+
+    /** The content-addressed data URL of an alternative encoding ({@code ext} = {@code velocity-json} or {@code png-uv}). */
+    public static String encodingUrl(String base, ProductSpec spec, RasterFrameRow frame, String res, Window window,
+            String ext) {
+        StringBuilder url = new StringBuilder(ProductUrls.product(base, spec.id())).append("/fields/")
+                .append(frame.frameKey()).append('.').append(ext).append("?run=")
+                .append(FrameKeys.runIso(frame.referenceTime())).append("&res=").append(res);
+        String box = window.boxText();
+        if (box != null) {
+            url.append("&bbox=").append(box);
+        }
+        return url.toString();
     }
 
     /** The content-addressed data URL: frame key, pinned run, resolution and snapped box. */

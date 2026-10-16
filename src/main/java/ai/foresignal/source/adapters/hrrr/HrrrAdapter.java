@@ -78,6 +78,13 @@ public class HrrrAdapter implements PollingAdapter, DecoderDependent {
     /** Near-surface smoke. */
     public static final String SMOKE = "hrrr-smoke";
 
+    /** Column-integrated smoke (prompt 106). */
+    public static final String SMOKE_COLUMN = "hrrr-smoke-column";
+
+    /** The products enabled by default on both profiles. */
+    public static final java.util.List<String> DEFAULT_PRODUCTS =
+            List.of(WIND, REFC, GUST, SMOKE, SMOKE_COLUMN);
+
     /** The default object-key template. */
     public static final String DEFAULT_TEMPLATE = "hrrr.{yyyyMMdd}/conus/hrrr.t{HH}z.wrfsfcf{FF}.grib2";
 
@@ -95,6 +102,7 @@ public class HrrrAdapter implements PollingAdapter, DecoderDependent {
     private final ModelRunIngest ingest;
     private final String baseUrl;
     private final Duration runEvery;
+    private final String profile;
     private final ModelDefinition model;
     private final SourceDescriptor descriptor;
 
@@ -111,10 +119,25 @@ public class HrrrAdapter implements PollingAdapter, DecoderDependent {
         this.ingest = ingest;
         String chosen = baseUrlOverride == null ? "" : baseUrlOverride.trim();
         this.baseUrl = chosen.endsWith("/") ? chosen.substring(0, chosen.length() - 1) : chosen;
+        this.profile = profile;
         this.runEvery = RasterProfile.parse(profile).hrrrRunEvery();
         this.model = model(runEvery);
         this.descriptor = buildDescriptor(runEvery);
         ingest.registerDefault(ID, runEvery);
+    }
+
+    /** The model with only the enabled products (prompt 106), always keeping the probe product. */
+    ModelDefinition effective(FetchContext ctx) {
+        Set<String> enabled = ai.foresignal.raster.ProductEnablement.enabled(ctx.params(), profile,
+                model.products().stream().map(ModelDefinition.Product::productId).toList(), DEFAULT_PRODUCTS,
+                DEFAULT_PRODUCTS);
+        if (enabled.size() == model.products().size()) {
+            return model;
+        }
+        List<ModelDefinition.Product> products = model.products().stream()
+                .filter(p -> enabled.contains(p.productId()) || p.productId().equals(model.probeProduct())).toList();
+        return new ModelDefinition(model.sourceId(), model.label(), model.bucket(), model.defaultTemplate(),
+                model.defaultSteps(), model.defaultRunEvery(), model.defaultLag(), products, model.probeProduct());
     }
 
     /** The model with the profile's default run cadence. */
@@ -136,7 +159,11 @@ public class HrrrAdapter implements PollingAdapter, DecoderDependent {
                         new ModelDefinition.Product(SMOKE, List.of(new ModelDefinition.Component("MASSDEN",
                                 "8 m above ground", false,
                                 DecodeRequest.grib2(SMOKE, "MASSDEN", 0, 20, 0, 103, 8.0, "8 m above ground"))), false,
-                                KG_TO_MICROGRAMS, null)),
+                                KG_TO_MICROGRAMS, null),
+                        new ModelDefinition.Product(SMOKE_COLUMN, List.of(new ModelDefinition.Component("COLMD",
+                                "entire atmosphere (considered as a single layer)", false,
+                                DecodeRequest.grib2(SMOKE_COLUMN, "COLMD", 0, 20, 1, 200, 0.0,
+                                        "entire atmosphere"))), false, KG_TO_MICROGRAMS, null)),
                 WIND);
     }
 
@@ -158,7 +185,7 @@ public class HrrrAdapter implements PollingAdapter, DecoderDependent {
     @Override
     public Map<String, Set<DecoderCapability>> decoderRequirements() {
         Set<DecoderCapability> complex = Set.of(DecoderCapability.GRIB2_COMPLEX_PACKING);
-        return Map.of(WIND, complex, REFC, complex, GUST, complex, SMOKE, complex);
+        return Map.of(WIND, complex, REFC, complex, GUST, complex, SMOKE, complex, SMOKE_COLUMN, complex);
     }
 
     /** The URL of {@code key}. */
@@ -169,7 +196,7 @@ public class HrrrAdapter implements PollingAdapter, DecoderDependent {
 
     @Override
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
-        return ingest.fetch(ctx, model, this::objectUri);
+        return ingest.fetch(ctx, effective(ctx), this::objectUri);
     }
 
     static SourceDescriptor buildDescriptor(Duration runEvery) {
@@ -206,6 +233,9 @@ public class HrrrAdapter implements PollingAdapter, DecoderDependent {
         ProductSpec smoke = scalar(SMOKE, "HRRR near-surface smoke", "ug/m3", 0.1, 0.0, "smoke@1",
                 ProductSpec.RESAMPLE_BILINEAR, temporal, spatial, ladder, attribution, meaning,
                 "Smoke mass density 8 m above ground, µg/m³ (HRRR-Smoke)");
+        ProductSpec smokeColumn = scalar(SMOKE_COLUMN, "HRRR column smoke", "ug/m2", 10.0, 0.0, "smoke@2",
+                ProductSpec.RESAMPLE_BILINEAR, temporal, spatial, ladder, attribution, meaning,
+                "Column-integrated smoke mass density, µg/m² (HRRR-Smoke COLMD)");
         return SourceDescriptor.builder(ID)
                 .name("NOAA HRRR CONUS forecast")
                 .description("NOAA High-Resolution Rapid Refresh over CONUS: earth-relative 10 m wind (barb tiles),"
@@ -235,10 +265,13 @@ public class HrrrAdapter implements PollingAdapter, DecoderDependent {
                         runEvery.toHours() + "h"))
                 .param(ParamSpec.optional(ModelRunIngest.AVAILABILITY_LAG, ParamType.DURATION,
                         "How long after its reference time a run starts to appear", "50m"))
+                .param(ParamSpec.optional(ai.foresignal.raster.ProductEnablement.PRODUCTS_PARAM, ParamType.STRING_LIST,
+                        "Which products to ingest (default all)", DEFAULT_PRODUCTS))
                 .product(wind)
                 .product(refc)
                 .product(gust)
                 .product(smoke)
+                .product(smokeColumn)
                 .build();
     }
 

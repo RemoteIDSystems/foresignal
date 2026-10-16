@@ -341,6 +341,8 @@ BODIES = {
   "postSample": {"points": [{"lon": -97.74, "lat": 30.27}, {"place": "home"}],
                  "products": ["mrms-reflectivity", "gfs-gust"], "time": "latest", "units": "metric"},
   "postProductStats": {"bbox": "-98.5,29.5,-97.0,31.0", "time": "latest", "thresholds": [40, 50], "units": "metric"},
+  "sampleTrack": {"record": "local-adsb-1/abc123", "products": ["mrms-reflectivity", "gfs-gust"],
+                  "maxGap": "PT20M", "units": "metric"},
 }
 
 # test scripts: capture ids / assert status

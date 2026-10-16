@@ -118,6 +118,15 @@ public class WxPlacesGenerator implements DerivedGenerator {
     /** IFS 24-hour precipitation (prompt 105). */
     public static final String IFS_PRECIP_24H = "ifs-precip-24h";
 
+    /** HRRR column-integrated smoke (prompt 106). */
+    public static final String SMOKE_COLUMN = "hrrr-smoke-column";
+
+    /** GFS-Wave significant wave height (prompt 106). */
+    public static final String WAVE = "gfs-wave";
+
+    /** MRMS lightning probability (prompt 106). */
+    public static final String LIGHTNING_PROB = "mrms-lightning-prob";
+
     /** The radar-cell source. */
     public static final String CELLS = "wx-cells";
 
@@ -203,8 +212,8 @@ public class WxPlacesGenerator implements DerivedGenerator {
     @Override
     public DerivedInputs inputs(ValidatedParams params) {
         return new DerivedInputs(Set.of(CELLS, NWS), Set.of(WxCellsGenerator.KIND, NWS_KIND),
-                Set.of(REFLECTIVITY, MESH, PRECIP, QPE_1H, QPE_24H, FFG, SMOKE, "gfs", GFS_GUST, GFS_T2M, GFS_APCP,
-                        HRRR_GUST, IFS_GUST, IFS_T2M, IFS_PRECIP_24H),
+                Set.of(REFLECTIVITY, MESH, PRECIP, QPE_1H, QPE_24H, FFG, SMOKE, SMOKE_COLUMN, WAVE, LIGHTNING_PROB,
+                        "gfs", GFS_GUST, GFS_T2M, GFS_APCP, HRRR_GUST, IFS_GUST, IFS_T2M, IFS_PRECIP_24H),
                 TICK, true);
     }
 
@@ -251,7 +260,9 @@ public class WxPlacesGenerator implements DerivedGenerator {
             case MESH -> updateHail(ctx, now, false);
             case PRECIP -> updatePrecip(ctx, now, false);
             case QPE_1H, QPE_24H, FFG -> updatePrecipPart(ctx, now, false, event.productId());
-            case SMOKE -> updateSmoke(ctx, now, event.complete());
+            case SMOKE, SMOKE_COLUMN -> updateSmoke(ctx, now, event.complete());
+            case WAVE -> updateMarine(ctx, now, event.complete());
+            case LIGHTNING_PROB -> updateLightning(ctx, now);
             case GFS_GUST, GFS_APCP -> updateGfs(ctx, now, event.complete());
             case IFS_GUST, IFS_PRECIP_24H -> updateIfs(ctx, now, event.complete());
             case HRRR_GUST, GFS_T2M, IFS_T2M -> updateDisagreement(ctx, now, event.complete());
@@ -350,6 +361,7 @@ public class WxPlacesGenerator implements DerivedGenerator {
         updateLightning(ctx, now);
         updateCells(ctx, now);
         updateSmoke(ctx, now, force);
+        updateMarine(ctx, now, force);
         updateGfs(ctx, now, force);
         updateIfs(ctx, now, force);
         updateDisagreement(ctx, now, force);
@@ -602,9 +614,27 @@ public class WxPlacesGenerator implements DerivedGenerator {
             places.values().forEach(p -> p.lightning.notOk(WxSection.STALE));
             return;
         }
+        FrameView prob = lightningProbView(ctx, now);
         for (PlaceWeatherState p : places.values()) {
-            p.lightning.good(lightningMetrics(flashes, p.lon, p.lat, now), newest.get());
+            Map<String, Object> m = lightningMetrics(flashes, p.lon, p.lat, now);
+            if (prob != null) {
+                PlaceGridIndex.Scan scan = PlaceGridIndex.scan(prob,
+                        PlaceGridIndex.of(prob.frame().gridId(), prob.grid(), p.lon, p.lat), NO_THRESHOLDS, p.radiusKm);
+                if (PlaceWeatherState.covered(scan) && !Double.isNaN(scan.maxInRadius())) {
+                    m.put("prob30mMaxInRadius", WxRound.whole(Math.max(0, scan.maxInRadius())));
+                }
+            }
+            p.lightning.good(m, newest.get());
         }
+    }
+
+    /** The newest MRMS lightning-probability frame (prompt 106), or null. */
+    private static FrameView lightningProbView(DerivedContext ctx, Instant now) {
+        WxInput in = WxInput.observation(ctx, LIGHTNING_PROB, MRMS_MAX_GAP, now);
+        if (!in.ok()) {
+            return null;
+        }
+        return ctx.rasters().view(in.frame()).orElse(null);
     }
 
     /** The lightning metrics of a point from the ring. */
@@ -651,6 +681,8 @@ public class WxPlacesGenerator implements DerivedGenerator {
             return;
         }
         double[] max = windowMax(ctx, SMOKE, in.run(), now, todo);
+        WxInput column = WxInput.forecast(ctx, SMOKE_COLUMN, RUN_MAX_AGE, now);
+        double[] columnMax = column.ok() ? windowMax(ctx, SMOKE_COLUMN, column.run(), now, todo) : null;
         for (int i = 0; i < todo.size(); i++) {
             PlaceWeatherState p = todo.get(i);
             p.smokeRun = in.run();
@@ -660,7 +692,48 @@ public class WxPlacesGenerator implements DerivedGenerator {
             }
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("hrrrPm25Max24h", WxRound.whole(Math.max(0, max[i])));
+            if (columnMax != null && !Double.isNaN(columnMax[i])) {
+                m.put("hrrrColumnMax24h", WxRound.whole(Math.max(0, columnMax[i])));
+            }
             p.smoke.good(m, in.run());
+        }
+    }
+
+    /** {@code marine} (prompt 106): the GFS-Wave significant height over the next 24 h, coastal places only. */
+    void updateMarine(DerivedContext ctx, Instant now, boolean force) {
+        WxInput in = WxInput.forecast(ctx, WAVE, RUN_MAX_AGE, now);
+        List<PlaceWeatherState> coastal = new ArrayList<>();
+        for (PlaceWeatherState p : places.values()) {
+            boolean isCoastal = ctx.places().find(p.placeId).map(v -> v.tags() != null && v.tags().contains("coastal"))
+                    .orElse(false);
+            if (!isCoastal) {
+                p.marine.notOk(WxSection.UNAVAILABLE);
+                continue;
+            }
+            coastal.add(p);
+        }
+        if (coastal.isEmpty()) {
+            return;
+        }
+        if (!in.ok()) {
+            coastal.forEach(p -> p.marine.notOk(in.status()));
+            return;
+        }
+        List<PlaceWeatherState> todo = coastal.stream().filter(p -> force || !in.run().equals(p.marineRun)).toList();
+        if (todo.isEmpty()) {
+            return;
+        }
+        double[] max = windowMax(ctx, WAVE, in.run(), now, todo);
+        for (int i = 0; i < todo.size(); i++) {
+            PlaceWeatherState p = todo.get(i);
+            p.marineRun = in.run();
+            if (Double.isNaN(max[i])) {
+                p.marine.notOk(WxSection.NO_COVERAGE);
+                continue;
+            }
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("waveHeightMaxM24h", Math.round(max[i] * 10) / 10.0);
+            p.marine.good(m, in.run());
         }
     }
 

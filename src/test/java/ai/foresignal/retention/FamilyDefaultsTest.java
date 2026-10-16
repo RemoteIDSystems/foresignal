@@ -89,6 +89,11 @@ class FamilyDefaultsTest {
             // Prompt 105: ECMWF IFS, the third forecast model.
             Map.entry("EcmwfAdapter", new Entry(new ai.foresignal.source.adapters.ecmwf.EcmwfAdapter(
                     new ai.foresignal.raster.model.EcmwfRunIngest(null, null), "").descriptor(), "raster")),
+            // Prompt 106: GFS-Wave and the ECMWF AIFS machine-learning forecast.
+            Map.entry("GfsWaveAdapter", new Entry(new ai.foresignal.source.adapters.gfswave.GfsWaveAdapter(
+                    new ai.foresignal.raster.model.ModelRunIngest(null, null), "").descriptor(), "raster")),
+            Map.entry("AifsAdapter", new Entry(new ai.foresignal.source.adapters.ecmwf.AifsAdapter(
+                    new ai.foresignal.raster.model.EcmwfRunIngest(null, null), "small", "").descriptor(), "raster")),
             Map.entry("NwsAlertsAdapter", new Entry(new NwsAlertsAdapter((CountyGeometries) null, "").descriptor(), "event")),
             Map.entry("ProbSevereAdapter", new Entry(new ProbSevereAdapter((AreaOfInterest) null, "").descriptor(), "weather")),
             Map.entry("SpcOutlooksAdapter", new Entry(new SpcOutlooksAdapter("").descriptor(), "weather")),

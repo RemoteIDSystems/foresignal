@@ -417,6 +417,11 @@
         "version": "1.3.0",
         "date": "2026-10-15",
         "note": "105: ECMWF IFS as a third forecast model (ecmwf-ifs; S3 mirror, .index range reads, CC BY 4.0); forecast-area, storm-track and storm-swath record kinds; ifs added to the forecast-series provider enum; the place-weather forecast gains ifs and disagreement. No new operations."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-15",
+        "note": "106: extended weather products. New sources gfs-wave and aifs (CC BY 4.0), hrrr-smoke-column, and the velocity-json and png-uv field encodings; /v1/sample gains record= (live position) and POST /v1/sample/track; the uv-forecast kind; per-product enablement (products param) with profile defaults."
       }
     ]
   },
@@ -40894,7 +40899,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "106",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -41049,7 +41054,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "106",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -41192,7 +41197,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "106",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -91871,6 +91876,18 @@
               "automated": true,
               "notAWarning": true
             }
+          },
+          "uv-forecast": {
+            "x-foresignal-prompt": "106",
+            "payloadFields": {
+              "epa-uv": [
+                "zip",
+                "hours",
+                "maxUv",
+                "maxAt"
+              ]
+            },
+            "note": "externalId = place:{placeId}; the hourly UV index forecast for a US ZIP (the place's attributes.zip), in the place's timezone. hours = [{time, uv}] for the next hours; maxUv/maxAt are the peak. Missing when the place has no zip."
           }
         }
       },
