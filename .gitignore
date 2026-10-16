@@ -27,3 +27,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Claude Code local worktrees and config (never part of the repo)
+.claude/
