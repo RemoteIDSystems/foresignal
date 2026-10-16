@@ -28,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * The optional population pack (prompt 101). Imports a GHSL GHS-POP GeoTIFF under {@code
  * ${FORESIGNAL_DATA_DIR}/packs}, aggregating each pixel's population to the H3 cells (res 5 and 7)
- * containing its centre, and estimates the population inside a geometry by polyfilling it at res 7
+ * containing its center, and estimates the population inside a geometry by polyfilling it at res 7
  * (res 5 for areas over 50,000 km²). The result is a modelled residential population, never a
  * casualty estimate.
  */
@@ -143,7 +143,7 @@ public class PopulationPackService {
         return Estimate.ok(sum == null ? 0 : sum, epoch);
     }
 
-    /** The H3 cells at {@code res} whose centre lies inside {@code area}. */
+    /** The H3 cells at {@code res} whose center lies inside {@code area}. */
     Set<Long> polyfill(Geometry area, short res) {
         Set<Long> cells = new LinkedHashSet<>();
         if (area == null || area.isEmpty()) {
@@ -163,14 +163,14 @@ public class PopulationPackService {
                 cells.add(cell);
             }
         }
-        // Keep only cells whose centre is inside the polygon.
+        // Keep only cells whose center is inside the polygon.
         Set<Long> inside = new LinkedHashSet<>();
         for (long cell : cells) {
-            double[] centre = centre(cell);
-            if (centre == null) {
+            double[] center = center(cell);
+            if (center == null) {
                 continue;
             }
-            Point point = Geo.factory().createPoint(new org.locationtech.jts.geom.Coordinate(centre[0], centre[1]));
+            Point point = Geo.factory().createPoint(new org.locationtech.jts.geom.Coordinate(center[0], center[1]));
             if (area.covers(point) || area.intersects(point.buffer(0.001))) {
                 inside.add(cell);
             }
@@ -178,11 +178,14 @@ public class PopulationPackService {
         return inside;
     }
 
-    private static double[] centre(long cell) {
+    /**
+     * The H3 center of {@code cell} as {@code {lon, lat}}, or null for an invalid cell. The center, not the
+     * centroid of the boundary: an antimeridian cell's boundary is two parts whose centroid lies near longitude 0.
+     */
+    static double[] center(long cell) {
         try {
-            var polygon = H3Cells.cellToPolygon(cell);
-            Point centroid = polygon.getCentroid();
-            return new double[] {centroid.getX(), centroid.getY()};
+            org.locationtech.jts.geom.Coordinate center = H3Cells.cellCenter(cell);
+            return new double[] {center.x, center.y};
         } catch (RuntimeException e) {
             return null;
         }

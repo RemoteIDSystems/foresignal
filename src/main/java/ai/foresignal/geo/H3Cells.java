@@ -39,6 +39,23 @@ public final class H3Cells {
     }
 
     /**
+     * The center of a cell index (H3 {@code cellToLatLng}) as a coordinate with {@code x} the longitude and
+     * {@code y} the latitude. Unlike the centroid of {@link #cellToPolygon(long)}, it is right for a cell that
+     * crosses the antimeridian, whose two-part boundary has its centroid near longitude 0.
+     *
+     * @param cell the cell index
+     * @return the center
+     * @throws IllegalArgumentException when {@code cell} is not a valid H3 index
+     */
+    public static Coordinate cellCenter(long cell) {
+        if (!H3.isValidCell(cell)) {
+            throw new IllegalArgumentException("Not a valid H3 cell: " + cell);
+        }
+        LatLng center = H3.cellToLatLng(cell);
+        return new Coordinate(center.lng, center.lat);
+    }
+
+    /**
      * The boundary of a cell index, in SRID 4326, with every longitude inside [-180, 180].
      *
      * <p>Most cells come back as a {@link Polygon}. A cell that crosses the antimeridian is split along it into a

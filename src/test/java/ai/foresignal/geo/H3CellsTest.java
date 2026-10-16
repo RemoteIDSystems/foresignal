@@ -68,4 +68,23 @@ class H3CellsTest {
             assertThat(c.x).isBetween(-180.0, 180.0);
         }
     }
+
+    @Test
+    @DisplayName("the center of an antimeridian cell stays near 180, where its boundary's centroid does not")
+    void antimeridianCenter() {
+        long crossing = 0;
+        for (double lat = -60; lat <= 60 && crossing == 0; lat += 0.25) {
+            long cell = H3Cells.latLngToCell(lat, 179.98, 4);
+            if (H3Cells.cellToPolygon(cell) instanceof MultiPolygon) {
+                crossing = cell;
+            }
+        }
+        assertThat(crossing).as("some resolution-4 cell along 179.98 E crosses the antimeridian").isNotZero();
+        Coordinate center = H3Cells.cellCenter(crossing);
+        assertThat(Math.abs(center.x)).isGreaterThan(170);
+        assertThat(Math.abs(H3Cells.cellToPolygon(crossing).getCentroid().getX()))
+                .as("the two-part centroid is the wrong answer this guards against").isLessThan(170);
+        assertThat(H3Cells.latLngToCell(center.y, center.x, 4)).isEqualTo(crossing);
+        assertThatThrownBy(() -> H3Cells.cellCenter(-1L)).isInstanceOf(IllegalArgumentException.class);
+    }
 }
