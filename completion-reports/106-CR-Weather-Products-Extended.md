@@ -5,7 +5,7 @@
 | Prompt | 106-Weather-Products-Extended.md |
 | Status | Partial: implemented and post-review fixed (see "Post-review fixes"); some prompt tests remain unwritten (listed) |
 | Implementation commit | `f389570a94f7d23c0ea380e33345a670727c7879` (the "(full)" commit; `c696038` was a partial first pass) |
-| Post-review fix commit | `8172ac1d82c6f8114a633c14cd88e54d1799c021` |
+| Post-review fix commit | `bc332da0b85ea021b5777bbc6f0fd3ea363fa786` (`106: fix post-review defects`) |
 | Date | 2026-10-15 (implementation), 2026-10-16 (post-review fixes) |
 
 ## Summary
