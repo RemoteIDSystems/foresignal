@@ -35,12 +35,13 @@ public final class EmwinTextParser {
     /** The largest kept text, bytes (16 KB). */
     public static final int MAX_TEXT_BYTES = 16 * 1024;
 
-    private static final Pattern WMO = Pattern.compile("^([A-Z]{4}\\d{2}) ([A-Z]{4}) (\\d{6})$");
+    private static final Pattern WMO = Pattern.compile("^([A-Z]{4}\\d{2}) ([A-Z]{4}) (\\d{6})(?: ([A-Z]{3}))?$");
     private static final Pattern AWIPS = Pattern.compile("^([A-Z]{3})([A-Z]{3})(\\d*)$");
     private static final Pattern VTEC = Pattern.compile(
             "/([OTEX])\\.([A-Z]{3})\\.([A-Z]{4})\\.([A-Z]{2})\\.([A-Z])\\.(\\d{4})\\.(\\d{6})T(\\d{4})Z-(\\d{6})T(\\d{4})Z/");
     private static final Pattern LATLON = Pattern.compile("LAT\\.\\.\\.LON\\s+((?:\\d{4,7}\\s+){3,}\\d{4,7})");
-    private static final Pattern TIME_MOT_LOC = Pattern.compile("TIME\\.\\.\\.MOT\\.\\.\\.LOC\\s+(\\d{4})\\s+(\\d+)\\D+(\\d+)");
+    private static final Pattern TIME_MOT_LOC =
+            Pattern.compile("TIME\\.\\.\\.MOT\\.\\.\\.LOC\\s+(\\d{4})Z\\s+(\\d{1,3})DEG\\s+(\\d+)KT");
 
     private EmwinTextParser() {}
 
@@ -136,7 +137,14 @@ public final class EmwinTextParser {
         return new Warning(action, phenomena, significance, office, etn, from, until, headline, polygon);
     }
 
-    /** The {@code LAT...LON} polygon (west longitudes are positive in the text and are negated), or null. */
+    /**
+     * The {@code LAT...LON} polygon, or null.
+     *
+     * <p>NWS lists the vertices as latitude-longitude pairs, latitude first, both in hundredths of a
+     * degree. Longitudes are west and written positive, so they are negated; a longitude of 100° or more
+     * is written with five digits ({@code 10123} = 101.23° W), one below 100° with four or a zero-padded
+     * five ({@code 9730} or {@code 09730} = 97.30° W).
+     */
     static Geometry polygon(String text) {
         Matcher m = LATLON.matcher(text);
         if (!m.find()) {
@@ -148,9 +156,9 @@ public final class EmwinTextParser {
         }
         List<Coordinate> coords = new ArrayList<>();
         for (int i = 0; i + 1 < numbers.length; i += 2) {
-            double lon = -parseHundredths(numbers[i]);
-            double lat = parseHundredths(numbers[i + 1]);
-            if (Double.isNaN(lon) || Double.isNaN(lat)) {
+            double lat = parseHundredths(numbers[i]);
+            double lon = -parseHundredths(numbers[i + 1]);
+            if (Double.isNaN(lon) || Double.isNaN(lat) || lat > 90 || lon < -180) {
                 return null;
             }
             coords.add(new Coordinate(lon, lat));
@@ -243,6 +251,41 @@ public final class EmwinTextParser {
         }
     }
 
+    /**
+     * The issue time of a product from its WMO heading's {@code DDHHMM} group (prompt 107), or null when
+     * the heading is missing or malformed. The heading carries no month or year, so the latest such time
+     * not more than a day after {@code now} is chosen (a product issued on the 31st and read on the 1st
+     * belongs to the previous month).
+     */
+    public static Instant issuedAt(String wmoHeading, Instant now) {
+        if (wmoHeading == null || now == null) {
+            return null;
+        }
+        Matcher m = WMO.matcher(wmoHeading.strip());
+        if (!m.matches()) {
+            return null;
+        }
+        String ddhhmm = m.group(3);
+        int day = Integer.parseInt(ddhhmm.substring(0, 2));
+        int hour = Integer.parseInt(ddhhmm.substring(2, 4));
+        int minute = Integer.parseInt(ddhhmm.substring(4, 6));
+        if (day < 1 || day > 31 || hour > 23 || minute > 59) {
+            return null;
+        }
+        java.time.YearMonth month = java.time.YearMonth.from(now.atZone(java.time.ZoneOffset.UTC));
+        for (int back = 0; back < 3; back++) {
+            java.time.YearMonth candidate = month.minusMonths(back);
+            if (day > candidate.lengthOfMonth()) {
+                continue;
+            }
+            Instant at = candidate.atDay(day).atTime(hour, minute).toInstant(java.time.ZoneOffset.UTC);
+            if (!at.isAfter(now.plus(java.time.Duration.ofDays(1)))) {
+                return at;
+            }
+        }
+        return null;
+    }
+
     /** True when {@code category} is in the allowlist (case-insensitive). */
     public static boolean categoryAllowed(String category, List<String> allowed) {
         if (category == null) {
@@ -257,10 +300,13 @@ public final class EmwinTextParser {
         return false;
     }
 
-    /** The {@code TIME...MOT...LOC} motion triple, or null. */
+    /**
+     * The {@code TIME...MOT...LOC} motion triple {@code {hhmm, directionDeg, speedKt}} found anywhere in the
+     * text (for example {@code TIME...MOT...LOC 2130Z 250DEG 24KT 3250 09730}), or null.
+     */
     public static int[] timeMotLoc(String text) {
         Matcher m = TIME_MOT_LOC.matcher(text);
-        if (!m.matches()) {
+        if (!m.find()) {
             return null;
         }
         try {

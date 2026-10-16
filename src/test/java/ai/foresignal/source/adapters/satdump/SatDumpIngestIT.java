@@ -182,6 +182,86 @@ class SatDumpIngestIT {
         products.removeDynamic("satdump-itest-goes-19-full-disk-2");
     }
 
+    /** Writes {@code content} under the station's inbox path with a modification time of {@code modified}. */
+    void write(String relative, String content, Instant modified) throws Exception {
+        Path file = station.resolve(relative);
+        Files.createDirectories(file.getParent());
+        Files.writeString(file, content);
+        Files.setLastModifiedTime(file, java.nio.file.attribute.FileTime.from(modified));
+    }
+
+    /** Two inbox scans 30 s apart, so files written before the first are settled by the second. */
+    void scanTwice(SatDumpStation s) {
+        s.scanInboxOnce();
+        clock.setInstant(clock.instant().plusSeconds(30));
+        s.scanInboxOnce();
+        clock.setInstant(clock.instant().plusSeconds(30));
+    }
+
+    static final String TORNADO = "WUUS54 KFWD 122300\nTORFWD\nTornado Warning\n"
+            + "/O.NEW.KFWD.TO.W.0042.261012T2300Z-261012T2345Z/\n\n"
+            + "LAT...LON 3250 09730 3240 09720 3260 09710 3250 09730\n";
+
+    @Test
+    @DisplayName("prompt 107: emwin-warning versions one record per VTEC ETN, and CAN tombstones it, with no pass folder")
+    void emwinWarningVersionedByEtn() throws Exception {
+        sources.update(SOURCE, new SourceSettingsUpdate(false, null, Map.of(SatDumpDescriptor.INBOX_PATH, inboxPath,
+                SatDumpDescriptor.LOCATION, "29.76,-95.37", SatDumpExtras.EMWIN_ENABLED, true), Budget.of(600, 100_000),
+                null, false, null, false));
+        PolicyAwareRecordSink sink = sink();
+        SatDumpStation s = adapter().newStation(context(), sink);
+        clock.setInstant(Instant.parse("2026-10-12T23:01:00Z"));
+
+        write("live/EMWIN/a.txt", TORNADO, clock.instant().minusSeconds(30));
+        scanTwice(s);
+        write("live/EMWIN/b.txt", TORNADO.replace("122300", "122310").replace("/O.NEW.", "/O.CON."),
+                clock.instant().minusSeconds(5));
+        scanTwice(s);
+        write("live/EMWIN/c.txt", TORNADO.replace("122300", "122320").replace("/O.NEW.", "/O.CAN."),
+                clock.instant().minusSeconds(5));
+        scanTwice(s);
+        assertThat(sink.flushAndClose(Duration.ofSeconds(30))).isTrue();
+
+        String id = "KFWD.TO.W.0042";
+        List<String> actions = jdbc.queryForList("select payload->>'action' from record_version where source_id = ?"
+                + " and kind = 'emwin-warning' and external_id = ? and payload->>'action' is not null order by seq",
+                String.class, SOURCE, id);
+        assertThat(actions).containsExactly("NEW", "CON");
+        assertThat(jdbc.queryForObject("select tombstone from record_head where source_id = ? and external_id = ?",
+                Boolean.class, SOURCE, id)).isTrue();
+        assertThat(versions(SatDumpExtras.EMWIN_PRODUCT_KIND, "WUUS54 KFWD 122300:TORFWD:2026-10-12T23:00:00Z"))
+                .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("prompt 107: dcp-observation is emitted once per new message and never for a message outside the bbox")
+    void dcpObservationEmitOnChange() throws Exception {
+        Path csv = properties.inboxDir().resolve("dcs/dcp_locations.csv");
+        Files.createDirectories(csv.getParent());
+        Files.writeString(csv, "address,lat,lon,name,agency\nCE10A1,32.5,-97.3,Trinity Gauge,USGS\n"
+                + "CE20B2,40.0,-80.0,Far Gauge,USGS\n");
+        sources.update(SOURCE, new SourceSettingsUpdate(false, null, Map.of(SatDumpDescriptor.INBOX_PATH, inboxPath,
+                SatDumpDescriptor.LOCATION, "29.76,-95.37", SatDumpExtras.DCS_ENABLED, true, SatDumpExtras.DCS_BBOX,
+                "-98,32,-97,33"), Budget.of(600, 100_000), null, false, null, false));
+        PolicyAwareRecordSink sink = sink();
+        SatDumpStation s = adapter().newStation(context(), sink);
+        clock.setInstant(Instant.parse("2026-10-12T23:01:00Z"));
+
+        write("live/DCS/1.json", "[{\"address\":\"CE10A1\",\"time\":\"2026-10-12T23:00:00Z\",\"data\":\"4142\","
+                + "\"signal_dbm\":-120.5},{\"address\":\"CE20B2\",\"time\":\"2026-10-12T23:00:00Z\",\"data\":\"4142\"}]",
+                clock.instant().minusSeconds(30));
+        scanTwice(s);
+        // A rescan of the same file adds nothing; a new message adds one version.
+        scanTwice(s);
+        write("live/DCS/2.json", "{\"address\":\"CE10A1\",\"time\":\"2026-10-12T23:15:00Z\",\"data\":\"4143\"}",
+                clock.instant().minusSeconds(5));
+        scanTwice(s);
+        assertThat(sink.flushAndClose(Duration.ofSeconds(30))).isTrue();
+
+        assertThat(versions(SatDumpExtras.DCP_KIND, "CE10A1")).isEqualTo(2);
+        assertThat(versions(SatDumpExtras.DCP_KIND, "CE20B2")).isZero();
+    }
+
     @Test
     @DisplayName("without apiUrl the station starts with one unknown ground-station record")
     void unknownWithoutApi() throws Exception {

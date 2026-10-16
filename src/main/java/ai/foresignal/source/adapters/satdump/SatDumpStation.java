@@ -70,6 +70,11 @@ import org.slf4j.Logger;
  * them; an upload is ready at once) and pushed images ({@link #receive}, registered with
  * {@link RemoteMediaReceivers} while the stream runs).
  *
+ * <p>Prompt 107 adds DCS and EMWIN ({@link SatDumpExtras}): their files are processed on every inbox scan as
+ * each settles, independent of pass-folder readiness ({@link ExtrasTracker}, persisted under
+ * {@value StationStore#EXTRAS}); a ready pass folder's {@code foresignal-manifest.json} products are
+ * committed through {@link PolarOverlays#processManifest}.
+ *
  * <p>State changes run under the station's lock; records are emitted after it is released, because
  * {@link RecordSink#accept} may block.
  */
@@ -120,6 +125,7 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
     private int apiFailures;
     private final OrbitalElements elements;
     private final SatDumpExtras extras;
+    private final ExtrasTracker extrasTracker = new ExtrasTracker();
     private final List<String> predictNorad;
     private final double predictMinElevation;
     private Instant lastPrediction;
@@ -550,6 +556,7 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
             RasterSink rasters = ctx.rasters();
             MediaSink media = ctx.media();
             out.addAll(xrit.process(scan.xrit(), inbox, rasters, media, now));
+            scanExtras(inbox, now, out);
             if (xrit.reasons().isEmpty()) {
                 reasons.remove("xrit");
             } else {
@@ -559,6 +566,28 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
                 log.warn("{}: the inbox walk stopped at {} entries", sourceId, InboxScanner.MAX_ENTRIES);
             }
             return out;
+        }
+    }
+
+    /**
+     * The DCS and EMWIN files under the inbox path (prompt 107), processed as they settle on every scan,
+     * independent of pass-folder readiness, because continuous HRIT reception keeps writing them. Called
+     * under the lock.
+     */
+    private void scanExtras(InboxAccess inbox, Instant now, List<NormalizedRecord> out) {
+        if (extras == null) {
+            return;
+        }
+        try {
+            SatDumpExtras.Result extra = extras.scanInbox(inbox, inboxPath, ctx.params(), extrasTracker, now);
+            out.addAll(extra.records());
+            if (extra.reasons().isEmpty()) {
+                reasons.remove("extras");
+            } else {
+                reasons.put("extras", String.join(" ", extra.reasons()));
+            }
+        } catch (RuntimeException e) {
+            log.warn("{}: DCS/EMWIN scan failed: {}", sourceId, e.toString());
         }
     }
 
@@ -650,12 +679,33 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
         }
         if (extras != null) {
             try {
-                SatDumpExtras.Result extra = extras.process(folder, access, ctx.params(), now);
-                out.addAll(extra.records());
-                if (extra.reasons().isEmpty()) {
-                    reasons.remove("extras");
-                } else {
-                    reasons.put("extras", String.join(" ", extra.reasons()));
+                Set<String> manifestReasons = new LinkedHashSet<>();
+                ForesignalManifest.Manifest manifest = extras.manifest(folder, access, manifestReasons);
+                if (manifest != null) {
+                    int committed = 0;
+                    for (Map<String, Object> p : products) {
+                        if (p.containsKey("productId")) {
+                            committed++;
+                        }
+                    }
+                    PolarOverlays.Result listed = overlays.processManifest(folder, manifest, pass, glob, committed, access,
+                            rasters, ctx.media());
+                    out.addAll(listed.records());
+                    manifestReasons.addAll(listed.reasons());
+                    for (PolarOverlays.Overlay overlay : listed.overlays()) {
+                        polarProducts.put(overlay.productId(), overlay.composite());
+                    }
+                    products = PolarOverlays.merge(products, listed.overlays());
+                    if (listed.geometry() != null && !PolarOverlays.FOOTPRINT.equals(pass.geometrySource)) {
+                        book.geometry(pass, listed.geometry(), listed.geometrySource());
+                    }
+                }
+                polarReasons.addAll(manifestReasons);
+                if (!prefix.isEmpty()) {
+                    // A remote upload is complete when it appears: its DCS and EMWIN files go with the pass.
+                    SatDumpExtras.Result extra = extras.processUpload(folder, access, ctx.params(), extrasTracker, now);
+                    out.addAll(extra.records());
+                    polarReasons.addAll(extra.reasons());
                 }
             } catch (RuntimeException e) {
                 log.warn("{}: extras of {}{} failed: {}", sourceId, prefix, folder.relative(), e.toString());
@@ -873,6 +923,7 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
         uploadScanner.restore(store.uploadWatches(), store.uploadProcessed());
         polarProducts.putAll(store.polarProducts());
         xrit.restore(store.xritFolders(), store.xritProducts());
+        extrasTracker.restore(store.extras());
         StationStore.ActiveSession active = store.active();
         if (active != null) {
             RfSession restored = new RfSession(active.passId(), active.satKey(), active.satellite(), active.mode(),
@@ -893,5 +944,6 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
         store.write(StationStore.POLAR_PRODUCTS, polarProducts);
         store.write(StationStore.XRIT_FOLDERS, xrit.folders());
         store.write(StationStore.XRIT_PRODUCTS, xrit.products());
+        store.write(StationStore.EXTRAS, extrasTracker.state());
     }
 }

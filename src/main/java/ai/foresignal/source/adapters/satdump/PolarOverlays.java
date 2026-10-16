@@ -11,6 +11,7 @@ import ai.foresignal.source.spi.DecodedBands;
 import ai.foresignal.source.spi.FrameInput;
 import ai.foresignal.source.spi.GridDefinition;
 import ai.foresignal.source.spi.InboxAccess;
+import ai.foresignal.source.spi.MediaSink;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.ProductSpec;
 import ai.foresignal.source.spi.RasterDtype;
@@ -171,8 +172,8 @@ public final class PolarOverlays {
                     continue;
                 }
                 Instant validTime = validTime(product, contents);
-                Overlay overlay = commit(image, footprint, file.path(), relative, product, validTime, pass, rasters,
-                        records);
+                Overlay overlay = commit(image, footprint, file.path(), relative, null,
+                        product == null ? null : product.product().instrument(), validTime, pass, rasters, records);
                 if (overlay != null) {
                     overlays.add(overlay);
                 }
@@ -222,10 +223,10 @@ public final class PolarOverlays {
     }
 
     private Overlay commit(GeoTiffReader.Image image, MultiPolygon footprint, Path path, String relative,
-            PolarPassProcessor.ProductDir product, Instant validTime, PassState pass, RasterSink rasters,
+            String compositeName, String instrument, Instant validTime, PassState pass, RasterSink rasters,
             List<NormalizedRecord> records) throws AdapterException {
         String file = path.getFileName().toString();
-        String composite = composite(file);
+        String composite = compositeName == null || compositeName.isBlank() ? composite(file) : compositeName;
         String productId = productId(station, composite);
         try {
             rasters.registerProduct(spec(productId, station, composite));
@@ -249,8 +250,175 @@ public final class PolarOverlays {
             frameKey = text(record.payload().get("frameKey"));
             tiles = text(record.payload().get("tiles"));
         }
-        String instrument = product == null ? null : product.product().instrument();
         return new Overlay(composite, file, instrument, productId, frameKey, tiles, footprint);
+    }
+
+    /** The most bytes of a manifest-listed PNG read. */
+    public static final long MAX_PNG_BYTES = 64L * 1024 * 1024;
+
+    /**
+     * Commits the products a {@code foresignal-manifest.json} lists (prompt 107, SatDump 2.0 hook,
+     * version-agnostic), through the same pipeline as {@link #process}.
+     *
+     * <ul>
+     *   <li>Each product's {@code file} is resolved against the pass folder and must be one of the
+     *       folder's listed files (so it is inside the inbox and not a link).
+     *   <li>A GeoTIFF already matched by {@code polarGlob} was committed by {@link #process} and is
+     *       skipped; any other GeoTIFF is read with {@link GeoTiffReader} (and GDAL when available).
+     *   <li>A PNG goes through the image guard ({@link MediaSink#decode}) and is georeferenced from the
+     *       product's {@code bounds [w,s,e,n]}: {@code projection} must be {@code equirec}, and the
+     *       image is an EPSG:4326 affine grid whose pixel corners span the bounds. A PNG without valid
+     *       bounds is refused with a health reason.
+     *   <li>The composite name is the product's {@code composite}, else its {@code name}; the valid time is
+     *       the manifest's {@code timestamp}.
+     * </ul>
+     *
+     * @param folder the ready pass folder
+     * @param manifest the parsed manifest
+     * @param pass the pass the folder joined
+     * @param glob {@code polarGlob}
+     * @param alreadyCommitted the overlays {@link #process} committed for this folder
+     * @param access where the folder's files are read
+     * @param rasters the raster sink
+     * @param media the media sink whose decoder applies the image guard
+     */
+    public Result processManifest(InboxScanner.Folder folder, ForesignalManifest.Manifest manifest, PassState pass,
+            PolarGlob glob, int alreadyCommitted, InboxAccess access, RasterSink rasters, MediaSink media) {
+        List<Overlay> overlays = new ArrayList<>();
+        List<NormalizedRecord> records = new ArrayList<>();
+        Set<String> reasons = new LinkedHashSet<>();
+        Map<Path, InboxAccess.FileStat> listed = new LinkedHashMap<>();
+        for (InboxAccess.FileStat f : folder.files()) {
+            listed.put(f.path().normalize(), f);
+        }
+        for (ForesignalManifest.Product product : manifest.products()) {
+            if (alreadyCommitted + overlays.size() >= MAX_OVERLAYS) {
+                log.warn("{}: more than {} overlays in {}; the rest of the manifest is ignored", station, MAX_OVERLAYS,
+                        folder.relative());
+                break;
+            }
+            Path path = folder.path().resolve(product.file()).normalize();
+            InboxAccess.FileStat file = path.startsWith(folder.path()) ? listed.get(path) : null;
+            if (file == null) {
+                reasons.add("2.0 manifest product " + product.file() + " is not in the pass folder.");
+                continue;
+            }
+            String relative = InboxScanner.relative(folder.path(), path);
+            String lower = relative.toLowerCase(Locale.ROOT);
+            String compositeName = product.composite() != null ? product.composite() : product.name();
+            try {
+                GeoTiffReader.Image image;
+                if (PolarGlob.tiff(lower)) {
+                    if (glob.matches(relative)) {
+                        continue;
+                    }
+                    if (file.size() > MAX_GEOTIFF_BYTES) {
+                        reasons.add("GeoTIFF " + path.getFileName() + " is larger than "
+                                + MAX_GEOTIFF_BYTES / (1024 * 1024) + " MB");
+                        continue;
+                    }
+                    image = decode(access.readAll(path, MAX_GEOTIFF_BYTES), rasters, reasons,
+                            path.getFileName().toString());
+                } else if (lower.endsWith(".png")) {
+                    if (file.size() > MAX_PNG_BYTES) {
+                        reasons.add("2.0 manifest PNG " + path.getFileName() + " is larger than "
+                                + MAX_PNG_BYTES / (1024 * 1024) + " MB");
+                        continue;
+                    }
+                    image = png(product, access.readAll(path, MAX_PNG_BYTES), media, reasons);
+                } else {
+                    reasons.add("2.0 manifest product " + product.file() + " is neither a GeoTIFF nor a PNG.");
+                    continue;
+                }
+                if (image == null) {
+                    continue;
+                }
+                MultiPolygon footprint = FootprintBuilder.build(image);
+                if (footprint.isEmpty()) {
+                    log.info("{}: manifest product {} has no valid pixel; no overlay", station, relative);
+                    continue;
+                }
+                Overlay overlay = commit(image, footprint, path, relative, compositeName, product.instrument(),
+                        manifest.timestamp(), pass, rasters, records);
+                if (overlay != null) {
+                    overlays.add(overlay);
+                }
+            } catch (IOException | AdapterException | RuntimeException e) {
+                log.warn("{}: manifest product {} of {} not used: {}", station, relative, folder.relative(),
+                        e.getMessage());
+            }
+        }
+        MultiPolygon geometry = null;
+        if (!overlays.isEmpty()) {
+            List<Geometry> parts = new ArrayList<>();
+            overlays.forEach(o -> parts.add(o.footprint()));
+            geometry = multi(UnaryUnionOp.union(parts));
+        }
+        return new Result(overlays, geometry, geometry == null ? null : FOOTPRINT, records, reasons);
+    }
+
+    /**
+     * Decodes a manifest PNG through the image guard and georeferences it from the product's
+     * {@code bounds}, or returns null with a health reason.
+     */
+    GeoTiffReader.Image png(ForesignalManifest.Product product, byte[] bytes, MediaSink media, Set<String> reasons) {
+        double[] b = product.bounds();
+        if (product.projection() != null && !"equirec".equalsIgnoreCase(product.projection())) {
+            reasons.add("2.0 manifest PNG " + product.file() + " has projection " + product.projection()
+                    + "; only equirec is read.");
+            return null;
+        }
+        if (!validBounds(b)) {
+            reasons.add("2.0 manifest PNG " + product.file() + " has no valid bounds [w,s,e,n].");
+            return null;
+        }
+        java.awt.image.BufferedImage decoded;
+        try {
+            decoded = media.decode(bytes, "image/png");
+        } catch (UnsupportedOperationException e) {
+            reasons.add("2.0 manifest PNG " + product.file() + " cannot be decoded here.");
+            return null;
+        } catch (RuntimeException e) {
+            reasons.add("2.0 manifest PNG " + product.file() + " refused: " + e.getMessage());
+            return null;
+        }
+        return georeferenced(decoded, b);
+    }
+
+    /**
+     * The image of an equirectangular PNG whose pixel corners span {@code bounds [w,s,e,n]}: packed
+     * {@code 0xRRGGBBAA} pixels and an EPSG:4326 geotransform {@code [w, (e−w)/width, 0, n, 0, −(n−s)/height]}.
+     * An east bound below the west bound crosses ±180° and is unwrapped by 360°.
+     */
+    static GeoTiffReader.Image georeferenced(java.awt.image.BufferedImage decoded, double[] bounds) {
+        int width = decoded.getWidth();
+        int height = decoded.getHeight();
+        int[] rgba = new int[width * height];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int argb = decoded.getRGB(x, y);
+                rgba[y * width + x] = (argb << 8) | ((argb >>> 24) & 0xFF);
+            }
+        }
+        double west = bounds[0];
+        double east = bounds[2] <= bounds[0] ? bounds[2] + 360 : bounds[2];
+        GeoReference georeference = new GeoReference(4326,
+                new double[] {west, (east - west) / width, 0, bounds[3], 0, -(bounds[3] - bounds[1]) / height}, false);
+        return new GeoTiffReader.Image(width, height, rgba, georeference, null);
+    }
+
+    /** True when {@code b} is {@code [w,s,e,n]} inside ±180°/±90° with {@code s < n} and {@code w != e}. */
+    static boolean validBounds(double[] b) {
+        if (b == null || b.length != 4) {
+            return false;
+        }
+        for (double v : b) {
+            if (!Double.isFinite(v)) {
+                return false;
+            }
+        }
+        return b[0] >= -180 && b[0] <= 180 && b[2] >= -180 && b[2] <= 180 && b[1] >= -90 && b[3] <= 90 && b[1] < b[3]
+                && b[0] != b[2];
     }
 
     /**

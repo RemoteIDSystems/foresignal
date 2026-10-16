@@ -82,6 +82,9 @@ public final class StationStore {
     /** The polar overlay products, id to composite (prompt 054). */
     public static final String POLAR_PRODUCTS = "polar.products";
 
+    /** The key of the DCS/EMWIN file and ordering memory (prompt 107). */
+    public static final String EXTRAS = "extras.files";
+
     /** RF session summaries kept. */
     public static final int MAX_SESSIONS = 50;
 
@@ -188,6 +191,11 @@ public final class StationStore {
     public Map<String, XritFrames.FolderState> xritFolders() {
         return read(XRIT_FOLDERS, new TypeReference<LinkedHashMap<String, XritFrames.FolderState>>() {},
                 new LinkedHashMap<>());
+    }
+
+    /** The DCS/EMWIN file and ordering memory (prompt 107), or null before the first scan. */
+    public ExtrasTracker.State extras() {
+        return read(EXTRAS, new TypeReference<ExtrasTracker.State>() {}, null);
     }
 
     /** The xRIT products. */
