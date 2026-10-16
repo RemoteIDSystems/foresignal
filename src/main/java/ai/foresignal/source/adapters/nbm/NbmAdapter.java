@@ -4,6 +4,7 @@ import ai.foresignal.raster.ProductEnablement;
 import ai.foresignal.raster.decode.DecodeRequest;
 import ai.foresignal.raster.decode.DecoderCapability;
 import ai.foresignal.raster.decode.DecoderDependent;
+import ai.foresignal.raster.model.ModelCycleSelector;
 import ai.foresignal.raster.model.ModelDefinition;
 import ai.foresignal.raster.model.ModelRunIngest;
 import ai.foresignal.source.spi.AdapterException;
@@ -32,7 +33,9 @@ import org.springframework.stereotype.Component;
  * NOAA National Blend of Models (NBM) CONUS core (prompt 106; Weather-Imagery-Design §5.3): the 051
  * forecast engine over {@code noaa-nbm-grib2-pds}, runs 01/07/13/19z (every 6 h), steps f001–f036
  * hourly and f039–f072 3-hourly. Fields TMP 2 m, WIND/GUST 10 m, the 6-hour APCP bucket, its
- * probability (PoP 6-h) and total sky cover (SKY). Off by default on the small profile.
+ * probability (PoP 6-h) and total sky cover (SKY). On by default on both profiles (prompt 106 task 1:
+ * NBM is a light product). The cycles sit one hour after the 6-hour cadence boundaries
+ * ({@link #CYCLE_OFFSET}), so {@link ModelCycleSelector} offers 01/07/13/19z, never 00/06/12/18z.
  *
  * <p><strong>Verified 2026-10-15</strong>: the {@code .idx} of
  * {@code blend.20261015/12/core/blend.t12z.core.f012.co.grib2} lists {@code TMP:2 m above ground},
@@ -84,6 +87,15 @@ public class NbmAdapter implements PollingAdapter, DecoderDependent {
     /** The availability lag. */
     public static final Duration AVAILABILITY_LAG = Duration.ofMinutes(90);
 
+    /** The cycles sit one hour after each 6-hour boundary: 01/07/13/19z. */
+    public static final Duration CYCLE_OFFSET = Duration.ofHours(1);
+
+    /** The products on by default on the small profile (all: NBM is light, prompt 106 task 1). */
+    public static final List<String> LIGHT_DEFAULT = PRODUCTS;
+
+    /** The products on by default on the large profile. */
+    public static final List<String> LARGE_DEFAULT = PRODUCTS;
+
     /** The model. */
     public static final ModelDefinition MODEL = new ModelDefinition(ID, "NBM", BUCKET, DEFAULT_TEMPLATE, DEFAULT_STEPS,
             RUN_EVERY, AVAILABILITY_LAG, List.of(
@@ -105,7 +117,7 @@ public class NbmAdapter implements PollingAdapter, DecoderDependent {
                     new ModelDefinition.Product(SKY, List.of(new ModelDefinition.Component("TCDC", "entire atmosphere",
                             false, DecodeRequest.grib2(SKY, "TCDC", 0, 6, 1, 200, 0.0, "entire atmosphere"))), false, 1.0,
                             null)),
-            T2M);
+            T2M, CYCLE_OFFSET);
 
     private static final SourceDescriptor DESCRIPTOR = buildDescriptor();
 
@@ -144,13 +156,17 @@ public class NbmAdapter implements PollingAdapter, DecoderDependent {
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
         ModelDefinition model = MODEL;
         if (!ctx.rasters().probing()) {
-            Set<String> enabled = ProductEnablement.enabled(ctx.params(), profile, PRODUCTS, List.of(), PRODUCTS);
+            Set<String> enabled = ProductEnablement.enabled(ctx.params(), profile, PRODUCTS, LIGHT_DEFAULT,
+                    LARGE_DEFAULT);
+            if (enabled.isEmpty()) {
+                return FetchResult.of(List.of());
+            }
             if (enabled.size() != MODEL.products().size()) {
                 List<ModelDefinition.Product> products = MODEL.products().stream()
                         .filter(p -> enabled.contains(p.productId()) || p.productId().equals(MODEL.probeProduct()))
                         .toList();
                 model = new ModelDefinition(ID, "NBM", BUCKET, DEFAULT_TEMPLATE, DEFAULT_STEPS, RUN_EVERY,
-                        AVAILABILITY_LAG, products, T2M);
+                        AVAILABILITY_LAG, products, T2M, CYCLE_OFFSET);
             }
         }
         return ingest.fetch(ctx, model, this::objectUri);
@@ -201,11 +217,11 @@ public class NbmAdapter implements PollingAdapter, DecoderDependent {
                 .param(ParamSpec.optional(ModelRunIngest.STEPS, ParamType.STRING_LIST,
                         "Forecast steps in hours, as N or A-B/S items", DEFAULT_STEPS))
                 .param(ParamSpec.optional(ModelRunIngest.RUN_EVERY, ParamType.DURATION,
-                        "Run cadence: whole hours dividing 24", "6h"))
+                        "Run cadence: whole hours dividing 24 (cycles sit 1 h after each boundary)", "6h"))
                 .param(ParamSpec.optional(ModelRunIngest.AVAILABILITY_LAG, ParamType.DURATION,
                         "How long after its reference time a run starts to appear", "90m"))
                 .param(ParamSpec.optional(ProductEnablement.PRODUCTS_PARAM, ParamType.STRING_LIST,
-                        "Which NBM products to ingest (default none on small, all on large)", PRODUCTS))
+                        "Which NBM products to ingest (default all on both profiles)", null))
                 .product(t2m).product(wind).product(gust).product(apcp).product(pop).product(sky)
                 .build();
     }

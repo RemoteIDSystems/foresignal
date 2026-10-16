@@ -56,6 +56,12 @@ public class SstAdapter implements PollingAdapter, DecoderDependent {
     /** The product. */
     public static final String PRODUCT = "sst-geopolar";
 
+    /** The products on by default on the small profile: none (SST is a large-profile product). */
+    public static final List<String> LIGHT_DEFAULT = List.of();
+
+    /** The products on by default on the large profile (prompt 106 task 1). */
+    public static final List<String> LARGE_DEFAULT = List.of(PRODUCT);
+
     /** The ERDDAP dataset. */
     public static final String DATASET = "noaacwBLENDEDsstDNDaily";
 
@@ -113,7 +119,7 @@ public class SstAdapter implements PollingAdapter, DecoderDependent {
     @Override
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
         Set<String> enabled = ai.foresignal.raster.ProductEnablement.enabled(ctx.params(), profile, List.of(PRODUCT),
-                List.of(), List.of(PRODUCT));
+                LIGHT_DEFAULT, LARGE_DEFAULT);
         if (!enabled.contains(PRODUCT)) {
             return FetchResult.of(List.of());
         }
@@ -251,7 +257,7 @@ public class SstAdapter implements PollingAdapter, DecoderDependent {
                 .param(ParamSpec.optional(BBOX_PARAM, ParamType.BBOX,
                         "The ocean bbox to subset (default the AOI + 1000 km)", null))
                 .param(ParamSpec.optional(ai.foresignal.raster.ProductEnablement.PRODUCTS_PARAM, ParamType.STRING_LIST,
-                        "Which products to ingest (default none on small, all on large)", List.of(PRODUCT)))
+                        "Which products to ingest (default none on small, all on large)", null))
                 .product(product)
                 .build();
     }

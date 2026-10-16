@@ -3749,22 +3749,28 @@ co-occurrences.
 ## Extended weather products (prompt 106)
 
 **Per-product enablement.** Every extended source has a `products` string-list parameter; a product not
-listed is not fetched or stored. The defaults follow the memory profile (`FORESIGNAL_PROFILE`):
-`gfs-wave` and `aifs` are on for the `large` profile only, and the other extended products follow the
-same pattern. Set the parameter with `PUT /v1/sources/{id}/params` (or the source settings API).
+listed is not fetched or stored. Left unset (it has no descriptor default), the memory profile
+(`FORESIGNAL_PROFILE`) decides: the **small** profile turns on GOES-East C13/C08/C09, `rtma-ru`, `nbm`,
+the OVATION aurora raster, TAF, HRRR smoke (surface and column), `wpc-heatrisk` and `epa-uv`; the **large**
+profile also turns on C02, `goes-west-abi`, `gfs-wave`, the MRMS extras (lightning probability, VIL, echo
+top), `sst-geopolar` and `aifs`. The mesoscale sectors are opt-in on both (list them in `goes-east-abi`'s
+`products`), and `nexrad-l3` is opt-in like every source. Set the parameter with
+`PUT /v1/sources/{id}/params` (or the source settings API).
 
 **New sources.** `goes-west-abi` mirrors the East clean IR on GOES-18; `goes-east-abi` adds the C08/C09
 water-vapour channels, the C02 visible (daytime only, cropped to the AOI + 300 km) and the 1-minute
-mesoscale sectors (AOI-gated, every second frame). `rtma-ru` is the hourly 2.5 km CONUS analysis
-(observation); `nbm` is the National Blend of Models core; `gfs-wave` (HTSGW/PERPW/DIRPW) feeds the
+mesoscale sectors (AOI-gated, every second frame). `rtma-ru` is the 15-minute RTMA Rapid Update 2.5 km
+CONUS analysis (observation; about 3.4 GB/day for all five products — set `analysisEvery` to `30m` or `60m`
+to thin it); `nbm` is the National Blend of Models core; `gfs-wave` (HTSGW/PERPW/DIRPW) feeds the
 place-weather `marine` section for places tagged `coastal`; `aifs` is the ECMWF AIFS machine-learning
 forecast (CC BY 4.0). The `mrms` source gains lightning probability, VIL and echo top; the `hrrr` source
 gains `hrrr-smoke-column` (COLMD); `swpc-aurora` gains the global `aurora-probability` raster; `sst-geopolar`
 adds the daily Geo-Polar SST over an ocean bbox; `wpc-heatrisk` adds the **experimental** NWS HeatRisk
 days 1–7 (place-weather `heat`); `epa-uv` adds the hourly UV index per place — set a place's `zip`
-attribute (`PUT /v1/places/{id}` `{"attributes":{"zip":"78701"}}`) for it to be fetched. **`nexrad-l3`**
-is opt-in and has a **documented gap**: this build's NetCDF-Java has no NIDS reader, so it lists the
-nearest WSR-88D sites and probes but ingests no frames.
+attribute (`PUT /v1/places/{id}` `{"attributes":{"zip":"78701"}}`) for it to be fetched; places without
+one are named in the source's health note. **`nexrad-l3`** (opt-in) ingests N0B reflectivity and N0G
+velocity for the nearest WSR-88D sites (`sites`, or `siteCount` nearest the home), decoded with
+NetCDF-Java's NIDS reader and resampled to 0.005° within 230 km.
 
 **Products with a byte budget** set `mbPerDay`; when the projected day's download, at the rate seen so
 far, exceeds **120%** of it, the source degrades with a `projected download … exceeds …` reason

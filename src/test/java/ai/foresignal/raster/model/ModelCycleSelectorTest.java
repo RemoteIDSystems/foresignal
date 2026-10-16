@@ -90,4 +90,47 @@ class ModelCycleSelectorTest {
         assertThat(ModelCycleSelector.parseCycleKey("garbage")).isNull();
         assertThat(ModelCycleSelector.parseCycleKey(null)).isNull();
     }
+
+    @Test
+    @DisplayName("prompt 106: a 1 h cycle offset gives NBM's 01/07/13/19z cycles, newest first")
+    void cycleOffsetGivesNbmCycles() {
+        Instant now = Instant.parse("2026-10-16T14:40:00Z");
+        assertThat(ModelCycleSelector.candidates(now, SIX, Duration.ofHours(1), Duration.ofMinutes(90), 4))
+                .containsExactly(Instant.parse("2026-10-16T13:00:00Z"), Instant.parse("2026-10-16T07:00:00Z"),
+                        Instant.parse("2026-10-16T01:00:00Z"), Instant.parse("2026-10-15T19:00:00Z"));
+        // Before 01z + lag the newest NBM cycle is the previous day's 19z, never 00z.
+        assertThat(ModelCycleSelector.candidates(Instant.parse("2026-10-16T02:00:00Z"), SIX, Duration.ofHours(1),
+                Duration.ofMinutes(90), 1)).containsExactly(Instant.parse("2026-10-15T19:00:00Z"));
+        assertThat(ModelCycleSelector.candidates(Instant.parse("2026-10-16T02:30:00Z"), SIX, Duration.ofHours(1),
+                Duration.ofMinutes(90), 1)).containsExactly(Instant.parse("2026-10-16T01:00:00Z"));
+    }
+
+    @Test
+    @DisplayName("prompt 106: the NBM model carries the 1 h offset; the 051 models keep none")
+    void nbmModelOffset() {
+        assertThat(ai.foresignal.source.adapters.nbm.NbmAdapter.MODEL.cycleOffset()).isEqualTo(Duration.ofHours(1));
+        assertThat(GfsAdapter.MODEL.cycleOffset()).isEqualTo(Duration.ZERO);
+        assertThat(HrrrAdapter.model(SIX).cycleOffset()).isEqualTo(Duration.ZERO);
+        for (Instant cycle : ModelCycleSelector.candidates(Instant.parse("2026-10-16T23:59:00Z"), SIX,
+                ai.foresignal.source.adapters.nbm.NbmAdapter.MODEL.cycleOffset(),
+                ai.foresignal.source.adapters.nbm.NbmAdapter.AVAILABILITY_LAG, 8)) {
+            assertThat(cycle.atZone(java.time.ZoneOffset.UTC).getHour()).isIn(1, 7, 13, 19);
+        }
+    }
+
+    @Test
+    @DisplayName("prompt 106: a zero offset is the old behavior and a bad offset is refused")
+    void offsetChecks() {
+        Instant now = Instant.parse("2026-10-12T15:30:00Z");
+        assertThat(ModelCycleSelector.candidates(now, SIX, Duration.ZERO, GfsAdapter.AVAILABILITY_LAG, 2))
+                .isEqualTo(ModelCycleSelector.candidates(now, SIX, GfsAdapter.AVAILABILITY_LAG, 2));
+        assertThat(ModelCycleSelector.candidates(now, SIX, null, GfsAdapter.AVAILABILITY_LAG, 2))
+                .isEqualTo(ModelCycleSelector.candidates(now, SIX, GfsAdapter.AVAILABILITY_LAG, 2));
+        assertThatThrownBy(() -> ModelCycleSelector.candidates(now, SIX, Duration.ofHours(6), Duration.ZERO, 1))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ModelCycleSelector.candidates(now, SIX, Duration.ofMinutes(30), Duration.ZERO, 1))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ModelCycleSelector.candidates(now, SIX, Duration.ofHours(-1), Duration.ZERO, 1))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

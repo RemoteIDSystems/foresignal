@@ -71,10 +71,12 @@ dependencies {
     implementation(libs.h3)
     implementation(libs.commons.compress)
     implementation(libs.caffeine)
-    // GRIB2 and NetCDF4 decoding (046): cdm-core and grib only, versions from the NetCDF-Java BOM.
+    // GRIB2 and NetCDF4 decoding (046): cdm-core and grib, versions from the NetCDF-Java BOM; cdm-radial for
+    // the NIDS (NEXRAD Level III) reader of nexrad-l3 (106).
     implementation(platform(libs.netcdf.java.bom))
     implementation(libs.netcdf.cdm.core)
     implementation(libs.netcdf.grib)
+    implementation(libs.netcdf.cdm.radial)
     runtimeOnly(libs.libaec.native)
     // SGP4 approximate swaths of SatDump passes (054), loaded only on that code path.
     implementation(libs.orekit)

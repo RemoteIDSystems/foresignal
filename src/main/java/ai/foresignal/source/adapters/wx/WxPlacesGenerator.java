@@ -1128,7 +1128,8 @@ public class WxPlacesGenerator implements DerivedGenerator {
             }
         }
         for (PlaceWeatherState p : places.values()) {
-            HeadSnapshot head = byId.get(p.placeId);
+            // epa-uv records are keyed place:{id} (prompt 106 post-review); the bare id is the older form.
+            HeadSnapshot head = byId.getOrDefault("place:" + p.placeId, byId.get(p.placeId));
             if (head == null) {
                 p.uv.notOk(WxSection.UNAVAILABLE);
                 continue;

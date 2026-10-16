@@ -245,14 +245,15 @@ section lists dependencies a prompt asked to record here.
 
 ### NetCDF-Java (GRIB2 and NetCDF4 decoders, prompt 046)
 
-- **Artifacts:** `edu.ucar:cdm-core` and `edu.ucar:grib` 5.11.0, versions from `edu.ucar:netcdf-java-bom` 5.11.0,
+- **Artifacts:** `edu.ucar:cdm-core`, `edu.ucar:grib` and (prompt 106) `edu.ucar:cdm-radial` 5.11.0, versions from `edu.ucar:netcdf-java-bom` 5.11.0,
   with their Unidata runtime modules `edu.ucar:httpservices`, `edu.ucar:udunits` and `edu.ucar:libaec-jna`
   5.11.0. Fetched **only** from Unidata's repository <https://artifacts.unidata.ucar.edu/all/> (not on Maven
   Central; the one exception to that rule, Architecture §2), checksum-pinned in `gradle/verification-metadata.xml`.
   Used unmodified.
 - **Use:** `ai.foresignal.raster.decode`: GRIB2 messages through `Grib2RecordScanner` (MRMS, and the self-test's GFS
-  and ECMWF messages) and NetCDF4/HDF5 variables in enhanced mode (GOES-R ABI). The `netcdf4` module (native
-  netCDF-C) is not used.
+  and ECMWF messages) and NetCDF4/HDF5 variables in enhanced mode (GOES-R ABI); `cdm-radial`'s NIDS IOSP reads NEXRAD
+  Level III products 153/154 (`ai.foresignal.source.adapters.nexrad`). The `netcdf4` module (native netCDF-C) is not
+  used.
 - **License:** BSD 3-Clause License (<https://github.com/Unidata/netcdf-java/blob/maint-5.x/LICENSE>), Copyright (c)
   1998-2025, University Corporation for Atmospheric Research/Unidata.
 - **Project:** <https://github.com/Unidata/netcdf-java>.

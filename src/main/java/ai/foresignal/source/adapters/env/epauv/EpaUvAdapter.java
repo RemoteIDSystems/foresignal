@@ -11,6 +11,7 @@ import ai.foresignal.source.spi.Mode;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.ObservedAtMode;
 import ai.foresignal.source.spi.PlacePoints;
+import ai.foresignal.source.spi.PlaceTimeZones;
 import ai.foresignal.source.spi.PollingAdapter;
 import ai.foresignal.source.spi.ParamSpec;
 import ai.foresignal.source.spi.ParamType;
@@ -41,8 +42,12 @@ import tools.jackson.databind.JsonNode;
 /**
  * EPA Envirofacts UV hourly forecast (prompt 106; Weather-Imagery-Design §5.3): for each place with an
  * optional {@code attributes.zip}, one {@code uv-forecast} record (externalId {@code place:{id}}) with
- * the hourly UV index in the place's timezone, {@code maxUv} and {@code maxAt}. One request per place
- * per 6 hours; a place without a ZIP is skipped with a health note.
+ * the hourly UV index, {@code maxUv} and {@code maxAt}. One request per place per 6 hours; a place
+ * without a ZIP is skipped with a health note naming it ({@link #missingZipNote}).
+ *
+ * <p>{@code DATE_TIME} is the local time of the ZIP, read in the place's timezone; when the place has
+ * none, in the zone of the nearest gazetteer place to its point ({@link PlaceTimeZones}); and only when
+ * neither is known, in UTC, with a warning.
  *
  * <p><strong>Verified 2026-10-15</strong>:
  * {@code data.epa.gov/efservice/getEnvirofactsUVHOURLY/ZIP/78701/JSON} returns
@@ -75,6 +80,12 @@ public class EpaUvAdapter implements PollingAdapter {
     /** The health reason when no place has a ZIP. */
     public static final String NO_ZIPS = "no place has a zip attribute";
 
+    /** The externalId prefix: records are {@code place:{id}} (prompt 106 task 6). */
+    public static final String EXTERNAL_ID_PREFIX = "place:";
+
+    /** Place ids named in the missing-ZIP note at most. */
+    static final int MAX_NOTED_PLACES = 5;
+
     private static final tools.jackson.databind.json.JsonMapper JSON =
             tools.jackson.databind.json.JsonMapper.builder().build();
     private static final Pattern ZIP = Pattern.compile("^\\d{5}$");
@@ -83,19 +94,27 @@ public class EpaUvAdapter implements PollingAdapter {
 
     private final String baseUrl;
     private final Supplier<PlacePoints> places;
+    private final PlaceTimeZones zones;
     private final SourceDescriptor descriptor = buildDescriptor();
 
     /** Creates the adapter. */
     @Autowired
     public EpaUvAdapter(ObjectProvider<PlacePoints> places,
-            @Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride) {
-        this(() -> places == null ? null : places.getIfAvailable(), baseUrlOverride);
+            @Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride, ObjectProvider<PlaceTimeZones> zones) {
+        this(() -> places == null ? null : places.getIfAvailable(), baseUrlOverride,
+                zones == null ? null : zones.getIfAvailable());
+    }
+
+    /** Creates the adapter without a gazetteer timezone fallback (tests). */
+    public EpaUvAdapter(Supplier<PlacePoints> places, String baseUrlOverride) {
+        this(places, baseUrlOverride, null);
     }
 
     /** Creates the adapter. */
-    public EpaUvAdapter(Supplier<PlacePoints> places, String baseUrlOverride) {
+    public EpaUvAdapter(Supplier<PlacePoints> places, String baseUrlOverride, PlaceTimeZones zones) {
         this.places = places == null ? () -> null : places;
         this.baseUrl = baseUrlOverride == null ? "" : baseUrlOverride.trim();
+        this.zones = zones == null ? PlaceTimeZones.none() : zones;
     }
 
     @Override
@@ -111,15 +130,17 @@ public class EpaUvAdapter implements PollingAdapter {
         List<NormalizedRecord> out = new ArrayList<>();
         List<String> live = new ArrayList<>();
         for (String gone : LiveIdSet.absentSince(ctx.state(), KIND, chosen.stream().map(PlacePoints.Summary::id).toList())) {
-            out.add(NormalizedRecord.tombstone(gone, KIND, ctx.now()));
+            out.add(NormalizedRecord.tombstone(externalId(gone), KIND, ctx.now()));
         }
         int perRun = ctx.params() == null ? MAX_PLACES_PER_RUN
                 : Math.max(1, Math.min(50, ctx.params().integer(MAX_PLACES_PARAM, MAX_PLACES_PER_RUN)));
         int done = 0;
         boolean anyZip = false;
+        List<String> missingZip = new ArrayList<>();
         for (PlacePoints.Summary place : chosen) {
             String zip = zip(placePoints, place.id());
             if (zip == null) {
+                missingZip.add(place.id());
                 continue;
             }
             anyZip = true;
@@ -140,6 +161,8 @@ public class EpaUvAdapter implements PollingAdapter {
         }
         if (!anyZip) {
             ctx.state().degrade(NO_ZIPS);
+        } else if (!missingZip.isEmpty()) {
+            ctx.state().degrade(missingZipNote(missingZip));
         } else {
             ctx.state().clearDegraded();
         }
@@ -148,13 +171,11 @@ public class EpaUvAdapter implements PollingAdapter {
 
     private NormalizedRecord fetchPlace(FetchContext ctx, PlacePoints placePoints, PlacePoints.Summary place, String zip)
             throws AdapterException {
-        ZoneId zone = placePoints.timezone(place.id()).flatMap(t -> {
-            try {
-                return Optional.of(ZoneId.of(t));
-            } catch (RuntimeException e) {
-                return Optional.empty();
-            }
-        }).orElse(ZoneOffset.UTC);
+        ZoneId zone = zoneOf(placePoints, zones, place).orElse(null);
+        if (zone == null) {
+            ctx.log().warn("epa-uv {}: no place timezone and no gazetteer zone; reading DATE_TIME as UTC", place.id());
+            zone = ZoneOffset.UTC;
+        }
         URI uri = URI.create((baseUrl.isEmpty() ? "" : baseUrl) + String.format(URL_PATTERN, zip));
         JsonNode root;
         try {
@@ -200,7 +221,7 @@ public class EpaUvAdapter implements PollingAdapter {
         if (hours.isEmpty()) {
             return null;
         }
-        NormalizedRecord.Builder b = NormalizedRecord.builder(place.id(), KIND)
+        NormalizedRecord.Builder b = NormalizedRecord.builder(externalId(place.id()), KIND)
                 .observedAt(ctx.now())
                 .point(place.lon(), place.lat())
                 .put("zip", zip)
@@ -216,6 +237,41 @@ public class EpaUvAdapter implements PollingAdapter {
             b.validUntil(last);
         }
         return b.build();
+    }
+
+    /** {@code place:{id}}: the record's externalId. */
+    static String externalId(String placeId) {
+        return EXTERNAL_ID_PREFIX + placeId;
+    }
+
+    /**
+     * The zone a place's {@code DATE_TIME} is read in: the place's own timezone, else the gazetteer zone
+     * at its point, else empty.
+     */
+    static Optional<ZoneId> zoneOf(PlacePoints placePoints, PlaceTimeZones zones, PlacePoints.Summary place) {
+        Optional<ZoneId> own = placePoints.timezone(place.id()).flatMap(t -> {
+            try {
+                return Optional.of(ZoneId.of(t));
+            } catch (RuntimeException e) {
+                return Optional.empty();
+            }
+        });
+        if (own.isPresent()) {
+            return own;
+        }
+        try {
+            return zones.byPoint(place.lon(), place.lat());
+        } catch (RuntimeException e) {
+            return Optional.empty();
+        }
+    }
+
+    /** The health note for places skipped for want of a ZIP, naming up to {@value #MAX_NOTED_PLACES}. */
+    static String missingZipNote(List<String> placeIds) {
+        List<String> named = placeIds.stream().limit(MAX_NOTED_PLACES).toList();
+        String more = placeIds.size() > named.size() ? " and " + (placeIds.size() - named.size()) + " more" : "";
+        return placeIds.size() + " place(s) skipped without a zip attribute (set attributes.zip for UV): "
+                + String.join(", ", named) + more;
     }
 
     static Instant parseEpaTime(String text, ZoneId zone) {
@@ -286,10 +342,5 @@ public class EpaUvAdapter implements PollingAdapter {
         b.fieldSpec("maxUv", new ai.foresignal.source.spi.FieldSpec(ai.foresignal.source.spi.FieldType.INTEGER, null,
                 "Max UV", "The day's peak UV index", null, java.util.Set.of()));
         return b.build();
-    }
-
-    /** Unused; retained for a future per-place timezone lookup. */
-    static Optional<String> unused() {
-        return Optional.empty();
     }
 }
