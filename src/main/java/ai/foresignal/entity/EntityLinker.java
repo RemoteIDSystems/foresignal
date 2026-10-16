@@ -13,6 +13,7 @@ import ai.foresignal.stream.ChangeSummary;
 import ai.foresignal.stream.Subscription;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -21,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -65,7 +68,10 @@ public class EntityLinker {
     private final MeterRegistry meters;
 
     private Subscription subscription;
-    private long cursor = -1;
+    private volatile long cursor = -1;
+
+    /** Released once the startup backfill or catch-up has finished; the listener waits on it. */
+    private volatile CountDownLatch ready = new CountDownLatch(0);
 
     /** Creates the linker. */
     public EntityLinker(
@@ -93,21 +99,59 @@ public class EntityLinker {
         this.meters = meters;
     }
 
-    /** Starts the linker once the application is ready: backfill or catch up, then subscribe. */
+    /**
+     * Starts the linker once the application is ready, without blocking startup: it subscribes at
+     * once (so nothing published from now on is missed), then backfills or catches up to the
+     * subscription's starting watermark on its own virtual thread. The listener waits for that to
+     * finish; batches it already covered are skipped, and a lagging queue is recovered by the normal
+     * gap catch-up.
+     */
     @EventListener(ApplicationReadyEvent.class)
-    public void start() {
-        cursor = loadCursor();
+    public synchronized void start() {
+        long stored = loadCursor();
+        CountDownLatch latch = new CountDownLatch(1);
+        ready = latch;
         long watermark = changeBus.lastPublishedSeq();
-        if (cursor < 0) {
-            backfillHeads();
-            cursor = watermark;
-        } else if (cursor < watermark) {
-            catchUp(cursor, watermark);
-            cursor = watermark;
-        }
-        storeCursor(cursor);
         subscription = changeBus.subscribe(SUBSCRIBER, new Listener(), QUEUE_CAPACITY);
-        log.info("Entity linker started at seq {}", cursor);
+        Thread.ofVirtual().name("entity-linker-startup").start(() -> {
+            try {
+                if (stored < 0) {
+                    backfillHeads();
+                } else if (stored < watermark) {
+                    catchUp(stored, watermark);
+                }
+                cursor = Math.max(stored, watermark);
+                storeCursor(cursor);
+                log.info("Entity linker started at seq {}", cursor);
+            } catch (RuntimeException e) {
+                // The stored cursor is left as it was, so the next start retries the same range.
+                cursor = stored;
+                log.error("Entity linker startup catch-up failed; continuing from seq {}", stored, e);
+            } finally {
+                latch.countDown();
+            }
+        });
+    }
+
+    /**
+     * Waits until the startup backfill or catch-up has finished (tests and diagnostics).
+     *
+     * @param timeout the longest wait
+     * @return true when startup has finished
+     */
+    public boolean awaitReady(Duration timeout) {
+        try {
+            return ready.await(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+    }
+
+    private void awaitStartup() {
+        while (!awaitReady(Duration.ofMinutes(1)) && !Thread.currentThread().isInterrupted()) {
+            log.debug("Entity linker still waiting for its startup catch-up");
+        }
     }
 
     /** Stops the linker (tests). */
@@ -127,14 +171,19 @@ public class EntityLinker {
 
         @Override
         public void onBatch(ChangeBatch batch) {
+            awaitStartup();
+            if (batch.toSeq() <= cursor) {
+                return;
+            }
             process(batch.changes());
             advance(batch.toSeq());
         }
 
         @Override
         public void onGap(long lastSeq) {
+            awaitStartup();
             long watermark = changeBus.lastPublishedSeq();
-            catchUp(lastSeq, watermark);
+            catchUp(Math.max(lastSeq, cursor), watermark);
             advance(watermark);
         }
     }
@@ -155,7 +204,10 @@ public class EntityLinker {
     }
 
     private static boolean isRelevant(ChangeSummary change) {
-        PersistReason reason = change.persistReason();
+        return relevantReason(change.persistReason());
+    }
+
+    private static boolean relevantReason(PersistReason reason) {
         return reason == PersistReason.FIRST
                 || reason == PersistReason.REAPPEAR
                 || reason == PersistReason.SIGNIFICANT
@@ -182,7 +234,7 @@ public class EntityLinker {
         if (payload.isEmpty()) {
             return;
         }
-        List<Key> extracted = EntityKeys.extract(d, payload);
+        List<Key> extracted = extract(d, payload);
         if (extracted.isEmpty()) {
             return;
         }
@@ -306,7 +358,7 @@ public class EntityLinker {
             for (Map<String, Object> row : rows) {
                 Map<String, Object> payload = parse((String) row.get("payload"));
                 Instant observedAt = toInstant(row.get("observed_at"));
-                List<Key> extracted = EntityKeys.extract(descriptor, payload);
+                List<Key> extracted = extract(descriptor, payload);
                 if (extracted.isEmpty()) {
                     continue;
                 }
@@ -322,6 +374,7 @@ public class EntityLinker {
                         1, PersistReason.FIRST, observedAt, null, null, false, 0, null, null, null);
                 upsertLink(synthetic, resolution);
                 copyAttributes(resolution.entityId(), descriptor, payload);
+                updateDisplayName(resolution.entityId());
             }
             offset += chunk;
             if (rows.size() < chunk) {
@@ -331,23 +384,38 @@ public class EntityLinker {
     }
 
     private void catchUp(long fromExclusive, long toInclusive) {
+        catchUp(fromExclusive, toInclusive, 2000);
+    }
+
+    /**
+     * Replays the versions in {@code (fromExclusive, toInclusive]} in chunks of {@code chunk} rows
+     * (package-private so the tests can use a small chunk).
+     *
+     * @return the last seq scanned, or {@code fromExclusive} when there was nothing
+     */
+    long catchUp(long fromExclusive, long toInclusive, int chunk) {
         String sql = "SELECT seq, source_id, external_id, kind, observed_at, persist_reason, tombstone, payload::text"
                 + " FROM record_version WHERE seq > ? AND seq <= ? ORDER BY seq LIMIT ?";
         long after = fromExclusive;
-        int chunk = 2000;
         Set<String> entitySources = new HashSet<>(entitySourceIds());
         while (after < toInclusive) {
             List<Map<String, Object>> rows = jdbc.queryForList(sql, after, toInclusive, chunk);
             if (rows.isEmpty()) {
-                return;
+                return after;
             }
             for (Map<String, Object> row : rows) {
+                // Advance past every scanned row, entity source or not: a chunk with no entity rows must
+                // still move the scan forward, or it would be read again forever.
+                long seq = ((Number) row.get("seq")).longValue();
+                after = seq;
                 String sourceId = (String) row.get("source_id");
                 if (!entitySources.contains(sourceId)) {
                     continue;
                 }
-                long seq = ((Number) row.get("seq")).longValue();
-                after = seq;
+                Object code = row.get("persist_reason");
+                if (code instanceof Number number && !relevantReason(PersistReason.fromCode(number.intValue()))) {
+                    continue;
+                }
                 SourceDescriptor descriptor = registry.find(sourceId).map(r -> r.descriptor()).orElse(null);
                 if (descriptor == null || (descriptor.privateSource() && !entitySettings().includePrivate())) {
                     continue;
@@ -363,7 +431,7 @@ public class EntityLinker {
                     continue;
                 }
                 Map<String, Object> payload = parse((String) row.get("payload"));
-                List<Key> extracted = EntityKeys.extract(descriptor, payload);
+                List<Key> extracted = extract(descriptor, payload);
                 if (extracted.isEmpty()) {
                     continue;
                 }
@@ -377,11 +445,13 @@ public class EntityLinker {
                         null, null, null);
                 upsertLink(synthetic, resolution);
                 copyAttributes(resolution.entityId(), descriptor, payload);
+                updateDisplayName(resolution.entityId());
             }
             if (rows.size() < chunk) {
-                return;
+                return after;
             }
         }
+        return after;
     }
 
     /** Closes {@code air:} callsign links whose record has not been observed within the gap. */
@@ -407,6 +477,11 @@ public class EntityLinker {
         if (source != null && !ids.isEmpty()) {
             links.closeOpenLinks(source, ids, clock.instant());
         }
+    }
+
+    /** Extracts a payload's keys, counting each rejected one ({@code foresignal.entity.invalid_keys}). */
+    private List<Key> extract(SourceDescriptor descriptor, Map<String, Object> payload) {
+        return EntityKeys.extract(descriptor, payload, type -> EntityResolver.invalidKeys(meters, type).increment());
     }
 
     private List<String> entitySourceIds() {

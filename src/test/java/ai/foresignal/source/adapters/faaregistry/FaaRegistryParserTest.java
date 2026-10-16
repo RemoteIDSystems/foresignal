@@ -3,14 +3,21 @@ package ai.foresignal.source.adapters.faaregistry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ai.foresignal.entity.EntityKeys;
+import ai.foresignal.entity.Key;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.UpstreamFormatException;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 import org.junit.jupiter.api.Test;
 
@@ -77,6 +84,72 @@ class FaaRegistryParserTest {
         }
         assertThatThrownBy(() -> FaaRegistryParser.parse(out.toByteArray(), false, r -> {}))
                 .isInstanceOf(UpstreamFormatException.class);
+    }
+
+    @Test
+    void streamsMasterEvenWhenItPrecedesTheReferenceTable() {
+        // A zip stream is sequential: with MASTER.txt first, the references come later in the archive.
+        Map<String, String> entries = new LinkedHashMap<>();
+        entries.put("MASTER.txt", MASTER_HEADER + "\r\n" + INDIVIDUAL + "\r\n" + CORPORATION + "\r\n");
+        entries.put("ACFTREF.txt", ACFTREF_HEADER + "\r\n" + ACFTREF_ROW + "\r\n");
+        List<NormalizedRecord> records = new ArrayList<>();
+        FaaRegistryParser.Result result = FaaRegistryParser.parse(zip(entries), false, records::addAll);
+        assertThat(result.records()).isEqualTo(2);
+        assertThat(records).extracting(r -> r.payload().get("manufacturer")).containsOnly("CESSNA");
+    }
+
+    @Test
+    void anArchiveWithoutMasterIsRejected() {
+        byte[] archive = zip(Map.of("ACFTREF.txt", ACFTREF_HEADER + "\n" + ACFTREF_ROW + "\n"));
+        assertThatThrownBy(() -> FaaRegistryParser.parse(archive, false, r -> {}))
+                .isInstanceOf(UpstreamFormatException.class)
+                .hasMessageContaining("MASTER.txt");
+    }
+
+    @Test
+    void theEdgeCasesArchiveIsRejectedForItsPathTraversalEntry() throws IOException {
+        byte[] archive = edgeCases();
+        assertThatThrownBy(() -> FaaRegistryParser.parse(archive, false, r -> {}))
+                .isInstanceOf(UpstreamFormatException.class)
+                .hasMessageContaining("escapes the archive");
+    }
+
+    @Test
+    void edgeCaseRowsBlankHexAndIndividualRegistrant() throws IOException {
+        // The same rows without the traversal entry: a blank hex yields no icao24 key, and an individual
+        // registrant's name is never stored, even with nonIndividualOwnerNames on.
+        Map<String, String> safe = new LinkedHashMap<>();
+        try (ZipInputStream in = new ZipInputStream(new ByteArrayInputStream(edgeCases()))) {
+            ZipEntry entry;
+            while ((entry = in.getNextEntry()) != null) {
+                if (!entry.getName().contains("..")) {
+                    safe.put(entry.getName(), new String(in.readAllBytes(), StandardCharsets.UTF_8));
+                }
+            }
+        }
+        List<NormalizedRecord> records = new ArrayList<>();
+        FaaRegistryParser.parse(zip(safe), true, records::addAll);
+        assertThat(records).extracting(NormalizedRecord::externalId).containsExactly("N700ED", "N701ED");
+
+        NormalizedRecord blankHex = records.get(0);
+        assertThat(blankHex.payload().get("modeSHex")).isNull();
+        assertThat(blankHex.payload()).containsEntry("ownerName", "EDGE CORP");
+        assertThat(EntityKeys.extract(new FaaRegistryAdapter("").descriptor(), blankHex.payload()))
+                .extracting(Key::keyType)
+                .containsExactlyInAnyOrder("airframe", "registration");
+
+        NormalizedRecord individual = records.get(1);
+        assertThat(individual.payload()).doesNotContainKey("ownerName");
+        assertThat(individual.payload()).containsEntry("registrantType", "Individual");
+        assertThat(individual.payload().values()).doesNotContain("JANE PRIVATE", "2 HOME RD");
+    }
+
+    /** The hand-made {@code edge-cases.zip}: a blank hex, an individual registrant, a traversal entry. */
+    private static byte[] edgeCases() throws IOException {
+        try (InputStream in = FaaRegistryParserTest.class.getResourceAsStream("/fixtures/faa-registry/edge-cases.zip")) {
+            assertThat(in).isNotNull();
+            return in.readAllBytes();
+        }
     }
 
     private static List<NormalizedRecord> parse(boolean nonIndividualOwnerNames) {

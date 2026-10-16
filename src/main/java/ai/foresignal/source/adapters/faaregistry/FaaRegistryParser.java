@@ -3,9 +3,11 @@ package ai.foresignal.source.adapters.faaregistry;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.UpstreamFormatException;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -24,7 +27,8 @@ import java.util.zip.ZipInputStream;
  * fields ever copied into a record.
  *
  * <p>The archive is comma-delimited with a header row and trailing spaces; both files end with an
- * empty column. Entries whose name is absolute or contains {@code ..} are rejected (zip-slip), and the
+ * empty column. Both files are stream-parsed line by line, never held in memory whole. Entries
+ * whose name is absolute or contains {@code ..} are rejected (zip-slip), and the
  * uncompressed total is capped at {@value #MAX_UNCOMPRESSED_BYTES} bytes.
  */
 public final class FaaRegistryParser {
@@ -58,63 +62,97 @@ public final class FaaRegistryParser {
      */
     public static Result parse(byte[] archive, boolean nonIndividualOwnerNames,
             Consumer<List<NormalizedRecord>> sink) {
+        return parse(() -> new ByteArrayInputStream(archive), nonIndividualOwnerNames, sink);
+    }
+
+    /**
+     * Parses the archive by streaming it: neither {@code MASTER.txt} nor {@code ACFTREF.txt} is ever
+     * held in memory whole. The archive is read twice, because a zip stream is sequential and the
+     * {@code ACFTREF.txt} codes must be known before {@code MASTER.txt} rows can be joined to them:
+     * the first pass checks every entry name (zip-slip) and reads the small reference table line by
+     * line; the second streams {@code MASTER.txt} line by line into chunks of 5,000 records.
+     *
+     * @param archive opens a fresh stream over the zip bytes; called twice
+     * @param nonIndividualOwnerNames when true, {@code NAME} is kept for corporate, government, LLC or
+     *     non-citizen-corporation registrants
+     * @param sink receives records in chunks
+     * @return the counts
+     * @throws UpstreamFormatException when the archive has no {@code MASTER.txt}, an entry escapes the
+     *     archive, or the uncompressed total exceeds {@value #MAX_UNCOMPRESSED_BYTES} bytes
+     */
+    public static Result parse(Supplier<InputStream> archive, boolean nonIndividualOwnerNames,
+            Consumer<List<NormalizedRecord>> sink) {
         Map<String, Reference> references = new HashMap<>();
-        byte[] master = null;
-        long total = 0;
-        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(archive))) {
+        boolean hasMaster = false;
+        long referenceBytes = 0;
+        try (ZipInputStream zip = new ZipInputStream(archive.get())) {
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
-                String name = entry.getName();
-                if (name.contains("..") || name.startsWith("/") || name.startsWith("\\")) {
-                    throw new UpstreamFormatException("Zip entry '" + name + "' escapes the archive", "");
-                }
-                String base = name.substring(name.lastIndexOf('/') + 1).toLowerCase(Locale.ROOT);
-                if (entry.isDirectory() || (!base.equals("master.txt") && !base.equals("acftref.txt"))) {
-                    continue;
-                }
-                byte[] bytes = read(zip, MAX_UNCOMPRESSED_BYTES - total);
-                total += bytes.length;
-                if (total > MAX_UNCOMPRESSED_BYTES) {
-                    throw new UpstreamFormatException("Archive exceeds the uncompressed cap", "");
-                }
-                if (base.equals("acftref.txt")) {
-                    references = parseReferences(bytes);
-                } else {
-                    master = bytes;
+                String base = checkedBaseName(entry);
+                if (base.equals("master.txt")) {
+                    hasMaster = true;
+                } else if (base.equals("acftref.txt")) {
+                    CappedInputStream capped = new CappedInputStream(zip, MAX_UNCOMPRESSED_BYTES);
+                    references = parseReferences(reader(capped));
+                    referenceBytes = capped.count();
                 }
             }
         } catch (IOException e) {
-            throw new UpstreamFormatException("Unreadable zip: " + e.getMessage(), "", e);
+            throw unreadable(e);
         }
-        if (master == null) {
+        if (!hasMaster) {
             throw new UpstreamFormatException("Archive has no MASTER.txt", "");
         }
-        return parseMaster(master, references, nonIndividualOwnerNames, sink);
+        try (ZipInputStream zip = new ZipInputStream(archive.get())) {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                if (checkedBaseName(entry).equals("master.txt")) {
+                    CappedInputStream capped = new CappedInputStream(zip, MAX_UNCOMPRESSED_BYTES - referenceBytes);
+                    return parseMaster(reader(capped), references, nonIndividualOwnerNames, sink);
+                }
+            }
+        } catch (IOException e) {
+            throw unreadable(e);
+        }
+        throw new UpstreamFormatException("Archive has no MASTER.txt", "");
     }
 
-    private static byte[] read(InputStream in, long max) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        byte[] buffer = new byte[64 * 1024];
-        int n;
-        while ((n = in.read(buffer)) >= 0) {
-            out.write(buffer, 0, n);
-            if (out.size() > max) {
-                throw new IOException("entry exceeds the cap");
-            }
+    /** The lower-cased base name of a file entry, or "" for a directory; rejects zip-slip names. */
+    private static String checkedBaseName(ZipEntry entry) {
+        String name = entry.getName();
+        if (name.contains("..") || name.startsWith("/") || name.startsWith("\\")
+                || (name.length() > 1 && name.charAt(1) == ':')) {
+            throw new UpstreamFormatException("Zip entry '" + name + "' escapes the archive", "");
         }
-        return out.toByteArray();
+        if (entry.isDirectory()) {
+            return "";
+        }
+        return name.substring(name.lastIndexOf('/') + 1).toLowerCase(Locale.ROOT);
+    }
+
+    private static UpstreamFormatException unreadable(IOException e) {
+        if (e instanceof CapExceededException) {
+            return new UpstreamFormatException("Archive exceeds the uncompressed cap", "", e);
+        }
+        return new UpstreamFormatException("Unreadable zip: " + e.getMessage(), "", e);
+    }
+
+    /** A line reader over an entry; never closed, so the zip stream stays open. */
+    private static BufferedReader reader(InputStream in) {
+        return new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8), 64 * 1024);
     }
 
     /** The aircraft reference codes: {@code CODE → {mfr, model, typeAcft, typeEng, noEng, noSeats, weight}}. */
-    static Map<String, Reference> parseReferences(byte[] body) {
-        String[] lines = text(body).split("\n", -1);
+    static Map<String, Reference> parseReferences(BufferedReader lines) throws IOException {
         Map<String, Reference> out = new HashMap<>();
-        if (lines.length == 0) {
+        String first = lines.readLine();
+        if (first == null) {
             return out;
         }
-        Map<String, Integer> header = header(lines[0]);
-        for (int i = 1; i < lines.length; i++) {
-            List<String> cells = cells(lines[i]);
+        Map<String, Integer> header = header(first);
+        String line;
+        while ((line = lines.readLine()) != null) {
+            List<String> cells = cells(line);
             String code = get(cells, header, "CODE");
             if (code == null) {
                 continue;
@@ -131,22 +169,23 @@ public final class FaaRegistryParser {
         return out;
     }
 
-    /** Parses the {@code MASTER.txt} rows, joined to their reference codes. */
-    static Result parseMaster(byte[] body, Map<String, Reference> references, boolean nonIndividualOwnerNames,
-            Consumer<List<NormalizedRecord>> sink) {
-        String[] lines = text(body).split("\n", -1);
+    /** Streams the {@code MASTER.txt} rows, joined to their reference codes, into chunks. */
+    static Result parseMaster(BufferedReader lines, Map<String, Reference> references, boolean nonIndividualOwnerNames,
+            Consumer<List<NormalizedRecord>> sink) throws IOException {
         List<NormalizedRecord> chunk = new ArrayList<>();
         int records = 0;
         int skipped = 0;
-        if (lines.length == 0) {
+        String first = lines.readLine();
+        if (first == null) {
             return new Result(0, 0);
         }
-        Map<String, Integer> header = header(lines[0]);
-        for (int i = 1; i < lines.length; i++) {
-            if (lines[i].isBlank()) {
+        Map<String, Integer> header = header(first);
+        String line;
+        while ((line = lines.readLine()) != null) {
+            if (line.isBlank()) {
                 continue;
             }
-            List<String> cells = cells(lines[i]);
+            List<String> cells = cells(line);
             String nNumber = get(cells, header, "N-NUMBER");
             if (nNumber == null) {
                 skipped++;
@@ -268,11 +307,6 @@ public final class FaaRegistryParser {
         return value == null || value.isBlank() ? null : value.strip();
     }
 
-    private static String text(byte[] body) {
-        // The archive uses Windows line endings.
-        return new String(body, StandardCharsets.UTF_8).replace("\r\n", "\n").replace('\r', '\n');
-    }
-
     private static Map<String, Integer> header(String line) {
         Map<String, Integer> out = new HashMap<>();
         List<String> cells = cells(line);
@@ -306,6 +340,58 @@ public final class FaaRegistryParser {
         }
         String value = cells.get(index);
         return value == null || value.isBlank() ? null : value;
+    }
+
+    /** Thrown when an entry exceeds the uncompressed cap. */
+    private static final class CapExceededException extends IOException {
+        CapExceededException() {
+            super("entry exceeds the uncompressed cap");
+        }
+    }
+
+    /** Counts the bytes read through it and fails once they pass {@code max}; never closes the source. */
+    private static final class CappedInputStream extends FilterInputStream {
+        private final long max;
+        private long count;
+
+        CappedInputStream(InputStream in, long max) {
+            super(in);
+            this.max = max;
+        }
+
+        long count() {
+            return count;
+        }
+
+        @Override
+        public int read() throws IOException {
+            int b = super.read();
+            if (b >= 0) {
+                add(1);
+            }
+            return b;
+        }
+
+        @Override
+        public int read(byte[] buffer, int offset, int length) throws IOException {
+            int n = super.read(buffer, offset, length);
+            if (n > 0) {
+                add(n);
+            }
+            return n;
+        }
+
+        private void add(long n) throws IOException {
+            count += n;
+            if (count > max) {
+                throw new CapExceededException();
+            }
+        }
+
+        @Override
+        public void close() {
+            // The zip stream is owned by the caller.
+        }
     }
 
     /** One {@code ACFTREF.txt} row. */

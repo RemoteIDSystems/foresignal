@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * The deterministic keys of the entity registry, and their normalisation (prompt 098). Pure: no
@@ -190,17 +191,28 @@ public final class EntityKeys {
         return upper.matches("[0-9]{4}-[0-9]{3}[A-Z]{1,3}") ? upper : null;
     }
 
-    /** Upper case, with the domain prefix. A bare callsign keeps the given prefix. */
+    /**
+     * Upper case, with the domain prefix. A bare callsign takes the given prefix. A {@code ham:}
+     * callsign is the base call: its SSID ({@code -9} in {@code K1ABC-9}) is stripped (prompt 098).
+     */
     static String callsign(String value, String prefix) {
         String upper = value.strip().toUpperCase(Locale.ROOT);
         String domain = prefix == null || prefix.isBlank() ? "air" : prefix.toLowerCase(Locale.ROOT);
+        String call = upper;
         if (upper.contains(":")) {
             String head = upper.substring(0, upper.indexOf(':')).toLowerCase(Locale.ROOT);
             if (CALLSIGN_DOMAINS.contains(head)) {
-                return upper;
+                domain = head;
+                call = upper.substring(upper.indexOf(':') + 1);
             }
         }
-        return domain + ":" + upper;
+        if ("ham".equals(domain)) {
+            int ssid = call.indexOf('-');
+            if (ssid >= 0) {
+                call = call.substring(0, ssid);
+            }
+        }
+        return call.isBlank() ? null : domain + ":" + call;
     }
 
     /** air 0.5, sea 0.7, ham 0.9 (prompt 098). */
@@ -220,6 +232,19 @@ public final class EntityKeys {
      * {@code entityKeyPrefixes}.
      */
     public static List<Key> extract(SourceDescriptor descriptor, Map<String, ?> payload) {
+        return extract(descriptor, payload, type -> {});
+    }
+
+    /**
+     * {@link #extract(SourceDescriptor, Map)}, reporting each key type whose value was present but
+     * rejected by normalization (blank values and absent fields are not reported).
+     *
+     * @param descriptor the source descriptor declaring {@code entityKeys}
+     * @param payload the record payload
+     * @param onInvalid receives the key type of every rejected value
+     * @return the valid keys, in declaration order
+     */
+    public static List<Key> extract(SourceDescriptor descriptor, Map<String, ?> payload, Consumer<String> onInvalid) {
         if (descriptor == null || descriptor.entityKeys().isEmpty() || payload == null || payload.isEmpty()) {
             return List.of();
         }
@@ -233,6 +258,8 @@ public final class EntityKeys {
                 String normalized = normalize(type, raw, prefix);
                 if (normalized != null) {
                     keys.add(new Key(type, normalized, roleOf(type), confidence(type, normalized)));
+                } else if (!raw.isBlank()) {
+                    onInvalid.accept(type);
                 }
             }
         });
@@ -256,11 +283,13 @@ public final class EntityKeys {
 
     private static List<String> rawValues(String type, String field, Map<String, ?> payload) {
         if ("airframe".equals(type)) {
+            // Only with both parts: a bare serial collides across manufacturers, so no key is emitted.
             Object mfr = payload.get("mfrMdlCode");
             Object serial = payload.get("serial");
-            if (mfr != null && serial != null) {
-                return List.of(mfr + ":" + serial);
+            if (mfr == null || serial == null || String.valueOf(mfr).isBlank() || String.valueOf(serial).isBlank()) {
+                return List.of();
             }
+            return List.of(String.valueOf(mfr).strip() + ":" + String.valueOf(serial).strip());
         }
         Object value = payload.get(field);
         return value == null ? List.of() : List.of(String.valueOf(value));

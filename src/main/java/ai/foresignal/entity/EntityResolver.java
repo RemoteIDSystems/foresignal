@@ -6,6 +6,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -32,6 +33,16 @@ public class EntityResolver {
     /** Weak-key precedence when weak keys point at different entities. Lower wins. */
     private static final Map<String, Integer> PRECEDENCE = Map.of(
             "icao24", 1, "mmsi", 1, "registration", 2, "callsign", 3);
+
+    /** Key types in the order they are considered: anchors, then weak keys by precedence. */
+    private static final List<String> TYPE_ORDER = List.of(
+            "airframe", "imo", "norad", "cospar", "icao24", "mmsi", "registration", "callsign");
+
+    /** Anchors before weak keys, then {@link #TYPE_ORDER}, then the value: a total, fixed order. */
+    static final Comparator<Key> KEY_ORDER = Comparator
+            .comparing((Key k) -> !k.anchor())
+            .thenComparingInt(k -> TYPE_ORDER.indexOf(k.keyType()))
+            .thenComparing(Key::keyValue);
 
     private final EntityRepository entities;
     private final EntityKeyRepository keys;
@@ -113,14 +124,16 @@ public class EntityResolver {
             return new Resolution(target.getId(), EntityType.fromWire(target.getType()), linkKey);
         }
         if (byEntity.size() > 1) {
-            // Conflict: link by precedence, never merge.
+            // Conflict: the weak keys point at different entities. Link by precedence and change
+            // nothing else: no merge, no re-assignment, no new key on either entity (prompt 098 step 4).
             String chosen = byEntity.keySet().stream()
-                    .min((a, b) -> Integer.compare(rank(byEntity.get(a)), rank(byEntity.get(b))))
+                    .min(Comparator.<String>comparingInt(id -> rank(byEntity.get(id))).thenComparing(id -> id))
                     .orElseThrow();
             EntityEntity target = canonical(chosen);
             Key linkKey = linkKey(byEntity.get(chosen));
             meters.counter("foresignal.entity.conflicts").increment();
-            reconcileWeak(target, weaks, at, origin, ref);
+            log.debug("Entity key conflict for {}: keys match {}; linked to {} by precedence",
+                    ref, byEntity.keySet(), target.getId());
             return new Resolution(target.getId(), EntityType.fromWire(target.getType()), linkKey);
         }
 
@@ -153,21 +166,50 @@ public class EntityResolver {
     private void reconcileWeak(EntityEntity target, List<Key> weaks, Instant at, KeyOrigin origin, String ref) {
         for (Key weak : weaks) {
             // A key of the same type with a different value on the target is superseded (for example a
-            // registration's modeSHex changes in a later registry snapshot); close it at the observation.
+            // registration's modeSHex changes in a later registry snapshot) and closed at the observation,
+            // unless a stronger origin asserted it: an observed key never overrides a registry or operator
+            // key. That is a conflict, and the observed key is not opened.
+            boolean outranked = false;
+            List<EntityKeyEntity> superseded = new ArrayList<>();
             for (EntityKeyEntity existing : keys.findOpenByEntityId(target.getId())) {
                 if (existing.getKeyType().equals(weak.keyType())
                         && !existing.getKeyValue().equals(weak.keyValue())) {
-                    existing.setValidTo(at);
-                    keys.save(existing);
+                    if (originRank(existing.getOrigin()) > originRank(origin.name())) {
+                        outranked = true;
+                    } else {
+                        superseded.add(existing);
+                    }
                 }
             }
+            if (outranked) {
+                meters.counter("foresignal.entity.conflicts").increment();
+                log.debug("Entity {}: {} key {} from {} not opened; a stronger-origin key of that type is open",
+                        target.getId(), weak.keyType(), weak.keyValue(), ref);
+                continue;
+            }
             Optional<EntityKeyEntity> holder = keys.findOpen(weak.keyType(), weak.keyValue());
+            if (holder.isPresent() && !holder.get().getEntityId().equals(target.getId())) {
+                EntityEntity other = canonical(holder.get().getEntityId());
+                if (!other.isProvisional() && originRank(holder.get().getOrigin()) > originRank(origin.name())) {
+                    // An anchored holder's key from a stronger origin is never taken by a weaker one.
+                    meters.counter("foresignal.entity.conflicts").increment();
+                    log.debug("Entity {}: {} key {} from {} stays on {} (stronger origin)",
+                            target.getId(), weak.keyType(), weak.keyValue(), ref, other.getId());
+                    continue;
+                }
+            }
+            for (EntityKeyEntity existing : superseded) {
+                existing.setValidTo(at);
+                keys.save(existing);
+            }
             String reassignedFrom = null;
             if (holder.isPresent()) {
                 String holderId = holder.get().getEntityId();
                 if (holderId.equals(target.getId())) {
                     // The key is already open here; a supersede above may still have changed the entity.
-                    events.publishEvent(new EntityKeysChangedEvent(target.getId()));
+                    if (!superseded.isEmpty()) {
+                        events.publishEvent(new EntityKeysChangedEvent(target.getId()));
+                    }
                     continue;
                 }
                 EntityEntity other = canonical(holderId);
@@ -189,6 +231,24 @@ public class EntityResolver {
                 events.publishEvent(new EntityKeysChangedEvent(reassignedFrom));
             }
         }
+    }
+
+    /**
+     * How strongly an origin asserts a key: an operator assertion outranks a registry snapshot, which
+     * outranks any observation. A key is never superseded or taken over by a weaker origin.
+     *
+     * @param origin the stored origin wire value ({@link KeyOrigin#name()})
+     * @return 3 for OPERATOR, 2 for REGISTRY, 1 for an observation, 0 when unknown
+     */
+    static int originRank(String origin) {
+        if (origin == null) {
+            return 0;
+        }
+        return switch (origin) {
+            case "OPERATOR" -> 3;
+            case "REGISTRY" -> 2;
+            default -> 1;
+        };
     }
 
     /**
@@ -302,6 +362,9 @@ public class EntityResolver {
                 out.add(key);
             }
         }
+        // A fixed order (anchors first, then key-type precedence, then value), so the chosen anchor and
+        // link key never depend on the order a descriptor or payload happened to list the keys in.
+        out.sort(KEY_ORDER);
         return out;
     }
 

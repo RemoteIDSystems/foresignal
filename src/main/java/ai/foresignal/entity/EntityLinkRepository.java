@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Links from source records to entities (prompt 098). */
 public interface EntityLinkRepository extends JpaRepository<EntityLinkEntity, Long> {
@@ -26,6 +27,7 @@ public interface EntityLinkRepository extends JpaRepository<EntityLinkEntity, Lo
 
     /** Moves every link of one entity to another (a merge). */
     @Modifying
+    @Transactional
     @Query("update EntityLinkEntity l set l.entityId = :to where l.entityId = :from")
     int moveEntityLinks(@Param("from") String from, @Param("to") String to);
 
@@ -41,11 +43,12 @@ public interface EntityLinkRepository extends JpaRepository<EntityLinkEntity, Lo
     @Query(value = "select l.source_id, l.external_id from entity_link l"
             + " join record_live rl on rl.source_id = l.source_id and rl.external_id = l.external_id"
             + " where l.valid_to is null and l.key_type = 'callsign' and l.key_value like 'air:%'"
-            + " and rl.observed_at < :staleBefore limit :limit", nativeQuery = true)
+            + " and rl.observed_at < :staleBefore order by l.source_id, l.external_id limit :limit", nativeQuery = true)
     List<Object[]> findStaleAirLinks(@Param("staleBefore") Instant staleBefore, @Param("limit") int limit);
 
     /** Closes the open links of the given records at {@code at}. */
     @Modifying
+    @Transactional
     @Query("update EntityLinkEntity l set l.validTo = :at where l.validTo is null and l.sourceId = :sourceId"
             + " and l.externalId in :externalIds")
     int closeOpenLinks(
@@ -55,6 +58,7 @@ public interface EntityLinkRepository extends JpaRepository<EntityLinkEntity, Lo
 
     /** Deletes closed links whose {@code valid_to} is older than {@code before} (prompt 098 retention). */
     @Modifying
+    @Transactional
     @Query("delete from EntityLinkEntity l where l.validTo is not null and l.validTo < :before")
     int deleteClosedBefore(@Param("before") Instant before);
 }
