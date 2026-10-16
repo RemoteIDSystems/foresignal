@@ -9,6 +9,16 @@ import java.util.Optional;
  * <p>Persisted in {@code source_health.adapter_state}, so it survives restarts. Deliberately
  * limited to strings, and not a general escape hatch: anything an adapter needs to keep that is
  * bigger than a cursor is probably a record.
+ *
+ * <p><strong>When a write becomes durable.</strong> During a polling fetch run by the collector, writes are
+ * staged and committed only after the fetch succeeded and its records were written by the ingest writer;
+ * a fetch that throws, times out, or whose records the writer fails discards them (Adapter-Guide §7,
+ * "Adapter state commits with the fetch"). So a cursor, a watermark, a live set or a conditional-GET
+ * validator never moves past data that was not ingested. Reads within the fetch see the staged values.
+ * Two exceptions are written at once: the reserved health keys (prefix {@value #HEALTH_KEY_PREFIX}) and
+ * values written with {@link #putDurably}, for accounting that must survive a failed fetch (an upstream
+ * credit balance). Stream connections and probes are not staged: a stream's writes are immediate, a probe's
+ * stay in memory.
  */
 public interface AdapterStateStore {
 
@@ -38,6 +48,13 @@ public interface AdapterStateStore {
      */
     String FAILING_REASON_KEY = "health.failing";
 
+    /**
+     * The prefix of the reserved health keys ({@link #DEGRADED_REASON_KEY}, {@link #NEWEST_INPUT_KEY},
+     * {@link #MAX_INPUT_GAP_KEY}, {@link #FAILING_REASON_KEY}). A fetch's writes under this prefix are never
+     * staged: a problem the adapter reports right before it fails must still reach health.
+     */
+    String HEALTH_KEY_PREFIX = "health.";
+
     /** The stored value, or empty. */
     Optional<String> get(String key);
 
@@ -46,6 +63,18 @@ public interface AdapterStateStore {
 
     /** Removes {@code key}, if present. */
     void remove(String key);
+
+    /**
+     * Stores {@code value} durably at once, even inside a fetch whose other writes are staged until it
+     * succeeds. For bookkeeping that describes what was spent rather than what was ingested, such as a
+     * remaining upstream credit balance or a daily request count, which a failed fetch must not roll back.
+     * Never use it for a cursor: that is exactly what staging protects.
+     *
+     * <p>The default is {@link #put}, which is immediate in every store except a fetch's staged one.
+     */
+    default void putDurably(String key, String value) {
+        put(key, value);
+    }
 
     /** The stored value, or {@code fallback}. */
     default String getOrDefault(String key, String fallback) {

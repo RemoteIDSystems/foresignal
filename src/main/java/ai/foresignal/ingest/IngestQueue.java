@@ -128,8 +128,22 @@ public class IngestQueue {
      */
     public CompletableFuture<TombstoneOutcome> submitTombstoneAbsent(String sourceId, java.util.Set<String> kinds,
             java.time.Instant runStartedAt, double maxAbsentRatio, boolean allowShrink, Duration timeout) {
-        TombstoneAbsent reconcile =
-                new TombstoneAbsent(sourceId, kinds, runStartedAt, maxAbsentRatio, allowShrink, new CompletableFuture<>());
+        return submitTombstoneAbsent(sourceId, kinds, runStartedAt, maxAbsentRatio, allowShrink, null, timeout);
+    }
+
+    /**
+     * Submits a complete-set reconciliation (prompt 094) whose tombstone batches carry the fetch's
+     * {@code runId} on their {@code fetch_log} rows, waiting at most {@code timeout} for room.
+     *
+     * @param runId the run id of the reconciled fetch, or null for none
+     * @return completed by the writer with what the reconciliation did
+     * @throws IngestBackpressureException when the queue stayed full for the whole timeout
+     */
+    public CompletableFuture<TombstoneOutcome> submitTombstoneAbsent(String sourceId, java.util.Set<String> kinds,
+            java.time.Instant runStartedAt, double maxAbsentRatio, boolean allowShrink, String runId,
+            Duration timeout) {
+        TombstoneAbsent reconcile = new TombstoneAbsent(
+                sourceId, kinds, runStartedAt, maxAbsentRatio, allowShrink, runId, new CompletableFuture<>());
         put(reconcile, timeout, "complete-set reconciliation of " + sourceId);
         return reconcile.future();
     }

@@ -1,6 +1,7 @@
 package ai.foresignal.source.spi;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * What one fetch produced.
@@ -15,14 +16,29 @@ import java.util.List;
  * @param release the dataset's own version identity for a complete-set reference run (prompt 094):
  *     the upstream's ETag, Last-Modified or own version string. Null for a source that does not
  *     publish one
+ * @param reconcileKinds for a complete-set reference run (prompt 094), the kinds whose complete set this
+ *     run read, when that is fewer than all of them: a multi-file source whose one file answered 304 has
+ *     re-read only the other file's kinds, and only those may be reconciled. Null means every declared kind
  */
 public record FetchResult(
-        List<NormalizedRecord> records, boolean complete, boolean notModified, Coverage coverage, String release) {
+        List<NormalizedRecord> records,
+        boolean complete,
+        boolean notModified,
+        Coverage coverage,
+        String release,
+        Set<String> reconcileKinds) {
 
     public FetchResult {
         records = records == null ? List.of() : List.copyOf(records);
         coverage = coverage == null ? Coverage.none() : coverage;
         release = release == null || release.isBlank() ? null : release;
+        reconcileKinds = reconcileKinds == null ? null : Set.copyOf(reconcileKinds);
+    }
+
+    /** A result whose complete set, if any, covers every declared kind. */
+    public FetchResult(
+            List<NormalizedRecord> records, boolean complete, boolean notModified, Coverage coverage, String release) {
+        this(records, complete, notModified, coverage, release, null);
     }
 
     /** A partial set of records, for example one page or one bbox. */
@@ -44,6 +60,18 @@ public record FetchResult(
     }
 
     /**
+     * The full current set of {@code kinds} only (prompt 094, multi-file reference sources): the files of the
+     * other kinds answered 304 and were not re-read, so the executor reconciles {@code kinds} alone and the
+     * unchanged files keep their records. An empty {@code kinds} is a plain partial result.
+     */
+    public static FetchResult completeFor(Set<String> kinds, List<NormalizedRecord> records, String release) {
+        if (kinds == null || kinds.isEmpty()) {
+            return new FetchResult(records, false, false, Coverage.none(), release, null);
+        }
+        return new FetchResult(records, true, false, Coverage.none(), release, kinds);
+    }
+
+    /**
      * The upstream answered 304 Not Modified.
      *
      * <p>Counts as a success with zero changes and does not trigger zero-result degradation, which
@@ -59,12 +87,12 @@ public record FetchResult(
 
     /** This result with coverage attached. */
     public FetchResult withCoverage(Coverage coverage) {
-        return new FetchResult(records, complete, notModified, coverage, release);
+        return new FetchResult(records, complete, notModified, coverage, release, reconcileKinds);
     }
 
     /** This result with a release identity attached (prompt 094). */
     public FetchResult withRelease(String release) {
-        return new FetchResult(records, complete, notModified, coverage, release);
+        return new FetchResult(records, complete, notModified, coverage, release, reconcileKinds);
     }
 
     public int size() {

@@ -206,7 +206,7 @@ public class DigitrafficRailAdapter implements PollingAdapter {
             }
             thisRun++;
             used++;
-            state.put(LOOKUPS_KEY, today + ":" + used);
+            state.putDurably(LOOKUPS_KEY, today + ":" + used);
             try {
                 UpstreamResponse answer = ctx.http().get(trainUri(position.departureDate(), position.trainNumber()),
                         headers());

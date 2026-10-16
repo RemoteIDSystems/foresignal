@@ -23,6 +23,8 @@ import java.util.concurrent.CompletableFuture;
  * @param maxAbsentRatio the largest fraction of the dataset that may be tombstoned at once, from the
  *     descriptor's {@code reconcile.maxAbsentRatio}
  * @param allowShrink true when the operator's one-off override releases the shrink guard
+ * @param runId the run id of the fetch being reconciled, stamped on the {@code fetch_log} rows of the
+ *     tombstone batches so they join the run's chunk rows; null for none
  * @param future completed with what the reconciliation did
  */
 public record TombstoneAbsent(
@@ -31,11 +33,18 @@ public record TombstoneAbsent(
         Instant runStartedAt,
         double maxAbsentRatio,
         boolean allowShrink,
+        String runId,
         CompletableFuture<TombstoneOutcome> future)
         implements IngestCommand {
 
     public TombstoneAbsent {
         kinds = kinds == null ? Set.of() : Set.copyOf(kinds);
         future = future == null ? new CompletableFuture<>() : future;
+    }
+
+    /** A reconciliation with no run id. */
+    public TombstoneAbsent(String sourceId, Set<String> kinds, Instant runStartedAt, double maxAbsentRatio,
+            boolean allowShrink, CompletableFuture<TombstoneOutcome> future) {
+        this(sourceId, kinds, runStartedAt, maxAbsentRatio, allowShrink, null, future);
     }
 }

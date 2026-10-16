@@ -13,6 +13,12 @@ package ai.foresignal.ingest;
 public record TombstoneOutcome(
         boolean ran, boolean discarded, int candidates, int total, int tombstoned, String reason) {
 
+    /**
+     * The start of the health reason the shrink guard records ({@code "dataset shrank by N% — reconciliation
+     * skipped"}); the executor clears a degradation with this prefix once a reconciliation runs again.
+     */
+    public static final String SHRINK_REASON_PREFIX = "dataset shrank by ";
+
     /** The reconciliation ran and wrote {@code tombstoned} tombstones. */
     public static TombstoneOutcome ran(int candidates, int total, int tombstoned) {
         return new TombstoneOutcome(true, false, candidates, total, tombstoned, null);

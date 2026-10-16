@@ -1443,7 +1443,7 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
                 double ratio = (double) candidates / total;
                 if (!reconcile.allowShrink() && ratio > reconcile.maxAbsentRatio()) {
                     int percent = (int) Math.round(ratio * 100);
-                    String reason = "dataset shrank by " + percent + "% — reconciliation skipped";
+                    String reason = TombstoneOutcome.SHRINK_REASON_PREFIX + percent + "% — reconciliation skipped";
                     reconcileProgress.remove(future);
                     log.warn("{}: {} ({} of {} records absent)", reconcile.sourceId(), reason, candidates, total);
                     future.complete(TombstoneOutcome.discarded(candidates, total, reason));
@@ -1458,13 +1458,14 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
                 if (chunk.isEmpty()) {
                     break;
                 }
-                writeTombstones(reconcile.sourceId(), chunk);
+                writeTombstones(reconcile.sourceId(), reconcile.runId(), chunk);
                 progress.tombstoned += chunk.size();
                 if (chunk.size() < RECONCILE_CHUNK) {
                     break;
                 }
                 TombstoneAbsent rest = new TombstoneAbsent(reconcile.sourceId(), reconcile.kinds(),
-                        reconcile.runStartedAt(), reconcile.maxAbsentRatio(), reconcile.allowShrink(), future);
+                        reconcile.runStartedAt(), reconcile.maxAbsentRatio(), reconcile.allowShrink(),
+                        reconcile.runId(), future);
                 if (queue.offer(rest)) {
                     return;
                 }
@@ -1511,13 +1512,16 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
                 (rs, row) -> new Object[] {rs.getString(1), rs.getString(2)});
     }
 
-    /** Writes the tombstones of one chunk through the normal fold. */
-    private void writeTombstones(String sourceId, List<Object[]> chunk) {
+    /**
+     * Writes the tombstones of one chunk through the normal fold; the batch's {@code fetch_log} row carries the
+     * reconciled run's {@code runId}, so it joins that run's chunk rows.
+     */
+    private void writeTombstones(String sourceId, String runId, List<Object[]> chunk) {
         Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
         FetchLogEntry entry = new FetchLogEntry(
                 sourceId, ai.foresignal.store.FetchTrigger.MANUAL, ai.foresignal.store.FetchStatus.OK, now, now,
                 null, 0, null, null, null, null, null, null, RECONCILE_PRINCIPAL,
-                ai.foresignal.source.spi.Coverage.none(), null);
+                ai.foresignal.source.spi.Coverage.none(), null, runId);
         List<IngestRecord> batch = new ArrayList<>(chunk.size());
         long arrival = 0;
         for (Object[] row : chunk) {

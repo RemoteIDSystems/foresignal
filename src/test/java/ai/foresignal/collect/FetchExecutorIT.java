@@ -549,6 +549,188 @@ class FetchExecutorIT extends WireMockSupport {
     }
 
     @Nested
+    @DisplayName("adapter state commits with the fetch (F1/F2)")
+    class StateCommit {
+
+        @Autowired private UpstreamClient upstream;
+
+        private static final String CURSOR = "test.cursor";
+
+        private FetchExecutor executorWith(IngestQueue queue) {
+            return new FetchExecutor(
+                    registry, contexts, dispatcher, health, backoff, queue, fetchLogWriter, version, jdbc, meters,
+                    properties, clock);
+        }
+
+        @BeforeEach
+        void clearState() {
+            var state = upstream.stateStore(POLL);
+            state.remove(CURSOR);
+            state.remove(ai.foresignal.source.spi.AdapterStateStore.DEGRADED_REASON_KEY);
+            state.remove("credits");
+            ai.foresignal.source.spi.SourceHttp.forgetValidators(state, "feed");
+        }
+
+        @Test
+        @DisplayName("a cursor written by a fetch whose records were ingested is committed")
+        void committedAfterIngest() {
+            collectPollAdapter.then(ctx -> {
+                ctx.state().put(CURSOR, "2");
+                assertThat(ctx.state().get(CURSOR)).contains("2");
+                assertThat(upstream.stateStore(POLL).get(CURSOR)).isEmpty();
+                return twoRecords();
+            });
+
+            executor.execute(POLL, FetchTrigger.MANUAL);
+
+            assertThat(upstream.stateStore(POLL).get(CURSOR)).contains("2");
+        }
+
+        @Test
+        @DisplayName("a cursor written by a fetch that then throws is discarded; health keys survive")
+        void discardedOnFailure() {
+            upstream.stateStore(POLL).put(CURSOR, "1");
+            collectPollAdapter.then(ctx -> {
+                ctx.state().put(CURSOR, "2");
+                ctx.state().degrade("half the layers are missing");
+                ctx.state().putDurably("credits", "17");
+                throw new ai.foresignal.source.spi.UpstreamFormatException("unparseable", null);
+            });
+
+            FetchOutcome outcome = executor.execute(POLL, FetchTrigger.MANUAL);
+
+            assertThat(outcome.status()).isEqualTo(FetchStatus.FAILED);
+            var state = upstream.stateStore(POLL);
+            assertThat(state.get(CURSOR)).contains("1");
+            assertThat(state.get(ai.foresignal.source.spi.AdapterStateStore.DEGRADED_REASON_KEY))
+                    .contains("half the layers are missing");
+            assertThat(state.get("credits")).contains("17");
+        }
+
+        @Test
+        @DisplayName("a cursor written by a fetch whose batch the writer failed is discarded")
+        void discardedOnWriterFailure() {
+            IngestQueue queue = mock(IngestQueue.class);
+            when(queue.submit(anyString(), any(FetchLogEntry.class), anyList(), any(Duration.class), anyBoolean()))
+                    .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("constraint violated")));
+            collectPollAdapter.then(ctx -> {
+                ctx.state().put(CURSOR, "2");
+                return twoRecords();
+            });
+
+            FetchOutcome outcome = executorWith(queue).execute(POLL, FetchTrigger.MANUAL);
+
+            assertThat(outcome.status()).isEqualTo(FetchStatus.FAILED);
+            assertThat(upstream.stateStore(POLL).get(CURSOR)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("a cursor written by a fetch whose queue stayed full is discarded")
+        void discardedOnBackpressure() {
+            IngestQueue queue = mock(IngestQueue.class);
+            when(queue.submit(anyString(), any(FetchLogEntry.class), anyList(), any(Duration.class), anyBoolean()))
+                    .thenThrow(new IngestBackpressureException("full"));
+            collectPollAdapter.then(ctx -> {
+                ctx.state().put(CURSOR, "2");
+                return twoRecords();
+            });
+
+            executorWith(queue).execute(POLL, FetchTrigger.MANUAL);
+
+            assertThat(upstream.stateStore(POLL).get(CURSOR)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("a scheduled run DISCARDED because the source was disabled in flight discards its state")
+        void discardedWhenDisabledInFlight() {
+            sources.update(POLL, SourceSettingsUpdate.enabled(true));
+            collectPollAdapter.then(ctx -> {
+                ctx.state().put(CURSOR, "2");
+                sources.update(POLL, SourceSettingsUpdate.enabled(false));
+                return twoRecords();
+            });
+
+            executor.execute(POLL, FetchTrigger.SCHEDULED);
+
+            assertThat(upstream.stateStore(POLL).get(CURSOR)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("a 304 and an empty result commit their state")
+        void committedWithoutRecords() {
+            collectPollAdapter
+                    .then(ctx -> {
+                        ctx.state().put(CURSOR, "a");
+                        return FetchResult.unchanged();
+                    })
+                    .then(ctx -> {
+                        ctx.state().put(CURSOR, "b");
+                        return FetchResult.of(List.of());
+                    });
+
+            executor.execute(POLL, FetchTrigger.MANUAL);
+            assertThat(upstream.stateStore(POLL).get(CURSOR)).contains("a");
+            executor.execute(POLL, FetchTrigger.MANUAL);
+            assertThat(upstream.stateStore(POLL).get(CURSOR)).contains("b");
+        }
+
+        @Test
+        @DisplayName("a conditional-GET validator becomes durable only when the fetch succeeds")
+        void validatorCommitsWithFetch() {
+            stubFor(get(urlPathEqualTo("/feed"))
+                    .willReturn(aResponse().withStatus(200).withHeader("ETag", "\"v2\"").withBody("hello")));
+            collectPollAdapter
+                    .then(ctx -> {
+                        ctx.http().getConditional(URI.create(url("/feed")), "feed");
+                        throw new ai.foresignal.source.spi.UpstreamFormatException("download cut short", null);
+                    })
+                    .then(ctx -> {
+                        ctx.http().getConditional(URI.create(url("/feed")), "feed");
+                        return twoRecords();
+                    });
+
+            executor.execute(POLL, FetchTrigger.MANUAL);
+            assertThat(upstream.stateStore(POLL).get(ai.foresignal.source.spi.SourceHttp.ETAG_STATE_PREFIX + "feed"))
+                    .isEmpty();
+
+            clock.advance(Duration.ofMinutes(5));
+            executor.execute(POLL, FetchTrigger.MANUAL);
+            assertThat(upstream.stateStore(POLL).get(ai.foresignal.source.spi.SourceHttp.ETAG_STATE_PREFIX + "feed"))
+                    .contains("\"v2\"");
+        }
+
+        @Test
+        @DisplayName("an allowShrink run sends no stored validators, so it re-reads the whole body")
+        void allowShrinkIgnoresValidators() {
+            upstream.stateStore(POLL).put(ai.foresignal.source.spi.SourceHttp.ETAG_STATE_PREFIX + "feed", "\"v1\"");
+            stubFor(get(urlPathEqualTo("/feed"))
+                    .withHeader("If-None-Match", com.github.tomakehurst.wiremock.client.WireMock.equalTo("\"v1\""))
+                    .willReturn(aResponse().withStatus(304)));
+            stubFor(get(urlPathEqualTo("/feed"))
+                    .withHeader("If-None-Match", com.github.tomakehurst.wiremock.client.WireMock.absent())
+                    .willReturn(aResponse().withStatus(200).withHeader("ETag", "\"v1\"").withBody("hello")));
+            AtomicReference<Integer> scheduled = new AtomicReference<>();
+            AtomicReference<Integer> override = new AtomicReference<>();
+            collectPollAdapter
+                    .then(ctx -> {
+                        scheduled.set(ctx.http().getConditional(URI.create(url("/feed")), "feed").status());
+                        return FetchResult.unchanged();
+                    })
+                    .then(ctx -> {
+                        override.set(ctx.http().getConditional(URI.create(url("/feed")), "feed").status());
+                        return twoRecords();
+                    });
+
+            executor.execute(POLL, FetchTrigger.MANUAL);
+            clock.advance(Duration.ofMinutes(5));
+            executor.execute(POLL, FetchTrigger.MANUAL, true);
+
+            assertThat(scheduled.get()).isEqualTo(304);
+            assertThat(override.get()).isEqualTo(200);
+        }
+    }
+
+    @Nested
     @DisplayName("arguments")
     class Arguments {
 

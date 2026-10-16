@@ -54,6 +54,7 @@ public class DefaultFetchContext implements FetchContext {
     private ValidatedParams resolvedParams;
     private Map<String, String> resolvedCredentials;
     private Optional<Instant> resolvedLastSuccess;
+    private boolean ignoreStoredValidators;
 
     /**
      * Creates a context.
@@ -105,6 +106,13 @@ public class DefaultFetchContext implements FetchContext {
         }
         if (http == null) {
             http = upstream.forSource(sourceId, descriptor, recorder);
+            if (http instanceof BoundSourceHttp bound) {
+                if (state instanceof StagedAdapterStateStore staged) {
+                    // Validators commit with the fetch's other state (F2 of the 2026-10 review).
+                    bound.validatorStore(staged);
+                }
+                bound.ignoreStoredValidators(ignoreStoredValidators);
+            }
         }
         return http;
     }
@@ -233,6 +241,23 @@ public class DefaultFetchContext implements FetchContext {
         if (records != null && !records.isEmpty()) {
             chunkSink.accept(records);
         }
+    }
+
+    /**
+     * Makes this fetch's conditional GETs ignore the stored validators, so every file is read in full (the
+     * operator's {@code allowShrink} re-run of a complete-set reference source, prompt 094). Call it before
+     * the adapter first uses {@link #http()}.
+     */
+    public synchronized void ignoreStoredValidators(boolean ignore) {
+        this.ignoreStoredValidators = ignore;
+        if (http instanceof BoundSourceHttp bound) {
+            bound.ignoreStoredValidators(ignore);
+        }
+    }
+
+    /** The fetch's staged adapter state, when the executor runs it (F1 of the 2026-10 review), else empty. */
+    public Optional<StagedAdapterStateStore> stagedState() {
+        return state instanceof StagedAdapterStateStore staged ? Optional.of(staged) : Optional.empty();
     }
 
     /** The probe recorder, or null. */

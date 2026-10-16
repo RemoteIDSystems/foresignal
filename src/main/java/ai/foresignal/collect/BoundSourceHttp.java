@@ -73,6 +73,19 @@ class BoundSourceHttp implements SourceHttp {
     /** Host -> the address its {@code LAN_URL} parameter resolved to during validation. */
     private final Map<String, InetAddress> pinnedHosts;
 
+    /**
+     * Where conditional GET reads and writes its validators: the persistent store, or the fetch's
+     * {@link StagedAdapterStateStore} when the {@link FetchExecutor} runs the fetch, so a validator commits only
+     * with the fetch's records (F2 of the 2026-10 review).
+     */
+    private volatile ai.foresignal.source.spi.AdapterStateStore validators;
+
+    /**
+     * True when conditional GET sends no stored validators (the operator's {@code allowShrink} re-run, prompt
+     * 094): the re-run must re-read the whole dataset, which a 304 would prevent.
+     */
+    private volatile boolean ignoreStoredValidators;
+
     /** Traces of this binding's requests, drained by the fetch executor in prompt 008. */
     private final List<FetchTrace> traces = new CopyOnWriteArrayList<>();
 
@@ -90,6 +103,7 @@ class BoundSourceHttp implements SourceHttp {
         this.recorder = recorder;
         this.redactor = redactor;
         this.state = state;
+        this.validators = state;
         this.pinnedHosts = pinnedHosts == null ? Map.of() : Map.copyOf(pinnedHosts);
     }
 
@@ -101,6 +115,24 @@ class BoundSourceHttp implements SourceHttp {
     /** The adapter state backing conditional GET. */
     PersistentAdapterStateStore state() {
         return state;
+    }
+
+    /**
+     * Makes conditional GET read and write its validators through {@code store}: the fetch context calls it
+     * with the fetch's {@link StagedAdapterStateStore}, so a validator is not durable before the fetch's
+     * records are (F2 of the 2026-10 review).
+     */
+    void validatorStore(ai.foresignal.source.spi.AdapterStateStore store) {
+        this.validators = store == null ? state : store;
+    }
+
+    /**
+     * When {@code ignore} is true, conditional GET sends no {@code If-None-Match} / {@code If-Modified-Since}
+     * and so always gets the full body; the new validators are still recorded. Set for the operator's
+     * {@code allowShrink} re-run (prompt 094).
+     */
+    void ignoreStoredValidators(boolean ignore) {
+        this.ignoreStoredValidators = ignore;
     }
 
     // ---------- SourceHttp ----------
@@ -137,24 +169,29 @@ class BoundSourceHttp implements SourceHttp {
                 }
             });
         }
-        state.get(ETAG_STATE_PREFIX + stateKey).ifPresent(etag -> headers.put("If-None-Match", etag));
-        state.get(LAST_MODIFIED_STATE_PREFIX + stateKey)
-                .ifPresent(lastModified -> headers.put("If-Modified-Since", lastModified));
+        ai.foresignal.source.spi.AdapterStateStore store = validators;
+        if (!ignoreStoredValidators) {
+            store.get(ETAG_STATE_PREFIX + stateKey).ifPresent(etag -> headers.put("If-None-Match", etag));
+            store.get(LAST_MODIFIED_STATE_PREFIX + stateKey)
+                    .ifPresent(lastModified -> headers.put("If-Modified-Since", lastModified));
+        }
 
         UpstreamResponse response =
                 execute("GET", uri, headers, null, null, descriptor.maxResponseBytes(), descriptor.followRedirects(), 0);
 
         if (response.status() == 200 && recorder == null) {
-            // Store the new validators immediately; see PersistentAdapterStateStore for why this is
-            // not tied to the fetch's transaction. A probe stores none (prompt 047): otherwise the next
-            // real fetch would get a 304 and never ingest what only the probe saw.
+            // Record the new validators. Inside a fetch run by the FetchExecutor the store is the fetch's
+            // staged state, so they become durable only once the fetch's records are written: a body that
+            // fails to download, parse or ingest leaves the old validators, and the next run re-reads it.
+            // A probe stores none (prompt 047): otherwise the next real fetch would get a 304 and never
+            // ingest what only the probe saw.
             String etag = response.header("etag");
             if (etag != null) {
-                state.put(ETAG_STATE_PREFIX + stateKey, etag);
+                store.put(ETAG_STATE_PREFIX + stateKey, etag);
             }
             String lastModified = response.header("last-modified");
             if (lastModified != null) {
-                state.put(LAST_MODIFIED_STATE_PREFIX + stateKey, lastModified);
+                store.put(LAST_MODIFIED_STATE_PREFIX + stateKey, lastModified);
             }
         }
         return response;

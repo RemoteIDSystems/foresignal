@@ -28,8 +28,10 @@ public interface SourceHttp {
     /**
      * Forgets the validators {@link #getConditional} stored under {@code stateKey}, so the next request
      * is unconditional (prompt 047). An adapter calls it when a 200 body it was given could not be used
-     * (truncated or unparseable): the validators are stored as soon as the response arrives, and
-     * without this the next run would get a 304 and never see the content.
+     * (truncated or unparseable) but the fetch still succeeds: the validators are recorded as soon as the
+     * response arrives, and without this the next run would get a 304 and never see the content. Inside a
+     * fetch run by the collector the recorded validators are staged with the fetch's other state, so a fetch
+     * that throws discards them anyway (Adapter-Guide §7); calling this before throwing is harmless.
      */
     static void forgetValidators(AdapterStateStore state, String stateKey) {
         state.remove(ETAG_STATE_PREFIX + stateKey);

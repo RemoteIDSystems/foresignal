@@ -69,8 +69,8 @@ final class OpenSkyCredits {
         }
         try {
             long remaining = Long.parseLong(headerValue.trim());
-            state.put(REMAINING_KEY, Long.toString(remaining));
-            state.put(AT_KEY, now.toString());
+            state.putDurably(REMAINING_KEY, Long.toString(remaining));
+            state.putDurably(AT_KEY, now.toString());
         } catch (NumberFormatException e) {
             // An unreadable header leaves the last good reading in place.
         }

@@ -87,6 +87,12 @@ import org.springframework.stereotype.Component;
  *       count</td><td>nothing ingested</td></tr>
  * </table>
  *
+ * <p><strong>Adapter state commits with the fetch</strong> (F1/F2 of the 2026-10 review). The fetch's context
+ * carries a {@link StagedAdapterStateStore}: cursors, live sets and conditional-GET validators the adapter
+ * writes are committed only after its records were written by the writer (or when it had nothing to write: a
+ * 304 or an empty result), and discarded when the fetch fails, times out, is DISCARDED or its batch is not
+ * ingested. Health keys and {@code putDurably} values are written at once.
+ *
  * <p>A per-source flag prevents overlapping fetches; a run that would overlap is skipped and
  * counted as {@code foresignal.fetch.skipped{reason=overlap}}. Durations are timed as
  * {@code foresignal.fetch.duration{source,result}}.
@@ -270,7 +276,11 @@ public class FetchExecutor {
         long startNanos = System.nanoTime();
         Duration timeout =
                 descriptor.fetchTimeout() == null ? SourceDescriptor.DEFAULT_FETCH_TIMEOUT : descriptor.fetchTimeout();
-        DefaultFetchContext ctx = contexts.forFetch(descriptor, null);
+        DefaultFetchContext ctx = contexts.forExecutedFetch(descriptor);
+        if (allowShrink) {
+            // The operator's override must re-read the whole dataset; a 304 would leave nothing to reconcile.
+            ctx.ignoreStoredValidators(true);
+        }
         RunChunks chunks = new RunChunks(descriptor, trigger, startedAt, timeout, allowShrink);
         ctx.chunkSink(chunks::emitChunk);
 
@@ -282,9 +292,11 @@ public class FetchExecutor {
                 result = FetchResult.of(List.of());
             }
         } catch (Exception e) {
+            discardState(ctx);
             outcome = onFetchFailure(descriptor, trigger, startedAt, startNanos, ctx, e);
             return timed(sourceId, startNanos, outcome);
         } catch (Error e) {
+            discardState(ctx);
             outcome = onFetchFailure(descriptor, trigger, startedAt, startNanos, ctx, e);
             return timed(sourceId, startNanos, outcome);
         }
@@ -315,6 +327,7 @@ public class FetchExecutor {
         boolean reconcilable = result.complete() && descriptor.kinds().contains(DATASET_RELEASE_KIND);
 
         if (trigger == FetchTrigger.SCHEDULED && !isEnabled(sourceId)) {
+            discardState(ctx);
             long id = fetchLog.write(
                     entry(descriptor, trigger, FetchStatus.DISCARDED, startedAt, receivedAt, traces, coverage,
                             DISCARDED_ERROR, null, chunks.runId()),
@@ -327,6 +340,7 @@ public class FetchExecutor {
         }
 
         if (result.notModified()) {
+            commitState(ctx);
             long id = fetchLog.write(
                     entry(descriptor, trigger, FetchStatus.NOT_MODIFIED, startedAt, receivedAt, traces, coverage,
                             null, null, chunks.runId()),
@@ -337,6 +351,7 @@ public class FetchExecutor {
         }
 
         if (n == 0 && chunked == 0) {
+            commitState(ctx);
             long id = fetchLog.write(
                     entry(descriptor, trigger, FetchStatus.OK, startedAt, receivedAt, traces, coverage, null, null,
                             chunks.runId()),
@@ -360,6 +375,7 @@ public class FetchExecutor {
             try {
                 future = queue.submit(sourceId, okEntry, records, ingestTimeout, reconcilable);
             } catch (IngestBackpressureException e) {
+                discardState(ctx);
                 log.warn("{}: the ingest queue stayed full for {}; {} records were not ingested", sourceId,
                         ingestTimeout, n);
                 return ingestFailed(descriptor, trigger, startedAt, startNanos, receivedAt, traces, coverage, n,
@@ -370,7 +386,9 @@ public class FetchExecutor {
                 ingested = future.get(Math.max(1, ingestTimeout.toMillis()), TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
                 // The batch is still queued and the writer will write its row when it gets there, so no
-                // row is written here: that would make two.
+                // row is written here: that would make two. Its state is discarded: the records are not yet
+                // durable, and re-reading the window next run is safe where skipping it is not.
+                discardState(ctx);
                 log.warn("{}: the ingest writer did not finish the batch within {}; it is still queued", sourceId,
                         ingestTimeout);
                 return FetchOutcome.withoutIngest(
@@ -378,46 +396,88 @@ public class FetchExecutor {
                         "ingest did not complete within " + ingestTimeout.toSeconds() + " s", null, null);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+                discardState(ctx);
                 return ingestFailed(descriptor, trigger, startedAt, startNanos, receivedAt, traces, coverage, n,
                         "interrupted while waiting for ingest");
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause() == null ? e : e.getCause();
+                discardState(ctx);
                 log.warn("{}: the ingest writer failed the batch of {} records", sourceId, n, cause);
                 return ingestFailed(descriptor, trigger, startedAt, startNanos, receivedAt, traces, coverage, n,
                         "ingest failed: " + health.errorMessage(sourceId, cause));
             }
             chunks.addOutcome(ingested);
         }
+        // Every record of the run is durably written: the adapter's cursors and validators may move now.
+        commitState(ctx);
 
         IngestOutcome ingested = chunks.total();
         health.recordSuccess(sourceId, ingested, false, coverage);
 
         if (reconcilable) {
-            reconcile(ctx, descriptor, chunks, startedAt, ingestTimeout);
+            reconcile(ctx, descriptor, trigger, result, chunks, startedAt, ingestTimeout);
         }
         return FetchOutcome.ingested(
                 sourceId, startedAt, elapsedMs(startNanos), ingested, findWriterRow(sourceId, startedAt));
     }
 
+    /** The commit point of a fetch's staged adapter state (F1/F2 of the 2026-10 review). */
+    private void commitState(DefaultFetchContext ctx) {
+        ctx.stagedState().ifPresent(staged -> {
+            try {
+                staged.commit();
+            } catch (RuntimeException e) {
+                // The records are written; losing the cursor only means the next run re-reads the window.
+                log.warn("{}: could not commit the adapter state of the fetch; the next run re-reads", ctx.sourceId(),
+                        e);
+            }
+        });
+    }
+
+    /** Drops a failed fetch's staged adapter state, so no cursor or validator moves past unwritten data. */
+    private static void discardState(DefaultFetchContext ctx) {
+        ctx.stagedState().ifPresent(StagedAdapterStateStore::discard);
+    }
+
     /**
-     * Complete-set reconciliation (prompt 094): submits {@link ai.foresignal.ingest.TombstoneAbsent} for the
-     * dataset after the last chunk, degrades health when the shrink guard trips, and emits one
-     * {@code dataset-release} record describing the run.
+     * The kinds a complete-set run reconciles (prompt 094): the declared kinds except {@code dataset-release},
+     * narrowed to {@link FetchResult#reconcileKinds()} when a multi-file source re-read only some files.
      */
-    private void reconcile(DefaultFetchContext ctx, SourceDescriptor descriptor, RunChunks chunks,
-            Instant startedAt, Duration ingestTimeout) {
-        String sourceId = descriptor.id();
+    static Set<String> reconcileKinds(SourceDescriptor descriptor, FetchResult result) {
         Set<String> kinds = new LinkedHashSet<>(descriptor.kinds());
         kinds.remove(DATASET_RELEASE_KIND);
+        if (result.reconcileKinds() != null) {
+            kinds.retainAll(result.reconcileKinds());
+        }
+        return kinds;
+    }
+
+    /**
+     * Complete-set reconciliation (prompt 094): submits {@link ai.foresignal.ingest.TombstoneAbsent} for the
+     * dataset after the last chunk and emits one {@code dataset-release} record describing the run.
+     *
+     * <p>When the shrink guard trips, health is degraded with the guard's reason and a {@code DISCARDED}
+     * {@code fetch_log} row carrying the run id records that the reconciliation was skipped. A reconciliation
+     * that ran (a clean run, or the operator's {@code allowShrink} override) clears a degradation the guard set.
+     */
+    private void reconcile(DefaultFetchContext ctx, SourceDescriptor descriptor, FetchTrigger trigger,
+            FetchResult result, RunChunks chunks, Instant startedAt, Duration ingestTimeout) {
+        String sourceId = descriptor.id();
+        Set<String> kinds = reconcileKinds(descriptor, result);
         int disappeared = 0;
         if (!kinds.isEmpty()) {
             try {
                 TombstoneOutcome outcome = queue.submitTombstoneAbsent(
                                 sourceId, kinds, startedAt, descriptor.reconcileMaxAbsentRatio(),
-                                chunks.allowShrink(), reconcileTimeout(ingestTimeout))
+                                chunks.allowShrink(), chunks.runId(), reconcileTimeout(ingestTimeout))
                         .get(Math.max(1, reconcileTimeout(ingestTimeout).toMillis()), TimeUnit.MILLISECONDS);
                 if (outcome.discarded()) {
                     ctx.state().degrade(outcome.reason());
+                    fetchLog.write(entry(descriptor, trigger, FetchStatus.DISCARDED, startedAt, clock.instant(),
+                            List.of(), Coverage.none(), HealthTracker.truncate(outcome.reason()), null,
+                            chunks.runId()), 0);
+                } else {
+                    clearShrinkDegradation(ctx);
                 }
                 disappeared = outcome.tombstoned();
             } catch (InterruptedException e) {
@@ -430,6 +490,14 @@ public class FetchExecutor {
             }
         }
         emitDatasetRelease(descriptor, chunks, disappeared, ingestTimeout);
+    }
+
+    /** Clears a degradation the shrink guard set, leaving any other reason the adapter recorded. */
+    private static void clearShrinkDegradation(DefaultFetchContext ctx) {
+        String current = ctx.state().get(ai.foresignal.source.spi.AdapterStateStore.DEGRADED_REASON_KEY).orElse(null);
+        if (current != null && current.startsWith(TombstoneOutcome.SHRINK_REASON_PREFIX)) {
+            ctx.state().clearDegraded();
+        }
     }
 
     /** Emits one {@code dataset-release} record for the run (prompt 094). */

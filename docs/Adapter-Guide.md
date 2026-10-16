@@ -139,8 +139,29 @@ The scope keeps independent snapshots apart. Examples:
 | `awc-metars` | (none) | | station reports retire through the 3-hour TTL instead; nothing is tombstoned |
 
 Two related rules:
-- When a 200 body from `getConditional` could not be used (truncated or unparseable), call `SourceHttp.forgetValidators(ctx.state(), stateKey)`: the validators were stored when the response arrived, and without this the next run would get a 304 and never see the content.
+- When a 200 body from `getConditional` could not be used (truncated or unparseable) and the fetch still succeeds, call `SourceHttp.forgetValidators(ctx.state(), stateKey)`: the validators were recorded when the response arrived, and without this the next run would get a 304 and never see the content. A fetch that throws needs no call: its staged validators are discarded (below).
 - A probe never moves adapter state: during a probe `ctx.state()` is an in-memory overlay and `getConditional` stores no validators, so a probe cannot consume a live set or a cursor.
+
+### Adapter state commits with the fetch (2026-10 review)
+
+During a polling fetch run by the collector (`FetchExecutor`), `ctx.state()` is a `StagedAdapterStateStore`: every `put` and `remove`, and the `ETag`/`Last-Modified` that `getConditional` records, are held in memory and become durable only when the fetch's records have been written by the ingest writer.
+
+| Outcome | Staged state |
+|---|---|
+| Records ingested (every chunk and the final batch) | committed in one statement, then reconciliation runs |
+| 304, or an empty result | committed |
+| The adapter throws (any exception, a budget refusal or a timeout included) | discarded |
+| Ingest queue full, the writer failed the batch, or the writer did not finish in time | discarded |
+| Scheduled run of a source disabled in flight (DISCARDED) | discarded |
+
+Reads within the fetch see its own staged writes. After the commit or discard the store is closed, so a late write from an adapter thread that outlived its timeout is dropped. Consequences for adapters:
+
+- A cursor, watermark, live set or validator never moves past records that were not written. A failed fetch re-reads the same window next run, so the at-least-once path (dedup in the writer) applies, never a gap.
+- Keys under `health.` (`degrade`, `fail`, `recordInput`) are written at once, so a reason recorded right before a failure still reaches health.
+- `AdapterStateStore.putDurably(key, value)` writes at once for bookkeeping that describes what was spent rather than what was ingested: `opensky-states` uses it for the remaining credit balance, `digitraffic-rail` for its daily lookup count. Never use it for a cursor.
+- Chunks emitted with `ctx.emitChunk` are written as they go; if the fetch then fails, the chunks stay written and the state is discarded, so the next run re-reads (and re-touches) them.
+- Probes keep their in-memory overlay. **Streams are not staged**: a stream connection has no end-of-fetch to commit at, so a streaming adapter's `ctx.state()` writes through at once. Persist a stream cursor periodically (by event count or elapsed time, and on close), never per event (§16).
+- A test that calls `adapter.fetch(ctx)` directly with `AdapterHttpHarness` gets the persistent store, which writes through; the staging is the executor's, and `FetchExecutorIT` covers it.
 
 ## 8. Fixtures and tests
 
@@ -425,6 +446,12 @@ sentinel position as null geometry so the TRACK carry-forward applies (`POSITION
 `StreamHandle.update(params)`. Return true when the change was applied on the open connection (aisstream resends its
 subscription, at most once a second, newest wins); return false, the default, to be restarted, which costs a
 connection attempt. Storing new credentials always restarts a running stream.
+
+**Adapter state.** A stream's `ctx.state()` writes through at once; it is not staged like a polling fetch's (§7,
+"Adapter state commits with the fetch"). Persist a resume cursor such as a last event id periodically (by event count
+or elapsed time) and once more when the connection ends, never once per event: one database write per message is
+millions of writes a day on a busy stream. On a restart the stream resumes from the last persisted cursor and replays
+at most one interval of events, which the writer deduplicates.
 
 **Health details.** A `HealthDetailsContributor` bean adds entries to `SourceHealth.details` (aisstream:
 `compressionEnabled`, `perMessageDeflate`, `vessels`).

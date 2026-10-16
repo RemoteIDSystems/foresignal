@@ -176,6 +176,24 @@ public class FetchContextFactory {
     }
 
     /**
+     * A context for one fetch run by the {@link FetchExecutor}: its adapter state is a
+     * {@link StagedAdapterStateStore}, which the executor commits once the fetch's records are written and
+     * discards when the fetch fails (F1 of the 2026-10 review). Conditional-GET validators are staged with it.
+     */
+    public DefaultFetchContext forExecutedFetch(SourceDescriptor descriptor) {
+        String id = descriptor.id();
+        return withRasters(new DefaultFetchContext(
+                descriptor,
+                upstream,
+                null,
+                () -> sources.effectiveParams(id),
+                credentials,
+                clock,
+                () -> lastSuccessAt(id),
+                new StagedAdapterStateStore(upstream.stateStore(id))), descriptor, false);
+    }
+
+    /**
      * A context for one stream connection.
      *
      * @param recorder captures exchanges when probing, or null

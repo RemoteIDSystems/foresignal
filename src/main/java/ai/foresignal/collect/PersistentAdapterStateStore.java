@@ -7,19 +7,17 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
  * An adapter's state, kept in {@code source_health.adapter_state}.
  *
- * <p>Writes go in immediately, in their own small transaction. That matters for conditional GET:
- * the point of storing an ETag is that the *next* run can send it, and if the write were tied to
- * the fetch's transaction a failure later in the run would discard it and the next request would
- * re-download the whole body. The same reasoning applies to an upstream cursor — losing it means
- * re-reading a window we already consumed.
+ * <p>Every write here goes in immediately, as its own auto-committed statement (this class is not a Spring
+ * bean, so it joins no surrounding transaction). A polling fetch run by the {@link FetchExecutor} does not
+ * write here directly: its context wraps this store in a {@link StagedAdapterStateStore}, which holds the
+ * fetch's cursors and validators until the fetch's records are written and then commits them in one
+ * statement through {@link #apply}. Streams, tests and direct callers write through.
  *
  * <p>One instance per source, created by {@link UpstreamClient}.
  */
@@ -45,7 +43,6 @@ public class PersistentAdapterStateStore implements AdapterStateStore {
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void put(String key, String value) {
         if (value == null) {
             remove(key);
@@ -57,12 +54,41 @@ public class PersistentAdapterStateStore implements AdapterStateStore {
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void remove(String key) {
         Map<String, String> state = new LinkedHashMap<>(load());
         if (state.remove(key) != null) {
             save(state);
         }
+    }
+
+    /**
+     * Applies a fetch's staged writes in one atomic statement: removes {@code removes}, then sets {@code puts}
+     * (F1 of the 2026-10 review). The merge happens in the database ({@code (state - removes) || puts}), so a
+     * health key written through during the fetch is never overwritten by a stale copy.
+     *
+     * @param puts the keys to set, with their values
+     * @param removes the keys to remove; a key in both is set
+     */
+    public void apply(Map<String, String> puts, java.util.Set<String> removes) {
+        if (puts.isEmpty() && removes.isEmpty()) {
+            return;
+        }
+        String json = jsonMapper.writeValueAsString(puts);
+        String[] removed = removes.toArray(String[]::new);
+        jdbc.update(con -> {
+            java.sql.PreparedStatement ps = con.prepareStatement(
+                    """
+                    insert into source_health (source_id, consecutive_failures, recent_record_counts, adapter_state)
+                    values (?, 0, '[]'::jsonb, ?::jsonb)
+                    on conflict (source_id) do update set adapter_state =
+                        (coalesce(source_health.adapter_state, '{}'::jsonb) - ?::text[]) || ?::jsonb
+                    """);
+            ps.setString(1, sourceId);
+            ps.setString(2, json);
+            ps.setArray(3, con.createArrayOf("text", removed));
+            ps.setString(4, json);
+            return ps;
+        });
     }
 
     /** Every stored key, for diagnostics. */
