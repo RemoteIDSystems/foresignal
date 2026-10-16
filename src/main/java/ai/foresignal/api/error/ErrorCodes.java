@@ -489,6 +489,9 @@ public final class ErrorCodes {
     /** 404: no offline pack has that id (prompt 111). */
     public static final String UNKNOWN_PACK = "UNKNOWN_PACK";
 
+    /** 409: an infrastructure graph build is already running (prompt 104). */
+    public static final String INFRA_REBUILD_RUNNING = "INFRA_REBUILD_RUNNING";
+
     /** 400: an offline pack's tile count or extent is not valid (prompt 111). */
     public static final String PACK_SPEC_INVALID = "PACK_SPEC_INVALID";
 

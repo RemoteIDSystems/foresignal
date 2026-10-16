@@ -35,7 +35,8 @@ public class InfraNodeQuery {
     private static final TypeReference<Map<String, Object>> MAP = new TypeReference<>() {};
 
     private static final String NODE_COLUMNS = "id, facility_type, name, source_id, external_id, licence,"
-            + " attributes::text AS attributes, region_tags::text AS region_tags, ST_AsText(point) AS wkt, built_at";
+            + " attributes::text AS attributes, region_tags::text AS region_tags, ST_AsGeoJSON(geom) AS geom_json,"
+            + " ST_AsGeoJSON(point) AS point_json, built_at";
 
     private static final String EDGE_COLUMNS = "e.id, e.from_node, e.to_node, e.relation, e.method, e.label,"
             + " e.score, e.rule_id, e.rule_version, e.params::text AS params, e.evidence::text AS evidence, e.licence,"
@@ -99,8 +100,10 @@ public class InfraNodeQuery {
                 + " e.build_id = :b AND e.from_node = :id ORDER BY e.id", params, (rs, n) -> edge(rs));
         List<Map<String, Object>> inEdges = jdbc.query("SELECT " + EDGE_COLUMNS + " FROM infra_edge e WHERE"
                 + " e.build_id = :b AND e.to_node = :id ORDER BY e.id", params, (rs, n) -> edge(rs));
-        out.put("outEdges", outEdges);
-        out.put("inEdges", inEdges);
+        Map<String, Object> edges = new LinkedHashMap<>();
+        edges.put("in", inEdges);
+        edges.put("out", outEdges);
+        out.put("edges", edges);
         Set<String> sources = new LinkedHashSet<>();
         sources.add(String.valueOf(out.get("sourceId")));
         if (osmEdge(outEdges) || osmEdge(inEdges)) {
@@ -220,9 +223,15 @@ public class InfraNodeQuery {
         String tags = rs.getString("region_tags");
         row.put("regionTags", tags == null ? List.of() : json.readValue(tags, List.class));
         row.put("licence", rs.getString("licence"));
-        row.put("point", rs.getString("wkt"));
+        row.put("geometry", geoJson(rs.getString("geom_json")));
+        row.put("point", geoJson(rs.getString("point_json")));
         row.put("builtAt", rs.getTimestamp("built_at") == null ? null : rs.getTimestamp("built_at").toInstant());
         return row;
+    }
+
+    /** A GeoJSON geometry object from {@code ST_AsGeoJSON} text, or null. */
+    private Map<String, Object> geoJson(String text) {
+        return text == null ? null : json.readValue(text, MAP);
     }
 
     private Map<String, Object> edge(ResultSet rs) throws SQLException {

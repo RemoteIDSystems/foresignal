@@ -1,5 +1,7 @@
 package ai.foresignal.api;
 
+import ai.foresignal.api.error.ConflictException;
+import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.support.QueryParams;
 import ai.foresignal.infra.InfraBuildEntity;
 import ai.foresignal.infra.InfraGraphBuilder;
@@ -29,7 +31,8 @@ import tools.jackson.databind.JsonNode;
 
 /**
  * The infrastructure graph API (prompt 104). Reads serve only the current (newest successful)
- * build; {@code POST /v1/infra/rebuild} answers 202 at once and builds in the background.
+ * build; {@code POST /v1/infra/rebuild} answers 202 at once and builds in the background, or 409
+ * {@code INFRA_REBUILD_RUNNING} while a build is already running.
  */
 @RestController
 @Tag(name = "Infrastructure")
@@ -152,12 +155,21 @@ public class InfraController {
         return out;
     }
 
-    /** {@code rebuildInfraGraph}: 202 with the running build; the build runs in the background. */
+    /**
+     * {@code rebuildInfraGraph}: 202 with the new build, which runs in the background.
+     *
+     * @throws ConflictException 409 {@code INFRA_REBUILD_RUNNING} while a build is already running
+     */
     @PostMapping("/rebuild")
     @ResponseStatus(HttpStatus.ACCEPTED)
     @Operation(operationId = "rebuildInfraGraph", tags = "Infrastructure")
     public Map<String, Object> rebuildInfraGraph() {
-        return build(rebuilds.requestRebuild());
+        InfraGraphBuilder.Started started = rebuilds.startRebuild();
+        if (!started.created()) {
+            throw new ConflictException(ErrorCodes.INFRA_REBUILD_RUNNING,
+                    "An infrastructure graph build is already running: " + started.build().getId());
+        }
+        return build(started.build());
     }
 
     /** The API shape of a build record. */

@@ -60,6 +60,16 @@ public class InfraRebuildScheduler implements ChangeListener {
 
     /** Requests a rebuild: the running build when there is one, else a new build queued on the worker. */
     public InfraBuildEntity requestRebuild() {
+        return startRebuild().build();
+    }
+
+    /**
+     * Requests a rebuild and says whether it started one.
+     *
+     * @return the new build queued on the worker ({@code created} true), or the build already running
+     *     ({@code created} false, nothing queued)
+     */
+    public InfraGraphBuilder.Started startRebuild() {
         InfraGraphBuilder.Started started = builder.start();
         if (started.created()) {
             long id = started.build().getId();
@@ -71,7 +81,7 @@ public class InfraRebuildScheduler implements ChangeListener {
                 }
             });
         }
-        return started.build();
+        return started;
     }
 
     /** Subscribes to committed batches once the application is ready. */

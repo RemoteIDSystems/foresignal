@@ -462,6 +462,11 @@
         "version": "1.3.0",
         "date": "2026-10-16",
         "note": "110 (post-review): updateSink merges secrets (null removes one; omitted ones are kept). SinkStatus.clients.rejected also counts connections refused by the maxClients cap; readsb-json applies the peer check and maxClients too. cloudevents re-checks its URL on every delivery and honors Retry-After; CHANGE_FEED sinks skip (and count) records the egress policy refuses instead of stalling."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-16",
+        "note": "104 (post-review): rebuildInfraGraph's 409 names its problem code, INFRA_REBUILD_RUNNING (added to Problem's error codes), with an example; the server now answers 409 instead of 202 while a build is already running."
       }
     ]
   },
@@ -40810,11 +40815,18 @@
             }
           },
           "409": {
-            "description": "A build is already running",
+            "description": "A build is already running (INFRA_REBUILD_RUNNING)",
             "content": {
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
+                },
+                "example": {
+                  "type": "https://foresignal.ai/problems/infra-rebuild-running",
+                  "title": "Conflict",
+                  "status": 409,
+                  "detail": "An infrastructure graph build is already running: 42",
+                  "code": "INFRA_REBUILD_RUNNING"
                 }
               }
             }
@@ -86926,6 +86938,12 @@
             "code": "MESH_PUBLIC_CHANNEL",
             "status": 400,
             "prompt": "084"
+          },
+          {
+            "code": "INFRA_REBUILD_RUNNING",
+            "status": 409,
+            "prompt": "104",
+            "note": "rebuildInfraGraph while a build is already running"
           }
         ]
       },

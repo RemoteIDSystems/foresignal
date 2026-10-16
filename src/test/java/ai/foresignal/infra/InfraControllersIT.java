@@ -84,7 +84,11 @@ class InfraControllersIT {
         assertThat((List<String>) edges.get("attribution")).contains("© OpenStreetMap contributors");
 
         long nodeId = ((Number) ((List<Map<String, Object>>) page.get("items")).getFirst().get("id")).longValue();
-        assertThat(infra.getInfraNode(nodeId)).containsKeys("outEdges", "inEdges", "attribution");
+        Map<String, Object> node = infra.getInfraNode(nodeId);
+        assertThat(node).containsKeys("edges", "attribution", "geometry");
+        assertThat((Map<String, Object>) node.get("edges")).containsKeys("in", "out");
+        assertThat((Map<String, Object>) node.get("geometry")).containsKey("type").containsKey("coordinates");
+        assertThat((Map<String, Object>) node.get("point")).containsEntry("type", "Point");
         assertThat(first.getId()).isLessThan(second.getId());
     }
 
