@@ -4989,10 +4989,10 @@ Ed25519PublicKey.from_public_bytes(b64url(jwk_["x"])).verify(
 
 Outbound sinks let existing ecosystems consume Foresignal with no new client code. Each sink is created
 disabled (`POST /v1/sinks` with `enabled=false` unless set true); enabling starts it on its own virtual
-thread with a durable cursor under `sink`/`sink_cursor`. Every record passes the licence egress guard
-(109): `opensky-states`, `acled` and `aisstream` records are **never** re-served, and `LOCAL_ONLY`
-records (the operator's own receivers, and MLAT positions) reach only SERVE sinks bound to loopback or a
-private address. Private sources need `filter.includePrivate=true` **and** a local target.
+thread with a durable cursor under `sink`/`sink_cursor`. Sinks are an egress path like any other: every
+record goes through `EgressPolicy` (the one egress decision, 109) on `SINK_SERVE_LAN` (SERVE sinks) or
+`SINK_PUSH` (PUSH sinks), so the private flag, the descriptor's `egress` (with your overrides), the MLAT
+rule and the license table all apply.
 
 | Type | Kind | Mode | Client setup |
 |---|---|---|---|
@@ -5004,10 +5004,54 @@ private address. Private sources need `filter.includePrivate=true` **and** a loc
 | `aprs-is-serve` | STATE_MIRROR | SERVE | Xastir / YAAC / APRSdroid: APRS-IS server `host:port` |
 | `cloudevents` | CHANGE_FEED | PUSH | HTTP receiver; verify `X-Foresignal-Signature` |
 
+**What never leaves.** OpenSky, ACLED and aisstream records are never re-served on any sink (their terms
+forbid redistribution). `LOCAL_ONLY` records — sources whose descriptor `egress` is `LOCAL_ONLY` (for
+example `eia-petroleum`, even though its license is public domain), the operator's own receivers, records
+whose license is unknown, and every MLAT position — reach only SERVE sinks bound to loopback or a private
+address, never a PUSH sink. Setting an overridable local receiver's egress to `OPEN`
+(`PUT /v1/sources/{id}`) lets its non-MLAT records reach PUSH sinks too. A private source needs
+`filter.includePrivate=true` **and** a local target (a SERVE sink, a PUSH target that resolves to a private
+address, or the CoT LAN multicast group).
+
+**Denied records.** A record the policy refuses is skipped and counted, never retried: a CHANGE_FEED cursor
+moves past it, so one denied record cannot stall the sink or hold back retention. Denials are counted as
+`foresignal.sink.denied{sink,reason}` (reasons `private`, `local-only`, `mlat`, `licence-forbidden`,
+`licence-local-only`, `unregistered`) and shown, per reason and per source, under
+`GET /v1/sinks/{id}/status` → `denied` (written to the cursor every few seconds).
+
+**Filters.** `filter.sources`, `filter.kinds` and `filter.bbox` select records; `filter.placeId` keeps
+records whose geometry intersects the place; `filter.watchlistId` keeps records whose watched identity
+(icao24, registration, callsign, mmsi, imo, read from the payload field the source declares) is on the list,
+or whose external id is on a `custom` list. A filter that names a deleted place or list matches nothing.
+
+**Delivery and resync.**
+
+- *CHANGE_FEED* (`cloudevents`): ordered by seq, at least once. The cursor is persisted after every
+  acknowledged batch (`config.batchSize` 1–100; above 1 the body is `application/cloudevents-batch+json`). A
+  new sink, a sink whose cursor fell below the purge horizon, and `POST /v1/sinks/{id}/resync` first replay
+  current state as `ai.foresignal.record.snapshot` events, then continue with changes after the snapshot.
+  A 2xx acknowledges; 429 and 5xx back off (honoring `Retry-After`), other 4xx mark the sink `FAILING`;
+  neither advances the cursor. The URL is re-checked against the outbound URL policy on every delivery,
+  and the request goes to the address that check resolved.
+- *STATE_MIRROR*: a snapshot of current state, then persisted changes and live updates. An update older
+  than the mirrored `observedAt` is ignored (counted as `dropped`); tombstones and records past
+  `validUntil` are removed; a record that leaves the filter is removed. A live-bus overflow, a change-feed
+  gap or `POST /v1/sinks/{id}/resync` drops the mirror and snapshots again. `mqtt-state` republishes its
+  retained topics after a broker reconnect.
+- A failing sink restarts with backoff (5 s doubling to 5 min) and raises one `system.sink_failing`
+  notification after 10 minutes of failure.
+
 **SERVE binding.** A SERVE sink must set `config.port` (there is no default). `config.bind` defaults to
 `127.0.0.1`; only loopback, RFC 1918, link-local or ULA are accepted, `100.64.0.0/10` only with
-`allowTailnet=true`, and `0.0.0.0` only with `allowAllInterfaces=true` (then every peer is re-checked).
-`maxClients` defaults to 8. In Docker, publish the port, e.g.:
+`allowTailnet=true`, and `0.0.0.0` only with `allowAllInterfaces=true` (then every connecting peer must
+pass the same check, for the TCP types and for `readsb-json` alike). `maxClients` defaults to 8; further
+connections are refused (HTTP: `503`) and counted under `clients.rejected`. TCP clients that do not read
+fast enough are disconnected rather than allowed to stall the sink, and a client line longer than 1 KiB
+closes the connection. `aprs-is-serve` sends a `#` keepalive comment every 20 s and discards everything
+clients send. CoT PUSH sends only to a LAN-scoped multicast group (`239.0.0.0/8`, `224.0.0.0/24`, or IPv6
+link/site/organization scope) with TTL 1.
+
+In Docker, publish the port, e.g.:
 
 ```yaml
 services:
@@ -5016,6 +5060,13 @@ services:
       - "${FORESIGNAL_SINK_BIND:-127.0.0.1}:8081:8081"
 ```
 
-**Licence exclusions.** OpenSky, ACLED and aisstream are never re-served on any sink; local-receiver and
-MLAT records only on a loopback/private SERVE sink. Denials are counted as
-`foresignal.sink.denied{sink,reason}` and shown under `GET /v1/sinks/{id}/status.denied`.
+**Docker NAT and the peer check.** With Docker's default bridge network and port publishing, connections
+reach the container from the bridge gateway (for example `172.17.0.1`), not from the real client, so the
+per-peer check sees a private address for every client: `allowAllInterfaces` then admits anyone who can
+reach the published port. Restrict exposure with the host side of the `ports:` entry
+(`FORESIGNAL_SINK_BIND`) or a host firewall, or run with `network_mode: host` so the real peer address is
+visible.
+
+**Secrets.** Secrets (`secrets` on create and update) are write-only and encrypted at rest; responses list
+only their names (`secretsSet`). An update merges them: a field with a value sets it, `null` removes it, and
+an omitted field keeps its stored value.

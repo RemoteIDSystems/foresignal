@@ -87,17 +87,44 @@ public class MqttStateSinkType implements SinkType {
                 config.config("protocolVersion", "5"), config.secrets().get("username"),
                 config.secrets().get("password"), config.secrets().get("caCertPem"), prefix + "/status",
                 MqttSessionOptions.defaults(), Map.of());
-        MqttConnection connection = connections.open(spec, () -> {
-        });
         boolean changes = config.boolConfig("changesTopic", false);
-        return new Instance(connection, prefix, changes);
+        java.util.concurrent.atomic.AtomicReference<Instance> holder = new java.util.concurrent.atomic.AtomicReference<>();
+        MqttConnection connection = connections.open(spec, () -> {
+            Instance instance = holder.get();
+            if (instance != null) {
+                instance.republish();
+            }
+        });
+        Instance instance = new Instance(connection, prefix, changes);
+        holder.set(instance);
+        // Publishing fails at once while disconnected, so the snapshot must not start before the first connect.
+        try {
+            connection.connectedFuture().get(CONNECT_TIMEOUT.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            connection.close();
+            throw new IllegalStateException("interrupted while connecting to the MQTT broker", e);
+        } catch (java.util.concurrent.ExecutionException | java.util.concurrent.TimeoutException e) {
+            connection.close();
+            throw new IllegalStateException("could not connect to the MQTT broker: "
+                    + (connection.lastError() == null ? e.getClass().getSimpleName() : connection.lastError()), e);
+        }
+        return instance;
     }
 
-    /** The running instance. */
+    /** How long {@link #open} waits for the first connect before the supervisor backs off. */
+    static final java.time.Duration CONNECT_TIMEOUT = java.time.Duration.ofSeconds(15);
+
+    /**
+     * The running instance. It keeps the last state payload per topic and republishes all of them after every
+     * reconnect, because the 060 client refuses to publish while disconnected and an update made meanwhile would
+     * otherwise never reach the broker's retained copy.
+     */
     private static final class Instance implements SinkInstance {
         private final MqttConnection connection;
         private final String prefix;
         private final boolean changes;
+        private final Map<String, byte[]> state = new java.util.concurrent.ConcurrentHashMap<>();
 
         Instance(MqttConnection connection, String prefix, boolean changes) {
             this.connection = connection;
@@ -107,21 +134,37 @@ public class MqttStateSinkType implements SinkType {
 
         @Override
         public void upsert(SinkRecord record) {
-            String topic = prefix + "/state/" + SinkSupport.segment(record.sourceId()) + "/"
-                    + SinkSupport.segment(record.externalId());
-            connection.publish(new MqttMessage(topic,
-                    JSON.writeValueAsBytes(SinkSupport.statePayload(record)), 1, true, null, MqttMessage.JSON));
+            String topic = topic(record.sourceId(), record.externalId());
+            byte[] payload = JSON.writeValueAsBytes(SinkSupport.statePayload(record));
+            state.put(topic, payload);
+            connection.publish(new MqttMessage(topic, payload, 1, true, null, MqttMessage.JSON));
             if (changes) {
                 connection.publish(new MqttMessage(prefix + "/changes/" + SinkSupport.segment(record.sourceId()),
-                        JSON.writeValueAsBytes(SinkSupport.statePayload(record)), 1, false, null, MqttMessage.JSON));
+                        payload, 1, false, null, MqttMessage.JSON));
             }
         }
 
         @Override
         public void remove(String sourceId, String externalId) {
-            String topic = prefix + "/state/" + SinkSupport.segment(sourceId) + "/"
-                    + SinkSupport.segment(externalId);
+            String topic = topic(sourceId, externalId);
+            state.remove(topic);
             connection.publish(new MqttMessage(topic, new byte[0], 1, true, null, null));
+        }
+
+        @Override
+        public void resync() {
+            state.clear();
+        }
+
+        /** Republishes every retained state after a reconnect. */
+        void republish() {
+            for (Map.Entry<String, byte[]> entry : state.entrySet()) {
+                connection.publish(new MqttMessage(entry.getKey(), entry.getValue(), 1, true, null, MqttMessage.JSON));
+            }
+        }
+
+        private String topic(String sourceId, String externalId) {
+            return prefix + "/state/" + SinkSupport.segment(sourceId) + "/" + SinkSupport.segment(externalId);
         }
 
         @Override

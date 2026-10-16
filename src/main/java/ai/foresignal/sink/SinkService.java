@@ -153,7 +153,7 @@ public class SinkService {
         }
         Map<String, Object> config = body.has("config")
                 ? map(body.get("config")) : new LinkedHashMap<>(sink.getConfig());
-        Map<String, String> secrets = body.has("secrets") ? secretMap(body.get("secrets")) : stored;
+        Map<String, String> secrets = body.has("secrets") ? mergeSecrets(stored, body.get("secrets")) : stored;
         for (String field : secrets.keySet()) {
             if (!type.spec().secretFields().contains(field)) {
                 errors.add(new FieldError("secrets." + field, "is not a secret field of " + type.id()));
@@ -211,20 +211,25 @@ public class SinkService {
         return tools.jackson.databind.json.JsonMapper.builder().build().convertValue(node, Map.class);
     }
 
-    @SuppressWarnings("unchecked")
-    private static Map<String, String> secretMap(JsonNode node) {
+    /**
+     * Merges a {@code secrets} body into the stored secrets (secrets are write-only, so a client cannot resend
+     * what it never sees): a field with a value sets it, a field set to {@code null} removes it, and an omitted
+     * field keeps its stored value. {@code "secrets": null} removes every secret.
+     */
+    static Map<String, String> mergeSecrets(Map<String, String> stored, JsonNode node) {
         if (node == null || node.isNull()) {
             return Map.of();
         }
         if (!node.isObject()) {
             throw ValidationException.forField("secrets", "must be an object");
         }
-        Map<String, Object> raw = tools.jackson.databind.json.JsonMapper.builder().build().convertValue(node,
-                Map.class);
-        Map<String, String> out = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> e : raw.entrySet()) {
-            if (e.getValue() != null) {
-                out.put(e.getKey(), String.valueOf(e.getValue()));
+        Map<String, String> out = new LinkedHashMap<>(stored == null ? Map.of() : stored);
+        for (String field : node.propertyNames()) {
+            JsonNode value = node.get(field);
+            if (value == null || value.isNull()) {
+                out.remove(field);
+            } else {
+                out.put(field, value.isString() ? value.asString() : value.toString());
             }
         }
         return out;

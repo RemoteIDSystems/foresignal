@@ -37,17 +37,34 @@ public final class SbsEncoder {
         StringBuilder out = new StringBuilder("MSG,").append(type).append(",1,1,").append(hex == null ? "" : hex)
                 .append(",1,").append(DATE.format(at)).append(',').append(TIME.format(at)).append(',')
                 .append(DATE.format(at)).append(',').append(TIME.format(at)).append(',')
-                .append(callsign == null ? "" : callsign.strip()).append(',')
+                .append(field(callsign)).append(',')
                 .append(alt == null ? "" : alt).append(',')
                 .append(fmt(gs)).append(',')
                 .append(fmt(track)).append(',')
                 .append(lat == null ? "" : fmt(lat)).append(',')
                 .append(lon == null ? "" : fmt(lon)).append(',')
                 .append(vrate == null ? "" : vrate).append(',')
-                .append(squawk == null ? "" : squawk).append(',')
+                .append(field(squawk)).append(',')
                 .append("0,0,0,")
                 .append(onGround == null ? "" : (onGround ? "-1" : "0"));
         return out.toString();
+    }
+
+    /**
+     * A free-text field made safe for the comma-separated, CRLF-terminated BaseStation format, which has no
+     * quoting: commas, CR, LF and other control characters become spaces, then the value is trimmed. An upstream
+     * callsign can therefore never add a column or start a new message.
+     */
+    static String field(String value) {
+        if (value == null) {
+            return "";
+        }
+        StringBuilder out = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            out.append(c == ',' || Character.isISOControl(c) ? ' ' : c);
+        }
+        return out.toString().strip();
     }
 
     private static String fmt(Double value) {

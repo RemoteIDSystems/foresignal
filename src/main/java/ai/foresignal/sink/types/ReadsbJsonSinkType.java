@@ -73,13 +73,25 @@ public class ReadsbJsonSinkType implements SinkType {
         Double lon = config.config("lon") == null ? null : Double.parseDouble(config.config("lon"));
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress(serve.bind(), serve.port()), 0);
-            Instance instance = new Instance(server, publishStation, lat, lon);
-            server.createContext("/data/aircraft.json", exchange -> instance.aircraft(exchange));
-            server.createContext("/data/receiver.json", exchange -> instance.receiver(exchange));
+            Instance instance = new Instance(server, publishStation, lat, lon, guard, serve.allowTailnet(),
+                    serve.maxClients());
+            server.createContext("/data/aircraft.json", exchange -> instance.guarded(exchange, instance::aircraft));
+            server.createContext("/data/receiver.json", exchange -> instance.guarded(exchange, instance::receiver));
+            server.setExecutor(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor());
             server.start();
             return instance;
         } catch (IOException e) {
             throw new java.io.UncheckedIOException("Could not bind the readsb-json HTTP server", e);
+        }
+    }
+
+    /** The entity tag of a body: {@code "<tag>-<first 16 hex digits of SHA-256(body)>"}. */
+    static String etag(String tag, byte[] body) {
+        try {
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(body);
+            return "\"" + tag + "-" + java.util.HexFormat.of().formatHex(digest, 0, 8) + "\"";
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is unavailable", e);
         }
     }
 
@@ -90,12 +102,87 @@ public class ReadsbJsonSinkType implements SinkType {
         private final Double lat;
         private final Double lon;
         private final Map<String, SinkRecord> byHex = new ConcurrentHashMap<>();
+        private final ServeGuard guard;
+        private final boolean allowTailnet;
+        private final int maxClients;
+        private final java.util.concurrent.Semaphore inFlight;
+        private final java.util.concurrent.atomic.AtomicLong rejected = new java.util.concurrent.atomic.AtomicLong();
+        private final Map<String, Instant> recentPeers = new ConcurrentHashMap<>();
 
-        Instance(HttpServer server, boolean publishStation, Double lat, Double lon) {
+        Instance(HttpServer server, boolean publishStation, Double lat, Double lon, ServeGuard guard,
+                boolean allowTailnet, int maxClients) {
             this.server = server;
             this.publishStation = publishStation;
             this.lat = lat;
             this.lon = lon;
+            this.guard = guard;
+            this.allowTailnet = allowTailnet;
+            this.maxClients = Math.max(1, maxClients);
+            this.inFlight = new java.util.concurrent.Semaphore(this.maxClients);
+        }
+
+        /** An HTTP handler body that may throw {@link IOException}. */
+        @FunctionalInterface
+        interface Handler {
+            void handle(HttpExchange exchange) throws IOException;
+        }
+
+        /**
+         * The SERVE safety rules for HTTP (prompt 110, task 3), which the JDK {@code HttpServer} does not apply
+         * itself: a peer that fails {@link ServeGuard#allowedPeer} is disconnected without a response (it matters
+         * when {@code allowAllInterfaces} binds 0.0.0.0), and at most {@code maxClients} requests are served at once
+         * ({@code 503} beyond that). Both refusals count in {@link #rejected()}.
+         */
+        void guarded(HttpExchange exchange, Handler handler) throws IOException {
+            java.net.InetAddress peer = exchange.getRemoteAddress() == null ? null
+                    : exchange.getRemoteAddress().getAddress();
+            if (!guard.allowedPeer(peer, allowTailnet)) {
+                rejected.incrementAndGet();
+                exchange.close();
+                return;
+            }
+            if (!inFlight.tryAcquire()) {
+                rejected.incrementAndGet();
+                exchange.getResponseHeaders().set("Retry-After", "1");
+                exchange.sendResponseHeaders(503, -1);
+                exchange.close();
+                return;
+            }
+            try {
+                recentPeers.put(peer.getHostAddress(), Instant.now());
+                handler.handle(exchange);
+            } finally {
+                inFlight.release();
+                exchange.close();
+            }
+        }
+
+        @Override
+        public int clients() {
+            Instant cutoff = Instant.now().minusSeconds(60);
+            recentPeers.values().removeIf(seen -> seen.isBefore(cutoff));
+            return recentPeers.size();
+        }
+
+        @Override
+        public int maxClients() {
+            return maxClients;
+        }
+
+        @Override
+        public long rejected() {
+            return rejected.get();
+        }
+
+        @Override
+        public List<SinkInstance.Peer> peers() {
+            clients();
+            return recentPeers.entrySet().stream().map(e -> new SinkInstance.Peer(e.getKey(), e.getValue())).toList();
+        }
+
+        @Override
+        public void resync() {
+            byHex.clear();
         }
 
         @Override
@@ -141,11 +228,20 @@ public class ReadsbJsonSinkType implements SinkType {
             out.put("category", record.string("category"));
             out.put("lat", record.lat());
             out.put("lon", record.lon());
-            out.put("seen", 0.0);
-            out.put("seen_pos", 0.0);
+            out.put("seen", seen(record));
+            out.put("seen_pos", record.hasPoint() ? seen(record) : null);
             out.put("type", SinkSupport.readsbType(record));
             out.put("sources", record.properties() == null ? List.of() : record.properties().getOrDefault("sources", List.of()));
             return out;
+        }
+
+        /** Seconds since the record was observed (readsb {@code seen}), rounded to tenths; 0 when unknown. */
+        static double seen(SinkRecord record) {
+            if (record.observedAt() == null) {
+                return 0.0;
+            }
+            double seconds = (System.currentTimeMillis() - record.observedAt().toEpochMilli()) / 1000.0;
+            return Math.max(0.0, Math.round(seconds * 10) / 10.0);
         }
 
         private static Object altitude(SinkRecord record) {
@@ -176,10 +272,20 @@ public class ReadsbJsonSinkType implements SinkType {
             write(exchange, JSON.writeValueAsBytes(body), "receiver");
         }
 
-        private static void write(HttpExchange exchange, byte[] body, String tag) throws IOException {
+        /**
+         * Writes a JSON body with {@code Cache-Control: no-cache} and a strong {@code ETag} over the body (the
+         * SHA-256 of its bytes, truncated), answering {@code 304} to a matching {@code If-None-Match}.
+         */
+        static void write(HttpExchange exchange, byte[] body, String tag) throws IOException {
+            String etag = etag(tag, body);
             exchange.getResponseHeaders().set("Content-Type", "application/json");
             exchange.getResponseHeaders().set("Cache-Control", "no-cache");
-            exchange.getResponseHeaders().set("ETag", "\"foresignal-" + tag + "\"");
+            exchange.getResponseHeaders().set("ETag", etag);
+            String ifNoneMatch = exchange.getRequestHeaders().getFirst("If-None-Match");
+            if (ifNoneMatch != null && (ifNoneMatch.contains(etag) || ifNoneMatch.strip().equals("*"))) {
+                exchange.sendResponseHeaders(304, -1);
+                return;
+            }
             exchange.sendResponseHeaders(200, body.length);
             try (OutputStream out = exchange.getResponseBody()) {
                 out.write(body);

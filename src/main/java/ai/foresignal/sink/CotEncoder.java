@@ -60,8 +60,39 @@ public final class CotEncoder {
         return String.format(Locale.ROOT, "%.6f", value).replaceAll("0+$", "").replaceAll("\\.$", "");
     }
 
-    private static String esc(String value) {
-        return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
+    /** Knots to metres per second (CoT {@code track/@speed} is m/s; Foresignal aircraft and AIS speeds are knots). */
+    public static final double KNOTS_TO_MS = 0.514444;
+
+    /**
+     * XML-escapes {@code value} after removing every character XML 1.0 does not allow (C0 controls other than
+     * tab, LF and CR, unpaired surrogates, U+FFFE and U+FFFF), so an upstream callsign or title can never make the
+     * event unparseable.
+     */
+    static String esc(String value) {
+        return stripInvalidXml(value).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
                 .replace("'", "&apos;");
+    }
+
+    /** {@code value} without the characters XML 1.0 forbids. */
+    static String stripInvalidXml(String value) {
+        StringBuilder out = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (Character.isHighSurrogate(c)) {
+                if (i + 1 < value.length() && Character.isLowSurrogate(value.charAt(i + 1))) {
+                    out.append(c).append(value.charAt(++i));
+                }
+                continue;
+            }
+            if (Character.isLowSurrogate(c)) {
+                continue;
+            }
+            boolean allowed = c == 0x9 || c == 0xA || c == 0xD || (c >= 0x20 && c <= 0xD7FF)
+                    || (c >= 0xE000 && c <= 0xFFFD);
+            if (allowed) {
+                out.append(c);
+            }
+        }
+        return out.toString();
     }
 }

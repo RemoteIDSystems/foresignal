@@ -9,7 +9,7 @@ public final class SinkSupport {
 
     private SinkSupport() {}
 
-    /** Sanitises an MQTT topic segment to {@code [A-Za-z0-9_-]}. */
+    /** Sanitizes an MQTT topic segment to {@code [A-Za-z0-9_-]}. */
     public static String segment(String value) {
         return value == null ? "_" : value.replaceAll("[^A-Za-z0-9_-]", "_");
     }

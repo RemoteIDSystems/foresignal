@@ -35,4 +35,24 @@ class CotEncoderTest {
         assertThat(xml).contains("&amp;b=2");
         assertThat(xml).doesNotContain("&b=2\"");
     }
+
+    @Test
+    @DisplayName("characters XML 1.0 forbids are stripped before escaping; valid surrogate pairs are kept")
+    void invalidXmlStripped() {
+        assertThat(CotEncoder.esc("A\u0000B\u0007C\u001BD")).isEqualTo("ABCD");
+        assertThat(CotEncoder.esc("tab\there\nnl")).isEqualTo("tab\there\nnl");
+        assertThat(CotEncoder.esc("x\uD800y")).as("unpaired high surrogate").isEqualTo("xy");
+        assertThat(CotEncoder.esc("x\uDC00y")).as("unpaired low surrogate").isEqualTo("xy");
+        assertThat(CotEncoder.esc("🚀")).as("a valid pair").isEqualTo("🚀");
+        assertThat(CotEncoder.esc("￾<&>")).isEqualTo("&lt;&amp;&gt;");
+        String xml = CotEncoder.event("u\u0001id", "a-u-G", 1, 2, Instant.EPOCH, Instant.EPOCH, "CALL\u0002", null,
+                null, "bad\u0003remark", null);
+        assertThat(xml).doesNotContain("\u0001", "\u0002", "\u0003").contains("uid=\"uid\"", "callsign=\"CALL\"");
+    }
+
+    @Test
+    @DisplayName("knots convert to the m/s CoT expects")
+    void knots() {
+        assertThat(100 * CotEncoder.KNOTS_TO_MS).isEqualTo(51.4444, org.assertj.core.data.Offset.offset(1e-4));
+    }
 }

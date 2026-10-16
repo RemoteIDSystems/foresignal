@@ -442,6 +442,11 @@
         "version": "1.3.0",
         "date": "2026-10-16",
         "note": "109 (post-review): new updateToken (PATCH /v1/tokens/{tokenId}, admin) replaces a token's licencePolicy floor. Private sources are excluded on every egress path except API reads, tiles, SSE and MCP for permitted callers and the operator-owned archive; exports need admin plus includePrivate, sinks includePrivate plus a local target. EXPORT is licence-guarded (LOCAL_ONLY/FORBIDDEN need personalUse). Record reads vary on Foresignal-Licence-Policy; tiles, SSE and the change feed send Foresignal-Licence-Filtered (the number of sources the policy pruned). Briefing runs carry a signature."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-16",
+        "note": "110 (post-review): updateSink merges secrets (null removes one; omitted ones are kept). SinkStatus.clients.rejected also counts connections refused by the maxClients cap; readsb-json applies the peer check and maxClients too. cloudevents re-checks its URL on every delivery and honors Retry-After; CHANGE_FEED sinks skip (and count) records the egress policy refuses instead of stalling."
       }
     ]
   },
@@ -124527,7 +124532,7 @@
       },
       "SinkUpdate": {
         "type": "object",
-        "description": "Replace a sink's settings; omitted secrets keep their stored values (110)",
+        "description": "Replace a sink's settings. Secrets are merged, not replaced: a field with a value sets it, a field set to null removes it, an omitted field keeps its stored value, and `\"secrets\": null` removes every secret (110)",
         "properties": {
           "name": {
             "type": "string",
@@ -124543,9 +124548,15 @@
             "description": "Per-type settings validated against SinkType.configSchema. Common keys: `mode` (PUSH|SERVE where the type supports both), `bind` (default 127.0.0.1; loopback, RFC 1918, link-local, ULA, or 100.64.0.0/10 with `allowTailnet`), `port` (required for SERVE, no default), `allowAllInterfaces`, `maxClients` (default 8), `maxPerSecond`; broker and target URLs pass the outbound URL policy (035)."
           },
           "secrets": {
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "additionalProperties": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "writeOnly": true
           },
@@ -124845,7 +124856,7 @@
                   "rejected": {
                     "type": "integer",
                     "format": "int64",
-                    "description": "Connections closed because the peer address was not allowed"
+                    "description": "Connections closed because the peer address was not allowed or the maxClients cap was reached"
                   },
                   "peers": {
                     "type": "array",
