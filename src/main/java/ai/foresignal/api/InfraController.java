@@ -8,7 +8,8 @@ import ai.foresignal.infra.InfraGraphBuilder;
 import ai.foresignal.infra.InfraImpactService;
 import ai.foresignal.infra.InfraNodeQuery;
 import ai.foresignal.infra.InfraRebuildScheduler;
-import ai.foresignal.security.CurrentToken;
+import ai.foresignal.intel.IntelEventService;
+import ai.foresignal.intel.IntelVisibility;
 import ai.foresignal.source.spi.Geo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -44,15 +45,19 @@ public class InfraController {
     private final InfraRebuildScheduler rebuilds;
     private final InfraImpactService impact;
     private final InfraNodeQuery query;
+    private final IntelEventService events;
+    private final IntelVisibility visibility;
 
     /** Creates the controller. */
     public InfraController(JdbcTemplate jdbc, InfraGraphBuilder builder, InfraRebuildScheduler rebuilds,
-            InfraImpactService impact, InfraNodeQuery query) {
+            InfraImpactService impact, InfraNodeQuery query, IntelEventService events, IntelVisibility visibility) {
         this.jdbc = jdbc;
         this.builder = builder;
         this.rebuilds = rebuilds;
         this.impact = impact;
         this.query = query;
+        this.events = events;
+        this.visibility = visibility;
     }
 
     /** {@code listInfraNodes}. */
@@ -90,8 +95,7 @@ public class InfraController {
     @PostMapping("/affected")
     @Operation(operationId = "computeAffectedInfrastructure", tags = "Infrastructure")
     public Map<String, Object> computeAffectedInfrastructure(@RequestBody JsonNode body, HttpServletRequest request) {
-        boolean privateAccess = CurrentToken.of(request).map(CurrentToken::privateAccess).orElse(false);
-        InfraImpactService.Seed seed = seed(impact, body, privateAccess);
+        InfraImpactService.Seed seed = seed(impact, body, events, visibility.seesPrivate(request));
         int depth = body.path("depth").asInt(2);
         String minLabel = body.path("minLabel").asString("possible");
         List<String> types = new ArrayList<>();
@@ -104,10 +108,19 @@ public class InfraController {
     }
 
     /**
-     * The seed of an affected-dependents request: exactly one of {@code geometry}, {@code eventId}
-     * (a private event needs the private grant) or {@code record {sourceId, externalId}}.
+     * The seed of an affected-dependents request: exactly one of {@code geometry}, {@code eventId} or
+     * {@code record {sourceId, externalId}}. The event is read through the shared visibility rule
+     * ({@link IntelEventService#visible}), so a hidden or missing event answers {@code 404 UNKNOWN_EVENT}
+     * exactly as the intel endpoints do.
+     *
+     * @param impact the impact service
+     * @param body the request body or tool arguments
+     * @param events the intelligence events
+     * @param seesPrivate the caller may see private events ({@link IntelVisibility#seesPrivate})
+     * @return the seed
      */
-    public static InfraImpactService.Seed seed(InfraImpactService impact, JsonNode body, boolean privateAccess) {
+    public static InfraImpactService.Seed seed(InfraImpactService impact, JsonNode body, IntelEventService events,
+            boolean seesPrivate) {
         int given = (body.hasNonNull("geometry") ? 1 : 0) + (body.hasNonNull("eventId") ? 1 : 0)
                 + (body.hasNonNull("record") ? 1 : 0);
         if (given != 1) {
@@ -118,7 +131,7 @@ public class InfraController {
             return new InfraImpactService.Seed(Geo.fromGeoJson(body.get("geometry").toString()), false, "geometry");
         }
         if (body.hasNonNull("eventId")) {
-            return impact.eventSeed(body.get("eventId").asString(), privateAccess);
+            return impact.eventSeed(events.visible(body.get("eventId").asString(), seesPrivate));
         }
         JsonNode record = body.get("record");
         if (!record.hasNonNull("sourceId") || !record.hasNonNull("externalId")) {

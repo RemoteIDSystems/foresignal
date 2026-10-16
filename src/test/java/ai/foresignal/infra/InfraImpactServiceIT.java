@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import ai.foresignal.api.error.ConflictException;
 import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.error.ValidationException;
+import ai.foresignal.intel.IntelEventService;
 import ai.foresignal.intel.IntelligenceEventEntity;
 import ai.foresignal.intel.IntelligenceEventRepository;
 import ai.foresignal.security.Ulids;
@@ -35,6 +36,7 @@ class InfraImpactServiceIT {
     @Autowired TestRecords records;
     @Autowired MutableClock clock;
     @Autowired IntelligenceEventRepository events;
+    @Autowired IntelEventService intel;
 
     @Test
     @DisplayName("409 before the first build")
@@ -82,7 +84,7 @@ class InfraImpactServiceIT {
     }
 
     @Test
-    @DisplayName("a private event is not usable without the private grant")
+    @DisplayName("a private event is not usable without the private grant (the shared intel visibility rule)")
     void privateEvent() {
         InfraGraphBuilderIT.seed(records, clock);
         builder.rebuild(Map.of());
@@ -92,9 +94,11 @@ class InfraImpactServiceIT {
         event.setCreatedAt(clock.instant());
         event.setUpdatedAt(clock.instant());
         events.save(event);
-        assertThatThrownBy(() -> impact.eventSeed(event.getId(), false)).isInstanceOf(NotFoundException.class);
-        assertThatThrownBy(() -> impact.eventSeed("01NOSUCHEVENT0000000000000", true))
+        assertThatThrownBy(() -> intel.visible(event.getId(), false)).isInstanceOf(NotFoundException.class);
+        assertThatThrownBy(() -> intel.visible("01NOSUCHEVENT0000000000000", true))
                 .isInstanceOf(NotFoundException.class);
+        assertThatThrownBy(() -> impact.eventSeed(intel.visible(event.getId(), true)))
+                .as("a visible event without an area").isInstanceOf(ValidationException.class);
     }
 
     @Test

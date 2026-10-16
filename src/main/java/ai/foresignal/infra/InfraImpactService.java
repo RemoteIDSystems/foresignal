@@ -4,6 +4,7 @@ import ai.foresignal.api.error.ConflictException;
 import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.error.ValidationException;
+import ai.foresignal.intel.IntelligenceEventEntity;
 import ai.foresignal.provenance.AttributionService;
 import ai.foresignal.source.spi.Geo;
 import java.util.ArrayList;
@@ -104,19 +105,16 @@ public class InfraImpactService {
     }
 
     /**
-     * The area of an intelligence event.
+     * The area of an intelligence event the caller may see. The caller resolves the event through the shared
+     * visibility rule ({@code IntelEventService.visible}, {@code 404 UNKNOWN_EVENT} for a hidden or missing
+     * event), exactly as the intel endpoints do; this method only reads its area.
      *
-     * @throws NotFoundException {@code UNKNOWN_EVENT} when there is no such event, or it is private and
-     *     the caller lacks the private grant
+     * @param event the visible event
+     * @throws ValidationException when the event has no area
      */
-    public Seed eventSeed(String eventId, boolean privateAccess) {
-        List<Map<String, Object>> rows = jdbc.queryForList("SELECT ST_AsText(geom) AS wkt, private FROM"
-                + " intelligence_event WHERE id = :id", new MapSqlParameterSource("id", eventId));
-        if (rows.isEmpty() || (Boolean.TRUE.equals(rows.getFirst().get("private")) && !privateAccess)) {
-            throw new NotFoundException(ErrorCodes.UNKNOWN_EVENT, "No such intelligence event: " + eventId);
-        }
-        Geometry area = wkt((String) rows.getFirst().get("wkt"));
-        if (area == null) {
+    public Seed eventSeed(IntelligenceEventEntity event) {
+        Geometry area = event.getGeom();
+        if (area == null || area.isEmpty()) {
             throw ValidationException.forField("eventId", "the event has no area");
         }
         return new Seed(area, false, "event");

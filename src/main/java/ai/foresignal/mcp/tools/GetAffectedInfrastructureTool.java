@@ -8,7 +8,8 @@ import static ai.foresignal.mcp.JsonSchemas.string;
 
 import ai.foresignal.api.InfraController;
 import ai.foresignal.infra.InfraImpactService;
-import ai.foresignal.security.CurrentToken;
+import ai.foresignal.intel.IntelEventService;
+import ai.foresignal.intel.IntelVisibility;
 import ai.foresignal.mcp.ForesignalMcpTool;
 import ai.foresignal.mcp.JsonSchemas;
 import ai.foresignal.mcp.McpArgs;
@@ -50,13 +51,17 @@ public class GetAffectedInfrastructureTool implements ForesignalMcpTool {
     private final InfraImpactService impact;
     private final JdbcTemplate jdbc;
     private final tools.jackson.databind.json.JsonMapper json;
+    private final IntelEventService events;
+    private final IntelVisibility visibility;
 
     /** Creates the tool. */
     public GetAffectedInfrastructureTool(InfraImpactService impact, JdbcTemplate jdbc,
-            tools.jackson.databind.json.JsonMapper json) {
+            tools.jackson.databind.json.JsonMapper json, IntelEventService events, IntelVisibility visibility) {
         this.impact = impact;
         this.jdbc = jdbc;
         this.json = json;
+        this.events = events;
+        this.visibility = visibility;
     }
 
     @Override
@@ -95,8 +100,9 @@ public class GetAffectedInfrastructureTool implements ForesignalMcpTool {
         if (!args.hasNonNull("eventId") && !args.hasNonNull("geometry") && !args.hasNonNull("record")) {
             return ToolResult.error("Provide eventId, geometry or record.");
         }
-        boolean privateAccess = context.caller().currentToken().map(CurrentToken::privateAccess).orElse(false);
-        InfraImpactService.Seed seed = InfraController.seed(impact, args, privateAccess);
+        // The shared intel visibility rule (as get_intel_event): a hidden event is UNKNOWN_EVENT.
+        InfraImpactService.Seed seed = InfraController.seed(impact, args, events,
+                visibility.seesPrivate(context.caller()));
         Map<String, Object> result = impact.affected(seed, McpArgs.integer(args, "depth", 2),
                 McpArgs.text(args, "minLabel") == null ? "possible" : McpArgs.text(args, "minLabel"),
                 McpArgs.strings(args, "types"));
