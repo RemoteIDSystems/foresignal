@@ -109,9 +109,31 @@ public abstract class LayerGenerator implements DerivedGenerator, StatefulGenera
         return new DerivedInputs(inputSources(), inputKinds(), Set.of(), tick(), wantsPlaces());
     }
 
+    /**
+     * Startup reconciliation (prompt 099): empties the in-memory state, then hands every live record
+     * of this layer to {@link #adopt}, so a record whose condition no longer holds is still ended by the
+     * layer's own rules instead of being orphaned by the restart.
+     */
     @Override
     public void reconcile(List<HeadSnapshot> ownHeads, DerivedContext ctx) {
         clearState();
+        for (HeadSnapshot head : ownHeads) {
+            if (!head.tombstone()) {
+                adopt(head, ctx);
+            }
+        }
+    }
+
+    /**
+     * Re-adopts one of this layer's live records after {@link #clearState()}. The default keeps the
+     * record as it is; a layer whose records are only ended from its in-memory state overrides this so
+     * the record re-enters that state and its normal refresh-or-tombstone lifecycle applies.
+     *
+     * @param head a live (non-tombstoned) record of this layer
+     * @param ctx the reconcile invocation's context
+     */
+    protected void adopt(HeadSnapshot head, DerivedContext ctx) {
+        // Kept as is by default.
     }
 
     /** Empties the generator's in-memory state. */

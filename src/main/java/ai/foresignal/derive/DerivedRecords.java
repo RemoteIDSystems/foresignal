@@ -40,6 +40,21 @@ public interface DerivedRecords {
     List<HeadSnapshot> current(Collection<String> sources, Collection<String> kinds, org.locationtech.jts.geom.Envelope bbox,
             int limit);
 
+    /**
+     * The current records of the given sources and kinds observed at or after {@code since}, newest
+     * first (prompt 099's observation feed). The time filter is applied in SQL, so a cap never hides a
+     * recent entity behind older ones that happen to sort first.
+     *
+     * @param sources the sources (at least one)
+     * @param kinds the kinds, or empty for every kind
+     * @param bbox the bounding box in 4326, or null for no restriction
+     * @param since the earliest live {@code observed_at}, or null for no lower bound
+     * @param limit the most rows returned
+     * @return at most {@code limit} records, newest {@code observed_at} first
+     */
+    List<HeadSnapshot> currentSince(Collection<String> sources, Collection<String> kinds,
+            org.locationtech.jts.geom.Envelope bbox, java.time.Instant since, int limit);
+
     /** One current record, tombstones included, or empty when the entity has no head. */
     Optional<HeadSnapshot> get(String sourceId, String externalId);
 }

@@ -133,6 +133,10 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
     public void rebuild() {
         List<RuleSpec> compiled = new ArrayList<>();
         for (TriggerRuleEntity rule : repository.findByEnabledTrue()) {
+            if (!ai.foresignal.trigger.window.RuleType.recordEngine(rule.getType())) {
+                // Windowed rules (prompt 100) never gate persistence: they are not per-version edges.
+                continue;
+            }
             try {
                 compiled.add(specs.compile(rule));
             } catch (RuntimeException e) {

@@ -108,7 +108,10 @@ public class DarkVesselMatchGenerator extends LayerGenerator {
             if (gLon == null || gLat == null || gapStart == null) {
                 continue;
             }
-            double reachable = reachableKm(gapStart, now);
+            // The gap window: from its start to its end (now while it is still open), widened by WINDOW.
+            Instant gapEnd = parse(gap.text("gapEnd"));
+            Instant windowEnd = (gapEnd != null ? gapEnd : now).plus(WINDOW);
+            Instant windowStart = gapStart.minus(WINDOW);
             String mmsi = mmsi(gap.externalId());
             for (Observation detection : detections) {
                 Double dLon = detection.longitude();
@@ -116,14 +119,16 @@ public class DarkVesselMatchGenerator extends LayerGenerator {
                 if (dLon == null || dLat == null || detection.observedAt() == null) {
                     continue;
                 }
+                Instant seenAt = detection.observedAt();
+                if (seenAt.isBefore(windowStart) || seenAt.isAfter(windowEnd)) {
+                    continue;
+                }
+                // Reachable from the last fix by the time of the detection, not by the time of the tick.
                 double distance = Geo.haversineKm(gLat, gLon, dLat, dLon);
-                if (distance > reachable) {
+                if (distance > reachableKm(gapStart, seenAt)) {
                     continue;
                 }
-                double offsetHours = Duration.between(gapStart, detection.observedAt()).toMinutes() / 60.0;
-                if (Math.abs(offsetHours) > WINDOW.toHours()) {
-                    continue;
-                }
+                double offsetHours = Duration.between(gapStart, seenAt).toMinutes() / 60.0;
                 emit(ctx, now, coverage, mmsi, gap, detection, distance, offsetHours);
             }
         }
@@ -142,9 +147,13 @@ public class DarkVesselMatchGenerator extends LayerGenerator {
         ctx.emit(NormalizedRecord.builder(id, KIND).observedAt(now).putAll(payload).build());
     }
 
-    /** The reachable radius (km) from a gap start to now, capped at {@link #REACH_KM}. */
-    static double reachableKm(Instant gapStart, Instant now) {
-        long hours = Math.max(1, Duration.between(gapStart, now).toHours());
+    /**
+     * The reachable radius (km) from the last fix at {@code gapStart} to {@code at}, at
+     * {@link #MAX_SPEED_KN}, never less than one hour's travel (position and timing uncertainty) and
+     * capped at {@link #REACH_KM}.
+     */
+    static double reachableKm(Instant gapStart, Instant at) {
+        double hours = Math.max(1.0, Math.abs(Duration.between(gapStart, at).toMinutes()) / 60.0);
         return Math.min(REACH_KM, MAX_SPEED_KN * 1.852 * hours);
     }
 

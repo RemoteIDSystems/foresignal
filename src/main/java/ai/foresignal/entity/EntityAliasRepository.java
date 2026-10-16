@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Alias rows of the entity registry (prompt 098). */
 public interface EntityAliasRepository extends JpaRepository<EntityAliasEntity, Long> {
@@ -17,6 +18,7 @@ public interface EntityAliasRepository extends JpaRepository<EntityAliasEntity, 
 
     /** Moves every alias of one entity to another (a merge). */
     @Modifying
+    @Transactional
     @Query("update EntityAliasEntity a set a.entityId = :to where a.entityId = :from")
     int moveEntityAliases(@Param("from") String from, @Param("to") String to);
 

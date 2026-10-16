@@ -2,6 +2,7 @@ package ai.foresignal.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 import ai.foresignal.ingest.IngestQueue;
 import ai.foresignal.source.SourceRegistry;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * The entity linker end to end (prompt 098): a provisional merge, an MMSI re-assignment, a tombstone
@@ -32,6 +34,10 @@ class EntityLinkerIT {
     private static final String VESSEL = "it-entity-vessel";
     private static final String AIRCRAFT = "it-entity-aircraft";
     private static final String PRIVATE = "it-entity-private";
+    private static final String PLAIN = "it-entity-plain";
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     @Autowired
     private SourceRegistry registry;
@@ -56,7 +62,7 @@ class EntityLinkerIT {
 
     @AfterEach
     void unregister() {
-        for (String id : new String[] {VESSEL, AIRCRAFT, PRIVATE}) {
+        for (String id : new String[] {VESSEL, AIRCRAFT, PRIVATE, PLAIN}) {
             if (registry.contains(id)) {
                 registry.unregisterDynamic(id);
             }
@@ -138,6 +144,39 @@ class EntityLinkerIT {
 
         linker.backfillHeads();
         assertThat(links.findOpen(VESSEL, "h1")).isPresent();
+    }
+
+    @Test
+    void catchUpMovesPastChunksWithNoEntityRows() {
+        registerVessel();
+        register(PLAIN, "vessel", source(PLAIN, "vessel"));
+        TestRecords records = new TestRecords(queue, clock);
+        clock.setInstant(Instant.parse("2026-10-15T00:00:00Z"));
+
+        // Five versions from a source without entityKeys, then one entity row: with a chunk of two the
+        // first chunks hold no entity row at all, which used to repeat the same chunk forever.
+        for (int i = 0; i < 5; i++) {
+            records.ingest(PLAIN, vessel("plain-" + i, map("note", "x" + i)));
+        }
+        records.ingest(VESSEL, vessel("c1", map("mmsi", "366123456", "imo", "9074729")));
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() ->
+                assertThat(links.findOpen(VESSEL, "c1")).isPresent());
+        links.deleteAll();
+        keys.deleteAll();
+        entities.deleteAll();
+        long last = jdbc.queryForObject("SELECT max(seq) FROM record_version", Long.class);
+
+        long scanned = assertTimeoutPreemptively(Duration.ofSeconds(10), () -> linker.catchUp(0, last, 2));
+
+        assertThat(scanned).isEqualTo(last);
+        assertThat(links.findOpen(VESSEL, "c1")).isPresent();
+        assertThat(links.findOpen(PLAIN, "plain-0")).isEmpty();
+    }
+
+    @Test
+    void startupHasFinishedOnceTheContextIsReady() {
+        assertThat(linker.awaitReady(Duration.ofSeconds(30))).isTrue();
+        assertThat(linker.cursor()).isGreaterThanOrEqualTo(-1);
     }
 
     @Test

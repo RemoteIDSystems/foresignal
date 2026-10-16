@@ -47,14 +47,16 @@ public class TriggersController {
     private final TriggerBacktester backtester;
     private final TriggerMapper mapper;
     private final RecordMapper records;
+    private final ai.foresignal.trigger.window.WindowTester windowTester;
 
     /** Creates the controller. */
-    public TriggersController(
-            TriggerRuleService rules, TriggerBacktester backtester, TriggerMapper mapper, RecordMapper records) {
+    public TriggersController(TriggerRuleService rules, TriggerBacktester backtester, TriggerMapper mapper,
+            RecordMapper records, ai.foresignal.trigger.window.WindowTester windowTester) {
         this.rules = rules;
         this.backtester = backtester;
         this.mapper = mapper;
         this.records = records;
+        this.windowTester = windowTester;
     }
 
     /** {@code listTriggers}. */
@@ -107,6 +109,10 @@ public class TriggersController {
             @RequestParam(required = false) String toSeq,
             @RequestParam(required = false) String limit,
             @RequestParam(required = false) String simulate) {
+        ai.foresignal.store.TriggerRuleEntity entity = rules.load(id(ruleId));
+        if (!ai.foresignal.trigger.window.RuleType.recordEngine(entity.getType())) {
+            return windowTest(entity, since, until, fromSeq, toSeq);
+        }
         TriggerBacktester.Request request = new TriggerBacktester.Request(
                 QueryParams.nonNegativeLong("fromSeq", fromSeq),
                 QueryParams.nonNegativeLong("toSeq", toSeq),
@@ -140,6 +146,41 @@ public class TriggersController {
             warnings.add(item);
         }
         out.put("warnings", warnings);
+        return out;
+    }
+
+    /**
+     * {@code testTrigger} for a count, absence or anomaly rule (prompt 100): window evaluations at the
+     * rule's step instants from versions only, marked {@code approximate}.
+     */
+    private Map<String, Object> windowTest(ai.foresignal.store.TriggerRuleEntity entity, String since, String until,
+            String fromSeq, String toSeq) {
+        ai.foresignal.trigger.window.WindowTester.Result result = windowTester.test(entity,
+                QueryParams.instant("since", since), QueryParams.instant("until", until),
+                QueryParams.nonNegativeLong("fromSeq", fromSeq), QueryParams.nonNegativeLong("toSeq", toSeq));
+        List<Map<String, Object>> evaluations = new ArrayList<>();
+        for (ai.foresignal.trigger.window.WindowTester.Evaluation evaluation : result.evaluations()) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("at", evaluation.at());
+            item.put("groupKey", evaluation.groupKey());
+            item.put("value", evaluation.value());
+            item.put("state", evaluation.state());
+            item.put("reason", evaluation.reason());
+            evaluations.add(item);
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("ruleId", entity.getId());
+        out.put("evaluatedFrom", result.from());
+        out.put("matches", List.of());
+        out.put("truncated", result.truncated());
+        out.put("fromSeq", result.fromSeq());
+        out.put("toSeq", result.toSeq());
+        out.put("matchCount", 0);
+        out.put("simulated", false);
+        out.put("approximate", true);
+        out.put("approximateReason", ai.foresignal.trigger.window.WindowTester.APPROXIMATE_REASON);
+        out.put("windowEvaluations", evaluations);
+        out.put("warnings", List.of());
         return out;
     }
 

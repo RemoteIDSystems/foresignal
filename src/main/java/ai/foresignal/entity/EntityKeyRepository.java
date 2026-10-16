@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Key rows of the entity registry (prompt 098). */
 public interface EntityKeyRepository extends JpaRepository<EntityKeyEntity, Long> {
@@ -24,11 +25,13 @@ public interface EntityKeyRepository extends JpaRepository<EntityKeyEntity, Long
 
     /** Moves every key of one entity to another (a merge), in one statement. */
     @Modifying
+    @Transactional
     @Query("update EntityKeyEntity k set k.entityId = :to where k.entityId = :from")
     int moveEntityKeys(@Param("from") String from, @Param("to") String to);
 
     /** Closes every open key of an entity at {@code at}, keeping the rows. */
     @Modifying
+    @Transactional
     @Query("update EntityKeyEntity k set k.validTo = :at where k.entityId = :entityId and k.validTo is null")
     int closeOpenKeys(@Param("entityId") String entityId, @Param("at") Instant at);
 }

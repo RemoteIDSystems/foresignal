@@ -26,18 +26,59 @@ public class WindowScheduler {
     private final SourceService sources;
     private final SourceSettingsRepository settings;
     private final DerivedRunner runner;
+    private final ActivitySampleRepository samples;
+    private final java.time.Clock clock;
+
+    /** How long activity samples are kept (prompt 100 §4: pruned after 26 weeks). */
+    public static final java.time.Duration SAMPLE_RETENTION = java.time.Duration.ofDays(26 * 7);
+
+    private final boolean scheduled;
 
     /** Creates the scheduler. */
     public WindowScheduler(TriggerRuleRepository rules, SourceService sources, SourceSettingsRepository settings,
-            DerivedRunner runner) {
+            DerivedRunner runner, ActivitySampleRepository samples, java.time.Clock clock,
+            @org.springframework.beans.factory.annotation.Value("${foresignal.windows.scheduled:true}") boolean scheduled) {
+        this.scheduled = scheduled;
         this.rules = rules;
         this.sources = sources;
         this.settings = settings;
         this.runner = runner;
+        this.samples = samples;
+        this.clock = clock;
+    }
+
+    /**
+     * Prunes {@code activity_sample} rows older than {@link #SAMPLE_RETENTION} every six hours. The
+     * samples are exempt from version retention, so this is their only pruning.
+     */
+    @Scheduled(fixedDelayString = "PT6H", initialDelayString = "PT15M")
+    public void scheduledPrune() {
+        if (scheduled) {
+            pruneSamples();
+        }
+    }
+
+    /**
+     * Prunes {@code activity_sample} rows older than {@link #SAMPLE_RETENTION} now.
+     *
+     * @return the rows removed
+     */
+    public long pruneSamples() {
+        return samples.deleteByBucketStartBefore(clock.instant().minus(SAMPLE_RETENTION));
+    }
+
+    /**
+     * The scheduled check: drives {@link #tick()} unless {@code foresignal.windows.scheduled} is false
+     * (the test profile, where the window ITs evaluate explicitly).
+     */
+    @Scheduled(fixedDelayString = "PT5S", initialDelayString = "PT10S")
+    public void scheduledTick() {
+        if (scheduled) {
+            tick();
+        }
     }
 
     /** Checks for windowed rules and drives an evaluation tick. */
-    @Scheduled(fixedDelayString = "PT5S", initialDelayString = "PT10S")
     public void tick() {
         boolean any = false;
         for (TriggerRuleEntity rule : rules.findByEnabledTrue()) {

@@ -11,6 +11,10 @@
 - **Sample:** synthetic — hand-made rows with the real column names to exercise the parser's privacy
   guard, the `airframe`/`registration`/`icao24` keys and zip-slip rejection. No real archive is
   committed (60 MB).
+- **`edge-cases.zip`** (hand-made, 2026-10-16): `MASTER.txt` with a blank `MODE S CODE HEX` row
+  (`700ED`, a corporation) and an individual registrant (`701ED`), the referenced `ACFTREF.txt`
+  code, CRLF line endings and trailing spaces, plus a `../evil.txt` path-traversal entry that makes
+  the parser reject the whole archive. `FaaRegistryParserTest` reads it.
 
 synthetic: true — recapture a trimmed real slice (30 MASTER rows and the referenced ACFTREF codes)
 once, re-zipped, and record the capture date here per prompt 143.

@@ -21,8 +21,9 @@ import tools.jackson.databind.node.ObjectNode;
 public class WatchItems {
 
     /** Members of a short watch, in order. */
-    static final List<String> SHORT_MEMBERS = List.of("id", "name", "enabled", "mode", "severity", "sources", "kinds",
-            "tags", "conditions", "snoozedUntil", "lastFiredAt", "alertCount", "openAlertCount", "lastError");
+    static final List<String> SHORT_MEMBERS = List.of("id", "name", "enabled", "type", "mode", "severity", "sources",
+            "kinds", "tags", "conditions", "window", "snoozedUntil", "lastFiredAt", "alertCount", "openAlertCount",
+            "lastError");
 
     /**
      * The schema of a watch definition ({@code TriggerRuleInput}), described for a model. Members
@@ -107,6 +108,16 @@ public class WatchItems {
         props.put("activeFrom", JsonSchemas.dateTime("The watch is inactive before this time."));
         props.put("activeUntil", JsonSchemas.dateTime("The watch disables itself after this time."));
         props.put("activeWindow", window);
+        props.put("type", JsonSchemas.enumeration("record (default): fires per matching version. count: N distinct"
+                + " entities in a time window. absence: nothing matching for a window while the sources are healthy."
+                + " anomaly: activity statistically unusual against a learned, coverage-aware baseline. The windowed"
+                + " types need window and reject mode, onlyNew and reappearAsEnter.", "record",
+                "record", "count", "absence", "anomaly"));
+        props.put("window", JsonSchemas.openObject("The window of a count, absence or anomaly watch (prompt 100):"
+                + " window (1m–7d, for example 30m), step?, distinctBy? (entity|externalId|path), groupBy? (source,"
+                + " place, h3:<3..8>, admin1, country or a path), maxGroups?; count: op (>=|<=) and threshold; anomaly:"
+                + " bucket (15m|1h), slotMode (hour-of-week|hour-of-day), direction (up|down|both), sensitivity"
+                + " (low|medium|high), minAbsoluteDelta, minWeeks (8–12), coverageMin.", Map.of()));
         return JsonSchemas.openObject("A watch (trigger rule), as TriggerRuleInput in /v1/openapi.json. Required: name,"
                 + " and at least one of sources, kinds, conditions, geofence or near to narrow it. Validated exactly as"
                 + " POST /v1/triggers; every problem is reported at once.", props, "name");

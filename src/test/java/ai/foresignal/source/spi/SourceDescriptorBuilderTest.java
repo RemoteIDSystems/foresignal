@@ -209,4 +209,25 @@ class SourceDescriptorBuilderTest {
         assertThat(descriptor.maxResponseBytes()).isEqualTo(1024);
         assertThat(descriptor.products()).hasSize(1);
     }
+    @Test
+    @DisplayName("entity keys, prefixes and attributes keep their declaration order (prompt 098)")
+    void entityMapsKeepDeclarationOrder() {
+        SourceDescriptor descriptor = SourceDescriptor.builder("entity-order")
+                .kind("aircraft")
+                .interval(Duration.ofSeconds(30), Duration.ofMinutes(1))
+                .defaultBudget(60, 10_000)
+                .entityKey("registration", "r")
+                .entityKey("icao24", "hex")
+                .entityKey("callsign", "flight")
+                .entityKeyPrefix("callsign", "air")
+                .entityAttribute("t", "typeCode")
+                .entityAttribute("desc", "model")
+                .build();
+
+        assertThat(descriptor.entityKeys().keySet()).containsExactly("registration", "icao24", "callsign");
+        assertThat(descriptor.entityAttributes().keySet()).containsExactly("t", "desc");
+        assertThat(descriptor.entityKeyPrefixes()).containsEntry("callsign", "air");
+        assertThatThrownBy(() -> descriptor.entityKeys().put("mmsi", "mmsi"))
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
 }

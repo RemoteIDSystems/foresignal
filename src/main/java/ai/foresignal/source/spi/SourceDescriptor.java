@@ -278,9 +278,11 @@ public record SourceDescriptor(
         limits = limits == null ? RecordLimits.defaults() : limits;
         skewTolerance = skewTolerance == null ? DEFAULT_SKEW_TOLERANCE : skewTolerance;
         defaultIngestPolicy = defaultIngestPolicy == null ? IngestPolicy.all() : defaultIngestPolicy;
-        entityKeys = entityKeys == null ? Map.of() : Map.copyOf(entityKeys);
-        entityKeyPrefixes = entityKeyPrefixes == null ? Map.of() : Map.copyOf(entityKeyPrefixes);
-        entityAttributes = entityAttributes == null ? Map.of() : Map.copyOf(entityAttributes);
+        // Insertion order (as for kinds): Map.copyOf randomizes iteration per JVM, which made the chosen
+        // entity link key and anchor vary between runs.
+        entityKeys = orderedCopy(entityKeys);
+        entityKeyPrefixes = orderedCopy(entityKeyPrefixes);
+        entityAttributes = orderedCopy(entityAttributes);
         fieldSpecs = fieldSpecs == null ? Map.of() : Map.copyOf(fieldSpecs);
         kindDisplay = kindDisplay == null ? Map.of() : Map.copyOf(kindDisplay);
         egress = egress == null ? Egress.OPEN : egress;
@@ -298,6 +300,13 @@ public record SourceDescriptor(
         }
         reliability = normalizeReliability(reliability);
         derivedFrom = derivedFrom == null ? List.of() : List.copyOf(derivedFrom);
+    }
+
+    /** An unmodifiable copy of {@code map} that keeps its insertion order; empty when null. */
+    private static Map<String, String> orderedCopy(Map<String, String> map) {
+        return map == null || map.isEmpty()
+                ? Map.of()
+                : java.util.Collections.unmodifiableMap(new LinkedHashMap<>(map));
     }
 
     /** The Admiralty grades, {@code A} (completely reliable) to {@code F} (cannot be judged). */

@@ -14,7 +14,6 @@ import ai.foresignal.testsupport.ingest.TestRecords;
 import ai.foresignal.trigger.TriggerRuleService;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -24,17 +23,25 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * The anomaly rule and its coverage-aware baseline (prompt 100): eight weeks of hourly coverage-ok
- * samples inside the 12-week lookback complete the warm-up, then a spike in the current bucket is
- * classified {@code activity-up} with detector and evidence. Time is the frozen {@link MutableClock}
- * and {@link CoverageSupport} supplies the coverage state the gate requires.
+ * The anomaly rule and its coverage-aware baseline (prompt 100), on the frozen {@link MutableClock}:
+ * the rule is learning until every slot has {@code minWeeks} of coverage-ok history; a spike is
+ * {@code activity-up} with the detector version, real evidence seqs and {@code fetch_log} ranges, and
+ * alerts with {@code context.anomaly} and the honest default message; halving the receiver count is a
+ * {@code coverage-drop}, never an alert; and the durable cursor catches up the buckets missed during
+ * downtime, in order.
  */
 @WebIntegrationTest
 @Import({TestIngestSources.class, CoverageSupport.Config.class})
 class AnomalyRuleIT {
+
+    /** Two minutes past noon: the bucket [11:00, 12:00) has settled. */
+    private static final Instant NOW = Instant.parse("2026-03-01T12:03:00Z");
+    private static final Instant CURRENT = Instant.parse("2026-03-01T11:00:00Z");
+    private static final String SOURCE = TestIngestSources.STANDARD;
 
     @Autowired TriggerRuleService rules;
     @Autowired WindowEngine engine;
@@ -44,77 +51,147 @@ class AnomalyRuleIT {
     @Autowired TestRecords records;
     @Autowired CoverageSupport coverage;
     @Autowired MutableClock clock;
+    @Autowired JdbcTemplate jdbc;
     @Autowired JsonMapper json;
-
-    static final class Capture implements WindowEngine.Emitter {
-
-        final List<NormalizedRecord> emitted = new ArrayList<>();
-
-        @Override
-        public void emit(NormalizedRecord record) {
-            emitted.add(record);
-        }
-
-        @Override
-        public void tombstone(String kind, String externalId) {
-            emitted.add(NormalizedRecord.tombstone(externalId, kind, Instant.now()));
-        }
-
-        boolean emittedAnomaly(String classification) {
-            return emitted.stream().anyMatch(r -> r.kind().equals("anomaly")
-                    && classification.equals(r.payload().get("classification")));
-        }
-    }
-
-    private void enable(boolean enabled) {
-        sources.update(TestIngestSources.STANDARD,
-                new SourceSettingsUpdate(enabled, null, Map.of(), Budget.of(1, 1), null, false, null, false));
-    }
-
-    private UUID createRule() {
-        return rules.create(json.readTree(
-                "{\"name\":\"unusual\",\"type\":\"anomaly\",\"sources\":[\"test-standard\"],"
-                        + "\"window\":{\"window\":\"1h\",\"direction\":\"up\",\"minWeeks\":8}}")).rule().getId();
-    }
 
     @BeforeEach
     void freeze() {
-        clock.setInstant(Instant.parse("2026-03-01T12:00:00Z"));
-        enable(true);
+        clock.setInstant(NOW);
+        sources.update(SOURCE, new SourceSettingsUpdate(true, null, Map.of(), Budget.of(1, 1), null, false, null, false));
+    }
+
+    private UUID createRule() {
+        return rules.create(json.readTree("{\"name\":\"unusual\",\"type\":\"anomaly\",\"sources\":[\"" + SOURCE + "\"],"
+                + "\"window\":{\"window\":\"1h\",\"direction\":\"both\",\"minWeeks\":8}}")).rule().getId();
+    }
+
+    /** Hourly coverage-ok samples of {@code count} for {@code weeks} weeks, ending just before {@code end}. */
+    private void history(UUID rule, int weeks, int count, Instant end) {
+        List<ActivitySampleEntity> batch = new ArrayList<>();
+        for (Instant bucket = end.minus(Duration.ofDays(7L * weeks)); bucket.isBefore(end);
+                bucket = bucket.plus(Duration.ofHours(1))) {
+            ActivitySampleEntity sample = new ActivitySampleEntity(rule, "*", bucket, count);
+            sample.setCoverageOk(true);
+            sample.setCoverageRatio(1.0);
+            batch.add(sample);
+        }
+        samples.saveAll(batch);
+    }
+
+    /** {@code n} distinct entities observed and ingested inside the current bucket. */
+    private void entities(int n) {
+        Instant at = CURRENT.plus(Duration.ofMinutes(30));
+        clock.setInstant(at);
+        for (int i = 0; i < n; i++) {
+            records.ingestAt(SOURCE, at, NormalizedRecord.builder("x" + i, TestIngestSources.STANDARD_KIND)
+                    .observedAt(at).put("name", "x" + i).build());
+        }
+        clock.setInstant(NOW);
+    }
+
+    private void covered() {
+        coverage.fetch(SOURCE, "OK", CURRENT.minus(Duration.ofDays(1)));
+        coverage.markCovered(SOURCE, CURRENT, CURRENT.plus(Duration.ofHours(1)));
+    }
+
+    private AnomalyObservationEntity newest(UUID rule) {
+        return observations.findTop200ByRuleIdOrderByIdDesc(rule).get(0);
+    }
+
+    private int alerts(UUID rule) {
+        Integer n = jdbc.queryForObject("select count(*) from alert where rule_id = ?", Integer.class, rule);
+        return n == null ? 0 : n;
     }
 
     @Test
-    @DisplayName("eight weeks of hourly history complete warm-up, then a spike is activity-up")
-    void spike() {
+    @DisplayName("seven weeks of history are still learning: no alert, state learning")
+    void learningUntilMinWeeks() {
         UUID id = createRule();
-        Instant now = clock.instant();
-        Instant currentBucket = now.minus(Duration.ofHours(1)).truncatedTo(ChronoUnit.HOURS);
-        coverage.markCovered(TestIngestSources.STANDARD, currentBucket, currentBucket.plus(Duration.ofHours(1)));
-        // 8 weeks of hourly coverage-ok samples, each slot (day-of-week/hour) therefore sees 8 weeks.
-        Instant start = currentBucket.minus(Duration.ofDays(56));
-        for (Instant bucket = start; bucket.isBefore(currentBucket); bucket = bucket.plus(Duration.ofHours(1))) {
-            ActivitySampleEntity sample = new ActivitySampleEntity(id, "*", bucket, 10);
-            sample.setCoverageOk(true);
-            sample.setCoverageRatio(1.0);
-            samples.save(sample);
-        }
-        assertThat(samples.findByRuleIdAndGroupKeyOrderByBucketStartAsc(id, "*")).hasSize(8 * 7 * 24);
+        history(id, 7, 10, CURRENT);
+        covered();
+        entities(60);
 
-        // A spike of distinct entities inside the current completed bucket.
-        for (int i = 0; i < 60; i++) {
-            records.ingestAt(TestIngestSources.STANDARD, currentBucket.plusSeconds(i * 30),
-                    NormalizedRecord.builder("x" + i, "thing").observedAt(currentBucket.plusSeconds(i * 30))
-                            .put("name", "x").build());
-        }
-        Capture capture = new Capture();
-        engine.evaluate(now, capture);
+        WindowEmitters.Capture capture = new WindowEmitters.Capture();
+        engine.evaluate(NOW, capture);
 
-        List<AnomalyObservationEntity> rows = observations.findTop200ByRuleIdOrderByIdDesc(id);
-        assertThat(rows).isNotEmpty();
-        assertThat(rows.get(0).getClassification()).isEqualTo("activity-up");
-        assertThat(rows.get(0).getDetector()).containsEntry("name", "poisson-tail");
-        assertThat(rows.get(0).getEvidence()).containsKey("members");
-        assertThat(capture.emittedAnomaly("activity-up")).isTrue();
-        assertThat(capture.emitted).anyMatch(r -> r.kind().equals("window-state"));
+        assertThat(newest(id).getClassification()).isEqualTo("learning");
+        assertThat(capture.lastState(id + ":*", "state")).isEqualTo("learning");
+        assertThat(alerts(id)).isZero();
+    }
+
+    @Test
+    @DisplayName("eight weeks complete warm-up; a spike is activity-up with detector, evidence and an honest alert")
+    void spikeIsActivityUp() {
+        UUID id = createRule();
+        history(id, 8, 10, CURRENT);
+        covered();
+        entities(60);
+        WindowEmitters.Ingesting emitter = new WindowEmitters.Ingesting(records, clock);
+
+        engine.evaluate(NOW, emitter);
+
+        AnomalyObservationEntity row = newest(id);
+        assertThat(row.getBucketStart()).isEqualTo(CURRENT);
+        assertThat(row.getObserved()).isEqualTo(60);
+        assertThat(row.getClassification()).isEqualTo("activity-up");
+        assertThat(row.getDetector()).containsEntry("name", "poisson-tail").containsEntry("version", "1.0.0")
+                .containsKey("params");
+        assertThat(row.getWatermarkSeq()).isPositive();
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> members = (List<Map<String, Object>>) row.getEvidence().get("members");
+        assertThat(members).isNotEmpty().hasSizeLessThanOrEqualTo(20)
+                .allSatisfy(m -> assertThat(((Number) m.get("seq")).longValue()).isPositive());
+        assertThat((List<?>) row.getEvidence().get("fetchLog")).isNotEmpty();
+        assertThat(emitter.emittedAnomaly("activity-up")).isTrue();
+        assertThat(emitter.lastState(id + ":*", "state")).isEqualTo("active");
+
+        clock.advance(Duration.ofSeconds(10));
+        engine.evaluate(clock.instant(), emitter);
+        assertThat(alerts(id)).isEqualTo(1);
+        String message = jdbc.queryForObject("select message from alert where rule_id = ?", String.class, id);
+        assertThat(message).startsWith("Unusual activity: 60 observed vs ~10 expected (p≈")
+                .endsWith("under a Poisson model)");
+        String context = jdbc.queryForObject("select context::text from alert where rule_id = ?", String.class, id);
+        assertThat(context).contains("\"anomaly\"").contains("\"pValue\"").contains("\"watermarkSeq\"");
+    }
+
+    @Test
+    @DisplayName("halving the receiver count is a coverage-drop and never alerts")
+    void halvedReceiversIsCoverageDrop() {
+        UUID id = createRule();
+        history(id, 8, 10, CURRENT);
+        for (int i = 20; i >= 1; i--) {
+            coverage.fetchWithReceivers(SOURCE, CURRENT.minus(Duration.ofMinutes(10L * i)), 10);
+        }
+        coverage.fetchWithReceivers(SOURCE, CURRENT.plus(Duration.ofMinutes(5)), 5);
+        entities(5);
+
+        WindowEmitters.Capture capture = new WindowEmitters.Capture();
+        engine.evaluate(NOW, capture);
+        clock.advance(Duration.ofSeconds(10));
+        engine.evaluate(clock.instant(), capture);
+
+        assertThat(newest(id).getClassification()).isEqualTo("coverage-drop");
+        assertThat(capture.lastState(id + ":*", "state")).isEqualTo("unknown");
+        assertThat(alerts(id)).isZero();
+    }
+
+    @Test
+    @DisplayName("after downtime the cursor evaluates every missed bucket in order, then stops at the newest")
+    void cursorCatchesUp() {
+        UUID id = createRule();
+        Instant lastSampled = CURRENT.minus(Duration.ofHours(5));
+        history(id, 8, 10, lastSampled.plus(Duration.ofHours(1)));
+
+        engine.evaluate(NOW, new WindowEmitters.Capture());
+
+        for (int h = 4; h >= 0; h--) {
+            Instant bucket = CURRENT.minus(Duration.ofHours(h));
+            assertThat(samples.findById(new ActivitySampleEntity.Key(id, "*", bucket))).as("bucket " + bucket)
+                    .isPresent();
+        }
+        assertThat(engine.cursor(id).bucketStart()).isEqualTo(CURRENT.getEpochSecond());
+        assertThat(samples.findById(new ActivitySampleEntity.Key(id, "*", CURRENT.plus(Duration.ofHours(1)))))
+                .as("the unsettled bucket is not evaluated").isEmpty();
     }
 }

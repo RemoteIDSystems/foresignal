@@ -46,6 +46,26 @@ public class WindowStateEntity {
     @Column(name = "last_alert_id")
     private Long lastAlertId;
 
+    /**
+     * True while an alert is owed for the group's latest clear → active transition: it is written once
+     * the {@code rule-windows} version of that state exists (so {@code alert.seq} references it), and
+     * retried until it is written.
+     */
+    @Column(name = "alert_pending")
+    private Boolean alertPending;
+
+    /** When the owed alert became pending. */
+    @Column(name = "alert_pending_since")
+    private Instant alertPendingSince;
+
+    /** The owed alert's {@code alert.context} JSON (the anomaly fields), or null. */
+    @Column(name = "pending_context", columnDefinition = "text")
+    private String pendingContext;
+
+    /** The owed alert's message, or null for the default. */
+    @Column(name = "pending_message", columnDefinition = "text")
+    private String pendingMessage;
+
     /** JPA. */
     protected WindowStateEntity() {}
 
@@ -125,6 +145,31 @@ public class WindowStateEntity {
 
     public void setLastAlertId(Long lastAlertId) {
         this.lastAlertId = lastAlertId;
+    }
+
+    /** True while an alert is owed for this group. */
+    public boolean isAlertPending() {
+        return Boolean.TRUE.equals(alertPending);
+    }
+
+    /** Marks an alert as owed (with its context and message) or settled. */
+    public void setAlertPending(boolean pending, Instant since, String context, String message) {
+        this.alertPending = pending;
+        this.alertPendingSince = pending ? since : null;
+        this.pendingContext = pending ? context : null;
+        this.pendingMessage = pending ? message : null;
+    }
+
+    public Instant getAlertPendingSince() {
+        return alertPendingSince;
+    }
+
+    public String getPendingContext() {
+        return pendingContext;
+    }
+
+    public String getPendingMessage() {
+        return pendingMessage;
     }
 
     /** The composite key. */

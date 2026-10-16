@@ -144,6 +144,11 @@ class VesselIngestIT {
         return new AisMessage.ClassAPosition(1, 0, mmsi, 0, 0, 10.0, true, lon, lat, 90.0, 90, 0, 0, false, 0);
     }
 
+    /** A Class A report of a vessel at rest: SOG 0, so dead reckoning predicts no movement. */
+    private static AisMessage.ClassAPosition stationary(int mmsi, double lat, double lon) {
+        return new AisMessage.ClassAPosition(1, 0, mmsi, 5, 0, 0.0, true, lon, lat, 90.0, 90, 0, 0, false, 0);
+    }
+
     private static AisMessage.StaticVoyage voyage(int mmsi, String destination) {
         return new AisMessage.StaticVoyage(0, mmsi, 0, 9_134_270, "LAXY7", "NORDIC STAR", 70,
                 new AisMessage.Dimension(100, 20, 8, 8), 1, null, 7.5, destination, false);
@@ -164,20 +169,24 @@ class VesselIngestIT {
     // ---------- tests ----------
 
     @Test
-    @DisplayName("FIRST, then the same position after the 1,200 s keyframe is a KEYFRAME, all in the TRACK tier")
+    @DisplayName("FIRST, then the same report from a stationary vessel after the 1,200 s keyframe is a HEARTBEAT,"
+            + " all in the TRACK tier")
     void keyframe() {
-        send(position(257_200_001, 59.9, 10.5));
+        // Stationary (SOG 0): a moving report at an unchanged position would dead-reckon away from the
+        // persisted fix and persist a SAMPLE (Core-Data-Model §5.2 row 10) before the keyframe is due.
+        send(stationary(257_200_001, 59.9, 10.5));
         await().atMost(WAIT).until(() -> versions("257200001", PersistReason.FIRST) == 1);
 
+        // +600 s: identical content, so a touch (row 11), which leaves the live row clean.
         clock.advance(Duration.ofSeconds(600));
-        send(position(257_200_001, 59.9, 10.5));
+        send(stationary(257_200_001, 59.9, 10.5));
+        // +1,201 s: the keyframe is due (row 8) with full_hash unchanged and the live row not dirty,
+        // which the design makes a HEARTBEAT, never a KEYFRAME.
         clock.advance(Duration.ofSeconds(601));
-        send(position(257_200_001, 59.9, 10.5));
+        send(stationary(257_200_001, 59.9, 10.5));
 
-        // An unchanged entity past its keyframe persists a HEARTBEAT, not a KEYFRAME (Core-Data-Model
-        // §5.2 row 8); the version is still written.
-        await().atMost(WAIT).until(() -> versions("257200001", PersistReason.KEYFRAME)
-                + versions("257200001", PersistReason.HEARTBEAT) == 1);
+        await().atMost(WAIT).until(() -> versions("257200001", PersistReason.HEARTBEAT) == 1);
+        assertThat(versions("257200001", PersistReason.KEYFRAME)).isZero();
         List<Short> tiers = jdbc.queryForList(
                 "select history_tier from record_version where source_id = ? and external_id = ?", Short.class, ID,
                 "257200001");

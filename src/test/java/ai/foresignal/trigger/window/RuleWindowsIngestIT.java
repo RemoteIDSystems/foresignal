@@ -28,7 +28,9 @@ import tools.jackson.databind.json.JsonMapper;
  * The {@code rule-windows} records persist through the real DERIVED pipeline (prompt 100). This is
  * the guard for the epoch {@code observedAt} defect: a record with {@code observed_at} before the
  * normalizer's floor is dropped at ingest, so nothing lands in {@code record_head}. Time is the
- * frozen {@link MutableClock}, so the seeded record falls inside the rule's window.
+ * frozen {@link MutableClock}, so the seeded record falls inside the rule's window. The alert that the
+ * clear → active transition owes is written on the following tick and references that record's
+ * version ({@code alert.seq}).
  */
 @WebIntegrationTest
 @Import(TestIngestSources.class)
@@ -50,7 +52,7 @@ class RuleWindowsIngestIT {
         clock.setInstant(Instant.parse("2026-03-01T12:00:00Z"));
         Instant now = clock.instant();
         records.ingestAt(TestIngestSources.STANDARD, now,
-                NormalizedRecord.builder("a", "thing").observedAt(now).put("name", "a").build());
+                NormalizedRecord.builder("a", TestIngestSources.STANDARD_KIND).observedAt(now).put("name", "a").build());
         UUID id = rules.create(json.readTree("{\"name\":\"one thing\",\"type\":\"count\","
                 + "\"sources\":[\"test-standard\"],\"window\":{\"window\":\"30m\",\"op\":\">=\",\"threshold\":1}}"))
                 .rule().getId();
@@ -66,6 +68,14 @@ class RuleWindowsIngestIT {
                 Integer.class, RuleWindowsGenerator.ID, id + ":*");
         assertThat(heads).isNotNull();
         assertThat(heads).isGreaterThan(0);
+
+        // The owed alert is written on the next tick, once the active version exists, and references it.
+        runner.tickNow(RuleWindowsGenerator.ID);
+        assertThat(runner.awaitIdle(RuleWindowsGenerator.ID, WAIT)).isTrue();
+        Long headSeq = jdbc.queryForObject("select seq from record_head where source_id = ? and external_id = ?",
+                Long.class, RuleWindowsGenerator.ID, id + ":*");
+        await().atMost(WAIT).untilAsserted(() -> assertThat(jdbc.queryForList(
+                "select seq from alert where rule_id = ?", Long.class, id)).containsExactly(headSeq));
 
         sources.update(RuleWindowsGenerator.ID,
                 new SourceSettingsUpdate(false, null, Map.of(), Budget.of(1, 1), null, false, null, false));

@@ -9,6 +9,7 @@ import ai.foresignal.stream.LiveBatch;
 import ai.foresignal.stream.LiveBus;
 import ai.foresignal.stream.LiveListener;
 import ai.foresignal.stream.Subscription;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -17,6 +18,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.locationtech.jts.geom.Envelope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -34,7 +37,8 @@ import org.springframework.stereotype.Component;
  * back past that time marks itself {@code degraded-input} and refuses to assert an absence.
  */
 @Component
-public class DefaultObservationFeed implements ObservationFeed, ChangeListener, LiveListener, DisposableBean {
+public class DefaultObservationFeed implements ObservationFeed, ChangeListener, LiveListener, DisposableBean,
+        ai.foresignal.ingest.IngestStateReset {
 
     /** The change-bus subscriber name. */
     public static final String CHANGE_SUBSCRIBER = "derived-observation-feed";
@@ -42,11 +46,18 @@ public class DefaultObservationFeed implements ObservationFeed, ChangeListener, 
     /** The live-bus subscriber name. */
     public static final String LIVE_SUBSCRIBER = "derived-observation-feed";
 
+    /** Counts observation reads that reached their cap. */
+    public static final String TRUNCATED_METRIC = "foresignal.derive.feed.truncated";
+
+    private static final Logger log = LoggerFactory.getLogger(DefaultObservationFeed.class);
+
     private final DerivedRecords records;
     private final ChangeBus changeBus;
     private final LiveBus liveBus;
     private final JdbcTemplate jdbc;
     private final Clock clock;
+    private final MeterRegistry meters;
+    private volatile Instant lastTruncationLog;
 
     private volatile Subscription changeSubscription;
     private volatile Subscription liveSubscription;
@@ -54,7 +65,8 @@ public class DefaultObservationFeed implements ObservationFeed, ChangeListener, 
 
     /** Creates the feed. */
     public DefaultObservationFeed(DerivedRecords records, ChangeBus changeBus, LiveBus liveBus, JdbcTemplate jdbc,
-            Clock clock) {
+            Clock clock, MeterRegistry meters) {
+        this.meters = meters;
         this.records = records;
         this.changeBus = changeBus;
         this.liveBus = liveBus;
@@ -117,11 +129,23 @@ public class DefaultObservationFeed implements ObservationFeed, ChangeListener, 
         if (sources == null || sources.isEmpty()) {
             return List.of();
         }
-        Instant from = since == null ? Instant.EPOCH : since;
-        List<HeadSnapshot> heads = records.current(sources, kinds, bbox, Math.max(1, limit));
+        int cap = Math.max(1, limit);
+        List<HeadSnapshot> heads = records.currentSince(sources, kinds, bbox, since, cap);
+        if (heads.size() >= cap) {
+            // The cap was reached: older entities in the window were not read. Count it, so an operator
+            // sees the truncation instead of a silently shorter window.
+            meters.counter(TRUNCATED_METRIC).increment();
+            Instant now = clock.instant();
+            Instant last = lastTruncationLog;
+            if (last == null || now.isAfter(last.plusSeconds(300))) {
+                lastTruncationLog = now;
+                log.warn("Observation feed read for {} hit its cap of {} rows; the stalest entities were dropped",
+                        sorted(sources), cap);
+            }
+        }
         List<Observation> observations = new ArrayList<>(heads.size());
         for (HeadSnapshot head : heads) {
-            if (head.tombstone() || head.observedAt() == null || head.observedAt().isBefore(from)) {
+            if (head.tombstone() || head.observedAt() == null || (since != null && head.observedAt().isBefore(since))) {
                 continue;
             }
             observations.add(of(head));
@@ -148,6 +172,12 @@ public class DefaultObservationFeed implements ObservationFeed, ChangeListener, 
                 sourceId);
     }
 
+    /** Forgets the last gap or drop once the history store was reset (the test database cleaner). */
+    @Override
+    public void resetState() {
+        lastDegradedAt = null;
+    }
+
     @Override
     public boolean degradedSince(Instant since) {
         Instant at = lastDegradedAt;
@@ -169,7 +199,7 @@ public class DefaultObservationFeed implements ObservationFeed, ChangeListener, 
      * How the position was obtained, from the payload's {@code posSource} field (readsb/OpenSky) or,
      * for a vessel, always {@code reported}.
      */
-    static PositionSource positionSource(String kind, java.util.Map<String, Object> payload) {
+    public static PositionSource positionSource(String kind, java.util.Map<String, Object> payload) {
         Object raw = payload == null ? null : payload.get("posSource");
         if (raw != null) {
             return switch (String.valueOf(raw).toLowerCase(java.util.Locale.ROOT)) {

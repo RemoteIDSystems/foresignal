@@ -210,6 +210,11 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
         List<RuleSpec> compiled = new ArrayList<>();
         Set<UUID> off = new HashSet<>();
         for (TriggerRuleEntity rule : repository.findByEnabledTrue()) {
+            if (!ai.foresignal.trigger.window.RuleType.recordEngine(rule.getType())) {
+                // Count, absence and anomaly rules are evaluated by the window engine (prompt 100), never
+                // per version: their stored mode defaults to match, which would fire on every version.
+                continue;
+            }
             if ("off".equals(rule.getWeatherContext())) {
                 off.add(rule.getId());
             }

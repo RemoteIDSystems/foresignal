@@ -42,6 +42,18 @@ class AircraftFusionTest {
     }
 
     @Test
+    @DisplayName("on a tie MLAT beats TIS-B, in either arrival order, though both are calculated positions")
+    void mlatBeatsTisB() {
+        // The network source would win the locality tie-break; only the MLAT-over-TIS-B rank decides here.
+        Observation tisb = aircraft("local-adsb-1", "abc", T0, "tisb", PositionSource.CALCULATED);
+        Observation mlat = aircraft("adsblol-area-1", "abc", T0, "mlat", PositionSource.CALCULATED);
+        assertThat(AircraftFusionGenerator.winner(List.of(tisb, mlat)).sourceId()).isEqualTo("adsblol-area-1");
+        assertThat(AircraftFusionGenerator.winner(List.of(mlat, tisb)).sourceId()).isEqualTo("adsblol-area-1");
+        Observation other = aircraft("local-adsb-2", "abc", T0, "other", PositionSource.UNKNOWN);
+        assertThat(AircraftFusionGenerator.winner(List.of(other, tisb)).sourceId()).isEqualTo("local-adsb-1");
+    }
+
+    @Test
     @DisplayName("the fused payload lists every source and the winning primary source")
     void provenance() {
         Observation a = aircraft("adsblol-area-1", "abc", T0, "adsb", PositionSource.REPORTED);

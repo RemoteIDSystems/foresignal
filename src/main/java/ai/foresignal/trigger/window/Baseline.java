@@ -28,7 +28,11 @@ public record Baseline(double weeks, String slotMode, double mean, double varian
         // of history they cover is the sample count for hour-of-week and count/7 weeks for hour-of-day.
         // (The old n x bucket / 7d divided an hour-of-week slot's handful of weekly samples by 168 and
         // could never reach minWeeks.)
-        double weeks = "hour-of-day".equals(slotMode) ? used.size() / 7.0 : used.size();
+        // A slot gets (1 h / bucket) samples a week for hour-of-week, seven times that for hour-of-day.
+        double perHour = bucket == null || bucket.isZero() || bucket.isNegative()
+                ? 1.0 : Math.max(1.0, Duration.ofHours(1).toSeconds() / (double) bucket.toSeconds());
+        double perWeek = "hour-of-day".equals(slotMode) ? 7.0 * perHour : perHour;
+        double weeks = used.size() / perWeek;
         double medianCoverage = median(coverages);
         if (variance > 1.5 * mean && mean > 0) {
             double[] moments = NegBinTail.moments(mean, variance);

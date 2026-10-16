@@ -2,6 +2,12 @@ package ai.foresignal.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ai.foresignal.source.spi.Budget;
+import ai.foresignal.source.spi.Mode;
+import ai.foresignal.source.spi.SourceDescriptor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /** Every normalisation and rejection rule of {@link EntityKeys} (prompt 098). */
@@ -73,6 +79,33 @@ class EntityKeysTest {
     }
 
     @Test
+    void hamCallsignsAreTheBaseCallWithoutTheSsid() {
+        assertThat(EntityKeys.normalize("callsign", "k1abc-9", "ham")).isEqualTo("ham:K1ABC");
+        assertThat(EntityKeys.normalize("callsign", "HAM:W1AW-15", "ham")).isEqualTo("ham:W1AW");
+        // Only the ham domain strips a suffix; a flight id keeps its characters.
+        assertThat(EntityKeys.normalize("callsign", "AIR:N12-3", "air")).isEqualTo("air:N12-3");
+    }
+
+    @Test
+    void extractEmitsAnAirframeOnlyWithBothTheModelCodeAndTheSerial() {
+        SourceDescriptor descriptor = descriptor().entityKey("airframe", "serial").build();
+        assertThat(EntityKeys.extract(descriptor, Map.of("serial", "1234"))).isEmpty();
+        assertThat(EntityKeys.extract(descriptor, Map.of("serial", "1234", "mfrMdlCode", " ")))
+                .isEmpty();
+        assertThat(EntityKeys.extract(descriptor, Map.of("serial", " 1234 ", "mfrMdlCode", "s22")))
+                .extracting(Key::keyValue).containsExactly("S22:1234");
+    }
+
+    @Test
+    void extractReportsRejectedValuesButNotAbsentOnes() {
+        SourceDescriptor descriptor = descriptor().entityKey("icao24", "hex").entityKey("mmsi", "mmsi").build();
+        List<String> invalid = new ArrayList<>();
+        List<Key> keys = EntityKeys.extract(descriptor, Map.of("hex", "~abc123", "other", "x"), invalid::add);
+        assertThat(keys).isEmpty();
+        assertThat(invalid).containsExactly("icao24");
+    }
+
+    @Test
     void rolesAndTypes() {
         assertThat(EntityKeys.roleOf("airframe")).isEqualTo(EntityKeyRole.ANCHOR);
         assertThat(EntityKeys.roleOf("mmsi")).isEqualTo(EntityKeyRole.WEAK);
@@ -81,5 +114,13 @@ class EntityKeysTest {
         assertThat(EntityKeys.typeOf("callsign")).isNull();
         assertThat(EntityKeys.known("airframe")).isTrue();
         assertThat(EntityKeys.known("aircraft-tail")).isFalse();
+    }
+
+    private static SourceDescriptor.Builder descriptor() {
+        return SourceDescriptor.builder("entity-keys-test")
+                .name("Entity keys test")
+                .kind("aircraft")
+                .mode(Mode.PUSH)
+                .defaultBudget(Budget.of(60, 10_000));
     }
 }

@@ -50,11 +50,52 @@ public final class CoverageSupport {
         fetch(sourceId, "NOT_MODIFIED", to.minusSeconds(1));
     }
 
-    private void fetch(String sourceId, String status, Instant startedAt) {
+    /**
+     * Inserts one {@code fetch_log} row.
+     *
+     * @param sourceId the source
+     * @param status OK, NOT_MODIFIED, FAILED, REFUSED or DISCARDED
+     * @param startedAt when the fetch started
+     */
+    public void fetch(String sourceId, String status, Instant startedAt) {
         jdbc.update("INSERT INTO fetch_log (source_id, trigger, status, started_at, received_at, request_count,"
                         + " records_seen, rejected, late, skipped, versions_written, live_updates, touches)"
                         + " VALUES (?, 'MANUAL', ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0)",
                 sourceId, status, Timestamp.from(startedAt), Timestamp.from(startedAt));
+    }
+
+    /**
+     * Inserts one OK {@code fetch_log} row that reports {@code receivers} receivers (the 006 coverage).
+     *
+     * @param sourceId the source
+     * @param startedAt when the fetch started
+     * @param receivers the receiver count it reported
+     */
+    public void fetchWithReceivers(String sourceId, Instant startedAt, int receivers) {
+        jdbc.update("INSERT INTO fetch_log (source_id, trigger, status, started_at, received_at, request_count,"
+                        + " records_seen, rejected, late, skipped, versions_written, live_updates, touches, coverage)"
+                        + " VALUES (?, 'MANUAL', 'OK', ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, CAST(? AS jsonb))",
+                sourceId, Timestamp.from(startedAt), Timestamp.from(startedAt), "{\"receivers\":" + receivers + "}");
+    }
+
+    /**
+     * Writes the source's {@code source_health} row directly.
+     *
+     * @param sourceId the source
+     * @param lastDataAt the last fetch that returned records, or null
+     * @param lastSuccessAt the last successful fetch (a 304 included), or null
+     * @param consecutiveFailures failures in a row (3 or more reads as failing)
+     */
+    public void health(String sourceId, Instant lastDataAt, Instant lastSuccessAt, int consecutiveFailures) {
+        jdbc.update("INSERT INTO source_health (source_id, last_attempt_at, last_success_at, last_data_at,"
+                        + " consecutive_failures, recent_record_counts, recent_coverage, adapter_state)"
+                        + " VALUES (?, ?, ?, ?, ?, CAST('[]' AS jsonb), CAST('[]' AS jsonb), CAST('{}' AS jsonb))"
+                        + " ON CONFLICT (source_id) DO UPDATE SET last_attempt_at = EXCLUDED.last_attempt_at,"
+                        + " last_success_at = EXCLUDED.last_success_at, last_data_at = EXCLUDED.last_data_at,"
+                        + " consecutive_failures = EXCLUDED.consecutive_failures",
+                sourceId, lastSuccessAt == null ? null : Timestamp.from(lastSuccessAt),
+                lastSuccessAt == null ? null : Timestamp.from(lastSuccessAt),
+                lastDataAt == null ? null : Timestamp.from(lastDataAt), consecutiveFailures);
     }
 
     /** Registers the helper beside {@link TestIngestSources}. */
