@@ -239,6 +239,9 @@ public class AccessPolicy {
                 rule(null, "/v1/settings/**", AccessRequirement.ADMIN),
                 rule(null, "/v1/system/admin-token/**", AccessRequirement.ADMIN),
                 rule(null, "/v1/channels/**", AccessRequirement.ADMIN),
+                // Outbound sinks (110): admin.
+                rule(null, "/v1/sinks", AccessRequirement.ADMIN),
+                rule(null, "/v1/sinks/**", AccessRequirement.ADMIN),
                 rule(null, "/v1/tokens/**", AccessRequirement.ADMIN),
                 // Feed keys (035): admin; /v1/settings/ratelimits and /v1/settings/outbound fall under /v1/settings/**.
                 rule(null, "/v1/feed-keys", AccessRequirement.ADMIN),

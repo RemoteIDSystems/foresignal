@@ -4915,3 +4915,38 @@ key = jwk.JWK(**jwks["keys"][0])
 signed = jws.JWS(payload)          # payload = the exact response bytes
 signed.deserialize(signature, key)  # signature = the Foresignal-Signature header
 ```
+
+## Outbound sinks (prompt 110)
+
+Outbound sinks let existing ecosystems consume Foresignal with no new client code. Each sink is created
+disabled (`POST /v1/sinks` with `enabled=false` unless set true); enabling starts it on its own virtual
+thread with a durable cursor under `sink`/`sink_cursor`. Every record passes the licence egress guard
+(109): `opensky-states`, `acled` and `aisstream` records are **never** re-served, and `LOCAL_ONLY`
+records (the operator's own receivers, and MLAT positions) reach only SERVE sinks bound to loopback or a
+private address. Private sources need `filter.includePrivate=true` **and** a local target.
+
+| Type | Kind | Mode | Client setup |
+|---|---|---|---|
+| `mqtt-state` | STATE_MIRROR | PUSH | Retained `{prefix}/state/{source}/{externalId}` (QoS 1); LWT `{prefix}/status` |
+| `cot` | STATE_MIRROR | PUSH/SERVE | ATAK/iTAK/WinTAK: UDP multicast SA (default `239.2.3.1:6969`, LAN) or a TCP network input |
+| `readsb-json` | STATE_MIRROR | SERVE | tar1090 / Virtual Radar Server: `http://host:port/data/aircraft.json` |
+| `sbs` | STATE_MIRROR | SERVE | BaseStation client: TCP `host:port` |
+| `nmea-aivdm` | STATE_MIRROR | SERVE | OpenCPN / Signal K: NMEA 0183 TCP provider `host:port` |
+| `aprs-is-serve` | STATE_MIRROR | SERVE | Xastir / YAAC / APRSdroid: APRS-IS server `host:port` |
+| `cloudevents` | CHANGE_FEED | PUSH | HTTP receiver; verify `X-Foresignal-Signature` |
+
+**SERVE binding.** A SERVE sink must set `config.port` (there is no default). `config.bind` defaults to
+`127.0.0.1`; only loopback, RFC 1918, link-local or ULA are accepted, `100.64.0.0/10` only with
+`allowTailnet=true`, and `0.0.0.0` only with `allowAllInterfaces=true` (then every peer is re-checked).
+`maxClients` defaults to 8. In Docker, publish the port, e.g.:
+
+```yaml
+services:
+  foresignal:
+    ports:
+      - "${FORESIGNAL_SINK_BIND:-127.0.0.1}:8081:8081"
+```
+
+**Licence exclusions.** OpenSky, ACLED and aisstream are never re-served on any sink; local-receiver and
+MLAT records only on a loopback/private SERVE sink. Denials are counted as
+`foresignal.sink.denied{sink,reason}` and shown under `GET /v1/sinks/{id}/status.denied`.

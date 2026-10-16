@@ -465,6 +465,9 @@ public final class ErrorCodes {
     /** 400: notification image links need a public https base URL (prompt 108). */
     public static final String IMAGE_LINKS_REQUIRE_HTTPS = "IMAGE_LINKS_REQUIRE_HTTPS";
 
+    /** 409: a sink with this id exists (prompt 110). */
+    public static final String SINK_EXISTS = "SINK_EXISTS";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

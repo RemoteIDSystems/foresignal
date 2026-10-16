@@ -1051,3 +1051,13 @@ create_watch {"rule": {"name": "Big quake near me", "kinds": ["earthquake"], "co
   into a prompt as if they were the operator's words (the OpenClaw hook mapping labels the title as
   data). Prefer giving agents a `read` token when they process untrusted text and do not need to
   change anything.
+
+## Consuming a CloudEvents sink (prompt 110)
+
+A `cloudevents` sink POSTs structured-mode CloudEvents 1.0 (`application/cloudevents+json`) to your URL,
+signed with `X-Foresignal-Signature: sha256=HMAC(secret, "<timestamp>.<body>")` (verify exactly as for the
+notification webhook, prompt 018). Attributes: `id` = `{instanceId}:{seq}`, `source` =
+`urn:foresignal:{instanceId}:source:{sourceId}`, `type` = `ai.foresignal.record.created|updated|tombstoned`,
+`subject` = `{sourceId}/{externalId}`, `time` = observedAt, and extensions `foresignalseq`,
+`foresignalkind`. Return 2xx to acknowledge; 5xx and 429 are retried with backoff (the cursor does not
+advance), and other 4xx stop the sink without advancing.

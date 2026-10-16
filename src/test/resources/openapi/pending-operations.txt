@@ -1,12 +1,3 @@
-listSinkTypes 110
-listSinks 110
-createSink 110
-getSink 110
-updateSink 110
-deleteSink 110
-testSink 110
-getSinkStatus 110
-resyncSink 110
 deleteExport 111
 createExport 111
 listExports 111
