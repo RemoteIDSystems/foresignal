@@ -1264,14 +1264,24 @@ ground truth.
 
 - **Jobs.** `POST /v1/backtests {type: rule|recipe|precursor|quality, targetId | definition, from|fromSeq,
   to|toSeq, variants?}` returns 202 with a job; poll `GET /v1/jobs/{jobId}` (one path for every job
-  type) or `GET /v1/backtests`. One queued or running job per token (409 `BACKTEST_IN_PROGRESS`); the
-  range is capped at 90 days or the retained range, whichever is shorter, and a start below the
-  retained floor is clamped with the `RANGE_CLAMPED_BY_RETENTION` caveat.
+  type) or `GET /v1/backtests`. One queued or running job per token (409 `BACKTEST_IN_PROGRESS`, shared
+  by REST and MCP). A range longer than 90 days, empty, inverted or wholly below retention is 400
+  `BACKTEST_RANGE_INVALID`; an open-ended `toSeq` is clamped to the published watermark, and a start
+  below the retained floor is clamped with the `RANGE_CLAMPED_BY_RETENTION` caveat. Without a range a
+  job covers the last day (precursor jobs: the last 30 days). Jobs run on
+  `foresignal.backtest.concurrency` worker threads (default 1, at most 2), in 50k-seq chunks with a 60 s
+  statement timeout each, reporting `progress` and checking for cancellation between chunks;
+  `DELETE /v1/jobs/{jobId}` cancels, and a canceled job keeps the status `cancelled`. Finished jobs are deleted
+  after 30 days.
+- **Recipe jobs** report the intelligence events the recipe actually formed in the range (the
+  correlation engine has no dry-run replay yet), so they show what was stored, not a re-run.
 - **Caveats.** Every result carries `NOT_GROUND_TRUTH` plus each applicable caveat: `RANGE_CLAMPED_BY_RETENTION`,
   `DOWNSAMPLED_RANGE`, `SAMPLED_SOURCE`, `COVERAGE_GAPS`, `DEFINITION_DIFFERS`, `ENTITY_RESOLUTION_CHANGED`,
   `WINDOW_APPROXIMATE`, `SMALL_SAMPLE`. **Always quote them when reporting a result.**
-- **No look-ahead.** Anomaly and recipe replays use only data at or before the replay cursor; a baseline
-  trains only on buckets before the evaluated bucket.
+- **No look-ahead.** Anomaly rules are replayed bucket by bucket from the stored counts, and a baseline
+  trains only on buckets before the evaluated bucket. Forecast-horizon rules are matched as the live
+  engine saw each version at its own ingest time, never at the replay's wall clock. Count and absence
+  rules are replayed at record level only (`WINDOW_APPROXIMATE`).
 - **Reading lift and p-values.** Hit rates, lifts and p-values are descriptive statistics with stated
   assumptions; they are never calibrated probabilities. Small samples are labelled `insufficient`.
 - **Precursor tests.** `POST /v1/precursor-tests` defines X and Y (an alert rule, an intelligence event
@@ -1304,19 +1314,31 @@ processed locally.
   nwr/landuse=port nwr/harbour=yes nwr/man_made=wastewater_plant,water_works -o infra.osm.pbf` then
   `osmium export infra.osm.pbf -f geojsonseq --add-unique-id=type_id -o infra.geojsonseq`. Put the
   result under `${FORESIGNAL_INBOX_DIR}/osm` and enable `osm-infrastructure`. **Do not use the public
-  Overpass API in bulk** — Foresignal never calls it; use an extract.
+  Overpass API in bulk** — Foresignal never calls it; use an extract. The file is streamed (never
+  loaded whole); a file over 2,000,000 features is refused with the health reason "feature cap
+  exceeded", and lines that are not valid GeoJSON features show as "parse errors: n".
 - **ODbL obligations.** The OSM data is ODbL 1.0; attribution "© OpenStreetMap contributors" appears
   in every response that includes it, and the derived facility graph is a Derived Database — if you
   redistribute it, keep the ODbL and share-alike terms.
 - **Edge labels.** Every edge states how it is known — `declared`, `topological`, `proximity` or
   `inferred` — and a label `confirmed | likely | possible | speculative`. **Proximity edges are never
   better than `possible`.** A path's label is its weakest edge. Results always say "derived from open
-  data; not authoritative; heuristic links may be wrong."
+  data; not authoritative; heuristic links may be wrong." The cable data does not list each cable's
+  landing points, so `cable-landing` is a geometry match (`topological`, `likely`). A power line
+  reaching one substation is `likely`, reaching two is `confirmed`; impact traversal walks lines in
+  both directions. An edge's licence is the most restrictive licence of its two facilities.
 - **API.** `GET /v1/infra/nodes`, `GET /v1/infra/nodes/{id}` (with in/out edges), `GET /v1/infra/edges`,
-  `POST /v1/infra/affected {geometry | eventId, depth, minLabel, types}`, `GET /v1/infra/status`,
-  `POST /v1/infra/rebuild` (admin; 202), `GET/PUT /v1/settings/infra-rules` (admin). `GET /v1/infra/*`
-  are reads; a query area over 2,000,000 km² needs a `types` filter. Before the first build the graph
-  endpoints answer 409 `INFRA_GRAPH_NOT_BUILT`.
+  `POST /v1/infra/affected {geometry | eventId | record, depth, minLabel, types}`, `GET /v1/infra/status`,
+  `POST /v1/infra/rebuild` (admin; 202 at once, the build runs in the background),
+  `GET/PUT /v1/settings/infra-rules` (admin; `enabled` and `params` per rule apply to the next build).
+  `GET /v1/infra/*` are reads, serve only the newest successful build, and page with `cursor`; a
+  query area over 2,000,000 km² needs a `types` filter. Before the first build the graph endpoints
+  answer 409 `INFRA_GRAPH_NOT_BUILT`. A record seed that is only a point uses its region polygon and
+  is flagged `approximateArea`; a private event needs the private grant.
+- **Rebuilds.** Besides `POST /v1/infra/rebuild`, the graph rebuilds 10 minutes after the last import
+  of a mapped source and weekly (`foresignal.infra.rebuild-cron`, default Sunday 04:30 UTC;
+  `foresignal.infra.auto-rebuild=false` turns both off). A rebuild replaces the previous graph in one
+  transaction.
 
 ## Notification channels
 

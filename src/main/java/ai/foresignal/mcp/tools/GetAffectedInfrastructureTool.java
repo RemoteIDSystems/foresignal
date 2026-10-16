@@ -1,11 +1,14 @@
 package ai.foresignal.mcp.tools;
 
+import static ai.foresignal.mcp.JsonSchemas.enumeration;
 import static ai.foresignal.mcp.JsonSchemas.integer;
 import static ai.foresignal.mcp.JsonSchemas.object;
 import static ai.foresignal.mcp.JsonSchemas.props;
 import static ai.foresignal.mcp.JsonSchemas.string;
 
+import ai.foresignal.api.InfraController;
 import ai.foresignal.infra.InfraImpactService;
+import ai.foresignal.security.CurrentToken;
 import ai.foresignal.mcp.ForesignalMcpTool;
 import ai.foresignal.mcp.JsonSchemas;
 import ai.foresignal.mcp.McpArgs;
@@ -35,7 +38,14 @@ public class GetAffectedInfrastructureTool implements ForesignalMcpTool {
 
     static final Map<String, Object> INPUT = object(props(
             "eventId", string("Use an intelligence event's area.", 1, 26),
-            "depth", integer("Traversal depth, 1-3.", 1, 3, 2L)));
+            "geometry", JsonSchemas.openObject("A GeoJSON geometry to use as the area.", Map.of()),
+            "record", JsonSchemas.openObject("A record whose geometry (or region polygon) is the area.", props(
+                    "sourceId", string("The source id.", 1, 64),
+                    "externalId", string("The external id.", 1, 256)), "sourceId", "externalId"),
+            "depth", integer("Traversal depth, 1-3.", 1, 3, 2L),
+            "minLabel", enumeration("The weakest edge label followed.", "possible", "confirmed", "likely",
+                    "possible", "speculative"),
+            "types", JsonSchemas.stringArray("Facility types to list (for example health.hospital).", 14)));
 
     private final InfraImpactService impact;
     private final JdbcTemplate jdbc;
@@ -82,27 +92,20 @@ public class GetAffectedInfrastructureTool implements ForesignalMcpTool {
 
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
-        Geometry area = null;
-        if (McpArgs.text(args, "eventId") != null) {
-            List<String> wkt = jdbc.queryForList("SELECT ST_AsText(geom) FROM intelligence_event WHERE id = ?",
-                    String.class, McpArgs.text(args, "eventId"));
-            if (!wkt.isEmpty()) {
-                try {
-                    area = new org.locationtech.jts.io.WKTReader(Geo.factory()).read(wkt.get(0));
-                } catch (Exception e) {
-                    area = null;
-                }
-            }
-        } else if (args.hasNonNull("geometry")) {
-            area = Geo.fromGeoJson(args.get("geometry").toString());
+        if (!args.hasNonNull("eventId") && !args.hasNonNull("geometry") && !args.hasNonNull("record")) {
+            return ToolResult.error("Provide eventId, geometry or record.");
         }
-        if (area == null) {
-            return ToolResult.error("Provide eventId or geometry.");
-        }
-        Map<String, Object> result = impact.affected(area, McpArgs.integer(args, "depth", 2), "possible", List.of());
+        boolean privateAccess = context.caller().currentToken().map(CurrentToken::privateAccess).orElse(false);
+        InfraImpactService.Seed seed = InfraController.seed(impact, args, privateAccess);
+        Map<String, Object> result = impact.affected(seed, McpArgs.integer(args, "depth", 2),
+                McpArgs.text(args, "minLabel") == null ? "possible" : McpArgs.text(args, "minLabel"),
+                McpArgs.strings(args, "types"));
         List<?> dependents = (List<?>) result.getOrDefault("dependents", List.of());
         Map<String, Object> out = new java.util.LinkedHashMap<>();
         out.put("caveats", result.get("caveats"));
+        out.put("buildId", result.get("buildId"));
+        out.put("approximateArea", result.get("approximateArea"));
+        out.put("truncated", result.get("truncated"));
         out.put("summary", result.get("summary"));
         out.put("attribution", result.get("attribution"));
         out.put("dependents", dependents.subList(0, Math.min(20, dependents.size())));

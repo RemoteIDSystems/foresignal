@@ -28,7 +28,9 @@ import org.springframework.stereotype.Component;
  * requests</strong>: it never calls the Overpass API or any {@code openstreetmap.org} service, and
  * bulk use is the operator's own Geofabrik extract (ODbL 1.0). Each scan imports only when the file's
  * sha256 changed; absent features in a complete new file are tombstoned by the writer's complete-set
- * reconciliation.
+ * reconciliation. The file is streamed twice (hash, then parse) and never held whole in memory; a file
+ * over {@value #MAX_FEATURES} features is refused with a health reason, and lines that are not valid
+ * GeoJSON features are counted ({@code parse errors: n}).
  */
 @Component
 public class OsmInfrastructureAdapter implements PollingAdapter {
@@ -48,6 +50,12 @@ public class OsmInfrastructureAdapter implements PollingAdapter {
     private static final String SHA_STATE = "osm.sha";
     private static final String FILE_STATE = "osm.file";
 
+    /** The state key of the imported file's modification time (read by the graph build's caveat). */
+    public static final String MTIME_STATE = "osm.mtime";
+
+    /** The state key of the last import's parse-error count. */
+    public static final String PARSE_ERRORS_STATE = "osm.parseErrors";
+
     private final SourceDescriptor descriptor = buildDescriptor();
 
     /** The descriptor. */
@@ -60,6 +68,7 @@ public class OsmInfrastructureAdapter implements PollingAdapter {
                 .kind("data-centre-osm").kind("telecom-exchange").kind("aerodrome-osm").kind("port-osm")
                 .kind("water-facility")
                 .licence("ODbL-1.0")
+                .attribution("© OpenStreetMap contributors")
                 .termsUrl("https://www.openstreetmap.org/copyright")
                 .mode(Mode.POLLING)
                 .interval(Duration.ofDays(1), Duration.ofDays(7))
@@ -94,21 +103,32 @@ public class OsmInfrastructureAdapter implements PollingAdapter {
                 ctx.state().degrade("no file in inbox");
                 return FetchResult.unchanged();
             }
-            String sha = sha256(file);
+            String sha = sha256(ctx, file);
             if (sha != null && sha.equals(ctx.state().get(SHA_STATE).orElse(null))) {
-                ctx.state().degrade("file unchanged since " + file.getFileName());
+                ctx.state().degrade("file unchanged since " + ctx.state().get(MTIME_STATE).orElse(
+                        file.getFileName().toString()));
                 return FetchResult.unchanged();
             }
-            List<String> lines = readLines(ctx, file);
-            if (lines.size() > MAX_FEATURES) {
-                ctx.state().degrade("feature cap exceeded: " + lines.size());
+            OsmInfraParser.Parsed parsed;
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(ctx.inbox().open(file), StandardCharsets.UTF_8))) {
+                parsed = OsmInfraParser.parse(reader, minVoltage, ctx.now(), MAX_FEATURES);
+            }
+            if (parsed.capExceeded()) {
+                ctx.state().degrade("feature cap exceeded: more than " + MAX_FEATURES + " features in "
+                        + file.getFileName());
                 return FetchResult.unchanged();
             }
-            List<NormalizedRecord> records = OsmInfraParser.parse(lines, minVoltage, ctx.now());
             ctx.state().put(SHA_STATE, sha == null ? "" : sha);
             ctx.state().put(FILE_STATE, file.getFileName().toString());
-            ctx.state().clearDegraded();
-            return FetchResult.complete(records);
+            ctx.state().put(MTIME_STATE, java.time.Instant.ofEpochMilli(lastModified(file)).toString());
+            ctx.state().put(PARSE_ERRORS_STATE, String.valueOf(parsed.parseErrors()));
+            if (parsed.parseErrors() > 0) {
+                ctx.state().degrade("parse errors: " + parsed.parseErrors());
+            } else {
+                ctx.state().clearDegraded();
+            }
+            return FetchResult.complete(parsed.records());
         } catch (AdapterException e) {
             throw e;
         } catch (Exception e) {
@@ -138,20 +158,17 @@ public class OsmInfrastructureAdapter implements PollingAdapter {
         }
     }
 
-    private List<String> readLines(FetchContext ctx, Path file) throws Exception {
-        List<String> lines = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(ctx.inbox().open(file), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                lines.add(line);
+    /** The SHA-256 of the file, streamed (the file is never held in memory). */
+    private static String sha256(FetchContext ctx, Path file) throws Exception {
+        MessageDigest sha = MessageDigest.getInstance("SHA-256");
+        try (java.io.InputStream in = ctx.inbox().open(file)) {
+            byte[] buffer = new byte[64 * 1024];
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                sha.update(buffer, 0, read);
             }
         }
-        return lines;
-    }
-
-    private static String sha256(Path file) throws Exception {
-        byte[] digest = MessageDigest.getInstance("SHA-256").digest(java.nio.file.Files.readAllBytes(file));
+        byte[] digest = sha.digest();
         StringBuilder hex = new StringBuilder();
         for (byte b : digest) {
             hex.append(String.format("%02x", b));

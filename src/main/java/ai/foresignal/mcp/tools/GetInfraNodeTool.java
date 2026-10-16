@@ -13,9 +13,8 @@ import ai.foresignal.mcp.ToolContext;
 import ai.foresignal.mcp.ToolResult;
 import ai.foresignal.security.Scope;
 import ai.foresignal.security.restrict.RestrictedRead;
-import java.util.List;
 import java.util.Map;
-import org.springframework.jdbc.core.JdbcTemplate;
+import ai.foresignal.infra.InfraNodeQuery;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -27,12 +26,12 @@ public class GetInfraNodeTool implements ForesignalMcpTool {
 
     static final Map<String, Object> INPUT = object(Map.of("id", nonNegative("The node id.")), "id");
 
-    private final JdbcTemplate jdbc;
+    private final InfraNodeQuery query;
     private final JsonMapper json;
 
     /** Creates the tool. */
-    public GetInfraNodeTool(JdbcTemplate jdbc, JsonMapper json) {
-        this.jdbc = jdbc;
+    public GetInfraNodeTool(InfraNodeQuery query, JsonMapper json) {
+        this.query = query;
         this.json = json;
     }
 
@@ -70,21 +69,13 @@ public class GetInfraNodeTool implements ForesignalMcpTool {
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
         long id = McpArgs.requiredLong(args, "id");
-        List<Map<String, Object>> rows = jdbc.queryForList(
-                "SELECT id, facility_type AS \"facilityType\", name, source_id AS \"sourceId\","
-                        + " external_id AS \"externalId\", licence, ST_AsText(point) AS point"
-                        + " FROM infra_node WHERE id = ?",
-                id);
-        if (rows.isEmpty()) {
+        Map<String, Object> out;
+        try {
+            // Only the current build is served, so a node of a superseded build is unknown.
+            out = query.node(id);
+        } catch (ai.foresignal.api.error.NotFoundException e) {
             throw new McpToolException(ErrorCodes.UNKNOWN_INFRA_NODE + ": no such node " + id);
         }
-        Map<String, Object> out = new java.util.LinkedHashMap<>(rows.get(0));
-        out.put("outEdges", jdbc.queryForList(
-                "SELECT id, to_node AS \"toNode\", relation, method, label, score FROM infra_edge WHERE from_node = ?",
-                id));
-        out.put("inEdges", jdbc.queryForList(
-                "SELECT id, from_node AS \"fromNode\", relation, method, label, score FROM infra_edge WHERE to_node = ?",
-                id));
         return ToolResult.json(json.valueToTree(out));
     }
 }

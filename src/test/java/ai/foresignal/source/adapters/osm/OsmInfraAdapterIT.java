@@ -21,5 +21,6 @@ class OsmInfraAdapterIT {
         assertThat(descriptor.mode().allowsUpstreamRequests()).isTrue();
         assertThat(descriptor.recordTtl()).isNull();
         assertThat(descriptor.kinds()).contains("substation", "hospital", "power-line");
+        assertThat(descriptor.attribution()).isEqualTo("© OpenStreetMap contributors");
     }
 }

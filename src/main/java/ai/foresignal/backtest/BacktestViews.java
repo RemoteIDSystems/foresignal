@@ -21,6 +21,9 @@ public final class BacktestViews {
         out.put("toSeq", job.getToSeq());
         out.put("rangeFrom", job.getRangeFrom());
         out.put("rangeTo", job.getRangeTo());
+        out.put("from", job.getRangeFrom());
+        out.put("to", job.getRangeTo());
+        out.put("definition", job.getDefinition());
         out.put("startedAt", job.getStartedAt());
         out.put("finishedAt", job.getFinishedAt());
         out.put("definitionHash", job.getDefinitionHash());

@@ -4,7 +4,9 @@ import ai.foresignal.backtest.BacktestJobEntity;
 import ai.foresignal.backtest.BacktestJobService;
 import ai.foresignal.backtest.BacktestViews;
 import ai.foresignal.backtest.PrecursorTestService;
+import ai.foresignal.security.CurrentToken;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.HttpServletRequest;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -44,8 +46,8 @@ public class PrecursorTestController {
     /** {@code createPrecursorTest}. */
     @PostMapping
     @Operation(operationId = "createPrecursorTest", tags = "Analysis")
-    public Map<String, Object> createPrecursorTest(@RequestBody JsonNode body) {
-        return BacktestViews.precursorTest(tests.create(body));
+    public Map<String, Object> createPrecursorTest(@RequestBody JsonNode body, HttpServletRequest request) {
+        return BacktestViews.precursorTest(tests.create(body, tokenId(request)));
     }
 
     /** {@code getPrecursorTest}. */
@@ -74,8 +76,14 @@ public class PrecursorTestController {
     @PostMapping("/{id}/test")
     @ResponseStatus(HttpStatus.ACCEPTED)
     @Operation(operationId = "testPrecursorTest", tags = "Analysis")
-    public Map<String, Object> testPrecursorTest(@PathVariable String id, @RequestBody(required = false) JsonNode body) {
-        BacktestJobEntity job = jobs.submit("precursor", id, null, body == null ? null : body, null, null);
+    public Map<String, Object> testPrecursorTest(@PathVariable String id, @RequestBody(required = false) JsonNode body,
+            HttpServletRequest request) {
+        BacktestJobEntity job = jobs.submit("precursor", id, null, body, null, tokenId(request));
         return BacktestViews.job(job);
+    }
+
+    /** The calling token's id (the one-job-per-token rule and the creator), or null when anonymous. */
+    private static String tokenId(HttpServletRequest request) {
+        return CurrentToken.of(request).map(c -> c.id().toString()).orElse(null);
     }
 }

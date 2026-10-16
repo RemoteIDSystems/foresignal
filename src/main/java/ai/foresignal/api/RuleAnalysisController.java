@@ -28,12 +28,17 @@ public class RuleAnalysisController {
     private final AlertQualityService quality;
     private final TuningSuggester suggester;
     private final BacktestJobService jobs;
+    private final tools.jackson.databind.json.JsonMapper json;
+    private final java.time.Clock clock;
 
     /** Creates the controller. */
-    public RuleAnalysisController(AlertQualityService quality, TuningSuggester suggester, BacktestJobService jobs) {
+    public RuleAnalysisController(AlertQualityService quality, TuningSuggester suggester, BacktestJobService jobs,
+            tools.jackson.databind.json.JsonMapper json, java.time.Clock clock) {
         this.quality = quality;
         this.suggester = suggester;
         this.jobs = jobs;
+        this.json = json;
+        this.clock = clock;
     }
 
     /** {@code getTriggerQuality}. */
@@ -41,7 +46,7 @@ public class RuleAnalysisController {
     @Operation(operationId = "getTriggerQuality", tags = "Analysis")
     public Map<String, Object> getTriggerQuality(@PathVariable String ruleId,
             @RequestParam(required = false) String since) {
-        Instant from = since == null ? Instant.now().minus(java.time.Duration.ofDays(30))
+        Instant from = since == null ? clock.instant().minus(java.time.Duration.ofDays(30))
                 : QueryParams.instant("since", since);
         return quality.forRule(UUID.fromString(ruleId), from);
     }
@@ -53,14 +58,29 @@ public class RuleAnalysisController {
             @RequestParam(required = false) String since,
             @RequestParam(required = false) String simulate,
             HttpServletRequest request) {
-        Instant from = since == null ? Instant.now().minus(java.time.Duration.ofDays(30))
+        Instant from = since == null ? clock.instant().minus(java.time.Duration.ofDays(30))
                 : QueryParams.instant("since", since);
         boolean simulateNow = QueryParams.bool("simulate", simulate, false);
         Map<String, Object> out = new LinkedHashMap<>();
-        out.put("suggestions", suggester.forRule(UUID.fromString(ruleId), from));
-        if (simulateNow && CurrentToken.of(request).map(c -> c.scope() != null && c.scope().includes(Scope.AGENT))
-                .orElse(false)) {
-            var job = jobs.submit("rule", ruleId, null, null, null, null);
+        java.util.List<Map<String, Object>> suggestions = suggester.forRule(UUID.fromString(ruleId), from);
+        out.put("suggestions", suggestions);
+        java.util.Optional<CurrentToken> token = CurrentToken.of(request);
+        if (simulateNow && token.map(c -> c.scope() != null && c.scope().includes(Scope.AGENT)).orElse(false)) {
+            // The patched variants (condition patches) run side by side with the rule over the same range.
+            java.util.List<Map<String, Object>> variants = new java.util.ArrayList<>();
+            for (Map<String, Object> suggestion : suggestions) {
+                if (suggestion.get("patch") instanceof Map<?, ?> patch && patch.get("conditions") != null) {
+                    variants.add(Map.of("name", String.valueOf(suggestion.get("id")), "conditions",
+                            patch.get("conditions")));
+                }
+            }
+            Instant now = clock.instant();
+            Instant start = from.isBefore(now.minus(java.time.Duration.ofDays(BacktestJobService.MAX_DAYS)))
+                    ? now.minus(java.time.Duration.ofDays(BacktestJobService.MAX_DAYS)) : from;
+            tools.jackson.databind.node.ObjectNode range = json.createObjectNode();
+            range.put("from", start.toString());
+            range.put("to", now.toString());
+            var job = jobs.submit("rule", ruleId, null, range, variants, token.get().id().toString());
             out.put("jobId", job.getId());
         }
         return out;

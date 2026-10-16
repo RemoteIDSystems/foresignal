@@ -35,18 +35,63 @@ public class AlertQualityService {
     /** The labelled alerts below which precision is null. */
     public static final int MIN_LABELLED = 5;
 
+    /** The most alerts read per report. */
+    public static final int MAX_ALERTS = 5_000;
+
+    /** The duplicate window of a rule without a cooldown. */
+    public static final Duration DEFAULT_DUPLICATE_WINDOW = Duration.ofMinutes(10);
+
     private final AlertStore alerts;
+    private final ai.foresignal.trigger.TriggerRuleService rules;
 
     /** Creates the service. */
-    public AlertQualityService(AlertStore alerts) {
+    public AlertQualityService(AlertStore alerts, ai.foresignal.trigger.TriggerRuleService rules) {
         this.alerts = alerts;
+        this.rules = rules;
+    }
+
+    /**
+     * One labeled alert, for the threshold scan and the geofence check of {@link TuningSuggester}.
+     *
+     * @param feedbackClass {@code positive}, {@code negative} or {@code neutral}
+     * @param recordSnapshot the alert's record snapshot as JSON text, or null
+     */
+    public record Labeled(String feedbackClass, String recordSnapshot) {}
+
+    /** The alerts of a rule since {@code since} that carry feedback, with their class and snapshot. */
+    public List<Labeled> labeled(UUID ruleId, Instant since) {
+        List<Labeled> out = new ArrayList<>();
+        for (AlertView alert : alerts.feed(query(ruleId, since), MAX_ALERTS)) {
+            if (alert.feedback() != null) {
+                out.add(new Labeled(FEEDBACK_CLASSES.getOrDefault(alert.feedback(), "neutral"),
+                        alert.recordSnapshot()));
+            }
+        }
+        return out;
+    }
+
+    private static AlertQuery query(UUID ruleId, Instant since) {
+        return new AlertQuery(java.util.Set.of(ruleId), null, null, since, null, null, null, null, null,
+                true, java.util.Set.of(), ai.foresignal.security.restrict.ReadRestriction.NONE);
+    }
+
+    /**
+     * The duplicate window of a rule: twice its cooldown (prompt 103 section 6), or
+     * {@link #DEFAULT_DUPLICATE_WINDOW} when it has none or cannot be read.
+     */
+    Duration duplicateWindow(UUID ruleId) {
+        try {
+            int cooldown = rules == null ? 0 : rules.load(ruleId).getCooldownSeconds();
+            return cooldown > 0 ? Duration.ofSeconds(2L * cooldown) : DEFAULT_DUPLICATE_WINDOW;
+        } catch (RuntimeException e) {
+            return DEFAULT_DUPLICATE_WINDOW;
+        }
     }
 
     /** The quality report for a rule since {@code since}. */
     public Map<String, Object> forRule(UUID ruleId, Instant since) {
-        AlertQuery query = new AlertQuery(java.util.Set.of(ruleId), null, null, since, null, null, null, null, null,
-                true, java.util.Set.of(), ai.foresignal.security.restrict.ReadRestriction.NONE);
-        List<AlertView> rows = alerts.feed(query, 5_000);
+        List<AlertView> rows = alerts.feed(query(ruleId, since), MAX_ALERTS);
+        Duration duplicateWindow = duplicateWindow(ruleId);
         long positive = 0;
         long negative = 0;
         long neutral = 0;
@@ -85,7 +130,8 @@ public class AlertQualityService {
             }
             String key = alert.sourceId() + ":" + alert.externalId();
             Instant last = lastByEntity.get(key);
-            if (last != null && Duration.between(last, alert.firedAt()).abs().compareTo(Duration.ofMinutes(10)) < 0) {
+            if (last != null && alert.firedAt() != null
+                    && Duration.between(last, alert.firedAt()).abs().compareTo(duplicateWindow) < 0) {
                 duplicates++;
             }
             lastByEntity.put(key, alert.firedAt());
@@ -114,6 +160,7 @@ public class AlertQualityService {
         out.put("medianTimeToResolveMinutes", median(resolveMinutes));
         out.put("flapping", flapping);
         out.put("duplicates", duplicates);
+        out.put("duplicateWindow", duplicateWindow.toString());
         out.put("severity", severity);
         return out;
     }

@@ -2,6 +2,8 @@ package ai.foresignal.source.adapters.osm;
 
 import ai.foresignal.source.spi.Geo;
 import ai.foresignal.source.spi.NormalizedRecord;
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,24 +26,70 @@ public final class OsmInfraParser {
 
     private OsmInfraParser() {}
 
+    /**
+     * The outcome of parsing one file.
+     *
+     * @param records the records
+     * @param features the non-blank lines (features) read
+     * @param parseErrors the lines that were not valid GeoJSON features
+     * @param capExceeded true when the file had more than the feature cap; parsing stopped there
+     */
+    public record Parsed(List<NormalizedRecord> records, long features, long parseErrors, boolean capExceeded) {}
+
     /** Parses the lines, keeping power lines at or above {@code minVoltageKv}. */
     public static List<NormalizedRecord> parse(List<String> lines, double minVoltageKv, Instant observedAt) {
         List<NormalizedRecord> out = new ArrayList<>();
         for (String line : lines) {
-            if (line == null || line.isBlank()) {
-                continue;
-            }
-            try {
-                JsonNode feature = JSON.readTree(line);
-                NormalizedRecord record = record(feature, minVoltageKv, observedAt);
-                if (record != null) {
-                    out.add(record);
-                }
-            } catch (RuntimeException e) {
-                // a malformed line is skipped; the adapter counts parse errors
-            }
+            parseLine(line, minVoltageKv, observedAt, out);
         }
         return out;
+    }
+
+    /**
+     * Parses a GeoJSON text sequence line by line without holding the file in memory, stopping once
+     * more than {@code maxFeatures} features have been read. RFC 8142 record separators
+     * ({@code U+001E}) at the start of a line are ignored.
+     */
+    public static Parsed parse(BufferedReader reader, double minVoltageKv, Instant observedAt, long maxFeatures)
+            throws IOException {
+        List<NormalizedRecord> out = new ArrayList<>();
+        long features = 0;
+        long errors = 0;
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.isBlank() || line.equals("\u001e")) {
+                continue;
+            }
+            features++;
+            if (features > maxFeatures) {
+                return new Parsed(List.of(), features, errors, true);
+            }
+            if (!parseLine(line, minVoltageKv, observedAt, out)) {
+                errors++;
+            }
+        }
+        return new Parsed(out, features, errors, false);
+    }
+
+    /** Parses one line into {@code out}; false when the line is not a valid GeoJSON feature. */
+    private static boolean parseLine(String raw, double minVoltageKv, Instant observedAt, List<NormalizedRecord> out) {
+        if (raw == null || raw.isBlank()) {
+            return true;
+        }
+        String line = raw.charAt(0) == '\u001e' ? raw.substring(1) : raw;
+        try {
+            JsonNode feature = JSON.readTree(line);
+            if (feature == null || !feature.isObject()) {
+                return false;
+            }
+            NormalizedRecord record = record(feature, minVoltageKv, observedAt);
+            if (record != null) {
+                out.add(record);
+            }
+            return true;
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     static NormalizedRecord record(JsonNode feature, double minVoltageKv, Instant observedAt) {
@@ -147,21 +195,38 @@ public final class OsmInfraParser {
         return max < 0 ? null : max / 1000.0;
     }
 
-    /** A capacity in MW from a value like {@code 500 MW}. */
+    /**
+     * A capacity in MW from a {@code plant:output:electricity} value: a number with the unit
+     * {@code W}, {@code kW}, {@code MW} or {@code GW} ({@code 500 MW}, {@code 1.2 GW},
+     * {@code 250 kW}). The OSM key defines no default unit (a plant of unknown output is tagged
+     * {@code yes}), so {@code yes}, a bare number or an unknown unit gives null.
+     */
     static Double capacityMw(JsonNode node) {
         if (node == null || node.isNull()) {
             return null;
         }
-        String value = node.asString().replaceAll("[^0-9.]", "").trim();
-        if (value.isEmpty()) {
+        java.util.regex.Matcher m = CAPACITY.matcher(node.asString().trim());
+        if (!m.matches()) {
             return null;
         }
+        double value;
         try {
-            return Double.parseDouble(value) / 1_000_000.0;
+            value = Double.parseDouble(m.group(1).replace(',', '.'));
         } catch (NumberFormatException e) {
             return null;
         }
+        return switch (m.group(2).toLowerCase(java.util.Locale.ROOT)) {
+            case "w" -> value / 1_000_000.0;
+            case "kw" -> value / 1_000.0;
+            case "mw" -> value;
+            case "gw" -> value * 1_000.0;
+            default -> null;
+        };
     }
+
+    /** A number, optional spaces, and a power unit. */
+    private static final java.util.regex.Pattern CAPACITY =
+            java.util.regex.Pattern.compile("([0-9]+(?:[.,][0-9]+)?)\\s*([kKmMgG]?[wW])");
 
     private static Geometry geometry(JsonNode node) {
         if (node == null || node.isNull()) {
