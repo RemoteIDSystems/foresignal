@@ -38,18 +38,44 @@ public final class AnomalyClassifier {
     public static Result classify(int observed, double expected, double coverageRatio, double slotMedianCoverage,
             double pValue, double alpha, double minAbsoluteDelta, String direction, boolean learning,
             boolean coverageOk) {
+        return classify(observed, expected, expected, coverageRatio, slotMedianCoverage, pValue, alpha,
+                minAbsoluteDelta, direction, learning, coverageOk);
+    }
+
+    /**
+     * Classifies a bucket, judging a coverage drop against the slot's unadjusted mean: a count below
+     * the baseline mean while the coverage ratio fell by at least 30% against the slot median is a
+     * {@code coverage-drop} (never an alert), whether or not the coverage gate passed; it is checked
+     * before {@code insufficient-coverage} because it is the more specific explanation.
+     *
+     * @param observed the bucket's count
+     * @param expected the expected count λ (mean × coverage ratio)
+     * @param baselineMean the slot's mean before the coverage adjustment
+     * @param coverageRatio the bucket's coverage ratio
+     * @param slotMedianCoverage the slot's median coverage ratio
+     * @param pValue the tail p-value (0..1), or -1 when not computed
+     * @param alpha the significance
+     * @param minAbsoluteDelta the smallest absolute deviation that may fire
+     * @param direction the rule's direction: {@code up}, {@code down} or {@code both}
+     * @param learning true while the baseline is warming up
+     * @param coverageOk true when the bucket passed the coverage gate
+     * @return the classification
+     */
+    public static Result classify(int observed, double expected, double baselineMean, double coverageRatio,
+            double slotMedianCoverage, double pValue, double alpha, double minAbsoluteDelta, String direction,
+            boolean learning, boolean coverageOk) {
         if (learning) {
             return new Result("learning", null, false);
+        }
+        boolean coverageDrop = observed < baselineMean && slotMedianCoverage > 0
+                && coverageRatio <= COVERAGE_DROP_FRACTION * slotMedianCoverage;
+        if (coverageDrop) {
+            return new Result("coverage-drop", "down", false);
         }
         if (!coverageOk) {
             return new Result("insufficient-coverage", null, false);
         }
         boolean down = observed < expected;
-        boolean coverageDrop = down && slotMedianCoverage > 0
-                && coverageRatio <= COVERAGE_DROP_FRACTION * slotMedianCoverage;
-        if (coverageDrop) {
-            return new Result("coverage-drop", "down", false);
-        }
         boolean deltaEnough = Math.abs(observed - expected) >= minAbsoluteDelta;
         boolean significant = pValue >= 0 && pValue < alpha;
         if (significant && deltaEnough) {

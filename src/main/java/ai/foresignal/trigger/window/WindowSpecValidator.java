@@ -136,7 +136,14 @@ public final class WindowSpecValidator {
         }
     }
 
-    private static ValidationException invalid(String field, String message) {
+    /**
+     * A {@code WINDOW_RULE_INVALID} problem for one field.
+     *
+     * @param field the offending field
+     * @param message what is wrong with it
+     * @return the exception to throw
+     */
+    public static ValidationException invalid(String field, String message) {
         return new ValidationException(ErrorCodes.WINDOW_RULE_INVALID,
                 "The rule is not valid: " + field + " " + message + ".",
                 List.of(new FieldError(field, message)));
