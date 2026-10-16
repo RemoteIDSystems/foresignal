@@ -64,4 +64,42 @@ class OsmInfraParserContractTest {
         assertThat(records.get(0).payload()).containsEntry("capacityMw", 500.0);
         assertThat(records.get(0).geometry()).isNotNull();
     }
+
+    @Test
+    @DisplayName("capacity units W, kW, MW and GW convert to MW; yes, a bare number or no unit is unknown")
+    void capacityUnits() {
+        assertThat(OsmInfraParser.capacityMw(JSON.readTree("\"1.2 GW\""))).isEqualTo(1200.0);
+        assertThat(OsmInfraParser.capacityMw(JSON.readTree("\"250 kW\""))).isEqualTo(0.25);
+        assertThat(OsmInfraParser.capacityMw(JSON.readTree("\"5000000 W\""))).isEqualTo(5.0);
+        assertThat(OsmInfraParser.capacityMw(JSON.readTree("\"35MW\""))).isEqualTo(35.0);
+        assertThat(OsmInfraParser.capacityMw(JSON.readTree("\"yes\""))).isNull();
+        assertThat(OsmInfraParser.capacityMw(JSON.readTree("\"500\""))).isNull();
+        assertThat(OsmInfraParser.capacityMw(JSON.readTree("\"500 MWh\""))).isNull();
+    }
+
+    @Test
+    @DisplayName("a streamed GeoJSON sequence counts parse errors and skips record separators")
+    void streamed() throws Exception {
+        String text = "\u001e{\"type\":\"Feature\",\"id\":\"n1\",\"geometry\":{\"type\":\"Point\","
+                + "\"coordinates\":[-95,32]},\"properties\":{\"amenity\":\"hospital\",\"name\":\"H\"}}\n"
+                + "not json\n\n"
+                + "{\"type\":\"Feature\",\"id\":\"n2\",\"geometry\":{\"type\":\"Point\","
+                + "\"coordinates\":[-95,32]},\"properties\":{\"amenity\":\"cafe\"}}\n";
+        var parsed = OsmInfraParser.parse(new java.io.BufferedReader(new java.io.StringReader(text)), 110, T, 10);
+        assertThat(parsed.records()).hasSize(1);
+        assertThat(parsed.records().get(0).externalId()).isEqualTo("n1");
+        assertThat(parsed.features()).isEqualTo(3);
+        assertThat(parsed.parseErrors()).isEqualTo(1);
+        assertThat(parsed.capExceeded()).isFalse();
+    }
+
+    @Test
+    @DisplayName("a file over the feature cap stops parsing and says so")
+    void cap() throws Exception {
+        String line = "{\"type\":\"Feature\",\"id\":\"n1\",\"properties\":{\"amenity\":\"hospital\"}}\n";
+        var parsed = OsmInfraParser.parse(new java.io.BufferedReader(new java.io.StringReader(line.repeat(3))), 110,
+                T, 2);
+        assertThat(parsed.capExceeded()).isTrue();
+        assertThat(parsed.records()).isEmpty();
+    }
 }

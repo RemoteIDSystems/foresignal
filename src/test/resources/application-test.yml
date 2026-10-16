@@ -83,6 +83,10 @@ foresignal:
   # and the backoff tests turn them on with @TestPropertySource.
   ratelimit:
     enabled: false
+  # The infrastructure graph is not rebuilt on its own in tests (after imports or weekly); the 104 ITs
+  # call InfraGraphBuilder.rebuild() or the rebuild endpoint.
+  infra:
+    auto-rebuild: false
     auth-backoff-enabled: false
 
 logging:

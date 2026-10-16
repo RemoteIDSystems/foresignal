@@ -1314,19 +1314,31 @@ processed locally.
   nwr/landuse=port nwr/harbour=yes nwr/man_made=wastewater_plant,water_works -o infra.osm.pbf` then
   `osmium export infra.osm.pbf -f geojsonseq --add-unique-id=type_id -o infra.geojsonseq`. Put the
   result under `${FORESIGNAL_INBOX_DIR}/osm` and enable `osm-infrastructure`. **Do not use the public
-  Overpass API in bulk** — Foresignal never calls it; use an extract.
+  Overpass API in bulk** — Foresignal never calls it; use an extract. The file is streamed (never
+  loaded whole); a file over 2,000,000 features is refused with the health reason "feature cap
+  exceeded", and lines that are not valid GeoJSON features show as "parse errors: n".
 - **ODbL obligations.** The OSM data is ODbL 1.0; attribution "© OpenStreetMap contributors" appears
   in every response that includes it, and the derived facility graph is a Derived Database — if you
   redistribute it, keep the ODbL and share-alike terms.
 - **Edge labels.** Every edge states how it is known — `declared`, `topological`, `proximity` or
   `inferred` — and a label `confirmed | likely | possible | speculative`. **Proximity edges are never
   better than `possible`.** A path's label is its weakest edge. Results always say "derived from open
-  data; not authoritative; heuristic links may be wrong."
+  data; not authoritative; heuristic links may be wrong." The cable data does not list each cable's
+  landing points, so `cable-landing` is a geometry match (`topological`, `likely`). A power line
+  reaching one substation is `likely`, reaching two is `confirmed`; impact traversal walks lines in
+  both directions. An edge's licence is the most restrictive licence of its two facilities.
 - **API.** `GET /v1/infra/nodes`, `GET /v1/infra/nodes/{id}` (with in/out edges), `GET /v1/infra/edges`,
-  `POST /v1/infra/affected {geometry | eventId, depth, minLabel, types}`, `GET /v1/infra/status`,
-  `POST /v1/infra/rebuild` (admin; 202), `GET/PUT /v1/settings/infra-rules` (admin). `GET /v1/infra/*`
-  are reads; a query area over 2,000,000 km² needs a `types` filter. Before the first build the graph
-  endpoints answer 409 `INFRA_GRAPH_NOT_BUILT`.
+  `POST /v1/infra/affected {geometry | eventId | record, depth, minLabel, types}`, `GET /v1/infra/status`,
+  `POST /v1/infra/rebuild` (admin; 202 at once, the build runs in the background),
+  `GET/PUT /v1/settings/infra-rules` (admin; `enabled` and `params` per rule apply to the next build).
+  `GET /v1/infra/*` are reads, serve only the newest successful build, and page with `cursor`; a
+  query area over 2,000,000 km² needs a `types` filter. Before the first build the graph endpoints
+  answer 409 `INFRA_GRAPH_NOT_BUILT`. A record seed that is only a point uses its region polygon and
+  is flagged `approximateArea`; a private event needs the private grant.
+- **Rebuilds.** Besides `POST /v1/infra/rebuild`, the graph rebuilds 10 minutes after the last import
+  of a mapped source and weekly (`foresignal.infra.rebuild-cron`, default Sunday 04:30 UTC;
+  `foresignal.infra.auto-rebuild=false` turns both off). A rebuild replaces the previous graph in one
+  transaction.
 
 ## Notification channels
 

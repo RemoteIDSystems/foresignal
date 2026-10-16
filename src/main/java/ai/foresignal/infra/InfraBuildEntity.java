@@ -52,6 +52,10 @@ public class InfraBuildEntity {
     @Column(name = "error", columnDefinition = "text")
     private String error;
 
+    /** The modification time of the imported OSM extract, when one was an input. */
+    @Column(name = "osm_extract_date")
+    private Instant osmExtractDate;
+
     /** JPA. */
     protected InfraBuildEntity() {}
 
@@ -127,5 +131,23 @@ public class InfraBuildEntity {
 
     public void setError(String error) {
         this.error = error;
+    }
+
+    /** The modification time of the imported OSM extract, or null. */
+    public Instant getOsmExtractDate() {
+        return osmExtractDate;
+    }
+
+    /** Records the modification time of the imported OSM extract. */
+    public void setOsmExtractDate(Instant osmExtractDate) {
+        this.osmExtractDate = osmExtractDate;
+    }
+
+    /** {@code running}, {@code done} or {@code failed}. */
+    public String status() {
+        if (error != null) {
+            return "failed";
+        }
+        return finished == null ? "running" : "done";
     }
 }

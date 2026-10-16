@@ -1,9 +1,10 @@
 {
-  "note": "The dependency rules (prompt 104). Every edge states how it is known (method) and is labelled confirmed|likely|possible|speculative; proximity is never better than possible.",
-  "version": 1,
+  "note": "The dependency rules (prompt 104). Every edge states how it is known (method) and is labeled confirmed|likely|possible|speculative; proximity is never better than possible. Version 2: cable-landing is a geometry match (topological, likely).",
+  "version": 2,
   "rules": [
-    {"id": "cable-landing", "enabled": true, "method": "declared", "label": "confirmed", "relation": "lands_at",
-     "params": {"withinKm": 5}},
+    {"id": "cable-landing", "enabled": true, "method": "topological", "label": "likely", "relation": "lands_at",
+     "params": {"withinKm": 5},
+     "note": "The 094 cable data does not list each cable's landing points, so a landing is matched by geometry (topological, likely), not declared."},
     {"id": "ixp-facility", "enabled": false, "method": "declared", "label": "confirmed", "relation": "interconnects",
      "params": {}},
     {"id": "line-substation", "enabled": true, "method": "topological", "label": "likely", "relation": "transmits_power",
