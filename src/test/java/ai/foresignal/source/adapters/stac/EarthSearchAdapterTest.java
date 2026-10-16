@@ -132,6 +132,70 @@ class EarthSearchAdapterTest extends WireMockSupport {
     }
 
     @Test
+    @DisplayName("a place AOI is searched with the place's own area, and coverage is measured against it")
+    void placeAreaAoi() throws Exception {
+        org.locationtech.jts.geom.Geometry area = ai.foresignal.source.spi.Geo.fromGeoJson(
+                "{\"type\":\"MultiPolygon\",\"coordinates\":[[[[-97.8,30.1],[-97.6,30.1],[-97.7,30.4],"
+                        + "[-97.8,30.1]]]]}");
+        ai.foresignal.source.spi.PlacePoints places = new ai.foresignal.source.spi.PlacePoints() {
+            @Override
+            public java.util.Optional<double[]> point(String placeId) {
+                return "home".equals(placeId) ? java.util.Optional.of(new double[] {-97.7, 30.2})
+                        : java.util.Optional.empty();
+            }
+
+            @Override
+            public java.util.Optional<org.locationtech.jts.geom.Geometry> area(String placeId) {
+                return "home".equals(placeId) ? java.util.Optional.of(area) : java.util.Optional.empty();
+            }
+        };
+        EarthSearchAdapter withPlaces = new EarthSearchAdapter(StacSources.reviewed(StacSources.SENTINEL2),
+                baseUrl(), () -> places);
+        serve(AdapterFixtures.text("stac-sentinel2", "search.json"));
+
+        withPlaces.fetch(harness.context(withPlaces, Map.of(EarthSearchAdapter.AOI_PARAM, "home")));
+
+        JsonNode body = requestBody(0);
+        assertThat(body.has("bbox")).isFalse();
+        assertThat(body.get("intersects").get("type").asString()).isEqualTo("MultiPolygon");
+        // The triangle's apex, not a corner of a ±0.25° box around the point.
+        assertThat(body.get("intersects").toString()).contains("30.4");
+    }
+
+    @Test
+    @DisplayName("a place area on both sides of the antimeridian is searched as two parts")
+    void placeAreaAcrossAntimeridian() {
+        org.locationtech.jts.geom.Geometry area = ai.foresignal.source.spi.Geo.fromGeoJson(
+                "{\"type\":\"MultiPolygon\",\"coordinates\":["
+                        + "[[[179.5,-17],[180,-17],[180,-16],[179.5,-16],[179.5,-17]]],"
+                        + "[[[-180,-17],[-179.5,-17],[-179.5,-16],[-180,-16],[-180,-17]]]]}");
+
+        EarthSearchAdapter.Aoi aoi = EarthSearchAdapter.areaAoi(area);
+
+        assertThat(aoi.parts()).hasSize(2);
+        assertThat(aoi.parts()).allSatisfy(part -> assertThat(part.intersects()).isNotNull());
+        assertThat(aoi.geometry().getNumGeometries()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("a run's search requests fit the per-minute budget, shared by the AOI parts")
+    void pagingFitsTheBudget() throws Exception {
+        assertThat(EarthSearchAdapter.requestsPerRun(adapter.descriptor())).isEqualTo(4);
+        assertThat(EarthSearchAdapter.pagesPerPart(5, 1, 4)).isEqualTo(4);
+        assertThat(EarthSearchAdapter.pagesPerPart(5, 2, 4)).isEqualTo(2);
+        assertThat(EarthSearchAdapter.pagesPerPart(2, 1, 4)).isEqualTo(2);
+        assertThat(EarthSearchAdapter.pagesPerPart(5, 3, 2)).isEqualTo(1);
+
+        harness = new AdapterHttpHarness(jdbc, jsonMapper, properties, install, new MutableClock(NOON),
+                adapter.descriptor().defaultBudget());
+        serve(pageWithNext("TOKEN-1"));
+
+        adapter.fetch(context(Map.of(EarthSearchAdapter.MAX_PAGES_PARAM, 5)));
+
+        assertThat(WIREMOCK.getAllServeEvents()).hasSize(4);
+    }
+
+    @Test
     @DisplayName("a 429 with Retry-After puts the source in backoff for its duration")
     void throttled() {
         WIREMOCK.stubFor(post(urlPathEqualTo(PATH)).willReturn(aResponse().withStatus(429)

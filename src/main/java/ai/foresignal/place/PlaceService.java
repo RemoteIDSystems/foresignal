@@ -284,6 +284,12 @@ public class PlaceService implements PlaceLookup, PlacePoints, IngestStateReset 
         });
     }
 
+    /** The place's {@code area} MultiPolygon (2026-10 review, prompt 096), or empty when it has none. */
+    @Override
+    public Optional<Geometry> area(String placeId) {
+        return find(placeId).map(PlaceView::area).filter(a -> a != null && !a.isEmpty()).map(a -> (Geometry) a);
+    }
+
     /**
      * Every place for an adapter (prompt 053): id, name, representative point, products and version, ordered
      * by id. Places without a usable geometry are left out.

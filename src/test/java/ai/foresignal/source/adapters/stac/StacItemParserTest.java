@@ -203,6 +203,47 @@ class StacItemParserTest {
                 .isInstanceOf(UpstreamFormatException.class);
     }
 
+    @Test
+    @DisplayName("a malformed footprint drops that item only, and is counted")
+    void malformedFootprintSkipped() {
+        String good = item("GOOD", "2026-10-10T00:00:00Z", "2026-10-10T01:00:00Z", 5.0,
+                "[[-97.8,30.1],[-97.6,30.1],[-97.6,30.3],[-97.8,30.3],[-97.8,30.1]]");
+        String bad = item("BAD", "2026-10-09T00:00:00Z", "2026-10-09T01:00:00Z", 5.0, "\"not coordinates\"");
+        String page = good.replace("],\"links\":[]}", ","
+                + bad.substring(bad.indexOf("\"features\":[") + "\"features\":[".length(), bad.lastIndexOf("],"))
+                + "],\"links\":[]}");
+
+        StacItemParser.Result result = StacItemParser.parse(page.getBytes(StandardCharsets.UTF_8),
+                options(StacSources.SENTINEL2_COLLECTION, true, 30.0, box(-98, 30, -97, 31)));
+
+        assertThat(result.rows()).isEqualTo(2);
+        assertThat(result.records()).extracting(NormalizedRecord::externalId)
+                .containsExactly("sentinel-2-c1-l2a:GOOD");
+        assertThat(result.malformed()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("observedAt is read from the collection's fixed property, never chosen per item")
+    void observedAtFixedPerCollection() {
+        String onlyCreated = item("C1", "2026-10-10T00:00:00Z", "2026-10-10T01:00:00Z", 5.0,
+                "[[-97.8,30.1],[-97.6,30.1],[-97.6,30.3],[-97.8,30.3],[-97.8,30.1]]")
+                .replace("\"updated\":\"2026-10-10T01:00:00Z\",", "");
+        Geometry aoi = box(-98, 30, -97, 31);
+
+        StacItemParser.Result byUpdated = StacItemParser.parse(onlyCreated.getBytes(StandardCharsets.UTF_8),
+                new StacItemParser.Options(StacSources.SENTINEL2_COLLECTION, true, 30.0, FROM, UNTIL, aoi,
+                        StacSource.UPDATED));
+        assertThat(byUpdated.records()).isEmpty();
+        assertThat(byUpdated.skipped()).isEqualTo(1);
+
+        StacItemParser.Result byCreated = StacItemParser.parse(onlyCreated.getBytes(StandardCharsets.UTF_8),
+                new StacItemParser.Options(StacSources.SENTINEL2_COLLECTION, true, 30.0, FROM, UNTIL, aoi,
+                        StacSource.CREATED));
+        assertThat(byCreated.records()).hasSize(1);
+        assertThat(byCreated.records().get(0).observedAt()).isEqualTo(Instant.parse("2026-10-10T01:00:00Z"));
+        assertThat(StacSources.REVIEWED).allSatisfy(s -> assertThat(s.observedAtField()).isEqualTo(StacSource.UPDATED));
+    }
+
     /** A minimal one-feature ItemCollection with a self link and an https thumbnail. */
     private static String item(String id, String datetime, String updated, double cloud, String ring) {
         return "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"id\":\"" + id + "\","

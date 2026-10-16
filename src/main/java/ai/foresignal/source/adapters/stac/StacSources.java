@@ -50,7 +50,10 @@ public final class StacSources {
     public static final String USGS_TERMS =
             "https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits";
 
-    /** Every reviewed feed, in registration order. */
+    /**
+     * Every reviewed feed, in registration order. {@code observedAt} is {@code properties.updated} for all three
+     * collections: every item of the captured 2026-10 fixtures carries it.
+     */
     public static final List<StacSource> REVIEWED = List.of(
             new StacSource(
                     SENTINEL2,
@@ -61,7 +64,8 @@ public final class StacSources {
                     "Contains modified Copernicus Sentinel data " + Year.now(),
                     COPERNICUS_TERMS,
                     "https://earth-search.aws.element84.com/v1",
-                    true),
+                    true,
+                    StacSource.UPDATED),
             new StacSource(
                     LANDSAT,
                     "Landsat Collection 2 Level 2",
@@ -71,7 +75,8 @@ public final class StacSources {
                     "Landsat imagery courtesy of the U.S. Geological Survey",
                     USGS_TERMS,
                     "https://earth-search.aws.element84.com/v1",
-                    true),
+                    true,
+                    StacSource.UPDATED),
             new StacSource(
                     SENTINEL1,
                     "Sentinel-1 GRD",
@@ -81,7 +86,8 @@ public final class StacSources {
                     "Contains modified Copernicus Sentinel data " + Year.now(),
                     COPERNICUS_TERMS,
                     "https://earth-search.aws.element84.com/v1",
-                    false));
+                    false,
+                    StacSource.UPDATED));
 
     /** Kebab-case, like the descriptor id rule. */
     private static final Pattern ID = Pattern.compile("^[a-z0-9]+(-[a-z0-9]+)*$");

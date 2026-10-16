@@ -16,6 +16,9 @@ package ai.foresignal.source.adapters.stac;
  * @param homepage where a human can read about the collection
  * @param enabledByDefault the prompt's intent (all built-in sources start disabled until the operator
  *     enables them; Sentinel-1 is additionally marked off by default)
+ * @param observedAtField the item property {@code observedAt} is read from for this collection,
+ *     {@value #UPDATED} or {@value #CREATED}: fixed per collection and decided by the captured fixture, never per
+ *     item (prompt 096); an item without it is skipped
  */
 public record StacSource(
         String id,
@@ -26,5 +29,26 @@ public record StacSource(
         String attribution,
         String termsUrl,
         String homepage,
-        boolean enabledByDefault) {
+        boolean enabledByDefault,
+        String observedAtField) {
+
+    /** {@code properties.updated}. */
+    public static final String UPDATED = "updated";
+
+    /** {@code properties.created}. */
+    public static final String CREATED = "created";
+
+    /** Accepts {@value #UPDATED} or {@value #CREATED} only. */
+    public StacSource {
+        if (!UPDATED.equals(observedAtField) && !CREATED.equals(observedAtField)) {
+            throw new IllegalArgumentException(
+                    "observedAtField must be " + UPDATED + " or " + CREATED + ", not " + observedAtField);
+        }
+    }
+
+    /** A feed whose {@code observedAt} is {@code properties.updated}. */
+    public StacSource(String id, String name, String collection, boolean cloudFiltered, String licence,
+            String attribution, String termsUrl, String homepage, boolean enabledByDefault) {
+        this(id, name, collection, cloudFiltered, licence, attribution, termsUrl, homepage, enabledByDefault, UPDATED);
+    }
 }

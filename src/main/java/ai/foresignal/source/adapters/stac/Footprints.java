@@ -112,7 +112,15 @@ final class Footprints {
             return 0;
         }
         Geometry footprintPlane = project(footprint, centre.getX(), centre.getY());
-        double intersection = aoiPlane.intersection(footprintPlane).getArea();
+        double intersection;
+        try {
+            intersection = aoiPlane.intersection(footprintPlane).getArea();
+        } catch (org.locationtech.jts.geom.TopologyException e) {
+            // A self-touching ring can defeat the overlay; repair both sides and try once more. A second
+            // failure propagates and the parser drops the item.
+            intersection = org.locationtech.jts.geom.util.GeometryFixer.fix(aoiPlane)
+                    .intersection(org.locationtech.jts.geom.util.GeometryFixer.fix(footprintPlane)).getArea();
+        }
         long pct = Math.round(100.0 * intersection / aoiArea);
         return (int) Math.max(0, Math.min(100, pct));
     }

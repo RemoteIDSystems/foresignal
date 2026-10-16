@@ -22,10 +22,14 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p>A pure function of its inputs (adapter rule 3): no network, no clock, no database.
  *
- * <p><strong>Time base</strong> (Core-Data-Model §2): {@code observedAt} is the upstream's
- * {@code properties.updated} (falling back to {@code created}), fixed per collection; {@code eventTime} is
- * the acquisition {@code properties.datetime}. A reprocessing that moves only {@code updated} leaves the
- * payload unchanged, so it hashes equal and becomes a touch.
+ * <p><strong>Time base</strong> (Core-Data-Model §2): {@code observedAt} is read from the one property the
+ * collection fixes ({@link Options#observedAtField}: {@code properties.updated} for every reviewed collection,
+ * decided by the fixtures), never chosen per item; an item without it is skipped and counted (2026-10 review).
+ * {@code eventTime} is the acquisition {@code properties.datetime}. A reprocessing that moves only
+ * {@code updated} leaves the payload unchanged, so it hashes equal and becomes a touch.
+ *
+ * <p><strong>A bad item is skipped, not the page.</strong> A malformed footprint, or one whose AOI intersection
+ * cannot be computed, drops that item and is counted in {@link Result#malformed}; the rest of the page is kept.
  *
  * <p><strong>Links only.</strong> The record carries the item's {@code self} link and, only when it is an
  * {@code https://} URL, the {@code assets.thumbnail} href. Landsat and Sentinel-1 thumbnails are
@@ -63,6 +67,8 @@ public final class StacItemParser {
      * @param from the requested window's start; an item older than this ends the page
      * @param until the requested window's end, or null
      * @param aoi the AOI geometry the coverage percentage is measured against
+     * @param observedAtField the item property {@code observedAt} is read from ({@code updated} or
+     *     {@code created}), fixed per collection
      */
     public record Options(
             String collection,
@@ -70,7 +76,20 @@ public final class StacItemParser {
             Double maxCloudCover,
             Instant from,
             Instant until,
-            Geometry aoi) {}
+            Geometry aoi,
+            String observedAtField) {
+
+        /** Defaults the {@code observedAt} property to {@code updated}. */
+        public Options {
+            observedAtField = observedAtField == null ? StacSource.UPDATED : observedAtField;
+        }
+
+        /** Options whose {@code observedAt} is {@code properties.updated}. */
+        public Options(String collection, boolean cloudFiltered, Double maxCloudCover, Instant from, Instant until,
+                Geometry aoi) {
+            this(collection, cloudFiltered, maxCloudCover, from, until, aoi, StacSource.UPDATED);
+        }
+    }
 
     /**
      * One parsed page.
@@ -80,13 +99,19 @@ public final class StacItemParser {
      * @param skipped features dropped for a missing id, time or geometry
      * @param newest the newest acquisition on the page, kept or not
      * @param olderSeen true when an item older than the window ended the page
+     * @param malformed features dropped because their footprint was malformed or its AOI intersection failed
      */
     public record Result(
-            List<NormalizedRecord> records, int rows, int skipped, Instant newest, boolean olderSeen) {
+            List<NormalizedRecord> records, int rows, int skipped, Instant newest, boolean olderSeen, int malformed) {
 
         /** Copies the records. */
         public Result {
             records = List.copyOf(records);
+        }
+
+        /** A result with no malformed feature. */
+        public Result(List<NormalizedRecord> records, int rows, int skipped, Instant newest, boolean olderSeen) {
+            this(records, rows, skipped, newest, olderSeen, 0);
         }
     }
 
@@ -114,6 +139,7 @@ public final class StacItemParser {
         }
         List<NormalizedRecord> records = new ArrayList<>();
         int skipped = 0;
+        int malformed = 0;
         Instant newest = null;
         boolean olderSeen = false;
         for (JsonNode feature : features) {
@@ -128,17 +154,25 @@ public final class StacItemParser {
                 olderSeen = true;
                 break;
             }
-            NormalizedRecord record = scene(feature, properties, acquisition, options);
+            if (newest == null || acquisition.isAfter(newest)) {
+                newest = acquisition;
+            }
+            NormalizedRecord record;
+            try {
+                record = scene(feature, properties, acquisition, options);
+            } catch (RuntimeException e) {
+                // A malformed footprint (UpstreamFormatException) or a JTS failure intersecting it with the AOI
+                // (TopologyException): drop this item, keep the page.
+                malformed++;
+                continue;
+            }
             if (record == null) {
                 skipped++;
                 continue;
             }
             records.add(record);
-            if (newest == null || acquisition.isAfter(newest)) {
-                newest = acquisition;
-            }
         }
-        return new Result(records, features.size(), skipped, newest, olderSeen);
+        return new Result(records, features.size(), skipped, newest, olderSeen, malformed);
     }
 
     /** The cloud and (upper) time bounds of the request; a violation means the filter was ignored. */
@@ -168,10 +202,7 @@ public final class StacItemParser {
         if (footprint == null) {
             return null;
         }
-        Instant observedAt = instant(properties.get("updated"));
-        if (observedAt == null) {
-            observedAt = instant(properties.get("created"));
-        }
+        Instant observedAt = instant(properties.get(options.observedAtField()));
         if (observedAt == null) {
             return null;
         }

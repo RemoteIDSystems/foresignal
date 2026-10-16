@@ -34,6 +34,15 @@ public interface PlacePoints {
         return java.util.Map.of();
     }
 
+    /**
+     * A place's area (2026-10 review, prompt 096: a STAC search intersects the place's own area rather than a
+     * box around its point): the place's {@code area} MultiPolygon in WGS84, or empty when unknown. The default
+     * is empty, for test doubles that resolve single points only.
+     */
+    default Optional<org.locationtech.jts.geom.Geometry> area(String placeId) {
+        return Optional.empty();
+    }
+
     /** A place's timezone id (prompt 106), or empty when unknown. */
     default Optional<String> timezone(String placeId) {
         return Optional.empty();

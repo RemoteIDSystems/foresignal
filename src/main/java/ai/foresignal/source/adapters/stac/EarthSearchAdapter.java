@@ -52,7 +52,14 @@ import tools.jackson.databind.node.ObjectNode;
  *
  * <p><strong>An AOI is required</strong> ({@code aoi}, a {@code west,south,east,north} box or a 036 place
  * id): the source cannot be enabled without it, so a global scan can never be configured. A box that
- * crosses the antimeridian is split into two requests.
+ * crosses the antimeridian is split into two requests. A place AOI is searched with the place's own
+ * {@code area} (2026-10 review), whose parts on either side of the antimeridian are likewise sent as two
+ * requests, and {@code aoiCoverPct} is measured against that area; only a place without an area falls back to a
+ * box of ±{@value #PLACE_DEGREES}° around its point.
+ *
+ * <p><strong>Requests fit the budget</strong> (2026-10 review): a run sends at most the per-minute budget of
+ * search requests (4), however many pages {@code maxPages} allows and however many parts the AOI has; each part
+ * gets an equal share, at least one page.
  *
  * <p><strong>Search.</strong> One {@code POST {base}/search} per page with {@code collections},
  * {@code intersects} (a polygon for a place AOI) or {@code bbox} (for a box AOI), {@code datetime},
@@ -232,16 +239,18 @@ public class EarthSearchAdapter implements PollingAdapter {
             throw new AdapterException(id() + ": the aoi parameter is required and must resolve to a box or place");
         }
         double maxCloudCover = maxCloudCover(params);
-        int maxPages = maxPages(params);
+        int maxPages = pagesPerPart(maxPages(params), aoi.parts().size(), requestsPerRun(descriptor));
         Instant now = ctx.now();
         Instant from = lastAcquisition(ctx.state()).map(mark -> mark.minus(OVERLAP))
                 .orElse(now.minus(Duration.ofDays(lookbackDays(params))));
         Instant until = now.plus(FORWARD_SLACK);
         StacItemParser.Options options = new StacItemParser.Options(source.collection(), source.cloudFiltered(),
-                maxCloudCover, from, until, aoi.geometry());
+                maxCloudCover, from, until, aoi.geometry(), source.observedAtField());
 
         Map<String, NormalizedRecord> out = new LinkedHashMap<>();
         Instant newest = null;
+        int malformed = 0;
+        boolean truncated = false;
         for (AoiPart part : aoi.parts()) {
             ObjectNode body = body(part, from, maxCloudCover);
             for (int page = 0; page < maxPages; page++) {
@@ -256,6 +265,7 @@ public class EarthSearchAdapter implements PollingAdapter {
                             + " maxPages or narrow the AOI", null);
                 }
                 StacItemParser.Result parsed = StacItemParser.parse(response.body(), options);
+                malformed += parsed.malformed();
                 for (NormalizedRecord record : parsed.records()) {
                     out.putIfAbsent(record.externalId(), record);
                 }
@@ -269,14 +279,39 @@ public class EarthSearchAdapter implements PollingAdapter {
                 if (next == null) {
                     break;
                 }
+                if (page == maxPages - 1) {
+                    truncated = true;
+                }
                 body = next;
             }
         }
         if (newest != null) {
             ctx.state().put(LAST_ACQUISITION, newest.toString());
         }
+        if (malformed > 0) {
+            ctx.log().info("{}: {} item(s) with a malformed footprint skipped", id(), malformed);
+        }
+        if (truncated) {
+            ctx.log().info("{}: the request budget ended the search before its last page; older scenes in the"
+                    + " window were not read (narrow the AOI or lower lookbackDays)", id());
+        }
         ctx.log().debug("{}: {} scene(s) from {}, since {}", id(), out.size(), source.collection(), from);
         return FetchResult.of(new ArrayList<>(out.values()));
+    }
+
+    /** The search requests one run may send: the per-minute budget (the bucket refills between hourly runs). */
+    static int requestsPerRun(SourceDescriptor descriptor) {
+        Budget budget = descriptor.defaultBudget();
+        return Math.max(1, budget == null ? 1 : budget.perMinute());
+    }
+
+    /**
+     * The pages each AOI part may read: {@code maxPages}, but no more than an equal share of the run's request
+     * allowance, and at least one.
+     */
+    static int pagesPerPart(int maxPages, int parts, int allowance) {
+        int share = Math.max(1, allowance / Math.max(1, parts));
+        return Math.max(1, Math.min(maxPages, share));
     }
 
     /** The search URI of this adapter's base. */
@@ -356,6 +391,10 @@ public class EarthSearchAdapter implements PollingAdapter {
             double north = Double.parseDouble(parts[3].strip());
             return bboxAoi(west, south, east, north);
         }
+        Geometry area = resolvePlaceArea(aoi);
+        if (area != null) {
+            return areaAoi(area);
+        }
         double[] point = resolvePlace(aoi);
         if (point == null) {
             return null;
@@ -364,6 +403,48 @@ public class EarthSearchAdapter implements PollingAdapter {
             point[0] + PLACE_DEGREES, point[1] + PLACE_DEGREES};
         List<AoiPart> parts = List.of(new AoiPart(null, polygonNode(box)));
         return new Aoi(boxGeometry(List.of(box)), parts);
+    }
+
+    /**
+     * A place-area AOI: the area itself is searched ({@code intersects}) and measured against. An area whose
+     * parts lie on both sides of the antimeridian (an envelope wider than 180°) is sent as two requests, the
+     * eastern and the western parts, like a split box.
+     */
+    static Aoi areaAoi(Geometry area) {
+        Geometry geometry = area.copy();
+        geometry.setSRID(ai.foresignal.source.spi.Geo.SRID);
+        List<Geometry> groups = new ArrayList<>();
+        if (geometry.getEnvelopeInternal().getWidth() > 180 && geometry.getNumGeometries() > 1) {
+            List<Polygon> east = new ArrayList<>();
+            List<Polygon> west = new ArrayList<>();
+            for (int i = 0; i < geometry.getNumGeometries(); i++) {
+                if (geometry.getGeometryN(i) instanceof Polygon polygon) {
+                    (polygon.getCentroid().getX() >= 0 ? east : west).add(polygon);
+                }
+            }
+            for (List<Polygon> side : List.of(east, west)) {
+                if (!side.isEmpty()) {
+                    groups.add(ai.foresignal.source.spi.Geo.factory()
+                            .createMultiPolygon(side.toArray(Polygon[]::new)));
+                }
+            }
+        } else {
+            groups.add(geometry);
+        }
+        List<AoiPart> parts = new ArrayList<>();
+        for (Geometry group : groups) {
+            parts.add(new AoiPart(null, JSON.valueToTree(new ai.foresignal.source.formats.geojson.GeoJsonWriter()
+                    .write(group))));
+        }
+        return new Aoi(geometry, parts);
+    }
+
+    private Geometry resolvePlaceArea(String placeId) {
+        PlacePoints lookup = places.get();
+        if (lookup == null) {
+            return null;
+        }
+        return lookup.area(placeId).filter(a -> !a.isEmpty()).orElse(null);
     }
 
     /** A box AOI, split into two parts when it crosses the antimeridian. */

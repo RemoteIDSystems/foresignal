@@ -4852,7 +4852,8 @@ docker compose exec -T db dropdb -U foresignal restore_drill
 
 - **You must set an AOI.** `stac-sentinel2` and `stac-landsat` require the `aoi` parameter — a box
   `west,south,east,north` or a place id — so enabling either fails with `400 VALIDATION_FAILED` until you
-  supply one. A box that crosses the antimeridian is split into two searches automatically.
+  supply one. A box that crosses the antimeridian is split into two searches automatically. A place id searches
+  the place's own area (its shape, radius or buffer), and `aoiCoverPct` is measured against that area.
 - **Links only; no imagery is ever downloaded.** A `satellite-scene` record carries the footprint, the
   acquisition time, the cloud cover, the fraction of your AOI the footprint covers (`aoiCoverPct`), the STAC
   item link (`stacItemUrl`) and, only when the collection publishes a public one, an `https://` thumbnail.
@@ -4873,8 +4874,9 @@ docker compose exec -T db dropdb -U foresignal restore_drill
   Sentinel-1 has no `cloudCover`, so leave it out of the conditions.
 - **Cadence and quota.** Each run searches your AOI hourly (min 15 minutes) at 4 requests/minute and 300/day;
   the first run looks `lookbackDays` (default 3) behind, later runs start two days behind the newest scene
-  already seen. `maxPages` (default 5, at most 10) caps the pages of 100 read per run. A cloudy week returns
-  nothing, which is normal (no silent-break warning).
+  already seen. `maxPages` (default 5, at most 10) caps the pages of 100 read per run, and a run never sends more
+  searches than the per-minute budget (4), shared by the parts of a split AOI; when that ends a search early the
+  log says so. A cloudy week returns nothing, which is normal (no silent-break warning).
 
 ## Raster exports and offline packs (prompt 108)
 
