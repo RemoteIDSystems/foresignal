@@ -183,3 +183,17 @@ Every finding was re-verified against the code before it was changed.
   `AnomalyBacktestIT` covered the backtest's no-look-ahead (it exercised the prompt 100 detector).
   `AnomalyBacktestIT` now tests the backtest's own replay; `docs/Invariants.md` INT-2 already names
   that class and needed no change.
+- **Result shapes aligned with `RuleBacktestResult` (confirmed against `docs/OpenAPI.json`):**
+  `topEntities` items are now `{sourceId, externalId, entityId, count}` for every rule type (record
+  rules resolve the entity link valid at the latest hit; anomaly groups are not entities, so
+  `entityId` is null). Anomaly `samples` are `{seq, source, externalId, observedAt, edge}`, with the
+  alert identity (`rule-windows`, `ruleId:group`) and the live evaluation's stored
+  `anomaly_observation.watermark_seq` as `seq`; a fired bucket without one is counted but not
+  sampled. Count and absence rules replace the non-spec `windowedReplay` string with the `window`
+  block: `steps` (aligned step instants whose whole window is in range) and `unknownSteps` (over the
+  row cap, or an absence step the historical coverage gate rejects), replayed through
+  `WindowMembership` and `CoverageGate` bounded by each step instant (`WindowReplay`).
+  **Limitations:** `wouldFire`, `perDay`, `topEntities` and `samples` of windowed rules remain
+  record-level matches, not window transitions (the `WINDOW_APPROXIMATE` caveat now says so); the
+  replay skips the rule-age warm-up and has no step cap (one membership query per step; the job is
+  cancelable between steps).
