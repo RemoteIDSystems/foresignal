@@ -35,7 +35,9 @@ class RestrictedReadCoverageTest {
     /** Path prefixes whose GET operations return records or alerts. */
     static final List<String> READ_PREFIXES = List.of("/v1/records", "/v1/history", "/v1/changes", "/v1/kinds",
             "/v1/tiles", "/v1/events", "/v1/alerts", "/v1/search", "/v1/notifications", "/v1/digest", "/v1/briefings",
-            "/v1/views", "/v1/timeline", "/v1/stats", "/v1/glance");
+            "/v1/views", "/v1/timeline", "/v1/stats", "/v1/glance",
+            // 093: series points and the series catalog are records (series-point, series-latest).
+            "/v1/series");
 
     /** GET operations under those prefixes that return no records or alerts. */
     static final Set<String> EXEMPT = Set.of("getSearchStatus", "getAlertEscalation", "listViews", "getView");

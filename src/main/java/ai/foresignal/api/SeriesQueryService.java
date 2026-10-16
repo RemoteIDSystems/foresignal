@@ -4,6 +4,8 @@ import ai.foresignal.api.dto.SeriesInfoDto;
 import ai.foresignal.api.dto.SeriesPageDto;
 import ai.foresignal.api.dto.SeriesPointDto;
 import ai.foresignal.api.dto.SeriesPointPageDto;
+import ai.foresignal.security.restrict.ReadRestriction;
+import ai.foresignal.security.restrict.RestrictionClamp;
 import ai.foresignal.source.series.SeriesPoint;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -14,6 +16,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -27,6 +30,12 @@ import tools.jackson.databind.json.JsonMapper;
  * <p>The catalogue reads {@code series-latest} heads; the points read {@code series-point} heads in
  * {@code event_time} order, which is served by the partial expression index
  * {@code record_head (source_id, (payload->>'series'), event_time) WHERE kind='series-point'}.
+ *
+ * <p><strong>Every read is filtered by the caller's {@link Visibility}</strong> (prompt 035 / EGR-1): the sources
+ * it may not see (private sources without the grant, those outside its restriction, and on the Ask path those an
+ * LLM destination may not receive) are excluded, and its {@link ReadRestriction} is applied through
+ * {@link RestrictionClamp}. Series records carry no geometry, so a spatially restricted caller sees no series
+ * (fail closed, as for any geometry-less row).
  */
 @Component
 public class SeriesQueryService {
@@ -49,6 +58,29 @@ public class SeriesQueryService {
     /** A catalogue page. */
     public record Catalogue(List<SeriesInfoDto> items, String nextCursor) {}
 
+    /**
+     * What the caller may read.
+     *
+     * @param excluded source ids the caller may not see (never null)
+     * @param restriction the caller's read restriction ({@link ReadRestriction#NONE} when none)
+     */
+    public record Visibility(Set<String> excluded, ReadRestriction restriction) {
+
+        /** Everything: for trusted internal callers only. */
+        public static final Visibility ALL = new Visibility(Set.of(), ReadRestriction.NONE);
+
+        /** Copies the excluded set; a null restriction becomes {@link ReadRestriction#NONE}. */
+        public Visibility {
+            excluded = excluded == null ? Set.of() : Set.copyOf(excluded);
+            restriction = restriction == null ? ReadRestriction.NONE : restriction;
+        }
+
+        /** True when {@code sourceId} may be read at all (not excluded and allowed by the restriction). */
+        public boolean allows(String sourceId) {
+            return !excluded.contains(sourceId) && restriction.allowsSource(sourceId);
+        }
+    }
+
     /** A page of points. */
     public record Points(SeriesPointPageDto page) {}
 
@@ -63,9 +95,15 @@ public class SeriesQueryService {
      * @param q a case-insensitive match on series id, seriesName and area, or null
      * @param cursor the cursor from the previous page, or null
      * @param limit the page size
+     * @param visibility what the caller may read
      */
-    public Catalogue list(List<String> sources, String q, String cursor, int limit) {
+    public Catalogue list(List<String> sources, String q, String cursor, int limit, Visibility visibility) {
         Cursor decoded = Cursor.decode(cursor);
+        List<String> clamped = RestrictionClamp.clampSources(sources, visibility.restriction());
+        if (clamped != null && clamped.isEmpty()) {
+            // The request and the restriction are disjoint: nothing matches (intersect, never union).
+            return new Catalogue(List.of(), null);
+        }
         StringBuilder sql = new StringBuilder("SELECT source_id, external_id, payload FROM record_head"
                 + " WHERE kind = '" + LATEST_KIND + "' AND tombstone = false");
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -73,6 +111,7 @@ public class SeriesQueryService {
             sql.append(" AND source_id IN (:sources)");
             params.addValue("sources", sources);
         }
+        appendVisibility(sql, params, visibility);
         if (q != null && !q.isBlank()) {
             sql.append(" AND (lower(payload->>'series') LIKE :q ESCAPE '\\'"
                     + " OR lower(coalesce(payload->>'seriesName','')) LIKE :q ESCAPE '\\'"
@@ -100,20 +139,28 @@ public class SeriesQueryService {
         return new Catalogue(List.copyOf(items), next);
     }
 
-    /** One series' catalogue entry, or empty when no such series exists. */
-    public Optional<SeriesInfoDto> info(String sourceId, String seriesId) {
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("source", sourceId).addValue("series", seriesId);
-        List<InfoRow> latest = jdbc.query("SELECT source_id, external_id, payload FROM record_head"
-                + " WHERE kind = '" + LATEST_KIND + "' AND tombstone = false AND source_id = :source"
-                + " AND payload->>'series' = :series LIMIT 1", params, infoRowMapper());
-        if (!latest.isEmpty()) {
-            return Optional.of(latest.get(0).dto());
+    /**
+     * One series' catalog entry, or empty when no such series exists or the caller may not read it (the two are
+     * answered alike, so existence does not leak).
+     */
+    public Optional<SeriesInfoDto> info(String sourceId, String seriesId, Visibility visibility) {
+        if (!visibility.allows(sourceId)) {
+            return Optional.empty();
         }
-        List<InfoRow> any = jdbc.query("SELECT source_id, external_id, payload FROM record_head"
-                + " WHERE kind = '" + POINT_KIND + "' AND tombstone = false AND source_id = :source"
-                + " AND payload->>'series' = :series LIMIT 1", params, infoRowMapper());
-        return any.isEmpty() ? Optional.empty() : Optional.of(any.get(0).dto());
+        for (String kind : List.of(LATEST_KIND, POINT_KIND)) {
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                    .addValue("source", sourceId).addValue("series", seriesId);
+            StringBuilder sql = new StringBuilder("SELECT source_id, external_id, payload FROM record_head"
+                    + " WHERE kind = '" + kind + "' AND tombstone = false AND source_id = :source"
+                    + " AND payload->>'series' = :series");
+            appendVisibility(sql, params, visibility);
+            sql.append(" LIMIT 1");
+            List<InfoRow> rows = jdbc.query(sql.toString(), params, infoRowMapper());
+            if (!rows.isEmpty()) {
+                return Optional.of(rows.get(0).dto());
+            }
+        }
+        return Optional.empty();
     }
 
     /**
@@ -122,14 +169,20 @@ public class SeriesQueryService {
      * @param from periodStart at or after this, or null
      * @param to periodStart before this, or null
      * @param cursor the cursor from the previous page, or null
+     * @param visibility what the caller may read
      */
-    public Points points(String sourceId, SeriesInfoDto info, Instant from, Instant to, String cursor, int limit) {
+    public Points points(String sourceId, SeriesInfoDto info, Instant from, Instant to, String cursor, int limit,
+            Visibility visibility) {
+        if (!visibility.allows(sourceId)) {
+            return new Points(new SeriesPointPageDto(info, List.of(), null, false));
+        }
         Cursor decoded = Cursor.decode(cursor);
         StringBuilder sql = new StringBuilder("SELECT external_id, event_time, version, persisted_observed_at,"
                 + " payload FROM record_head WHERE kind = '" + POINT_KIND + "' AND tombstone = false"
                 + " AND source_id = :source AND payload->>'series' = :series");
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("source", sourceId).addValue("series", info.series());
+        appendVisibility(sql, params, visibility);
         if (from != null) {
             sql.append(" AND event_time >= :from");
             params.addValue("from", OffsetDateTime.ofInstant(from, ZoneOffset.UTC));
@@ -157,6 +210,16 @@ public class SeriesQueryService {
             next = new Cursor(Cursor.Kind.POINTS, null, last.externalId(), last.eventTime()).encode();
         }
         return new Points(new SeriesPointPageDto(info, List.copyOf(items), next, more));
+    }
+
+    /** Appends the caller's exclusions and restriction to a {@code record_head} query. */
+    private static void appendVisibility(StringBuilder sql, MapSqlParameterSource params, Visibility visibility) {
+        if (!visibility.excluded().isEmpty()) {
+            sql.append(" AND source_id NOT IN (:excludedSources)");
+            params.addValue("excludedSources", List.copyOf(visibility.excluded()));
+        }
+        RestrictionClamp.sqlPredicate("source_id", "kind", null, visibility.restriction(), params, "rc")
+                .ifPresent(predicate -> sql.append(" AND ").append(predicate));
     }
 
     // ---------------------------------------------------------------- mapping

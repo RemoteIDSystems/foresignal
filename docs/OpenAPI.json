@@ -34438,6 +34438,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "A named source is unknown or is a private source the caller may not see",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",

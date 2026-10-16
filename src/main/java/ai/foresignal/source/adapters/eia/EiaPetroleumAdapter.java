@@ -114,7 +114,9 @@ public class EiaPetroleumAdapter implements PollingAdapter {
         for (JsonNode row : envelope.data()) {
             String period = JsonProps.text(row, "period");
             Double value = EiaParser.value(row);
-            SeriesPeriods.Period bounds = SeriesPeriods.parse(frequencyCode, period);
+            // Weekly EIA periods are labeled by the week's last day; daily ones by the day itself.
+            SeriesPeriods.Period bounds = "P1W".equals(frequencyCode)
+                    ? SeriesPeriods.weekEnding(period) : SeriesPeriods.parse(frequencyCode, period);
             if (period == null || value == null || bounds == null) {
                 continue;
             }

@@ -34,9 +34,14 @@ import tools.jackson.databind.JsonNode;
  * {@code eia-930} (prompt 093): hourly US grid demand, demand forecast, net generation and total interchange per
  * balancing authority, plus the hourly fuel-type generation mix, as {@code series-point} records.
  *
- * <p>One request per dataset per poll (a 48-hour window is far under the 5,000-row cap); {@code start} is set
- * explicitly so a revision is re-read. The demand forecast ({@code DF}) is marked {@code status=forecast}. The time
- * base is {@code RECEIVED}, because the feed mixes forecasts and actuals and recent hours are revised.
+ * <p>Each dataset is read with {@code start} set explicitly (so a revision is re-read), {@code length} at EIA's
+ * 5,000-row cap and {@code offset} paging until {@code response.total} rows have arrived. The default window is
+ * 8 respondents × 4 types × 48 h ≈ 1,550 region rows and 8 × 10 fuels × 48 h ≈ 3,850 fuel rows, one page each; a
+ * larger respondent list pages, at most {@value #MAX_PAGES_PER_DATASET} pages per dataset so a run never sends more
+ * than the four requests a minute of its budget. A window that still does not fit is ingested as a partial result
+ * and the source is marked degraded, never silently truncated. The demand forecast ({@code DF}) is marked
+ * {@code status=forecast}. The time base is {@code RECEIVED}, because the feed mixes forecasts and actuals and recent
+ * hours are revised.
  */
 @Component
 public class Eia930Adapter implements PollingAdapter {
@@ -56,6 +61,12 @@ public class Eia930Adapter implements PollingAdapter {
 
     /** The trailing window. */
     static final Duration WINDOW = Duration.ofHours(48);
+
+    /** EIA's row cap per JSON request, used as the page length. */
+    static final int PAGE_ROWS = 5_000;
+
+    /** The most pages one dataset may take per run: two datasets × two pages = the budget's four a minute. */
+    static final int MAX_PAGES_PER_DATASET = 2;
 
     /** The window, formatted {@code YYYY-MM-DDTHH} (UTC), as EIA expects it. */
     private static final DateTimeFormatter HOUR = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH").withZone(ZoneOffset.UTC);
@@ -86,29 +97,61 @@ public class Eia930Adapter implements PollingAdapter {
         boolean fuelMix = ctx.params() == null || ctx.params().bool(FUEL_MIX_PARAM, true);
         String start = HOUR.format(ctx.now().minus(WINDOW));
         List<NormalizedRecord> points = new ArrayList<>();
-        readRegions(ctx, key.strip(), respondents, start, points);
+        List<String> incomplete = new ArrayList<>();
+        readRegions(ctx, key.strip(), respondents, start, points, incomplete);
         if (fuelMix) {
-            readFuel(ctx, key.strip(), respondents, start, points);
+            readFuel(ctx, key.strip(), respondents, start, points, incomplete);
         }
         List<NormalizedRecord> records = new ArrayList<>(points);
         records.addAll(SeriesPoint.latestPerSeries(points));
         ctx.log().debug("{}: {} record(s)", ID, records.size());
+        if (!incomplete.isEmpty()) {
+            ctx.state().degrade("window too large: " + String.join("; ", incomplete)
+                    + " (narrow the respondents)");
+            return FetchResult.of(records);
+        }
+        ctx.state().degrade(null);
         return FetchResult.complete(records);
     }
 
+    /**
+     * Every row of one dataset's window: {@code offset} pages of {@link #PAGE_ROWS} until {@code response.total}
+     * rows have arrived, at most {@link #MAX_PAGES_PER_DATASET} pages. A shortfall is added to {@code incomplete}.
+     */
+    private List<JsonNode> readAll(FetchContext ctx, String route, EiaApi.Query base, String dataset,
+            List<String> incomplete) throws AdapterException {
+        List<JsonNode> rows = new ArrayList<>();
+        long total = Long.MAX_VALUE;
+        for (int page = 0; page < MAX_PAGES_PER_DATASET && rows.size() < total; page++) {
+            EiaApi.Query query = base.copy()
+                    .add("sort[0][column]", "period")
+                    .add("sort[0][direction]", "desc")
+                    .add("offset", Integer.toString(rows.size()))
+                    .add("length", Integer.toString(PAGE_ROWS));
+            URI uri = EiaApi.uri(baseUrl, route, query);
+            EiaParser.Envelope envelope = EiaParser.parse(body(ctx, ctx.http().get(uri), uri));
+            total = envelope.total();
+            if (envelope.data().isEmpty()) {
+                break;
+            }
+            rows.addAll(envelope.data());
+        }
+        if (total != Long.MAX_VALUE && rows.size() < total) {
+            incomplete.add(dataset + " " + rows.size() + " of " + total + " rows");
+        }
+        return rows;
+    }
+
     private void readRegions(FetchContext ctx, String key, List<String> respondents, String start,
-            List<NormalizedRecord> out) throws AdapterException {
+            List<NormalizedRecord> out, List<String> incomplete) throws AdapterException {
         EiaApi.Query query = EiaApi.query()
                 .add(EiaApi.KEY_PARAM, key)
                 .add("frequency", "hourly")
                 .add("data[0]", "value")
                 .addAll("facets[respondent][]", respondents)
                 .addAll("facets[type][]", EiaApi.REGION_TYPES)
-                .add("start", start)
-                .add("length", "48");
-        URI uri = EiaApi.uri(baseUrl, EiaApi.RTO_REGION_ROUTE, query);
-        EiaParser.Envelope envelope = EiaParser.parse(body(ctx, ctx.http().get(uri), uri));
-        for (JsonNode row : envelope.data()) {
+                .add("start", start);
+        for (JsonNode row : readAll(ctx, EiaApi.RTO_REGION_ROUTE, query, "region-data", incomplete)) {
             String respondent = JsonProps.text(row, "respondent");
             String type = JsonProps.text(row, "type");
             String period = JsonProps.text(row, "period");
@@ -128,18 +171,15 @@ public class Eia930Adapter implements PollingAdapter {
     }
 
     private void readFuel(FetchContext ctx, String key, List<String> respondents, String start,
-            List<NormalizedRecord> out) throws AdapterException {
+            List<NormalizedRecord> out, List<String> incomplete) throws AdapterException {
         EiaApi.Query query = EiaApi.query()
                 .add(EiaApi.KEY_PARAM, key)
                 .add("frequency", "hourly")
                 .add("data[0]", "value")
                 .addAll("facets[respondent][]", respondents)
                 .addAll("facets[fueltype][]", EiaApi.FUEL_TYPES)
-                .add("start", start)
-                .add("length", "48");
-        URI uri = EiaApi.uri(baseUrl, EiaApi.RTO_FUEL_ROUTE, query);
-        EiaParser.Envelope envelope = EiaParser.parse(body(ctx, ctx.http().get(uri), uri));
-        for (JsonNode row : envelope.data()) {
+                .add("start", start);
+        for (JsonNode row : readAll(ctx, EiaApi.RTO_FUEL_ROUTE, query, "fuel-type-data", incomplete)) {
             String respondent = JsonProps.text(row, "respondent");
             String fuel = JsonProps.text(row, "fueltype");
             String period = JsonProps.text(row, "period");
@@ -176,7 +216,8 @@ public class Eia930Adapter implements PollingAdapter {
                         .name("EIA-930 grid")
                         .description("Hourly US bulk-power data from EIA-930: demand, demand forecast, net"
                                 + " generation and total interchange per balancing authority, plus the hourly"
-                                + " fuel-type generation mix, as time-series records (48-hour trailing window).")
+                                + " fuel-type generation mix, as time-series records (48-hour trailing window,"
+                                + " paged at EIA's 5,000-row cap).")
                         .homepage("https://www.eia.gov/electricity/gridmonitor/")
                         .attribution(EiaApi.ATTRIBUTION)
                         .licence(EiaApi.LICENCE)

@@ -23,6 +23,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -43,6 +45,18 @@ import tools.jackson.databind.json.JsonMapper;
  * Azure B2C ROPC flow; the token lasts one hour and cannot be refreshed, so it is cached in memory for 55 minutes
  * (never persisted) and a 401 re-fetches it. A 403 means the client is outside the US, which the operator sees as a
  * health reason. The operator must register the account personally (ERCOT's terms forbid bot registration).
+ *
+ * <p><strong>Time.</strong> {@code operatingDay}/{@code hourEnding} and {@code deliveryDate}/{@code deliveryHour}/
+ * {@code deliveryInterval} are ERCOT market time, US Central ({@value #MARKET_ZONE_ID}). They are converted with the
+ * zone's rules: on the fall-back day the repeated hour is told apart by {@code DSTFlag} (true for the second, standard
+ * time, occurrence) and its period label gains {@value #REPEATED_SUFFIX}, so the two hours never share an
+ * {@code externalId}; on the spring-forward day an hour inside the gap is skipped. {@code hourEnding} arrives as
+ * {@code "HH:MM"} text (the API spec types it a string) or a number.
+ *
+ * <p><strong>Budget.</strong> The load report is hourly, so it is read at most once an hour; each run reads one price
+ * report per hub. With the default five hubs that is 24 + 96 × 5 = 504 report requests a day plus about 26 token
+ * requests (one per 55 minutes), inside the 600-a-day budget, and at most seven requests in one run (a token, the
+ * load and five hubs), inside ten a minute.
  */
 @Component
 public class ErcotAdapter implements PollingAdapter {
@@ -98,6 +112,21 @@ public class ErcotAdapter implements PollingAdapter {
     /** The trailing window. */
     static final Duration WINDOW = Duration.ofDays(2);
 
+    /** ERCOT market time. */
+    static final String MARKET_ZONE_ID = "America/Chicago";
+
+    /** ERCOT market time as a zone. */
+    static final ZoneId MARKET_ZONE = ZoneId.of(MARKET_ZONE_ID);
+
+    /** The period-label suffix of the repeated (second) hour of the fall-back day. */
+    static final String REPEATED_SUFFIX = "-DST";
+
+    /** How often the hourly load report is read. */
+    static final Duration LOAD_INTERVAL = Duration.ofHours(1);
+
+    /** Adapter state: when the load report was last read. */
+    static final String LOAD_AT_KEY = "ercot:loadAt";
+
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private static final SourceDescriptor DESCRIPTOR = buildDescriptor();
@@ -133,35 +162,91 @@ public class ErcotAdapter implements PollingAdapter {
         List<String> hubs = ctx.params() == null || ctx.params().stringList(HUBS_PARAM).isEmpty()
                 ? DEFAULT_HUBS : ctx.params().stringList(HUBS_PARAM);
         List<NormalizedRecord> points = new ArrayList<>();
-        points.addAll(readLoad(ctx, subscriptionKey, username, password));
+        Instant loadAt = ai.foresignal.source.adapters.humanitarian.Instants
+                .parse(ctx.state().get(LOAD_AT_KEY).orElse(null));
+        boolean loadDue = loadAt == null || !loadAt.plus(LOAD_INTERVAL).isAfter(ctx.now());
+        if (loadDue) {
+            points.addAll(readLoad(ctx, subscriptionKey, username, password));
+        }
         for (String hub : hubs) {
             points.addAll(readSpp(ctx, subscriptionKey, username, password, hub));
+        }
+        if (loadDue) {
+            ctx.state().put(LOAD_AT_KEY, ctx.now().toString());
         }
         List<NormalizedRecord> out = new ArrayList<>(points);
         out.addAll(SeriesPoint.latestPerSeries(points));
         ctx.state().clearDegraded();
         ctx.log().debug("{}: {} record(s)", ID, out.size());
-        return FetchResult.complete(out);
+        // A run that skipped the hourly load report is not the full set of series.
+        return loadDue ? FetchResult.complete(out) : FetchResult.of(out);
+    }
+
+    /**
+     * The start of an ERCOT market interval: {@code minutesIntoDay} after local midnight of {@code day} in
+     * {@value #MARKET_ZONE_ID}. On the fall-back day the repeated local time takes the later (standard-time) offset
+     * when {@code repeated} is true and the earlier one otherwise.
+     *
+     * @return the instant, or null when the local time falls in the spring-forward gap
+     */
+    static Instant marketStart(LocalDate day, long minutesIntoDay, boolean repeated) {
+        LocalDateTime local = day.atStartOfDay().plusMinutes(minutesIntoDay);
+        List<ZoneOffset> offsets = MARKET_ZONE.getRules().getValidOffsets(local);
+        if (offsets.isEmpty()) {
+            return null;
+        }
+        ZoneOffset offset = offsets.size() > 1 && repeated ? offsets.get(offsets.size() - 1) : offsets.get(0);
+        return local.toInstant(offset);
+    }
+
+    /** The hour ending as a number: {@code "01:00"} → 1, {@code "24:00"} → 24, a number as itself. */
+    static Long hourEnding(Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        String text = String.valueOf(raw).strip();
+        int colon = text.indexOf(':');
+        if (colon > 0) {
+            text = text.substring(0, colon);
+        }
+        Double value = SeriesPoint.number(text);
+        return value == null ? null : Math.round(value);
+    }
+
+    /** {@code DSTFlag} as a boolean: true, {@code "Y"}, {@code "true"}. */
+    static boolean dstFlag(Object raw) {
+        if (raw instanceof Boolean b) {
+            return b;
+        }
+        if (raw == null) {
+            return false;
+        }
+        String text = String.valueOf(raw).strip();
+        return "y".equalsIgnoreCase(text) || "true".equalsIgnoreCase(text);
     }
 
     private List<NormalizedRecord> readLoad(FetchContext ctx, String subscriptionKey, String username,
             String password) throws AdapterException {
-        String to = LocalDate.now(ctx.clock()).toString();
-        String from = LocalDate.now(ctx.clock()).minusDays(WINDOW.toDays()).toString();
+        LocalDate today = LocalDate.now(ctx.clock().withZone(MARKET_ZONE));
+        String to = today.toString();
+        String from = today.minusDays(WINDOW.toDays()).toString();
         URI uri = URI.create(baseUrl + LOAD_PATH + "?operatingDayFrom=" + from + "&operatingDayTo=" + to
                 + "&size=1000");
         List<Map<String, Object>> rows = request(ctx, uri, subscriptionKey, username, password).rows();
         List<NormalizedRecord> out = new ArrayList<>();
         for (Map<String, Object> row : rows) {
             String day = text(row, "operatingDay");
-            Long hourEnding = integer(row, "hourEnding");
-            if (day == null || hourEnding == null) {
+            Long hourEnding = hourEnding(row.get("hourEnding"));
+            if (day == null || hourEnding == null || hourEnding < 1 || hourEnding > 24) {
                 continue;
             }
-            Instant start = LocalDate.parse(day).atStartOfDay(ZoneOffset.UTC).plusSeconds((hourEnding - 1) * 3600)
-                    .toInstant();
+            boolean repeated = dstFlag(row.get("DSTFlag"));
+            Instant start = marketStart(LocalDate.parse(day), (hourEnding - 1) * 60, repeated);
+            if (start == null) {
+                continue;
+            }
             Instant end = start.plusSeconds(3600);
-            String period = day + "T" + hourEnding;
+            String period = day + "T" + hourEnding + (repeated ? REPEATED_SUFFIX : "");
             for (String zone : ZONES) {
                 Double value = SeriesPoint.number(row.get(zone));
                 if (value == null) {
@@ -176,8 +261,9 @@ public class ErcotAdapter implements PollingAdapter {
 
     private List<NormalizedRecord> readSpp(FetchContext ctx, String subscriptionKey, String username,
             String password, String hub) throws AdapterException {
-        String to = LocalDate.now(ctx.clock()).toString();
-        String from = LocalDate.now(ctx.clock()).minusDays(WINDOW.toDays()).toString();
+        LocalDate today = LocalDate.now(ctx.clock().withZone(MARKET_ZONE));
+        String to = today.toString();
+        String from = today.minusDays(WINDOW.toDays()).toString();
         URI uri = URI.create(baseUrl + SPP_PATH + "?deliveryDateFrom=" + from + "&deliveryDateTo=" + to
                 + "&settlementPoint=" + URLEncoder.encode(hub, StandardCharsets.UTF_8) + "&size=1000");
         List<Map<String, Object>> rows = request(ctx, uri, subscriptionKey, username, password).rows();
@@ -187,13 +273,17 @@ public class ErcotAdapter implements PollingAdapter {
             Long hour = integer(row, "deliveryHour");
             Long interval = integer(row, "deliveryInterval");
             Double price = SeriesPoint.number(row.get("settlementPointPrice"));
-            if (day == null || hour == null || interval == null || price == null) {
+            if (day == null || hour == null || interval == null || price == null || hour < 1 || hour > 24
+                    || interval < 1 || interval > 4) {
                 continue;
             }
-            Instant start = LocalDate.parse(day).atStartOfDay(ZoneOffset.UTC)
-                    .plusSeconds((hour - 1) * 3600L + (interval - 1) * 900L).toInstant();
+            boolean repeated = dstFlag(row.get("DSTFlag"));
+            Instant start = marketStart(LocalDate.parse(day), (hour - 1) * 60 + (interval - 1) * 15, repeated);
+            if (start == null) {
+                continue;
+            }
             Instant end = start.plusSeconds(900);
-            String period = day + "T" + hour + ":" + interval;
+            String period = day + "T" + hour + ":" + interval + (repeated ? REPEATED_SUFFIX : "");
             out.add(SeriesPoint.point("ercot:spp:" + hub, hub + " settlement point price",
                     "spp_node_zone_hub", "PT15M", period, start, end, price, "[USD]/(MW.h)", hub, null, "final",
                     end));

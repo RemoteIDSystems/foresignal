@@ -54,7 +54,7 @@ class ErcotAdapterTest extends WireMockSupport {
         harness = new AdapterHttpHarness(jdbc, jsonMapper, properties, install, new MutableClock(NOW),
                 Budget.of(1000, 100_000));
         adapter = new ErcotAdapter(baseUrl(), baseUrl() + "/token");
-        harness.reset(adapter.id());
+        harness.reset(adapter.id(), ErcotAdapter.LOAD_AT_KEY);
         harness.credentials.clear();
         harness.credentials.put(ErcotAdapter.USERNAME, "user");
         harness.credentials.put(ErcotAdapter.PASSWORD, "pass");
@@ -117,5 +117,100 @@ class ErcotAdapterTest extends WireMockSupport {
         serveToken();
         adapter.fetch(harness.context(adapter, params()));
         WIREMOCK.verify(2, postRequestedFor(urlPathEqualTo("/token")));
+    }
+
+    private static final String LOAD_FIELDS = "[{'name':'operatingDay'},{'name':'hourEnding'},{'name':'coast'},"
+            + "{'name':'total'},{'name':'DSTFlag'}]";
+    private static final String SPP_FIELDS = "[{'name':'deliveryDate'},{'name':'deliveryHour'},"
+            + "{'name':'deliveryInterval'},{'name':'settlementPoint'},{'name':'settlementPointPrice'},{'name':'DSTFlag'}]";
+
+    private void serve(String path, String fields, String rows) {
+        String body = ("{'_meta':{'totalPages':1},'fields':" + fields + ",'data':[" + rows + "]}").replace('\'', '"');
+        WIREMOCK.stubFor(get(urlPathEqualTo(path)).willReturn(aResponse().withStatus(200).withBody(body)));
+    }
+
+    private Map<String, NormalizedRecord> points(FetchResult result) {
+        Map<String, NormalizedRecord> out = new java.util.HashMap<>();
+        result.records().stream().filter(r -> r.kind().equals("series-point")).forEach(r -> out.put(r.externalId(), r));
+        return out;
+    }
+
+    @Test
+    @DisplayName("fall back: hour ending 02:00 twice, told apart by DSTFlag, in Central time and never colliding")
+    void fallBack() throws Exception {
+        serveToken();
+        serve(ErcotAdapter.LOAD_PATH, LOAD_FIELDS, "['2026-11-01','01:00',1,10,false],"
+                + "['2026-11-01','02:00',2,20,false],['2026-11-01','02:00',3,30,true],['2026-11-01','03:00',4,40,false]");
+        serve(ErcotAdapter.SPP_PATH, SPP_FIELDS, "['2026-11-01',2,1,'HB_HOUSTON',20.5,false],"
+                + "['2026-11-01',2,1,'HB_HOUSTON',21.5,true]");
+        Map<String, NormalizedRecord> byId = points(adapter.fetch(harness.context(adapter, params())));
+        // CDT is UTC-5 until 02:00 local, then CST is UTC-6: HE01 starts 05:00Z, the first HE02 06:00Z, the
+        // repeated HE02 07:00Z and HE03 08:00Z.
+        assertThat(byId.get("ercot:load:coast:2026-11-01T1").eventTime()).isEqualTo(Instant.parse("2026-11-01T05:00:00Z"));
+        assertThat(byId.get("ercot:load:coast:2026-11-01T2").eventTime()).isEqualTo(Instant.parse("2026-11-01T06:00:00Z"));
+        assertThat(byId.get("ercot:load:coast:2026-11-01T2-DST").eventTime())
+                .isEqualTo(Instant.parse("2026-11-01T07:00:00Z"));
+        assertThat(byId.get("ercot:load:coast:2026-11-01T3").eventTime()).isEqualTo(Instant.parse("2026-11-01T08:00:00Z"));
+        assertThat(byId.get("ercot:spp:HB_HOUSTON:2026-11-01T2:1").eventTime())
+                .isEqualTo(Instant.parse("2026-11-01T06:00:00Z"));
+        assertThat(byId.get("ercot:spp:HB_HOUSTON:2026-11-01T2:1-DST").eventTime())
+                .isEqualTo(Instant.parse("2026-11-01T07:00:00Z"));
+        assertThat(byId.get("ercot:spp:HB_HOUSTON:2026-11-01T2:1-DST").payload()).containsEntry("value", 21.5)
+                .containsEntry("frequency", "PT15M");
+    }
+
+    @Test
+    @DisplayName("spring forward: the missing hour is skipped and the hours around it are an hour apart")
+    void springForward() throws Exception {
+        serveToken();
+        serve(ErcotAdapter.LOAD_PATH, LOAD_FIELDS, "['2026-03-08','02:00',2,20,false],"
+                + "['2026-03-08','03:00',3,30,false],['2026-03-08','04:00',4,40,false]");
+        serve(ErcotAdapter.SPP_PATH, SPP_FIELDS, "['2026-03-08',3,1,'HB_HOUSTON',20.5,false]");
+        Map<String, NormalizedRecord> byId = points(adapter.fetch(harness.context(adapter, params())));
+        assertThat(byId.get("ercot:load:coast:2026-03-08T2").eventTime()).isEqualTo(Instant.parse("2026-03-08T07:00:00Z"));
+        assertThat(byId).doesNotContainKey("ercot:load:coast:2026-03-08T3")
+                .doesNotContainKey("ercot:spp:HB_HOUSTON:2026-03-08T3:1");
+        assertThat(byId.get("ercot:load:coast:2026-03-08T4").eventTime()).isEqualTo(Instant.parse("2026-03-08T08:00:00Z"));
+    }
+
+    @Test
+    @DisplayName("the hourly load report is read once an hour; prices every run")
+    void loadHourly() throws Exception {
+        serveToken();
+        serveReports();
+        adapter.fetch(harness.context(adapter, params()));
+        harness.clock.advance(Duration.ofMinutes(15));
+        FetchResult second = adapter.fetch(harness.context(adapter, params()));
+        assertThat(second.complete()).as("a run without the load report is partial").isFalse();
+        WIREMOCK.verify(1, getRequestedFor(urlPathEqualTo(ErcotAdapter.LOAD_PATH)));
+        WIREMOCK.verify(2, getRequestedFor(urlPathEqualTo(ErcotAdapter.SPP_PATH)));
+        harness.clock.advance(Duration.ofMinutes(45));
+        adapter.fetch(harness.context(adapter, params()));
+        WIREMOCK.verify(2, getRequestedFor(urlPathEqualTo(ErcotAdapter.LOAD_PATH)));
+        harness.clock.setInstant(NOW);
+    }
+
+    @Test
+    @DisplayName("a day of default polling fits the default daily budget")
+    void dailyBudget() {
+        int runs = (int) (Duration.ofDays(1).toMinutes() / adapter.descriptor().defaultInterval().toMinutes());
+        int reports = 24 + runs * ErcotAdapter.DEFAULT_HUBS.size();
+        int tokens = (int) Math.ceil(Duration.ofDays(1).toMinutes() / (double) Duration.ofMinutes(55).toMinutes());
+        assertThat(reports + tokens).isLessThanOrEqualTo(adapter.descriptor().defaultBudget().perDay());
+        assertThat(1 + 1 + ErcotAdapter.DEFAULT_HUBS.size())
+                .isLessThanOrEqualTo(adapter.descriptor().defaultBudget().perMinute());
+    }
+
+    @Test
+    @DisplayName("hourEnding text and DSTFlag spellings are read")
+    void helpers() {
+        assertThat(ErcotAdapter.hourEnding("01:00")).isEqualTo(1L);
+        assertThat(ErcotAdapter.hourEnding("24:00")).isEqualTo(24L);
+        assertThat(ErcotAdapter.hourEnding(7.0)).isEqualTo(7L);
+        assertThat(ErcotAdapter.hourEnding(null)).isNull();
+        assertThat(ErcotAdapter.dstFlag("Y")).isTrue();
+        assertThat(ErcotAdapter.dstFlag(Boolean.TRUE)).isTrue();
+        assertThat(ErcotAdapter.dstFlag("N")).isFalse();
+        assertThat(ErcotAdapter.dstFlag(null)).isFalse();
     }
 }
