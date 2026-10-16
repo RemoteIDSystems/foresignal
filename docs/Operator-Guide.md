@@ -5157,3 +5157,196 @@ visible.
 **Secrets.** Secrets (`secrets` on create and update) are write-only and encrypted at rest; responses list
 only their names (`secretsSet`). An update merges them: a field with a value sets it, `null` removes it, and
 an omitted field keeps its stored value.
+
+## Exports, snapshots and holds (prompt 111)
+
+**Bulk exports.** `POST /v1/exports` (agent, always authenticated) queues an export of records and answers
+`202` with the job; poll `GET /v1/exports/{id}`, list your jobs with `GET /v1/exports` (admin sees every
+job; `kind=`, `status=`, `cursor=`, `limit=`), download with `GET /v1/exports/{id}/download`, and cancel or
+delete with `DELETE /v1/exports/{id}`. A job is visible only to the token that created it and to admin.
+
+| `format` | File | Notes |
+|---|---|---|
+| `geoparquet` (default) | `{id}.parquet` | GeoParquet 1.1: WKB `geometry`, the `bbox` covering struct, `geo` metadata; ZSTD pages; row groups of 65,536 rows |
+| `geopackage` | `{id}.gpkg` | OGC GeoPackage 1.4: one feature table per kind, RTree spatial index, the license summary in `gpkg_metadata` |
+| `flatgeobuf` | `{id}.flatgeobuf` | Packed Hilbert R-tree (node size 16); written without an index when some record has no geometry |
+| `gpx` | `{id}.gpx` | `mode=history` only: one `<trk>` per entity of a TRACK source, `<wpt>` for other point records |
+
+The spec chooses `sources[]`, `kinds[]`, `bbox` or `placeId`, a `from`/`to` window on `timeField`
+(`effective`, `observed`, `event`, `ingested`), and the `mode`: `current` (live state), `history` (every
+version), `asOf` (the state known at an instant; the same horizon rules as `/v1/records?asOf=`) or `atSeq`
+(the state at a seq; see snapshots). `fields[]` keeps only those payload keys; `flatten=true` adds one text
+column per payload field (the `fields[]`, else every `fieldSpecs` key of the sources). Rows are read in
+keyset pages of 10,000, so a cancel takes effect within a page.
+
+Every finished job carries, next to its data file, `manifest.json` (each file's SHA-256, the spec, the
+watermark and the license summary), `manifest.json.jws` (a detached Ed25519 JWS over `manifest.json`,
+verifiable against `/.well-known/jwks.json` exactly as in "Licences and egress" above), `licence.json`
+(the license summary: per license the terms, sources and rows; the attributions; the exclusions) and
+`ATTRIBUTION.txt`. `?bundle=zip` downloads all of them in one zip; `?file=` names one file. Downloads support
+`Range` and `If-None-Match` (the `ETag` is the file's SHA-256), so `curl -C -` resumes:
+
+```sh
+curl -sS -H "Authorization: Bearer $AGENT" -H 'Content-Type: application/json' \
+  -d '{"format":"geoparquet","sources":["usgs-earthquakes"],"mode":"history","from":"2026-10-01T00:00:00Z"}' \
+  https://host/v1/exports
+curl -C - -o quakes.zip -H "Authorization: Bearer $AGENT" "https://host/v1/exports/$ID/download?bundle=zip"
+```
+
+**License rules.** Sources whose terms forbid redistribution (`FORBIDDEN`, for example OpenSky and ACLED)
+or restrict it to this instance (`LOCAL_ONLY`, including unknown terms) are left out and listed under
+`excluded` in `licence.json`. `personalUse=true` includes them; the sidecar and `ATTRIBUTION.txt` then say
+"Personal use only — do not redistribute" and list them. Private sources need an admin token and
+`includePrivate=true` (`403` otherwise).
+
+**Limits** (`foresignal.exports.*` in `application.yml`): `max-concurrent` (1: exports, snapshots and packs
+share one worker pool), `max-rows` (5,000,000; a larger export fails), `disk-quota-gb` (20 GiB across
+`${FORESIGNAL_DATA_DIR}/exports` and `/snapshots`; a new job is refused with `409 EXPORT_QUOTA`), `ttl`
+(7 days; then the hourly retention run deletes the files and the job becomes `EXPIRED`, and downloads answer
+`410 EXPORT_EXPIRED`), `page-size` (10,000) and `query-timeout` (5 min per page). A job a restart
+interrupted is marked `FAILED`; submit it again. `/v1/system` shows `exports.queued`, `running` and `bytes`;
+metrics `foresignal.export.rows` and `foresignal.export.duration` are tagged by format.
+
+**Opening the files.** DuckDB reads GeoParquet with its spatial extension
+(`INSTALL spatial; LOAD spatial; SELECT kind, count(*) FROM 'export.parquet' GROUP BY kind;`), and GDAL 3.8
+or later with `ogrinfo export.parquet`. QGIS opens the `.gpkg` directly (Layer → Add Layer → Add Vector
+Layer); the manual check is that each kind shows as a layer with its features in place and that
+`ogrinfo -al -so export.gpkg` reports the spatial index. `ogrinfo export.flatgeobuf` reads FlatGeobuf, and
+the GPX file loads in any GPX viewer.
+
+**Snapshots.** `POST /v1/snapshots` (admin) writes the state at a seq S as GeoParquet with the same
+sidecars, under `${FORESIGNAL_DATA_DIR}/snapshots/{id}/`. S is `atSeq`, else `S(asOf)`, else the current
+watermark. The state is rebuilt from `record_version` per tier (the newest version of each entity at or
+below S, tombstones dropped, validity judged at the ingestion time of S). A snapshot is an export job of kind
+`SNAPSHOT`: poll and download it through `/v1/exports/{id}`. It never expires unless `expiresAt` is set.
+When S lies before a source's retention horizon, the versions it needs are read from a hold's copies; with
+no hold that covers the source, its kinds and the needed seq range since before those versions were
+deleted, the request fails `400 SNAPSHOT_BEYOND_RETENTION` (with `sourceId` and `horizon`).
+
+**Holds.** `POST /v1/holds` (admin) keeps the records of some sources and kinds, within an ingestion-time
+range (`from`/`to`) or a seq range (`fromSeq`/`toSeq`), through retention: before each retention run
+deletes STANDARD versions or drops TRACK partitions, it copies the rows about to go that fall inside an
+active hold into `record_version_held`. Retention still drops partitions and `floorSeq` is unchanged; a hold
+never blocks a drop. When a copy fails, retention keeps those rows for that run (it skips the STANDARD
+source, or keeps the TRACK partition and every later one). At most 20 holds (`holds-max`); a hold lapses at
+its `expiresAt`. `GET /v1/holds/{id}/versions` pages through the copies; `DELETE /v1/holds/{id}` deletes the
+hold and its copies. `/v1/system.holds` reports the count, the copied rows and the table's size. Copies are
+made only from the moment a hold exists: create the hold before the records age out.
+
+## Cold archive (prompt 111)
+
+The cold archive writes records out as GeoParquet before retention removes them, so history stays
+queryable after the database lets it go. It is off by default; configure it with
+`PUT /v1/settings/archive` (admin):
+
+```json
+{"enabled": true, "sources": [], "root": "", "target": "local", "keepLocal": true}
+```
+
+`sources` is an allowlist (empty: every non-private source); `root` defaults to
+`${FORESIGNAL_DATA_DIR}/archive` and may be an absolute path (another disk) or a path relative to the data
+directory. Each hourly retention run then writes, before its deletes and drops, exactly the rows it is about
+to remove: for every TRACK partition about to be dropped, the rows of each archived TRACK source in it, and
+for every STANDARD source, its rows below the run's cutoff. Files land in a hive layout:
+
+```
+archive/record_version/tier={std|trk}/source_id={id}/date={yyyy-mm-dd}/part-{fromSeq}-{toSeq}.parquet
+archive/record_version/tier={std|trk}/source_id={id}/date={yyyy-mm-dd}/_manifest.json
+```
+
+`date` is the UTC date of `ingested_at`; each part is named after the first and last seq it holds, and the
+partition's `_manifest.json` lists every part with its rows, SHA-256, upload state and the source's
+license. A part is written under a temporary name, fsynced, and its row count is read back from the Parquet
+footer before retention deletes anything; only then does the archive's watermark for that scope advance, so
+a row is never archived twice, even when a delete fails after the write. When a write fails, retention keeps
+the rows for that run (it skips the STANDARD source, or keeps the TRACK partition) and counts
+`foresignal.archive.failed`. `foresignal.archive.bytes` counts the bytes written; `/v1/system.archive` shows
+the last run, its bytes and failures. `GET /v1/archive/catalog?source=&from=&to=` lists the partitions and
+their files. The archive is the `ARCHIVE` egress path (operator-owned storage), allowed for every license;
+the manifests still record each license.
+
+**S3 and MinIO.** Set `target` to `s3` and give the bucket and the credentials (write-only; the API only
+lists their names under `secretsSet`, and they are stored encrypted):
+
+```json
+{"enabled": true, "target": "s3", "keepLocal": false,
+ "s3": {"endpoint": "http://192.168.1.20:9000", "bucket": "foresignal-archive", "prefix": "prod",
+        "region": "us-east-1", "pathStyle": true},
+ "secrets": {"accessKey": "REPLACE", "secretKey": "REPLACE"}}
+```
+
+The endpoint must pass the outbound URL policy's LAN-allowed profile: a public endpoint, or one on
+loopback, RFC 1918, unique-local or 100.64/10 addresses, over https or http (a refused endpoint is
+`400 URL_NOT_ALLOWED`). MinIO needs `pathStyle: true`; AWS S3 works with either style. Each verified part
+is uploaded after it is written, by one background thread: files up to 64 MiB with one `PutObject`, larger
+ones as a multipart upload in 64 MiB parts, every request signed with AWS Signature Version 4 over the
+body's SHA-256. The local copy is deleted only when `keepLocal` is false **and** the returned ETag matches
+the file's MD5 (or the multipart MD5-of-MD5s). A MinIO bucket for the archive:
+
+```sh
+mc alias set lan http://192.168.1.20:9000 ADMIN_USER ADMIN_PASSWORD
+mc mb lan/foresignal-archive
+mc admin user add lan foresignal REPLACE_SECRET
+mc admin policy attach lan readwrite --user foresignal
+```
+
+**Reading the archive.** DuckDB reads the whole tree with its partition columns:
+
+```sql
+INSTALL spatial; LOAD spatial;
+SELECT source_id, date, count(*) AS rows
+  FROM read_parquet('archive/record_version/**/*.parquet', hive_partitioning=true)
+ GROUP BY ALL ORDER BY ALL;
+```
+
+From S3, `CREATE SECRET (TYPE s3, KEY_ID '…', SECRET '…', ENDPOINT '192.168.1.20:9000', URL_STYLE 'path', USE_SSL false);`
+then `read_parquet('s3://foresignal-archive/prod/record_version/**/*.parquet', hive_partitioning=true)`.
+GDAL reads a part with `ogrinfo part-….parquet` (GDAL 3.8 or later) and converts a partition with
+`ogr2ogr -f GPKG partition.gpkg part-….parquet`.
+
+## Offline packs (prompt 111)
+
+`POST /v1/packs` (agent, always authenticated) builds PMTiles v3 files for phones and field laptops:
+
+```json
+{"name": "Austin field pack", "bbox": [-97.95, 30.1, -97.55, 30.5], "minZoom": 6, "maxZoom": 12,
+ "vector": {"sources": ["usgs-earthquakes"], "kinds": [], "asOf": null},
+ "raster": {"productId": "mrms-reflectivity", "frame": "latest"}}
+```
+
+`vector` produces `vector.pmtiles` (Mapbox Vector Tiles, gzip, one layer named `foresignal`, the same
+features as `/v1/tiles`; `asOf` renders the state at that instant); `raster` produces `raster.pmtiles`
+(PNG tiles of one product frame; `latest` is resolved when the pack is queued). A pack may cover at most
+`foresignal.exports.pack-max-tiles` (200,000) tiles over its box and zooms, else
+`413 PACK_TOO_LARGE` with the computed `tileCount`. Empty tiles are left out; identical tiles are stored
+once. The metadata carries `name`, `vector_layers`, the aggregated `attribution`, `generated` and
+`watermarkSeq`. A pack is an export job of kind `PACK` with the same license and private rules and sidecars:
+download each file with `GET /v1/exports/{id}/download?file=vector.pmtiles` (resumable with `Range`). Packs
+are files to copy to the device; Foresignal never proxies `pmtiles://` from an upstream.
+
+**MapLibre GL JS** (the `pmtiles` npm package) opens a local file the user picks:
+
+```js
+import maplibregl from "maplibre-gl";
+import { PMTiles, Protocol, FileSource } from "pmtiles";
+
+const protocol = new Protocol();
+maplibregl.addProtocol("pmtiles", protocol.tile);
+const pack = new PMTiles(new FileSource(file)); // file: a File from <input type="file">
+protocol.add(pack);
+map.addSource("foresignal", { type: "vector", url: "pmtiles://" + pack.source.getKey() });
+map.addLayer({ id: "records", type: "circle", source: "foresignal", "source-layer": "foresignal" });
+```
+
+**Flutter** (`flutter_map`): the raster pack with the `flutter_map_pmtiles` package and the vector pack with
+`vector_map_tiles_pmtiles`, both reading a file on the device:
+
+```dart
+final rasterProvider = await PmTilesTileProvider.fromSource('/path/to/raster.pmtiles');
+final vectorProvider = await PmTilesVectorTileProvider.fromSource('/path/to/vector.pmtiles');
+```
+
+**Checking a pack.** The manual check is the `pmtiles` command-line tool from protomaps/go-pmtiles:
+`pmtiles verify vector.pmtiles` checks the header counts, the directories and the clustered order, and
+`pmtiles show vector.pmtiles` prints the header and metadata. The header's zoom range is that of the tiles
+actually present.

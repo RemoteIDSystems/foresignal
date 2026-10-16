@@ -82,15 +82,19 @@ public class ExportsController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(jobs.view(job, urls.base(request)));
     }
 
-    /** {@code getExport}: the job status (a raster export from 108, or a bulk export from 111). */
+    /**
+     * {@code getExport}: the job status, of a raster export or place pack (108) or of an export,
+     * snapshot or pack (111). A 111 job is visible only to the token that created it and to admin;
+     * any other caller gets {@code 404}.
+     */
     @GetMapping("/v1/exports/{exportId}")
     @Operation(operationId = "getExport", tags = "Products")
     public java.util.Map<String, Object> getExport(@PathVariable String exportId, HttpServletRequest request) {
-        try {
-            return jobs.view(jobs.get(exportId), urls.base(request));
-        } catch (ai.foresignal.api.error.NotFoundException e) {
-            return bulk.view(bulk.get(exportId), urls.base(request));
+        if (bulk.exists(exportId)) {
+            return bulk.view(bulk.visible(exportId, ExportCallers.tokenId(request), ExportCallers.admin(request, callers)),
+                    urls.base(request));
         }
+        return jobs.view(jobs.get(exportId), urls.base(request));
     }
 
     /** {@code downloadExportFile}: the file bytes. */

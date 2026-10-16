@@ -21,7 +21,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              # 050: tile keys.
              "tileKeyId": "tileKeyId",
              # 036: places, saved views and watchlists.
-             "placeId": "placeId", "viewId": "viewId", "watchlistId": "watchlistId"}
+             "placeId": "placeId", "viewId": "viewId", "watchlistId": "watchlistId",
+             # 111: export jobs and holds.
+             "exportId": "exportId", "holdId": "holdId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -358,10 +360,27 @@ BODIES = {
   "postProductStats": {"bbox": "-98.5,29.5,-97.0,31.0", "time": "latest", "thresholds": [40, 50], "units": "metric"},
   "sampleTrack": {"record": "local-adsb-1/abc123", "products": ["mrms-reflectivity", "gfs-gust"],
                   "maxGap": "PT20M", "units": "metric"},
+  # 111: exports, snapshots, holds and offline packs.
+  "createExport": {"name": "Texas quakes, last week", "format": "geoparquet", "sources": ["usgs-earthquakes"],
+                   "kinds": ["earthquake"], "bbox": [-106.7, 25.8, -93.5, 36.5], "from": "2026-10-09T00:00:00Z",
+                   "to": "2026-10-16T00:00:00Z", "timeField": "observed", "mode": "history", "flatten": True,
+                   "fields": ["mag", "place"], "personalUse": False},
+  "createSnapshot": {"name": "Before the outage", "asOf": "2026-10-15T12:00:00Z", "sources": ["usgs-earthquakes"],
+                     "expiresAt": None},
+  "createHold": {"name": "Hurricane review", "reason": "Keep the storm's records for the after-action review",
+                 "sources": ["usgs-earthquakes"], "kinds": ["earthquake"], "from": "2026-10-01T00:00:00Z", "to": None,
+                 "expiresAt": "2027-10-01T00:00:00Z"},
+  "createPack": {"name": "Austin field pack", "bbox": [-97.95, 30.1, -97.55, 30.5], "minZoom": 6, "maxZoom": 12,
+                 "vector": {"sources": ["usgs-earthquakes"], "kinds": ["earthquake"], "asOf": None},
+                 "raster": {"productId": "mrms-reflectivity", "frame": "latest"}},
 }
 
 # test scripts: capture ids / assert status
 CAPTURE = {
+  "createExport": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
+  "createSnapshot": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
+  "createPack": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
+  "createHold": "const j = pm.response.json(); pm.collectionVariables.set('holdId', j.id);",
   "createTrigger": "const j = pm.response.json(); pm.collectionVariables.set('ruleId', j.id);",
   "createChannel": "const j = pm.response.json(); pm.collectionVariables.set('channelId', j.id);",
   "createToken": "const j = pm.response.json(); pm.collectionVariables.set('tokenId', j.id); console.log('New token (shown once):', j.token);",
@@ -682,7 +701,7 @@ collection = {
       ("ingestFormat", "alertmanager"), ("ntfyAction", "publish"), ("edpSourceId", "ext-hormuz-transits"), ("edpIngestKey", ""),
       ("registrationToken", ""), ("registrationTokenId", ""), ("pushProviderId", "ios-apns"), ("pushDeviceId", ""),
       ("notificationId", ""), ("actionToken", ""), ("escalationPolicyId", ""), ("feedKeyId", ""), ("tileKeyId", ""),
-      ("placeId", "home"), ("viewId", ""), ("watchlistId", ""),
+      ("placeId", "home"), ("viewId", ""), ("watchlistId", ""), ("exportId", ""), ("holdId", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

@@ -597,6 +597,28 @@ scientific colormaps. Each style's `notice` field names its origin.
 ## sqlite-jdbc (Java library, bundled)
 
 - **Library:** `org.xerial:sqlite-jdbc` 3.53.4.0 (Apache-2.0), which bundles the SQLite native library
-  (public domain). Used only to write MBTiles export files (prompt 108); Foresignal's own stores stay
+  (public domain). Used only to write MBTiles (prompt 108) and GeoPackage (prompt 111) export files; Foresignal's own stores stay
   PostgreSQL/PostGIS.
 - **Licence:** Apache-2.0 (SQLite itself is public domain).
+
+## Export libraries (Java, bundled; prompt 111)
+
+Bulk exports, snapshots and the cold archive (prompt 111) write GeoParquet, FlatGeobuf, GeoPackage and GPX
+files. The licenses below are those each artifact declares in its Maven POM (checked on Maven Central,
+2026-10-16).
+
+| Library | Version | License | Use |
+|---|---|---|---|
+| `org.apache.parquet:parquet-column`, `parquet-hadoop` (with `parquet-common`, `parquet-encoding`, `parquet-format-structures`, `parquet-jackson`) | 1.18.1 | Apache-2.0 | GeoParquet writer (Hadoop-free path: `LocalOutputFile`, `ParquetFileWriter`, column stores) |
+| `com.github.luben:zstd-jni` | 1.5.7-15 | BSD-2-Clause (bundles the Zstandard native library, BSD) | ZSTD compression of Parquet pages |
+| `org.xerial.snappy:snappy-java` | 1.1.10.8 | Apache-2.0 | Transitive dependency of `parquet-hadoop`; not used by Foresignal's code |
+| `io.airlift:aircompressor` | 2.0.3 | Apache-2.0 | Transitive dependency of `parquet-hadoop`; not used by Foresignal's code |
+| `commons-pool:commons-pool` | 1.6 | Apache-2.0 (inherited from `commons-parent`) | Transitive dependency of `parquet-hadoop` |
+| `org.wololo:flatgeobuf` | 3.29.0 | ISC | FlatGeobuf headers, features and geometry encoding |
+| `com.google.flatbuffers:flatbuffers-java` | 24.12.23 | Apache-2.0 | FlatBuffers runtime of `flatgeobuf` |
+
+GeoPackage files are written with the already bundled `sqlite-jdbc` (above). `org.apache.hadoop:hadoop-common`
+3.4.1 (Apache-2.0) is a **compile-only** dependency, needed because some `parquet-hadoop` constructors name a
+Hadoop class; it is not packaged, and no Hadoop class is on the runtime classpath (`ParquetClasspathTest`).
+The GPX 1.1 schema in the test resources (`src/test/resources/export/gpx-1.1.xsd`) is TopoGrafix's published
+schema, used only to validate test output; it is not part of the application.

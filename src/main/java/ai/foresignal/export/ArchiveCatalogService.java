@@ -4,121 +4,156 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Lists the cold archive's partitions and files (prompt 111), reading the hive layout and each
- * partition's {@code _manifest.json}.
+ * Lists the cold archive's partitions and files (prompt 111, {@code getArchiveCatalog}) from the hive
+ * layout and each partition's {@code _manifest.json}, which records a file's seq bounds, rows,
+ * SHA-256 and upload state even after its local copy was deleted. A part file without a manifest
+ * entry is still listed, with its bounds parsed from its name and its rows read from its footer.
  */
 @Service
 public class ArchiveCatalogService {
 
-    private final ExportStore store;
+    private static final Pattern PART = Pattern.compile("part-(\\d+)-(\\d+)\\.parquet");
+
+    private final ArchiveService archive;
     private final ArchiveSettingsService settingsService;
-    private final JsonMapper jsonMapper;
 
     /** Creates the service. */
-    public ArchiveCatalogService(ExportStore store, ArchiveSettingsService settingsService, JsonMapper jsonMapper) {
-        this.store = store;
+    public ArchiveCatalogService(ArchiveService archive, ArchiveSettingsService settingsService) {
+        this.archive = archive;
         this.settingsService = settingsService;
-        this.jsonMapper = jsonMapper;
     }
 
-    /** Lists partitions, filtered by source and by {@code from}/{@code to} (ISO dates). */
-    public List<Map<String, Object>> list(String source, String from, String to) {
-        ArchiveSettings settings = settingsService.get();
-        Path root = settings.root() == null || settings.root().isBlank() ? store.archiveRoot()
-                : store.resolve(settings.root());
-        Path recordVersion = root.resolve("record_version");
+    /**
+     * A page of partitions.
+     *
+     * @param items {@code ArchivePartition} maps
+     * @param nextCursor the cursor of the next page, or null
+     */
+    public record Page(List<Map<String, Object>> items, String nextCursor) {}
+
+    /**
+     * One page of partitions ordered by tier, source and date.
+     *
+     * @param source a source id, or null for all
+     * @param from the first date (inclusive), or null
+     * @param to the last date (inclusive), or null
+     * @param cursor the {@code path} of the previous page's last partition, or null
+     */
+    public Page list(String source, LocalDate from, LocalDate to, String cursor, int limit) {
+        int size = Math.max(1, Math.min(500, limit));
+        Path recordVersion = archive.root(settingsService.get()).resolve("record_version");
         if (!Files.isDirectory(recordVersion)) {
-            return List.of();
+            return new Page(List.of(), null);
         }
         List<Map<String, Object>> out = new ArrayList<>();
-        try (var tiers = Files.list(recordVersion)) {
-            for (Path tierDir : tiers.filter(Files::isDirectory).sorted().toList()) {
-                String tier = name(tierDir.getFileName().toString(), "tier=");
-                try (var sources = Files.list(tierDir)) {
-                    for (Path sourceDir : sources.filter(Files::isDirectory).sorted().toList()) {
-                        String sourceId = name(sourceDir.getFileName().toString(), "source_id=");
-                        if (source != null && !source.isBlank() && !source.equals(sourceId)) {
-                            continue;
-                        }
-                        try (var dates = Files.list(sourceDir)) {
-                            for (Path dateDir : dates.filter(Files::isDirectory).sorted().toList()) {
-                                String date = name(dateDir.getFileName().toString(), "date=");
-                                if (from != null && date.compareTo(from) < 0) {
-                                    continue;
-                                }
-                                if (to != null && date.compareTo(to) > 0) {
-                                    continue;
-                                }
-                                out.add(partition(tier, sourceId, date, dateDir));
-                            }
-                        }
+        String next = null;
+        for (Path tierDir : directories(recordVersion)) {
+            String tier = strip(tierDir, "tier=");
+            for (Path sourceDir : directories(tierDir)) {
+                String sourceId = strip(sourceDir, "source_id=");
+                if (source != null && !source.isBlank() && !source.equals(sourceId)) {
+                    continue;
+                }
+                for (Path dateDir : directories(sourceDir)) {
+                    String dateText = strip(dateDir, "date=");
+                    LocalDate date;
+                    try {
+                        date = LocalDate.parse(dateText);
+                    } catch (RuntimeException e) {
+                        continue;
                     }
+                    if ((from != null && date.isBefore(from)) || (to != null && date.isAfter(to))) {
+                        continue;
+                    }
+                    String path = "record_version/tier=" + tier + "/source_id=" + sourceId + "/date=" + dateText;
+                    if (cursor != null && path.compareTo(cursor) <= 0) {
+                        continue;
+                    }
+                    if (out.size() == size) {
+                        next = (String) out.getLast().get("path");
+                        return new Page(out, next);
+                    }
+                    out.add(partition(tier, sourceId, dateText, path, dateDir));
                 }
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException("Could not list the archive", e);
         }
-        out.sort(Comparator.comparing(m -> String.valueOf(m.get("sourceId"))));
-        return out;
+        return new Page(out, next);
     }
 
-    private Map<String, Object> partition(String tier, String sourceId, String date, Path dateDir) {
+    private Map<String, Object> partition(String tier, String sourceId, String date, String path, Path dir) {
+        Map<String, Object> manifest = archive.readManifest(dir);
+        List<Map<String, Object>> files = new ArrayList<>();
+        Set<String> listed = new HashSet<>();
+        if (manifest != null && manifest.get("files") instanceof List<?> entries) {
+            for (Object entry : entries) {
+                if (entry instanceof Map<?, ?> map) {
+                    Map<String, Object> file = new LinkedHashMap<>();
+                    map.forEach((k, v) -> file.put(String.valueOf(k), v));
+                    Object name = file.get("name");
+                    if (name != null) {
+                        listed.add(String.valueOf(name));
+                        file.put("local", Files.isRegularFile(dir.resolve(String.valueOf(name))));
+                    }
+                    files.add(file);
+                }
+            }
+        }
+        try (Stream<Path> stream = Files.list(dir)) {
+            for (Path file : stream.sorted().toList()) {
+                String name = file.getFileName().toString();
+                Matcher m = PART.matcher(name);
+                if (!m.matches() || listed.contains(name)) {
+                    continue;
+                }
+                Map<String, Object> entry = new LinkedHashMap<>();
+                entry.put("name", name);
+                entry.put("fromSeq", Long.parseLong(m.group(1)));
+                entry.put("toSeq", Long.parseLong(m.group(2)));
+                entry.put("rows", GeoParquetFiles.rowCount(file));
+                entry.put("bytes", Files.size(file));
+                entry.put("sha256", ExportManifests.sha256(file));
+                entry.put("local", true);
+                entry.put("uploadedAt", null);
+                entry.put("s3Key", null);
+                files.add(entry);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not list the archive partition " + path, e);
+        }
+        files.sort(java.util.Comparator.comparingLong(f -> ((Number) f.get("fromSeq")).longValue()));
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("tier", tier);
         out.put("sourceId", sourceId);
         out.put("date", date);
-        out.put("path", "record_version/tier=" + tier + "/source_id=" + sourceId + "/date=" + date);
-        out.put("licence", licence(dateDir));
-        out.put("files", files(dateDir));
+        out.put("path", path);
+        out.put("files", files);
+        out.put("licence", manifest == null ? null : manifest.get("licence"));
         return out;
     }
 
-    private List<Map<String, Object>> files(Path dateDir) {
-        List<Map<String, Object>> out = new ArrayList<>();
-        try (var stream = Files.list(dateDir)) {
-            for (Path file : stream.filter(p -> p.getFileName().toString().endsWith(".parquet")).sorted().toList()) {
-                Map<String, Object> entry = new LinkedHashMap<>();
-                entry.put("name", file.getFileName().toString());
-                entry.put("bytes", Files.size(file));
-                entry.put("local", true);
-                try {
-                    entry.put("sha256", ExportManifests.sha256(file));
-                } catch (IOException e) {
-                    entry.put("sha256", null);
-                }
-                out.add(entry);
-            }
+    private static List<Path> directories(Path parent) {
+        try (Stream<Path> stream = Files.list(parent)) {
+            return stream.filter(Files::isDirectory).sorted().toList();
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-        return out;
-    }
-
-    private String licence(Path dateDir) {
-        Path manifest = dateDir.resolve("_manifest.json");
-        if (!Files.isRegularFile(manifest)) {
-            return null;
-        }
-        try {
-            JsonNode node = jsonMapper.readTree(Files.readAllBytes(manifest));
-            JsonNode licence = node.get("licence");
-            return licence == null || licence.isNull() ? null : licence.asString();
-        } catch (IOException e) {
-            return null;
+            throw new UncheckedIOException("Could not list " + parent, e);
         }
     }
 
-    private static String name(String value, String prefix) {
-        return value.startsWith(prefix) ? value.substring(prefix.length()) : value;
+    private static String strip(Path dir, String prefix) {
+        String name = dir.getFileName().toString();
+        return name.startsWith(prefix) ? name.substring(prefix.length()) : name;
     }
 }

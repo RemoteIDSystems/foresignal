@@ -320,7 +320,10 @@ public class AccessPolicy {
                 // Exports (108): downloading a file is read, polling the job is agent.
                 rule(HttpMethod.GET, "/v1/exports/*/files/*", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/exports/**", AccessRequirement.AGENT),
-                // Bulk exports, snapshots, holds and the cold archive (111).
+                // Bulk exports, snapshots, holds and the cold archive (111). Listing, polling, downloads and
+                // manifests are agent (the GET rule above, which also matches /v1/exports itself); a job is
+                // visible to its creator and to admin. /v1/settings/archive falls under /v1/settings/** (admin).
+                rule(HttpMethod.GET, "/v1/exports", AccessRequirement.AGENT),
                 rule(HttpMethod.POST, "/v1/exports", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.DELETE, "/v1/exports/*", AccessRequirement.AGENT),
                 rule(HttpMethod.POST, "/v1/snapshots", AccessRequirement.ADMIN),

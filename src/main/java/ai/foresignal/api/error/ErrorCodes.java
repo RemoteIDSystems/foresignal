@@ -456,7 +456,7 @@ public final class ErrorCodes {
     /** 413: an EDR area request covers more cells than allowed (prompt 108). */
     public static final String EDR_TOO_LARGE = "EDR_TOO_LARGE";
 
-    /** 413: a place offline pack exceeds its size cap (prompt 108). */
+    /** 413: a place offline pack exceeds its size cap (prompt 108), or a PMTiles pack its tile cap (111). */
     public static final String PACK_TOO_LARGE = "PACK_TOO_LARGE";
 
     /** 404: the export job is unknown (prompt 108). */
@@ -480,20 +480,17 @@ public final class ErrorCodes {
     /** 400: a snapshot's {@code atSeq} is below a source's retention floor and no hold covers it (111). */
     public static final String SNAPSHOT_BEYOND_RETENTION = "SNAPSHOT_BEYOND_RETENTION";
 
-    /** 409: the number of legal holds would exceed {@code holds.max} (prompt 111). */
+    /** 409: the number of holds would exceed {@code holds.max} (prompt 111). */
     public static final String HOLD_LIMIT = "HOLD_LIMIT";
 
-    /** 404: no legal hold has that id (prompt 111). */
+    /** 404: no hold has that id (prompt 111). */
     public static final String UNKNOWN_HOLD = "UNKNOWN_HOLD";
-
-    /** 404: no offline pack has that id (prompt 111). */
-    public static final String UNKNOWN_PACK = "UNKNOWN_PACK";
 
     /** 409: an infrastructure graph build is already running (prompt 104). */
     public static final String INFRA_REBUILD_RUNNING = "INFRA_REBUILD_RUNNING";
 
-    /** 400: an offline pack's tile count or extent is not valid (prompt 111). */
-    public static final String PACK_SPEC_INVALID = "PACK_SPEC_INVALID";
+    /** 409: an export, snapshot or pack is not finished, so it has nothing to download yet (prompt 111). */
+    public static final String EXPORT_NOT_READY = "EXPORT_NOT_READY";
 
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 

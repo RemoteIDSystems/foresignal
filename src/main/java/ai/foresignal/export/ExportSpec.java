@@ -1,12 +1,12 @@
 package ai.foresignal.export;
 
+import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.error.FieldError;
 import ai.foresignal.api.error.ValidationException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import tools.jackson.databind.JsonNode;
 
@@ -40,7 +40,7 @@ public record ExportSpec(String name, ExportFormat format, List<String> sources,
     /** The time axes. */
     public static final List<String> TIME_FIELDS = List.of("effective", "observed", "event", "ingested");
 
-    /** Validates and copies. */
+    /** Validates and copies; a missing format, mode or time field takes its default. */
     public ExportSpec {
         sources = sources == null ? List.of() : List.copyOf(sources);
         kinds = kinds == null ? List.of() : List.copyOf(kinds);
@@ -53,7 +53,8 @@ public record ExportSpec(String name, ExportFormat format, List<String> sources,
     /** Parses an {@code ExportSpec} body. */
     public static ExportSpec parse(JsonNode body) {
         if (body == null || !body.isObject()) {
-            throw new ValidationException("The request body must be an ExportSpec object.");
+            throw new ValidationException(ErrorCodes.EXPORT_SPEC_INVALID, "The request body must be an ExportSpec object.",
+                    List.of());
         }
         List<FieldError> errors = new ArrayList<>();
         String name = text(body.get("name"));
@@ -73,7 +74,14 @@ public record ExportSpec(String name, ExportFormat format, List<String> sources,
         String timeField = oneOf(body.get("timeField"), "timeField", TIME_FIELDS, errors, "effective");
         String mode = oneOf(body.get("mode"), "mode", MODES, errors, "current");
         Instant asOf = instant(body.get("asOf"), "asOf", errors);
-        Long atSeq = body.get("atSeq") == null || body.get("atSeq").isNull() ? null : body.get("atSeq").asLong();
+        Long atSeq = null;
+        if (body.get("atSeq") != null && !body.get("atSeq").isNull()) {
+            if (body.get("atSeq").isIntegralNumber()) {
+                atSeq = body.get("atSeq").asLong();
+            } else {
+                errors.add(new FieldError("atSeq", "must be an integer"));
+            }
+        }
         List<String> fields = strings(body.get("fields"), "fields", errors);
         boolean flatten = body.has("flatten") && body.get("flatten").asBoolean(false);
         boolean includePrivate = body.has("includePrivate") && body.get("includePrivate").asBoolean(false);
@@ -81,8 +89,17 @@ public record ExportSpec(String name, ExportFormat format, List<String> sources,
         if (format == ExportFormat.GPX && !"history".equals(mode)) {
             errors.add(new FieldError("format", "gpx requires mode=history"));
         }
+        if ("asOf".equals(mode) && asOf == null) {
+            errors.add(new FieldError("asOf", "is required when mode=asOf"));
+        }
+        if ("atSeq".equals(mode) && (atSeq == null || atSeq < 0)) {
+            errors.add(new FieldError("atSeq", "is required (a non-negative seq) when mode=atSeq"));
+        }
+        if (from != null && to != null && !to.isAfter(from)) {
+            errors.add(new FieldError("to", "must be after from"));
+        }
         if (!errors.isEmpty()) {
-            throw new ValidationException("The export spec is not valid.", errors);
+            throw new ValidationException(ErrorCodes.EXPORT_SPEC_INVALID, "The export spec is not valid.", errors);
         }
         return new ExportSpec(name, format, sources, kinds, bbox, placeId, from, to, timeField, mode, asOf, atSeq,
                 fields, flatten, includePrivate, personalUse);
@@ -116,6 +133,40 @@ public record ExportSpec(String name, ExportFormat format, List<String> sources,
         return out;
     }
 
+    /** The spec back from its stored map ({@link #toMap}). */
+    public static ExportSpec fromMap(Map<String, Object> map) {
+        double[] bbox = null;
+        if (map.get("bbox") instanceof List<?> raw && raw.size() == 4) {
+            bbox = new double[4];
+            for (int k = 0; k < 4; k++) {
+                bbox[k] = ((Number) raw.get(k)).doubleValue();
+            }
+        }
+        Object atSeq = map.get("atSeq");
+        return new ExportSpec((String) map.get("name"), ExportFormat.parse((String) map.get("format")),
+                stringList(map.get("sources")), stringList(map.get("kinds")), bbox, (String) map.get("placeId"),
+                instantOrNull(map.get("from")), instantOrNull(map.get("to")), (String) map.get("timeField"),
+                (String) map.get("mode"), instantOrNull(map.get("asOf")),
+                atSeq instanceof Number n ? n.longValue() : null, stringList(map.get("fields")),
+                Boolean.TRUE.equals(map.get("flatten")), Boolean.TRUE.equals(map.get("includePrivate")),
+                Boolean.TRUE.equals(map.get("personalUse")));
+    }
+
+    private static List<String> stringList(Object value) {
+        if (!(value instanceof List<?> list)) {
+            return List.of();
+        }
+        List<String> out = new ArrayList<>();
+        for (Object item : list) {
+            out.add(String.valueOf(item));
+        }
+        return out;
+    }
+
+    private static Instant instantOrNull(Object value) {
+        return value == null ? null : Instant.parse(String.valueOf(value));
+    }
+
     private static List<String> strings(JsonNode node, String field, List<FieldError> errors) {
         if (node == null || node.isNull()) {
             return List.of();
@@ -145,7 +196,15 @@ public record ExportSpec(String name, ExportFormat format, List<String> sources,
         }
         double[] out = new double[4];
         for (int k = 0; k < 4; k++) {
+            if (!node.get(k).isNumber()) {
+                errors.add(new FieldError("bbox", "must be four numbers"));
+                return null;
+            }
             out[k] = node.get(k).asDouble();
+        }
+        if (out[0] < -180 || out[2] > 180 || out[1] < -90 || out[3] > 90 || out[0] > out[2] || out[1] > out[3]) {
+            errors.add(new FieldError("bbox", "must be [minLon, minLat, maxLon, maxLat] within WGS84 bounds"));
+            return null;
         }
         return out;
     }
@@ -167,12 +226,15 @@ public record ExportSpec(String name, ExportFormat format, List<String> sources,
         if (node == null || node.isNull()) {
             return fallback;
         }
-        String value = node.asString().toLowerCase(Locale.ROOT);
-        if (!allowed.contains(value)) {
-            errors.add(new FieldError(field, "must be one of " + allowed));
-            return fallback;
+        String value = node.asString().strip();
+        for (String candidate : allowed) {
+            if (candidate.equalsIgnoreCase(value)) {
+                // Matched case-insensitively, stored in its canonical spelling (asOf, atSeq).
+                return candidate;
+            }
         }
-        return value;
+        errors.add(new FieldError(field, "must be one of " + allowed));
+        return fallback;
     }
 
     private static String text(JsonNode node) {

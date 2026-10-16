@@ -7,12 +7,16 @@ import ai.foresignal.mcp.McpOutputShaper;
 import ai.foresignal.mcp.McpOutputShaper.Detail;
 import ai.foresignal.mcp.ToolContext;
 import ai.foresignal.mcp.ToolResult;
+import ai.foresignal.raster.ProductUrls;
 import ai.foresignal.security.Scope;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 
-/** {@code get_export} (agent): a bulk export job's status and URLs, never the file bytes. */
+/**
+ * {@code get_export} (agent; prompt 111): an export, snapshot or pack job's status, license summary and
+ * URLs, never the file bytes. A job is visible to the token that created it and to admin.
+ */
 @Component
 public class GetExportTool implements ForesignalMcpTool {
 
@@ -20,11 +24,13 @@ public class GetExportTool implements ForesignalMcpTool {
             JsonSchemas.props("exportId", JsonSchemas.string("The export job id")), "exportId");
 
     private final ExportJobService exports;
+    private final ProductUrls urls;
     private final McpOutputShaper shaper;
 
     /** Creates the tool. */
-    public GetExportTool(ExportJobService exports, McpOutputShaper shaper) {
+    public GetExportTool(ExportJobService exports, ProductUrls urls, McpOutputShaper shaper) {
         this.exports = exports;
+        this.urls = urls;
         this.shaper = shaper;
     }
 
@@ -40,8 +46,8 @@ public class GetExportTool implements ForesignalMcpTool {
 
     @Override
     public String description() {
-        return "Returns the status, progress, row count, licence summary and download/manifest URLs of a bulk"
-                + " export or offline pack. It returns URLs, never file bytes.";
+        return "Returns the status, progress, row count, license summary and download/manifest URLs of a bulk"
+                + " export, snapshot or offline pack. It returns URLs, never file bytes.";
     }
 
     @Override
@@ -61,7 +67,9 @@ public class GetExportTool implements ForesignalMcpTool {
 
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
-        return ToolResult.json(shaper.object(shaper.objectTree(exports.view(exports.get(args.get("exportId").asString()),
-                "")), Detail.LONG));
+        ExportJobService.Caller caller = CreateExportTool.caller(context);
+        String id = args.get("exportId") == null ? "" : args.get("exportId").asString();
+        return ToolResult.json(shaper.object(shaper.objectTree(exports.view(
+                exports.visible(id, caller.principal(), caller.admin()), urls.storedBase())), Detail.LONG));
     }
 }

@@ -10,8 +10,6 @@ import ai.foresignal.export.ExportJobService;
 import ai.foresignal.export.PackService;
 import ai.foresignal.export.PackSpec;
 import ai.foresignal.intel.PopulationPackService;
-import ai.foresignal.security.Scope;
-import ai.foresignal.security.restrict.RequestPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -66,22 +64,19 @@ public class PacksController {
         }
     }
 
-    /** {@code createPack}: build a PMTiles offline pack. */
+    /**
+     * {@code createPack}: queue a PMTiles offline pack (prompt 111), 202 with the {@code ExportJob} of
+     * kind {@code PACK}; downloaded through {@code /v1/exports/{id}/download}.
+     */
     @PostMapping
     @Operation(operationId = "createPack", tags = "Exports")
     public ResponseEntity<Map<String, Object>> createPack(@RequestBody JsonNode body, HttpServletRequest request) {
         PackSpec spec = PackSpec.parse(body);
         ReadCaller caller = callers.resolve(request);
-        boolean admin = caller.scope() != null && caller.scope().includes(Scope.ADMIN);
-        ExportJobService.Caller packCaller = new ExportJobService.Caller(tokenId(request), admin,
-                caller.privateAccess(), caller.restriction());
-        ExportJobEntity job = packs.create(spec, packCaller);
+        ExportJobEntity job = packs.create(spec, ExportCallers.of(request, callers), callers.excludedSources(caller));
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                 .location(URI.create("/v1/exports/" + job.getId()))
                 .body(exports.view(job, urls.base(request)));
     }
 
-    private static String tokenId(HttpServletRequest request) {
-        return RequestPrincipal.of(request).map(p -> p.id() == null ? null : p.id().toString()).orElse(null);
-    }
 }

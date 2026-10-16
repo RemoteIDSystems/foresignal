@@ -5,31 +5,39 @@ import ai.foresignal.retention.RetentionStep;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Retention step 8.5 (prompt 111): expire finished exports and packs whose {@code expiresAt} passed,
- * delete their directories, and sweep orphan directories that have no job row. Snapshots expire only
- * when an {@code expiresAt} was set.
+ * Retention of export jobs (prompt 111): a finished export, pack or snapshot whose {@code expiresAt}
+ * has passed loses its directory and becomes {@code EXPIRED} (a snapshot without {@code expiresAt}
+ * never does), and directories under {@code exports/} and {@code snapshots/} that no job owns are
+ * swept. A directory that belongs to a 108 raster export ({@code raster_export_job}) is not an
+ * orphan, and a directory younger than {@value #ORPHAN_MIN_AGE_HOURS} hour is left alone, so a job
+ * being created is never swept.
  */
 @Component
 public class ExportRetentionStep implements RetentionStep {
 
     private static final Logger log = LoggerFactory.getLogger(ExportRetentionStep.class);
 
-    private final ExportJobRepository jobs;
+    /** The youngest directory the orphan sweep removes, in hours. */
+    static final int ORPHAN_MIN_AGE_HOURS = 1;
+
+    private final BulkExportJobRepository jobs;
+    private final ai.foresignal.raster.export.ExportJobRepository rasterJobs;
     private final ExportStore store;
 
     /** Creates the step. */
-    public ExportRetentionStep(ExportJobRepository jobs, ExportStore store) {
+    public ExportRetentionStep(BulkExportJobRepository jobs, ai.foresignal.raster.export.ExportJobRepository rasterJobs,
+            ExportStore store) {
         this.jobs = jobs;
+        this.rasterJobs = rasterJobs;
         this.store = store;
     }
 
@@ -45,69 +53,49 @@ public class ExportRetentionStep implements RetentionStep {
 
     @Override
     public void run(RetentionRun run) {
-        Instant now = run.now();
-        sweep(now);
-        orphans();
+        int expired = expire(run.now());
+        int swept = sweep(store.exportsRoot(), run.now()) + sweep(store.snapshotsRoot(), run.now());
+        if (expired + swept > 0) {
+            log.info("Export retention expired {} jobs and swept {} orphan directories", expired, swept);
+        }
+        run.deleted("export_job.expired", expired);
     }
 
-    /** Exposed for the scheduled step and tests. */
-    @Transactional
-    public void sweep(Instant now) {
-        Set<String> known = new HashSet<>();
-        for (ExportJobEntity job : jobs.findAll()) {
-            known.add(job.getId());
-            if (job.getExpiresAt() != null && job.getExpiresAt().isBefore(now)
-                    && !ExportJobEntity.EXPIRED.equals(job.getStatus())
-                    && !ExportJobEntity.RUNNING.equals(job.getStatus())
-                    && !ExportJobEntity.QUEUED.equals(job.getStatus())) {
-                deleteQuietly(dir(job));
-                job.setStatus(ExportJobEntity.EXPIRED);
-                jobs.save(job);
+    /** Expires every finished job whose {@code expiresAt} is at or before {@code now}; returns the count. */
+    int expire(Instant now) {
+        int count = 0;
+        for (ExportJobEntity job : jobs.findByStatusIn(List.of(ExportJobEntity.DONE, ExportJobEntity.FAILED,
+                ExportJobEntity.CANCELLED))) {
+            if (job.getExpiresAt() == null || job.getExpiresAt().isAfter(now)) {
+                continue;
             }
+            ExportJobService.deleteQuietly(store.dirOf(job));
+            job.setStatus(ExportJobEntity.EXPIRED);
+            jobs.save(job);
+            count++;
         }
-        // Directories under exports/ with no row are orphans (a crash between mkdir and save).
-        sweepRoot(store.resolve("exports"), known);
+        return count;
     }
 
-    private void orphans() {
-        Set<String> known = new HashSet<>(jobs.findAll().stream().map(ExportJobEntity::getId).toList());
-        sweepRoot(store.resolve("exports"), known);
-        sweepRoot(store.resolve("snapshots"), known);
-    }
-
-    private void sweepRoot(Path root, Set<String> known) {
-        if (!Files.isDirectory(root)) {
-            return;
-        }
-        try (var stream = Files.list(root)) {
-            for (Path dir : stream.filter(Files::isDirectory).toList()) {
-                if (!known.contains(dir.getFileName().toString())) {
-                    deleteQuietly(dir);
+    /** Deletes the directories under {@code root} that no job owns and that are older than an hour. */
+    int sweep(Path root, Instant now) {
+        int count = 0;
+        Instant cutoff = now.minus(Duration.ofHours(ORPHAN_MIN_AGE_HOURS));
+        try (Stream<Path> dirs = Files.list(root)) {
+            for (Path dir : dirs.filter(Files::isDirectory).toList()) {
+                String id = dir.getFileName().toString();
+                if (jobs.existsById(id) || rasterJobs.existsById(id)) {
+                    continue;
                 }
+                if (Files.getLastModifiedTime(dir).toInstant().isAfter(cutoff)) {
+                    continue;
+                }
+                ExportJobService.deleteQuietly(dir);
+                count++;
             }
         } catch (IOException e) {
             log.warn("Could not sweep the export directory {}", root, e);
         }
-    }
-
-    private Path dir(ExportJobEntity job) {
-        if (ExportJobEntity.SNAPSHOT.equals(job.getKind())) {
-            return store.resolve("snapshots/" + job.getId());
-        }
-        return store.resolve("exports/" + job.getId());
-    }
-
-    private static void deleteQuietly(Path dir) {
-        try {
-            if (Files.isDirectory(dir)) {
-                try (var walk = Files.walk(dir)) {
-                    for (Path path : walk.sorted(Comparator.reverseOrder()).toList()) {
-                        Files.deleteIfExists(path);
-                    }
-                }
-            }
-        } catch (IOException e) {
-            log.debug("Could not delete {}", dir, e);
-        }
+        return count;
     }
 }

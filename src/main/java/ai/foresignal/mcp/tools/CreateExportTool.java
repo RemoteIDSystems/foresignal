@@ -13,13 +13,19 @@ import ai.foresignal.mcp.McpOutputShaper;
 import ai.foresignal.mcp.McpOutputShaper.Detail;
 import ai.foresignal.mcp.ToolContext;
 import ai.foresignal.mcp.ToolResult;
+import ai.foresignal.raster.ProductUrls;
 import ai.foresignal.security.Scope;
+import ai.foresignal.security.TokenRestrictions;
+import ai.foresignal.security.visibility.Viewer;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 
-/** {@code create_export} (agent): submits a bulk export, returning the job with its download URL. */
+/**
+ * {@code create_export} (agent; prompt 111): submits a bulk export with the caller's rights and
+ * returns the job with its download and manifest URLs, never file bytes.
+ */
 @Component
 public class CreateExportTool implements ForesignalMcpTool {
 
@@ -30,11 +36,13 @@ public class CreateExportTool implements ForesignalMcpTool {
             + " flatten, includePrivate (admin), personalUse.", new LinkedHashMap<>(), "format")), "export");
 
     private final ExportJobService exports;
+    private final ProductUrls urls;
     private final McpOutputShaper shaper;
 
     /** Creates the tool. */
-    public CreateExportTool(ExportJobService exports, McpOutputShaper shaper) {
+    public CreateExportTool(ExportJobService exports, ProductUrls urls, McpOutputShaper shaper) {
         this.exports = exports;
+        this.urls = urls;
         this.shaper = shaper;
     }
 
@@ -52,7 +60,7 @@ public class CreateExportTool implements ForesignalMcpTool {
     public String description() {
         return "Submits an asynchronous bulk export of records (GeoParquet, GeoPackage, FlatGeobuf or GPX) and"
                 + " returns the job with its download and manifest URLs. Poll it with get_export. The export carries"
-                + " a licence sidecar and a signed manifest; FORBIDDEN and LOCAL_ONLY sources are excluded unless"
+                + " a license sidecar and a signed manifest; FORBIDDEN and LOCAL_ONLY sources are excluded unless"
                 + " personalUse is set. Needs an agent token.";
     }
 
@@ -79,11 +87,17 @@ public class CreateExportTool implements ForesignalMcpTool {
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
         ExportSpec spec = ExportSpec.parse(args.get("export"));
-        boolean admin = context.caller().scope() != null && context.caller().scope().includes(Scope.ADMIN);
-        ExportJobService.Caller caller = new ExportJobService.Caller(context.actor(), admin,
-                context.readCaller().privateAccess(), context.restriction());
-        ExportJobEntity job = exports.submit(spec, caller);
-        Map<String, Object> view = exports.view(job, "");
-        return ToolResult.json(shaper.object(shaper.objectTree(view), Detail.LONG));
+        ExportJobEntity job = exports.submit(spec, caller(context));
+        return ToolResult.json(shaper.object(shaper.objectTree(exports.view(job, urls.storedBase())), Detail.LONG));
+    }
+
+    /** The export caller of an MCP session: the token id, admin flag, egress viewer and restriction. */
+    static ExportJobService.Caller caller(ToolContext context) {
+        Scope scope = context.readCaller().scope();
+        boolean admin = scope != null && scope.includes(Scope.ADMIN);
+        String principal = context.caller().token() == null || context.caller().token().id() == null ? null
+                : context.caller().token().id().toString();
+        Viewer viewer = new Viewer(scope, context.readCaller().privateAccess(), TokenRestrictions.NONE);
+        return new ExportJobService.Caller(principal, admin, viewer, context.restriction());
     }
 }

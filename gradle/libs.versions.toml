@@ -113,10 +113,16 @@ jsoup = "1.23.2"
 # Bulk exports (111): parquet-java 1.18.1 (Apache-2.0) for GeoParquet 1.1; the Hadoop server stack is
 # excluded below. Verified on Maven Central 2026-10-15.
 parquetVersion = "1.18.1"
-# FlatGeobuf (111): org.wololo:flatgeobuf 3.29.0 (BSD-2-Clause); with JTS. Verified on Maven Central 2026-10-15.
+# FlatGeobuf (111): org.wololo:flatgeobuf 3.29.0 (ISC license, per its POM); with JTS. Verified on Maven Central
+# 2026-10-16 (latest release 3.29.0).
 flatgeobufVersion = "3.29.0"
-# Hadoop Configuration class only (parquet-hadoop references it; all transitive deps excluded): 3.4.1.
+# Compile-only and test-only (111): hadoop-common 3.4.1, non-transitive. parquet-hadoop's ParquetFileWriter and
+# ParquetFileReader have overloads naming org.apache.hadoop.conf.Configuration, so javac needs the class; nothing of
+# Hadoop is on the runtime classpath. Verified on Maven Central 2026-10-16.
 hadoopCommon = "3.4.1"
+# zstd-jni (111): ZSTD compression of GeoParquet pages (BSD-2-Clause). 1.5.7-15 is the version parquet-hadoop
+# 1.18.1 depends on; verified on Maven Central 2026-10-16 (latest there 1.5.7-23).
+zstdJni = "1.5.7-15"
 
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
@@ -196,11 +202,12 @@ jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 # GeoParquet 1.1 exports (111): parquet-column + parquet-hadoop; Hadoop server stack excluded in build.gradle.kts.
 parquet-column = { module = "org.apache.parquet:parquet-column", version.ref = "parquetVersion" }
 parquet-hadoop = { module = "org.apache.parquet:parquet-hadoop", version.ref = "parquetVersion" }
-# Only org.apache.hadoop.conf.Configuration is needed by parquet-hadoop; added non-transitively so no
+# Compile-only/test-only: org.apache.hadoop.conf.Configuration for javac's overload resolution; non-transitive so no
 # Hadoop server stack (hdfs/yarn/mapreduce/jetty) enters the runtime classpath.
 hadoop-common = { module = "org.apache.hadoop:hadoop-common", version.ref = "hadoopCommon" }
 # FlatGeobuf exports (111).
 flatgeobuf = { module = "org.wololo:flatgeobuf", version.ref = "flatgeobufVersion" }
+zstd-jni = { module = "com.github.luben:zstd-jni", version.ref = "zstdJni" }
 # WebP tiles and images (108): webp-imageio, Apache-2.0, bundles libwebp (BSD-3) natives for
 # linux-x86_64/aarch64 and macOS/Windows. The design cites 0.11.0; 0.10.0 is the latest on Central
 # (verified 2026-10-15).

@@ -111,7 +111,12 @@ dependencies {
         exclude(group = "com.sun.jersey")
         exclude(group = "org.glassfish.jersey.core")
     }
-    implementation(libs.hadoop.common) { isTransitive = false }
+    // ZSTD pages for GeoParquet (111) through zstd-jni directly (ParquetCodecs), so no Hadoop codec is needed.
+    implementation(libs.zstd.jni)
+    // parquet-hadoop's ParquetFileWriter has constructor overloads naming org.apache.hadoop.conf.Configuration, so
+    // javac needs the class to resolve the Hadoop-free overload. Compile-only and non-transitive: nothing of Hadoop
+    // is on the runtime classpath (ParquetClasspathTest).
+    compileOnly(libs.hadoop.common) { isTransitive = false }
     implementation(libs.flatgeobuf)
     runtimeOnly(libs.postgresql)
 
@@ -124,6 +129,9 @@ dependencies {
     testImplementation(libs.testcontainers.toxiproxy)
     testImplementation(libs.wiremock.standalone)
     testImplementation(libs.awaitility)
+    // Test-only (111): parquet-hadoop's ParquetFileReader.open overloads name org.apache.hadoop.conf.Configuration,
+    // so the round-trip test reader needs the class at compile time. Non-transitive; never on the runtime classpath.
+    testImplementation(libs.hadoop.common) { isTransitive = false }
     testImplementation(libs.greenmail)
 }
 

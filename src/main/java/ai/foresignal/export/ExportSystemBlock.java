@@ -2,19 +2,25 @@ package ai.foresignal.export;
 
 import ai.foresignal.system.SystemBlockContributor;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 
-/** The {@code exports} block of {@code /v1/system} (prompt 111): queued, running and bytes. */
+/**
+ * The {@code exports} block of {@code /v1/system} (prompt 111): jobs queued and running, and the
+ * bytes the export and snapshot directories hold against {@code exports.diskQuotaGb}.
+ */
 @Component
 public class ExportSystemBlock implements SystemBlockContributor {
 
-    private final ExportJobRepository jobs;
+    private final BulkExportJobRepository jobs;
+    private final ExportStore store;
+    private final ExportProperties properties;
 
     /** Creates the block. */
-    public ExportSystemBlock(ExportJobRepository jobs) {
+    public ExportSystemBlock(BulkExportJobRepository jobs, ExportStore store, ExportProperties properties) {
         this.jobs = jobs;
+        this.store = store;
+        this.properties = properties;
     }
 
     @Override
@@ -24,14 +30,12 @@ public class ExportSystemBlock implements SystemBlockContributor {
 
     @Override
     public Map<String, Object> block() {
-        List<ExportJobEntity> all = jobs.findAll();
-        long queued = all.stream().filter(j -> ExportJobEntity.QUEUED.equals(j.getStatus())).count();
-        long running = all.stream().filter(j -> ExportJobEntity.RUNNING.equals(j.getStatus())).count();
-        long bytes = all.stream().filter(j -> j.getBytes() != null).mapToLong(ExportJobEntity::getBytes).sum();
         Map<String, Object> out = new LinkedHashMap<>();
-        out.put("queued", queued);
-        out.put("running", running);
-        out.put("bytes", bytes);
+        out.put("queued", jobs.countByStatus(ExportJobEntity.QUEUED));
+        out.put("running", jobs.countByStatus(ExportJobEntity.RUNNING));
+        out.put("bytes", ExportStore.bytesUnder(store.exportsRoot()) + ExportStore.bytesUnder(store.snapshotsRoot()));
+        out.put("quotaBytes", properties.diskQuotaGb() * 1024L * 1024L * 1024L);
+        out.put("maxConcurrent", properties.maxConcurrent());
         return out;
     }
 }

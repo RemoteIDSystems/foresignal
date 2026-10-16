@@ -42,6 +42,8 @@ public final class RetentionRun {
     private final Map<String, Map<String, Long>> floors = new TreeMap<>();
     private final List<PurgeCandidate> candidates = new ArrayList<>();
     private final Set<String> skipped = new TreeSet<>();
+    private final Set<String> blockedLeaves = new TreeSet<>();
+    private final Map<Class<?>, Object> memo = new java.util.HashMap<>();
     private final Map<String, Long> purged = new TreeMap<>();
     private final Map<String, Lag> lags = new LinkedHashMap<>();
     private final List<String> errors = new ArrayList<>();
@@ -222,6 +224,39 @@ public final class RetentionRun {
     /** The skipped sources, ordered. */
     public Set<String> skippedSources() {
         return Collections.unmodifiableSet(skipped);
+    }
+
+    /**
+     * Keeps the TRACK leaf {@code leafName} this run (prompt 111): a hold copy or a cold-archive write
+     * of rows in it failed, so it must not be dropped before they are written out. The TRACK step
+     * stops dropping at the first blocked leaf.
+     */
+    public void blockLeaf(String leafName) {
+        blockedLeaves.add(leafName);
+    }
+
+    /** True when {@code leafName} was blocked this run. */
+    public boolean leafBlocked(String leafName) {
+        return blockedLeaves.contains(leafName);
+    }
+
+    /** The blocked TRACK leaves, ordered. */
+    public Set<String> blockedLeaves() {
+        return Collections.unmodifiableSet(blockedLeaves);
+    }
+
+    /**
+     * The value of {@code type} computed once per run (prompt 111): the first call runs
+     * {@code compute}, later calls return the same value. {@link RetentionPlanner} keeps its plans here
+     * so the copy, archive and delete steps of one run act on exactly the same cutoffs and leaves.
+     */
+    public <T> T memo(Class<T> type, java.util.function.Supplier<T> compute) {
+        Object value = memo.get(type);
+        if (value == null) {
+            value = compute.get();
+            memo.put(type, value);
+        }
+        return type.cast(value);
     }
 
     /** Raises the largest STANDARD window seen this run to at least {@code window}. */
