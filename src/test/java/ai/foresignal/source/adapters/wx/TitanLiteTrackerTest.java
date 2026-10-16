@@ -55,6 +55,26 @@ class TitanLiteTrackerTest {
                 List.of(cell(merged)), T0.plusSeconds(600));
         assertThat(result.merges()).hasSize(1);
         assertThat(result.assignments()).hasSize(1);
+        TitanLiteTracker.Merge merge = result.merges().get(0);
+        assertThat(merge.intoPrevious()).isEqualTo(result.assignments().get(0).previous());
+        assertThat(merge.endedPrevious()).isNotEqualTo(merge.intoPrevious());
+    }
+
+    @Test
+    @DisplayName("a merge keeps the largest-area track even when the solver paired the cell with the smaller one")
+    void mergeKeepsLargest() {
+        Geometry big = square(0, 0, 1, 1);
+        Geometry small = square(0.9, 0, 1.5, 1);
+        Geometry merged = square(0.7, 0, 1.5, 1);
+        var result = TitanLiteTracker.associate(
+                List.of(previous("t-big", big, 0), previous("t-small", small, 0)),
+                List.of(cell(merged)), T0.plusSeconds(600));
+        assertThat(result.assignments()).singleElement().satisfies(a -> {
+            assertThat(a.previous()).as("the larger track continues").isZero();
+            assertThat(a.cell()).isZero();
+        });
+        assertThat(result.merges()).containsExactly(new TitanLiteTracker.Merge(1, 0));
+        assertThat(result.unmatchedPrevious()).isEmpty();
     }
 
     @Test

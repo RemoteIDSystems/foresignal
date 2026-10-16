@@ -95,9 +95,7 @@ public class EcmwfAdapter implements PollingAdapter, DecoderDependent {
     /** The default resolution segment. */
     public static final String DEFAULT_RESOLUTION = "0p25";
 
-    private static final String CHANGES_MADE =
-            "Contains modified Copernicus/ECMWF data: ECMWF open data, CC BY 4.0."
-                    + " Changes made: resampled, quantised, derived fields.";
+    private static final String CHANGES_MADE = EcmwfDefinition.CHANGES_MADE;
 
     /** The model. */
     public static final EcmwfDefinition MODEL = new EcmwfDefinition(ID, "IFS", BUCKET, DEFAULT_TEMPLATE,

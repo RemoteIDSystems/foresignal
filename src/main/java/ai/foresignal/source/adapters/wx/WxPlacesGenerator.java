@@ -8,6 +8,7 @@ import ai.foresignal.derive.RasterFrameEvent;
 import ai.foresignal.place.PlaceView;
 import ai.foresignal.raster.RasterFrameRow;
 import ai.foresignal.raster.sample.FrameView;
+import ai.foresignal.raster.model.EcmwfDefinition;
 import ai.foresignal.raster.sample.ModelDisagreement;
 import ai.foresignal.raster.sample.PlaceGridIndex;
 import ai.foresignal.source.HealthStatus;
@@ -118,6 +119,15 @@ public class WxPlacesGenerator implements DerivedGenerator {
     /** IFS 24-hour precipitation (prompt 105). */
     public static final String IFS_PRECIP_24H = "ifs-precip-24h";
 
+    /** AIFS 2 m temperature (prompt 106: an extra model in the disagreement flag when enabled). */
+    public static final String AIFS_T2M = "aifs-t2m";
+
+    /** AIFS accumulated precipitation, a run total (prompt 106: disagreement only). */
+    public static final String AIFS_TP = "aifs-tp";
+
+    /** The window a model's run must reach to join the disagreement comparison, within one hour. */
+    static final Duration COVERAGE_TOLERANCE = Duration.ofHours(1);
+
     /** HRRR column-integrated smoke (prompt 106). */
     public static final String SMOKE_COLUMN = "hrrr-smoke-column";
 
@@ -179,7 +189,10 @@ public class WxPlacesGenerator implements DerivedGenerator {
     /** GLM maximum gap. */
     public static final Duration GLM_MAX_GAP = Duration.ofMinutes(2);
 
-    /** The oldest model run still current. */
+    /**
+     * The oldest model run still current for a model {@link ModelRunAge} does not know. Known models use
+     * their own cadence + lag + ingest allowance (prompt 105 post-review).
+     */
     public static final Duration RUN_MAX_AGE = Duration.ofHours(12);
 
     /** The staleness tick. */
@@ -229,7 +242,7 @@ public class WxPlacesGenerator implements DerivedGenerator {
     public DerivedInputs inputs(ValidatedParams params) {
         java.util.Set<String> products = new java.util.LinkedHashSet<>(List.of(REFLECTIVITY, MESH, PRECIP, QPE_1H,
                 QPE_24H, FFG, SMOKE, SMOKE_COLUMN, WAVE, LIGHTNING_PROB, "gfs", GFS_GUST, GFS_T2M, GFS_APCP, HRRR_GUST,
-                IFS_GUST, IFS_T2M, IFS_PRECIP_24H));
+                IFS_GUST, IFS_T2M, IFS_PRECIP_24H, AIFS_T2M, AIFS_TP));
         products.addAll(HEAT_PRODUCTS);
         return new DerivedInputs(Set.of(CELLS, NWS, AURORA, UV), Set.of(WxCellsGenerator.KIND, NWS_KIND, AURORA_KIND,
                 UV_KIND), products, TICK, true);
@@ -283,7 +296,7 @@ public class WxPlacesGenerator implements DerivedGenerator {
             case LIGHTNING_PROB -> updateLightning(ctx, now);
             case GFS_GUST, GFS_APCP -> updateGfs(ctx, now, event.complete());
             case IFS_GUST, IFS_PRECIP_24H -> updateIfs(ctx, now, event.complete());
-            case HRRR_GUST, GFS_T2M, IFS_T2M -> updateDisagreement(ctx, now, event.complete());
+            case HRRR_GUST, GFS_T2M, IFS_T2M, AIFS_T2M, AIFS_TP -> updateDisagreement(ctx, now, event.complete());
             default -> {
                 if (HEAT_PRODUCTS.contains(event.productId())) {
                     updateHeat(ctx, now, event.complete());
@@ -701,7 +714,7 @@ public class WxPlacesGenerator implements DerivedGenerator {
     }
 
     void updateSmoke(DerivedContext ctx, Instant now, boolean force) {
-        WxInput in = WxInput.forecast(ctx, SMOKE, RUN_MAX_AGE, now);
+        WxInput in = WxInput.forecast(ctx, SMOKE, now);
         if (!in.ok()) {
             places.values().forEach(p -> p.smoke.notOk(in.status()));
             return;
@@ -712,7 +725,7 @@ public class WxPlacesGenerator implements DerivedGenerator {
             return;
         }
         double[] max = windowMax(ctx, SMOKE, in.run(), now, todo);
-        WxInput column = WxInput.forecast(ctx, SMOKE_COLUMN, RUN_MAX_AGE, now);
+        WxInput column = WxInput.forecast(ctx, SMOKE_COLUMN, now);
         double[] columnMax = column.ok() ? windowMax(ctx, SMOKE_COLUMN, column.run(), now, todo) : null;
         for (int i = 0; i < todo.size(); i++) {
             PlaceWeatherState p = todo.get(i);
@@ -732,7 +745,7 @@ public class WxPlacesGenerator implements DerivedGenerator {
 
     /** {@code marine} (prompt 106): the GFS-Wave significant height over the next 24 h, coastal places only. */
     void updateMarine(DerivedContext ctx, Instant now, boolean force) {
-        WxInput in = WxInput.forecast(ctx, WAVE, RUN_MAX_AGE, now);
+        WxInput in = WxInput.forecast(ctx, WAVE, now);
         List<PlaceWeatherState> coastal = new ArrayList<>();
         for (PlaceWeatherState p : places.values()) {
             boolean isCoastal = ctx.places().find(p.placeId).map(v -> v.tags() != null && v.tags().contains("coastal"))
@@ -769,7 +782,7 @@ public class WxPlacesGenerator implements DerivedGenerator {
     }
 
     void updateGfs(DerivedContext ctx, Instant now, boolean force) {
-        WxInput gust = WxInput.forecast(ctx, GFS_GUST, RUN_MAX_AGE, now);
+        WxInput gust = WxInput.forecast(ctx, GFS_GUST, now);
         if (!gust.ok()) {
             places.values().forEach(p -> p.gfs.notOk(gust.status()));
             return;
@@ -780,7 +793,7 @@ public class WxPlacesGenerator implements DerivedGenerator {
             return;
         }
         double[] gustMax = windowMax(ctx, GFS_GUST, gust.run(), now, todo);
-        WxInput apcp = WxInput.forecast(ctx, GFS_APCP, RUN_MAX_AGE, now);
+        WxInput apcp = WxInput.forecast(ctx, GFS_APCP, now);
         double[] precip = apcp.ok() ? precip24h(ctx, apcp.run(), now, todo) : null;
         for (int i = 0; i < todo.size(); i++) {
             PlaceWeatherState p = todo.get(i);
@@ -798,9 +811,13 @@ public class WxPlacesGenerator implements DerivedGenerator {
         }
     }
 
-    /** {@code forecast.ifs} (prompt 105): the IFS gust and precipitation over the next 24 h. */
+    /**
+     * {@code forecast.ifs} (prompt 105): the IFS gust maximum and the precipitation of the next 24 h (the
+     * 24-hour total ending at the last step at or before now + 24 h, comparable with GFS's next-24-hour
+     * total), with the ECMWF CC BY 4.0 "changes made" attribution.
+     */
     void updateIfs(DerivedContext ctx, Instant now, boolean force) {
-        WxInput gust = WxInput.forecast(ctx, IFS_GUST, RUN_MAX_AGE, now);
+        WxInput gust = WxInput.forecast(ctx, IFS_GUST, now);
         if (!gust.ok()) {
             places.values().forEach(p -> p.ifs.notOk(gust.status()));
             return;
@@ -811,8 +828,8 @@ public class WxPlacesGenerator implements DerivedGenerator {
             return;
         }
         double[] gustMax = windowMax(ctx, IFS_GUST, gust.run(), now, todo);
-        WxInput precip = WxInput.forecast(ctx, IFS_PRECIP_24H, RUN_MAX_AGE, now);
-        double[] p24 = precip.ok() ? windowMax(ctx, IFS_PRECIP_24H, precip.run(), now, todo) : null;
+        WxInput precip = WxInput.forecast(ctx, IFS_PRECIP_24H, now);
+        double[] p24 = precip.ok() ? next24h(ctx, IFS_PRECIP_24H, precip.run(), now, todo) : null;
         for (int i = 0; i < todo.size(); i++) {
             PlaceWeatherState p = todo.get(i);
             p.ifsRun = gust.run();
@@ -825,42 +842,64 @@ public class WxPlacesGenerator implements DerivedGenerator {
             if (p24 != null && !Double.isNaN(p24[i])) {
                 m.put("precip24hMm", WxRound.whole(Math.max(0, p24[i])));
             }
+            m.put("attribution", EcmwfDefinition.CHANGES_MADE);
             p.ifs.good(m, gust.run());
         }
     }
 
     /**
-     * {@code forecast.disagreement} (prompt 105): the spread of GFS, HRRR (within its 18-hour run) and IFS
-     * over the next 24 h, with hysteresis so a value at the threshold does not churn.
+     * {@code forecast.disagreement} (prompt 105; AIFS added by prompt 106): the spread of GFS, HRRR, IFS and AIFS
+     * over the next 24 h, with hysteresis so a value at the threshold does not churn. Like is compared with like:
+     * <ul>
+     *   <li>{@code gust}: the maximum over {@code [now − 1 h, now + 24 h]} (GFS, HRRR, IFS);
+     *   <li>{@code t2mMax}: the maximum over the same window (GFS, IFS, AIFS);
+     *   <li>{@code precip24h}: the total of the next 24 hours (GFS and AIFS from their run totals, IFS from its
+     *       24-hour product at the step ending near now + 24 h).
+     * </ul>
+     * A model whose run does not reach now + 24 h (HRRR's 18-hour runs) is left out of the comparison.
      */
     void updateDisagreement(DerivedContext ctx, Instant now, boolean force) {
-        WxInput gfsGust = WxInput.forecast(ctx, GFS_GUST, RUN_MAX_AGE, now);
-        WxInput gfsT2m = WxInput.forecast(ctx, GFS_T2M, RUN_MAX_AGE, now);
-        WxInput gfsApcp = WxInput.forecast(ctx, GFS_APCP, RUN_MAX_AGE, now);
-        WxInput hrrrGust = WxInput.forecast(ctx, HRRR_GUST, RUN_MAX_AGE, now);
-        WxInput ifsGust = WxInput.forecast(ctx, IFS_GUST, RUN_MAX_AGE, now);
-        WxInput ifsT2m = WxInput.forecast(ctx, IFS_T2M, RUN_MAX_AGE, now);
-        WxInput ifsPrecip = WxInput.forecast(ctx, IFS_PRECIP_24H, RUN_MAX_AGE, now);
+        WxInput gfsGust = WxInput.forecast(ctx, GFS_GUST, now);
+        WxInput gfsT2m = WxInput.forecast(ctx, GFS_T2M, now);
+        WxInput gfsApcp = WxInput.forecast(ctx, GFS_APCP, now);
+        WxInput hrrrGust = WxInput.forecast(ctx, HRRR_GUST, now);
+        WxInput ifsGust = WxInput.forecast(ctx, IFS_GUST, now);
+        WxInput ifsT2m = WxInput.forecast(ctx, IFS_T2M, now);
+        WxInput ifsPrecip = WxInput.forecast(ctx, IFS_PRECIP_24H, now);
+        WxInput aifsT2m = WxInput.forecast(ctx, AIFS_T2M, now);
+        WxInput aifsTp = WxInput.forecast(ctx, AIFS_TP, now);
+        boolean hrrrCovers = hrrrGust.ok() && coversWindow(ctx, HRRR_GUST, hrrrGust.run(), now);
         String key = "" + run(gfsGust) + "|" + run(gfsT2m) + "|" + run(gfsApcp) + "|" + run(hrrrGust) + "|"
-                + run(ifsGust) + "|" + run(ifsT2m) + "|" + run(ifsPrecip);
+                + hrrrCovers + "|" + run(ifsGust) + "|" + run(ifsT2m) + "|" + run(ifsPrecip) + "|" + run(aifsT2m)
+                + "|" + run(aifsTp);
         boolean stale = places.values().stream().anyMatch(p -> !key.equals(p.disagreementKey));
         if (!force && !stale) {
             return;
         }
         List<PlaceWeatherState> todo = new ArrayList<>(places.values());
-        double[] gfsGustMax = gfsGust.ok() ? windowMax(ctx, GFS_GUST, gfsGust.run(), now, todo) : null;
-        double[] hrrrGustMax = hrrrGust.ok() ? windowMax(ctx, HRRR_GUST, hrrrGust.run(), now, todo) : null;
-        double[] ifsGustMax = ifsGust.ok() ? windowMax(ctx, IFS_GUST, ifsGust.run(), now, todo) : null;
-        double[] gfsT2mMax = gfsT2m.ok() ? windowMax(ctx, GFS_T2M, gfsT2m.run(), now, todo) : null;
-        double[] ifsT2mMax = ifsT2m.ok() ? windowMax(ctx, IFS_T2M, ifsT2m.run(), now, todo) : null;
-        double[] gfsP24 = gfsApcp.ok() ? precip24h(ctx, gfsApcp.run(), now, todo) : null;
-        double[] ifsP24 = ifsPrecip.ok() ? windowMax(ctx, IFS_PRECIP_24H, ifsPrecip.run(), now, todo) : null;
+        double[] gfsGustMax = covered(ctx, GFS_GUST, gfsGust, now) ? windowMax(ctx, GFS_GUST, gfsGust.run(), now, todo)
+                : null;
+        double[] hrrrGustMax = hrrrCovers ? windowMax(ctx, HRRR_GUST, hrrrGust.run(), now, todo) : null;
+        double[] ifsGustMax = covered(ctx, IFS_GUST, ifsGust, now) ? windowMax(ctx, IFS_GUST, ifsGust.run(), now, todo)
+                : null;
+        double[] gfsT2mMax = covered(ctx, GFS_T2M, gfsT2m, now) ? windowMax(ctx, GFS_T2M, gfsT2m.run(), now, todo)
+                : null;
+        double[] ifsT2mMax = covered(ctx, IFS_T2M, ifsT2m, now) ? windowMax(ctx, IFS_T2M, ifsT2m.run(), now, todo)
+                : null;
+        double[] aifsT2mMax = covered(ctx, AIFS_T2M, aifsT2m, now)
+                ? windowMax(ctx, AIFS_T2M, aifsT2m.run(), now, todo) : null;
+        double[] gfsP24 = covered(ctx, GFS_APCP, gfsApcp, now) ? precip24h(ctx, GFS_APCP, gfsApcp.run(), now, todo)
+                : null;
+        double[] ifsP24 = covered(ctx, IFS_PRECIP_24H, ifsPrecip, now)
+                ? next24h(ctx, IFS_PRECIP_24H, ifsPrecip.run(), now, todo) : null;
+        double[] aifsP24 = covered(ctx, AIFS_TP, aifsTp, now) ? precip24h(ctx, AIFS_TP, aifsTp.run(), now, todo)
+                : null;
         for (int i = 0; i < todo.size(); i++) {
             PlaceWeatherState p = todo.get(i);
             Map<String, Map<String, Double>> values = new LinkedHashMap<>();
             values.put("gust", modelValues(maximaMap("gfs", gfsGustMax, "hrrr", hrrrGustMax, "ifs", ifsGustMax), i));
-            values.put("t2mMax", modelValues(maximaMap("gfs", gfsT2mMax, "ifs", ifsT2mMax), i));
-            values.put("precip24h", modelValues(maximaMap("gfs", gfsP24, "ifs", ifsP24), i));
+            values.put("t2mMax", modelValues(maximaMap("gfs", gfsT2mMax, "ifs", ifsT2mMax, "aifs", aifsT2mMax), i));
+            values.put("precip24h", modelValues(maximaMap("gfs", gfsP24, "ifs", ifsP24, "aifs", aifsP24), i));
             Map<String, Object> block = ModelDisagreement.compute(values, p.disagreementSpread);
             p.disagreement = block;
             p.disagreementSpread = new LinkedHashMap<>();
@@ -873,6 +912,11 @@ public class WxPlacesGenerator implements DerivedGenerator {
             }
             p.disagreementKey = key;
         }
+    }
+
+    /** True when the input is usable and its run reaches now + 24 h. */
+    private static boolean covered(DerivedContext ctx, String productId, WxInput input, Instant now) {
+        return input.ok() && coversWindow(ctx, productId, input.run(), now);
     }
 
     private static Map<String, double[]> maximaMap(String model1, double[] array1, String model2, double[] array2,
@@ -888,10 +932,6 @@ public class WxPlacesGenerator implements DerivedGenerator {
             out.put(model3, array3);
         }
         return out;
-    }
-
-    private static Map<String, double[]> maximaMap(String model1, double[] array1, String model2, double[] array2) {
-        return maximaMap(model1, array1, model2, array2, "", null);
     }
 
     private static Map<String, Double> modelValues(Map<String, double[]> maxima, int index) {
@@ -934,9 +974,19 @@ public class WxPlacesGenerator implements DerivedGenerator {
      * run total at the step at or before now (zero before the first step).
      */
     static double[] precip24h(DerivedContext ctx, Instant run, Instant now, List<PlaceWeatherState> todo) {
+        return precip24h(ctx, GFS_APCP, run, now, todo);
+    }
+
+    /**
+     * Per place, the precipitation of the next 24 h from a run-total product ({@code gfs-apcp}, {@code aifs-tp}):
+     * the total at the last step at or before now + 24 h minus the total at the step at or before now (zero
+     * before the first step).
+     */
+    static double[] precip24h(DerivedContext ctx, String productId, Instant run, Instant now,
+            List<PlaceWeatherState> todo) {
         double[] out = new double[todo.size()];
         java.util.Arrays.fill(out, Double.NaN);
-        List<RasterFrameRow> steps = ctx.rasters().runFrames(GFS_APCP, run);
+        List<RasterFrameRow> steps = ctx.rasters().runFrames(productId, run);
         if (steps.isEmpty()) {
             return out;
         }
@@ -972,6 +1022,52 @@ public class WxPlacesGenerator implements DerivedGenerator {
             out[i] = e.value() - base;
         }
         return out;
+    }
+
+    /**
+     * Per place, a trailing-window product's value at the last step at or before now + 24 h ({@code
+     * ifs-precip-24h}: the 24 hours ending then, so about the next 24 h); NaN off the grid or with no such step.
+     */
+    static double[] next24h(DerivedContext ctx, String productId, Instant run, Instant now,
+            List<PlaceWeatherState> todo) {
+        double[] out = new double[todo.size()];
+        java.util.Arrays.fill(out, Double.NaN);
+        Instant until = now.plus(FORECAST_WINDOW);
+        RasterFrameRow end = null;
+        for (RasterFrameRow s : ctx.rasters().runFrames(productId, run)) {
+            if (!s.validTime().isAfter(until) && (end == null || s.validTime().isAfter(end.validTime()))) {
+                end = s;
+            }
+        }
+        if (end == null) {
+            return out;
+        }
+        Optional<FrameView> view = ctx.rasters().view(end);
+        if (view.isEmpty()) {
+            return out;
+        }
+        for (int i = 0; i < todo.size(); i++) {
+            FrameView.Sample sample = view.get().sample(todo.get(i).lon, todo.get(i).lat);
+            if (sample.kind() == FrameView.Kind.VALUE) {
+                out[i] = sample.value();
+            }
+        }
+        return out;
+    }
+
+    /**
+     * True when a run's last step reaches {@code now + 24 h} (within {@link #COVERAGE_TOLERANCE}): only such a
+     * model is compared over the 24-hour window, so an 18-hour HRRR run is left out instead of comparing its
+     * 18-hour maximum with 24-hour maxima.
+     */
+    static boolean coversWindow(DerivedContext ctx, String productId, Instant run, Instant now) {
+        Instant last = null;
+        for (RasterFrameRow s : ctx.rasters().runFrames(productId, run)) {
+            if (last == null || s.validTime().isAfter(last)) {
+                last = s.validTime();
+            }
+        }
+        return last != null && !last.isBefore(now.plus(FORECAST_WINDOW).minus(COVERAGE_TOLERANCE));
     }
 
     /** The steps valid in {@code [now − 1 h, now + 24 h]}; all steps when none is. */

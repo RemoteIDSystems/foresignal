@@ -66,4 +66,31 @@ class ModelDisagreementTest {
     void t2mThreshold() {
         assertThat(ModelDisagreement.threshold("t2mMax", 300)).isEqualTo(4.0);
     }
+
+    @Test
+    @DisplayName("a model without a value (NaN) neither counts toward the two-model minimum nor is listed")
+    void nanIsAbsent() {
+        Map<String, Double> gust = new LinkedHashMap<>();
+        gust.put("gfs", 10.0);
+        gust.put("hrrr", Double.NaN);
+        gust.put("ifs", 20.0);
+        Map<String, Map<String, Double>> fields = new LinkedHashMap<>();
+        fields.put("gust", gust);
+        Map<String, Object> block = ModelDisagreement.compute(fields, Map.of());
+        assertThat(ModelDisagreement.models(block)).containsExactly("gfs", "ifs");
+        Map<String, Double> lonely = new LinkedHashMap<>();
+        lonely.put("gfs", 10.0);
+        lonely.put("ifs", Double.NaN);
+        fields.put("gust", lonely);
+        assertThat(ModelDisagreement.compute(fields, Map.of())).isNull();
+    }
+
+    @Test
+    @DisplayName("AIFS is just another model: GFS, IFS and AIFS temperatures 5 K apart disagree")
+    void aifsIsAModel() {
+        Map<String, Map<String, Double>> fields = new LinkedHashMap<>();
+        fields.put("t2mMax", Map.of("gfs", 300.0, "ifs", 301.0, "aifs", 305.0));
+        assertThat(ModelDisagreement.models(ModelDisagreement.compute(fields, Map.of())))
+                .containsExactly("aifs", "gfs", "ifs");
+    }
 }

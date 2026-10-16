@@ -3708,8 +3708,15 @@ derived place weather below, "Weather alerts".
 ranges from each step's JSON `.index`, and costs about **0.5–1 GB/day** (20/min, 3,000/day, 1,200 MB/day; one
 20-minute check, 00z and 12z, steps 0–144 by 3). Products: `ifs` (10 m wind), `ifs-gust`, `ifs-t2m`, `ifs-mslp`,
 `ifs-precip-3h` and `ifs-precip-24h`. The whole real-time catalogue is CC BY 4.0: **every derived output carries the
-"Contains modified Copernicus/ECMWF data … changes made" attribution**. The 00z/12z run appears about 7 h after its
-reference time.
+"Contains modified Copernicus/ECMWF data … changes made" attribution** (the `forecast-area` payload and the
+place-weather `forecast.ifs` section carry it as `attribution`). The 00z/12z run appears about 7 h after its
+reference time. A step is marked fetched only when every product that has it was committed; a step whose products
+did not all commit (a missing reference message, a missing field) is retried on the next checks, at most 3 times.
+
+**Run staleness is per model.** A derived weather section (place weather, forecast areas) calls a model's newest run
+`stale` only once its successor should already be ingested: run cadence + availability lag + an ingest allowance.
+Defaults: GFS 11.5 h, GFS-Wave 12 h, HRRR 7 h 50 min (the 6-hourly small-profile cadence), NBM 9 h, AIFS 16 h,
+IFS 22 h. A slower cadence set by the operator makes sections go stale early, never late.
 
 **`wx-forecast-areas`** (`forecast-area` records) thresholds a model field over the places AOI on each completed run:
 the polygon where it is forecast to cross the threshold within the `thresholds` horizon (default 120 h, at most 120).
@@ -3717,16 +3724,24 @@ Defaults cover gust ≥ 20 and ≥ 25 m/s, 24-hour precipitation ≥ 50 mm and 2
 ≤ 263.15 K (−10 °C) for GFS, HRRR and IFS where the product exists. `validFrom` is the first exceeding valid time and
 `validUntil` the last exceeding valid time plus the step, so a `forecast-area` rule can use `forecastHorizon`. A
 typical recipe: "IFS gust ≥ 25 m/s within 48 h at home" is `kind=forecast-area`, `near{home}`, `forecastHorizon 48h`,
-`enter`.
+`enter`. A version is written only when the quantized payload changes or the polygon changes by more than 10%
+(symmetric difference over union); `run` alone is volatile, so a newer run forecasting the same area writes nothing.
+When a newer run drops the exceedance the area is **tombstoned** (an `exit`). The peak of a `<=` threshold is the
+minimum.
 
 **`wx-storm-tracks`** (`storm-track`, `storm-swath`) tracks MRMS storm cells with TITAN-lite: advected-polygon IoU
 with a Hungarian assignment, merges and splits. Limits: it runs on the 2-minute MRMS frames inside the places AOI
 (`scope=conus` on the large profile only), the nowcast is a straight **linear advection** of +15/+30/+60 min, and the
 GLM lightning-jump flag (`2sigma-glm-v1`) is **advisory** — GLM's footprint over Texas is about 8–10 km and its
-detection efficiency is below 100%. `storm-swath` is the union of the cells along the track. Automated, not a warning.
+detection efficiency is below 100%. `storm-swath` is the union of the cells along the track, written every 10 min and
+when the track ends (by a merge or by two missed frames); a restart extends the stored swath. A track keeps a
+12-position `history` (volatile: a frame that only moves the history writes no version); its motion is the least
+squares over the newest five positions. In a merge the largest track continues. Automated, not a warning.
 
-**Annotators.** `outage-weather` adds `context.weather` (NWS warnings, radar ≥ 50 dBZ areas and storm tracks within
-±3 h and 25 km) to `infrastructure-disruption` and `weather-impact` events as **context members** — background, never
+**Annotators.** `outage-weather` adds `context.weather` (NWS warnings, radar ≥ 50 dBZ areas and storm tracks, and
+gusts ≥ 25 m/s from `forecast-area` gust areas or METAR observations, within ±3 h and 25 km; read from the stored
+versions in that window, so weather that has since ended still counts) to `infrastructure-disruption` and
+`weather-impact` events as **context members** — background, never
 supporting evidence, so they never raise confidence — and adds the alternative "weather-related damage". The
 weather-impact recipes `dry-lightning-ignition`, `airport-weather` and `smoke-aq` create events from weather
 co-occurrences.

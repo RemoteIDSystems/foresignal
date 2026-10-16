@@ -32,6 +32,33 @@ public record EcmwfDefinition(String sourceId, String label, String bucket, Stri
         List<String> defaultSteps, Duration defaultRunEvery, Duration defaultLag, String defaultResolution,
         List<Product> products, String probeProduct) {
 
+    /**
+     * The structured CC BY 4.0 attribution with the "changes made" line that every IFS-derived output
+     * carries (prompt 105; Weather-Imagery-Design §1.4): tiles, fields, samples, {@code forecast-area}
+     * and the place-weather forecast section.
+     */
+    public static final String CHANGES_MADE = "Contains modified Copernicus/ECMWF data: ECMWF open data, CC BY 4.0."
+            + " Changes made: resampled, quantised, derived fields.";
+
+    /** The same attribution for AIFS-derived outputs (prompt 106). */
+    public static final String CHANGES_MADE_AIFS = "Contains modified Copernicus/ECMWF data: ECMWF AIFS open data,"
+            + " CC BY 4.0. Changes made: resampled, quantised, derived fields.";
+
+    /**
+     * The ECMWF attribution of a derived output built from {@code model}, or null for a non-ECMWF model.
+     *
+     * @param model the model prefix ({@code ifs}, {@code aifs}, {@code gfs}, …)
+     */
+    public static String changesMadeFor(String model) {
+        if ("ifs".equals(model)) {
+            return CHANGES_MADE;
+        }
+        if ("aifs".equals(model)) {
+            return CHANGES_MADE_AIFS;
+        }
+        return null;
+    }
+
     /** Checks the parts. */
     public EcmwfDefinition {
         Objects.requireNonNull(sourceId, "sourceId");

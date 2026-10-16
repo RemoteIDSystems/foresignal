@@ -432,6 +432,11 @@
         "version": "1.3.0",
         "date": "2026-10-15",
         "note": "107: SatDump extras. satdump-{station} gains filtered DCS (dcp-observation) and EMWIN products and warnings (emwin-product, emwin-warning) with the EMWIN warnings fallback; new glm-local-{station} source feeding the shared GLM ring with dedup; the CelesTrak per-group TLE alias /compat/celestrak/NORAD/elements/{group}.txt; the SatDump 2.0 foresignal-manifest.json reader and the MIT contrib/satdump hook."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-16",
+        "note": "105 post-review: ForecastAreaPayload gains the optional attribution (ECMWF CC BY 4.0 with the changes-made line on IFS- and AIFS-derived areas); run is volatile. No operation changes."
       }
     ]
   },
@@ -118618,6 +118623,10 @@
           "run": {
             "type": "string",
             "format": "date-time"
+          },
+          "attribution": {
+            "type": "string",
+            "description": "ECMWF CC BY 4.0 attribution with the changes-made line; present on IFS- and AIFS-derived areas. `run` is volatile: a newer run with the same area writes no version"
           },
           "automated": {
             "type": "boolean",

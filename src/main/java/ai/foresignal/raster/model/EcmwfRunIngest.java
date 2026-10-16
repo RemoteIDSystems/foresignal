@@ -57,7 +57,9 @@ import org.springframework.stereotype.Component;
  * {@code rasters/tmp} and decoded on the decode pool with {@link Grib2Decoder}.
  *
  * <p>Adapter state mirrors the 051 engine: {@code done:{cycle}}, {@code steps:{productId}:{cycle}}
- * and {@code complete:{productId}}.
+ * and {@code complete:{productId}}, plus {@code tries:{cycle}} (prompt 105 post-review): a step is
+ * done only when every product that has it committed it; otherwise it is retried on later fetches, at
+ * most {@value #MAX_STEP_ATTEMPTS} times. Difference products are clamped at zero.
  */
 @Component
 public class EcmwfRunIngest implements ForecastRunCadence {
@@ -95,6 +97,10 @@ public class EcmwfRunIngest implements ForecastRunCadence {
     static final String DONE_PREFIX = "done:";
     static final String STEPS_PREFIX = "steps:";
     static final String COMPLETE_PREFIX = "complete:";
+    static final String ATTEMPTS_PREFIX = "tries:";
+
+    /** How many fetches may retry a step whose products did not all commit before it is skipped. */
+    public static final int MAX_STEP_ATTEMPTS = 3;
 
     private final Grib2Decoder decoder;
     private final RasterPaths paths;
@@ -228,13 +234,98 @@ public class EcmwfRunIngest implements ForecastRunCadence {
             if (newest && step == settings.steps().get(0)) {
                 state.clearDegraded();
             }
+            if (readAttempts(state, cycleKey).getOrDefault(step, 0) >= MAX_STEP_ATTEMPTS) {
+                // Earlier attempts failed outright (an exception before the step could be judged).
+                done.add(step);
+                clearAttempts(state, cycleKey, step);
+                writeSteps(state, DONE_PREFIX + cycleKey, done);
+                ctx.log().warn("{}: run {} f{} failed {} times; moving on", def.label(), cycleKey, step,
+                        MAX_STEP_ATTEMPTS);
+                continue;
+            }
             budget[0]--;
+            int attempt = recordAttempt(state, cycleKey, step);
             out.addAll(fetchStep(ctx, def, settings, cycle, step, key, index.get(), objectUri));
-            done.add(step);
+            if (stepComplete(state, def, ctx.rasters(), cycleKey, step)) {
+                done.add(step);
+                clearAttempts(state, cycleKey, step);
+            } else if (attempt >= MAX_STEP_ATTEMPTS) {
+                // Give up on this step after repeated partial results, so one permanently missing field
+                // cannot starve the rest of the run; the run is then never marked complete for the
+                // products that miss it, which is the honest outcome.
+                done.add(step);
+                clearAttempts(state, cycleKey, step);
+                ctx.log().warn("{}: run {} f{} still incomplete after {} attempts; moving on", def.label(), cycleKey,
+                        step, attempt);
+            }
             writeSteps(state, DONE_PREFIX + cycleKey, done);
             out.addAll(completeRuns(ctx, def, settings, cycle));
         }
         return out;
+    }
+
+    /**
+     * True when every product that has {@code step} (and is not disabled) has committed it. A step is marked
+     * done only then (prompt 105 post-review): a missing reference message, a failed commit or a missing
+     * field leaves the step to be retried on the next fetch.
+     */
+    static boolean stepComplete(AdapterStateStore state, EcmwfDefinition def, RasterSink sink, String cycleKey,
+            int step) {
+        for (EcmwfDefinition.Product product : def.products()) {
+            if (!product.steps().test(step) || sink.disabled(product.productId())) {
+                continue;
+            }
+            if (!readSteps(state, stepsKey(product, cycleKey)).contains(step)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Counts one more attempt at a step and returns the count. */
+    static int recordAttempt(AdapterStateStore state, String cycleKey, int step) {
+        Map<Integer, Integer> attempts = readAttempts(state, cycleKey);
+        int n = attempts.getOrDefault(step, 0) + 1;
+        attempts.put(step, n);
+        writeAttempts(state, cycleKey, attempts);
+        return n;
+    }
+
+    private static void clearAttempts(AdapterStateStore state, String cycleKey, int step) {
+        Map<Integer, Integer> attempts = readAttempts(state, cycleKey);
+        if (attempts.remove(step) != null) {
+            writeAttempts(state, cycleKey, attempts);
+        }
+    }
+
+    /** The {@code step:count} attempt map of a cycle. */
+    static Map<Integer, Integer> readAttempts(AdapterStateStore state, String cycleKey) {
+        Map<Integer, Integer> out = new java.util.TreeMap<>();
+        for (String part : state.get(ATTEMPTS_PREFIX + cycleKey).orElse("").split(",")) {
+            int colon = part.indexOf(':');
+            if (colon <= 0) {
+                continue;
+            }
+            try {
+                out.put(Integer.parseInt(part.substring(0, colon).strip()),
+                        Integer.parseInt(part.substring(colon + 1).strip()));
+            } catch (NumberFormatException ignored) {
+                // A corrupted entry is dropped; the step counts from zero again.
+            }
+        }
+        return out;
+    }
+
+    private static void writeAttempts(AdapterStateStore state, String cycleKey, Map<Integer, Integer> attempts) {
+        String key = ATTEMPTS_PREFIX + cycleKey;
+        if (attempts.isEmpty()) {
+            if (state.get(key).isPresent()) {
+                state.remove(key);
+            }
+            return;
+        }
+        state.put(key, attempts.entrySet().stream().map(e -> e.getKey() + ":" + e.getValue())
+                .collect(Collectors.joining(",")));
     }
 
     /** The {@code .index} at {@code uri}, or empty when it is not published (403/404). */
@@ -443,7 +534,8 @@ public class EcmwfRunIngest implements ForecastRunCadence {
                     .decode(files.get(1), product.components().get(0).request()).floatData(), product.factor());
             float[] current = bands.get(0);
             for (int i = 0; i < current.length; i++) {
-                current[i] = current[i] - reference[i];
+                // A run total never decreases; packing noise can make the difference slightly negative.
+                current[i] = Math.max(0f, current[i] - reference[i]);
             }
         }
         if (rotate) {
@@ -572,6 +664,9 @@ public class EcmwfRunIngest implements ForecastRunCadence {
                 continue;
             }
             state.remove(DONE_PREFIX + key);
+            if (state.get(ATTEMPTS_PREFIX + key).isPresent()) {
+                state.remove(ATTEMPTS_PREFIX + key);
+            }
             for (EcmwfDefinition.Product p : def.products()) {
                 if (state.get(stepsKey(p, key)).isPresent()) {
                     state.remove(stepsKey(p, key));

@@ -43,6 +43,14 @@ public record WxInput(String status, RasterFrameRow frame, Instant run) {
     }
 
     /**
+     * A forecast product's newest complete run, judged against its model's own maximum run age
+     * ({@link ModelRunAge#of}: run cadence + availability lag + ingest allowance).
+     */
+    public static WxInput forecast(DerivedContext ctx, String productId, Instant now) {
+        return forecast(ctx, productId, ModelRunAge.of(productId), now);
+    }
+
+    /**
      * A forecast product's newest complete run: {@code unavailable} when there is none or the product cannot be
      * used; {@code stale} when the run is older than {@code maxRunAge} at {@code now}.
      */
