@@ -33,6 +33,9 @@ were not built: their verification conditions were not met (see below).
     3. **LineString** for `TRACKLINE` or `BETWEEN … AND …` (a MultiLineString for lettered tracklines);
     4. **Point or MultiPoint**;
     5. **No geometry**, with `geometryFromText=false`.
+  - **Antimeridian** (post-review fix): every geometry lies within ±180°. A circle, polygon or trackline that
+    crosses 180° is made continuous and cut at ±180° into a MultiPolygon or MultiLineString; a circle enclosing a
+    pole is a polar cap.
 - **Results on the live list:**
 
   | Rule | Warnings |
@@ -49,15 +52,19 @@ were not built: their verification conditions were not met (see below).
   - payload: the prompt's fields plus `title`, the first line (≤ 120 characters);
   - `text` is capped at 8,000 characters, embedded, and searchable together with `authority`;
   - `cancels` holds externalIds parsed from `CANCEL HYDROLANT 927/24, …` lines.
-- **Tombstones:** `LiveIdSet` tombstones a warning once it leaves the list. An empty list tombstones nothing.
+- **Tombstones:** `LiveIdSet` tombstones a warning once it leaves the list. An empty list tombstones nothing. A
+  warning whose `issueDate` does not parse is skipped as a record but keeps its id in the live set, so it is not
+  tombstoned while still active.
 - **Schedule and retention:** 15 min, 2/min and 200/day, retention 1825 d, `US-PD`.
 
 **2. IMF PortWatch** (`PortWatchSupport`, on 073's `ArcGisQueryClient`):
 - **How every layer is read:**
   - each layer goes through a `ScopedFetchContext` (scopes `points`, `ports` and `daily`), so the layers' metadata
     and edit dates never overwrite each other;
-  - the daily tables are read with `date > DATE '{lastDate}'`, ordered by `date,ObjectId`, in pages of 1,000;
-  - a read cut by the page cap resumes on the next run from the day before the newest day it reached;
+  - the daily tables are read with `date > DATE '{lastDate − 7 days}'` (a 7-day overlap, post-review fix, so IMF
+    revisions of recent days produce versions), ordered by `date,ObjectId`, in pages of 1,000;
+  - a read cut by the page cap stores a resume point (`cp:resume`, `ports:resume`), the day before the newest day it
+    reached, and the next run continues that pass;
   - when a daily table's edit date is unchanged, no table query is sent and the run is `unchanged`.
 - **`imf-portwatch-chokepoints`:**
   - the 28 points are cached in state and re-read only when their layer changes;
@@ -70,7 +77,8 @@ were not built: their verification conditions were not met (see below).
     tombstoned.
   - **Daily activity** (`portid:YYYY-MM-DD`): `name` was added to the payload so the source has one title field.
     Backfill 14 d, at most 15 pages per run.
-  - **Param `ports`:** at most 200 ids, applied as `portid IN (…)`. Changing it starts the source over.
+  - **Param `ports`:** at most 200 ids, applied as `portid IN (…)`. Changing it starts the source over, including
+    the live set of ports (`live:port`, `gone:port`), so narrowing the filter tombstones nothing.
   - **Retention:** 90 d for `port`, 3650 d for `port-activity`.
 - **`imf-portwatch-disruptions`** (`kits/features/imf-portwatch.json`):
   - the field map is the prompt's list (`name` = `eventname`) plus `eventId`, `fromDate` and `toDate`. The kit
@@ -94,7 +102,8 @@ were not built: their verification conditions were not met (see below).
   - `public-global-loitering-events:latest`;
   - `public-global-port-visits-events:latest`.
 - **Paging:** by `nextOffset` until `total`, at most 10 pages per run. A cursor is kept in state (`gfw:cursor`) and
-  the next run resumes the same window.
+  the next run resumes the same window, unless that window ended before the configured window would start (the
+  source was disabled for a while): then a fresh window is read.
 - **Record:**
   - kind by event type;
   - `eventTime` = `start`, `observedAt` = `end`, and `start`/`end` in the payload as interval fields;
@@ -219,7 +228,10 @@ and in the OpenAPI kind note.
    API. The extractor's regex also matches the upstream spelling `METRES`, which is upstream text.
 7. **Instructions in data:** none. NGA warnings, ArcGIS documents, the PortWatch FAQ, the IMF terms, GFW's
    documentation (including its `llms.txt`, which describes the documentation's format) and the NAVCEN pages were
-   read; none addressed an agent.
+. **Framework (post-review):** the PortWatch adapters write `lastDate` and the resume point to adapter state
+   during `fetch`, before the framework has written the records; a failed write would advance the window past days
+   that were never stored. This is being fixed centrally (state writes staged until the fetch succeeds) by the owner
+   of the fetch framework; the adapters were deliberately not changed to work around it.
 
 ## Tests written (not run)
 
@@ -240,7 +252,8 @@ and in the OpenAPI kind note.
   - 304 handling and the descriptor.
 - **`PortWatchAdapterTest`** (WireMock ArcGIS):
   - the chokepoint join and paging with `orderByFields=date,ObjectId`;
-  - the metadata short-circuit sends no table query, then the incremental `date > DATE '2026-10-04'` read;
+  - the metadata short-circuit sends no table query, then the incremental read with the 7-day overlap
+    (`date > DATE '2026-09-27'`), which never moves `lastDate` back;
   - window arithmetic;
   - ports: catalog `observedAt` = edit date, activity joined to the ports, a missing port tombstoned, the port
     filter and its restart;
@@ -298,8 +311,35 @@ and in the OpenAPI kind note.
    terms (attribution: IMF PortWatch)"; `nga-msi-warnings` is `US-PD`.
 5. **143:** recapture per the fixture READMEs: GFW with a real token, a fresh NGA list, and a PortWatch weekly
    update.
-6. **144 (Flyway):** no schema change. New state lives in `source_health.adapter_state` (`cp:*`, `ports:*`,
-   `gfw:cursor`, the scoped `arcgis:*` keys, `live:*`).
+6. **144 (Flyway):** no schema change. New state lives in `source_health.adapter_state` (`cp:*` including
+   `cp:resume`, `ports:*` including `ports:resume`, `gfw:cursor`, the scoped `arcgis:*` keys, `live:*`).
 7. **Owner decisions pending:** open questions 1–4 above, plus those carried from 012–087.
+
+## Post-review fixes (2026-10-16)
+
+Fixes commit: 50fc5d865f22ae72617302e0282a8e4b4d2eafd5 (`088: fix post-review defects`). Tests written, not run; `./gradlew compileJava
+compileTestJava` succeeds.
+
+1. **MEDIUM, antimeridian** (`MsiCoordinateExtractor`): circles were never wrapped into ±180° (the normalizer then
+   rejected the whole record with `COORDINATES_OUT_OF_RANGE`), and polygons or tracklines from 179E to 179W came out
+   about 358° wide. Rings and lines are now unwrapped with the existing `raster.geotiff.Antimeridian` helper and cut
+   at ±180° into a MultiPolygon or MultiLineString; lettered areas keep their parts; a circle enclosing a pole is a
+   polar cap. Tests: a 20-mile circle at 179-55E, a near-180 circle that stays one Polygon, a bounded area and lettered
+   areas across 180°, a trackline across 180°, a polar circle (all valid, all inside ±180°). Checked with a scratch
+   `main` against the compiled classes (outside the repository; no project test was run).
+2. **MEDIUM, PortWatch revisions:** every pass over a changed daily table now re-reads a 7-day overlap
+   (`lastDate − 7`), so IMF revisions of past days produce new versions; a pass cut by the page cap continues from a
+   stored resume point (`cp:resume`, `ports:resume`) rather than restarting the overlap, so every run makes progress;
+   `lastDate` never moves back. The "state committed before records are written" half of the finding is left to the
+   framework fix (Issue 8). Tests: window arithmetic and state, a revised day re-emitted with its new value.
+3. **LOW, `ports` filter:** changing it now also clears `live:port` and `gone:port`. Test: narrowing from all ports to
+   one tombstones nothing.
+4. **LOW, NGA `issueDate`:** an unparseable date skips the record but keeps the id in the live set. Test updated.
+5. **LOW, GFW stale cursor:** a saved window that ended before the configured window starts is dropped. Test added.
+6. **Test gap:** `GfwEventsAdapterTest.credentials` now asserts the traces and recorded exchanges are non-empty before
+   checking them for the token.
+
+This report was corrected for the above (the PortWatch window, the `ports` filter reset, the NGA live set, the GFW
+cursor, the extractor's antimeridian handling and the new state keys).
 
 Implementation commit: 562c42402ddebdb5528cf739d9587a50827e3308

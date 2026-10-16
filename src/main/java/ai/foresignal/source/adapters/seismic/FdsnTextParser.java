@@ -60,6 +60,25 @@ public final class FdsnTextParser {
         return out;
     }
 
+    /**
+     * The data rows of one text response, usable or not: what the service counted against {@code limit}, so a pager
+     * can tell a full page from the last one.
+     *
+     * @param body the response body, possibly null
+     * @return the number of non-blank lines that are not {@code #} comments
+     */
+    public static int rows(byte[] body) {
+        String text = new String(body == null ? new byte[0] : body, StandardCharsets.UTF_8);
+        int rows = 0;
+        for (String line : text.split("\r?\n")) {
+            String trimmed = line.strip();
+            if (!trimmed.isEmpty() && !trimmed.startsWith("#")) {
+                rows++;
+            }
+        }
+        return rows;
+    }
+
     private static Map<String, Integer> header(String line) {
         Map<String, Integer> columns = new LinkedHashMap<>();
         String[] names = line.split("\\|", -1);

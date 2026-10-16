@@ -26,8 +26,10 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * One {@code emsc-seismic} connection (prompt 089): the WebSocket listener and the {@link StreamHandle} the
- * supervisor holds. A create or update message is mapped to an {@code earthquake} record; an {@code unid}
- * already emitted (by the stream or the gap-fill) is dropped. A connection silent for
+ * supervisor holds. A create or update message is mapped to an {@code earthquake} record; a version
+ * ({@code unid@lastupdate}) already emitted by the stream or the gap-fill is dropped. The cursor
+ * ({@value EmscSeismicAdapter#CURSOR_KEY}) moves only after this connection's gap-fill completed ({@link #gapFill});
+ * a failed gap-fill is retried every {@code GAP_RETRY} by the watchdog. A connection silent for
  * {@link EmscSeismicAdapter#SILENCE_RECYCLE} is recycled, one step of the supervisor's ladder.
  */
 final class EmscSession implements StreamHandle, WebSocket.Listener {
@@ -58,6 +60,11 @@ final class EmscSession implements StreamHandle, WebSocket.Listener {
     private boolean discarding;
     private volatile long payloadBytes;
     private long reportedBytes;
+
+    private volatile boolean filled;
+    private Instant pendingNewest;
+    private volatile Instant lastGapAttempt;
+    private final AtomicBoolean gapRunning = new AtomicBoolean();
 
     EmscSession(EmscSeismicAdapter adapter, StreamContext ctx, RecordSink sink) {
         this.adapter = adapter;
@@ -92,43 +99,132 @@ final class EmscSession implements StreamHandle, WebSocket.Listener {
 
     // ---------- gap fill ----------
 
-    /** Queries the FDSN event service for events since the cursor and merges them before the stream resumes. */
-    void gapFill() {
-        String cursor = ctx.state().get(EmscSeismicAdapter.CURSOR_KEY).orElse(null);
-        Instant from;
-        if (cursor == null) {
-            from = ctx.now().minus(Duration.ofHours(2));
-        } else {
-            try {
-                from = Instant.parse(cursor).minus(EmscSeismicAdapter.GAP_OVERLAP);
-            } catch (RuntimeException e) {
-                from = ctx.now().minus(Duration.ofHours(2));
-            }
+    /**
+     * Queries the FDSN event service for every event updated since the cursor and merges it; called right after the
+     * socket opens, so the stream covers everything the gap-fill's last page could miss.
+     *
+     * <p>The query is {@code orderby=time-asc} with {@code limit}/{@code offset} paging (offset is 1-based; verified
+     * live on seismicportal.eu 2026-10-16), at most {@value EmscSeismicAdapter#GAP_MAX_PAGES} pages per attempt, until
+     * a page holds fewer than {@value EmscSeismicAdapter#GAP_LIMIT} events; HTTP 204 (FDSN's default {@code nodata})
+     * is an empty page. Progress ({@code updatedafter} and the next offset) is kept in the state
+     * ({@value EmscSeismicAdapter#GAP_KEY}), so a failed or capped attempt resumes where it stopped, on the watchdog's
+     * next retry or on the next connection. Until the gap-fill completes the cursor does not move, so a reconnect
+     * never skips an unfilled gap; when it completes the cursor becomes the time its first attempt started (or the
+     * newest streamed update, when later).
+     *
+     * @return true when the gap is filled
+     */
+    boolean gapFill() {
+        if (!gapRunning.compareAndSet(false, true)) {
+            return false;
         }
-        URI uri = URI.create(adapter.fdsnUri() + "?format=json&limit=" + EmscSeismicAdapter.GAP_LIMIT
-                + "&updatedafter=" + from.truncatedTo(ChronoUnit.SECONDS));
         try {
-            UpstreamResponse response = ctx.http().get(uri);
-            if (response.status() != 200) {
-                log.warn("{}: FDSN gap-fill answered HTTP {}", ctx.sourceId(), response.status());
-                return;
-            }
-            JsonNode features = JSON.readTree(response.body()).get("features");
-            if (features == null || !features.isArray()) {
-                return;
-            }
-            int merged = 0;
-            for (JsonNode feature : features) {
-                if (emit(feature, ctx.now())) {
-                    merged++;
-                }
-            }
-            log.info("{}: gap-fill merged {} missed event(s)", ctx.sourceId(), merged);
-        } catch (AdapterException e) {
-            log.warn("{}: gap-fill failed: {}", ctx.sourceId(), e.getMessage());
-        } catch (RuntimeException e) {
-            log.warn("{}: gap-fill could not be parsed: {}", ctx.sourceId(), e.getMessage());
+            return fillGap();
+        } finally {
+            gapRunning.set(false);
         }
+    }
+
+    private boolean fillGap() {
+        Instant started = ctx.now();
+        lastGapAttempt = ctx.clock().instant();
+        Instant from = null;
+        int offset = 1;
+        String progress = ctx.state().get(EmscSeismicAdapter.GAP_KEY).orElse(null);
+        if (progress != null) {
+            try {
+                String[] parts = progress.split("\\|");
+                from = Instant.parse(parts[0]);
+                offset = Math.max(1, Integer.parseInt(parts[1]));
+                if (parts.length > 2) {
+                    // A resumed pass covers what was updated since its first attempt started, not since this one.
+                    started = Instant.parse(parts[2]);
+                }
+            } catch (RuntimeException e) {
+                from = null;
+                offset = 1;
+                started = ctx.now();
+            }
+        }
+        if (from == null) {
+            from = cursorOrDefault().minus(EmscSeismicAdapter.GAP_OVERLAP).truncatedTo(ChronoUnit.SECONDS);
+        }
+        int merged = 0;
+        try {
+            for (int page = 0; page < EmscSeismicAdapter.GAP_MAX_PAGES; page++) {
+                URI uri = URI.create(adapter.fdsnUri() + "?format=json&orderby=time-asc&limit="
+                        + EmscSeismicAdapter.GAP_LIMIT + "&offset=" + offset + "&updatedafter=" + from);
+                UpstreamResponse response = ctx.http().get(uri);
+                int rows;
+                if (response.status() == 204) {
+                    rows = 0;
+                } else if (response.status() != 200) {
+                    log.warn("{}: FDSN gap-fill answered HTTP {}; the cursor stays until it completes", ctx.sourceId(),
+                            response.status());
+                    saveProgress(from, offset, started);
+                    return false;
+                } else {
+                    JsonNode features = JSON.readTree(response.body()).get("features");
+                    if (features == null || !features.isArray()) {
+                        log.warn("{}: FDSN gap-fill page has no features array; the cursor stays", ctx.sourceId());
+                        saveProgress(from, offset, started);
+                        return false;
+                    }
+                    rows = features.size();
+                    for (JsonNode feature : features) {
+                        if (emit(feature, ctx.now())) {
+                            merged++;
+                        }
+                    }
+                }
+                if (rows < EmscSeismicAdapter.GAP_LIMIT) {
+                    complete(started);
+                    log.info("{}: gap-fill merged {} missed event(s)", ctx.sourceId(), merged);
+                    return true;
+                }
+                offset += rows;
+            }
+            saveProgress(from, offset, started);
+            log.info("{}: gap-fill merged {} event(s) and stopped at the page cap; it resumes at offset {}",
+                    ctx.sourceId(), merged, offset);
+            return false;
+        } catch (AdapterException e) {
+            saveProgress(from, offset, started);
+            log.warn("{}: gap-fill failed ({}); the cursor stays until it completes", ctx.sourceId(), e.getMessage());
+            return false;
+        } catch (RuntimeException e) {
+            saveProgress(from, offset, started);
+            log.warn("{}: gap-fill could not be parsed ({}); the cursor stays", ctx.sourceId(), e.getMessage());
+            return false;
+        }
+    }
+
+    /** The stored cursor, or two hours ago when none (or a damaged one) is stored. */
+    private Instant cursorOrDefault() {
+        String cursor = ctx.state().get(EmscSeismicAdapter.CURSOR_KEY).orElse(null);
+        if (cursor != null) {
+            try {
+                return Instant.parse(cursor);
+            } catch (RuntimeException e) {
+                // fall through to the default window
+            }
+        }
+        return ctx.now().minus(Duration.ofHours(2));
+    }
+
+    private void saveProgress(Instant from, int offset, Instant started) {
+        ctx.state().put(EmscSeismicAdapter.GAP_KEY, from + "|" + offset + "|" + started);
+    }
+
+    /** Ends a gap-fill: the progress is dropped and the cursor moves to its start (or the newest streamed update). */
+    private synchronized void complete(Instant started) {
+        if (ctx.state().get(EmscSeismicAdapter.GAP_KEY).isPresent()) {
+            ctx.state().remove(EmscSeismicAdapter.GAP_KEY);
+        }
+        Instant newest = pendingNewest != null && pendingNewest.isAfter(started) ? pendingNewest : started;
+        filled = true;
+        pendingNewest = null;
+        advanceCursor(newest);
     }
 
     // ---------- WebSocket.Listener ----------
@@ -220,6 +316,11 @@ final class EmscSession implements StreamHandle, WebSocket.Listener {
             return;
         }
         reportBytes();
+        Instant attempted = lastGapAttempt;
+        if (!filled && attempted != null && Duration.between(attempted, ctx.clock().instant())
+                .compareTo(EmscSeismicAdapter.GAP_RETRY) >= 0) {
+            gapFill();
+        }
         Instant since = lastLivenessAt;
         if (since != null && Duration.between(since, ctx.clock().instant())
                 .compareTo(EmscSeismicAdapter.SILENCE_RECYCLE) >= 0) {
@@ -246,10 +347,14 @@ final class EmscSession implements StreamHandle, WebSocket.Listener {
             return;
         }
         lastLivenessAt = ctx.clock().instant();
-        emit(data, null);
+        emit(data, null, true);
     }
 
     private boolean emit(JsonNode feature, Instant fallbackObservedAt) {
+        return emit(feature, fallbackObservedAt, false);
+    }
+
+    private boolean emit(JsonNode feature, Instant fallbackObservedAt, boolean fromStream) {
         NormalizedRecord record = SeismicRecords.fromFeature(feature, fallbackObservedAt);
         if (record == null) {
             return false;
@@ -260,12 +365,25 @@ final class EmscSession implements StreamHandle, WebSocket.Listener {
             return false;
         }
         sink.accept(record);
-        advanceCursor(record);
+        if (fromStream) {
+            streamed(observedAt);
+        }
         return true;
     }
 
-    private void advanceCursor(NormalizedRecord record) {
-        Instant newest = record.observedAt() != null ? record.observedAt() : record.eventTime();
+    /** A streamed update: it moves the cursor once the gap is filled, and is remembered until then. */
+    private synchronized void streamed(Instant observedAt) {
+        if (observedAt == null) {
+            return;
+        }
+        if (filled) {
+            advanceCursor(observedAt);
+        } else if (pendingNewest == null || observedAt.isAfter(pendingNewest)) {
+            pendingNewest = observedAt;
+        }
+    }
+
+    private synchronized void advanceCursor(Instant newest) {
         if (newest == null) {
             return;
         }

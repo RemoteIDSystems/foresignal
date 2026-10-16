@@ -36,6 +36,25 @@ class CapFeedsResourceTest {
     }
 
     @Test
+    @DisplayName("ids are cap-<iso2>-<authority>, one source per authority (DWD once, as cap-de-dwd)")
+    void idsAndAuthorities() {
+        List<CapFeed> feeds = CapFeeds.load();
+        for (CapFeed feed : feeds) {
+            assertThat(feed.id()).as(feed.id()).startsWith("cap-" + feed.country().toLowerCase(java.util.Locale.ROOT)
+                    + "-");
+        }
+        assertThat(feeds).filteredOn(f -> f.authority().equals("Deutscher Wetterdienst")).extracting(CapFeed::id)
+                .containsExactly("cap-de-dwd");
+        CapFeed de = feeds.getFirst();
+        CapFeed twin = new CapFeed("cap-de-dwd-en", "DE", de.authority(), de.feedUrl(), de.format(), List.of("en"),
+                de.licence(), de.termsUrl(), de.reviewedOn(), null);
+        assertThat(CapFeeds.problems(List.of(de, twin))).anyMatch(p -> p.contains("one source per authority"));
+        CapFeed wrongCountry = new CapFeed("cap-fr-dwd", "DE", "Other", de.feedUrl(), de.format(), List.of("de"),
+                de.licence(), de.termsUrl(), de.reviewedOn(), null);
+        assertThat(CapFeeds.problems(List.of(wrongCountry))).anyMatch(p -> p.contains("cap-<iso2>-<authority>"));
+    }
+
+    @Test
     @DisplayName("the reviewed date is recorded, and a bad entry is refused")
     void problems() {
         assertThat(CapFeeds.reviewedOn()).isNotBlank();

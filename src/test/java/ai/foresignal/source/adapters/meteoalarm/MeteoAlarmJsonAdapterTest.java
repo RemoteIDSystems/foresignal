@@ -57,6 +57,27 @@ class MeteoAlarmJsonAdapterTest {
     }
 
     @Test
+    @DisplayName("references: every space-separated sender,identifier,sent triplet is read, in a string or an array")
+    void references() {
+        String two = "a@x.org,id-1,2026-10-14T10:00:00+00:00 b@y.org,id-2,2026-10-14T11:00:00+00:00";
+        List<CapAlert.Reference> parsed = MeteoAlarmJsonAdapter.triplets(two);
+        assertThat(parsed).hasSize(2);
+        assertThat(parsed.get(0).sender()).isEqualTo("a@x.org");
+        assertThat(parsed.get(1).identifier()).isEqualTo("id-2");
+        assertThat(parsed.get(1).sent()).isNotNull();
+        CapAlert alert = MeteoAlarmJsonAdapter.convert(JSON.readTree("{\"identifier\":\"id-3\",\"sender\":\"a@x.org\","
+                + "\"sent\":\"2026-10-14T12:00:00+00:00\",\"status\":\"Actual\",\"msgType\":\"Update\","
+                + "\"references\":\"" + two + "\"}"));
+        assertThat(alert.references()).extracting(CapAlert.Reference::identifier).containsExactly("id-1", "id-2");
+        CapAlert array = MeteoAlarmJsonAdapter.convert(JSON.readTree("{\"identifier\":\"id-4\",\"sender\":\"a@x.org\","
+                + "\"sent\":\"2026-10-14T12:00:00+00:00\",\"references\":[\"" + two + "\",\"c@z.org,id-0,"
+                + "2026-10-14T09:00:00+00:00\"]}"));
+        assertThat(array.references()).extracting(CapAlert.Reference::identifier)
+                .containsExactly("id-1", "id-2", "id-0");
+        assertThat(MeteoAlarmJsonAdapter.triplets("  ")).isEmpty();
+    }
+
+    @Test
     @DisplayName("a node that is not an alert, or has no sent time, is refused")
     void refuses() {
         assertThatThrownBy(() -> MeteoAlarmJsonAdapter.convert(null))

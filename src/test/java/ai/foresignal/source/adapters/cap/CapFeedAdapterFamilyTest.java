@@ -1,6 +1,7 @@
 package ai.foresignal.source.adapters.cap;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -33,8 +34,9 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * {@link CapFeedAdapter} and {@link CapFeedAdapterFamily} (prompt 089): a conditional index GET, only new CAP
- * documents fetched, the 50-document cap, non-{@code Actual} skipped, and the reviewed family registering its
- * sources.
+ * documents fetched, the per-run document cap (the budget less the index) and a clean stop on a budget refusal, a
+ * 304 index, refused off-host links, non-{@code Actual} skipped (and read once {@code includeTests} is on), and the
+ * reviewed family registering its sources.
  */
 @IntegrationTest
 class CapFeedAdapterFamilyTest extends WireMockSupport {
@@ -59,7 +61,11 @@ class CapFeedAdapterFamilyTest extends WireMockSupport {
                 "atom-index", List.of("en-GB"), "test licence", URI.create("https://example.org/terms"),
                 "2026-10-14", "test feed");
         adapter = new CapFeedAdapter(feed);
-        harness.reset(adapter.id(), "cap:index", "cap:seen",
+        reset();
+    }
+
+    private void reset() {
+        harness.reset(adapter.id(), "cap:index", "cap:seen", "cap:skippedTests", "cap:includeTests",
                 SourceHttp.ETAG_STATE_PREFIX + "cap:index", SourceHttp.LAST_MODIFIED_STATE_PREFIX + "cap:index");
     }
 
@@ -69,7 +75,7 @@ class CapFeedAdapterFamilyTest extends WireMockSupport {
     }
 
     private static String doc(String name) {
-        return new String(AdapterFixtures.bytes("cap-de-dwd-de", name), StandardCharsets.UTF_8);
+        return new String(AdapterFixtures.bytes("cap-de-dwd", name), StandardCharsets.UTF_8);
     }
 
     private void serveIndex(String... entries) {
@@ -82,8 +88,10 @@ class CapFeedAdapterFamilyTest extends WireMockSupport {
                     .append(baseUrl()).append(entry).append("\"/></entry>");
         }
         xml.append("</feed>");
-        WIREMOCK.stubFor(get(urlPathEqualTo(PATH)).willReturn(aResponse().withStatus(200)
+        WIREMOCK.stubFor(get(urlPathEqualTo(PATH)).willReturn(aResponse().withStatus(200).withHeader("ETag", "\"v1\"")
                 .withHeader("Content-Type", "application/atom+xml;charset=UTF-8").withBody(xml.toString())));
+        WIREMOCK.stubFor(get(urlPathEqualTo(PATH)).withHeader("If-None-Match", equalTo("\"v1\""))
+                .atPriority(1).willReturn(aResponse().withStatus(304).withHeader("ETag", "\"v1\"")));
     }
 
     private void serveDoc(String path, String body) {
@@ -112,16 +120,100 @@ class CapFeedAdapterFamilyTest extends WireMockSupport {
     }
 
     @Test
-    @DisplayName("a non-Actual status is skipped unless includeTests")
+    @DisplayName("a non-Actual status is skipped unless includeTests, and enabling includeTests later still reads it")
     void nonActualSkipped() throws Exception {
         serveIndex("/cap/ex.xml");
         serveDoc("/cap/ex.xml", doc("chain-exercise.xml"));
         assertThat(fetch(Map.of()).records()).isEmpty();
-        // A skipped document is marked seen, so clear the adapter state as a restart would before the
-        // includeTests run re-reads the same exercise message.
-        harness.reset(adapter.id(), "cap:index", "cap:seen",
-                SourceHttp.ETAG_STATE_PREFIX + "cap:index", SourceHttp.LAST_MODIFIED_STATE_PREFIX + "cap:index");
+        assertThat(fetch(Map.of()).records()).as("not fetched again while includeTests is off").isEmpty();
+        WIREMOCK.verify(1, getRequestedFor(urlPathEqualTo("/cap/ex.xml")));
+        // The skipped document was not marked seen, so turning includeTests on picks it up with no reset.
         assertThat(fetch(Map.of("includeTests", true)).records()).hasSize(1);
+        WIREMOCK.verify(2, getRequestedFor(urlPathEqualTo("/cap/ex.xml")));
+    }
+
+    @Test
+    @DisplayName("the per-run cap: 7 new documents are read 5 then 2, even when the index answers 304 the second time")
+    void perRunCap() throws Exception {
+        String[] paths = new String[7];
+        for (int i = 0; i < paths.length; i++) {
+            paths[i] = "/cap/d" + i + ".xml";
+            serveDoc(paths[i], doc("chain-alert.xml"));
+        }
+        serveIndex(paths);
+
+        FetchResult first = fetch(Map.of());
+        assertThat(first.records()).hasSize(CapFeedAdapter.MAX_DOCS_PER_RUN);
+        assertThat(harness.client.stateStore(adapter.id()).get(SourceHttp.ETAG_STATE_PREFIX + "cap:index"))
+                .as("a backlog forgets the index validators").isEmpty();
+
+        FetchResult second = fetch(Map.of());
+        assertThat(second.records()).hasSize(2);
+        for (String path : paths) {
+            WIREMOCK.verify(1, getRequestedFor(urlPathEqualTo(path)));
+        }
+        WIREMOCK.verify(0, getRequestedFor(urlPathEqualTo(PATH)).withHeader("If-None-Match", equalTo("\"v1\"")));
+    }
+
+    @Test
+    @DisplayName("a conditional index GET: a 304 is an unchanged run and fetches no document")
+    void conditionalIndex() throws Exception {
+        serveDoc("/cap/a.xml", doc("chain-alert.xml"));
+        String xml = "<?xml version=\"1.0\"?><feed xmlns=\"http://www.w3.org/2005/Atom\"><title>t</title><entry>"
+                + "<title>a</title><id>a</id><updated>2026-10-14T10:00:00Z</updated><link href=\"" + baseUrl()
+                + "/cap/a.xml\"/></entry></feed>";
+        WIREMOCK.stubFor(get(urlPathEqualTo(PATH)).willReturn(aResponse().withStatus(200).withHeader("ETag", "\"v1\"")
+                .withHeader("Content-Type", "application/atom+xml").withBody(xml)));
+        WIREMOCK.stubFor(get(urlPathEqualTo(PATH)).withHeader("If-None-Match", equalTo("\"v1\""))
+                .atPriority(1).willReturn(aResponse().withStatus(304).withHeader("ETag", "\"v1\"")));
+        assertThat(fetch(Map.of()).records()).hasSize(1);
+        FetchResult second = fetch(Map.of());
+        assertThat(second.notModified()).isTrue();
+        WIREMOCK.verify(getRequestedFor(urlPathEqualTo(PATH)).withHeader("If-None-Match", equalTo("\"v1\"")));
+        WIREMOCK.verify(1, getRequestedFor(urlPathEqualTo("/cap/a.xml")));
+    }
+
+    @Test
+    @DisplayName("a document link off the feed's host is refused and never fetched")
+    void offHostRefused() throws Exception {
+        String xml = "<?xml version=\"1.0\"?><feed xmlns=\"http://www.w3.org/2005/Atom\"><title>t</title><entry>"
+                + "<title>x</title><id>x</id><updated>2026-10-14T10:00:00Z</updated>"
+                + "<link href=\"https://elsewhere.example/cap/x.xml\"/></entry></feed>";
+        WIREMOCK.stubFor(get(urlPathEqualTo(PATH)).willReturn(aResponse().withStatus(200)
+                .withHeader("Content-Type", "application/atom+xml").withBody(xml)));
+        assertThat(fetch(Map.of()).records()).isEmpty();
+        CapFeed feed = adapter.feed();
+        assertThat(feed.allowsDocument(URI.create(baseUrl() + "/cap/a.xml"))).isTrue();
+        assertThat(feed.allowsDocument(URI.create("https://elsewhere.example/cap/x.xml"))).isFalse();
+        assertThat(feed.allowsDocument(URI.create("https://user@" + feed.feedUrl().getHost() + "/x"))).isFalse();
+        CapFeed reviewed = new CapFeed("cap-xx-test", "XX", "Test", URI.create("https://feed.example/i.xml"),
+                "atom-index", List.of("en"), "l", URI.create("https://feed.example/t"), "2026-10-16", null,
+                List.of("Docs.Example"));
+        assertThat(reviewed.allowsDocument(URI.create("https://docs.example/a.xml"))).isTrue();
+        assertThat(reviewed.allowsDocument(URI.create("http://docs.example/a.xml"))).as("scheme").isFalse();
+    }
+
+    @Test
+    @DisplayName("a budget refusal stops the document fetches cleanly; the rest are read on the next run")
+    void budgetStopsCleanly() throws Exception {
+        AdapterHttpHarness tight = new AdapterHttpHarness(jdbc, jsonMapper, properties, install,
+                new MutableClock(NOW), Budget.of(3, 1_000));
+        CapFeed feed = new CapFeed("cap-budget-xx", "XX", "Budget Authority", URI.create(baseUrl() + PATH),
+                "atom-index", List.of("en-GB"), "test licence", URI.create("https://example.org/terms"),
+                "2026-10-14", "test feed");
+        CapFeedAdapter budgeted = new CapFeedAdapter(feed);
+        tight.reset(budgeted.id(), "cap:index", "cap:seen", "cap:skippedTests", "cap:includeTests",
+                SourceHttp.ETAG_STATE_PREFIX + "cap:index", SourceHttp.LAST_MODIFIED_STATE_PREFIX + "cap:index");
+        serveIndex("/cap/b0.xml", "/cap/b1.xml", "/cap/b2.xml", "/cap/b3.xml");
+        for (int i = 0; i < 4; i++) {
+            serveDoc("/cap/b" + i + ".xml", doc("chain-alert.xml"));
+        }
+        FetchResult first = budgeted.fetch(tight.context(budgeted, Map.of()));
+        assertThat(first.records()).as("the index and two documents fit 3 a minute").hasSize(2);
+        tight.clock.advance(java.time.Duration.ofMinutes(5));
+        FetchResult second = budgeted.fetch(tight.context(budgeted, Map.of()));
+        assertThat(second.records()).hasSize(2);
+        tight.backoff.onSuccess(budgeted.id());
     }
 
     @Test

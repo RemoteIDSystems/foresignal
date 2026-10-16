@@ -1,6 +1,8 @@
 package ai.foresignal.source.adapters.usgs;
 
+import ai.foresignal.collect.BudgetExceededException;
 import ai.foresignal.source.formats.geojson.GeoJsonReader;
+import ai.foresignal.source.kit.KitUrls;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.FetchContext;
 import ai.foresignal.source.spi.FetchResult;
@@ -22,6 +24,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -42,6 +45,11 @@ import tools.jackson.databind.json.JsonMapper;
  * loss-PAGER product (alert levels) and the {@code cont_mmi.json} contour file. Two kinds are written:
  * {@code earthquake-impact} (one per event) and {@code shakemap-mmi} (one per MMI level, a simplified
  * MultiLineString; a level that disappears in a newer version is tombstoned).
+ *
+ * <p><strong>Progress.</strong> Changed events are processed oldest change first, at most {@value #MAX_EVENTS_PER_RUN}
+ * a run. An event is marked seen only once it is finished; a failed request leaves it for the next run (given up on
+ * after {@value #MAX_ATTEMPTS} attempts), and a budget refusal stops the run. The cursor stops just before the first
+ * unfinished change, so nothing is skipped. Detail and contour links are followed only on the index's own origin.
  */
 @Component
 public final class UsgsShakeMapAdapter implements PollingAdapter {
@@ -61,8 +69,24 @@ public final class UsgsShakeMapAdapter implements PollingAdapter {
     /** Test-only override of the FDSN base. */
     public static final String BASE_URL_PROPERTY = "foresignal.test.adapters.usgs-shakemap.base-url";
 
-    /** The cursor key (the newest index {@code updated}). */
+    /** The cursor key (the newest index {@code updated} fully processed, less the overlap). */
     static final String CURSOR_KEY = "shakemap:last";
+
+    /** The state-key prefix of the {@code updated} time an event was processed at. */
+    static final String SEEN_PREFIX = "shakemap:seen:";
+
+    /** The state-key prefix of an event's failed attempts. */
+    static final String FAIL_PREFIX = "shakemap:fail:";
+
+    /**
+     * The changed events processed per run: each costs two requests (detail and contours), so with the index this
+     * keeps a run inside the 20-a-minute budget. A first run's 7-day window, or any burst, is worked off over the
+     * following runs, oldest change first.
+     */
+    static final int MAX_EVENTS_PER_RUN = 9;
+
+    /** Failed attempts at one event before it is given up on. */
+    static final int MAX_ATTEMPTS = 3;
 
     /** The most vertices a contour may keep. */
     static final int MAX_VERTICES = 10_000;
@@ -110,6 +134,7 @@ public final class UsgsShakeMapAdapter implements PollingAdapter {
         }
         List<NormalizedRecord> records = new ArrayList<>();
         Instant newest = null;
+        List<Candidate> candidates = new ArrayList<>();
         for (JsonNode feature : features) {
             JsonNode props = feature.get("properties");
             if (props == null) {
@@ -123,20 +148,98 @@ public final class UsgsShakeMapAdapter implements PollingAdapter {
             if (newest == null || updated.isAfter(newest)) {
                 newest = updated;
             }
-            if (alreadyProcessed(ctx, eventId, updated)) {
-                continue;
+            if (!alreadyProcessed(ctx, eventId, updated)) {
+                candidates.add(new Candidate(feature, eventId, updated));
             }
-            process(ctx, feature, eventId, updated, records);
-            ctx.state().put("shakemap:seen:" + eventId, Long.toString(updated.toEpochMilli()));
         }
-        if (newest != null) {
-            ctx.state().put(CURSOR_KEY, newest.minus(OVERLAP).toString());
+        // Oldest change first, so a run cut short (the per-run cap or the budget) leaves only later changes, and the
+        // cursor can stop just before the first of them.
+        candidates.sort(Comparator.comparing(Candidate::updated));
+        Instant pending = null;
+        int processed = 0;
+        for (Candidate c : candidates) {
+            if (processed >= MAX_EVENTS_PER_RUN) {
+                pending = earliest(pending, c.updated());
+                break;
+            }
+            processed++;
+            Outcome outcome;
+            try {
+                outcome = process(ctx, c.feature(), c.eventId(), c.updated(), records);
+            } catch (BudgetExceededException e) {
+                pending = earliest(pending, c.updated());
+                ctx.log().info("{}: the budget stopped the run at {}; the next run continues", ctx.sourceId(),
+                        c.eventId());
+                break;
+            }
+            if (outcome == Outcome.DONE || giveUp(ctx, c.eventId())) {
+                ctx.state().put(SEEN_PREFIX + c.eventId(), Long.toString(c.updated().toEpochMilli()));
+                if (ctx.state().get(FAIL_PREFIX + c.eventId()).isPresent()) {
+                    ctx.state().remove(FAIL_PREFIX + c.eventId());
+                }
+            } else {
+                pending = earliest(pending, c.updated());
+            }
+        }
+        Instant cursor = pending != null ? pending : newest;
+        if (cursor != null) {
+            ctx.state().put(CURSOR_KEY, cursor.minus(OVERLAP).toString());
         }
         return FetchResult.of(records);
     }
 
+    /** One changed event of the index. */
+    private record Candidate(JsonNode feature, String eventId, Instant updated) {}
+
+    /** What processing one event achieved. */
+    enum Outcome {
+        /** Processed, or nothing to read (no detail, no products, the detail is gone): mark it seen. */
+        DONE,
+        /** A request failed: leave it unseen so the next run tries again. */
+        RETRY
+    }
+
+    private static Instant earliest(Instant a, Instant b) {
+        return a == null || b.isBefore(a) ? b : a;
+    }
+
+    /**
+     * Counts a failed attempt at {@code eventId}; after {@value #MAX_ATTEMPTS} the event is given up on, so one
+     * broken detail document cannot hold the cursor back for ever.
+     *
+     * @return true when the event is given up on (mark it seen)
+     */
+    private boolean giveUp(FetchContext ctx, String eventId) {
+        int attempts = 1;
+        try {
+            attempts += Integer.parseInt(ctx.state().get(FAIL_PREFIX + eventId).orElse("0"));
+        } catch (NumberFormatException e) {
+            attempts = 1;
+        }
+        if (attempts >= MAX_ATTEMPTS) {
+            ctx.log().warn("{}: giving up on {} after {} failed attempts", ctx.sourceId(), eventId, attempts);
+            return true;
+        }
+        ctx.state().put(FAIL_PREFIX + eventId, Integer.toString(attempts));
+        return false;
+    }
+
+    /** {@code url} when it is on the index's own origin, else null (a link elsewhere is never followed). */
+    private URI sameOrigin(FetchContext ctx, String url) {
+        try {
+            URI uri = URI.create(url.strip());
+            if (KitUrls.sameOrigin(baseUrl, uri)) {
+                return uri;
+            }
+        } catch (IllegalArgumentException e) {
+            // logged below
+        }
+        ctx.log().warn("{}: refusing a link off {}: {}", ctx.sourceId(), baseUrl.getHost(), url);
+        return null;
+    }
+
     private boolean alreadyProcessed(FetchContext ctx, String eventId, Instant updated) {
-        String seen = ctx.state().get("shakemap:seen:" + eventId).orElse(null);
+        String seen = ctx.state().get(SEEN_PREFIX + eventId).orElse(null);
         if (seen == null) {
             return false;
         }
@@ -147,26 +250,45 @@ public final class UsgsShakeMapAdapter implements PollingAdapter {
         }
     }
 
-    private void process(FetchContext ctx, JsonNode feature, String eventId, Instant updated,
-            List<NormalizedRecord> records) throws AdapterException {
+    /**
+     * Reads one changed event: its detail document, then its contours.
+     *
+     * @return {@link Outcome#DONE} when the event is finished (or has nothing to read), {@link Outcome#RETRY} when a
+     *     request failed
+     * @throws BudgetExceededException when the budget refuses a request; the run stops and the event stays unseen
+     */
+    private Outcome process(FetchContext ctx, JsonNode feature, String eventId, Instant updated,
+            List<NormalizedRecord> records) throws BudgetExceededException {
         JsonNode props = feature.get("properties");
         String detailUrl = text(props, "detail");
-        if (detailUrl == null) {
-            return;
+        URI detailUri = detailUrl == null ? null : sameOrigin(ctx, detailUrl);
+        if (detailUri == null) {
+            return Outcome.DONE;
         }
         JsonNode detail;
         try {
-            UpstreamResponse response = ctx.http().get(URI.create(detailUrl));
+            UpstreamResponse response = ctx.http().get(detailUri);
             if (response.status() != 200) {
-                return;
+                return Outcome.RETRY;
             }
             detail = JSON.readTree(response.body());
+        } catch (BudgetExceededException e) {
+            throw e;
         } catch (AdapterException e) {
-            return;
+            int status = e.httpStatus().orElse(0);
+            if (status == 404 || status == 410) {
+                return Outcome.DONE;
+            }
+            ctx.log().info("{}: the detail of {} failed ({}); retried next run", ctx.sourceId(), eventId,
+                    e.getMessage());
+            return Outcome.RETRY;
+        } catch (RuntimeException e) {
+            ctx.log().info("{}: the detail of {} did not parse; retried next run", ctx.sourceId(), eventId);
+            return Outcome.RETRY;
         }
         JsonNode products = detail.get("properties") == null ? null : detail.get("properties").get("products");
         if (products == null) {
-            return;
+            return Outcome.DONE;
         }
         Instant origin = epochMs(props.get("time"));
         JsonNode shakemap = first(products.get("shakemap"));
@@ -187,11 +309,16 @@ public final class UsgsShakeMapAdapter implements PollingAdapter {
         impact.put("mag", mag);
         impact.put("place", place);
         records.add(impact.build());
-        contours(ctx, shakemap, eventId, updated, origin, records);
+        return contours(ctx, shakemap, eventId, updated, origin, records);
     }
 
-    private void contours(FetchContext ctx, JsonNode shakemap, String eventId, Instant updated, Instant origin,
-            List<NormalizedRecord> records) throws AdapterException {
+    /**
+     * The MMI contours of one event, and tombstones for the levels a newer version dropped. A contour file that
+     * cannot be read leaves the previous levels alone and asks for a retry (the impact record is re-emitted
+     * unchanged, which the ingest hash drops).
+     */
+    private Outcome contours(FetchContext ctx, JsonNode shakemap, String eventId, Instant updated, Instant origin,
+            List<NormalizedRecord> records) throws BudgetExceededException {
         Set<String> levels = new TreeSet<>();
         String contourUrl = null;
         if (shakemap != null && shakemap.get("contents") != null) {
@@ -200,35 +327,46 @@ public final class UsgsShakeMapAdapter implements PollingAdapter {
                 contourUrl = text(content, "url");
             }
         }
-        if (contourUrl != null) {
+        URI contourUri = contourUrl == null ? null : sameOrigin(ctx, contourUrl);
+        if (contourUrl != null && contourUri == null) {
+            return Outcome.DONE;
+        }
+        if (contourUri != null) {
+            List<NormalizedRecord> read = new ArrayList<>();
             try {
-                UpstreamResponse response = ctx.http().get(URI.create(contourUrl));
-                if (response.status() == 200) {
-                    JsonNode features = JSON.readTree(response.body()).get("features");
-                    if (features != null && features.isArray()) {
-                        for (JsonNode contour : features) {
-                            String level = level(contour);
-                            if (level == null) {
-                                continue;
-                            }
-                            Geometry geometry = simplify(reader.read(contour.get("geometry")));
-                            levels.add(level);
-                            NormalizedRecord.Builder mmi = NormalizedRecord.builder(eventId + ":mmi" + level, KIND_MMI)
-                                    .observedAt(updated)
-                                    .eventTime(origin)
-                                    .geometry(geometry);
-                            mmi.put("mmi", doubleOrNull(level));
-                            mmi.put("units", "mmi");
-                            records.add(mmi.build());
+                UpstreamResponse response = ctx.http().get(contourUri);
+                if (response.status() != 200) {
+                    return Outcome.RETRY;
+                }
+                JsonNode features = JSON.readTree(response.body()).get("features");
+                if (features != null && features.isArray()) {
+                    for (JsonNode contour : features) {
+                        String level = level(contour);
+                        if (level == null) {
+                            continue;
                         }
+                        Geometry geometry = simplify(reader.read(contour.get("geometry")));
+                        levels.add(level);
+                        NormalizedRecord.Builder mmi = NormalizedRecord.builder(eventId + ":mmi" + level, KIND_MMI)
+                                .observedAt(updated)
+                                .eventTime(origin)
+                                .geometry(geometry);
+                        mmi.put("mmi", doubleOrNull(level));
+                        mmi.put("units", "mmi");
+                        read.add(mmi.build());
                     }
                 }
-            } catch (AdapterException e) {
-                // A missing contour file is not fatal; a previous version's levels stay until one disappears.
-                return;
+            } catch (BudgetExceededException e) {
+                throw e;
+            } catch (AdapterException | RuntimeException e) {
+                ctx.log().info("{}: the contours of {} could not be read ({}); retried next run", ctx.sourceId(),
+                        eventId, e.getMessage());
+                return Outcome.RETRY;
             }
+            records.addAll(read);
         }
         tombstoneGone(ctx, eventId, updated, levels, records);
+        return Outcome.DONE;
     }
 
     private void tombstoneGone(FetchContext ctx, String eventId, Instant updated, Set<String> current,

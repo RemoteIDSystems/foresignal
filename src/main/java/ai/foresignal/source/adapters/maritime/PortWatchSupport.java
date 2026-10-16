@@ -35,10 +35,11 @@ import tools.jackson.databind.node.ObjectNode;
  * <p><strong>Scopes:</strong> each layer is read through a {@link ScopedFetchContext} (scope {@code points},
  * {@code ports} or {@code daily}) so the layers' cached metadata and edit dates never overwrite each other.
  *
- * <p><strong>Window:</strong> the daily table is read with {@code date > DATE '{lastDate}'} (first run:
- * {@code backfillDays} before today), ordered by {@code date} then {@code ObjectId}, in pages of 1,000. After a
- * complete read {@code lastDate} becomes the newest date seen. A read cut by the page cap keeps the day before the
- * newest date it reached, so the next run resumes there (the repeated day is idempotent).
+ * <p><strong>Window:</strong> a pass over a changed daily table reads {@code date > DATE '{lastDate − 7 days}'}
+ * (first run: {@code backfillDays} before today), ordered by {@code date} then {@code ObjectId}, in pages of 1,000.
+ * The {@value #OVERLAP_DAYS}-day overlap re-reads recent days so IMF revisions produce new versions. After a complete
+ * read {@code lastDate} becomes the newest date seen. A read cut by the page cap stores a resume point, the day before
+ * the newest date it reached, and the next run continues from there (the repeated day is idempotent).
  */
 final class PortWatchSupport {
 
@@ -81,6 +82,12 @@ final class PortWatchSupport {
 
     /** The scope of the daily table. */
     static final String DAILY_SCOPE = "daily";
+
+    /**
+     * The trailing days re-read at the start of every pass over a changed daily table: IMF revises recent days
+     * when it publishes, and the ingest hash turns a revised day into a new version and an unrevised one into a no-op.
+     */
+    static final int OVERLAP_DAYS = 7;
 
     /** The daily tables' order: by date, then a stable tiebreak. */
     static final String DAILY_ORDER = "date,ObjectId";
@@ -145,15 +152,67 @@ final class PortWatchSupport {
     }
 
     /**
-     * The first day after which rows are read: {@code lastDate}, or {@code backfillDays} before today.
+     * The first day after which rows are read: the resume point of a pass cut short by the page cap; else
+     * {@code lastDate} minus {@value #OVERLAP_DAYS} days, so IMF revisions of recent days are read again and produce
+     * new versions; else {@code backfillDays} before today.
      *
-     * @param lastDate the stored last date, or null
+     * @param lastDate the stored newest day of the last complete pass, or null
+     * @param resume the stored resume point of a pass in progress, or null
      * @param today the UTC date of the run
      * @param backfillDays the first-run window
      * @return the exclusive lower bound
      */
-    static LocalDate from(LocalDate lastDate, LocalDate today, int backfillDays) {
-        return lastDate != null ? lastDate : today.minusDays(backfillDays);
+    static LocalDate from(LocalDate lastDate, LocalDate resume, LocalDate today, int backfillDays) {
+        if (resume != null) {
+            return resume;
+        }
+        return lastDate != null ? lastDate.minusDays(OVERLAP_DAYS) : today.minusDays(backfillDays);
+    }
+
+    /**
+     * The exclusive lower bound of this run's daily read, from the state.
+     *
+     * @param state the source's state
+     * @param lastDateKey the key of the newest day of the last complete pass
+     * @param resumeKey the key of the resume point of a pass in progress
+     * @param today the UTC date of the run
+     * @param backfillDays the first-run window
+     * @return the bound
+     */
+    static LocalDate readFrom(AdapterStateStore state, String lastDateKey, String resumeKey, LocalDate today,
+            int backfillDays) {
+        return from(storedDate(state.get(lastDateKey).orElse(null)), storedDate(state.get(resumeKey).orElse(null)),
+                today, backfillDays);
+    }
+
+    /**
+     * Records the outcome of a daily read. A complete read ends the pass: {@code lastDate} becomes the newest day
+     * seen (never earlier than before) and the resume point is cleared. A read cut by the page cap keeps
+     * {@code lastDate} and stores the resume point ({@link #nextLastDate}), so the next run continues the same pass
+     * instead of starting the overlap again; each run therefore makes progress.
+     *
+     * @param state the source's state
+     * @param lastDateKey the key of the newest day of the last complete pass
+     * @param resumeKey the key of the resume point of a pass in progress
+     * @param from the bound the read used
+     * @param newest the newest day it returned, or null
+     * @param complete true when the read was complete
+     */
+    static void advance(AdapterStateStore state, String lastDateKey, String resumeKey, LocalDate from,
+            LocalDate newest, boolean complete) {
+        LocalDate lastDate = storedDate(state.get(lastDateKey).orElse(null));
+        if (complete) {
+            LocalDate next = nextLastDate(from, newest, true);
+            if (lastDate != null && lastDate.isAfter(next)) {
+                next = lastDate;
+            }
+            state.put(lastDateKey, next.toString());
+            if (state.get(resumeKey).isPresent()) {
+                state.remove(resumeKey);
+            }
+        } else {
+            state.put(resumeKey, nextLastDate(from, newest, false).toString());
+        }
     }
 
     /**

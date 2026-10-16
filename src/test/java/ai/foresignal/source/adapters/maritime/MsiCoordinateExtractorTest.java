@@ -9,6 +9,7 @@ import ai.foresignal.source.spi.Geo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.MultiLineString;
 import org.locationtech.jts.geom.MultiPoint;
@@ -158,6 +159,94 @@ class MsiCoordinateExtractorTest {
         assertThat(none.rule()).isEqualTo(Rule.NONE);
         assertThat(none.geometry()).isNull();
         assertThat(MsiCoordinateExtractor.extract(null).rule()).isEqualTo(Rule.NONE);
+    }
+
+    @Test
+    @DisplayName("antimeridian: a circle across 180° is a valid MultiPolygon inside ±180°, one part per side")
+    void circleAcrossAntimeridian() {
+        Result r = MsiCoordinateExtractor.extract("HAZARDOUS OPERATIONS WITHIN 20 MILES OF 51-50.0N 179-55.0E.");
+        assertThat(r.rule()).isEqualTo(Rule.CIRCLE);
+        assertThat(r.geometry()).isInstanceOf(MultiPolygon.class);
+        assertThat(r.geometry().getNumGeometries()).isEqualTo(2);
+        assertThat(r.geometry().isValid()).isTrue();
+        assertInRange(r.geometry());
+        Envelope east = r.geometry().getGeometryN(0).getEnvelopeInternal();
+        Envelope west = r.geometry().getGeometryN(1).getEnvelopeInternal();
+        assertThat(Math.max(east.getMaxX(), west.getMaxX())).isEqualTo(180.0);
+        assertThat(Math.min(east.getMinX(), west.getMinX())).isEqualTo(-180.0);
+        assertThat(r.geometry().getEnvelopeInternal().getWidth()).as("both sides of the line").isGreaterThan(359);
+        for (Coordinate c : r.geometry().getCoordinates()) {
+            if (Math.abs(c.x) < 179.999) {
+                double lon = c.x < 0 ? c.x + 360 : c.x;
+                assertThat(Geo.haversineKm(51 + 50.0 / 60, 179 + 55.0 / 60, c.y, lon)).isCloseTo(20 * 1.852,
+                        within(0.01));
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("antimeridian: a circle near but not across 180° stays one Polygon")
+    void circleNearAntimeridian() {
+        Result r = MsiCoordinateExtractor.extract("DIVING WITHIN 2 NM OF 51-50.0N 179-00.0E.");
+        assertThat(r.geometry()).isInstanceOf(Polygon.class);
+        assertInRange(r.geometry());
+    }
+
+    @Test
+    @DisplayName("antimeridian: an area bound by positions on both sides of 180° is split, not 358° wide")
+    void polygonAcrossAntimeridian() {
+        Result r = MsiCoordinateExtractor.extract("MISSILE TESTING IN AREA BOUND BY\n"
+                + "52-00.0N 179-00.0E, 52-00.0N 179-00.0W,\n51-00.0N 179-00.0W, 51-00.0N 179-00.0E.");
+        assertThat(r.rule()).isEqualTo(Rule.POLYGON);
+        assertThat(r.geometry()).isInstanceOf(MultiPolygon.class);
+        assertThat(r.geometry().getNumGeometries()).isEqualTo(2);
+        assertThat(r.geometry().isValid()).isTrue();
+        assertInRange(r.geometry());
+        for (int i = 0; i < 2; i++) {
+            assertThat(r.geometry().getGeometryN(i).getEnvelopeInternal().getWidth()).isCloseTo(1.0, within(1e-6));
+        }
+        assertThat(r.geometry().getArea()).as("two 1x1 degree halves").isCloseTo(2.0, within(1e-6));
+    }
+
+    @Test
+    @DisplayName("antimeridian: lettered areas keep one part each side and are still a MultiPolygon")
+    void letteredAcrossAntimeridian() {
+        Result r = MsiCoordinateExtractor.extract("HAZARDOUS OPERATIONS IN AREAS BOUND BY\n"
+                + "A. 52-00.0N 179-30.0E, 52-00.0N 179-30.0W, 51-00.0N 179-30.0W.\n"
+                + "B. 40-00.0N 170-00.0E, 40-00.0N 171-00.0E, 39-00.0N 171-00.0E.\n");
+        assertThat(r.geometry()).isInstanceOf(MultiPolygon.class);
+        assertThat(r.geometry().getNumGeometries()).isEqualTo(3);
+        assertInRange(r.geometry());
+    }
+
+    @Test
+    @DisplayName("antimeridian: a trackline from 179E to 179W is a MultiLineString of two short pieces")
+    void tracklineAcrossAntimeridian() {
+        Result r = MsiCoordinateExtractor.extract("CABLE OPERATIONS ALONG TRACKLINE JOINING\n"
+                + "51-00.0N 179-00.0E, 51-30.0N 179-00.0W.");
+        assertThat(r.rule()).isEqualTo(Rule.TRACKLINE);
+        assertThat(r.geometry()).isInstanceOf(MultiLineString.class);
+        assertThat(r.geometry().getNumGeometries()).isEqualTo(2);
+        assertInRange(r.geometry());
+        assertThat(r.geometry().getLength()).as("about 2.06 degrees, not 358").isLessThan(3.0);
+    }
+
+    @Test
+    @DisplayName("a circle enclosing the North Pole is a valid polar cap inside ±180°")
+    void polarCircle() {
+        Result r = MsiCoordinateExtractor.extract("ICE OPERATIONS WITHIN 30 MILES OF 89-50.0N 045-00.0E.");
+        assertThat(r.rule()).isEqualTo(Rule.CIRCLE);
+        assertThat(r.geometry()).isInstanceOf(Polygon.class);
+        assertThat(r.geometry().isValid()).isTrue();
+        assertInRange(r.geometry());
+        assertThat(r.geometry().getEnvelopeInternal().getMaxY()).isEqualTo(90.0);
+    }
+
+    private static void assertInRange(org.locationtech.jts.geom.Geometry geometry) {
+        for (Coordinate c : geometry.getCoordinates()) {
+            assertThat(c.x).isBetween(-180.0, 180.0);
+            assertThat(c.y).isBetween(-90.0, 90.0);
+        }
     }
 
     @Test

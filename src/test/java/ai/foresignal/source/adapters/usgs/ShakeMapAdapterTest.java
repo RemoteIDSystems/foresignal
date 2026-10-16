@@ -128,6 +128,74 @@ class ShakeMapAdapterTest extends WireMockSupport {
         WIREMOCK.verify(1, getRequestedFor(urlPathEqualTo("/detail/" + EVENT)));
     }
 
+    static final String[] EVENTS = {"us6000u214", EVENT, "us6000u28y"};
+
+    private void resetAll(AdapterHttpHarness h) {
+        for (String id : EVENTS) {
+            h.reset(adapter.id(), UsgsShakeMapAdapter.SEEN_PREFIX + id, UsgsShakeMapAdapter.FAIL_PREFIX + id,
+                    "shakemap:mmi:" + id);
+        }
+        h.reset(adapter.id(), UsgsShakeMapAdapter.CURSOR_KEY);
+    }
+
+    @Test
+    @DisplayName("a budget refusal stops the run without marking the event seen; the cursor waits for it")
+    void budgetRefusalRetries() throws Exception {
+        AdapterHttpHarness tight = new AdapterHttpHarness(jdbc, jsonMapper, properties, install,
+                new MutableClock(NOW), Budget.of(3, 1_500));
+        resetAll(tight);
+        serveAll();
+        // index, the 404 detail of the oldest change, the captured detail; its contour file is refused.
+        fetchWith(tight);
+        var state = tight.client.stateStore(adapter.id());
+        assertThat(state.get(UsgsShakeMapAdapter.SEEN_PREFIX + "us6000u214")).isPresent();
+        assertThat(state.get(UsgsShakeMapAdapter.SEEN_PREFIX + EVENT)).as("not finished, not seen").isEmpty();
+        assertThat(state.get(UsgsShakeMapAdapter.CURSOR_KEY))
+                .contains(Instant.ofEpochMilli(1791925814489L).minus(UsgsShakeMapAdapter.OVERLAP).toString());
+
+        tight.clock.advance(java.time.Duration.ofMinutes(10));
+        FetchResult second = fetchWith(tight);
+        assertThat(second.records()).filteredOn(r -> r.kind().equals(UsgsShakeMapAdapter.KIND_MMI)).isNotEmpty();
+        assertThat(state.get(UsgsShakeMapAdapter.SEEN_PREFIX + EVENT)).isPresent();
+        tight.backoff.onSuccess(adapter.id());
+    }
+
+    private FetchResult fetchWith(AdapterHttpHarness h) throws Exception {
+        return adapter.fetch(h.context(adapter, Map.of()));
+    }
+
+    @Test
+    @DisplayName("a failed detail is retried on the next run and given up on after three attempts")
+    void failedDetailRetried() throws Exception {
+        resetAll(harness);
+        serveAll();
+        WIREMOCK.stubFor(get(urlPathEqualTo("/detail/" + EVENT)).willReturn(aResponse().withStatus(500)));
+        var state = harness.client.stateStore(adapter.id());
+        for (int attempt = 1; attempt <= UsgsShakeMapAdapter.MAX_ATTEMPTS; attempt++) {
+            assertThat(state.get(UsgsShakeMapAdapter.SEEN_PREFIX + EVENT)).as("attempt " + attempt).isEmpty();
+            fetch();
+            harness.backoff.onSuccess(adapter.id());
+            harness.clock.advance(java.time.Duration.ofMinutes(10));
+        }
+        assertThat(state.get(UsgsShakeMapAdapter.SEEN_PREFIX + EVENT)).as("given up").isPresent();
+        assertThat(state.get(UsgsShakeMapAdapter.FAIL_PREFIX + EVENT)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("a detail link off the index's origin is refused and never fetched")
+    void offOriginRefused() throws Exception {
+        resetAll(harness);
+        JsonNode index = indexJson();
+        for (JsonNode feature : index.get("features")) {
+            ((ObjectNode) feature.get("properties")).put("detail", "https://elsewhere.example/detail/x");
+        }
+        WIREMOCK.stubFor(get(urlPathEqualTo(INDEX_PATH)).willReturn(aResponse().withStatus(200)
+                .withHeader("Content-Type", "application/json").withBody(index.toString())));
+        FetchResult result = fetch();
+        assertThat(result.records()).isEmpty();
+        WIREMOCK.verify(0, getRequestedFor(urlPathEqualTo("/detail/x")));
+    }
+
     @Test
     @DisplayName("simplify leaves a small geometry unchanged and grows the tolerance for a large one")
     void simplify() {

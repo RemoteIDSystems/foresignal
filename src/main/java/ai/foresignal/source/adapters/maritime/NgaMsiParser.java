@@ -66,7 +66,8 @@ public final class NgaMsiParser {
      * What one document gave.
      *
      * @param records the warnings
-     * @param ids every externalId of the document, for the absence tombstones
+     * @param ids every externalId of the document, for the absence tombstones, including warnings skipped for an
+     *     unparseable issue date (they are still active upstream)
      * @param skipped entries without a usable id or issue date
      * @param withoutGeometry warnings whose text held no usable position
      */
@@ -99,8 +100,13 @@ public final class NgaMsiParser {
         int withoutGeometry = 0;
         for (JsonNode w : list) {
             String id = externalId(w);
+            if (id == null || !ids.add(id)) {
+                skipped++;
+                continue;
+            }
             Instant issued = issueDate(MaritimeSources.text(w.get("issueDate")));
-            if (id == null || issued == null || !ids.add(id)) {
+            if (issued == null) {
+                // Still active upstream: its id stays in the live set so it is not tombstoned; only the record is skipped.
                 skipped++;
                 continue;
             }

@@ -221,7 +221,7 @@ public abstract class WeatherIngestSupport {
             "nifc-perimeters", "nhc-cyclone-cones", "nvd-cves", "swpc-rtsw", "swpc-aurora", "local-sonde",
             "airq-local-1", "nwps-gauges", "usdm", "amtraker", "digitraffic-rail", "deepstate-frontline",
             "alerts-in-ua", "ua-air-raid-siren", "acled", "ucdp-ged", "faa-tfr", "faa-nas-status", "awc-sigmets",
-            "nga-msi-warnings", "imf-portwatch-chokepoints", "cap-de-dwd-de", "meteoalarm-greece", "fdsn-geofon",
+            "nga-msi-warnings", "imf-portwatch-chokepoints", "cap-de-dwd", "meteoalarm-greece", "fdsn-geofon",
             "usgs-shakemap", "nasa-eonet", "reliefweb-disasters", "unhcr-population", "who-don", "copernicus-ems",
             "usgs-hans-volcanoes", "geonet-volcanoes", "openfema-declarations", "travel-advisory-us",
             "ofac-sdn", "uk-sanctions-list", "un-sanctions", "sec-8k",

@@ -185,6 +185,26 @@ class GfwEventsAdapterTest extends WireMockSupport {
     }
 
     @Test
+    @DisplayName("a saved cursor whose window ended before the configured window starts is dropped: a fresh window")
+    void staleCursorStartsFresh() throws Exception {
+        String ds = GfwEventsAdapter.FISHING_DATASET;
+        int total = 12 * 500;
+        for (int i = 0; i < 12; i++) {
+            int offset = i * 500;
+            serveGet(ds, offset, page("fishing-events.json", offset, 500, offset + 500, total));
+        }
+        fetch(Map.of());
+        assertThat(harness.client.stateStore(adapter.id()).get(GfwEventsAdapter.CURSOR_KEY)).isPresent();
+
+        harness.clock.advance(Duration.ofDays(30));
+        WIREMOCK.resetRequests();
+        fetch(Map.of());
+        WIREMOCK.verify(0, getRequestedFor(urlPathEqualTo(PATH)).withQueryParam("start-date", equalTo("2026-10-04")));
+        WIREMOCK.verify(getRequestedFor(urlPathEqualTo(PATH)).withQueryParam("start-date", equalTo("2026-11-03"))
+                .withQueryParam("offset", equalTo("0")));
+    }
+
+    @Test
     @DisplayName("POST form with a box: the documented body with a GeoJSON polygon, paging in the query string")
     void postWithBox() throws Exception {
         WIREMOCK.stubFor(post(urlPathEqualTo(PATH)).withQueryParam("offset", equalTo("0"))
@@ -213,7 +233,10 @@ class GfwEventsAdapterTest extends WireMockSupport {
         RequestRecorder recorder = new RequestRecorder();
         DefaultFetchContext ctx = harness.context(adapter, Map.of(), recorder);
         assertThatThrownBy(() -> adapter.fetch(ctx)).isInstanceOf(CredentialsRejectedException.class);
+        assertThat(ctx.traces()).as("the 401 exchange was traced").isNotEmpty();
         assertThat(ctx.traces()).extracting(FetchTrace::redactedUrl).allSatisfy(u -> assertThat(u).doesNotContain(TOKEN));
+        assertThat(recorder.exchanges()).as("the 401 exchange was recorded, so the loop below checks something")
+                .isNotEmpty();
         for (RecordedExchange exchange : recorder.exchanges()) {
             assertThat(exchange.toString()).doesNotContain(TOKEN);
         }

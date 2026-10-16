@@ -38,10 +38,11 @@ import tools.jackson.databind.JsonNode;
  *
  * <p><strong>Run:</strong> first the chokepoint points ({@code PortWatch_chokepoints_database}, 28 points on
  * 2026-10-14) are loaded, read again only when that layer's edit date changes and otherwise taken from the state
- * ({@value #POINTS_KEY}); then {@code Daily_Chokepoints_Data} is queried with {@code date > DATE '{lastDate}'} (first
+ * ({@value #POINTS_KEY}); then {@code Daily_Chokepoints_Data} is queried with
+ * {@code date > DATE '{lastDate − 7 days}'} (the overlap re-reads a week so IMF revisions produce versions; first
  * run: {@value #BACKFILL_PARAM} days, default 30), ordered by date and paged, at most {@value #MAX_PAGES} pages per
- * run. When the daily table's edit date is unchanged, no table query is sent and the run is
- * {@link FetchResult#unchanged() unchanged}.
+ * run; a pass cut by the cap resumes from {@value #RESUME_KEY}. When the daily table's edit date is unchanged, no
+ * table query is sent and the run is {@link FetchResult#unchanged() unchanged}.
  *
  * <p><strong>Record</strong> per chokepoint and day: kind {@value #KIND}, externalId {@code portid:YYYY-MM-DD},
  * {@code eventTime} = {@code observedAt} = the day (the measurement period, UTC midnight), geometry the chokepoint
@@ -77,6 +78,9 @@ public class PortWatchChokepointsAdapter implements PollingAdapter {
 
     /** The state key of the newest day read (ISO date). */
     public static final String LAST_DATE_KEY = "cp:lastDate";
+
+    /** The state key of the resume point of a pass cut short by the page cap (ISO date). */
+    public static final String RESUME_KEY = "cp:resume";
 
     /** The point attributes requested. */
     static final List<String> POINT_FIELDS = List.of("portid", "portname", "fullname", "lat", "lon");
@@ -135,8 +139,7 @@ public class PortWatchChokepointsAdapter implements PollingAdapter {
         AdapterStateStore state = ctx.state();
         Map<String, PortWatchSupport.Place> points = points(ctx);
         LocalDate today = ctx.now().atZone(ZoneOffset.UTC).toLocalDate();
-        LocalDate from = PortWatchSupport.from(PortWatchSupport.storedDate(state.get(LAST_DATE_KEY).orElse(null)),
-                today, backfill);
+        LocalDate from = PortWatchSupport.readFrom(state, LAST_DATE_KEY, RESUME_KEY, today, backfill);
         FeatureFetch daily = PortWatchSupport.read(arcgis, ctx, PortWatchSupport.DAILY_SCOPE,
                 PortWatchSupport.request(dailyUrl, PortWatchSupport.dateWhere(from), DAILY_FIELDS, MAX_PAGES,
                         PortWatchSupport.DAILY_ORDER));
@@ -162,7 +165,7 @@ public class PortWatchChokepointsAdapter implements PollingAdapter {
             records.add(record(portId, day, p, place));
             newest = newest == null || day.isAfter(newest) ? day : newest;
         }
-        state.put(LAST_DATE_KEY, PortWatchSupport.nextLastDate(from, newest, daily.complete()).toString());
+        PortWatchSupport.advance(state, LAST_DATE_KEY, RESUME_KEY, from, newest, daily.complete());
         if (!daily.complete()) {
             ctx.log().info("{}: the daily read stopped early ({}); the next run resumes", ctx.sourceId(),
                     daily.stopReason());

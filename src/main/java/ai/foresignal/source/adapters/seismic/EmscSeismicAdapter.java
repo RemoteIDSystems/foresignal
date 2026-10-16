@@ -26,7 +26,8 @@ import org.springframework.stereotype.Component;
 /**
  * {@code emsc-seismic} (prompt 089): the European-Mediterranean Seismological Centre's real-time WebSocket,
  * {@code wss://www.seismicportal.eu/standing_order/websocket}, with an FDSN gap-fill on every (re)connect so no
- * event is lost across a drop.
+ * event is lost across a drop: the gap-fill pages until complete, and the cursor ({@value #CURSOR_KEY}) does not
+ * move past a gap that is not yet filled ({@link EmscSession#gapFill}).
  *
  * <p>Quiet periods are ordinary ({@link SourceDescriptor#zeroResultsNormal()} is true); a connection silent for
  * {@value #SILENCE_RECYCLE} seconds is recycled, which is one step of the supervisor's ladder.
@@ -58,8 +59,17 @@ public final class EmscSeismicAdapter implements StreamingAdapter {
     /** The gap-fill page size. */
     static final int GAP_LIMIT = 500;
 
+    /** The gap-fill pages per attempt (with the connect, within the 12-a-minute budget). */
+    static final int GAP_MAX_PAGES = 10;
+
+    /** How long after a failed or capped gap-fill attempt the watchdog tries again. */
+    static final Duration GAP_RETRY = Duration.ofMinutes(2);
+
     /** The adapter-state key of the update cursor. */
     static final String CURSOR_KEY = "emsc:lastUpdate";
+
+    /** The adapter-state key of an unfinished gap-fill: {@code <updatedafter>|<next offset>|<first attempt>}. */
+    static final String GAP_KEY = "emsc:gap";
 
     /** The most {@code unid}s remembered to drop duplicates between the stream and its gap-fill. */
     private static final int MAX_SEEN = 50_000;
@@ -99,8 +109,10 @@ public final class EmscSeismicAdapter implements StreamingAdapter {
     @Override
     public StreamHandle start(StreamContext ctx, RecordSink sink) throws AdapterException {
         EmscSession session = new EmscSession(this, ctx, sink);
-        session.gapFill();
+        // The socket opens first, so the stream covers anything updated while the gap-fill pages are read; the
+        // version keys drop what both deliver.
         ctx.http().openWebSocket(wsUri, session, java.util.Map.of(), WebSocketOptions.DEFAULT);
+        session.gapFill();
         session.startWatchdog();
         return session;
     }

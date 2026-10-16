@@ -104,7 +104,8 @@ class NgaMsiParserTest {
     }
 
     @Test
-    @DisplayName("entries without an id or issue date and repeated ids are skipped; long text is capped")
+    @DisplayName("entries without an id or issue date and repeated ids are skipped (an unparseable date keeps the id"
+            + " live); long text is capped")
     void skipsAndCaps() {
         String longText = "TITLE LINE\\n" + "X".repeat(9000);
         String doc = "{\"broadcast-warn\":[{\"msgYear\":2026,\"msgNumber\":1,\"navArea\":\"4\",\"issueDate\":\"010000Z"
@@ -114,6 +115,8 @@ class NgaMsiParserTest {
         NgaMsiParser.Result result = NgaMsiParser.parse(MaritimeSources.json(doc.getBytes(), "doc"));
         assertThat(result.records()).hasSize(1);
         assertThat(result.skipped()).isEqualTo(3);
+        assertThat(result.ids()).as("a warning with an unparseable issue date stays live, so it is not tombstoned")
+                .containsExactly("4/2026/1", "4/2026/3");
         assertThat((String) result.records().getFirst().payload().get("text")).hasSize(NgaMsiParser.TEXT_MAX);
         assertThat(result.records().getFirst().payload()).containsEntry("title", "TITLE LINE");
         assertThatThrownBy(() -> NgaMsiParser.parse(MaritimeSources.json("{\"x\":[]}".getBytes(), "doc")))

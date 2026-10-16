@@ -23,7 +23,7 @@ class InternationalAlertsIngestIT extends WeatherIngestSupport {
     static final String EXTERNAL_ID = "test@example.org:test-alert-1";
 
     private static String doc(String name) {
-        return new String(AdapterFixtures.bytes("cap-de-dwd-de", name), StandardCharsets.UTF_8);
+        return new String(AdapterFixtures.bytes("cap-de-dwd", name), StandardCharsets.UTF_8);
     }
 
     @Test
@@ -41,11 +41,11 @@ class InternationalAlertsIngestIT extends WeatherIngestSupport {
         UPSTREAM.stubFor(get(urlPathEqualTo("/capdoc/cancel.xml")).willReturn(aResponse().withStatus(200)
                 .withHeader("Content-Type", "application/cap+xml;charset=UTF-8").withBody(doc("chain-cancel.xml"))));
 
-        configure("cap-de-dwd-de", true, Map.of());
-        fetch("cap-de-dwd-de");
+        configure("cap-de-dwd", true, Map.of());
+        fetch("cap-de-dwd");
 
-        assertThat(versions("cap-de-dwd-de", EXTERNAL_ID)).isEqualTo(3);
-        assertThat(tombstoned("cap-de-dwd-de", EXTERNAL_ID)).isTrue();
+        assertThat(versions("cap-de-dwd", EXTERNAL_ID)).isEqualTo(3);
+        assertThat(tombstoned("cap-de-dwd", EXTERNAL_ID)).isTrue();
     }
 
     private static String entry(String id, String path) {
