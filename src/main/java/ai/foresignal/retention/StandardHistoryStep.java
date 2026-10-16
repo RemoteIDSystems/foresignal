@@ -101,6 +101,11 @@ public class StandardHistoryStep implements RetentionStep {
     }
 
     private void process(RetentionRun run, String sourceId, Map<String, Duration> windows) {
+        if (run.skipped(sourceId)) {
+            // A prior step (hold copy or cold archive, prompt 111) failed for this source: keep its
+            // rows this run so nothing is deleted before it was written out.
+            return;
+        }
         Duration sourceLevel = windows.get(null);
         Map<String, Duration> kinds = new LinkedHashMap<>(windows);
         kinds.remove(null);

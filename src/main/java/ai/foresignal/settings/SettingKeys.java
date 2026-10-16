@@ -106,6 +106,12 @@ public final class SettingKeys {
     public static final String WEATHER = "weather";
 
     /**
+     * The cold archive settings ({@code ArchiveSettings}, prompt 111): {@code enabled}, the source
+     * allowlist, the local root, the S3 target and its (write-only) secrets.
+     */
+    public static final String ARCHIVE = "archive";
+
+    /**
      * Every key above. {@link AppSettingService#invalidateCache()} announces each of them, so a
      * component holding its own copy of a setting drops it too. A new key belongs in this list.
      */
@@ -113,7 +119,7 @@ public final class SettingKeys {
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
                     STATS, GLANCE, METRICS, VISIBILITY, REGION_CURSOR, REGION_TAGGING, WEATHER, ENTITY_CURSOR,
-                    ENTITY, INTEL_CURSOR);
+                    ENTITY, INTEL_CURSOR, ARCHIVE);
 
     private SettingKeys() {}
 }

@@ -40,6 +40,7 @@ public class SchemaBootstrap {
     static final String POSTGIS_INITIALIZER_BEAN = "postgisExtensionInitializer";
     static final String HISTORY_INITIALIZER_BEAN = "historySchemaInitializer";
     static final String VECTOR_INITIALIZER_BEAN = "vectorExtensionInitializer";
+    static final String EXPORT_INITIALIZER_BEAN = "exportSchemaInitializer";
 
     @Bean(POSTGIS_INITIALIZER_BEAN)
     public PostgisExtensionInitializer postgisExtensionInitializer(DataSource dataSource) {
@@ -81,6 +82,13 @@ public class SchemaBootstrap {
         return new SpatialIndexInitializer(dataSource);
     }
 
+    /** Creates the held-versions table for legal holds (prompt 111) before Hibernate. */
+    @Bean(EXPORT_INITIALIZER_BEAN)
+    @DependsOn(POSTGIS_INITIALIZER_BEAN)
+    public ai.foresignal.export.ExportSchemaInitializer exportSchemaInitializer(DataSource dataSource) {
+        return new ai.foresignal.export.ExportSchemaInitializer(dataSource);
+    }
+
     /**
      * Forces the {@code EntityManagerFactory} to wait for the PostGIS extension, the optional
      * pgvector extension and the partitioned history table.
@@ -92,6 +100,6 @@ public class SchemaBootstrap {
     @Bean
     public static EntityManagerFactoryDependsOnPostProcessor postgisDependsOnPostProcessor() {
         return new EntityManagerFactoryDependsOnPostProcessor(
-                POSTGIS_INITIALIZER_BEAN, VECTOR_INITIALIZER_BEAN, HISTORY_INITIALIZER_BEAN);
+                POSTGIS_INITIALIZER_BEAN, VECTOR_INITIALIZER_BEAN, HISTORY_INITIALIZER_BEAN, EXPORT_INITIALIZER_BEAN);
     }
 }

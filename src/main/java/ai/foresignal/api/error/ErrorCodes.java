@@ -468,6 +468,30 @@ public final class ErrorCodes {
     /** 409: a sink with this id exists (prompt 110). */
     public static final String SINK_EXISTS = "SINK_EXISTS";
 
+    /** 400: a bulk export, snapshot or pack spec is not valid (prompt 111). */
+    public static final String EXPORT_SPEC_INVALID = "EXPORT_SPEC_INVALID";
+
+    /** 409: the export directory is over {@code exports.diskQuotaGb} (prompt 111). */
+    public static final String EXPORT_QUOTA = "EXPORT_QUOTA";
+
+    /** 410: an export or pack expired, failed or was swept (prompt 111). */
+    public static final String EXPORT_EXPIRED = "EXPORT_EXPIRED";
+
+    /** 400: a snapshot's {@code atSeq} is below a source's retention floor and no hold covers it (111). */
+    public static final String SNAPSHOT_BEYOND_RETENTION = "SNAPSHOT_BEYOND_RETENTION";
+
+    /** 409: the number of legal holds would exceed {@code holds.max} (prompt 111). */
+    public static final String HOLD_LIMIT = "HOLD_LIMIT";
+
+    /** 404: no legal hold has that id (prompt 111). */
+    public static final String UNKNOWN_HOLD = "UNKNOWN_HOLD";
+
+    /** 404: no offline pack has that id (prompt 111). */
+    public static final String UNKNOWN_PACK = "UNKNOWN_PACK";
+
+    /** 400: an offline pack's tile count or extent is not valid (prompt 111). */
+    public static final String PACK_SPEC_INVALID = "PACK_SPEC_INVALID";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

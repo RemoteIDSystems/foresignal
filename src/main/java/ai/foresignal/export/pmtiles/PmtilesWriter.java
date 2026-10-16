@@ -26,6 +26,9 @@ public final class PmtilesWriter {
     /** The tile compression: none (the tiles are already compressed image formats). */
     public static final int COMPRESSION_NONE = 1;
 
+    /** The MVT tile type. */
+    public static final int TYPE_MVT = 1;
+
     /** The PNG tile type. */
     public static final int TYPE_PNG = 2;
 
@@ -57,23 +60,39 @@ public final class PmtilesWriter {
      */
     public static byte[] write(List<Tile> tiles, Map<String, Object> metadata, double[] bounds, int minZoom, int maxZoom,
             int tileType) {
+        return write(tiles, metadata, bounds, minZoom, maxZoom, tileType, COMPRESSION_NONE);
+    }
+
+    /**
+     * Writes a PMTiles v3 archive with an explicit tile-section compression.
+     *
+     * @param tileCompression {@link #COMPRESSION_NONE} (pre-compressed image tiles) or
+     *     {@link #COMPRESSION_GZIP} (gzip-compressed MVT)
+     */
+    public static byte[] write(List<Tile> tiles, Map<String, Object> metadata, double[] bounds, int minZoom, int maxZoom,
+            int tileType, int tileCompression) {
         List<Tile> sorted = new ArrayList<>(tiles);
         sorted.sort(BY_ID);
 
-        // Clustered tile data: offsets accumulate in tile order.
-        long[] offsets = new long[sorted.size()];
+        // Clustered tile data with run-length dedup: consecutive identical tiles share one content
+        // offset and increment the run length.
+        List<Entry> entries = new ArrayList<>();
+        List<byte[]> unique = new ArrayList<>();
         long dataLength = 0;
-        for (int k = 0; k < sorted.size(); k++) {
-            offsets[k] = dataLength;
-            dataLength += sorted.get(k).data().length;
-        }
-        List<Entry> entries = new ArrayList<>(sorted.size());
-        for (int k = 0; k < sorted.size(); k++) {
-            entries.add(new Entry(tileId(sorted.get(k).z(), sorted.get(k).x(), sorted.get(k).y()), offsets[k],
-                    sorted.get(k).data().length, 1));
+        for (Tile tile : sorted) {
+            long id = tileId(tile.z(), tile.x(), tile.y());
+            if (!unique.isEmpty() && java.util.Arrays.equals(unique.getLast(), tile.data())) {
+                Entry last = entries.getLast();
+                entries.set(entries.size() - 1,
+                        new Entry(last.tileId(), last.offset(), last.length(), last.runLength() + 1));
+                continue;
+            }
+            entries.add(new Entry(id, dataLength, tile.data().length, 1));
+            unique.add(tile.data());
+            dataLength += tile.data().length;
         }
 
-        Directory dirs = directory(entries, sorted);
+        Directory dirs = directory(entries, unique);
         byte[] root = gzip(serialize(dirs.root()));
         byte[] leaves = dirs.leaves();
         byte[] json = gzip(metadataJson(metadata).getBytes(StandardCharsets.UTF_8));
@@ -90,13 +109,13 @@ public final class PmtilesWriter {
 
         ByteBuffer out = ByteBuffer.allocate((int) total).order(ByteOrder.LITTLE_ENDIAN);
         writeHeader(out, rootOffset, root.length, metadataOffset, json.length, leafOffset, leaves.length, tileOffset,
-                dataLength, sorted.size(), entries.size(), sorted.size(), (byte) minZoom, (byte) maxZoom, bounds,
-                tileType);
+                dataLength, sorted.size(), entries.size(), unique.size(), (byte) minZoom, (byte) maxZoom, bounds,
+                tileType, tileCompression);
         out.put(root);
         out.put(json);
         out.put(leaves);
-        for (Tile tile : sorted) {
-            out.put(tile.data());
+        for (byte[] data : unique) {
+            out.put(data);
         }
         return out.array();
     }
@@ -134,7 +153,7 @@ public final class PmtilesWriter {
     private record Directory(List<Entry> root, byte[] leaves) {}
 
     /** Builds the root and leaf directories, splitting until the root fits the budget. */
-    private static Directory directory(List<Entry> entries, List<Tile> sorted) {
+    private static Directory directory(List<Entry> entries, List<byte[]> unique) {
         int leafMax = 4096;
         while (true) {
             if (entries.size() <= leafMax) {
@@ -247,7 +266,7 @@ public final class PmtilesWriter {
 
     private static void writeHeader(ByteBuffer out, long rootOffset, long rootLen, long metaOffset, long metaLen,
             long leafOffset, long leafLen, long tileOffset, long tileLen, long addressed, long entries, long contents,
-            byte minZoom, byte maxZoom, double[] bounds, int tileType) {
+            byte minZoom, byte maxZoom, double[] bounds, int tileType, int tileCompression) {
         out.put("PMTiles".getBytes(StandardCharsets.US_ASCII));
         out.put((byte) 3);
         out.putLong(rootOffset);
@@ -263,7 +282,7 @@ public final class PmtilesWriter {
         out.putLong(contents);
         out.put((byte) 1); // clustered
         out.put((byte) COMPRESSION_GZIP);
-        out.put((byte) COMPRESSION_NONE);
+        out.put((byte) tileCompression);
         out.put((byte) tileType);
         out.put(minZoom);
         out.put(maxZoom);

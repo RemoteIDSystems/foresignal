@@ -320,6 +320,13 @@ public class AccessPolicy {
                 // Exports (108): downloading a file is read, polling the job is agent.
                 rule(HttpMethod.GET, "/v1/exports/*/files/*", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/exports/**", AccessRequirement.AGENT),
+                // Bulk exports, snapshots, holds and the cold archive (111).
+                rule(HttpMethod.POST, "/v1/exports", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.DELETE, "/v1/exports/*", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/snapshots", AccessRequirement.ADMIN),
+                rule(null, "/v1/holds", AccessRequirement.ADMIN),
+                rule(null, "/v1/holds/**", AccessRequirement.ADMIN),
+                rule(HttpMethod.GET, "/v1/archive/**", AccessRequirement.ADMIN),
                 // ---- Sampling (052, Weather-Imagery-Design §6.5): reads, the POSTs included ----
                 rule(HttpMethod.GET, "/v1/sample", AccessRequirement.READ),
                 rule(HttpMethod.POST, "/v1/sample", AccessRequirement.READ),
@@ -392,6 +399,7 @@ public class AccessPolicy {
                 rule(null, "/v1/investigations/**", AccessRequirement.AGENT),
                 rule(HttpMethod.POST, "/v1/exposure", AccessRequirement.READ),
                 rule(HttpMethod.POST, "/v1/packs/population/import", AccessRequirement.ADMIN),
+                rule(HttpMethod.POST, "/v1/packs", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
 
                 // ---- Autonomous analyst (prompt 102) ----
                 rule(HttpMethod.POST, "/v1/analyst/profiles/*/run", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),

@@ -52,16 +52,19 @@ public class ExportsController {
     private final PlaceService places;
     private final ReadCallerResolver callers;
     private final ai.foresignal.raster.ProductUrls urls;
+    private final ai.foresignal.export.ExportJobService bulk;
 
     /** Creates the controller. */
     public ExportsController(ProductRegistry registry, ProductCatalogService catalog, ExportJobService jobs,
-            PlaceService places, ReadCallerResolver callers, ai.foresignal.raster.ProductUrls urls) {
+            PlaceService places, ReadCallerResolver callers, ai.foresignal.raster.ProductUrls urls,
+            ai.foresignal.export.ExportJobService bulk) {
         this.registry = registry;
         this.catalog = catalog;
         this.jobs = jobs;
         this.places = places;
         this.callers = callers;
         this.urls = urls;
+        this.bulk = bulk;
     }
 
     /** {@code createProductExport}: submit an export, 202 with the job. */
@@ -79,11 +82,15 @@ public class ExportsController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(jobs.view(job, urls.base(request)));
     }
 
-    /** {@code getExport}: the job status. */
+    /** {@code getExport}: the job status (a raster export from 108, or a bulk export from 111). */
     @GetMapping("/v1/exports/{exportId}")
     @Operation(operationId = "getExport", tags = "Products")
     public java.util.Map<String, Object> getExport(@PathVariable String exportId, HttpServletRequest request) {
-        return jobs.view(jobs.get(exportId), urls.base(request));
+        try {
+            return jobs.view(jobs.get(exportId), urls.base(request));
+        } catch (ai.foresignal.api.error.NotFoundException e) {
+            return bulk.view(bulk.get(exportId), urls.base(request));
+        }
     }
 
     /** {@code downloadExportFile}: the file bytes. */

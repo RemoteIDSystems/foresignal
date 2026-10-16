@@ -88,6 +88,12 @@ public record ExportSpec(String name, ExportFormat format, List<String> sources,
                 fields, flatten, includePrivate, personalUse);
     }
 
+    /** A copy with the bounding box replaced (the resolved {@code placeId}). */
+    public ExportSpec withBbox(double[] newBbox) {
+        return new ExportSpec(name, format, sources, kinds, newBbox, placeId, from, to, timeField, mode, asOf, atSeq,
+                fields, flatten, includePrivate, personalUse);
+    }
+
     /** The stored spec map. */
     public Map<String, Object> toMap() {
         Map<String, Object> out = new LinkedHashMap<>();
