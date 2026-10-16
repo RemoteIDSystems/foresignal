@@ -78,6 +78,16 @@ public final class EmwinTextParser {
             return office + "." + phenomena + "." + significance + "." + etn;
         }
 
+        /**
+         * The event tracking number as the integer {@code EmwinWarningPayload.etn} declares ({@code 42} for
+         * {@code 0042}); the externalId keeps the four-digit VTEC form.
+         *
+         * @return the event tracking number
+         */
+        public int etnNumber() {
+            return Integer.parseInt(etn);
+        }
+
         /** True for a cancellation or an expiry (the record is tombstoned). */
         public boolean cancelled() {
             return "CAN".equals(action) || "EXP".equals(action);

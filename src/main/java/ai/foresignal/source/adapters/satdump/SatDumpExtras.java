@@ -501,7 +501,7 @@ public class SatDumpExtras {
                 .put("phenomena", warning.phenomena())
                 .put("significance", warning.significance())
                 .put("office", warning.office())
-                .put("etn", warning.etn())
+                .put("etn", warning.etnNumber())
                 .put("headline", warning.headline())
                 .put("issuedAt", issuedText)
                 .put("fallback", true)

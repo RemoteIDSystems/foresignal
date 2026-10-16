@@ -92,6 +92,8 @@ class ForecastAreaGeneratorTest {
         assertThat(r.kind()).isEqualTo("forecast-area");
         assertThat(r.validFrom()).isEqualTo(RUN.plus(Duration.ofHours(3)));
         assertThat(r.validUntil()).as("the last exceeding step plus the 1 h step").isEqualTo(RUN.plus(Duration.ofHours(5)));
+        assertThat(r.payload().get("threshold")).as("threshold.value is a JSON number, per the spec")
+                .isEqualTo(Map.of("op", ">=", "value", 25L));
         assertThat(r.payload()).containsEntry("status", "ok").containsEntry("peakValue", 30L)
                 .containsEntry("peakAt", RUN.plus(Duration.ofHours(3)).toString())
                 .containsEntry("run", RUN.toString()).containsEntry("attribution", EcmwfDefinition.CHANGES_MADE)

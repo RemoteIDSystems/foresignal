@@ -152,6 +152,7 @@ class SatDumpExtrasTest {
             assertThat(w.externalId()).isEqualTo("KFWD.TO.W.0042");
             assertThat(w.tombstone()).isFalse();
             assertThat(w.payload()).containsEntry("fallback", true).doesNotContainKey("duplicateOf");
+            assertThat(w.payload()).as("etn is an integer, per EmwinWarningPayload").containsEntry("etn", 42);
             assertThat(w.geometry().getEnvelopeInternal().getMinY()).isEqualTo(32.40);
             assertThat(w.geometry().getEnvelopeInternal().getMinX()).isEqualTo(-97.30);
         });

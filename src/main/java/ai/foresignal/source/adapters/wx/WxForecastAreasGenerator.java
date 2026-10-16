@@ -451,7 +451,7 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
         payload.put("field", def.field());
         Map<String, Object> threshold = new LinkedHashMap<>();
         threshold.put("op", def.op());
-        threshold.put("value", number(def.value()));
+        threshold.put("value", numeric(def.value()));
         payload.put("threshold", threshold);
         payload.putAll(area.section.toMap());
         payload.remove("statusText");
@@ -617,6 +617,17 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
     /** The current areas (tests). */
     Map<String, AreaState> states() {
         return areas;
+    }
+
+    /**
+     * The threshold as a JSON number, as {@code ForecastAreaPayload.threshold.value} declares it: a
+     * {@link Long} for a whole value (50.0 is {@code 50}), otherwise the {@link Double}.
+     *
+     * @param v the threshold
+     * @return the number to put in the payload
+     */
+    static Number numeric(double v) {
+        return v == Math.rint(v) ? (Number) (long) v : (Number) v;
     }
 
     /** {@code 50} for 50.0, {@code 2.5} for 2.5. */

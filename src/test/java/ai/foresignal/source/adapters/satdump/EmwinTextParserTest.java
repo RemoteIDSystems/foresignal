@@ -39,6 +39,7 @@ class EmwinTextParserTest {
         EmwinTextParser.Warning w = parsed.warning();
         assertThat(w.action()).isEqualTo("NEW");
         assertThat(w.externalId()).isEqualTo("KFWD.TO.W.0042");
+        assertThat(w.etnNumber()).isEqualTo(42);
         assertThat(w.validFrom()).isEqualTo(Instant.parse("2026-10-10T21:30:00Z"));
         assertThat(w.validUntil()).isEqualTo(Instant.parse("2026-10-10T22:15:00Z"));
         assertThat(w.cancelled()).isFalse();
