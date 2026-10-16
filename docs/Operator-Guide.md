@@ -4783,8 +4783,13 @@ docker compose exec -T db dropdb -U foresignal restore_drill
 - **Rule recipes:** BGP hijacks — enter on `bgp-hijack` when `confidence_score >= 8`; service status — enter on
   `service-status` when `indicator in [major, critical]`. Cloudflare outages pair with IODA (`ioda-outages`) in
   the 099 corroboration layer to distinguish a national outage from a cable cut or a hijack.
-- **RIS Live is not built** (optional, streaming, disabled). If it is added later, subscribe only to specific
-  prefixes (never the full firehose).
+- **RIS Live (`ris-live`) is optional and disabled by default.** Set `prefixes` (at most 50) to the prefixes you
+  watch; Foresignal subscribes to those (with their more-specifics) and never to the full firehose. Optional:
+  `expectedOrigins` (`prefix=ASN,ASN;prefix2=ASN`) to flag an unexpected origin, and `hosts` (RRC names such as
+  `rrc00`) to narrow the subscription to those collectors. While the stream is down, records say
+  `status: no-data` rather than reporting zero visibility.
+- **RIPE Atlas intraday:** to refresh disconnected probes between daily dumps, set `intradayDisconnected: true`
+  and the source's interval to 30 minutes; the dump is still checked only every 6 hours.
 
 ## Reference datasets (prompt 094)
 

@@ -61,6 +61,9 @@ public final class GpsjamAdapter implements PollingAdapter {
     static final Duration RETENTION = Duration.ofDays(1825);
     static final double BAND = 0.5;
 
+    /** The most requests one run sends: the manifest and one day file. */
+    static final int REQUESTS_PER_RUN = 2;
+
     private final URI baseUrl;
     private final SourceDescriptor descriptor;
 
@@ -206,7 +209,9 @@ public final class GpsjamAdapter implements PollingAdapter {
                         "Include days the site flags as suspect", false))
                 .egress(Egress.LOCAL_ONLY)
                 .interval(Duration.ofHours(6), Duration.ofHours(6))
-                .defaultBudget(1, 8)
+                // A run with a new day sends two requests (the manifest, then the day file) back to back, and
+                // the per-minute bucket holds perMinute tokens, so one per minute could never fetch a day.
+                .defaultBudget(REQUESTS_PER_RUN, 8)
                 .historyTier(HistoryTier.STANDARD)
                 .observedAtMode(ObservedAtMode.UPSTREAM)
                 .ttlAnchor(TtlAnchor.OBSERVED)
