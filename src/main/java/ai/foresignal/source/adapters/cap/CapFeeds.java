@@ -8,6 +8,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 import tools.jackson.databind.JsonNode;
@@ -75,9 +76,13 @@ public final class CapFeeds {
             if (row.get("languages") != null && row.get("languages").isArray()) {
                 row.get("languages").forEach(l -> languages.add(l.asString()));
             }
+            List<String> documentHosts = new ArrayList<>();
+            if (row.get("documentHosts") != null && row.get("documentHosts").isArray()) {
+                row.get("documentHosts").forEach(h -> documentHosts.add(h.asString()));
+            }
             out.add(new CapFeed(text(row, "id"), text(row, "country"), text(row, "authority"),
                     uri(row, "feedUrl"), text(row, "format"), languages, text(row, "licence"),
-                    uri(row, "termsUrl"), text(row, "reviewedOn"), text(row, "notes")));
+                    uri(row, "termsUrl"), text(row, "reviewedOn"), text(row, "notes"), documentHosts));
         }
         return out;
     }
@@ -90,6 +95,7 @@ public final class CapFeeds {
     public static List<String> problems(List<CapFeed> feeds) {
         List<String> out = new ArrayList<>();
         Set<String> ids = new HashSet<>();
+        Set<String> authorities = new HashSet<>();
         for (CapFeed f : feeds) {
             String id = f.id() == null ? "(null)" : f.id();
             if (f.id() == null || !ID.matcher(f.id()).matches()) {
@@ -99,6 +105,18 @@ public final class CapFeeds {
             }
             if (f.country() == null || !f.country().matches("[A-Z]{2}")) {
                 out.add(id + ": country must be an ISO 3166-1 alpha-2 code");
+            } else if (f.id() != null && !f.id().startsWith("cap-" + f.country().toLowerCase(Locale.ROOT) + "-")) {
+                out.add(id + ": the id must be cap-<iso2>-<authority> for its country");
+            }
+            if (f.country() != null && f.authority() != null
+                    && !authorities.add(f.country() + "|" + f.authority().strip().toLowerCase(Locale.ROOT))) {
+                out.add(id + ": the authority already has a source (one source per authority; pick the info"
+                        + " language with languages)");
+            }
+            for (String host : f.documentHosts()) {
+                if (!host.matches("[a-z0-9.-]+")) {
+                    out.add(id + ": documentHosts entry '" + host + "' is not a host name");
+                }
             }
             if (f.authority() == null || f.authority().isBlank()) {
                 out.add(id + ": authority is required");

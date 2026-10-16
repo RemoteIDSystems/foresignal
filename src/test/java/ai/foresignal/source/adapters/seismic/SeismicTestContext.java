@@ -16,6 +16,7 @@ import java.net.http.WebSocket;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,15 +35,36 @@ final class SeismicTestContext implements StreamContext {
 
     private final SourceDescriptor descriptor;
     private final Clock clock;
-    private final byte[] gapFillBody;
+    private final java.util.function.Function<URI, UpstreamResponse> responder;
+    private final List<URI> requests = new CopyOnWriteArrayList<>();
     private final Http http = new Http();
     private final Map<String, String> state = new ConcurrentHashMap<>();
     private final AtomicLong reportedBytes = new AtomicLong();
 
     SeismicTestContext(SourceDescriptor descriptor, Clock clock, byte[] gapFillBody) {
+        this(descriptor, clock, uri -> new UpstreamResponse(200, Map.of(), gapFillBody, "application/json", false,
+                false));
+    }
+
+    /**
+     * A context whose gap-fill GETs are answered by {@code responder}, which may throw an
+     * {@link IllegalStateException} to simulate a failed request (it is rethrown as an {@link AdapterException}).
+     */
+    SeismicTestContext(SourceDescriptor descriptor, Clock clock,
+            java.util.function.Function<URI, UpstreamResponse> responder) {
         this.descriptor = descriptor;
         this.clock = clock;
-        this.gapFillBody = gapFillBody;
+        this.responder = responder;
+    }
+
+    /** The gap-fill URIs requested, in order. */
+    List<URI> requests() {
+        return requests;
+    }
+
+    /** The adapter state, for assertions. */
+    Map<String, String> stateValues() {
+        return state;
     }
 
     int opens() {
@@ -151,17 +173,22 @@ final class SeismicTestContext implements StreamContext {
         }
 
         @Override
-        public UpstreamResponse get(URI uri) {
-            return new UpstreamResponse(200, Map.of(), gapFillBody, "application/json", false, false);
+        public UpstreamResponse get(URI uri) throws AdapterException {
+            requests.add(uri);
+            try {
+                return responder.apply(uri);
+            } catch (IllegalStateException e) {
+                throw new AdapterException(e.getMessage());
+            }
         }
 
         @Override
-        public UpstreamResponse get(URI uri, Map<String, String> headers) {
+        public UpstreamResponse get(URI uri, Map<String, String> headers) throws AdapterException {
             return get(uri);
         }
 
         @Override
-        public UpstreamResponse getConditional(URI uri, String stateKey) {
+        public UpstreamResponse getConditional(URI uri, String stateKey) throws AdapterException {
             return get(uri);
         }
 

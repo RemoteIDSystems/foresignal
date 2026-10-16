@@ -131,15 +131,35 @@ public final class MeteoAlarmJsonAdapter {
         if (node.isArray()) {
             for (JsonNode one : node) {
                 if (one.isString()) {
-                    String[] parts = one.asString().split(",", 3);
-                    out.add(new CapAlert.Reference(part(parts, 0), part(parts, 1), parseTime(part(parts, 2))));
+                    out.addAll(triplets(one.asString()));
                 } else if (one.isObject()) {
                     out.add(new CapAlert.Reference(text(one, "sender"), text(one, "identifier"),
                             time(one, "sent")));
                 }
             }
         } else if (node.isString()) {
-            String[] parts = node.asString().split(",", 3);
+            out.addAll(triplets(node.asString()));
+        }
+        return out;
+    }
+
+    /**
+     * The references of one CAP {@code references} value: a whitespace-separated list of
+     * {@code sender,identifier,sent} triplets (CAP 1.2; sender and identifier contain no spaces or commas).
+     *
+     * @param value the value, possibly blank
+     * @return one reference per triplet, in order
+     */
+    static List<CapAlert.Reference> triplets(String value) {
+        List<CapAlert.Reference> out = new ArrayList<>();
+        if (value == null) {
+            return out;
+        }
+        for (String triplet : value.strip().split("\\s+")) {
+            if (triplet.isEmpty()) {
+                continue;
+            }
+            String[] parts = triplet.split(",", 3);
             out.add(new CapAlert.Reference(part(parts, 0), part(parts, 1), parseTime(part(parts, 2))));
         }
         return out;

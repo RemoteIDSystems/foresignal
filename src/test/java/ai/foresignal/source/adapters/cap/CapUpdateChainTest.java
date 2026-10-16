@@ -21,7 +21,7 @@ class CapUpdateChainTest {
     static final Instant NOW = Instant.parse("2026-10-14T12:00:00Z");
 
     private static CapAlert parse(String name) {
-        return CapParser.parse(AdapterFixtures.bytes("cap-de-dwd-de", name));
+        return CapParser.parse(AdapterFixtures.bytes("cap-de-dwd", name));
     }
 
     @Test
@@ -70,6 +70,41 @@ class CapUpdateChainTest {
         NormalizedRecord kept = CapAlertRecords.map(exercise, "t", List.of("en-GB"), true);
         assertThat(kept).isNotNull();
         assertThat(kept.payload()).containsEntry("status", "Exercise");
+    }
+
+    /** A two-language CAP message (German first, then English) with distinct headlines. */
+    private static CapAlert bilingual() {
+        String info = "<info><language>%s</language><category>Met</category><event>%s</event><urgency>Immediate"
+                + "</urgency><severity>Moderate</severity><certainty>Likely</certainty><headline>%s</headline>"
+                + "<area><areaDesc>%s</areaDesc></area></info>";
+        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><alert xmlns=\"urn:oasis:names:tc:emergency:cap:1.2\">"
+                + "<identifier>bi-1</identifier><sender>test@example.org</sender>"
+                + "<sent>2026-10-14T10:00:00+00:00</sent><status>Actual</status><msgType>Alert</msgType>"
+                + "<scope>Public</scope>"
+                + String.format(info, "de-DE", "Sturmböen", "Amtliche Warnung vor Sturmböen", "Kreis Test")
+                + String.format(info, "en-GB", "Gale-force gusts", "Official warning of gale-force gusts",
+                        "Test district")
+                + "</alert>";
+        return CapParser.parse(xml.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    @Test
+    @DisplayName("language selection: the info block follows the source's languages, exact tag then primary subtag;"
+            + " every language's headline is kept")
+    void languageSelection() {
+        CapAlert alert = bilingual();
+        NormalizedRecord english = CapAlertRecords.map(alert, "t", List.of("en-GB", "de"), false);
+        assertThat(english.payload()).containsEntry("headline", "Official warning of gale-force gusts")
+                .containsEntry("language", "en-GB").containsEntry("areaDesc", "Test district");
+        NormalizedRecord german = CapAlertRecords.map(alert, "t", List.of("de"), false);
+        assertThat(german.payload()).as("primary subtag de matches de-DE")
+                .containsEntry("headline", "Amtliche Warnung vor Sturmböen").containsEntry("language", "de-DE");
+        NormalizedRecord fallback = CapAlertRecords.map(alert, "t", List.of("fr"), false);
+        assertThat(fallback.payload()).as("no match: the first info block").containsEntry("language", "de-DE");
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> headlines = (java.util.Map<String, Object>) english.payload().get("headlines");
+        assertThat(headlines).containsEntry("de-DE", "Amtliche Warnung vor Sturmböen")
+                .containsEntry("en-GB", "Official warning of gale-force gusts");
     }
 
     @Test

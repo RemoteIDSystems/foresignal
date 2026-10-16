@@ -1,4 +1,4 @@
-# `cap-de-dwd-de` fixtures
+# `cap-de-dwd` fixtures
 
 Captured 2026-10-14 from the German DWD CAP feed (public domain, DWD open data):
 <https://www.dwd.de/DWD/warnungen/cap-feed/de/atom.xml>.

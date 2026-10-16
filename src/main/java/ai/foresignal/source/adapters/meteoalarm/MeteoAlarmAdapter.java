@@ -92,12 +92,20 @@ public final class MeteoAlarmAdapter implements PollingAdapter {
         }
         CapThreadResolver resolver = CapThreadResolver.load(ctx.state(), ctx.now());
         List<NormalizedRecord> records = new ArrayList<>();
+        int skipped = 0;
         for (JsonNode warning : warnings) {
             JsonNode alert = warning.get("alert");
             if (alert == null) {
                 continue;
             }
-            CapAlert parsed = MeteoAlarmJsonAdapter.convert(alert);
+            CapAlert parsed;
+            try {
+                parsed = MeteoAlarmJsonAdapter.convert(alert);
+            } catch (UpstreamFormatException e) {
+                // One malformed warning (no sent time, not an object) is skipped; the rest of the country is kept.
+                skipped++;
+                continue;
+            }
             String thread = resolver.resolve(parsed, null, ctx.now());
             NormalizedRecord record = CapAlertRecords.map(parsed, thread,
                     List.of("en-GB", "en"), false);
@@ -106,6 +114,9 @@ public final class MeteoAlarmAdapter implements PollingAdapter {
             }
         }
         resolver.save(ctx.state());
+        if (skipped > 0) {
+            ctx.log().warn("{}: skipped {} malformed warning(s)", ctx.sourceId(), skipped);
+        }
         return FetchResult.of(records);
     }
 

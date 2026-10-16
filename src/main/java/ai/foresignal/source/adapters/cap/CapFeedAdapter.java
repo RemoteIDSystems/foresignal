@@ -1,5 +1,6 @@
 package ai.foresignal.source.adapters.cap;
 
+import ai.foresignal.collect.BudgetExceededException;
 import ai.foresignal.source.formats.cap.CapAlert;
 import ai.foresignal.source.formats.cap.CapParser;
 import ai.foresignal.source.formats.cap.CapThreadResolver;
@@ -20,6 +21,7 @@ import ai.foresignal.source.spi.ParamSpec;
 import ai.foresignal.source.spi.ParamType;
 import ai.foresignal.source.spi.PollingAdapter;
 import ai.foresignal.source.spi.SourceDescriptor;
+import ai.foresignal.source.spi.SourceHttp;
 import ai.foresignal.source.spi.TtlAnchor;
 import ai.foresignal.source.spi.UpstreamFormatException;
 import ai.foresignal.source.spi.UpstreamResponse;
@@ -32,16 +34,21 @@ import java.util.Set;
 
 /**
  * One reviewed CAP feed (prompt 089): a conditional GET of the Atom/RSS index, then a fetch of the CAP
- * documents whose link is new (at most {@value #MAX_DOCS_PER_RUN} a run, serial), parsed with prompt 067's
- * {@link CapParser} and threaded with the shared {@link CapThreadResolver}.
+ * documents whose link is new (at most {@value #MAX_DOCS_PER_RUN} a run, serial, within the budget; a budget refusal
+ * stops the run cleanly and the rest are read next run), parsed with prompt 067's {@link CapParser} and threaded
+ * with the shared {@link CapThreadResolver}. Only links on the feed's own host (or its reviewed
+ * {@link CapFeed#documentHosts}) are fetched.
  *
  * <p>An {@code Update} versions the same record; a {@code Cancel} is a tombstone of the thread. Absence from
  * the index never closes an alert; alerts expire through their own {@code expires} ({@code validUntil}).
  */
 public final class CapFeedAdapter implements PollingAdapter {
 
-    /** The most CAP documents fetched in one run. */
-    public static final int MAX_DOCS_PER_RUN = 50;
+    /**
+     * The most CAP documents fetched in one run: the 6-a-minute budget less the index request. The documents left
+     * over are read on the next run (the index validators are forgotten so a 304 cannot hide them).
+     */
+    public static final int MAX_DOCS_PER_RUN = 5;
 
     /** The most document links remembered. */
     public static final int MAX_SEEN = 5_000;
@@ -51,6 +58,12 @@ public final class CapFeedAdapter implements PollingAdapter {
 
     /** The adapter-state key for the remembered document links. */
     static final String SEEN_STATE_KEY = "cap:seen";
+
+    /** The adapter-state key of the non-{@code Actual} document links skipped while {@code includeTests} is off. */
+    static final String SKIPPED_TESTS_STATE_KEY = "cap:skippedTests";
+
+    /** The adapter-state key of the {@code includeTests} value the index validators belong to. */
+    static final String INCLUDE_TESTS_STATE_KEY = "cap:includeTests";
 
     /** The retention of the {@code cap-alert} kind (the event class). */
     static final Duration RETENTION = Duration.ofDays(1825);
@@ -84,6 +97,12 @@ public final class CapFeedAdapter implements PollingAdapter {
     }
 
     private FetchResult fetchIndex(FetchContext ctx, boolean includeTests) throws AdapterException {
+        String mode = Boolean.toString(includeTests);
+        if (!mode.equals(ctx.state().get(INCLUDE_TESTS_STATE_KEY).orElse(null))) {
+            // Turning includeTests on must re-read the index even if it is unchanged, to reach the skipped documents.
+            SourceHttp.forgetValidators(ctx.state(), INDEX_STATE_KEY);
+            ctx.state().put(INCLUDE_TESTS_STATE_KEY, mode);
+        }
         UpstreamResponse index = ctx.http().getConditional(feed.feedUrl(), INDEX_STATE_KEY);
         if (index.notModified()) {
             return FetchResult.unchanged();
@@ -94,32 +113,66 @@ public final class CapFeedAdapter implements PollingAdapter {
         }
         FeedDocument document = FeedParser.parse(index.body(), index.contentType());
         SeenSet seen = SeenSet.load(ctx.state(), SEEN_STATE_KEY);
+        SeenSet skippedTests = SeenSet.load(ctx.state(), SKIPPED_TESTS_STATE_KEY);
         CapThreadResolver resolver = CapThreadResolver.load(ctx.state(), ctx.now());
         List<NormalizedRecord> records = new ArrayList<>();
         int fetched = 0;
+        int refused = 0;
+        boolean backlog = false;
         for (FeedItem item : document.items()) {
             String link = item.link();
-            if (link == null || link.isBlank() || seen.contains(link)) {
+            if (link == null || link.isBlank() || seen.contains(link)
+                    || (!includeTests && skippedTests.contains(link))) {
+                continue;
+            }
+            URI uri;
+            try {
+                uri = URI.create(link.strip());
+            } catch (IllegalArgumentException e) {
+                uri = null;
+            }
+            if (!feed.allowsDocument(uri)) {
+                // An index is upstream data: a link off the feed's reviewed hosts is never fetched.
+                refused++;
+                seen.add(link);
                 continue;
             }
             if (fetched >= MAX_DOCS_PER_RUN) {
+                backlog = true;
                 break;
             }
             fetched++;
             byte[] body;
             try {
-                UpstreamResponse response = ctx.http().get(URI.create(link));
+                UpstreamResponse response = ctx.http().get(uri);
                 if (response.status() != 200 || response.truncated()) {
                     continue;
                 }
                 body = response.body();
+            } catch (BudgetExceededException e) {
+                backlog = true;
+                ctx.log().info("{}: the budget stopped the document fetches; the next run continues",
+                        ctx.sourceId());
+                break;
             } catch (AdapterException e) {
+                if (e.httpStatus().orElse(0) == 404 || e.httpStatus().orElse(0) == 410) {
+                    seen.add(link);
+                }
                 continue;
             }
-            mapped(ctx, body, resolver, seen, link, includeTests, records);
+            mapped(ctx, body, resolver, seen, skippedTests, link, includeTests, records);
+        }
+        if (refused > 0) {
+            ctx.log().warn("{}: refused {} document link(s) outside the feed's reviewed hosts", ctx.sourceId(),
+                    refused);
+        }
+        if (backlog) {
+            // The index may answer 304 next time; forget its validators so the documents left over are still read.
+            SourceHttp.forgetValidators(ctx.state(), INDEX_STATE_KEY);
         }
         resolver.save(ctx.state());
         seen.save(ctx.state());
+        skippedTests.save(ctx.state());
         return FetchResult.of(records);
     }
 
@@ -134,19 +187,30 @@ public final class CapFeedAdapter implements PollingAdapter {
         }
         CapThreadResolver resolver = CapThreadResolver.load(ctx.state(), ctx.now());
         List<NormalizedRecord> records = new ArrayList<>();
-        mapped(ctx, response.body(), resolver, null, null, includeTests, records);
+        mapped(ctx, response.body(), resolver, null, null, null, includeTests, records);
         resolver.save(ctx.state());
         return FetchResult.of(records);
     }
 
-    private void mapped(FetchContext ctx, byte[] body, CapThreadResolver resolver, SeenSet seen, String link,
-            boolean includeTests, List<NormalizedRecord> records) {
+    /**
+     * Parses, threads and maps one CAP document. A document that does not parse is marked seen; a non-{@code Actual}
+     * one skipped because {@code includeTests} is off goes to {@code skippedTests} instead, so enabling
+     * {@code includeTests} later still picks it up.
+     */
+    private void mapped(FetchContext ctx, byte[] body, CapThreadResolver resolver, SeenSet seen,
+            SeenSet skippedTests, String link, boolean includeTests, List<NormalizedRecord> records) {
         CapAlert alert;
         try {
             alert = CapParser.parse(body);
         } catch (UpstreamFormatException e) {
             if (seen != null) {
                 seen.add(link);
+            }
+            return;
+        }
+        if (!includeTests && !"Actual".equals(alert.status())) {
+            if (skippedTests != null) {
+                skippedTests.add(link);
             }
             return;
         }

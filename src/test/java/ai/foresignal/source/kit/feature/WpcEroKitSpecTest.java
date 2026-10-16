@@ -77,4 +77,52 @@ class WpcEroKitSpecTest {
         }
         assertThat(accepted).isGreaterThan(0);
     }
+
+    @Test
+    @DisplayName("a category that vanishes from two complete reads is tombstoned; a day with no risk area is normal")
+    void vanishedCategoryTombstoned() {
+        FeatureSourceSpec d1 = specs().stream().filter(f -> f.id().equals("wpc-ero-d1")).findFirst().orElseThrow();
+        assertThat(specs()).allMatch(s -> Boolean.TRUE.equals(s.zeroResultsNormal()));
+        JsonNode layer = JSON.readTree(AdapterFixtures.bytes("wpc-ero-d1", "layer.geojson"));
+        List<String> ids = new java.util.ArrayList<>();
+        for (JsonNode feature : layer.get("features")) {
+            FeatureMapper.Mapped mapped = FeatureMapper.map(d1, feature);
+            if (mapped.accepted() && !ids.contains(mapped.record().externalId())) {
+                ids.add(mapped.record().externalId());
+            }
+        }
+        assertThat(ids).as("the fixture needs two categories").hasSizeGreaterThanOrEqualTo(2);
+        String vanished = ids.getLast();
+        List<String> remaining = ids.subList(0, ids.size() - 1);
+
+        java.util.Map<String, String> values = new java.util.HashMap<>();
+        ai.foresignal.source.spi.AdapterStateStore state = new ai.foresignal.source.spi.AdapterStateStore() {
+            @Override
+            public java.util.Optional<String> get(String key) {
+                return java.util.Optional.ofNullable(values.get(key));
+            }
+
+            @Override
+            public void put(String key, String value) {
+                values.put(key, value);
+            }
+
+            @Override
+            public void remove(String key) {
+                values.remove(key);
+            }
+        };
+        var complete = ai.foresignal.source.support.AbsenceTombstoner.Outcome.COMPLETE;
+        assertThat(ai.foresignal.source.support.AbsenceTombstoner.update(state, complete, ids)).isEmpty();
+        assertThat(ai.foresignal.source.support.AbsenceTombstoner.update(state, complete, remaining))
+                .as("one missing read is not enough").isEmpty();
+        List<String> gone = ai.foresignal.source.support.AbsenceTombstoner.update(state, complete, remaining);
+        assertThat(gone).containsExactly(vanished);
+        assertThat(ai.foresignal.source.support.AbsenceTombstoner.tombstones(gone, d1.kind(), java.time.Instant.now()))
+                .singleElement().satisfies(t -> {
+                    assertThat(t.tombstone()).isTrue();
+                    assertThat(t.externalId()).isEqualTo(vanished);
+                    assertThat(t.kind()).isEqualTo("rainfall-outlook");
+                });
+    }
 }

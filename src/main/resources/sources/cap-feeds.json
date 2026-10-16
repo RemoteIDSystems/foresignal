@@ -5,7 +5,7 @@
   "rule": "Keyless, documented, HTTPS CAP feeds seeded from the WMO Register of Alerting Authorities. US NWS is skipped (prompt 047 has nws-alerts); European national MeteoAlarm feeds are skipped (the meteoalarm-* family covers them). Every entry was fetched live on 2026-10-14 and returned XML with the licence recorded here. Format: atom-index or rss-index (an Atom/RSS index whose items link to CAP documents) or cap-inline (the URL is one CAP document).",
   "feeds": [
     {
-      "id": "cap-de-dwd-de",
+      "id": "cap-de-dwd",
       "country": "DE",
       "authority": "Deutscher Wetterdienst",
       "feedUrl": "https://www.dwd.de/DWD/warnungen/cap-feed/de/atom.xml",
@@ -14,22 +14,10 @@
       "licence": "public domain (DWD open data)",
       "termsUrl": "https://www.dwd.de/EN/service/copyright/copyright_node.html",
       "reviewedOn": "2026-10-14",
-      "notes": "German-language DWD CAP feed; links are direct application/cap+xml documents."
+      "notes": "German-language DWD CAP feed; links are direct application/cap+xml documents. The English feed (cap-feed/en/atom.xml) carries the same warnings under parallel identifiers (.ENG instead of .DEU, verified 2026-10-16), so it is not a second source."
     },
     {
-      "id": "cap-de-dwd-en",
-      "country": "DE",
-      "authority": "Deutscher Wetterdienst",
-      "feedUrl": "https://www.dwd.de/DWD/warnungen/cap-feed/en/atom.xml",
-      "format": "atom-index",
-      "languages": ["en"],
-      "licence": "public domain (DWD open data)",
-      "termsUrl": "https://www.dwd.de/EN/service/copyright/copyright_node.html",
-      "reviewedOn": "2026-10-14",
-      "notes": "English-language companion of cap-de-dwd-de; separate source so client language preference is explicit."
-    },
-    {
-      "id": "cap-fi-fmi-en",
+      "id": "cap-fi-fmi",
       "country": "FI",
       "authority": "Finnish Meteorological Institute",
       "feedUrl": "https://alerts.fmi.fi/cap/feed/rss_en-GB.rss",
@@ -41,7 +29,7 @@
       "notes": "Item links are dated CAP XML documents under /cap/."
     },
     {
-      "id": "cap-no-metno-en",
+      "id": "cap-no-metno",
       "country": "NO",
       "authority": "Norwegian Meteorological Institute",
       "feedUrl": "https://alert.met.no/feed?lang=en",
@@ -53,7 +41,7 @@
       "notes": "Item links are metalerts query URLs that return the CAP document."
     },
     {
-      "id": "cap-is-imo-en",
+      "id": "cap-is-imo",
       "country": "IS",
       "authority": "Icelandic Meteorological Office",
       "feedUrl": "https://api.vedur.is/cap/v1/capbroker/active/feed/met",
@@ -65,7 +53,7 @@
       "notes": "capbroker active notices; item links return the CAP document."
     },
     {
-      "id": "cap-au-bom-en",
+      "id": "cap-au-bom",
       "country": "AU",
       "authority": "Australian Bureau of Meteorology",
       "feedUrl": "https://severeweather.wmo.int/v2/cap-alerts/au-bom-en/rss.xml",
@@ -77,7 +65,7 @@
       "notes": "WMO severe-weather pilot mirror of the BoM CAP alerts."
     },
     {
-      "id": "cap-hk-hko-en",
+      "id": "cap-hk-hko",
       "country": "HK",
       "authority": "Hong Kong Observatory",
       "feedUrl": "https://alerts.weather.gov.hk/V1/cap_atom.xml",
@@ -89,7 +77,7 @@
       "notes": "Feed was empty on 2026-10-14; item links point at CAP documents when warnings are in force."
     },
     {
-      "id": "cap-sg-weather-en",
+      "id": "cap-sg-weather",
       "country": "SG",
       "authority": "Meteorological Service Singapore",
       "feedUrl": "https://www.weather.gov.sg/files/rss/rsscapalert/rsscapalert.xml",
@@ -101,7 +89,7 @@
       "notes": "Feed was empty on 2026-10-14."
     },
     {
-      "id": "cap-kr-kma-ko",
+      "id": "cap-kr-kma",
       "country": "KR",
       "authority": "Korea Meteorological Administration",
       "feedUrl": "https://www.weather.go.kr/w/rss/cap/warning.do",
@@ -113,7 +101,7 @@
       "notes": "Korean-language warning CAP feed."
     },
     {
-      "id": "cap-in-ndma-en",
+      "id": "cap-in-ndma",
       "country": "IN",
       "authority": "National Disaster Management Authority (SACHET)",
       "feedUrl": "https://sachet.ndma.gov.in/cap_public_website/rss/rss_india.xml",
@@ -125,7 +113,7 @@
       "notes": "SACHET national CAP alerts."
     },
     {
-      "id": "cap-br-inmet-pt",
+      "id": "cap-br-inmet",
       "country": "BR",
       "authority": "Instituto Nacional de Meteorologia (via MDR)",
       "feedUrl": "https://idapfile.mdr.gov.br/idap/api/rss/cap",
@@ -137,7 +125,7 @@
       "notes": "MDR/INMET CAP Atom index."
     },
     {
-      "id": "cap-nz-metservice-en",
+      "id": "cap-nz-metservice",
       "country": "NZ",
       "authority": "MetService New Zealand",
       "feedUrl": "https://alerts.metservice.com/cap/rss",
@@ -149,7 +137,7 @@
       "notes": "MetService CAP warnings."
     },
     {
-      "id": "cap-ke-kmd-en",
+      "id": "cap-ke-kmd",
       "country": "KE",
       "authority": "Kenya Meteorological Department",
       "feedUrl": "https://meteo.go.ke/api/cap/rss.xml",
@@ -161,7 +149,7 @@
       "notes": "KMD CAP feed, served by the WMO CAP Composer."
     },
     {
-      "id": "cap-ng-nimet-en",
+      "id": "cap-ng-nimet",
       "country": "NG",
       "authority": "Nigerian Meteorological Agency",
       "feedUrl": "https://cap-sources.s3.amazonaws.com/ng-nimet-en/rss.xml",
