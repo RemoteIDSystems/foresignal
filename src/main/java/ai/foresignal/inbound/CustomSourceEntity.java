@@ -102,6 +102,10 @@ public class CustomSourceEntity {
     @Column(name = "licence", length = 200)
     private String licence;
 
+    /** The structured licence terms as JSON (prompt 109), or null. */
+    @Column(name = "licence_terms", columnDefinition = "text")
+    private String licenceTerms;
+
     @Column(name = "records_per_minute", nullable = false)
     private int recordsPerMinute = 6000;
 
@@ -377,6 +381,16 @@ public class CustomSourceEntity {
     /** Sets the data license. */
     public void setLicence(String licence) {
         this.licence = licence;
+    }
+
+    /** The structured licence terms as JSON (prompt 109), or null. */
+    public String getLicenceTerms() {
+        return licenceTerms;
+    }
+
+    /** Sets the structured licence terms JSON. */
+    public void setLicenceTerms(String licenceTerms) {
+        this.licenceTerms = licenceTerms;
     }
 
     /** The records-per-minute cap. */

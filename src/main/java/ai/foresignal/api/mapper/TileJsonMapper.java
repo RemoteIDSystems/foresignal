@@ -49,6 +49,18 @@ public class TileJsonMapper {
         this.version = version;
     }
 
+    private ai.foresignal.provenance.AttributionService attributions;
+
+    /**
+     * Wires the aggregated attribution (prompt 109: a layer's TileJSON {@code attribution} is the aggregate of its
+     * sources' attribution or licence attribution text); optional so hand-built tests keep the descriptor-only
+     * text.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setAttributions(ai.foresignal.provenance.AttributionService attributions) {
+        this.attributions = attributions;
+    }
+
     /** {@code GET /v1/tiles.json}: every visible layer with its TileJSON URL. */
     public Map<String, Object> index(List<TileLayer> layers, String baseUrl) {
         return index(layers, baseUrl, null);
@@ -127,7 +139,7 @@ public class TileJsonMapper {
         body.put("name", layer.name());
         body.put("description", layer.description());
         body.put("version", version.version());
-        String attribution = layer.attribution();
+        String attribution = attributions != null ? attributions.layerText(layer.sources()) : layer.attribution();
         if (attribution != null) {
             body.put("attribution", attribution);
         }

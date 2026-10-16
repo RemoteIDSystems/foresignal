@@ -52,23 +52,54 @@ public class SigningKeyService {
         this.retainRetired = retainRetired == null ? Duration.ofDays(365) : retainRetired;
     }
 
+    /** The {@code pg_advisory_xact_lock} key that serializes key generation and rotation across instances. */
+    static final long LOCK_KEY = 0x464F52455349474EL;
+
+    /** Records rotations in the audit log (prompt 023); resolved lazily, absent in unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private org.springframework.beans.factory.ObjectProvider<ai.foresignal.security.audit.AuditService> audit;
+
     /** An in-memory key. */
     public record Key(String kid, PublicKey publicKey, byte[] x) {}
+
+    /**
+     * The active key's {@code kid}, public key and decrypted private key, read from <em>one</em> row in one
+     * transaction, so a signature's {@code kid} always names the key that made it, even while a rotation runs.
+     */
+    public record Material(String kid, PublicKey publicKey, PrivateKey privateKey) {}
 
     /** The active key, generated on first use. */
     @Transactional
     public Key active() {
-        SigningKeyEntity entity = keys.findFirstByStatusOrderByCreatedAtDesc(SigningKeyEntity.ACTIVE)
-                .orElseGet(() -> generate());
-        return toKey(entity);
+        return toKey(activeEntity());
     }
 
-    /** The active key's plaintext, decrypted, for signing. */
+    /** The active key's plaintext, decrypted, for signing. Prefer {@link #activeMaterial()}. */
     @Transactional
     public PrivateKey activePrivate() {
-        SigningKeyEntity entity = keys.findFirstByStatusOrderByCreatedAtDesc(SigningKeyEntity.ACTIVE)
-                .orElseGet(() -> generate());
-        return privateKey(entity);
+        return privateKey(activeEntity());
+    }
+
+    /** The active key's {@code kid}, public and private key from the same row ({@link Material}). */
+    @Transactional
+    public Material activeMaterial() {
+        SigningKeyEntity entity = activeEntity();
+        return new Material(entity.getKid(), toKey(entity).publicKey(), privateKey(entity));
+    }
+
+    /**
+     * The active key row, generated on first use. Two first uses at once (two requests, or two instances on one
+     * database) would each generate a key; the generation path takes a transaction-scoped advisory lock and
+     * looks again under it, so exactly one key is created and the other caller reads it.
+     */
+    SigningKeyEntity activeEntity() {
+        java.util.Optional<SigningKeyEntity> found =
+                keys.findFirstByStatusOrderByCreatedAtDesc(SigningKeyEntity.ACTIVE);
+        if (found.isPresent()) {
+            return found.get();
+        }
+        keys.lock(LOCK_KEY);
+        return keys.findFirstByStatusOrderByCreatedAtDesc(SigningKeyEntity.ACTIVE).orElseGet(this::generate);
     }
 
     /** The active key's {@code kid}. */
@@ -103,15 +134,39 @@ public class SigningKeyService {
         return out;
     }
 
-    /** Retires the active key and activates a new one. */
+    /**
+     * Retires every active key and activates a new one, under the same advisory lock as first-use generation
+     * so concurrent rotations never leave two active keys. Records a {@code signing_key} audit event.
+     */
     @Transactional
     public Key rotate() {
-        keys.findFirstByStatusOrderByCreatedAtDesc(SigningKeyEntity.ACTIVE).ifPresent(entity -> {
+        keys.lock(LOCK_KEY);
+        List<String> retired = new ArrayList<>();
+        for (SigningKeyEntity entity : keys.findByStatus(SigningKeyEntity.ACTIVE)) {
             entity.setStatus(SigningKeyEntity.RETIRED);
             entity.setRetiredAt(clock.instant());
             keys.save(entity);
-        });
-        return toKey(generate());
+            retired.add(entity.getKid());
+        }
+        SigningKeyEntity created = generate();
+        recordRotation(created.getKid(), retired);
+        return toKey(created);
+    }
+
+    /** The {@code targetType} of a signing-key audit event. */
+    public static final String AUDIT_TARGET = "signing_key";
+
+    private void recordRotation(String kid, List<String> retired) {
+        ai.foresignal.security.audit.AuditService service = audit == null ? null : audit.getIfAvailable();
+        if (service == null) {
+            return;
+        }
+        Map<String, Object> detail = new java.util.LinkedHashMap<>();
+        detail.put("kid", kid);
+        detail.put("retired", retired);
+        service.record(new ai.foresignal.security.audit.AuditRecord(clock.instant(),
+                ai.foresignal.security.audit.AuditRecord.SYSTEM, null, null, null, null, null, null,
+                "rotateSigningKey", null, AUDIT_TARGET, kid, null, detail));
     }
 
     /** Retires the active key and returns the new key's metadata ({@code SigningKeyInfo}). */

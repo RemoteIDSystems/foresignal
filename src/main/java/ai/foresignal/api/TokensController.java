@@ -63,6 +63,14 @@ public class TokensController {
         return ApiTokenDto.of(created.entity(), created.principalHandle(), created.plaintext());
     }
 
+    /** {@code updateToken}: replace the token's licence policy floor (prompt 109); the value is never returned. */
+    @org.springframework.web.bind.annotation.PatchMapping("/v1/tokens/{tokenId}")
+    @Operation(operationId = "updateToken", tags = "Tokens")
+    public ApiTokenDto updateToken(@PathVariable String tokenId, @RequestBody JsonNode body) {
+        ApiTokenEntity updated = tokens.updateLicencePolicy(uuid(tokenId, "tokenId"), body);
+        return ApiTokenDto.of(updated, tokens.principalHandle(updated.getPrincipalId()));
+    }
+
     /** {@code revokeToken}: 204; 409 {@code BOOTSTRAP_TOKEN} for the bootstrap token. */
     @DeleteMapping("/v1/tokens/{tokenId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)

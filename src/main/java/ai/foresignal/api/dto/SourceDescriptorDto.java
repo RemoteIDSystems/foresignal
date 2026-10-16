@@ -13,7 +13,9 @@ import java.util.Map;
  *
  * <p>Durations serialize in shorthand through the prompt 002 serializers. Fields the spec assigns
  * to later prompts ({@code egress}, {@code licenceTerms}, {@code reliability}, {@code access}, ...)
- * are added by those prompts.
+ * are added by those prompts. Prompt 109 adds {@code licenceTerms} (the resolved terms, following
+ * {@code derivedFrom} for a DERIVED source), {@code reliability} (the descriptor's seeded Admiralty grade; the
+ * operator's override is on the source view) and {@code derivedFrom}.
  *
  * @param id source id
  * @param name display name
@@ -63,6 +65,10 @@ import java.util.Map;
  * @param access how the source reaches its data, or null
  * @param egressOverridable whether the operator may override {@code egress} in {@code SourceSettings}
  *     (prompt 069: the local receiver families)
+ * @param llmNotice a notice shown when the source's records reach a remote LLM, or null
+ * @param licenceTerms the resolved licence terms (prompt 109)
+ * @param reliability the descriptor's Admiralty reliability grade {@code A}–{@code F} (prompt 109)
+ * @param derivedFrom a DERIVED source's declared input source ids (prompt 109)
  */
 public record SourceDescriptorDto(
         String id,
@@ -114,4 +120,7 @@ public record SourceDescriptorDto(
                 ai.foresignal.source.spi.SourceAccess access,
         boolean egressOverridable,
         @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-                String llmNotice) {}
+                String llmNotice,
+        ai.foresignal.provenance.LicenceTerms licenceTerms,
+        String reliability,
+        List<String> derivedFrom) {}

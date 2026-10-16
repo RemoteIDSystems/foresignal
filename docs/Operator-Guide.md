@@ -4893,18 +4893,54 @@ enabling it on a LAN-only instance exposes one media path per feed key and is re
 
 Every source resolves to structured licence terms (`ai.foresignal.provenance.LicenceTerms`, from
 `provenance/licences.json`): `commercialUse`, `shareAlike`, `attributionRequired` and `redistribution`.
-`UNKNOWN` is treated as `FORBIDDEN` (commercial) and `LOCAL_ONLY` (redistribution). A version's licence is
-the one snapshotted on its batch's `fetch_log` row; a `fetchId`, `adapterVersion` and (for admins) the
-ingest `principal` are returned under `include=provenance`, with an Admiralty `reliability` (A–F, per
-source) and `credibility` (1–6, computed at read time) composed as a `grade` (e.g. `B2`).
+`UNKNOWN` is treated as `FORBIDDEN` (commercial) and `LOCAL_ONLY` (redistribution). Free-text descriptor
+licences resolve through catalog aliases; provider terms that state no licence resolve to `provider-terms`,
+`provider-terms-nc` or `unspecified` (redistribution `UNKNOWN`, so local use only). A DERIVED source takes
+the most restrictive terms of its inputs (`derivedFrom`, else the sources its generator subscribes to). A
+custom PUSH source may declare its own `licenceTerms`; each PUSH batch snapshots their id.
 
-Clients ask for licence-filtered records with the `Foresignal-Licence-Policy: no-nc, no-sa, redistributable`
-header (or `licencePolicy=` query). A token's `licencePolicy` is a floor a request may add to but never
-loosen. Filtered responses carry `licenceFiltered` and aggregated `attributions`, plus a
-`Foresignal-Attribution` header and `Link: <termsUrl>; rel="license"`.
+A version's licence is the one snapshotted on its batch's `fetch_log` row, else the source's current terms
+(`licenceBasis: descriptor`). A peer record's `_foresignal.originLicence` overrides the batch licence, and an
+MLAT position is downgraded to `LOCAL_ONLY` while keeping its licence id and attribution. Fetch rows that wrote
+versions are kept for `max(retention.provenance, the largest version window)`. `include=provenance` returns
+`fetchId`, `adapterVersion`, the ingest `principal` (admins only), the Admiralty `reliability` and the
+`credibility` (1–6, computed at read time), composed as a `grade` (e.g. `B2`).
 
-`LicenceEgressGuard` (called from `EgressPolicy`) governs every egress path; a private source is refused
-before the licence rule. The denials are counted as `foresignal.licence.egress.denied{path,licence}`.
+**Reliability.** Unless a descriptor sets its own grade, official agencies (US federal public domain and the
+open government licences) get `B`, your own receivers and other built-in providers `C`, community and
+news-derived feeds (GDELT, Wikipedia surge) `D`, and custom, peer and DERIVED sources `F`. Override it per
+source with `PUT /v1/sources/{id}` `{"reliability": "A"}`; `null` reverts to the default.
+
+**Licence-filtered reads.** Clients send `Foresignal-Licence-Policy: no-nc, no-sa, redistributable` (or
+`licencePolicy=`). A token's `licencePolicy` is a floor a request may add to but never loosen; set it at
+creation or replace it with `PATCH /v1/tokens/{tokenId}` `{"licencePolicy": [...]}` (admin; `[]` clears it).
+JSON pages and GeoJSON collections carry `licenceFiltered` (records dropped) and aggregated `attributions`,
+plus a `Foresignal-Attribution` header (ISO-8859-1, at most 1 KB, cut with `...`) and
+`Link: <termsUrl>; rel="license"`. Record reads send `Vary: …, Foresignal-Licence-Policy`. Tiles, the SSE
+change stream and `/v1/changes` prune excluded sources in SQL and send `Foresignal-Licence-Filtered: <n>`, the
+number of *sources* the policy pruned (their records are never read, so they cannot be counted). A layer's
+TileJSON `attribution` aggregates its sources.
+
+**Egress.** `EgressPolicy` is the one component that decides whether a record may leave, on every path; its
+licence step (`LicenceEgressGuard`) is internal and is applied on every path, `EXPORT` and `ARCHIVE` included.
+In order:
+
+1. An unregistered source never leaves.
+2. A private source is excluded on every path except `API_READ`, `TILE`, `SSE` and `MCP` for callers allowed
+   to see it, and `ARCHIVE` (your own storage), whatever its licence. Two explicit exceptions: an `EXPORT` by
+   an admin with `includePrivate=true` (111), and a sink with `filter.includePrivate=true` that is a SERVE sink
+   bound to loopback/private or a PUSH sink whose target resolves to a private address (110). Feeds, share
+   links and federation never carry private records.
+3. A source whose effective `egress` is `LOCAL_ONLY` is served to this instance's own clients, exports and the
+   archive, and to a LAN-serving sink bound to loopback/private only; never pushed, shared, federated or put
+   on a feed.
+4. An MLAT position never leaves on a sink push, a share, a feed or federation, nor on a LAN sink that is not
+   local.
+5. The record's licence goes through the table below. Turning a local receiver's egress to `OPEN` (only the
+   `egressOverridable` families allow it) also lifts its `LOCAL_ONLY` licence default; `FORBIDDEN` terms are
+   never lifted.
+
+Denials are counted as `foresignal.licence.egress.denied{path,licence}`.
 
 | Redistribution | API_READ / TILE / SSE / MCP / LLM_* / NOTIFICATION / FEED / ARCHIVE | SINK_SERVE_LAN | SINK_PUSH, EXPORT | PUBLIC_SHARE, FEDERATION, SHARE |
 |---|---|---|---|---|
@@ -4912,10 +4948,16 @@ before the licence rule. The denials are counted as `foresignal.licence.egress.d
 | LOCAL_ONLY | yes | yes, only if the sink binds loopback/private | no (EXPORT: only with `personalUse=true`) | no |
 | FORBIDDEN | yes (own use) | no | no (EXPORT: only with `personalUse=true`, sidecar marks "do not redistribute") | no |
 
-The instance Ed25519 signing key is published at `GET /.well-known/jwks.json` (and `GET /v1/system/jwks`),
-`Cache-Control: public, max-age=3600`; `POST /v1/system/signing-key/rotate` retires the active key and
-activates a new one. Briefing markdown and HTML renditions carry a detached `Foresignal-Signature`
-(`b64:false`). Verify it with any JOSE library, for example Python `jwcrypto`:
+So `opensky-states`, `acled` and `aisstream` (`FORBIDDEN`) are exported only with `personalUse=true` and never
+reach a sink, a share link or a peer.
+
+**Signing.** The instance Ed25519 signing key is published at `GET /.well-known/jwks.json` (and
+`GET /v1/system/jwks`), `Cache-Control: public, max-age=3600`; `POST /v1/system/signing-key/rotate` retires the
+active key, activates a new one and writes a `signing_key` audit event. Retired keys stay published for
+`signing.retainRetired` (365 days). A stored briefing run carries `signature`, a detached JWS (`b64:false`)
+over its markdown; `GET /v1/briefings/{id}/runs/{runId}` sends it as `Foresignal-Signature`, and the HTML
+rendition sends a signature over its own bytes. Verify it with any JOSE library, for example Python
+`jwcrypto`:
 
 ```python
 import json, urllib.request
@@ -4924,6 +4966,23 @@ jwks = json.load(urllib.request.urlopen("https://host/.well-known/jwks.json"))
 key = jwk.JWK(**jwks["keys"][0])
 signed = jws.JWS(payload)          # payload = the exact response bytes
 signed.deserialize(signature, key)  # signature = the Foresignal-Signature header
+```
+
+or without one, from the definition (RFC 7797: the signing input is the protected header, a dot and the
+unencoded payload), with the `cryptography` package:
+
+```python
+import base64, json
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+def b64url(s): return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
+
+header_b64, _, signature_b64 = signature.split(".")   # "header..signature"
+header = json.loads(b64url(header_b64))
+assert header["alg"] in ("Ed25519", "EdDSA") and header["b64"] is False and header["crit"] == ["b64"]
+jwk_ = next(k for k in jwks["keys"] if k["kid"] == header["kid"])
+Ed25519PublicKey.from_public_bytes(b64url(jwk_["x"])).verify(
+    b64url(signature_b64), header_b64.encode("ascii") + b"." + payload)   # raises if invalid
 ```
 
 ## Outbound sinks (prompt 110)

@@ -49,12 +49,43 @@ public class AttributionService {
         }
     }
 
+    /** Follows {@code derivedFrom} when wired (prompt 109); null in hand-built unit tests. */
+    private SourceLicences sourceLicences;
+
+    /** Wires the source-terms resolver. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setSourceLicences(SourceLicences sourceLicences) {
+        this.sourceLicences = sourceLicences;
+    }
+
+    /** The current terms of a source. */
+    private LicenceTerms termsOf(SourceDescriptor descriptor) {
+        return sourceLicences != null && descriptor != null ? sourceLicences.termsOf(descriptor)
+                : catalog.forDescriptor(descriptor);
+    }
+
+    /**
+     * The aggregated attribution of a set of sources (prompt 109: TileJSON {@code attribution} is the aggregate
+     * for the layer's sources): each source's attribution line, or its licence's attribution text when it has
+     * none, distinct, joined with {@code " · "}; null when there is none.
+     */
+    public String layerText(Collection<SourceDescriptor> sources) {
+        Set<String> parts = new LinkedHashSet<>();
+        for (SourceDescriptor source : sources) {
+            String text = text(source.id(), termsOf(source));
+            if (text != null && !text.isBlank()) {
+                parts.add(text.strip());
+            }
+        }
+        return parts.isEmpty() ? null : String.join(" · ", parts);
+    }
+
     /** Aggregates the attributions of {@code rows}, grouped by source and licence, in row order. */
     public List<Attribution> aggregate(Collection<RecordRow> rows, Map<Long, LicenceResolver.Resolution> resolutions) {
         Map<String, Attribution> byKey = new LinkedHashMap<>();
         for (RecordRow row : rows) {
             LicenceResolver.Resolution resolution = resolutions.get(row.seq());
-            LicenceTerms terms = resolution == null ? catalog.forDescriptor(descriptor(row.sourceId()))
+            LicenceTerms terms = resolution == null ? termsOf(descriptor(row.sourceId()))
                     : resolution.terms();
             String key = row.sourceId() + "|" + terms.id();
             Attribution existing = byKey.get(key);
@@ -79,13 +110,18 @@ public class AttributionService {
             if (kind != null && !kind.isBlank() && !descriptor.kinds().contains(kind)) {
                 continue;
             }
-            LicenceTerms terms = catalog.forDescriptor(descriptor);
+            LicenceTerms terms = termsOf(descriptor);
             out.add(new Attribution(descriptor.id(), terms.id(), text(descriptor.id(), terms), terms.termsUrl(), 0));
         }
         return out;
     }
 
-    /** The joined {@code Foresignal-Attribution} value (≤ {@value #MAX_TEXT}, truncated with "…"). */
+    /**
+     * The joined {@code Foresignal-Attribution} value: at most {@value #MAX_TEXT} characters, all of them
+     * printable ISO-8859-1 (an HTTP field value; RFC 9110 §5.5), truncated with {@code "..."}. Typographic
+     * dashes, quotes and the ellipsis become their ASCII forms, other characters outside ISO-8859-1 become
+     * {@code ?}, and control characters become spaces.
+     */
     public String header(List<Attribution> attributions) {
         Set<String> texts = new LinkedHashSet<>();
         for (Attribution a : attributions) {
@@ -93,8 +129,32 @@ public class AttributionService {
                 texts.add(a.text());
             }
         }
-        String joined = String.join("; ", texts);
-        return joined.length() <= MAX_TEXT ? joined : joined.substring(0, MAX_TEXT - 1) + "\u2026";
+        String joined = latin1(String.join("; ", texts));
+        return joined.length() <= MAX_TEXT ? joined : joined.substring(0, MAX_TEXT - 3) + "...";
+    }
+
+    /** {@code text} as printable ISO-8859-1, for an HTTP header value. */
+    static String latin1(String text) {
+        StringBuilder out = new StringBuilder(text.length());
+        text.codePoints().forEach(cp -> {
+            switch (cp) {
+                case 0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212 -> out.append('-');
+                case 0x2018, 0x2019, 0x201A, 0x2032 -> out.append('\'');
+                case 0x201C, 0x201D, 0x201E, 0x2033 -> out.append('"');
+                case 0x2026 -> out.append("...");
+                case 0x00A0, 0x2007, 0x202F -> out.append(' ');
+                default -> {
+                    if (cp < 0x20 || cp == 0x7F || (cp >= 0x80 && cp < 0xA0)) {
+                        out.append(' ');
+                    } else if (cp > 0xFF) {
+                        out.append('?');
+                    } else {
+                        out.appendCodePoint(cp);
+                    }
+                }
+            }
+        });
+        return out.toString();
     }
 
     /** The distinct {@code termsUrl}s (≤ {@value #MAX_LINKS}). */

@@ -222,11 +222,16 @@ public class BriefingsController {
 
     /**
      * Adds the {@code Foresignal-Signature} detached JWS over the rendition's bytes (prompt 109). The
-     * JSON rendition signs the stored markdown; the HTML rendition signs its own bytes. No signer (a
-     * hand-built unit test) leaves the header off.
+     * JSON rendition carries the run's stored {@code signature} over its markdown (signed when the run finished),
+     * signing now only for a run stored before signatures existed; the HTML rendition signs its own bytes. No
+     * signer (a hand-built unit test) and no stored signature leaves the header off.
      */
     private void sign(HttpHeaders headers, String body, String typ, String stored) {
-        if (jwsSigner == null) {
+        if (stored != null && !stored.isBlank()) {
+            headers.set("Foresignal-Signature", stored);
+            return;
+        }
+        if (jwsSigner == null || body == null) {
             return;
         }
         try {

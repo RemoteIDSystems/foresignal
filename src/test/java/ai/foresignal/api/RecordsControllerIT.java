@@ -111,7 +111,8 @@ class RecordsControllerIT {
                     .andExpect(status().isOk())
                     .andExpect(header().exists(RecordsController.WATERMARK_HEADER))
                     .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "public, no-cache"))
-                    .andExpect(header().string(HttpHeaders.VARY, "Accept, Accept-Encoding, Authorization"))
+                    .andExpect(header().string(HttpHeaders.VARY,
+                            "Accept, Accept-Encoding, Authorization, Foresignal-Licence-Policy"))
                     .andExpect(header().exists(HttpHeaders.ETAG))
                     .andExpect(jsonPath("$.items", hasSize(2)))
                     .andExpect(jsonPath("$.items[0].id").value(STANDARD + ":a"))

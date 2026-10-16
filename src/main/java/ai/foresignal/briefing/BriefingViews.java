@@ -57,6 +57,8 @@ public final class BriefingViews {
         out.put("usage", run.getUsage());
         out.put("deliveries", run.getDeliveries());
         out.put("warnings", run.getWarnings() == null ? List.of() : run.getWarnings());
+        // Detached JWS over contentMarkdown's UTF-8 bytes (prompt 109); null for runs without markdown.
+        out.put("signature", run.getSignature());
         return out;
     }
 

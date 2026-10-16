@@ -94,8 +94,13 @@ public class StreamController {
         StreamPrincipal principal = principals.resolve(request);
         ChangeFilter filter = changes.parseQuery(new TopicParams("", parameters(request, "")), principal);
         if (licencePolicy != null) {
-            filter = filter.withExcludedSources(licencePolicy.excludedSources(
-                    ai.foresignal.provenance.LicencePolicyService.of(request)));
+            ai.foresignal.provenance.LicencePolicy policy = ai.foresignal.provenance.LicencePolicyService.of(request);
+            filter = filter.withExcludedSources(licencePolicy.excludedSources(policy));
+            String filtered = licencePolicy.filteredHeader(policy);
+            if (filtered != null) {
+                // Set before the emitter commits the response (prompt 109: streams report it as a header).
+                response.setHeader(ai.foresignal.provenance.LicencePolicyService.FILTERED_HEADER, filtered);
+            }
         }
         Long resume = CompositeCursor.parseSeq(LAST_EVENT_ID, lastEventId);
         if (resume == null) {

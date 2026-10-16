@@ -35,8 +35,8 @@ import tools.jackson.databind.node.ObjectNode;
  * Reads and validates a {@code CustomSourceInput} body (OpenAPI), collecting every field error
  * before failing (prompt 024).
  *
- * <p>Members that later prompts own and enforce ({@code licenceTerms} 109) are refused with a field
- * error when set to anything but their default: accepting them unenforced would fail open.
+ * <p>Prompt 109 accepts {@code licenceTerms} (a {@code LicenceTerms} object or null): the structured terms of
+ * the pushed data, which every egress decision then enforces and each PUSH batch snapshots on its fetch row.
  *
  * <p>Prompt 059 accepts {@code mapping} (a {@code RecordMapping}, compiled against the input's own kinds and
  * {@code observedAtMode}; any problem makes the whole failure {@code 400 MAPPING_INVALID}, with paths such as
@@ -72,8 +72,8 @@ public class CustomSourceInputReader {
     static final int DEFAULT_RATE_PER_MINUTE = 60;
     static final int DEFAULT_RECORDS_PER_MINUTE = 6_000;
 
-    /** Members a later prompt owns, with that prompt. */
-    static final Map<String, String> LATER_MEMBERS = Map.of("licenceTerms", "109");
+    /** Members a later prompt owns, with that prompt (none left: 109 accepts {@code licenceTerms}). */
+    static final Map<String, String> LATER_MEMBERS = Map.of();
 
     /** The personal-location preset (prompt 039). */
     public static final String PROFILE_PERSONAL_LOCATION = "personal-location";
@@ -204,6 +204,7 @@ public class CustomSourceInputReader {
         boolean allowPathKey = bool(body, "allowPathKey", false, errors);
         List<String> ingestAllowCidrs = cidrs(body, errors);
         String licence = text(body, "licence");
+        ai.foresignal.provenance.LicenceTerms licenceTerms = licenceTerms(body.get("licenceTerms"), errors);
         String attribution = text(body, "attribution");
         String description = text(body, "description");
 
@@ -264,7 +265,56 @@ public class CustomSourceInputReader {
                 searchFields, embedFields, rankField, rate, observedAtMode, ttlAnchor, volatileFields,
                 significantFields, titleField, fieldSpecs, privateSource, licence, recordsPerMinute, formatOptions,
                 verifierConfigs, secrets, profile, allowPathKey, ingestAllowCidrs,
-                mapping == null ? null : mapping.deepCopy(), preset, defaultFormat, captureSamples);
+                mapping == null ? null : mapping.deepCopy(), preset, defaultFormat, captureSamples, licenceTerms);
+    }
+
+    /** The {@code commercialUse} wire values. */
+    static final List<String> COMMERCIAL_USE = List.of("ALLOWED", "FORBIDDEN", "UNKNOWN");
+
+    /** The {@code redistribution} wire values. */
+    static final List<String> REDISTRIBUTION = List.of("ALLOWED", "LOCAL_ONLY", "FORBIDDEN", "UNKNOWN");
+
+    /**
+     * {@code licenceTerms} (prompt 109): null, or an object with a required {@code id} and the optional
+     * {@code name}, {@code commercialUse} ({@code ALLOWED | FORBIDDEN | UNKNOWN}), {@code shareAlike},
+     * {@code attributionRequired}, {@code redistribution} ({@code ALLOWED | LOCAL_ONLY | FORBIDDEN | UNKNOWN}),
+     * {@code attributionText} and {@code termsUrl}. Omitted enums are {@code UNKNOWN}, which every guard treats
+     * restrictively.
+     */
+    static ai.foresignal.provenance.LicenceTerms licenceTerms(JsonNode node, List<FieldError> errors) {
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        if (!node.isObject()) {
+            errors.add(new FieldError("licenceTerms", "must be a LicenceTerms object or null"));
+            return null;
+        }
+        String id = text(node, "id");
+        if (id == null || id.isBlank() || id.length() > 64) {
+            errors.add(new FieldError("licenceTerms.id", "is required (an SPDX id or a slug, at most 64 characters)"));
+        }
+        String commercial = text(node, "commercialUse");
+        if (commercial != null && !COMMERCIAL_USE.contains(commercial)) {
+            errors.add(new FieldError("licenceTerms.commercialUse", "must be one of " + COMMERCIAL_USE));
+        }
+        String redistribution = text(node, "redistribution");
+        if (redistribution != null && !REDISTRIBUTION.contains(redistribution)) {
+            errors.add(new FieldError("licenceTerms.redistribution", "must be one of " + REDISTRIBUTION));
+        }
+        for (String flag : List.of("shareAlike", "attributionRequired")) {
+            JsonNode value = node.get(flag);
+            if (value != null && !value.isNull() && !value.isBoolean()) {
+                errors.add(new FieldError("licenceTerms." + flag, "must be a boolean"));
+            }
+        }
+        if (id == null || id.isBlank()) {
+            return null;
+        }
+        return new ai.foresignal.provenance.LicenceTerms(id.strip(), text(node, "name"),
+                ai.foresignal.provenance.LicenceTerms.commercial(commercial),
+                node.path("shareAlike").asBoolean(false), node.path("attributionRequired").asBoolean(false),
+                ai.foresignal.provenance.LicenceTerms.redistribution(redistribution), text(node, "attributionText"),
+                text(node, "termsUrl"));
     }
 
     /** {@code profile}: null or {@value #PROFILE_PERSONAL_LOCATION}. */

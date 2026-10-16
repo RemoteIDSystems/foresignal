@@ -27,7 +27,8 @@
       "aliases": [
         "CC BY 4.0",
         "CC-BY-4.0",
-        "CC BY 4.0 (attribution)"
+        "CC BY 4.0 (attribution)",
+        "EMSC data (CC BY 4.0)"
       ]
     },
     {
@@ -41,7 +42,8 @@
       "termsUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
       "aliases": [
         "CC BY-SA 4.0",
-        "CC-BY-SA-4.0"
+        "CC-BY-SA-4.0",
+        "Wikimedia metadata (titles CC BY-SA 4.0)"
       ]
     },
     {
@@ -83,7 +85,8 @@
       "aliases": [
         "ODbL 1.0",
         "ODbL-1.0",
-        "ODbL"
+        "ODbL",
+        "ODbL 1.0 (database) / DbCL 1.0 (contents)"
       ]
     },
     {
@@ -112,7 +115,8 @@
       "aliases": [
         "OGL v3",
         "OGL-UK-3.0",
-        "Open Government Licence v3.0"
+        "Open Government Licence v3.0",
+        "OGL v3 (Open Government Licence)"
       ]
     },
     {
@@ -162,7 +166,10 @@
         "NASA public data",
         "NASA open data",
         "Public domain",
-        "US Government work"
+        "US Government work",
+        "US public domain (NIFC Open Data)",
+        "US Government work (public domain); OpenFEMA terms apply",
+        "NASA open data (cite NASA LANCE FIRMS)"
       ]
     },
     {
@@ -217,6 +224,181 @@
         "Operator's own data (no upstream license)",
         "operator-owned",
         "operator-owned station data"
+      ]
+    },
+    {
+      "id": "CC-BY-NC-SA-3.0-IGO",
+      "name": "Creative Commons Attribution-NonCommercial-ShareAlike 3.0 IGO",
+      "commercialUse": "FORBIDDEN",
+      "shareAlike": true,
+      "attributionRequired": true,
+      "redistribution": "ALLOWED",
+      "attributionText": "Licensed under CC BY-NC-SA 3.0 IGO; non-commercial, attribution and share-alike.",
+      "termsUrl": "https://creativecommons.org/licenses/by-nc-sa/3.0/igo/",
+      "aliases": [
+        "CC BY-NC-SA 3.0 IGO",
+        "CC BY-NC-SA 3.0 IGO (WHO)"
+      ]
+    },
+    {
+      "id": "ODC-By-1.0",
+      "name": "Open Data Commons Attribution License v1.0",
+      "commercialUse": "ALLOWED",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "ALLOWED",
+      "attributionText": "Open Data Commons Attribution License (ODC-By) v1.0; attribution required.",
+      "termsUrl": "https://opendatacommons.org/licenses/by/1-0/",
+      "aliases": [
+        "ODC-By 1.0",
+        "ODC-By-1.0",
+        "ODC-BY"
+      ]
+    },
+    {
+      "id": "OGL-Canada-2.0",
+      "name": "Open Government Licence - Canada",
+      "commercialUse": "ALLOWED",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "ALLOWED",
+      "attributionText": "Contains information licensed under the Open Government Licence - Canada.",
+      "termsUrl": "https://open.canada.ca/en/open-government-licence-canada",
+      "aliases": [
+        "Open Government Licence – Canada",
+        "Open Government Licence - Canada",
+        "OGL-Canada-2.0"
+      ]
+    },
+    {
+      "id": "gdelt-terms",
+      "name": "GDELT Project terms of use",
+      "commercialUse": "ALLOWED",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "ALLOWED",
+      "attributionText": "GDELT Project data; unrestricted use and redistribution with citation and a link.",
+      "termsUrl": "https://www.gdeltproject.org/about.html#termsofuse",
+      "aliases": [
+        "GDELT: unrestricted use and redistribution with citation and a link"
+      ]
+    },
+    {
+      "id": "reuse-with-attribution",
+      "name": "Provider terms: free re-use with attribution",
+      "commercialUse": "UNKNOWN",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "ALLOWED",
+      "attributionText": "Re-use permitted with the provider's required attribution.",
+      "termsUrl": null,
+      "aliases": [
+        "MeteoAlarm / EUMETNET free re-use with attribution",
+        "Reproduction permitted with the required attribution (USDM permission page)"
+      ]
+    },
+    {
+      "id": "reuse-with-attribution-commercial",
+      "name": "Provider terms: any use including commercial, with attribution",
+      "commercialUse": "ALLOWED",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "ALLOWED",
+      "attributionText": "Any use including commercial permitted with the provider's mandatory credit.",
+      "termsUrl": null,
+      "aliases": [
+        "GIE AGSI data usage rules (any use incl. commercial, mandatory credit)"
+      ]
+    },
+    {
+      "id": "provider-terms",
+      "name": "Provider terms of use (redistribution not stated)",
+      "commercialUse": "UNKNOWN",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "UNKNOWN",
+      "attributionText": "Data under the provider's own terms of use; see the provider.",
+      "termsUrl": null,
+      "aliases": [
+        "provider terms",
+        "IMF PortWatch terms (attribution: IMF PortWatch)",
+        "BMRS Data Licence",
+        "Publisher terms (listed in the USDOT WZDx Feed Registry; most U.S. public-agency feeds are open data)",
+        "CelesTrak (data from 18th SDS via Space-Track)",
+        "Space-Track User Agreement",
+        "The Space Devs API terms (unverified)",
+        "ERCOT Terms of Use (https://www.ercot.com/help/terms)",
+        "ReliefWeb terms (content rights vary by source)",
+        "GDACS terms of use (disclaimer; no explicit licence)",
+        "UN terms of use (public information)",
+        "various (OpenAQ providers)",
+        "per-record CC licence (iNaturalist; see licenseCode)",
+        "Copernicus EMS (attribution)"
+      ]
+    },
+    {
+      "id": "provider-terms-nc",
+      "name": "Provider terms of use (non-commercial)",
+      "commercialUse": "FORBIDDEN",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "UNKNOWN",
+      "attributionText": "Data under the provider's non-commercial terms of use; attribution required.",
+      "termsUrl": null,
+      "aliases": [
+        "Smithsonian Terms of Use (non-commercial; cite VOTW DOI)",
+        "PSK Reporter terms (non-commercial, attribution)",
+        "eBird API Terms of Use (non-commercial, attribution)",
+        "airplanes.live API terms: non-commercial use, no SLA, attribution required",
+        "adsb.fi open data terms: personal, non-commercial use only; attribution with a link to adsb.fi required",
+        "RIPE NCC RIS terms (attribution; commercial use by permission)",
+        "RIPE Atlas Service Terms v3.5 (attribution; commercial use by permission)"
+      ]
+    },
+    {
+      "id": "personal-use-only",
+      "name": "Personal use only; do not redistribute",
+      "commercialUse": "FORBIDDEN",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "FORBIDDEN",
+      "attributionText": "Personal use only; do not redistribute.",
+      "termsUrl": null,
+      "aliases": [
+        "unspecified — personal use, do not redistribute (gpsjam.org)"
+      ]
+    },
+    {
+      "id": "all-rights-reserved",
+      "name": "All rights reserved (no published licence)",
+      "commercialUse": "FORBIDDEN",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "FORBIDDEN",
+      "attributionText": "All rights reserved by the provider; no redistribution.",
+      "termsUrl": null,
+      "aliases": [
+        "IODA, Georgia Tech Research Corporation — all rights reserved (no published licence)"
+      ]
+    },
+    {
+      "id": "unspecified",
+      "name": "No licence stated by the provider",
+      "commercialUse": "UNKNOWN",
+      "shareAlike": false,
+      "attributionRequired": false,
+      "redistribution": "UNKNOWN",
+      "attributionText": "No licence stated by the provider; local use only.",
+      "termsUrl": null,
+      "aliases": [
+        "unspecified (siren.pp.ua wrapper of ukrainealarm.com)",
+        "unspecified (public receiver list)",
+        "unspecified (OpenMHz)",
+        "unspecified (Meshtastic community broker)",
+        "unspecified (community service)",
+        "unspecified (alerts.in.ua)",
+        "GPL-3.0 mirror; DeepStateMap terms unspecified",
+        "APRS-IS network data (amateur radio, public; no license stated)"
       ]
     },
     {

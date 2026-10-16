@@ -136,6 +136,7 @@ public class CustomSourcesController {
         out.put("fieldSpecs", row.getFieldSpecs() == null ? Map.of() : json.readTree(row.getFieldSpecs()));
         out.put("private", row.isPrivateSource());
         out.put("licence", row.getLicence());
+        out.put("licenceTerms", row.getLicenceTerms() == null ? null : json.readTree(row.getLicenceTerms()));
         out.put("recordsPerMinute", row.getRecordsPerMinute());
         out.put("formats", row.getFormats() == null ? Map.of() : json.readTree(row.getFormats()));
         Map<String, VerifierConfig> configs = service.verifierConfigs(row);

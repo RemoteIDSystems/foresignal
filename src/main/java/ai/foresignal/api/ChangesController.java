@@ -126,8 +126,13 @@ public class ChangesController {
         FieldSelection selection = FieldSelector.parse(fields);
         Set<String> excluded = callers.excludedSources(caller);
         if (licencePolicy != null) {
-            excluded = licencePolicy.withExcluded(excluded,
-                    ai.foresignal.provenance.LicencePolicyService.of(request));
+            ai.foresignal.provenance.LicencePolicy policy = ai.foresignal.provenance.LicencePolicyService.of(request);
+            excluded = licencePolicy.withExcluded(excluded, policy);
+            String filtered = licencePolicy.filteredHeader(policy);
+            if (filtered != null) {
+                // Sources pruned in SQL by the licence policy (prompt 109); set before any body is written.
+                response.setHeader(ai.foresignal.provenance.LicencePolicyService.FILTERED_HEADER, filtered);
+            }
         }
         ChangesQuery query = new ChangesQuery(
                 afterSeq == null ? 0L : afterSeq,

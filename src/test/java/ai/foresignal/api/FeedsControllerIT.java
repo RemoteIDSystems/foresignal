@@ -218,7 +218,8 @@ class FeedsControllerIT {
     }
 
     @Test
-    @DisplayName("alerts of private sources appear only for callers that pass the private gate")
+    @DisplayName("alerts of private sources never appear on a feed, not even for admin (109: FEED never carries"
+            + " a private record)")
     void privateExclusion() throws Exception {
         UUID rule = fixture.rule("{'name':'Mine','sources':['" + PRIVATE + "']}");
         records.ingest(PRIVATE, NormalizedRecord.builder("p", PRIVATE_KIND).observedAt(T).point(1, 1).build());
@@ -230,7 +231,7 @@ class FeedsControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "private, no-cache"))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        assertThat(entries(admin)).isEqualTo(1);
+        assertThat(entries(admin)).isZero();
     }
 
     @Test

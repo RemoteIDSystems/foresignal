@@ -459,12 +459,12 @@ public class RecordsController {
         }
         String etag = listETag(request, accept, caller);
         if (ETags.matches(ifNoneMatch, etag)) {
-            return ETags.notModified(etag, caller.publicCache());
+            return notModifiedVaryingByLicence(etag, caller);
         }
         Slices.RecordSlice slice = queries.list(query);
         LicenceFilter licence = licenceFilter(visible(slice.rows(), caller, selection), request);
         List<RecordRow> rows = licence.rows();
-        HttpHeaders headers = ETags.cacheHeaders(new HttpHeaders(), etag, caller.publicCache());
+        HttpHeaders headers = varyByLicencePolicy(ETags.cacheHeaders(new HttpHeaders(), etag, caller.publicCache()));
         headers.set(WATERMARK_HEADER, Long.toString(slice.watermarkSeq()));
         if (licence.attributionText() != null) {
             headers.set(ATTRIBUTION_HEADER, licence.attributionText());
@@ -612,7 +612,7 @@ public class RecordsController {
         }
         String etag = ETags.forRecord(row.version(), row.observedAt());
         if (ETags.matches(ifNoneMatch, etag)) {
-            return ETags.notModified(etag, caller.publicCache());
+            return notModifiedVaryingByLicence(etag, caller);
         }
         Map<String, Object> body = fmt == ResponseFormat.GEOJSON
                 ? mapper.feature(row, selection, RecordMapper.Shape.CURRENT)
@@ -633,7 +633,7 @@ public class RecordsController {
             }
         }
         return ResponseEntity.ok()
-                .headers(ETags.cacheHeaders(new HttpHeaders(), etag, caller.publicCache()))
+                .headers(varyByLicencePolicy(ETags.cacheHeaders(new HttpHeaders(), etag, caller.publicCache())))
                 .contentType(MediaType.parseMediaType(fmt.mediaType()))
                 .body(body);
     }
@@ -922,7 +922,38 @@ public class RecordsController {
         Map<String, List<String>> params = new TreeMap<>();
         request.getParameterMap().forEach((name, values) -> params.put(name, List.of(values)));
         String normalized = request.getRequestURI() + "?" + params + "|" + Optional.ofNullable(accept).orElse("")
-                + "|" + caller.canonical();
+                + "|" + caller.canonical() + "|" + licencePolicyKey(request);
         return ETags.forList(normalized, changeBus.lastPublishedSeq(), liveBus.lastPublishedBatchNo(), clock.instant());
+    }
+
+    /**
+     * The effective licence policy as an entity-tag component (prompt 109): the token floor plus the
+     * {@code Foresignal-Licence-Policy} header, which the query string alone does not show, so two requests that
+     * differ only in that header never share a tag. Empty when no flag applies; an unparseable header leaves the
+     * raw value in, and the request itself fails later with its 400.
+     */
+    static String licencePolicyKey(HttpServletRequest request) {
+        try {
+            ai.foresignal.provenance.LicencePolicy policy = licencePolicy(request);
+            return policy.isEmpty() ? "" : "lp=" + new java.util.TreeSet<>(policy.names());
+        } catch (RuntimeException e) {
+            return "lp?=" + request.getHeader(LICENCE_POLICY_HEADER);
+        }
+    }
+
+    /**
+     * The cache headers with {@code Foresignal-Licence-Policy} added to {@code Vary} (prompt 109): a response
+     * filtered by a licence policy must not be served from a shared cache to a request without that policy.
+     */
+    static HttpHeaders varyByLicencePolicy(HttpHeaders headers) {
+        headers.set(HttpHeaders.VARY, ETags.VARY + ", " + LICENCE_POLICY_HEADER);
+        return headers;
+    }
+
+    /** {@link ETags#notModified} with the licence-policy {@code Vary}. */
+    private static ResponseEntity<Object> notModifiedVaryingByLicence(String etag, ReadCaller caller) {
+        return ResponseEntity.status(304)
+                .headers(varyByLicencePolicy(ETags.cacheHeaders(new HttpHeaders(), etag, caller.publicCache())))
+                .build();
     }
 }

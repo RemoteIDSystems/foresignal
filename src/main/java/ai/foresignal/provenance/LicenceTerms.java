@@ -72,6 +72,51 @@ public record LicenceTerms(String id, String name, CommercialUse commercialUse, 
         return r == Redistribution.LOCAL_ONLY || r == Redistribution.FORBIDDEN;
     }
 
+    /**
+     * The per-record MLAT downgrade (prompt 109, task 1): the same terms with redistribution
+     * {@code LOCAL_ONLY}, so an MLAT position never leaves on a re-serving path, while the licence id,
+     * share-alike, attribution requirement, attribution text and terms URL are kept (an ODbL record stays
+     * an ODbL record that must be attributed). Terms already {@code LOCAL_ONLY} or {@code FORBIDDEN} are
+     * returned unchanged.
+     */
+    public LicenceTerms downgradedToLocalOnly() {
+        Redistribution r = effectiveRedistribution();
+        if (r == Redistribution.LOCAL_ONLY || r == Redistribution.FORBIDDEN) {
+            return this;
+        }
+        return new LicenceTerms(id, name, commercialUse, shareAlike, attributionRequired, Redistribution.LOCAL_ONLY,
+                attributionText, termsUrl);
+    }
+
+    /**
+     * The same terms with redistribution {@code ALLOWED}: the operator's {@code OPEN} egress override of an
+     * {@code egressOverridable} source lifts the {@code LOCAL_ONLY} default of its own receiver data
+     * ({@code docs/Conventions.md}, "Operator choice"). {@code FORBIDDEN} terms are returned unchanged.
+     */
+    public LicenceTerms openedByOperator() {
+        if (effectiveRedistribution() != Redistribution.LOCAL_ONLY) {
+            return this;
+        }
+        return new LicenceTerms(id, name, commercialUse, shareAlike, attributionRequired, Redistribution.ALLOWED,
+                attributionText, termsUrl);
+    }
+
+    /**
+     * A restrictiveness rank for choosing the strictest of several terms: redistribution first
+     * ({@code FORBIDDEN} &gt; {@code LOCAL_ONLY}/{@code UNKNOWN} &gt; {@code ALLOWED}), then commercial use,
+     * then share-alike, then the attribution requirement. Higher is stricter.
+     */
+    public int restrictiveness() {
+        int rank = switch (effectiveRedistribution()) {
+            case FORBIDDEN -> 2;
+            case LOCAL_ONLY, UNKNOWN -> 1;
+            case ALLOWED -> 0;
+        };
+        rank = rank * 2 + (effectiveCommercial() == CommercialUse.ALLOWED ? 0 : 1);
+        rank = rank * 2 + (shareAlike ? 1 : 0);
+        return rank * 2 + (attributionRequired ? 1 : 0);
+    }
+
     /** The policy flag {@code no-nc} excludes this licence. */
     public boolean nonCommercial() {
         return effectiveCommercial() != CommercialUse.ALLOWED;

@@ -91,6 +91,27 @@ public class BriefingRunner {
         this.clock = clock;
     }
 
+    /** Signs stored runs (prompt 109); resolved lazily, absent in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ObjectProvider<ai.foresignal.provenance.JwsSigner> signer;
+
+    /**
+     * The detached JWS over a run's stored markdown bytes (prompt 109, task 6: {@code BriefingRun.signature}),
+     * {@code typ} {@code text/markdown}; null when there is no markdown or no signer, or signing fails (a
+     * signing failure never fails a run).
+     */
+    String signature(String markdown) {
+        ai.foresignal.provenance.JwsSigner jws = signer == null ? null : signer.getIfAvailable();
+        if (markdown == null || jws == null) {
+            return null;
+        }
+        try {
+            return jws.signDetached(markdown.getBytes(java.nio.charset.StandardCharsets.UTF_8), "text/markdown");
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     /**
      * What one run renders.
      *
@@ -242,6 +263,7 @@ public class BriefingRunner {
             row.setWarnings(new ArrayList<>(outcome.warnings()));
             row.setUsage(outcome.usage());
             row.setError(outcome.error());
+            row.setSignature(signature(outcome.markdown()));
             return runs.saveAndFlush(row);
         });
         if (BriefingRunEntity.FAILED.equals(done.getStatus())) {

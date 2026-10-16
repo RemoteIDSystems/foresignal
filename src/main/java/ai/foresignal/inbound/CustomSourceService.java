@@ -335,6 +335,7 @@ public class CustomSourceService {
         row.setFieldSpecs(d.fieldSpecs().isEmpty() ? null : json.writeValueAsString(d.fieldSpecs()));
         row.setPrivateSource(d.privateSource());
         row.setLicence(d.licence());
+        row.setLicenceTerms(d.licenceTerms() == null ? null : json.writeValueAsString(d.licenceTerms()));
         row.setRecordsPerMinute(d.recordsPerMinute());
         row.setFormats(d.formats() == null || d.formats().isEmpty() ? null : json.writeValueAsString(d.formats()));
         row.setProfile(d.profile());
