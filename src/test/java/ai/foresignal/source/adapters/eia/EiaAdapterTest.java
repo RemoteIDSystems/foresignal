@@ -158,4 +158,73 @@ class EiaAdapterTest extends WireMockSupport {
         assertThat(forecast.payload()).containsEntry("status", "forecast");
         assertThat(result.records()).noneMatch(r -> r.externalId().equals("eia930:ERCO:DF:latest"));
     }
+
+    /** An EIA-930 region page of {@code hours} ERCO demand rows starting at {@code firstHour}, claiming {@code total}. */
+    private static String regionPage(int total, int firstHour, int hours) {
+        StringBuilder rows = new StringBuilder();
+        for (int h = firstHour; h < firstHour + hours; h++) {
+            rows.append(rows.isEmpty() ? "" : ",").append("{\"period\":\"2026-10-13T")
+                    .append(String.format("%02d", h)).append("\",\"respondent\":\"ERCO\",\"type\":\"D\",")
+                    .append("\"value\":\"41000\",\"value-units\":\"megawatthours\"}");
+        }
+        return "{\"response\":{\"total\":\"" + total + "\",\"frequency\":\"hourly\",\"data\":[" + rows
+                + "],\"warnings\":[]}}";
+    }
+
+    private static final String EMPTY_PAGE = "{\"response\":{\"total\":\"0\",\"data\":[],\"warnings\":[]}}";
+
+    @Test
+    @DisplayName("eia-930 pages with offset at the 5,000-row length until response.total rows have arrived")
+    void eia930Paging() throws Exception {
+        Eia930Adapter adapter = new Eia930Adapter(baseUrl());
+        harness.reset(adapter.id());
+        WIREMOCK.stubFor(get(urlPathEqualTo(EiaApi.RTO_REGION_ROUTE)).withQueryParam("offset", equalTo("0"))
+                .willReturn(aResponse().withStatus(200).withBody(regionPage(5, 0, 3))));
+        WIREMOCK.stubFor(get(urlPathEqualTo(EiaApi.RTO_REGION_ROUTE)).withQueryParam("offset", equalTo("3"))
+                .willReturn(aResponse().withStatus(200).withBody(regionPage(5, 3, 2))));
+        WIREMOCK.stubFor(get(urlPathEqualTo(EiaApi.RTO_FUEL_ROUTE))
+                .willReturn(aResponse().withStatus(200).withBody(EMPTY_PAGE)));
+        FetchResult result = adapter.fetch(harness.context(adapter, Map.of()));
+        assertThat(result.complete()).isTrue();
+        assertThat(result.records()).filteredOn(r -> r.kind().equals("series-point")).hasSize(5);
+        WIREMOCK.verify(2, getRequestedFor(urlPathEqualTo(EiaApi.RTO_REGION_ROUTE))
+                .withQueryParam("length", equalTo("5000")));
+        WIREMOCK.verify(1, getRequestedFor(urlPathEqualTo(EiaApi.RTO_REGION_ROUTE)).withQueryParam("offset", equalTo("3")));
+        WIREMOCK.verify(1, getRequestedFor(urlPathEqualTo(EiaApi.RTO_FUEL_ROUTE)));
+        harness.backoff.onSuccess(adapter.id());
+    }
+
+    @Test
+    @DisplayName("eia-930 never accepts a silently truncated window: past two pages it is partial and degraded")
+    void eia930Truncated() throws Exception {
+        Eia930Adapter adapter = new Eia930Adapter(baseUrl());
+        harness.reset(adapter.id(), "health.degraded");
+        WIREMOCK.stubFor(get(urlPathEqualTo(EiaApi.RTO_REGION_ROUTE))
+                .willReturn(aResponse().withStatus(200).withBody(regionPage(100, 0, 1))));
+        WIREMOCK.stubFor(get(urlPathEqualTo(EiaApi.RTO_FUEL_ROUTE))
+                .willReturn(aResponse().withStatus(200).withBody(EMPTY_PAGE)));
+        FetchResult result = adapter.fetch(harness.context(adapter, Map.of()));
+        assertThat(result.complete()).isFalse();
+        WIREMOCK.verify(Eia930Adapter.MAX_PAGES_PER_DATASET,
+                getRequestedFor(urlPathEqualTo(EiaApi.RTO_REGION_ROUTE)));
+        assertThat(harness.client.stateStore(adapter.id()).get("health.degraded"))
+                .hasValueSatisfying(reason -> assertThat(reason).contains("region-data"));
+        harness.backoff.onSuccess(adapter.id());
+    }
+
+    @Test
+    @DisplayName("a weekly stock point is the week ending on its label, so observedAt is not a week in the future")
+    void weeklyIsWeekEnding() throws Exception {
+        serve(EiaApi.PETROLEUM_SPOT_ROUTE, "RWTC", new String(AdapterFixtures.bytes("eia-petroleum", "spot.json")));
+        WIREMOCK.stubFor(get(urlPathEqualTo(EiaApi.PETROLEUM_STOCKS_ROUTE)).willReturn(aResponse().withStatus(200)
+                .withBody(AdapterFixtures.bytes("eia-petroleum", "stock.json"))));
+        FetchResult result = petroleum.fetch(harness.context(petroleum,
+                Map.of(EiaPetroleumAdapter.SPOT_PARAM, List.of("RWTC"), EiaPetroleumAdapter.STOCK_PARAM,
+                        List.of("WCESTUS1"))));
+        NormalizedRecord week = result.records().stream()
+                .filter(r -> r.externalId().equals("eia:WCESTUS1:2026-10-02")).findFirst().orElseThrow();
+        assertThat(week.eventTime()).isEqualTo(Instant.parse("2026-09-26T00:00:00Z"));
+        assertThat(week.observedAt()).isEqualTo(Instant.parse("2026-10-03T00:00:00Z"));
+        assertThat(week.payload()).containsEntry("unit", "k[bbl_us]");
+    }
 }

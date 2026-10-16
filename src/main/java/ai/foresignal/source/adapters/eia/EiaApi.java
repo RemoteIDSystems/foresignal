@@ -103,6 +103,15 @@ public final class EiaApi {
             return this;
         }
 
+        /** A copy of this query, so a base query can be extended per page. */
+        public Query copy() {
+            Query out = new Query();
+            for (String[] part : parts) {
+                out.parts.add(part.clone());
+            }
+            return out;
+        }
+
         /** Adds one key for each value. */
         public Query addAll(String key, Iterable<String> values) {
             for (String value : values) {
@@ -131,7 +140,9 @@ public final class EiaApi {
     }
 
     /**
-     * An EIA unit string as a UCUM code, falling back to the upstream text when it is not one we know.
+     * An EIA unit string as a UCUM code, falling back to the upstream text when it is not one we know (every unit
+     * the default EIA-930 and petroleum series return is mapped; the fallback keeps an unexpected unit visible
+     * rather than dropping it).
      *
      * @param units the {@code value-units} or {@code units} field
      */
@@ -141,19 +152,21 @@ public final class EiaApi {
         }
         String text = units.strip();
         return switch (text.toLowerCase()) {
-            case "$/bbl", "$ per barrel", "dollars per barrel" -> "[USD]/[bbl_us]";
+            case "$/bbl", "$ per barrel", "dollars per barrel", "$/barrel" -> "[USD]/[bbl_us]";
             case "$/gal", "$ per gallon", "dollars per gallon" -> "[USD]/[gal_us]";
             case "$/mmbtu", "dollars per million btu" -> "[USD]/[MMBtu]";
             case "$/mcf", "dollars per thousand cubic feet" -> "[USD]/k[ft_i]3";
             case "thousand barrels", "mbbl" -> "k[bbl_us]";
+            case "thousand barrels per day", "mbbl/d" -> "k[bbl_us]/d";
+            case "barrels", "bbl" -> "[bbl_us]";
             case "million barrels", "mmbbl" -> "M[bbl_us]";
             case "million cubic feet", "mmcf" -> "M[ft_i]3";
             case "billion cubic feet", "bcf" -> "G[ft_i]3";
-            case "megawatthours", "megawatt hours" -> "MW.h";
-            case "gigawatthours" -> "GW.h";
-            case "kilowatthours" -> "kW.h";
-            case "megawatts" -> "MW";
-            case "percent" -> "%";
+            case "megawatthours", "megawatt hours", "megawatt-hours", "mwh" -> "MW.h";
+            case "gigawatthours", "gigawatt hours", "gwh" -> "GW.h";
+            case "kilowatthours", "kilowatt hours", "kwh" -> "kW.h";
+            case "megawatts", "mw" -> "MW";
+            case "percent", "%" -> "%";
             default -> text;
         };
     }

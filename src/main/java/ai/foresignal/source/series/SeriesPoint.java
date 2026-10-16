@@ -35,7 +35,7 @@ public final class SeriesPoint {
     public static final String LATEST_KIND = "series-latest";
 
     /** The accepted frequency codes. */
-    public static final Set<String> FREQUENCIES = Set.of("PT15S", "PT30M", "PT1H", "P1D", "P1W", "P1M");
+    public static final Set<String> FREQUENCIES = Set.of("PT15S", "PT15M", "PT30M", "PT1H", "P1D", "P1W", "P1M");
 
     /** The series analytic class's default raw retention (Conventions "Analytic retention"). */
     public static final Duration RETENTION = Duration.ofDays(3650);
@@ -249,7 +249,7 @@ public final class SeriesPoint {
                 new FieldSpec(FieldType.STRING, null, "Dataset", "Upstream dataset or route the point came from",
                         null, Set.of()));
         builder.fieldSpec("frequency", new FieldSpec(FieldType.STRING, null, "Frequency",
-                "Fixed frequency code: PT15S, PT30M, PT1H, P1D, P1W or P1M", null, Set.of()));
+                "Fixed frequency code: PT15S, PT15M, PT30M, PT1H, P1D, P1W or P1M", null, Set.of()));
         builder.fieldSpec("period", new FieldSpec(FieldType.STRING, null, "Period",
                 "The upstream period label, for example 2026-10-09 or 2026-10-09T14", null, Set.of()));
         builder.fieldSpec("periodStart", new FieldSpec(FieldType.TIMESTAMP, null, "Period start",

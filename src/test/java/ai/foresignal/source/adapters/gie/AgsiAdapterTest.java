@@ -19,6 +19,7 @@ import ai.foresignal.test.MutableClock;
 import ai.foresignal.test.WireMockSupport;
 import ai.foresignal.testsupport.adapters.AdapterFixtures;
 import ai.foresignal.testsupport.adapters.AdapterHttpHarness;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +31,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
-/** {@code gie-agsi} against a stub (prompt 093): the {@code x-key} header and the HTTP-200 access-denied body. */
+/**
+ * {@code gie-agsi} against a stub (prompt 093): the {@code x-key} header, the per-country requests, the budget and the
+ * HTTP-200 access-denied body.
+ */
 @IntegrationTest
 class AgsiAdapterTest extends WireMockSupport {
 
@@ -73,23 +77,41 @@ class AgsiAdapterTest extends WireMockSupport {
                 .withHeader("x-key", equalTo(KEY)));
     }
 
+    private static String body(String code, String name, String full) {
+        return ("{'last_page':1,'total':1,'dataset':'storage','data':[{'name':'" + name + "','code':'" + code
+                + "','gasDayStart':'2026-10-13','gasInStorage':'1','full':'" + full + "','status':'C'}]}")
+                .replace('\'', '"');
+    }
+
     @Test
-    @DisplayName("the countries parameter keeps the EU aggregate and the chosen countries")
+    @DisplayName("one type=eu request for the aggregate and one country= request per configured country")
     void countries() throws Exception {
-        // The shipped fixture's EU aggregate is status N (no data), which the parser skips by design
-        // (AgsiParserTest); give it data here so the "EU is always kept" filter rule is exercised.
-        tools.jackson.databind.node.ObjectNode root = (tools.jackson.databind.node.ObjectNode)
-                jsonMapper.readTree(AdapterFixtures.bytes("gie-agsi", "storage.json"));
-        ((tools.jackson.databind.node.ObjectNode) root.get("data").get(2)).put("status", "C");
-        WIREMOCK.stubFor(get(urlPathEqualTo("/api")).willReturn(aResponse().withStatus(200)
-                .withBody(root.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8))));
-        // DE is chosen; FR is not, and the EU row is always kept.
+        WIREMOCK.stubFor(get(urlPathEqualTo("/api")).withQueryParam("type", equalTo("eu"))
+                .willReturn(aResponse().withStatus(200).withBody(body("EU", "Europe", "90.1"))));
+        WIREMOCK.stubFor(get(urlPathEqualTo("/api")).withQueryParam("country", equalTo("DE"))
+                .willReturn(aResponse().withStatus(200).withBody(body("DE", "Germany", "92.3"))));
+        WIREMOCK.stubFor(get(urlPathEqualTo("/api")).withQueryParam("country", equalTo("PL"))
+                .willReturn(aResponse().withStatus(200).withBody(body("PL", "Poland", "88.0"))));
         List<NormalizedRecord> records = adapter.fetch(harness.context(adapter,
-                Map.of(AgsiAdapter.COUNTRIES_PARAM, List.of("DE")))).records();
+                Map.of(AgsiAdapter.COUNTRIES_PARAM, List.of("de", "PL", "EU")))).records();
         Map<String, NormalizedRecord> byId = new java.util.HashMap<>();
         records.forEach(r -> byId.put(r.externalId(), r));
-        assertThat(byId).containsKey("agsi:DE:2026-10-13").containsKey("agsi:EU:2026-10-13")
-                .doesNotContainKey("agsi:FR:2026-10-13");
+        assertThat(byId).containsKey("agsi:DE:2026-10-13").containsKey("agsi:PL:2026-10-13")
+                .containsKey("agsi:EU:2026-10-13").containsKey("agsi:PL:latest");
+        WIREMOCK.verify(3, getRequestedFor(urlPathEqualTo("/api")).withHeader("x-key", equalTo(KEY)));
+        WIREMOCK.verify(1, getRequestedFor(urlPathEqualTo("/api")).withQueryParam("country", equalTo("DE"))
+                .withQueryParam("size", equalTo("30")));
+    }
+
+    @Test
+    @DisplayName("the default countries fit the default per-minute budget in one run")
+    void defaultBudget() {
+        assertThat(AgsiAdapter.DEFAULT_REQUESTS_PER_RUN).isEqualTo(1 + AgsiAdapter.DEFAULT_COUNTRIES.size());
+        assertThat(adapter.descriptor().defaultBudget().perMinute()).isGreaterThanOrEqualTo(
+                AgsiAdapter.DEFAULT_REQUESTS_PER_RUN);
+        long runsPerDay = Duration.ofDays(1).toMinutes() / adapter.descriptor().defaultInterval().toMinutes();
+        assertThat(adapter.descriptor().defaultBudget().perDay()).isGreaterThanOrEqualTo(
+                (int) runsPerDay * AgsiAdapter.DEFAULT_REQUESTS_PER_RUN);
     }
 
     @Test

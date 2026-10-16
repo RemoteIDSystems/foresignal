@@ -7,11 +7,16 @@ import ai.foresignal.api.dto.SeriesPointPageDto;
 import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.api.support.QueryParams;
+import ai.foresignal.api.support.ReadCaller;
+import ai.foresignal.api.support.ReadCallerResolver;
+import ai.foresignal.security.restrict.RestrictedRead;
 import ai.foresignal.source.SourceRegistry;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +32,10 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>{@code GET /v1/series} lists the catalogue from {@code series-latest} records;
  * {@code GET /v1/series/{sourceId}/{seriesId}} returns one series' points in {@code periodStart} order, as JSON or
  * CSV. Both are {@code read} scope, open while {@code security.openReads} is on.
+ *
+ * <p>Both apply the caller's visibility like the record reads (prompt 035): a private source the caller may not
+ * see is answered {@code 404} when named and is absent from the catalog, and the caller's restriction is applied
+ * through {@link SeriesQueryService.Visibility}.
  */
 @RestController
 @Tag(name = "Series")
@@ -49,31 +58,50 @@ public class SeriesController {
 
     private final SeriesQueryService series;
     private final SourceRegistry registry;
+    private final ReadCallerResolver callers;
 
     /** Creates the controller. */
-    public SeriesController(SeriesQueryService series, SourceRegistry registry) {
+    public SeriesController(SeriesQueryService series, SourceRegistry registry, ReadCallerResolver callers) {
         this.series = series;
         this.registry = registry;
+        this.callers = callers;
+    }
+
+    /**
+     * The caller's visibility, after checking that every named source exists and is not one of its hidden private
+     * sources (those are answered like unknown sources, 404).
+     */
+    private SeriesQueryService.Visibility visibility(HttpServletRequest request, List<String> named) {
+        ReadCaller caller = callers.resolveScoped(request);
+        Set<String> hidden = callers.hiddenSources(caller);
+        for (String id : named) {
+            registry.descriptor(id);
+            if (hidden.contains(id)) {
+                throw NotFoundException.of("Source", id);
+            }
+        }
+        return new SeriesQueryService.Visibility(callers.excludedSources(caller), caller.restriction());
     }
 
     /** {@code listSeries}: the series catalogue from {@code series-latest} records. */
+    @RestrictedRead("visibility: excluded sources and RestrictionClamp")
     @GetMapping("/v1/series")
     @Operation(operationId = "listSeries", tags = "Series")
     public SeriesPageDto listSeries(
             @RequestParam(required = false) List<String> source,
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String cursor,
-            @RequestParam(required = false) String limit) {
+            @RequestParam(required = false) String limit,
+            HttpServletRequest request) {
         List<String> sources = QueryParams.multi("source", source);
-        for (String id : sources) {
-            registry.descriptor(id);
-        }
+        SeriesQueryService.Visibility visibility = visibility(request, sources);
         int pageSize = QueryParams.intInRange("limit", limit, 1, MAX_LIMIT, DEFAULT_LIMIT);
-        SeriesQueryService.Catalogue page = series.list(sources, q, cursor, pageSize);
+        SeriesQueryService.Catalogue page = series.list(sources, q, cursor, pageSize, visibility);
         return new SeriesPageDto(page.items(), page.nextCursor());
     }
 
     /** {@code getSeriesPoints}: one series' points ordered by {@code periodStart}, as JSON or CSV. */
+    @RestrictedRead("visibility: excluded sources and RestrictionClamp")
     @GetMapping("/v1/series/{sourceId}/{seriesId}")
     @Operation(operationId = "getSeriesPoints", tags = "Series")
     public ResponseEntity<?> getSeriesPoints(
@@ -84,18 +112,19 @@ public class SeriesController {
             @RequestParam(required = false) String limit,
             @RequestParam(required = false) String format,
             @RequestParam(required = false) String cursor,
-            @RequestHeader(value = HttpHeaders.ACCEPT, required = false) String accept) {
-        registry.descriptor(sourceId);
+            @RequestHeader(value = HttpHeaders.ACCEPT, required = false) String accept,
+            HttpServletRequest request) {
+        SeriesQueryService.Visibility visibility = visibility(request, List.of(sourceId));
         Instant fromAt = QueryParams.instant("from", from);
         Instant toAt = QueryParams.instant("to", to);
         if (fromAt != null && toAt != null && !fromAt.isBefore(toAt)) {
             throw ValidationException.forField("to", "must be after from");
         }
         int pageSize = QueryParams.intInRange("limit", limit, 1, MAX_POINTS_LIMIT, DEFAULT_POINTS_LIMIT);
-        SeriesInfoDto info = series.info(sourceId, seriesId)
+        SeriesInfoDto info = series.info(sourceId, seriesId, visibility)
                 .orElseThrow(() -> new NotFoundException(
                         "SERIES_NOT_FOUND: no series '" + seriesId + "' in source '" + sourceId + "'"));
-        SeriesPointPageDto page = series.points(sourceId, info, fromAt, toAt, cursor, pageSize).page();
+        SeriesPointPageDto page = series.points(sourceId, info, fromAt, toAt, cursor, pageSize, visibility).page();
         boolean csv = "csv".equalsIgnoreCase(format)
                 || (format == null && accept != null && accept.toLowerCase().contains("text/csv"));
         if (csv) {

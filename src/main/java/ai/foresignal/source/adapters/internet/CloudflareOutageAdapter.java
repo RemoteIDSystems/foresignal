@@ -20,10 +20,13 @@ import ai.foresignal.source.spi.TtlAnchor;
 import ai.foresignal.source.spi.UpstreamFormatException;
 import ai.foresignal.source.spi.UpstreamResponse;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
@@ -39,7 +42,8 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p>Needs a Cloudflare API token with Radar read access (Bearer). Annotations carry no update time, so the
  * source's time base is RECEIVED and {@code eventTime} is the outage start. Geometry is the centroids of the
- * affected locations, else of the affected ASNs' countries.
+ * affected locations, else of the affected ASNs' countries. Radar's {@code location} filter takes one alpha-2 code,
+ * so a single code is sent upstream and several are filtered locally; every query value is URL-encoded.
  */
 @Component
 public final class CloudflareOutageAdapter implements PollingAdapter {
@@ -91,11 +95,17 @@ public final class CloudflareOutageAdapter implements PollingAdapter {
                     "cloudflare-radar-outages needs a Radar API token");
         }
         String dateRange = ctx.params().string("dateRange");
+        List<String> locations = new ArrayList<>();
+        for (String code : ctx.params().stringList("location")) {
+            if (code != null && !code.isBlank()) {
+                locations.add(code.strip().toUpperCase(Locale.ROOT));
+            }
+        }
         StringBuilder url = new StringBuilder(baseUrl + "/client/v4/radar/annotations/outages?format=JSON&limit=100")
-                .append("&dateRange=").append(dateRange == null || dateRange.isBlank() ? "7d" : dateRange);
-        List<String> locations = ctx.params().stringList("location");
-        if (!locations.isEmpty()) {
-            url.append("&location=").append(String.join(",", locations));
+                .append("&dateRange=").append(encode(dateRange == null || dateRange.isBlank() ? "7d" : dateRange));
+        // Radar's location filter takes one alpha-2 code; several are filtered here instead.
+        if (locations.size() == 1) {
+            url.append("&location=").append(encode(locations.get(0)));
         }
         Integer asn = ctx.params().integer("asn");
         if (asn != null) {
@@ -106,7 +116,27 @@ public final class CloudflareOutageAdapter implements PollingAdapter {
         if (response.status() != 200) {
             throw new UpstreamFormatException("Cloudflare Radar answered HTTP " + response.status(), "");
         }
-        return FetchResult.of(parse(response.body()));
+        List<NormalizedRecord> records = parse(response.body());
+        if (locations.size() > 1) {
+            records = records.stream().filter(r -> touches(r, locations)).toList();
+        }
+        return FetchResult.of(records);
+    }
+
+    private static boolean touches(NormalizedRecord record, List<String> locations) {
+        Object codes = record.payload().get("locations");
+        if (codes instanceof List<?> list) {
+            for (Object code : list) {
+                if (code != null && locations.contains(code.toString().toUpperCase(Locale.ROOT))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     /** The records of a Radar outages body. */
@@ -140,8 +170,12 @@ public final class CloudflareOutageAdapter implements PollingAdapter {
         List<Integer> asns = integers(annotation.get("asns"));
         b.put("asns", asns);
         b.put("asnNames", asnNames(annotation.get("asnsDetails")));
-        b.put("outageCause", text(annotation, "outageCause"));
-        b.put("outageType", text(annotation, "outageType"));
+        // The documented shape nests the cause and type under "outage"; older captures carry them flat.
+        JsonNode outage = annotation.path("outage");
+        b.put("outageCause", outage.isObject() && text(outage, "outageCause") != null
+                ? text(outage, "outageCause") : text(annotation, "outageCause"));
+        b.put("outageType", outage.isObject() && text(outage, "outageType") != null
+                ? text(outage, "outageType") : text(annotation, "outageType"));
         b.put("scope", text(annotation, "scope"));
         b.put("description", ai.foresignal.source.adapters.humanitarian.HtmlText.strip(
                 text(annotation, "description"), 2048));
@@ -154,8 +188,16 @@ public final class CloudflareOutageAdapter implements PollingAdapter {
         }
         if (points.isEmpty()) {
             for (JsonNode detail : asnDetails(annotation.get("asnsDetails"))) {
-                countries.byIso2(text(detail, "location"))
-                        .ifPresent(ref -> points.add(Geo.point(ref.labelLon(), ref.labelLat())));
+                // asnsDetails[].location is {"code":"US","name":"United States"}; accept a bare code as well.
+                JsonNode location = detail.get("location");
+                String code = location == null ? null
+                        : location.isObject() ? text(location, "code") : text(detail, "location");
+                countries.byIso2(code).ifPresent(ref -> {
+                    Point point = Geo.point(ref.labelLon(), ref.labelLat());
+                    if (points.stream().noneMatch(p -> p.equalsExact(point))) {
+                        points.add(point);
+                    }
+                });
             }
         }
         if (points.size() == 1) {

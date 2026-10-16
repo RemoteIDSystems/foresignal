@@ -5,15 +5,18 @@ import com.uber.h3core.util.LatLng;
 import java.util.ArrayList;
 import java.util.List;
 import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.LinearRing;
+import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.locationtech.jts.geom.util.AffineTransformation;
 
 /**
  * H3 cell conversions (prompt 092), shared with the sources that map a cell index to geometry. Wraps Uber's
- * H3 binding; the boundary is a JTS polygon in SRID 4326, with longitudes normalised so a cell that crosses
- * the antimeridian does not become a degenerate polygon spanning the globe.
+ * H3 binding; the boundary is JTS geometry in SRID 4326 with every longitude in [-180, 180]: a cell that crosses
+ * the antimeridian is split along it into a two-part multipolygon rather than shifted past 180.
  */
 public final class H3Cells {
 
@@ -35,34 +38,77 @@ public final class H3Cells {
         return H3.latLngToCell(lat, lon, res);
     }
 
-    /** The polygon boundary of a cell index, in SRID 4326. */
-    public static Polygon cellToPolygon(long cell) {
+    /**
+     * The boundary of a cell index, in SRID 4326, with every longitude inside [-180, 180].
+     *
+     * <p>Most cells come back as a {@link Polygon}. A cell that crosses the antimeridian is split along it into a
+     * {@link MultiPolygon} of its two halves, so no coordinate leaves the valid range (the normalizer rejects
+     * {@code x > 180}) and the shape does not become a band spanning the globe.
+     *
+     * @throws IllegalArgumentException when {@code cell} is not a valid H3 index
+     */
+    public static Geometry cellToPolygon(long cell) {
         if (!H3.isValidCell(cell)) {
             throw new IllegalArgumentException("Not a valid H3 cell: " + cell);
         }
         List<LatLng> boundary = H3.cellToBoundary(cell);
-        List<Coordinate> coordinates = new ArrayList<>(boundary.size() + 1);
-        boolean crossesAntimeridian = false;
         double minLon = Double.MAX_VALUE;
         double maxLon = -Double.MAX_VALUE;
         for (LatLng point : boundary) {
             minLon = Math.min(minLon, point.lng);
             maxLon = Math.max(maxLon, point.lng);
         }
-        if (maxLon - minLon > 180) {
-            crossesAntimeridian = true;
-        }
+        boolean crossesAntimeridian = maxLon - minLon > 180;
+        List<Coordinate> coordinates = new ArrayList<>(boundary.size() + 1);
         for (LatLng point : boundary) {
             double lon = crossesAntimeridian && point.lng < 0 ? point.lng + 360 : point.lng;
             coordinates.add(new Coordinate(lon, point.lat));
         }
         coordinates.add(new Coordinate(coordinates.get(0)));
-        LinearRing ring = FACTORY.createLinearRing(coordinates.toArray(new Coordinate[0]));
-        return FACTORY.createPolygon(ring);
+        Polygon shifted = FACTORY.createPolygon(coordinates.toArray(new Coordinate[0]));
+        if (!crossesAntimeridian) {
+            return shifted;
+        }
+        return splitAtAntimeridian(shifted);
     }
 
-    /** The polygon boundary of a cell address ({@code "842830bffffffff"}). */
-    public static Polygon cellToPolygon(String address) {
+    /**
+     * Splits a polygon whose longitudes run past 180 (the negative ones shifted by +360) into the part west of the
+     * antimeridian and the part east of it, shifted back by -360.
+     */
+    static Geometry splitAtAntimeridian(Polygon shifted) {
+        Envelope env = shifted.getEnvelopeInternal();
+        Geometry west = shifted.intersection(FACTORY.toGeometry(
+                new Envelope(env.getMinX() - 1, 180, env.getMinY() - 1, env.getMaxY() + 1)));
+        Geometry east = shifted.intersection(FACTORY.toGeometry(
+                new Envelope(180, env.getMaxX() + 1, env.getMinY() - 1, env.getMaxY() + 1)));
+        AffineTransformation back = AffineTransformation.translationInstance(-360, 0);
+        List<Polygon> parts = new ArrayList<>();
+        collectPolygons(west, parts);
+        List<Polygon> eastParts = new ArrayList<>();
+        collectPolygons(east, eastParts);
+        for (Polygon part : eastParts) {
+            parts.add((Polygon) back.transform(part));
+        }
+        if (parts.size() == 1) {
+            Polygon only = parts.get(0);
+            only.setSRID(4326);
+            return only;
+        }
+        return FACTORY.createMultiPolygon(parts.toArray(new Polygon[0]));
+    }
+
+    private static void collectPolygons(Geometry geometry, List<Polygon> out) {
+        for (int i = 0; i < geometry.getNumGeometries(); i++) {
+            Geometry part = geometry.getGeometryN(i);
+            if (part instanceof Polygon polygon && !polygon.isEmpty() && polygon.getArea() > 0) {
+                out.add(FACTORY.createPolygon(polygon.getExteriorRing().getCoordinates()));
+            }
+        }
+    }
+
+    /** The boundary of a cell address ({@code "842830bffffffff"}); see {@link #cellToPolygon(long)}. */
+    public static Geometry cellToPolygon(String address) {
         return cellToPolygon(stringToCell(address));
     }
 

@@ -15,6 +15,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.Year;
+import java.time.ZoneOffset;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -47,12 +48,21 @@ public class GridFrequencyGbAdapter implements PollingAdapter {
     /** How far back the first poll reaches. */
     static final Duration FIRST_WINDOW = Duration.ofMinutes(5);
 
+    /**
+     * The longest window one poll asks for: after an outage the poll resumes from at most this far back rather than
+     * from the last sample, so one request never asks for hours of 15-second samples.
+     */
+    static final Duration MAX_WINDOW = Duration.ofHours(1);
+
     /** The licence. */
     public static final String LICENCE = "BMRS Data Licence";
 
-    private static final SourceDescriptor DESCRIPTOR = buildDescriptor();
-
     private final String baseUrl;
+
+    /** The descriptor of the current year (the attribution names the year), rebuilt when the year turns. */
+    private volatile Built built;
+
+    private record Built(Year year, SourceDescriptor descriptor) {}
 
     /** Creates the adapter. */
     public GridFrequencyGbAdapter(@Value("${" + BASE_URL_PROPERTY + ":}") String baseUrlOverride) {
@@ -60,9 +70,30 @@ public class GridFrequencyGbAdapter implements PollingAdapter {
                 ? DEFAULT_BASE_URL : baseUrlOverride.trim().replaceAll("/+$", "");
     }
 
+    /** The descriptor; its attribution names the current year, so it is rebuilt when the year turns. */
     @Override
     public SourceDescriptor descriptor() {
-        return DESCRIPTOR;
+        Year year = Year.now(ZoneOffset.UTC);
+        Built current = built;
+        if (current == null || !current.year().equals(year)) {
+            current = new Built(year, buildDescriptor(year));
+            built = current;
+        }
+        return current.descriptor();
+    }
+
+    /** The BMRS attribution line for {@code year}. */
+    static String attribution(Year year) {
+        return "Contains BMRS data © Elexon Limited copyright and database right " + year;
+    }
+
+    /** The start of the next poll's window: the last sample, at most {@link #MAX_WINDOW} ago. */
+    static Instant windowStart(Instant lastSample, Instant now) {
+        Instant earliest = now.minus(MAX_WINDOW);
+        if (lastSample == null) {
+            return now.minus(FIRST_WINDOW);
+        }
+        return lastSample.isBefore(earliest) ? earliest : lastSample;
     }
 
     /** The frequency request URL for a window. */
@@ -74,7 +105,7 @@ public class GridFrequencyGbAdapter implements PollingAdapter {
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
         FrequencyExcursionDetector.State state = FrequencyExcursionDetector.read(ctx.state(), GRID);
         Instant now = ctx.now();
-        Instant from = state.lastSampleTime() != null ? state.lastSampleTime() : now.minus(FIRST_WINDOW);
+        Instant from = windowStart(state.lastSampleTime(), now);
         UpstreamResponse response = ctx.http().get(frequencyUri(from, now));
         if (response.status() != 200 || response.truncated()) {
             throw new UpstreamFormatException(ID + (response.status() != 200
@@ -87,14 +118,14 @@ public class GridFrequencyGbAdapter implements PollingAdapter {
         return FetchResult.complete(result.records());
     }
 
-    private static SourceDescriptor buildDescriptor() {
+    private static SourceDescriptor buildDescriptor(Year year) {
         SourceDescriptor.Builder builder = SourceDescriptor.builder(ID)
                 .name("GB grid frequency (Elexon)")
                 .description("Great Britain's electricity system frequency, 15-second samples from the Elexon BMRS"
                         + " API. A run of samples outside the ±0.2 Hz operational band becomes a"
                         + " frequency-excursion record; a grid-frequency state record carries the banded state.")
                 .homepage("https://bmrs.elexon.co.uk/")
-                .attribution("Contains BMRS data © Elexon Limited copyright and database right " + Year.now())
+                .attribution(attribution(year))
                 .licence(LICENCE)
                 .termsUrl("https://www.elexon.co.uk/bmrs/data-licence/")
                 .mode(Mode.POLLING)

@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -57,6 +59,9 @@ public final class RisLiveAdapter implements StreamingAdapter {
 
     private final URI uri;
     private final SourceDescriptor descriptor;
+
+    /** The trackers of the watched prefixes, kept across connections so a reconnect does not reset visibility. */
+    private final Map<String, PrefixVisibilityTracker> trackers = new ConcurrentHashMap<>();
 
     /** Creates the adapter (tests). */
     public RisLiveAdapter(String urlOverride) {
@@ -96,6 +101,16 @@ public final class RisLiveAdapter implements StreamingAdapter {
         ctx.http().openWebSocket(uri, session, Map.of(), WebSocketOptions.DEFAULT);
         session.startWatchdog();
         return session;
+    }
+
+    /** The tracker of a watched prefix (canonical CIDR text), created on first use and kept across connections. */
+    PrefixVisibilityTracker tracker(String canonicalPrefix) {
+        return trackers.computeIfAbsent(canonicalPrefix, PrefixVisibilityTracker::new);
+    }
+
+    /** Drops the trackers of prefixes that are no longer watched. */
+    void retainTrackers(Set<String> canonicalPrefixes) {
+        trackers.keySet().retainAll(canonicalPrefixes);
     }
 
     /** Parses {@code prefix=ASN,ASN;prefix2=ASN}. */

@@ -83,4 +83,24 @@ class SeriesPointTest {
         assertThat(month.end()).isEqualTo(Instant.parse("2026-09-01T00:00:00Z"));
         assertThat(SeriesPeriods.parse("P1D", "not-a-date")).isNull();
     }
+
+    @Test
+    @DisplayName("a week-ending label (EIA weekly) covers the seven days up to and including the label")
+    void weekEnding() {
+        SeriesPeriods.Period week = SeriesPeriods.weekEnding("2026-10-02");
+        assertThat(week.start()).isEqualTo(Instant.parse("2026-09-26T00:00:00Z"));
+        assertThat(week.end()).as("observedAt = periodEnd is the end of the label day, not a week later")
+                .isEqualTo(Instant.parse("2026-10-03T00:00:00Z"));
+        assertThat(SeriesPeriods.weekEnding("2026-10")).isNull();
+        assertThat(SeriesPeriods.weekEnding(null)).isNull();
+    }
+
+    @Test
+    @DisplayName("PT15M is an accepted frequency with a 15-minute window")
+    void fifteenMinutes() {
+        assertThat(SeriesPoint.FREQUENCIES).contains("PT15M");
+        SeriesPeriods.Period quarter = SeriesPeriods.parse("PT15M", "2026-10-09T14:15Z");
+        assertThat(quarter.start()).isEqualTo(Instant.parse("2026-10-09T14:15:00Z"));
+        assertThat(quarter.end()).isEqualTo(Instant.parse("2026-10-09T14:30:00Z"));
+    }
 }

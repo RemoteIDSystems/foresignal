@@ -57,6 +57,18 @@ public class GridFrequencyFingridAdapter implements PollingAdapter {
     /** How far back the first poll reaches. */
     static final Duration FIRST_WINDOW = Duration.ofMinutes(10);
 
+    /** The longest window one poll asks for: after an outage the poll resumes from at most this far back. */
+    static final Duration MAX_WINDOW = Duration.ofHours(1);
+
+    /** The start of the next poll's window: the last sample, at most {@link #MAX_WINDOW} ago. */
+    static Instant windowStart(Instant lastSample, Instant now) {
+        Instant earliest = now.minus(MAX_WINDOW);
+        if (lastSample == null) {
+            return now.minus(FIRST_WINDOW);
+        }
+        return lastSample.isBefore(earliest) ? earliest : lastSample;
+    }
+
     private static final SourceDescriptor DESCRIPTOR = buildDescriptor();
 
     private final String baseUrl;
@@ -87,7 +99,7 @@ public class GridFrequencyFingridAdapter implements PollingAdapter {
         }
         FrequencyExcursionDetector.State state = FrequencyExcursionDetector.read(ctx.state(), GRID);
         Instant now = ctx.now();
-        Instant from = state.lastSampleTime() != null ? state.lastSampleTime() : now.minus(FIRST_WINDOW);
+        Instant from = windowStart(state.lastSampleTime(), now);
         UpstreamResponse response = ctx.http().get(frequencyUri(from, now), Map.of(KEY_HEADER, key.strip()));
         if (response.status() != 200 || response.truncated()) {
             throw new UpstreamFormatException(ID + (response.status() != 200

@@ -31,8 +31,13 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * {@code get_series} (read, prompt 093): the energy and markets series catalogue, or the points of one series.
  * Compact output with a {@code *_total} count and a {@code truncated} flag.
+ *
+ * <p>Reads are filtered by the caller's excluded sources and restriction (prompt 035), exactly as
+ * {@code query_records}: on the Ask path the excluded sources include those the LLM destination may not receive
+ * ({@code EgressPolicy.llmExcludedSources}, folded into the tool caller by {@code AskService}). A series of a source
+ * the caller may not read is reported as missing.
  */
-@RestrictedRead
+@RestrictedRead("visibility: excluded sources and RestrictionClamp")
 @Component
 public class GetSeriesTool implements ForesignalMcpTool {
 
@@ -75,7 +80,7 @@ public class GetSeriesTool implements ForesignalMcpTool {
         return "Lists the energy and markets time series (oil prices, US grid demand, EU gas storage, monthly"
                 + " generation, GB carbon intensity…) with their unit and newest value, or, when source and series"
                 + " are given, one series' data points in period order (each with period, value, unit and status;"
-                + " version > 1 means the point was revised). Series ids look like eia: RWTC, agsi:DE,"
+                + " version > 1 means the point was revised). Series ids look like eia:RWTC, agsi:DE,"
                 + " eia930:ERCO:D or carbon:gb:national.";
     }
 
@@ -100,18 +105,21 @@ public class GetSeriesTool implements ForesignalMcpTool {
         String source = McpArgs.text(args, "source");
         String seriesId = McpArgs.text(args, "series");
         int limit = McpArgs.integer(args, "limit", DEFAULT_LIMIT);
+        SeriesQueryService.Visibility visibility =
+                new SeriesQueryService.Visibility(context.excludedSources(), context.restriction());
         if (source != null && seriesId != null) {
-            return ToolResult.json(points(source, seriesId, args, limit));
+            return ToolResult.json(points(source, seriesId, args, limit, visibility));
         }
-        return ToolResult.json(catalogue(source, McpArgs.text(args, "q"), limit, detail));
+        return ToolResult.json(catalogue(source, McpArgs.text(args, "q"), limit, detail, visibility));
     }
 
-    private ObjectNode points(String source, String seriesId, JsonNode args, int limit) {
-        SeriesInfoDto info = series.info(source, seriesId)
+    private ObjectNode points(String source, String seriesId, JsonNode args, int limit,
+            SeriesQueryService.Visibility visibility) {
+        SeriesInfoDto info = series.info(source, seriesId, visibility)
                 .orElseThrow(() -> new McpToolException("No series '" + seriesId + "' in source '" + source + "'."));
         Instant from = McpArgs.instant(args, "from");
         Instant to = McpArgs.instant(args, "to");
-        List<SeriesPointDto> points = series.points(source, info, from, to, null, limit).page().items();
+        List<SeriesPointDto> points = series.points(source, info, from, to, null, limit, visibility).page().items();
         List<JsonNode> items = new ArrayList<>();
         for (SeriesPointDto point : points) {
             items.add(shaper.objectTree(point));
@@ -120,9 +128,10 @@ public class GetSeriesTool implements ForesignalMcpTool {
                 Map.of("series", shaper.objectTree(info), "pointsTotal", points.size()));
     }
 
-    private ObjectNode catalogue(String source, String q, int limit, Detail detail) {
+    private ObjectNode catalogue(String source, String q, int limit, Detail detail,
+            SeriesQueryService.Visibility visibility) {
         List<String> sources = source == null ? List.of() : List.of(source);
-        SeriesQueryService.Catalogue page = series.list(sources, q, null, limit);
+        SeriesQueryService.Catalogue page = series.list(sources, q, null, limit, visibility);
         List<JsonNode> items = new ArrayList<>();
         for (SeriesInfoDto info : page.items()) {
             items.add(shaper.objectTree(info));

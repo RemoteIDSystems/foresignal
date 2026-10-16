@@ -26,9 +26,10 @@ public final class SeriesPeriods {
     /**
      * The window of {@code period} at {@code frequency}.
      *
-     * @param frequency one of {@code PT15S, PT30M, PT1H, P1D, P1W, P1M}
+     * @param frequency one of {@code PT15S, PT15M, PT30M, PT1H, P1D, P1W, P1M}; the label is the period's start
      * @param period the upstream label
      * @return the start and end, or null when the label cannot be read
+     * @see #weekEnding(String)
      */
     public static Period parse(String frequency, String period) {
         if (frequency == null || period == null || period.isBlank()) {
@@ -41,6 +42,7 @@ public final class SeriesPeriods {
         }
         return switch (frequency) {
             case "PT15S" -> new Period(start, start.plusSeconds(15));
+            case "PT15M" -> new Period(start, start.plusSeconds(900));
             case "PT30M" -> new Period(start, start.plusSeconds(1800));
             case "PT1H" -> new Period(start, start.plus(1, ChronoUnit.HOURS));
             case "P1D" -> new Period(start, start.plus(1, ChronoUnit.DAYS));
@@ -48,6 +50,27 @@ public final class SeriesPeriods {
             case "P1M" -> new Period(start, start.atOffset(ZoneOffset.UTC).plusMonths(1).toInstant());
             default -> null;
         };
+    }
+
+    /**
+     * The seven-day window of a week labeled by its <em>last</em> day, as EIA labels its weekly series (the WPSR
+     * week ending Friday): the period runs from six days before the label to the end of the label day, so
+     * {@code observedAt = periodEnd} is never in the future of the week it describes.
+     *
+     * @param period a {@code YYYY-MM-DD} week-ending date
+     * @return the start and end, or null when the label is not a date
+     */
+    public static Period weekEnding(String period) {
+        if (period == null || !period.strip().matches("\\d{4}-\\d{2}-\\d{2}")) {
+            return null;
+        }
+        try {
+            LocalDate last = LocalDate.parse(period.strip());
+            return new Period(last.minusDays(6).atStartOfDay(ZoneOffset.UTC).toInstant(),
+                    last.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant());
+        } catch (DateTimeParseException e) {
+            return null;
+        }
     }
 
     private static Instant start(String text) {

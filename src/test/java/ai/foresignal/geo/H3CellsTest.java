@@ -5,8 +5,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Polygon;
 
-/** {@link H3Cells} (prompt 092): cell conversion, valid polygons and invalid-index handling. */
+/** {@link H3Cells} (prompt 092): cell conversion, valid polygons, antimeridian splitting and invalid-index handling. */
 class H3CellsTest {
 
     @Test
@@ -30,5 +34,38 @@ class H3CellsTest {
         assertThat(H3Cells.cellToPolygon(address).getNumPoints()).isEqualTo(7);
         assertThat(H3Cells.isValid("not-an-h3")).isFalse();
         assertThatThrownBy(() -> H3Cells.cellToPolygon(-1L)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("a cell across the antimeridian is split into a valid multipolygon inside [-180, 180]")
+    void antimeridian() {
+        Geometry split = null;
+        for (double lat = -60; lat <= 60 && split == null; lat += 0.25) {
+            Geometry candidate = H3Cells.cellToPolygon(H3Cells.latLngToCell(lat, 179.98, 4));
+            if (candidate instanceof MultiPolygon) {
+                split = candidate;
+            }
+        }
+        assertThat(split).as("some resolution-4 cell along 179.98 E crosses the antimeridian").isNotNull();
+        assertThat(split.getNumGeometries()).isEqualTo(2);
+        assertThat(split.isValid()).isTrue();
+        assertThat(split.getSRID()).isEqualTo(4326);
+        for (Coordinate c : split.getCoordinates()) {
+            assertThat(c.x).isBetween(-180.0, 180.0);
+        }
+        assertThat(split.getEnvelopeInternal().getWidth()).as("not a band around the globe").isGreaterThan(300);
+        // One half touches +180, the other -180.
+        assertThat(split.getGeometryN(0).getEnvelopeInternal().getWidth()).isLessThan(5);
+        assertThat(split.getGeometryN(1).getEnvelopeInternal().getWidth()).isLessThan(5);
+    }
+
+    @Test
+    @DisplayName("a cell away from the antimeridian stays one polygon with no longitude past 180")
+    void ordinaryCellStaysPolygon() {
+        Geometry cell = H3Cells.cellToPolygon(H3Cells.latLngToCell(-36.85, 174.76, 4));
+        assertThat(cell).isInstanceOf(Polygon.class);
+        for (Coordinate c : cell.getCoordinates()) {
+            assertThat(c.x).isBetween(-180.0, 180.0);
+        }
     }
 }
