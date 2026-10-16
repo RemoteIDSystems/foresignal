@@ -118,6 +118,51 @@ public class LicenceCatalog {
         return terms(descriptor.licence());
     }
 
+    /**
+     * The most restrictive of {@code inputs} (prompt 109, {@code derivedFrom}): the strictest single terms by
+     * {@link LicenceTerms#restrictiveness()} when they dominate every flag of the others; otherwise merged
+     * terms with id {@code derived}, the strictest value of each flag, the joined attribution texts and no
+     * terms URL. An empty collection gives the restrictive {@code unknown} terms.
+     */
+    public LicenceTerms mostRestrictive(java.util.Collection<LicenceTerms> inputs) {
+        if (inputs == null || inputs.isEmpty()) {
+            return byId.get(UNKNOWN);
+        }
+        LicenceTerms strictest = null;
+        for (LicenceTerms terms : inputs) {
+            if (terms != null && (strictest == null || terms.restrictiveness() > strictest.restrictiveness())) {
+                strictest = terms;
+            }
+        }
+        if (strictest == null) {
+            return byId.get(UNKNOWN);
+        }
+        boolean dominates = true;
+        boolean shareAlike = false;
+        boolean attribution = false;
+        boolean commercialForbidden = false;
+        java.util.Set<String> texts = new java.util.LinkedHashSet<>();
+        for (LicenceTerms terms : inputs) {
+            if (terms == null) {
+                continue;
+            }
+            shareAlike |= terms.shareAlike();
+            attribution |= terms.attributionRequired();
+            commercialForbidden |= terms.effectiveCommercial() != LicenceTerms.CommercialUse.ALLOWED;
+            if (terms.attributionText() != null && !terms.attributionText().isBlank()) {
+                texts.add(terms.attributionText());
+            }
+        }
+        dominates = (!shareAlike || strictest.shareAlike()) && (!attribution || strictest.attributionRequired())
+                && (!commercialForbidden || strictest.effectiveCommercial() != LicenceTerms.CommercialUse.ALLOWED);
+        if (dominates) {
+            return strictest;
+        }
+        return new LicenceTerms("derived", "Most restrictive terms of the inputs",
+                commercialForbidden ? LicenceTerms.CommercialUse.FORBIDDEN : LicenceTerms.CommercialUse.ALLOWED,
+                shareAlike, attribution, strictest.effectiveRedistribution(), String.join("; ", texts), null);
+    }
+
     /** Every catalogue entry. */
     public List<LicenceTerms> all() {
         return List.copyOf(byId.values());

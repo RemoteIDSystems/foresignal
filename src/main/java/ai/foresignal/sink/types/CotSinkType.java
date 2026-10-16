@@ -18,7 +18,6 @@ import java.net.MulticastSocket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,8 +26,10 @@ import org.springframework.stereotype.Component;
 
 /**
  * {@code cot} (prompt 110; STATE_MIRROR, PUSH or SERVE): Cursor-on-Target XML (protocol version 0).
- * PUSH sends UDP multicast SA (default {@code 239.2.3.1:6969}, LAN only); SERVE listens on TCP for
- * direct ATAK/iTAK input. Affiliation is neutral ({@code u}) or unknown ({@code n}) only.
+ * PUSH sends UDP multicast SA (default {@code 239.2.3.1:6969}, a LAN-scoped group only, TTL 1); SERVE listens on
+ * TCP for direct ATAK/iTAK input and gives each new client the current picture. Affiliation is neutral
+ * ({@code u}) or unknown ({@code n}) only. Speeds are converted from Foresignal's knots to the m/s CoT expects;
+ * records without a point are skipped.
  */
 @Component
 public class CotSinkType implements SinkType {
@@ -87,6 +88,8 @@ public class CotSinkType implements SinkType {
         String mode = config == null ? "PUSH" : String.valueOf(config.getOrDefault("mode", "PUSH"));
         if ("SERVE".equalsIgnoreCase(mode)) {
             ServeConfig.validate(guard, config);
+        } else {
+            multicastGroup(config == null ? null : config.get("group"));
         }
     }
 
@@ -96,95 +99,155 @@ public class CotSinkType implements SinkType {
         int stale = config.intConfig("stale", 120);
         if ("SERVE".equalsIgnoreCase(config.config("mode", "PUSH"))) {
             ServeConfig serve = ServeConfig.of(guard, config);
+            Map<String, SinkRecord> mirror = new ConcurrentHashMap<>();
             SinkTcpServer server = new SinkTcpServer(guard, serve.bind(), serve.port(), serve.maxClients(),
                     serve.allowTailnet(), new SinkTcpServer.Handler() {
                         @Override
                         public void onConnect(SinkTcpServer.Client client) {
+                            // A new TAK client gets the current picture first (on the client's own thread).
+                            for (SinkRecord record : mirror.values()) {
+                                client.sendLine(event(record, affiliation, stale, instanceId));
+                            }
                         }
                     });
-            return new ServeInstance(server, affiliation, stale, instanceId);
+            return new ServeInstance(server, mirror, affiliation, stale, instanceId);
         }
-        return new MulticastInstance(config.config("group", DEFAULT_GROUP), config.intConfig("port", DEFAULT_PORT),
+        return new MulticastInstance(multicastGroup(config.config("group")), config.intConfig("port", DEFAULT_PORT),
                 affiliation, stale, instanceId);
     }
 
+    /**
+     * Resolves and validates the PUSH multicast group (prompt 110: "UDP multicast SA, LAN only, TTL 1"): it must
+     * be a multicast address of LAN scope ({@link ServeGuard#lanMulticast}); a unicast or global-scope group is
+     * refused with {@code 400 VALIDATION_FAILED}.
+     */
+    static InetAddress multicastGroup(Object group) {
+        String text = group == null || String.valueOf(group).isBlank() ? DEFAULT_GROUP : String.valueOf(group).strip();
+        InetAddress address;
+        try {
+            address = InetAddress.getByName(text);
+        } catch (java.net.UnknownHostException e) {
+            throw ValidationException.forField("config.group", "cannot resolve " + text);
+        }
+        if (!ServeGuard.lanMulticast(address)) {
+            throw ValidationException.forField("config.group", text
+                    + " is not a LAN-scoped multicast group (239.0.0.0/8, 224.0.0.0/24, or IPv6 link/site/org scope)");
+        }
+        return address;
+    }
+
+    /** The CoT uid of a record. */
+    static String uid(String instanceId, String sourceId, String externalId) {
+        return "FORESIGNAL." + instanceId.substring(0, Math.min(8, instanceId.length())) + "." + sourceId + "."
+                + externalId;
+    }
+
+    /** The callsign of a record: the flight, else the name, else the vessel callsign. */
+    static String callsign(SinkRecord record) {
+        String flight = record.string("flight");
+        if (flight != null && !flight.isBlank()) {
+            return flight;
+        }
+        String name = record.string("name");
+        return name != null && !name.isBlank() ? name : record.string("callsign");
+    }
+
+    /** Speed over ground in m/s from the payload's knots ({@code gs} for aircraft, {@code sog} for vessels). */
+    static Double speedMs(SinkRecord record) {
+        Double knots = record.number("gs");
+        if (knots == null) {
+            knots = record.number("sog");
+        }
+        return knots == null ? null : knots * CotEncoder.KNOTS_TO_MS;
+    }
+
+    /** Course over ground in degrees ({@code track} for aircraft, {@code cog} for vessels). */
+    static Double course(SinkRecord record) {
+        Double track = record.number("track");
+        return track != null ? track : record.number("cog");
+    }
+
+    /**
+     * The CoT event of a record. Callers skip records without a point ({@link SinkRecord#hasPoint()}): CoT has no
+     * "position unknown", and placing them at 0,0 would put markers in the Gulf of Guinea.
+     */
     static String event(SinkRecord record, String affiliation, int staleSeconds, String instanceId) {
-        String uid = "FORESIGNAL." + instanceId.substring(0, Math.min(8, instanceId.length())) + "."
-                + record.sourceId() + "." + record.externalId();
         Instant time = SinkSupport.time(record);
         Instant stale = record.validUntil() != null ? record.validUntil() : time.plus(Duration.ofSeconds(staleSeconds));
         String remarks = record.string("title");
         String attribution = record.attribution();
-        String body = attribution == null ? remarks : (remarks == null ? attribution : remarks + " \u2022 " + attribution);
-        return CotEncoder.event(uid, CotEncoder.type(record.kind(), affiliation), record.lat() == null ? 0 : record.lat(),
-                record.lon() == null ? 0 : record.lon(), time, stale, record.string("flight") != null
-                        ? record.string("flight") : record.string("name"),
-                record.number("track"), record.number("gs"), body, null);
+        String body = attribution == null ? remarks : (remarks == null ? attribution : remarks + " • " + attribution);
+        return CotEncoder.event(uid(instanceId, record.sourceId(), record.externalId()),
+                CotEncoder.type(record.kind(), affiliation), record.lat(), record.lon(), time, stale,
+                callsign(record), course(record), speedMs(record), body, null);
     }
 
-    /** PUSH over UDP multicast (LAN only). */
+    /** The removal event: the record's last position with {@code stale = now}. */
+    static String removal(SinkRecord record, String affiliation, String instanceId) {
+        Instant now = Instant.now();
+        return CotEncoder.event(uid(instanceId, record.sourceId(), record.externalId()),
+                CotEncoder.type(record.kind(), affiliation), record.lat(), record.lon(), now, now, callsign(record),
+                null, null, "removed", null);
+    }
+
+    /** PUSH over UDP multicast (LAN only, TTL 1). */
     private static final class MulticastInstance implements SinkInstance {
-        private final String group;
+        private final InetAddress address;
         private final int port;
         private final String affiliation;
         private final int stale;
         private final String instanceId;
         private final Map<String, SinkRecord> mirror = new ConcurrentHashMap<>();
-        private MulticastSocket socket;
-        private InetAddress address;
+        private final MulticastSocket socket;
 
-        MulticastInstance(String group, int port, String affiliation, int stale, String instanceId) {
-            this.group = group;
+        MulticastInstance(InetAddress group, int port, String affiliation, int stale, String instanceId) {
+            this.address = group;
             this.port = port;
             this.affiliation = affiliation;
             this.stale = stale;
             this.instanceId = instanceId;
             try {
-                this.address = InetAddress.getByName(group);
                 this.socket = new MulticastSocket();
                 socket.setTimeToLive(1);
-            } catch (Exception e) {
-                this.socket = null;
+            } catch (java.io.IOException e) {
+                throw new java.io.UncheckedIOException("Could not open the CoT multicast socket", e);
             }
         }
 
         @Override
         public void upsert(SinkRecord record) {
-            mirror.put(record.sourceId() + "|" + record.externalId(), record);
+            if (!record.hasPoint()) {
+                return;
+            }
+            mirror.put(record.key(), record);
             send(event(record, affiliation, stale, instanceId));
         }
 
         @Override
         public void remove(String sourceId, String externalId) {
             SinkRecord record = mirror.remove(sourceId + "|" + externalId);
-            if (record != null && socket != null) {
-                // Removal: an event with stale=now.
-                String uid = "FORESIGNAL." + instanceId.substring(0, Math.min(8, instanceId.length())) + "."
-                        + sourceId + "." + externalId;
-                Instant now = Instant.now();
-                send(CotEncoder.event(uid, CotEncoder.type(record.kind(), affiliation),
-                        record.lat() == null ? 0 : record.lat(), record.lon() == null ? 0 : record.lon(), now, now,
-                        record.string("flight"), null, null, "removed", null));
+            if (record != null) {
+                send(removal(record, affiliation, instanceId));
             }
         }
 
+        @Override
+        public void resync() {
+            mirror.clear();
+        }
+
         private void send(String xml) {
-            if (socket == null) {
-                return;
-            }
             byte[] bytes = xml.getBytes(StandardCharsets.UTF_8);
             try {
                 socket.send(new DatagramPacket(bytes, bytes.length, address, port));
-            } catch (Exception e) {
-                // Best effort.
+            } catch (java.io.IOException e) {
+                // Best effort: multicast SA is fire-and-forget.
             }
         }
 
         @Override
         public void close() {
-            if (socket != null) {
-                socket.close();
-            }
+            socket.close();
         }
     }
 
@@ -194,10 +257,12 @@ public class CotSinkType implements SinkType {
         private final String affiliation;
         private final int stale;
         private final String instanceId;
-        private final Map<String, SinkRecord> mirror = new ConcurrentHashMap<>();
+        private final Map<String, SinkRecord> mirror;
 
-        ServeInstance(SinkTcpServer server, String affiliation, int stale, String instanceId) {
+        ServeInstance(SinkTcpServer server, Map<String, SinkRecord> mirror, String affiliation, int stale,
+                String instanceId) {
             this.server = server;
+            this.mirror = mirror;
             this.affiliation = affiliation;
             this.stale = stale;
             this.instanceId = instanceId;
@@ -205,16 +270,44 @@ public class CotSinkType implements SinkType {
 
         @Override
         public void upsert(SinkRecord record) {
-            mirror.put(record.sourceId() + "|" + record.externalId(), record);
-            String xml = event(record, affiliation, stale, instanceId);
-            for (SinkTcpServer.Client client : server.clients()) {
-                client.sendLine(xml);
+            if (!record.hasPoint()) {
+                return;
             }
+            mirror.put(record.key(), record);
+            server.broadcast(event(record, affiliation, stale, instanceId));
+        }
+
+        @Override
+        public void remove(String sourceId, String externalId) {
+            SinkRecord record = mirror.remove(sourceId + "|" + externalId);
+            if (record != null) {
+                server.broadcast(removal(record, affiliation, instanceId));
+            }
+        }
+
+        @Override
+        public void resync() {
+            mirror.clear();
         }
 
         @Override
         public int clients() {
             return server.clients().size();
+        }
+
+        @Override
+        public int maxClients() {
+            return server.maxClients();
+        }
+
+        @Override
+        public long rejected() {
+            return server.rejected();
+        }
+
+        @Override
+        public List<SinkInstance.Peer> peers() {
+            return SinkInstance.peers(server);
         }
 
         @Override

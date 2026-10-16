@@ -28,19 +28,31 @@ public class WebpSupport implements SystemWarningContributor {
     private final boolean available;
     private final String reason;
 
-    /** Runs the check once. */
+    /** Runs the check once, encoding a 256×256 indexed probe tile. */
     public WebpSupport() {
-        boolean ok;
-        String why = null;
-        try {
+        this(() -> {
             BufferedImage probe = new BufferedImage(256, 256, BufferedImage.TYPE_BYTE_INDEXED,
                     new java.awt.image.IndexColorModel(8, 2, new byte[] {0, (byte) 255}, new byte[] {0, (byte) 255},
                             new byte[] {0, (byte) 255}, new byte[] {0, (byte) 255}));
             ImageEncoding.webp(probe, 1.0f);
+        });
+    }
+
+    /**
+     * Runs {@code probe} once. A native library that is missing or built for another platform fails with
+     * a {@link LinkageError} ({@link UnsatisfiedLinkError}, {@link NoClassDefFoundError},
+     * {@link ExceptionInInitializerError}), not a {@link RuntimeException}; both disable WebP instead of
+     * failing the application context.
+     */
+    WebpSupport(Runnable probe) {
+        boolean ok;
+        String why = null;
+        try {
+            probe.run();
             ok = true;
-        } catch (RuntimeException e) {
+        } catch (RuntimeException | LinkageError e) {
             ok = false;
-            why = REASON + " (" + e.getMessage() + ")";
+            why = REASON + " (" + e.getClass().getSimpleName() + ": " + e.getMessage() + ")";
             log.warn("{}", why);
         }
         this.available = ok;

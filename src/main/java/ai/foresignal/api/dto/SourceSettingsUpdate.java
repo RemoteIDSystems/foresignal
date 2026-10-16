@@ -33,6 +33,8 @@ public class SourceSettingsUpdate {
     private boolean downsampleIntervalPresent;
     private String egress;
     private boolean egressPresent;
+    private String reliability;
+    private boolean reliabilityPresent;
 
     /** Whether the source should be collected; null leaves it unchanged. */
     public Boolean getEnabled() {
@@ -146,6 +148,22 @@ public class SourceSettingsUpdate {
     /** True when the body named {@code egress}, even as null (null reverts to the descriptor). */
     public boolean isEgressPresent() {
         return egressPresent;
+    }
+
+    /** The Admiralty reliability override {@code A}–{@code F} (prompt 109); see {@link #isReliabilityPresent()}. */
+    public String getReliability() {
+        return reliability;
+    }
+
+    /** Sets {@link #getReliability()} and records that the key was present. */
+    public void setReliability(String reliability) {
+        this.reliability = reliability;
+        this.reliabilityPresent = true;
+    }
+
+    /** True when the body named {@code reliability}, even as null (null reverts to the descriptor's grade). */
+    public boolean isReliabilityPresent() {
+        return reliabilityPresent;
     }
 
     /** {@code eager}, {@code lazy} or {@code off} (prompt 040); null leaves it unchanged. */

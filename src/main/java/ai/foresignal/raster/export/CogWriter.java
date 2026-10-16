@@ -4,16 +4,23 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.zip.Deflater;
 
 /**
- * A minimal Cloud Optimized GeoTIFF writer (prompt 108; Weather-Imagery-Design §11): a classic
- * (big-)TIFF with tiled 512×512 blocks, deflate compression, internal factor-2 overviews down to
- * below 512 px, and every IFD written before the tile data (the COG layout). Tiles carry physical
- * float32 values; {@code ModelPixelScale}/{@code ModelTiepoint}/{@code GeoKeyDirectory} georeference
- * EPSG:4326 or EPSG:3857 and {@code GDAL_NODATA} marks the no-data value.
+ * A minimal Cloud Optimized GeoTIFF writer (prompt 108; Weather-Imagery-Design §11): a classic TIFF
+ * with tiled 512×512 blocks, deflate compression, internal factor-2 overviews until a level is below
+ * 512 px, and every IFD (with every out-of-line tag value) written before the tile data (the COG
+ * layout). Tiles carry physical float32 values; {@code ModelPixelScale}/{@code ModelTiepoint}/
+ * {@code GeoKeyDirectory} georeference EPSG:4326 or EPSG:3857, {@code GDAL_NODATA} marks the no-data
+ * value, and the full-resolution IFD carries {@code Copyright} (attribution and licence) and
+ * {@code GDAL_METADATA} when given.
+ *
+ * <p>Tag values follow TIFF 6.0 §2: a value whose bytes fit in four is stored inline in the entry
+ * (left-justified), anything longer is stored elsewhere and the entry holds its offset.
  */
 public final class CogWriter {
 
@@ -23,7 +30,22 @@ public final class CogWriter {
     /** The Adobe Deflate compression code. */
     private static final int COMPRESSION_DEFLATE = 8;
 
+    private static final int ASCII = 2;
+    private static final int SHORT = 3;
+    private static final int LONG = 4;
+    private static final int DOUBLE = 12;
+
     private CogWriter() {}
+
+    /**
+     * Writes a tiled float32 GeoTIFF without a copyright tag.
+     *
+     * @see #write(float[], int, int, double[], int, double, String, String)
+     */
+    public static byte[] write(float[] values, int width, int height, double[] bounds, int epsg, double nodata,
+            String gdalMetadata) {
+        return write(values, width, height, bounds, epsg, nodata, gdalMetadata, null);
+    }
 
     /**
      * Writes a tiled float32 GeoTIFF.
@@ -31,72 +53,71 @@ public final class CogWriter {
      * @param values physical values, row-major north to south, {@code width × height}
      * @param width columns
      * @param height rows
-     * @param bounds {@code [west, south, east, north]} in the CRS
+     * @param bounds {@code [west, south, east, north]} in the CRS (degrees for 4326, metres for 3857)
      * @param epsg 4326 or 3857
      * @param nodata the no-data value (also written to {@code GDAL_NODATA})
-     * @param gdalMetadata extra {@code GDAL_METADATA} XML (scale/offset), or null
+     * @param gdalMetadata the {@code GDAL_METADATA} XML document, or null
+     * @param copyright the {@code Copyright} text (attribution and licence), or null; reduced to ASCII
      */
     public static byte[] write(float[] values, int width, int height, double[] bounds, int epsg, double nodata,
-            String gdalMetadata) {
-        List<Level> levels = new ArrayList<>();
-        levels.add(new Level(values, width, height));
-        int w = width;
-        int h = height;
-        float[] current = values;
-        while (Math.min(w, h) >= 2 * TILE) {
-            float[] next = downsample(current, w, h, nodata);
-            w = Math.max(1, (w + 1) / 2);
-            h = Math.max(1, (h + 1) / 2);
-            levels.add(new Level(next, w, h));
-            current = next;
+            String gdalMetadata, String copyright) {
+        if (epsg != 4326 && epsg != 3857) {
+            throw new IllegalArgumentException("Only EPSG:4326 and EPSG:3857 are supported, not " + epsg);
         }
+        List<Level> levels = levels(values, width, height, nodata);
         for (Level level : levels) {
             level.tiles = encodeTiles(level.values, level.width, level.height, nodata);
         }
-
-        // Layout: header (8) + IFD blocks + their external arrays, then tile data.
         double scaleX = (bounds[2] - bounds[0]) / width;
         double scaleY = (bounds[3] - bounds[1]) / height;
-        int levelsCount = levels.size();
-        long[] ifdOffset = new long[levelsCount];
-        long[] externalOffset = new long[levelsCount];
-        long[] externalSize = new long[levelsCount];
+        int count = levels.size();
+
+        // Pass 1: the layout only depends on the sizes of the tag values, not on the offsets they hold.
+        long[] ifdOffset = new long[count];
+        long[] externalOffset = new long[count];
         long cursor = 8;
-        for (int i = 0; i < levelsCount; i++) {
+        for (int i = 0; i < count; i++) {
+            Level level = levels.get(i);
+            int n = level.tilesAcross() * level.tilesDown();
+            List<Tag> tags = tags(level, i, epsg, bounds, scaleX, scaleY, nodata, gdalMetadata, copyright, new long[n],
+                    new long[n]);
             ifdOffset[i] = cursor;
-            int entries = tagCount(levels.get(i), epsg, gdalMetadata != null);
-            long ifdSize = 2L + entries * 12L + 4L;
-            externalOffset[i] = cursor + ifdSize;
-            externalSize[i] = externalSize(levels.get(i), epsg, gdalMetadata);
-            cursor += ifdSize + externalSize[i];
-            if ((cursor & 1) == 1) {
-                cursor++;
-            }
+            cursor += 2L + tags.size() * 12L + 4L;
+            externalOffset[i] = cursor;
+            cursor += externalBytes(tags);
         }
         long tileDataStart = cursor;
-        long[] levelTileStart = new long[levelsCount];
-        cursor = tileDataStart;
-        for (int i = 0; i < levelsCount; i++) {
+        long[] levelTileStart = new long[count];
+        for (int i = 0; i < count; i++) {
             levelTileStart[i] = cursor;
             for (byte[] tile : levels.get(i).tiles) {
                 cursor += tile.length;
             }
         }
+        if (cursor > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("A classic TIFF cannot exceed 2 GiB here; shrink the export");
+        }
 
+        // Pass 2: write with the real tile offsets.
         ByteBuffer out = ByteBuffer.allocate((int) cursor).order(ByteOrder.LITTLE_ENDIAN);
         out.put((byte) 'I');
         out.put((byte) 'I');
         out.putShort((short) 42);
         out.putInt(8);
-        for (int i = 0; i < levelsCount; i++) {
-            writeIfd(out, levels.get(i), i, epsg, bounds, scaleX, scaleY, nodata, gdalMetadata, ifdOffset, externalOffset,
-                    levelTileStart[i], i + 1 < levelsCount ? ifdOffset[i + 1] : 0);
-        }
-        for (int i = 0; i < levelsCount; i++) {
-            out.position((int) (externalOffset[i] + externalSize[i]));
-            if ((out.position() & 1) == 1) {
-                out.position(out.position() + 1);
+        for (int i = 0; i < count; i++) {
+            Level level = levels.get(i);
+            int n = level.tilesAcross() * level.tilesDown();
+            long[] offsets = new long[n];
+            long[] lengths = new long[n];
+            long at = levelTileStart[i];
+            for (int k = 0; k < n; k++) {
+                offsets[k] = at;
+                lengths[k] = level.tiles[k].length;
+                at += lengths[k];
             }
+            List<Tag> tags = tags(level, i, epsg, bounds, scaleX, scaleY, nodata, gdalMetadata, copyright, offsets,
+                    lengths);
+            writeIfd(out, tags, ifdOffset[i], externalOffset[i], i + 1 < count ? ifdOffset[i + 1] : 0);
         }
         out.position((int) tileDataStart);
         for (Level level : levels) {
@@ -107,7 +128,25 @@ public final class CogWriter {
         return out.array();
     }
 
-    private static final class Level {
+    /** The full-resolution level and its factor-2 overviews, until a level is below {@link #TILE} px. */
+    static List<Level> levels(float[] values, int width, int height, double nodata) {
+        List<Level> levels = new ArrayList<>();
+        levels.add(new Level(values, width, height));
+        int w = width;
+        int h = height;
+        float[] current = values;
+        while (Math.max(w, h) >= TILE && Math.max(w, h) > 1) {
+            float[] next = downsample(current, w, h, nodata);
+            w = Math.max(1, (w + 1) / 2);
+            h = Math.max(1, (h + 1) / 2);
+            levels.add(new Level(next, w, h));
+            current = next;
+        }
+        return levels;
+    }
+
+    /** One resolution level. */
+    static final class Level {
         final float[] values;
         final int width;
         final int height;
@@ -128,186 +167,151 @@ public final class CogWriter {
         }
     }
 
-    /** A tile: tag entry. */
-    private record Tag(int id, int type, long count, long value) {}
+    /**
+     * One IFD entry with its value already encoded little-endian.
+     *
+     * @param id the tag
+     * @param type the TIFF field type
+     * @param count the value count
+     * @param payload the encoded value bytes
+     */
+    record Tag(int id, int type, int count, byte[] payload) {
 
-    private static int tagCount(Level level, int epsg, boolean metadata) {
-        return metadata ? 18 : 17;
+        /** True when the value fits in the entry's four value bytes. */
+        boolean inline() {
+            return payload.length <= 4;
+        }
     }
 
-    private static long externalSize(Level level, int epsg, String gdalMetadata) {
+    private static List<Tag> tags(Level level, int index, int epsg, double[] bounds, double scaleX, double scaleY,
+            double nodata, String gdalMetadata, String copyright, long[] tileOffsets, long[] tileLengths) {
+        List<Tag> tags = new ArrayList<>();
+        tags.add(longs(254, index == 0 ? 0 : 1));
+        tags.add(longs(256, level.width));
+        tags.add(longs(257, level.height));
+        tags.add(shorts(258, 32));
+        tags.add(shorts(259, COMPRESSION_DEFLATE));
+        tags.add(shorts(262, 1));
+        tags.add(shorts(277, 1));
+        tags.add(shorts(284, 1));
+        tags.add(longs(322, TILE));
+        tags.add(longs(323, TILE));
+        tags.add(longs(324, tileOffsets));
+        tags.add(longs(325, tileLengths));
+        tags.add(shorts(339, 3));
+        tags.add(ascii(42113, trimNumber(nodata)));
+        if (index == 0) {
+            tags.add(doubles(33550, scaleX, scaleY, 0.0));
+            tags.add(doubles(33922, 0.0, 0.0, 0.0, bounds[0], bounds[3], 0.0));
+            tags.add(shorts(34735, geoKeys(epsg)));
+            if (copyright != null && !copyright.isBlank()) {
+                tags.add(ascii(33432, copyright));
+            }
+            if (gdalMetadata != null && !gdalMetadata.isBlank()) {
+                tags.add(ascii(42112, gdalMetadata));
+            }
+        }
+        tags.sort(Comparator.comparingInt(Tag::id));
+        return tags;
+    }
+
+    /** Bytes of the out-of-line values of {@code tags}, each padded to an even offset. */
+    private static long externalBytes(List<Tag> tags) {
         long size = 0;
-        int tiles = level.tilesAcross() * level.tilesDown();
-        size += (long) tiles * 4 * 2; // TileOffsets + TileByteCounts
-        size += 3 * 8; // ModelPixelScale (DOUBLE x3)
-        size += 6 * 8; // ModelTiepoint (DOUBLE x6)
-        size += (4 + geoKeys(epsg).length) * 2L; // GeoKeyDirectory
-        size += 64; // GDAL_NODATA ascii
-        if (gdalMetadata != null) {
-            size += gdalMetadata.length() + 1;
+        for (Tag tag : tags) {
+            if (!tag.inline()) {
+                size += tag.payload().length + (tag.payload().length & 1);
+            }
         }
         return size;
     }
 
-    private static short[] geoKeys(int epsg) {
-        // header (4 shorts) + keys (4 shorts each).
-        List<Short> keys = new ArrayList<>();
-        if (epsg == 3857) {
-            keys.add((short) 1024);
-            keys.add((short) 0);
-            keys.add((short) 1);
-            keys.add((short) 1); // GTModelTypeGeoKey = projected
-            keys.add((short) 1025);
-            keys.add((short) 0);
-            keys.add((short) 1);
-            keys.add((short) 1); // RasterPixelIsArea
-            keys.add((short) 3072);
-            keys.add((short) 0);
-            keys.add((short) 1);
-            keys.add((short) 3857); // ProjectedCSTypeGeoKey
-        } else {
-            keys.add((short) 1024);
-            keys.add((short) 0);
-            keys.add((short) 1);
-            keys.add((short) 2); // geographic
-            keys.add((short) 1025);
-            keys.add((short) 0);
-            keys.add((short) 1);
-            keys.add((short) 1);
-            keys.add((short) 2048);
-            keys.add((short) 0);
-            keys.add((short) 1);
-            keys.add((short) 4326); // GeographicTypeGeoKey
-        }
-        short[] out = new short[keys.size()];
-        for (int i = 0; i < out.length; i++) {
-            out[i] = keys.get(i);
-        }
-        return out;
-    }
-
-    private static void writeIfd(ByteBuffer out, Level level, int index, int epsg, double[] bounds, double scaleX,
-            double scaleY, double nodata, String gdalMetadata, long[] ifdOffset, long[] externalOffset, long tileStart,
-            long nextIfd) {
-        int tiles = level.tilesAcross() * level.tilesDown();
-        long[] tileOffsets = new long[tiles];
-        long[] tileLengths = new long[tiles];
-        long cursor = tileStart;
-        int k = 0;
-        for (int ty = 0; ty < level.tilesDown(); ty++) {
-            for (int tx = 0; tx < level.tilesAcross(); tx++) {
-                byte[] tile = level.tiles[ty * level.tilesAcross() + tx];
-                tileOffsets[k] = cursor;
-                tileLengths[k] = tile.length;
-                cursor += tile.length;
-                k++;
-            }
-        }
-        double[] pixelScale = {scaleX, scaleY, 0.0};
-        double[] tiepoint = {0.0, 0.0, 0.0, bounds[0], bounds[3], 0.0};
-        short[] geo = geoKeys(epsg);
-        byte[] nodataAscii = (trimNumber(nodata) + "\0").getBytes(StandardCharsets.US_ASCII);
-        byte[] gdal = gdalMetadata == null ? null : (gdalMetadata + "\0").getBytes(StandardCharsets.US_ASCII);
-
-        List<Tag> tags = new ArrayList<>();
-        tags.add(new Tag(254, 4, 1, index == 0 ? 0 : 1));
-        tags.add(new Tag(256, 4, 1, level.width));
-        tags.add(new Tag(257, 4, 1, level.height));
-        tags.add(new Tag(258, 3, 1, 32));
-        tags.add(new Tag(259, 3, 1, COMPRESSION_DEFLATE));
-        tags.add(new Tag(262, 3, 1, 1));
-        tags.add(new Tag(277, 3, 1, 1));
-        tags.add(new Tag(284, 3, 1, 1));
-        tags.add(new Tag(322, 4, 1, TILE));
-        tags.add(new Tag(323, 4, 1, TILE));
-        tags.add(new Tag(324, 4, tiles, 0));
-        tags.add(new Tag(325, 4, tiles, 0));
-        tags.add(new Tag(339, 3, 1, 3));
-        tags.add(new Tag(33550, 12, 3, 0));
-        tags.add(new Tag(33922, 12, 6, 0));
-        tags.add(new Tag(34735, 3, geo.length, 0));
-        tags.add(new Tag(42113, 2, nodataAscii.length, 0));
-        if (gdal != null) {
-            tags.add(new Tag(42112, 2, gdal.length, 0));
-        }
-        tags.sort(java.util.Comparator.comparingInt(Tag::id));
-
-        long ext = externalOffset[index];
-        long extStart = ext;
-        long tileOffsetsAt = 0;
-        long tileCountsAt = 0;
-        long pixelScaleAt = 0;
-        long tiepointAt = 0;
-        long geoAt = 0;
-        long nodataAt = 0;
-        long gdalAt = 0;
-        // Assign external offsets in a stable order.
-        tileOffsetsAt = extStart;
-        ext += (long) tiles * 4;
-        tileCountsAt = ext;
-        ext += (long) tiles * 4;
-        pixelScaleAt = ext;
-        ext += 24;
-        tiepointAt = ext;
-        ext += 48;
-        geoAt = ext;
-        ext += (long) geo.length * 2;
-        nodataAt = ext;
-        ext += nodataAscii.length;
-        if (gdal != null) {
-            gdalAt = ext;
-            ext += gdal.length;
-        }
-
-        out.position((int) ifdOffset[index]);
+    private static void writeIfd(ByteBuffer out, List<Tag> tags, long ifdOffset, long externalOffset, long nextIfd) {
+        out.position((int) ifdOffset);
         out.putShort((short) tags.size());
-        for (Tag tag : tags) {
-            long value = tag.value();
-            switch (tag.id()) {
-                case 324 -> value = tiles * 4 > 4 ? tileOffsetsAt : tileOffsets[0];
-                case 325 -> value = tiles * 4 > 4 ? tileCountsAt : tileLengths[0];
-                case 33550 -> value = pixelScaleAt;
-                case 33922 -> value = tiepointAt;
-                case 34735 -> value = geoAt;
-                case 42113 -> value = nodataAt;
-                case 42112 -> value = gdalAt;
-                default -> {
-                }
-            }
+        long ext = externalOffset;
+        List<long[]> pending = new ArrayList<>();
+        for (int k = 0; k < tags.size(); k++) {
+            Tag tag = tags.get(k);
             out.putShort((short) tag.id());
             out.putShort((short) tag.type());
-            out.putInt((int) tag.count());
-            out.putInt((int) value);
+            out.putInt(tag.count());
+            if (tag.inline()) {
+                byte[] value = new byte[4];
+                System.arraycopy(tag.payload(), 0, value, 0, tag.payload().length);
+                out.put(value);
+            } else {
+                out.putInt((int) ext);
+                pending.add(new long[] {k, ext});
+                ext += tag.payload().length + (tag.payload().length & 1);
+            }
         }
         out.putInt((int) nextIfd);
+        for (long[] p : pending) {
+            out.position((int) p[1]);
+            out.put(tags.get((int) p[0]).payload());
+        }
+    }
 
-        // External arrays.
-        out.position((int) tileOffsetsAt);
-        for (long v : tileOffsets) {
-            out.putInt((int) v);
+    private static Tag shorts(int id, int... values) {
+        ByteBuffer b = ByteBuffer.allocate(values.length * 2).order(ByteOrder.LITTLE_ENDIAN);
+        for (int v : values) {
+            b.putShort((short) v);
         }
-        out.position((int) tileCountsAt);
-        for (long v : tileLengths) {
-            out.putInt((int) v);
+        return new Tag(id, SHORT, values.length, b.array());
+    }
+
+    private static Tag longs(int id, long... values) {
+        ByteBuffer b = ByteBuffer.allocate(values.length * 4).order(ByteOrder.LITTLE_ENDIAN);
+        for (long v : values) {
+            b.putInt((int) v);
         }
-        out.position((int) pixelScaleAt);
-        for (double v : pixelScale) {
-            out.putDouble(v);
+        return new Tag(id, LONG, values.length, b.array());
+    }
+
+    private static Tag doubles(int id, double... values) {
+        ByteBuffer b = ByteBuffer.allocate(values.length * 8).order(ByteOrder.LITTLE_ENDIAN);
+        for (double v : values) {
+            b.putDouble(v);
         }
-        out.position((int) tiepointAt);
-        for (double v : tiepoint) {
-            out.putDouble(v);
+        return new Tag(id, DOUBLE, values.length, b.array());
+    }
+
+    /** A NUL-terminated ASCII value; characters outside 7-bit ASCII lose their accents or become {@code ?}. */
+    private static Tag ascii(int id, String text) {
+        byte[] bytes = (toAscii(text) + "\0").getBytes(StandardCharsets.US_ASCII);
+        return new Tag(id, ASCII, bytes.length, bytes);
+    }
+
+    /** {@code text} as 7-bit ASCII (TIFF {@code ASCII} fields): accents stripped, others replaced. */
+    static String toAscii(String text) {
+        String decomposed = Normalizer.normalize(text, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        StringBuilder out = new StringBuilder(decomposed.length());
+        for (int k = 0; k < decomposed.length(); k++) {
+            char c = decomposed.charAt(k);
+            if (c == '©') {
+                out.append("(c)");
+            } else if (c >= 0x20 && c < 0x7f || c == '\n' || c == '\t') {
+                out.append(c);
+            } else {
+                out.append('?');
+            }
         }
-        out.position((int) geoAt);
-        for (short v : geo) {
-            out.putShort(v);
+        return out.toString();
+    }
+
+    /** The GeoKeyDirectory: header {1, 1, 0, keys} then one {id, location 0, count 1, value} per key. */
+    static int[] geoKeys(int epsg) {
+        if (epsg == 3857) {
+            return new int[] {1, 1, 0, 3,
+                1024, 0, 1, 1, // GTModelTypeGeoKey = projected
+                1025, 0, 1, 1, // GTRasterTypeGeoKey = PixelIsArea
+                3072, 0, 1, 3857}; // ProjectedCSTypeGeoKey
         }
-        out.position((int) nodataAt);
-        out.put(nodataAscii);
-        if (gdal != null) {
-            out.position((int) gdalAt);
-            out.put(gdal);
-        }
+        return new int[] {1, 1, 0, 3,
+            1024, 0, 1, 2, // GTModelTypeGeoKey = geographic
+            1025, 0, 1, 1, // GTRasterTypeGeoKey = PixelIsArea
+            2048, 0, 1, 4326}; // GeographicTypeGeoKey
     }
 
     /** Encodes the deflate tiles of one level. */

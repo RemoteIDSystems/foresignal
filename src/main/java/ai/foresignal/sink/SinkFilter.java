@@ -48,6 +48,13 @@ public record SinkFilter(List<String> sources, List<String> kinds, double[] bbox
         double[] box = box(node.get("bbox"), errors);
         String placeId = text(node.get("placeId"));
         String watchlistId = text(node.get("watchlistId"));
+        if (watchlistId != null) {
+            try {
+                java.util.UUID.fromString(watchlistId);
+            } catch (IllegalArgumentException e) {
+                errors.add(new FieldError("filter.watchlistId", "must be a watchlist id (UUID)"));
+            }
+        }
         boolean includePrivate = node.has("includePrivate") && node.get("includePrivate").asBoolean(false);
         if (!errors.isEmpty()) {
             throw new ValidationException("The sink filter is not valid.", errors);
@@ -67,7 +74,18 @@ public record SinkFilter(List<String> sources, List<String> kinds, double[] bbox
         return out;
     }
 
-    /** True when {@code record} passes the source, kind and bbox filters. */
+    /**
+     * True when {@code record} passes every member of the filter: sources, kinds and bbox here, then
+     * {@code placeId} and {@code watchlistId} through {@code scope} ({@link SinkScope}).
+     */
+    public boolean matches(SinkRecord record, SinkScope scope) {
+        return matches(record) && (placeId == null && watchlistId == null || scope.matches(this, record));
+    }
+
+    /**
+     * True when {@code record} passes the source, kind and bbox filters only. Callers that deliver records use
+     * {@link #matches(SinkRecord, SinkScope)} so {@code placeId} and {@code watchlistId} are applied too.
+     */
     public boolean matches(SinkRecord record) {
         if (!sources.isEmpty() && !sources.contains(record.sourceId())) {
             return false;

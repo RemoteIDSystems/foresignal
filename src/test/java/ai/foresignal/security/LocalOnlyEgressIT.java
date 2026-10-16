@@ -49,9 +49,13 @@ class LocalOnlyEgressIT {
     }
 
     @Test
-    @DisplayName("LOCAL_ONLY is still served to this instance's own clients: reads and an export to the caller")
+    @DisplayName("LOCAL_ONLY is still served to this instance's own clients: reads, and a personal-use export"
+            + " (OpenSky's terms forbid redistribution, so a plain export is refused by the 109 licence table)")
     void localPathsAllowed() {
-        assertThat(egress.allows(EgressPath.EXPORT, OPENSKY, Viewer.admin())).isTrue();
+        assertThat(egress.allows(EgressPath.EXPORT, OPENSKY, Viewer.admin())).isFalse();
+        assertThat(egress.decide(EgressPath.EXPORT, OPENSKY, null, null,
+                EgressPolicy.EgressContext.export(Viewer.admin(), false, true)).allowed()).isTrue();
+        assertThat(egress.allows(EgressPath.ARCHIVE, OPENSKY, null)).as("operator-owned archive").isTrue();
         assertThat(egress.visible(OPENSKY, Viewer.anonymous())).isTrue();
         assertThat(egress.allowsEmbedding(OPENSKY)).isTrue();
     }

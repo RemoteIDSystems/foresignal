@@ -68,6 +68,10 @@ public final class CustomSourceDescriptors {
                 .privateSource(row.isPrivateSource())
                 .defaultBudget(row.getRateLimitPerMinute(), row.getRateLimitPerMinute() * 1440)
                 .zeroResultsNormal(true);
+        if (row.getLicenceTerms() != null && !row.getLicenceTerms().isBlank()) {
+            // Prompt 109: the custom source's own terms, snapshotted on each PUSH batch's fetch row.
+            builder.licenceTerms(json.readValue(row.getLicenceTerms(), ai.foresignal.provenance.LicenceTerms.class));
+        }
         row.getKinds().forEach(builder::kind);
         builder.tileProperties(row.getTileProperties().toArray(String[]::new));
         if (row.getSearchFields() != null) {

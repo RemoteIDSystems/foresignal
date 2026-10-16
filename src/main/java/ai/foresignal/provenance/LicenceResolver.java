@@ -15,7 +15,8 @@ import org.springframework.stereotype.Component;
 /**
  * Resolves a version's licence (prompt 109; Core-Data-Model §14): the licence snapshotted on the
  * {@code fetch_log} row of its {@code batch_id}, with a fall-back to the source's current descriptor
- * terms and a per-record MLAT downgrade. One query per response resolves every seq.
+ * terms, a per-record peer origin license ({@code _foresignal.originLicence}, 113) and a per-record MLAT
+ * downgrade that keeps the license's attribution. One query per response resolves every seq.
  */
 @Component
 public class LicenceResolver {
@@ -37,22 +38,44 @@ public class LicenceResolver {
                     + " f.principal AS principal, f.id AS fetch_id"
                     + " FROM record_version v LEFT JOIN fetch_log f ON f.id = v.batch_id WHERE v.seq IN (:seqs)";
 
+    /** The volatile payload member a peer source (113) carries its provenance in. */
+    public static final String PEER_MEMBER = "_foresignal";
+
+    /** The member of {@link #PEER_MEMBER} naming the origin record's license id. */
+    public static final String ORIGIN_LICENCE = "originLicence";
+
+    private static final tools.jackson.databind.json.JsonMapper JSON =
+            tools.jackson.databind.json.JsonMapper.builder().build();
+
     private final NamedParameterJdbcTemplate jdbc;
     private final LicenceCatalog catalog;
     private final SourceRegistry registry;
+    private final SourceLicences sources;
 
-    /** Creates the resolver. */
+    /** Creates the resolver without derived-source resolution (tests): descriptors resolve on their own. */
     public LicenceResolver(NamedParameterJdbcTemplate jdbc, LicenceCatalog catalog, SourceRegistry registry) {
+        this(jdbc, catalog, registry, null);
+    }
+
+    /**
+     * Creates the resolver.
+     *
+     * @param sources the source-terms resolver that follows {@code derivedFrom}; null to resolve descriptors alone
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    public LicenceResolver(NamedParameterJdbcTemplate jdbc, LicenceCatalog catalog, SourceRegistry registry,
+            SourceLicences sources) {
         this.jdbc = jdbc;
         this.catalog = catalog;
         this.registry = registry;
+        this.sources = sources;
     }
 
     /**
      * A version's licence and how it was resolved.
      *
      * @param terms the terms in force
-     * @param basis {@link #BASIS_BATCH}, {@link #BASIS_DESCRIPTOR} or {@link #BASIS_MLAT}
+     * @param basis {@link #BASIS_BATCH}, {@link #BASIS_DESCRIPTOR}, {@link #BASIS_PEER} or {@link #BASIS_MLAT}
      * @param fetchId the {@code fetch_log.id} the licence came from, or null
      * @param adapterVersion the adapter version of that fetch, or null
      * @param principal the ingest principal of that fetch, or null
@@ -77,14 +100,21 @@ public class LicenceResolver {
             FetchRow stored = seq == null ? null : fetched.get(seq);
             Resolution resolution;
             if (stored != null && stored.licence() != null && !stored.licence().isBlank()) {
-                resolution = new Resolution(catalog.terms(stored.licence()), BASIS_BATCH, stored.fetchId(),
-                        stored.adapterVersion(), stored.principal());
+                resolution = new Resolution(batchTerms(stored.licence(), row.sourceId()), BASIS_BATCH,
+                        stored.fetchId(), stored.adapterVersion(), stored.principal());
             } else {
                 resolution = descriptorFallback(row);
             }
-            if (EgressPolicy.isMlat(payloadOf(row))) {
-                resolution = new Resolution(catalog.terms("local-only-operator"), BASIS_MLAT, resolution.fetchId(),
+            Map<String, Object> payload = payloadOf(row);
+            String origin = originLicence(payload);
+            if (origin != null) {
+                resolution = new Resolution(catalog.terms(origin), BASIS_PEER, resolution.fetchId(),
                         resolution.adapterVersion(), resolution.principal());
+            }
+            if (EgressPolicy.isMlat(payload)) {
+                // The downgrade keeps the license id and its attribution (an ODbL record must still be credited).
+                resolution = new Resolution(resolution.terms().downgradedToLocalOnly(), BASIS_MLAT,
+                        resolution.fetchId(), resolution.adapterVersion(), resolution.principal());
             }
             out.put(seq == null ? -1L : seq, resolution);
         }
@@ -93,7 +123,40 @@ public class LicenceResolver {
 
     /** The licence terms of a row's source descriptor (the fall-back), marked {@code descriptor}. */
     public Resolution descriptorFallback(RecordRow row) {
-        return new Resolution(catalog.forDescriptor(descriptor(row.sourceId())), BASIS_DESCRIPTOR, null, null, null);
+        return new Resolution(sourceTerms(row.sourceId()), BASIS_DESCRIPTOR, null, null, null);
+    }
+
+    /** The current terms of a source: {@link SourceLicences} when wired (follows {@code derivedFrom}). */
+    LicenceTerms sourceTerms(String sourceId) {
+        return sources != null ? sources.termsOf(sourceId) : catalog.forDescriptor(descriptor(sourceId));
+    }
+
+    /**
+     * The terms of a snapshotted batch license id. An id the catalogue does not know (a custom source's own
+     * {@code licenceTerms}, 024) resolves to the source's current terms when their ids match, else to
+     * {@code unknown}.
+     */
+    LicenceTerms batchTerms(String storedId, String sourceId) {
+        if (catalog.resolves(storedId)) {
+            return catalog.terms(storedId);
+        }
+        LicenceTerms current = sourceTerms(sourceId);
+        return storedId.equalsIgnoreCase(current.id()) ? current : catalog.terms(storedId);
+    }
+
+    /**
+     * The per-record origin license of a peer record (113): {@code _foresignal.originLicence} as a license id
+     * string, or an object whose {@code id} names one; null when absent.
+     */
+    static String originLicence(Map<String, Object> payload) {
+        if (payload == null || !(payload.get(PEER_MEMBER) instanceof Map<?, ?> peer)) {
+            return null;
+        }
+        Object origin = peer.get(ORIGIN_LICENCE);
+        if (origin instanceof Map<?, ?> terms) {
+            origin = terms.get("id");
+        }
+        return origin instanceof String id && !id.isBlank() ? id : null;
     }
 
     /** The descriptor of a source id, or null. */
@@ -123,7 +186,7 @@ public class LicenceResolver {
             return null;
         }
         try {
-            Object parsed = tools.jackson.databind.json.JsonMapper.builder().build().readValue(payload, Map.class);
+            Object parsed = JSON.readValue(payload, Map.class);
             @SuppressWarnings("unchecked")
             Map<String, Object> map = (Map<String, Object>) parsed;
             return map;

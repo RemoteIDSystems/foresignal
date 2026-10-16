@@ -58,6 +58,8 @@ public class WmtsController {
 
     static final MediaType XML = MediaType.APPLICATION_XML;
     private static final int MAX_TIME_VALUES = 200;
+    /** The deepest tile matrix advertised in each tile matrix set. */
+    static final int MAX_MATRIX = 24;
 
     private final ProductRegistry registry;
     private final ProductCatalogService catalog;
@@ -92,9 +94,19 @@ public class WmtsController {
     public ResponseEntity<String> getWmtsCapabilities(HttpServletRequest request) {
         ReadCaller caller = callers.resolve(request);
         String xml = capabilities(caller, PublicUrls.of(settings, request));
+        return capabilitiesResponse(xml, request);
+    }
+
+    /**
+     * The capabilities response: an ETag over the document and {@code private, max-age=60} with
+     * {@code Vary: Authorization}, because the layer list depends on the caller's visible sources (a
+     * shared cache must never hand one caller's document to another).
+     */
+    static ResponseEntity<String> capabilitiesResponse(String xml, HttpServletRequest request) {
         String etag = RasterCachePolicy.etagOf(xml.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         HttpHeaders headers = new HttpHeaders();
-        headers.setCacheControl("public, max-age=60");
+        headers.setCacheControl("private, max-age=60");
+        headers.set(HttpHeaders.VARY, RasterCachePolicy.VARY);
         headers.setETag(etag);
         if (RasterCachePolicy.notModified(request, etag)) {
             return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(headers).build();
@@ -125,14 +137,7 @@ public class WmtsController {
         if ("GetCapabilities".equalsIgnoreCase(wmtsRequest)) {
             ReadCaller caller = callers.resolve(request);
             String xml = capabilities(caller, PublicUrls.of(settings, request));
-            String etag = RasterCachePolicy.etagOf(xml.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            HttpHeaders headers = new HttpHeaders();
-            headers.setCacheControl("public, max-age=60");
-            headers.setETag(etag);
-            if (RasterCachePolicy.notModified(request, etag)) {
-                return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(headers).build();
-            }
-            return ResponseEntity.ok().headers(headers).contentType(XML).body(xml);
+            return capabilitiesResponse(xml, request);
         }
         if ("GetTile".equalsIgnoreCase(wmtsRequest)) {
             if (layer == null || tileMatrix == null || tileRow == null || tileCol == null) {
@@ -159,13 +164,17 @@ public class WmtsController {
             @PathVariable String format,
             @RequestParam(value = "RefTime", required = false) String refTime,
             HttpServletRequest request) {
-        return tile(layer, style, time, tileMatrixSetId, tileMatrix, String.valueOf(tileCol), String.valueOf(tileRow),
+        return tile(layer, style, time, tileMatrixSetId, tileMatrix, String.valueOf(tileRow), String.valueOf(tileCol),
                 mediaFormat(format), refTime, request);
     }
 
-    /** The shared tile handler: resolve the frame and 301 to the canonical content-addressed tile. */
-    private ResponseEntity<String> tile(String layer, String style, String time, String tileMatrixSetId,
-            String tileMatrix, String tileColText, String tileRowText, String format, String refTime,
+    /**
+     * The shared tile handler: resolve the frame and 301 to the canonical content-addressed tile. The
+     * WMTS row ({@code TileRow}, y) comes before the column ({@code TileCol}, x), matching both the KVP
+     * and the RESTful callers; the redirect target is {@code …/{z}/{x}/{y}}.
+     */
+    ResponseEntity<String> tile(String layer, String style, String time, String tileMatrixSetId,
+            String tileMatrix, String tileRowText, String tileColText, String format, String refTime,
             HttpServletRequest request) {
         if ("webp".equals(format) && !webp.available()) {
             throw new ForesignalException(HttpStatus.NOT_ACCEPTABLE, ErrorCodes.FORMAT_UNAVAILABLE,
@@ -255,8 +264,9 @@ public class WmtsController {
         }
         appendTimeDimension(xml, spec);
         for (TileMatrixSet set : TileMatrixSets.ALL) {
-            xml.append("      <TileMatrixSetLink><TileMatrixSet>").append(set.id())
-                    .append("</TileMatrixSet></TileMatrixSetLink>\n");
+            xml.append("      <TileMatrixSetLink><TileMatrixSet>").append(set.id()).append("</TileMatrixSet>");
+            appendLimits(xml, spec, set, bounds);
+            xml.append("</TileMatrixSetLink>\n");
         }
         String template = urls.api("/v1/wmts/1.0.0/" + spec.id() + "/{Style}/{Time}/{TileMatrixSet}/{TileMatrix}"
                 + "/{TileRow}/{TileCol}.png");
@@ -311,6 +321,40 @@ public class WmtsController {
         }
     }
 
+    /**
+     * The layer's {@code TileMatrixSetLimits}: only the product's native zoom range (min zoom to native
+     * max zoom) and, within each, the rows and columns its bounds cover. Tiles outside them are answered
+     * {@code 400 TILE_OUT_OF_RANGE}, so a client that honors the limits never requests one.
+     */
+    static void appendLimits(StringBuilder xml, ProductSpec spec, TileMatrixSet set, List<Double> bounds) {
+        int min = spec.spatial() == null || spec.spatial().minZoom() == null ? 0 : spec.spatial().minZoom();
+        int max = spec.spatial() == null || spec.spatial().nativeMaxZoom() == null ? 0
+                : spec.spatial().nativeMaxZoom();
+        max = Math.min(max, MAX_MATRIX);
+        xml.append("<TileMatrixSetLimits>");
+        for (int z = Math.max(0, min); z <= max; z++) {
+            int[] range = bounds == null || bounds.size() < 4
+                    ? new int[] {0, 0, set.tilesX(z) - 1, set.tilesY(z) - 1}
+                    : set.tileRange(z, bounds.get(0), bounds.get(1), bounds.get(2), bounds.get(3));
+            int minCol = Math.max(0, range[0]);
+            int maxCol = Math.min(set.tilesX(z) - 1, range[2]);
+            if (bounds != null && bounds.size() >= 4 && bounds.get(0) > bounds.get(2)) {
+                // across the antimeridian: advertise the whole row
+                minCol = 0;
+                maxCol = set.tilesX(z) - 1;
+            }
+            int minRow = Math.max(0, range[1]);
+            int maxRow = Math.min(set.tilesY(z) - 1, range[3]);
+            xml.append("<TileMatrixLimits><TileMatrix>").append(z).append("</TileMatrix>")
+                    .append("<MinTileRow>").append(minRow).append("</MinTileRow>")
+                    .append("<MaxTileRow>").append(maxRow).append("</MaxTileRow>")
+                    .append("<MinTileCol>").append(minCol).append("</MinTileCol>")
+                    .append("<MaxTileCol>").append(maxCol).append("</MaxTileCol>")
+                    .append("</TileMatrixLimits>");
+        }
+        xml.append("</TileMatrixSetLimits>");
+    }
+
     private static void xmlnsBox(StringBuilder xml, List<Double> bounds) {
         if (bounds == null || bounds.size() < 4) {
             return;
@@ -324,7 +368,7 @@ public class WmtsController {
         xml.append("    <TileMatrixSet><ows:Identifier>").append(set.id()).append("</ows:Identifier>");
         xml.append("<ows:SupportedCRS>").append(esc(set.crs())).append("</ows:SupportedCRS>\n");
         boolean mercator = "WebMercatorQuad".equals(set.id());
-        for (int z = 0; z <= 24; z++) {
+        for (int z = 0; z <= MAX_MATRIX; z++) {
             double cellSize = mercator ? 156543.03392804097 / (1 << z) : 0.703125 / (1 << z);
             double scale = mercator ? 559082264.0287178 / (1 << z) : 279541132.0143589 / (1 << z);
             double originX = mercator ? -20037508.342789244 : -180.0;
@@ -338,7 +382,7 @@ public class WmtsController {
                     .append("<MatrixWidth>").append(matrixWidth).append("</MatrixWidth>")
                     .append("<MatrixHeight>").append(matrixHeight).append("</MatrixHeight>")
                     .append("</TileMatrix>\n");
-            if (z >= 24) {
+            if (z >= MAX_MATRIX) {
                 break;
             }
         }

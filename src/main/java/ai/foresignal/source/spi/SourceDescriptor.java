@@ -988,7 +988,7 @@ public record SourceDescriptor(
                     llmNotice,
                     reconcileMaxAbsentRatio,
                     licenceTerms,
-                    reliability,
+                    reliability != null ? reliability : ReliabilitySeed.seed(id, licence, mode, custom),
                     derivedFrom);
         }
     }

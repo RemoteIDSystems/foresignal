@@ -340,6 +340,70 @@ public class RasterRenderService {
     }
 
     /**
+     * One frame of an animated GIF loop (prompt 108).
+     *
+     * @param spec the product
+     * @param frame the frame
+     * @param style the style to draw it in
+     */
+    public record LoopFrame(ProductSpec spec, RasterFrameRow frame, StyleRegistry.Resolved style) {}
+
+    /**
+     * An animated GIF loop (prompt 108; Weather-Imagery-Design §11). Each frame is an {@link #image}
+     * rendered through the render queue at {@code PREFETCH} priority and served from the tile cache when
+     * already drawn, so {@code 503 RENDER_BUSY} applies and no frame is drawn twice. The finished GIF is
+     * cached only when every frame is content-addressed ({@code contentAddressed}); a loop over aliases
+     * would otherwise keep serving stale frames.
+     *
+     * @throws ForesignalException {@code 503 RENDER_BUSY} when the queue sheds a frame
+     */
+    public byte[] loopGif(List<LoopFrame> frames, ImageRequest request, int delayMs, boolean contentAddressed,
+            String client) {
+        if (frames.isEmpty()) {
+            throw new IllegalArgumentException("A GIF loop needs at least one frame.");
+        }
+        StringBuilder ids = new StringBuilder();
+        for (LoopFrame f : frames) {
+            ids.append(f.spec().id()).append('/').append(f.frame().frameKey()).append('/').append(f.style().ref())
+                    .append(';');
+        }
+        TileCache.Key key = new TileCache.Key(frames.get(0).spec().id(),
+                "loop:" + FrameStore.sha256Hex(ids.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)),
+                "gif", request.region() + ":" + delayMs);
+        if (contentAddressed) {
+            byte[] cached = tiles.get(key);
+            if (cached != null) {
+                return cached;
+            }
+        }
+        List<java.awt.image.BufferedImage> images = new ArrayList<>(frames.size());
+        for (LoopFrame f : frames) {
+            byte[] png = image(f.spec(), f.frame(), f.style(), request, "png", RenderQueue.Priority.PREFETCH, client);
+            images.add(decode(png, request.width(), request.height()));
+        }
+        byte[] gif = GifEncoder.encode(images, delayMs);
+        if (contentAddressed) {
+            tiles.put(key, gif);
+        }
+        return gif;
+    }
+
+    /** Decodes a rendered PNG (palette images stay indexed); a transparent image when it is empty. */
+    private static java.awt.image.BufferedImage decode(byte[] png, int width, int height) {
+        if (png == null || png.length == 0) {
+            return new java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        }
+        try {
+            java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(png));
+            return image == null
+                    ? new java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+                    : image;
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException("Could not decode a rendered loop frame", e);
+        }
+    }
+
+    /**
      * Samples band 0's physical values over an image box (prompt 108 COG exports): one value per pixel,
      * {@code NaN} where there is no cell. Nearest sampling; no queue and no cache.
      */

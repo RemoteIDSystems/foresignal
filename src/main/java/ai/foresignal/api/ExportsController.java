@@ -142,6 +142,8 @@ public class ExportsController {
         int maxZoom = intOrDefault(body.get("maxZoom"), Math.min(nativeMax, 8), minZoom, Math.min(nativeMax, 24),
                 "maxZoom");
         TileMatrixSet tms = TileMatrixSets.resolve(text(body.get("tms")));
+        // MBTiles/PMTiles are XYZ WebMercator archives: refuse WorldCRS84Quad up front (400)
+        RasterExportService.requireSupportedTms(format, tms);
         String style = text(body.get("style"));
         return new RasterExportService.Request(format, frameKeys, bbox, minZoom, maxZoom, style, tms);
     }

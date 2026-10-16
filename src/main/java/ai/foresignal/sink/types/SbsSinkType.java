@@ -72,15 +72,26 @@ public class SbsSinkType implements SinkType {
     }
 
     private static void send(SinkTcpServer.Client client, SinkRecord record) {
+        for (String line : lines(record)) {
+            client.sendLine(line);
+        }
+    }
+
+    /**
+     * The MSG,3 (position, only when the record has a point) and MSG,4 (velocity) lines of a record. A record
+     * without a position never produces a 0,0 position line.
+     */
+    static List<String> lines(SinkRecord record) {
         String hex = SinkSupport.hex(record).toUpperCase(java.util.Locale.ROOT);
         String callsign = record.string("flight");
-        client.sendRaw((SbsEncoder.position(hex, callsign, altitudeFt(record), record.number("gs"),
-                record.number("track"), record.lat() == null ? 0 : record.lat(),
-                record.lon() == null ? 0 : record.lon(), onGround(record), SinkSupport.time(record)) + "\r\n")
-                .getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        client.sendRaw((SbsEncoder.velocity(hex, callsign, record.number("gs"), record.number("track"),
-                verticalRateFtMin(record), SinkSupport.time(record)) + "\r\n")
-                .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        List<String> out = new java.util.ArrayList<>(2);
+        if (record.hasPoint()) {
+            out.add(SbsEncoder.position(hex, callsign, altitudeFt(record), record.number("gs"),
+                    record.number("track"), record.lat(), record.lon(), onGround(record), SinkSupport.time(record)));
+        }
+        out.add(SbsEncoder.velocity(hex, callsign, record.number("gs"), record.number("track"),
+                verticalRateFtMin(record), SinkSupport.time(record)));
+        return out;
     }
 
     private static Integer altitudeFt(SinkRecord record) {
@@ -116,18 +127,43 @@ public class SbsSinkType implements SinkType {
             String key = SinkSupport.hex(record);
             SinkRecord previous = mirror.get(key);
             mirror.put(key, record);
-            for (SinkTcpServer.Client client : server.clients()) {
-                if (previous == null || !java.util.Objects.equals(previous.string("flight"), record.string("flight"))) {
-                    client.sendLine(SbsEncoder.callsign(key.toUpperCase(java.util.Locale.ROOT), record.string("flight"),
-                            SinkSupport.time(record)));
-                }
-                send(client, record);
+            if (previous == null || !java.util.Objects.equals(previous.string("flight"), record.string("flight"))) {
+                server.broadcast(SbsEncoder.callsign(key.toUpperCase(java.util.Locale.ROOT), record.string("flight"),
+                        SinkSupport.time(record)));
             }
+            for (String line : lines(record)) {
+                server.broadcast(line);
+            }
+        }
+
+        @Override
+        public void remove(String sourceId, String externalId) {
+            mirror.values().removeIf(r -> r.sourceId().equals(sourceId) && r.externalId().equals(externalId));
+        }
+
+        @Override
+        public void resync() {
+            mirror.clear();
         }
 
         @Override
         public int clients() {
             return server.clients().size();
+        }
+
+        @Override
+        public int maxClients() {
+            return server.maxClients();
+        }
+
+        @Override
+        public long rejected() {
+            return server.rejected();
+        }
+
+        @Override
+        public List<SinkInstance.Peer> peers() {
+            return SinkInstance.peers(server);
         }
 
         @Override

@@ -272,7 +272,7 @@ class RetentionJobIT extends RetentionItSupport {
     }
 
     @Test
-    @DisplayName("fetch_log: rows without versions go after 7 days, the others after provenance (30 days)")
+    @DisplayName("fetch_log: rows without versions go after 7 days, the others after max(provenance, largest window)")
     void fetchLogPruning() {
         ingestAt(STANDARD, T0, record("x", STANDARD_KIND, T0, 1));
         Instant again = T0.plus(Duration.ofSeconds(10));
@@ -285,7 +285,10 @@ class RetentionJobIT extends RetentionItSupport {
         assertThat(fetchRows(true)).isEqualTo(1);
         assertThat(week.fetchLogDeleted()).isEqualTo(1);
 
-        runAt(T0.plus(Duration.ofDays(31)));
+        // Prompt 109: a versioned row is kept for max(retention.provenance (30 d), the largest version window).
+        Duration keep = resolver.largestWindow().compareTo(Duration.ofDays(30)) > 0 ? resolver.largestWindow()
+                : Duration.ofDays(30);
+        runAt(T0.plus(keep).plus(DAY));
         assertThat(fetchRows(true)).isZero();
     }
 

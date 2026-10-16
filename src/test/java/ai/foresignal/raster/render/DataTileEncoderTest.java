@@ -64,4 +64,21 @@ class DataTileEncoderTest {
         }
         assertThat(result.encoding()).containsEntry("encoding", "terrarium");
     }
+
+    @Test
+    @DisplayName("terrarium: a fraction that rounds up to a whole step carries into green instead of wrapping blue")
+    void terrariumCarry() {
+        // 100.999 + 32768 = 32868.999: 0.999 * 256 = 255.74 rounds to 256, so the value is 32869 exactly
+        int rgb = DataTileEncoder.terrarium(100.999 + 32768.0);
+        int r = (rgb >> 16) & 0xFF;
+        int g = (rgb >> 8) & 0xFF;
+        int b = rgb & 0xFF;
+        assertThat(b).isZero();
+        assertThat(r * 256.0 + g + b / 256.0 - 32768.0).isEqualTo(101.0);
+        // and a carry out of green moves into red
+        int carried = DataTileEncoder.terrarium(255.999);
+        assertThat((carried >> 16) & 0xFF).isEqualTo(1);
+        assertThat((carried >> 8) & 0xFF).isZero();
+        assertThat(DataTileEncoder.terrarium(70000.0)).isEqualTo(0xFFFFFF);
+    }
 }

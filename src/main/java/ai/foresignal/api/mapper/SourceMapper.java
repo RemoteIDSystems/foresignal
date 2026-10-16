@@ -157,7 +157,18 @@ public class SourceMapper {
                 d.originator(),
                 d.access(),
                 d.egressOverridable(),
-                d.llmNotice());
+                d.llmNotice(),
+                sourceLicences != null ? sourceLicences.termsOf(d) : d.licenceTerms(),
+                d.reliability(),
+                d.derivedFrom());
+    }
+
+    private ai.foresignal.provenance.SourceLicences sourceLicences;
+
+    /** Wires the licence-terms resolver (prompt 109) for {@code licenceTerms}; optional so tests need none. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setSourceLicences(ai.foresignal.provenance.SourceLicences sourceLicences) {
+        this.sourceLicences = sourceLicences;
     }
 
     static CredentialFieldDto credentialField(CredentialField field) {
@@ -487,6 +498,22 @@ public class SourceMapper {
             }
         }
 
+        String reliability = null;
+        boolean clearReliability = false;
+        if (body.isReliabilityPresent()) {
+            if (body.getReliability() == null) {
+                clearReliability = true;
+            } else {
+                String grade = body.getReliability().strip().toUpperCase(java.util.Locale.ROOT);
+                if (SourceDescriptor.RELIABILITY_GRADES.contains(grade)) {
+                    reliability = grade;
+                } else {
+                    errors.add(new FieldError("reliability", "must be one of A, B, C, D, E, F or null, but was '"
+                            + body.getReliability() + "'"));
+                }
+            }
+        }
+
         Budget budget = null;
         if (body.getBudget() != null) {
             BudgetDto b = body.getBudget();
@@ -529,7 +556,8 @@ public class SourceMapper {
         }
         return new SourceSettingsUpdate(
                 body.getEnabled(), interval, params, budget, retention, clearRetention, policy, clearPolicy,
-                body.getEmbed(), downsampleInterval, clearDownsampleInterval, egress, clearEgress);
+                body.getEmbed(), downsampleInterval, clearDownsampleInterval, egress, clearEgress, reliability,
+                clearReliability);
     }
 
     /**

@@ -4961,6 +4961,16 @@ plus `frameKey`/`frameKeys`, `bbox` or `placeId`+`radiusKm`, `minZoom`, `maxZoom
 tileset and 2 GB per file. `POST /v1/places/{id}/pack` builds a ZIP (≤ 50 MB) of place weather, forecast
 series, nearby alerts, legends, a loop GIF and one PMTiles per product.
 
+A sweep (every 15 minutes, `foresignal.raster.export.sweep-interval`) deletes jobs and their files once
+`expiresAt` passes, finished or not, and fails jobs that can no longer finish: those still queued or
+running when the process restarted (submit them again) and any stuck for more than 6 hours. MBTiles and
+PMTiles hold WebMercatorQuad tiles only (`tms=WorldCRS84Quad` is 400); a COG follows `tms`
+(WebMercatorQuad → EPSG:3857, WorldCRS84Quad → EPSG:4326). Every file embeds the product's attribution and
+license (MBTiles/PMTiles `attribution` and `description`, the TIFF `Copyright` tag and `GDAL_METADATA`,
+the pack's `manifest.json`), with a "changes made" note for CC BY and ECMWF products. A place pack only
+holds products the requesting token may read, and the same request from the same token within 10 minutes
+returns the pack already built.
+
 WebP tiles need the bundled `webp-imageio` native library. A missing native (an unsupported platform)
 disables WebP: `/v1/system` reports a `WEBP_UNAVAILABLE` warning and `.webp` answers `406
 FORMAT_UNAVAILABLE`. Set `notifications.imageLinks` only on an instance with an https `publicBaseUrl`;
@@ -4970,18 +4980,54 @@ enabling it on a LAN-only instance exposes one media path per feed key and is re
 
 Every source resolves to structured licence terms (`ai.foresignal.provenance.LicenceTerms`, from
 `provenance/licences.json`): `commercialUse`, `shareAlike`, `attributionRequired` and `redistribution`.
-`UNKNOWN` is treated as `FORBIDDEN` (commercial) and `LOCAL_ONLY` (redistribution). A version's licence is
-the one snapshotted on its batch's `fetch_log` row; a `fetchId`, `adapterVersion` and (for admins) the
-ingest `principal` are returned under `include=provenance`, with an Admiralty `reliability` (A–F, per
-source) and `credibility` (1–6, computed at read time) composed as a `grade` (e.g. `B2`).
+`UNKNOWN` is treated as `FORBIDDEN` (commercial) and `LOCAL_ONLY` (redistribution). Free-text descriptor
+licenses resolve through catalog aliases; provider terms that state no license resolve to `provider-terms`,
+`provider-terms-nc` or `unspecified` (redistribution `UNKNOWN`, so local use only). A DERIVED source takes
+the most restrictive terms of its inputs (`derivedFrom`, else the sources its generator subscribes to). A
+custom PUSH source may declare its own `licenceTerms`; each PUSH batch snapshots their id.
 
-Clients ask for licence-filtered records with the `Foresignal-Licence-Policy: no-nc, no-sa, redistributable`
-header (or `licencePolicy=` query). A token's `licencePolicy` is a floor a request may add to but never
-loosen. Filtered responses carry `licenceFiltered` and aggregated `attributions`, plus a
-`Foresignal-Attribution` header and `Link: <termsUrl>; rel="license"`.
+A version's license is the one snapshotted on its batch's `fetch_log` row, else the source's current terms
+(`licenceBasis: descriptor`). A peer record's `_foresignal.originLicence` overrides the batch license, and an
+MLAT position is downgraded to `LOCAL_ONLY` while keeping its license id and attribution. Fetch rows that wrote
+versions are kept for `max(retention.provenance, the largest version window)`. `include=provenance` returns
+`fetchId`, `adapterVersion`, the ingest `principal` (admins only), the Admiralty `reliability` and the
+`credibility` (1–6, computed at read time), composed as a `grade` (e.g. `B2`).
 
-`LicenceEgressGuard` (called from `EgressPolicy`) governs every egress path; a private source is refused
-before the licence rule. The denials are counted as `foresignal.licence.egress.denied{path,licence}`.
+**Reliability.** Unless a descriptor sets its own grade, official agencies (US federal public domain and the
+open government licenses) get `B`, your own receivers and other built-in providers `C`, community and
+news-derived feeds (GDELT, Wikipedia surge) `D`, and custom, peer and DERIVED sources `F`. Override it per
+source with `PUT /v1/sources/{id}` `{"reliability": "A"}`; `null` reverts to the default.
+
+**Licence-filtered reads.** Clients send `Foresignal-Licence-Policy: no-nc, no-sa, redistributable` (or
+`licencePolicy=`). A token's `licencePolicy` is a floor a request may add to but never loosen; set it at
+creation or replace it with `PATCH /v1/tokens/{tokenId}` `{"licencePolicy": [...]}` (admin; `[]` clears it).
+JSON pages and GeoJSON collections carry `licenceFiltered` (records dropped) and aggregated `attributions`,
+plus a `Foresignal-Attribution` header (ISO-8859-1, at most 1 KB, cut with `...`) and
+`Link: <termsUrl>; rel="license"`. Record reads send `Vary: …, Foresignal-Licence-Policy`. Tiles, the SSE
+change stream and `/v1/changes` prune excluded sources in SQL and send `Foresignal-Licence-Filtered: <n>`, the
+number of *sources* the policy pruned (their records are never read, so they cannot be counted). A layer's
+TileJSON `attribution` aggregates its sources.
+
+**Egress.** `EgressPolicy` is the one component that decides whether a record may leave, on every path; its
+license step (`LicenceEgressGuard`) is internal and is applied on every path, `EXPORT` and `ARCHIVE` included.
+In order:
+
+1. An unregistered source never leaves.
+2. A private source is excluded on every path except `API_READ`, `TILE`, `SSE` and `MCP` for callers allowed
+   to see it, and `ARCHIVE` (your own storage), whatever its license. Two explicit exceptions: an `EXPORT` by
+   an admin with `includePrivate=true` (111), and a sink with `filter.includePrivate=true` that is a SERVE sink
+   bound to loopback/private or a PUSH sink whose target resolves to a private address (110). Feeds, share
+   links and federation never carry private records.
+3. A source whose effective `egress` is `LOCAL_ONLY` is served to this instance's own clients, exports and the
+   archive, and to a LAN-serving sink bound to loopback/private only; never pushed, shared, federated or put
+   on a feed.
+4. An MLAT position never leaves on a sink push, a share, a feed or federation, nor on a LAN sink that is not
+   local.
+5. The record's license goes through the table below. Turning a local receiver's egress to `OPEN` (only the
+   `egressOverridable` families allow it) also lifts its `LOCAL_ONLY` license default; `FORBIDDEN` terms are
+   never lifted.
+
+Denials are counted as `foresignal.licence.egress.denied{path,licence}`.
 
 | Redistribution | API_READ / TILE / SSE / MCP / LLM_* / NOTIFICATION / FEED / ARCHIVE | SINK_SERVE_LAN | SINK_PUSH, EXPORT | PUBLIC_SHARE, FEDERATION, SHARE |
 |---|---|---|---|---|
@@ -4989,10 +5035,16 @@ before the licence rule. The denials are counted as `foresignal.licence.egress.d
 | LOCAL_ONLY | yes | yes, only if the sink binds loopback/private | no (EXPORT: only with `personalUse=true`) | no |
 | FORBIDDEN | yes (own use) | no | no (EXPORT: only with `personalUse=true`, sidecar marks "do not redistribute") | no |
 
-The instance Ed25519 signing key is published at `GET /.well-known/jwks.json` (and `GET /v1/system/jwks`),
-`Cache-Control: public, max-age=3600`; `POST /v1/system/signing-key/rotate` retires the active key and
-activates a new one. Briefing markdown and HTML renditions carry a detached `Foresignal-Signature`
-(`b64:false`). Verify it with any JOSE library, for example Python `jwcrypto`:
+So `opensky-states`, `acled` and `aisstream` (`FORBIDDEN`) are exported only with `personalUse=true` and never
+reach a sink, a share link or a peer.
+
+**Signing.** The instance Ed25519 signing key is published at `GET /.well-known/jwks.json` (and
+`GET /v1/system/jwks`), `Cache-Control: public, max-age=3600`; `POST /v1/system/signing-key/rotate` retires the
+active key, activates a new one and writes a `signing_key` audit event. Retired keys stay published for
+`signing.retainRetired` (365 days). A stored briefing run carries `signature`, a detached JWS (`b64:false`)
+over its markdown; `GET /v1/briefings/{id}/runs/{runId}` sends it as `Foresignal-Signature`, and the HTML
+rendition sends a signature over its own bytes. Verify it with any JOSE library, for example Python
+`jwcrypto`:
 
 ```python
 import json, urllib.request
@@ -5003,14 +5055,31 @@ signed = jws.JWS(payload)          # payload = the exact response bytes
 signed.deserialize(signature, key)  # signature = the Foresignal-Signature header
 ```
 
+or without one, from the definition (RFC 7797: the signing input is the protected header, a dot and the
+unencoded payload), with the `cryptography` package:
+
+```python
+import base64, json
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+def b64url(s): return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
+
+header_b64, _, signature_b64 = signature.split(".")   # "header..signature"
+header = json.loads(b64url(header_b64))
+assert header["alg"] in ("Ed25519", "EdDSA") and header["b64"] is False and header["crit"] == ["b64"]
+jwk_ = next(k for k in jwks["keys"] if k["kid"] == header["kid"])
+Ed25519PublicKey.from_public_bytes(b64url(jwk_["x"])).verify(
+    b64url(signature_b64), header_b64.encode("ascii") + b"." + payload)   # raises if invalid
+```
+
 ## Outbound sinks (prompt 110)
 
 Outbound sinks let existing ecosystems consume Foresignal with no new client code. Each sink is created
 disabled (`POST /v1/sinks` with `enabled=false` unless set true); enabling starts it on its own virtual
-thread with a durable cursor under `sink`/`sink_cursor`. Every record passes the licence egress guard
-(109): `opensky-states`, `acled` and `aisstream` records are **never** re-served, and `LOCAL_ONLY`
-records (the operator's own receivers, and MLAT positions) reach only SERVE sinks bound to loopback or a
-private address. Private sources need `filter.includePrivate=true` **and** a local target.
+thread with a durable cursor under `sink`/`sink_cursor`. Sinks are an egress path like any other: every
+record goes through `EgressPolicy` (the one egress decision, 109) on `SINK_SERVE_LAN` (SERVE sinks) or
+`SINK_PUSH` (PUSH sinks), so the private flag, the descriptor's `egress` (with your overrides), the MLAT
+rule and the license table all apply.
 
 | Type | Kind | Mode | Client setup |
 |---|---|---|---|
@@ -5022,10 +5091,54 @@ private address. Private sources need `filter.includePrivate=true` **and** a loc
 | `aprs-is-serve` | STATE_MIRROR | SERVE | Xastir / YAAC / APRSdroid: APRS-IS server `host:port` |
 | `cloudevents` | CHANGE_FEED | PUSH | HTTP receiver; verify `X-Foresignal-Signature` |
 
+**What never leaves.** OpenSky, ACLED and aisstream records are never re-served on any sink (their terms
+forbid redistribution). `LOCAL_ONLY` records — sources whose descriptor `egress` is `LOCAL_ONLY` (for
+example `eia-petroleum`, even though its license is public domain), the operator's own receivers, records
+whose license is unknown, and every MLAT position — reach only SERVE sinks bound to loopback or a private
+address, never a PUSH sink. Setting an overridable local receiver's egress to `OPEN`
+(`PUT /v1/sources/{id}`) lets its non-MLAT records reach PUSH sinks too. A private source needs
+`filter.includePrivate=true` **and** a local target (a SERVE sink, a PUSH target that resolves to a private
+address, or the CoT LAN multicast group).
+
+**Denied records.** A record the policy refuses is skipped and counted, never retried: a CHANGE_FEED cursor
+moves past it, so one denied record cannot stall the sink or hold back retention. Denials are counted as
+`foresignal.sink.denied{sink,reason}` (reasons `private`, `local-only`, `mlat`, `licence-forbidden`,
+`licence-local-only`, `unregistered`) and shown, per reason and per source, under
+`GET /v1/sinks/{id}/status` → `denied` (written to the cursor every few seconds).
+
+**Filters.** `filter.sources`, `filter.kinds` and `filter.bbox` select records; `filter.placeId` keeps
+records whose geometry intersects the place; `filter.watchlistId` keeps records whose watched identity
+(icao24, registration, callsign, mmsi, imo, read from the payload field the source declares) is on the list,
+or whose external id is on a `custom` list. A filter that names a deleted place or list matches nothing.
+
+**Delivery and resync.**
+
+- *CHANGE_FEED* (`cloudevents`): ordered by seq, at least once. The cursor is persisted after every
+  acknowledged batch (`config.batchSize` 1–100; above 1 the body is `application/cloudevents-batch+json`). A
+  new sink, a sink whose cursor fell below the purge horizon, and `POST /v1/sinks/{id}/resync` first replay
+  current state as `ai.foresignal.record.snapshot` events, then continue with changes after the snapshot.
+  A 2xx acknowledges; 429 and 5xx back off (honoring `Retry-After`), other 4xx mark the sink `FAILING`;
+  neither advances the cursor. The URL is re-checked against the outbound URL policy on every delivery,
+  and the request goes to the address that check resolved.
+- *STATE_MIRROR*: a snapshot of current state, then persisted changes and live updates. An update older
+  than the mirrored `observedAt` is ignored (counted as `dropped`); tombstones and records past
+  `validUntil` are removed; a record that leaves the filter is removed. A live-bus overflow, a change-feed
+  gap or `POST /v1/sinks/{id}/resync` drops the mirror and snapshots again. `mqtt-state` republishes its
+  retained topics after a broker reconnect.
+- A failing sink restarts with backoff (5 s doubling to 5 min) and raises one `system.sink_failing`
+  notification after 10 minutes of failure.
+
 **SERVE binding.** A SERVE sink must set `config.port` (there is no default). `config.bind` defaults to
 `127.0.0.1`; only loopback, RFC 1918, link-local or ULA are accepted, `100.64.0.0/10` only with
-`allowTailnet=true`, and `0.0.0.0` only with `allowAllInterfaces=true` (then every peer is re-checked).
-`maxClients` defaults to 8. In Docker, publish the port, e.g.:
+`allowTailnet=true`, and `0.0.0.0` only with `allowAllInterfaces=true` (then every connecting peer must
+pass the same check, for the TCP types and for `readsb-json` alike). `maxClients` defaults to 8; further
+connections are refused (HTTP: `503`) and counted under `clients.rejected`. TCP clients that do not read
+fast enough are disconnected rather than allowed to stall the sink, and a client line longer than 1 KiB
+closes the connection. `aprs-is-serve` sends a `#` keepalive comment every 20 s and discards everything
+clients send. CoT PUSH sends only to a LAN-scoped multicast group (`239.0.0.0/8`, `224.0.0.0/24`, or IPv6
+link/site/organization scope) with TTL 1.
+
+In Docker, publish the port, e.g.:
 
 ```yaml
 services:
@@ -5034,6 +5147,13 @@ services:
       - "${FORESIGNAL_SINK_BIND:-127.0.0.1}:8081:8081"
 ```
 
-**Licence exclusions.** OpenSky, ACLED and aisstream are never re-served on any sink; local-receiver and
-MLAT records only on a loopback/private SERVE sink. Denials are counted as
-`foresignal.sink.denied{sink,reason}` and shown under `GET /v1/sinks/{id}/status.denied`.
+**Docker NAT and the peer check.** With Docker's default bridge network and port publishing, connections
+reach the container from the bridge gateway (for example `172.17.0.1`), not from the real client, so the
+per-peer check sees a private address for every client: `allowAllInterfaces` then admits anyone who can
+reach the published port. Restrict exposure with the host side of the `ports:` entry
+(`FORESIGNAL_SINK_BIND`) or a host firewall, or run with `network_mode: host` so the real peer address is
+visible.
+
+**Secrets.** Secrets (`secrets` on create and update) are write-only and encrypted at rest; responses list
+only their names (`secretsSet`). An update merges them: a field with a value sets it, `null` removes it, and
+an omitted field keeps its stored value.

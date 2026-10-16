@@ -35,7 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 
 /**
- * Outbound sinks (OpenAPI tag {@code Sinks}, prompt 110): the type catalogue, CRUD, a one-off test, the
+ * Outbound sinks (OpenAPI tag {@code Sinks}, prompt 110): the type catalog, CRUD, a one-off test, the
  * cursor status and a forced resync. Admin only; secrets are write-only.
  */
 @RestController
@@ -71,7 +71,7 @@ public class SinksController {
         int size = QueryParams.intInRange("limit", limit, 1, SinkService.MAX_LIMIT, SinkService.DEFAULT_LIMIT);
         List<Map<String, Object>> items = new ArrayList<>();
         for (SinkService.View view : sinks.list()) {
-            items.add(sinkMap(view.sink()));
+            items.add(sinkMap(view));
             if (items.size() >= size) {
                 break;
             }
@@ -87,21 +87,21 @@ public class SinksController {
     @Operation(operationId = "createSink", tags = "Sinks")
     public ResponseEntity<Map<String, Object>> createSink(@RequestBody JsonNode body) {
         SinkService.View view = sinks.create(body);
-        return ResponseEntity.created(URI.create("/v1/sinks/" + view.sink().getId())).body(sinkMap(view.sink()));
+        return ResponseEntity.created(URI.create("/v1/sinks/" + view.sink().getId())).body(sinkMap(view));
     }
 
     /** {@code getSink}. */
     @GetMapping("/v1/sinks/{sinkId}")
     @Operation(operationId = "getSink", tags = "Sinks")
     public Map<String, Object> getSink(@PathVariable String sinkId) {
-        return sinkMap(sinks.get(sinkId).sink());
+        return sinkMap(sinks.get(sinkId));
     }
 
     /** {@code updateSink}. */
     @PutMapping("/v1/sinks/{sinkId}")
     @Operation(operationId = "updateSink", tags = "Sinks")
     public Map<String, Object> updateSink(@PathVariable String sinkId, @RequestBody JsonNode body) {
-        return sinkMap(sinks.update(sinkId, body).sink());
+        return sinkMap(sinks.update(sinkId, body));
     }
 
     /** {@code deleteSink}. */
@@ -174,7 +174,8 @@ public class SinksController {
         return out;
     }
 
-    private Map<String, Object> sinkMap(SinkEntity sink) {
+    private Map<String, Object> sinkMap(SinkService.View view) {
+        SinkEntity sink = view.sink();
         SinkType type = types.get(sink.getType());
         SinkMode mode = mode(type, sink);
         Map<String, Object> out = new LinkedHashMap<>();
@@ -187,7 +188,7 @@ public class SinksController {
         out.put("config", sink.getConfig());
         out.put("secretsSet", sinks.secrets(sink).keySet().stream().sorted().toList());
         out.put("filter", sinks.filter(sink).toMap());
-        out.put("state", state(sink.getId()));
+        out.put("state", state(sink.getId(), view.cursor()));
         out.put("createdAt", sink.getCreatedAt().toString());
         out.put("updatedAt", sink.getUpdatedAt().toString());
         return out;
@@ -196,10 +197,10 @@ public class SinksController {
     private Map<String, Object> statusMap(SinkService.View view) {
         SinkEntity sink = view.sink();
         SinkCursorEntity cursor = view.cursor();
-        long published = 0;
+        long published = supervisor.lastPublishedSeq();
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("sinkId", sink.getId());
-        out.put("state", cursor == null ? "STOPPED" : cursor.getState());
+        out.put("state", state(sink.getId(), cursor));
         out.put("lastSeq", cursor == null ? null : cursor.getLastSeq());
         out.put("watermarkSeq", cursor == null ? null : cursor.getWatermarkSeq());
         out.put("lastPublishedSeq", published);
@@ -214,13 +215,14 @@ public class SinksController {
         out.put("dropped", cursor == null ? 0 : cursor.getDropped());
         out.put("denied", cursor == null ? Map.of("total", 0) : cursor.getDenied());
         SinkSupervisor.Run run = supervisor.run(sink.getId());
-        if (run != null && run.instance() != null && run.instance().clients() >= 0
-                && types.get(sink.getType()).spec().modes().contains(SinkMode.SERVE)) {
+        SinkInstance instance = run == null ? null : run.instance();
+        if (instance != null && mode(types.get(sink.getType()), sink) == SinkMode.SERVE) {
             Map<String, Object> clients = new LinkedHashMap<>();
-            clients.put("connected", run.instance().clients());
-            clients.put("max", 8);
-            clients.put("rejected", 0);
-            clients.put("peers", List.of());
+            clients.put("connected", instance.clients());
+            clients.put("max", instance.maxClients());
+            clients.put("rejected", instance.rejected());
+            clients.put("peers", instance.peers().stream().map(p -> Map.<String, Object>of("address", p.address(),
+                    "connectedAt", p.connectedAt().toString())).toList());
             out.put("clients", clients);
         } else {
             out.put("clients", null);
@@ -228,9 +230,16 @@ public class SinksController {
         return out;
     }
 
-    private String state(String sinkId) {
+    /** The sink's state: {@code STOPPED} when no run exists, else the cursor's state ({@code FAILING} while failing). */
+    private String state(String sinkId, SinkCursorEntity cursor) {
         SinkSupervisor.Run run = supervisor.run(sinkId);
-        return run == null ? "STOPPED" : SinkCursorEntity.RUNNING;
+        if (run == null) {
+            return SinkCursorEntity.STOPPED;
+        }
+        if (run.failingSince() != null) {
+            return SinkCursorEntity.FAILING;
+        }
+        return cursor == null ? SinkCursorEntity.RUNNING : cursor.getState();
     }
 
     private static SinkMode mode(SinkType type, SinkEntity sink) {

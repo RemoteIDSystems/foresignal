@@ -42,6 +42,7 @@ import tools.jackson.databind.node.ObjectNode;
  * @param preset the preset the source was created from, or null (prompt 059)
  * @param defaultFormat the format of {@code POST /v1/ingest/{sourceId}}, or null for native (prompt 059)
  * @param captureSamples true to capture raw requests for an hour (prompt 059)
+ * @param licenceTerms the structured license terms of pushed data (prompt 109), or null
  */
 public record CustomSourceDefinition(
         String id,
@@ -74,4 +75,5 @@ public record CustomSourceDefinition(
         tools.jackson.databind.JsonNode mapping,
         String preset,
         String defaultFormat,
-        boolean captureSamples) {}
+        boolean captureSamples,
+        ai.foresignal.provenance.LicenceTerms licenceTerms) {}

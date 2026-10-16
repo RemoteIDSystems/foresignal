@@ -29,6 +29,12 @@ public class AprsIsServeSinkType implements SinkType {
     /** The server signature. */
     public static final String SERVER = "FORESIGNAL";
 
+    /** The keepalive comment line every APRS-IS client expects at least every 20 s. */
+    public static final String KEEPALIVE = "# foresignal aprs-is-serve keepalive";
+
+    /** The keepalive interval (prompt 110: "keepalive comment every 20 s"). */
+    public static final java.time.Duration KEEPALIVE_EVERY = java.time.Duration.ofSeconds(20);
+
     private static final SinkTypeSpec SPEC = new SinkTypeSpec(ID, "APRS-IS serve",
             "Read-only APRS-IS server for local clients", SinkKind.STATE_MIRROR, Set.of(SinkMode.SERVE),
             ServeConfig.SCHEMA, List.of(), null);
@@ -71,7 +77,8 @@ public class AprsIsServeSinkType implements SinkType {
                     public void onLine(SinkTcpServer.Client client, String line) {
                         // Client-sent packets are discarded; only the login line is interpreted.
                         if (line.startsWith("user ")) {
-                            String call = line.split("\\s+")[1];
+                            String[] parts = line.split("\\s+");
+                            String call = parts.length > 1 ? parts[1].replaceAll("[^A-Za-z0-9-]", "") : "N0CALL";
                             filters.put(client, Filter.parse(line));
                             client.sendLine("# logresp " + call + " unverified, server " + SERVER);
                         }
@@ -80,6 +87,11 @@ public class AprsIsServeSinkType implements SinkType {
                     @Override
                     public void onClose(SinkTcpServer.Client client) {
                         filters.remove(client);
+                    }
+
+                    @Override
+                    public SinkTcpServer.Keepalive keepalive() {
+                        return new SinkTcpServer.Keepalive(KEEPALIVE, KEEPALIVE_EVERY);
                     }
                 });
         return new Instance(server, filters);
@@ -101,6 +113,7 @@ public class AprsIsServeSinkType implements SinkType {
                 return;
             }
             String raw = record.string("raw");
+            raw = raw == null ? null : raw.replaceAll("[\\r\\n]+", " ").strip();
             if (raw == null || raw.isBlank()) {
                 return;
             }
@@ -114,6 +127,21 @@ public class AprsIsServeSinkType implements SinkType {
         @Override
         public int clients() {
             return server.clients().size();
+        }
+
+        @Override
+        public int maxClients() {
+            return server.maxClients();
+        }
+
+        @Override
+        public long rejected() {
+            return server.rejected();
+        }
+
+        @Override
+        public List<SinkInstance.Peer> peers() {
+            return SinkInstance.peers(server);
         }
 
         @Override

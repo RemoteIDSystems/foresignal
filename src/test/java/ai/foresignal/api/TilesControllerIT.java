@@ -84,7 +84,7 @@ class TilesControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "application/vnd.mapbox-vector-tile"))
                 .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "public, max-age=5"))
-                .andExpect(header().string(HttpHeaders.VARY, "Accept-Encoding, Authorization"))
+                .andExpect(header().string(HttpHeaders.VARY, "Accept-Encoding, Authorization, Foresignal-Licence-Policy"))
                 .andExpect(header().doesNotExist(TilesController.TRUNCATED_HEADER))
                 .andReturn();
         assertThat(result.getResponse().getHeader(HttpHeaders.ETAG)).startsWith("\"b-");

@@ -47,8 +47,24 @@ public class CredibilityService {
     /** One corroboration cluster's grade inputs. */
     public record Cluster(int independentSources, int credibility, boolean hasHighReliability) {}
 
-    /** The per-response membership lookup. */
-    public record Lookup(Map<String, Cluster> byMember, Set<String> deceptionEntities) {}
+    /**
+     * The per-response membership lookup.
+     *
+     * @param byMember the cluster of each {@code sourceId|externalId} member of a current corroboration record
+     * @param deceptionEntities the {@code sourceId|externalId} members of open deception records
+     * @param deceptionIds the entity ids (MMSI or ICAO hex, the deception record's {@code externalId}) of open
+     *     deception records; an aircraft or vessel record with that {@code externalId} from any source is named
+     */
+    public record Lookup(Map<String, Cluster> byMember, Set<String> deceptionEntities, Set<String> deceptionIds) {
+
+        /** A lookup without entity ids. */
+        public Lookup(Map<String, Cluster> byMember, Set<String> deceptionEntities) {
+            this(byMember, deceptionEntities, Set.of());
+        }
+    }
+
+    /** The record kinds whose {@code externalId} is the entity a deception record names (099). */
+    static final Set<String> ENTITY_KINDS = Set.of("aircraft", "vessel");
 
     private final JdbcTemplate jdbc;
     private final SourceRegistry registry;
@@ -69,20 +85,46 @@ public class CredibilityService {
             return new Lookup(Map.of(), Set.of());
         }
         Map<String, Cluster> byMember = new HashMap<>();
+        Map<String, String> grades = new HashMap<>();
         jdbc.query("SELECT payload FROM record_head WHERE source_id = ? AND kind = ? AND tombstone = false",
-                (org.springframework.jdbc.core.RowCallbackHandler) rs -> mergeCluster(byMember, rs.getString(1)),
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> mergeCluster(byMember, rs.getString(1), grades),
                 CORROBORATION_SOURCE, CORROBORATION_KIND);
         Set<String> deception = new HashSet<>();
-        jdbc.query("SELECT payload FROM record_head WHERE source_id = ? AND kind = ? AND tombstone = false",
-                (org.springframework.jdbc.core.RowCallbackHandler) rs -> mergeDeception(deception, rs.getString(1)),
+        Set<String> deceptionIds = new HashSet<>();
+        jdbc.query("SELECT external_id, payload FROM record_head WHERE source_id = ? AND kind = ? AND tombstone = false",
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
+                    if (rs.getString(1) != null) {
+                        deceptionIds.add(rs.getString(1));
+                    }
+                    mergeDeception(deception, rs.getString(2));
+                },
                 DECEPTION_SOURCE, DECEPTION_KIND);
-        return new Lookup(byMember, deception);
+        return new Lookup(byMember, deception, deceptionIds);
+    }
+
+    /**
+     * The lookup built from payloads already read (tests and callers with their own query): corroboration and
+     * deception payloads in 099's shape, and the deception records' entity ids.
+     */
+    public Lookup lookupOf(java.util.Collection<String> corroborationPayloads,
+            java.util.Collection<String> deceptionPayloads, java.util.Collection<String> deceptionEntityIds) {
+        Map<String, Cluster> byMember = new HashMap<>();
+        Map<String, String> grades = new HashMap<>();
+        for (String payload : corroborationPayloads) {
+            mergeCluster(byMember, payload, grades);
+        }
+        Set<String> deception = new HashSet<>();
+        for (String payload : deceptionPayloads) {
+            mergeDeception(deception, payload);
+        }
+        return new Lookup(byMember, deception, Set.copyOf(deceptionEntityIds));
     }
 
     /** The credibility of {@code row}, using a preloaded {@link Lookup}. */
     public int assess(RecordRow row, Lookup lookup) {
         String key = memberKey(row.sourceId(), row.externalId());
-        if (lookup != null && lookup.deceptionEntities().contains(key)) {
+        if (lookup != null && (lookup.deceptionEntities().contains(key)
+                || (ENTITY_KINDS.contains(row.kind()) && lookup.deceptionIds().contains(row.externalId())))) {
             return 5;
         }
         Cluster cluster = lookup == null ? null : lookup.byMember().get(key);
@@ -125,8 +167,29 @@ public class CredibilityService {
         return row.qaFlags() == 0;
     }
 
+    /**
+     * The number of independent sources of a corroboration payload: 099 emits {@code independentSources} as the
+     * list of distinct source ids, so its size; a number is taken as is; otherwise the distinct member sources.
+     */
+    static int independentSources(Map<String, ?> node, java.util.List<?> members) {
+        Object value = node.get("independentSources");
+        if (value instanceof java.util.Collection<?> ids) {
+            return new HashSet<>(ids).size();
+        }
+        if (value instanceof Number n) {
+            return n.intValue();
+        }
+        Set<Object> sources = new HashSet<>();
+        for (Object member : members) {
+            if (member instanceof Map<?, ?> m && m.get("sourceId") != null) {
+                sources.add(m.get("sourceId"));
+            }
+        }
+        return sources.size();
+    }
+
     @SuppressWarnings("unchecked")
-    private void mergeCluster(Map<String, Cluster> byMember, String payload) {
+    private void mergeCluster(Map<String, Cluster> byMember, String payload, Map<String, String> grades) {
         try {
             Map<String, Object> node = JSON.readValue(payload, Map.class);
             Object members = node.get("members");
@@ -134,11 +197,11 @@ public class CredibilityService {
                 return;
             }
             int credibility = node.get("credibility") instanceof Number n ? n.intValue() : 3;
-            int independent = node.get("independentSources") instanceof Number n ? n.intValue() : list.size();
+            int independent = independentSources(node, list);
             boolean high = false;
             for (Object member : list) {
                 if (member instanceof Map<?, ?> m && m.get("sourceId") instanceof String sid) {
-                    String rel = reliability(sid);
+                    String rel = grades.computeIfAbsent(sid, this::reliability);
                     if ("A".equals(rel) || "B".equals(rel)) {
                         high = true;
                     }

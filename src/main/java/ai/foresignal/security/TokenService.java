@@ -340,6 +340,38 @@ public class TokenService {
         return tokens.saveAndFlush(entity);
     }
 
+    /**
+     * Replaces token {@code id}'s license policy floor (prompt 109, {@code updateToken}): the body is
+     * {@code {"licencePolicy": [...] | null}} and nothing else; null or empty clears the floor. Requests made with
+     * the token read the new floor from the next request on (tokens are looked up per request).
+     *
+     * @throws NotFoundException for an unknown token, a path key or a revoked token
+     * @throws ValidationException for any other member or an unknown flag
+     */
+    @Transactional
+    public ApiTokenEntity updateLicencePolicy(UUID id, JsonNode body) {
+        List<FieldError> errors = new ArrayList<>();
+        if (body == null || !body.isObject()) {
+            throw ValidationException.forField("body", "must be an object with licencePolicy");
+        }
+        if (!body.has("licencePolicy")) {
+            errors.add(new FieldError("licencePolicy", "is required (null or [] clears it)"));
+        }
+        body.propertyNames().forEach(name -> {
+            if (!"licencePolicy".equals(name)) {
+                errors.add(new FieldError(name, "cannot be changed after creation"));
+            }
+        });
+        List<String> policy = licencePolicy(body.get("licencePolicy"), errors);
+        if (!errors.isEmpty()) {
+            throw new ValidationException(ErrorCodes.VALIDATION_FAILED, "The token update is not valid.", errors);
+        }
+        ApiTokenEntity entity = tokens.findById(id).filter(t -> !t.isPathKey() && t.getRevokedAt() == null)
+                .orElseThrow(() -> NotFoundException.of("Token", id));
+        entity.setLicencePolicy(policy);
+        return tokens.saveAndFlush(entity);
+    }
+
     // ------------------------------------------------------------------------- parsing helpers
 
     /**

@@ -157,12 +157,16 @@ public class TilesController {
         // place=, view= and inWatchlist= narrow the caller's restriction (prompt 036).
         ReadCaller caller = callers.resolveScoped(request);
         Set<String> excluded = callers.excludedSources(caller);
+        String licenceFiltered = null;
         if (licencePolicy != null) {
-            excluded = licencePolicy.withExcluded(excluded, ai.foresignal.provenance.LicencePolicyService.of(request));
+            ai.foresignal.provenance.LicencePolicy policy = ai.foresignal.provenance.LicencePolicyService.of(request);
+            excluded = licencePolicy.withExcluded(excluded, policy);
+            licenceFiltered = licencePolicy.filteredHeader(policy);
         }
         TileLayer resolved = allowed(layers.resolve(layer, excluded), caller.restriction());
         if (at != null) {
-            return asOfTile(resolved, coordinates, mode, at, caller, excluded, ifNoneMatch);
+            return withLicenceFiltered(asOfTile(resolved, coordinates, mode, at, caller, excluded, ifNoneMatch),
+                    licenceFiltered);
         }
         TileResult result = tiles.render(resolved, coordinates, mode, caller.restriction());
 
@@ -173,10 +177,31 @@ public class TilesController {
         if (result.truncated()) {
             headers.set(TRUNCATED_HEADER, "true");
         }
+        if (licenceFiltered != null) {
+            headers.set(ai.foresignal.provenance.LicencePolicyService.FILTERED_HEADER, licenceFiltered);
+        }
+        headers.set(HttpHeaders.VARY, VARY + ", " + ai.foresignal.provenance.LicencePolicyService.POLICY_HEADER);
         if (ETags.matches(ifNoneMatch, etag)) {
             return ResponseEntity.status(304).headers(headers).build();
         }
         return ResponseEntity.ok().headers(headers).contentType(MVT).body(result.mvt());
+    }
+
+    /**
+     * {@code response} with the {@code Foresignal-Licence-Filtered} header and the licence-policy {@code Vary}
+     * (prompt 109): the header when a policy applied, the {@code Vary} always.
+     */
+    static ResponseEntity<byte[]> withLicenceFiltered(ResponseEntity<byte[]> response, String licenceFiltered) {
+        if (response == null) {
+            return null;
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.putAll(response.getHeaders());
+        if (licenceFiltered != null) {
+            headers.set(ai.foresignal.provenance.LicencePolicyService.FILTERED_HEADER, licenceFiltered);
+        }
+        headers.set(HttpHeaders.VARY, VARY + ", " + ai.foresignal.provenance.LicencePolicyService.POLICY_HEADER);
+        return ResponseEntity.status(response.getStatusCode()).headers(headers).body(response.getBody());
     }
 
     /** The asOf branch of {@link #getTile}. */

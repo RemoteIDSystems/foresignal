@@ -194,7 +194,7 @@ public class PushIngestService {
         }
         FetchLogEntry entry = new FetchLogEntry(sourceId, FetchTrigger.PUSH, FetchStatus.OK, request.receivedAt(),
                 request.receivedAt(), 200, 0, request.urlRedacted(), null, request.bytes(), request.bodySha256(), null,
-                descriptor.licence(), request.principal(), Coverage.none(), null);
+                snapshotLicence(descriptor), request.principal(), Coverage.none(), null);
         IngestOutcome outcome = await(sourceId, submitBatch(sourceId, entry, batch));
         health.recordSuccess(sourceId, outcome, false, null);
         if (customSources.existsById(sourceId)) {
@@ -256,12 +256,31 @@ public class PushIngestService {
                 .withHeader(HttpHeaders.RETRY_AFTER, "30");
     }
 
+    /** Resolves a descriptor's terms to the id snapshotted on the fetch row (prompt 109); null in unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.provenance.LicenceCatalog licenceCatalog;
+
+    /**
+     * The license id a PUSH batch snapshots on its {@code fetch_log} row (prompt 109, task 2: "PUSH batches
+     * snapshot the custom source's terms"): the custom source's own {@code licenceTerms} id, else the catalogue
+     * id its free-text license resolves to, else the free text.
+     */
+    String snapshotLicence(ai.foresignal.source.spi.SourceDescriptor descriptor) {
+        if (descriptor.licenceTerms() != null) {
+            return descriptor.licenceTerms().id();
+        }
+        if (licenceCatalog != null && licenceCatalog.resolves(descriptor.licence())) {
+            return licenceCatalog.terms(descriptor.licence()).id();
+        }
+        return descriptor.licence();
+    }
+
     /** A {@code REFUSED} {@code fetch_log} row for a push the caps turned away. */
     private void refused(SourceDescriptor descriptor, String principal, Instant receivedAt, String urlRedacted,
             String error, int records) {
         try {
             fetchLog.write(new FetchLogEntry(descriptor.id(), FetchTrigger.PUSH, FetchStatus.REFUSED, receivedAt,
-                    receivedAt, 429, 0, urlRedacted, null, null, null, null, descriptor.licence(), principal,
+                    receivedAt, 429, 0, urlRedacted, null, null, null, null, snapshotLicence(descriptor), principal,
                     Coverage.none(), error), records);
         } catch (RuntimeException e) {
             log.warn("Could not record the refused push into {}", descriptor.id(), e);

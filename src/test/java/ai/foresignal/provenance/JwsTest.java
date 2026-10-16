@@ -38,19 +38,62 @@ class JwsTest {
         assertThat(JwsVerifier.kid(jws)).isEqualTo(kid);
     }
 
+    /** RFC 8037 Appendix A.1: the example Ed25519 private key {@code d}. */
+    static final String RFC8037_D = "nWGxne_9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A";
+
+    /** RFC 8037 Appendix A.1/A.2: the example public key {@code x}. */
+    static final String RFC8037_X = "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo";
+
+    /** RFC 8037 Appendix A.3: the RFC 7638 thumbprint of the example public JWK. */
+    static final String RFC8037_THUMBPRINT = "kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k";
+
+    /** RFC 8037 Appendix A.4: the signing input ({@code {"alg":"EdDSA"}} . "Example of Ed25519 signing"). */
+    static final String RFC8037_SIGNING_INPUT = "eyJhbGciOiJFZERTQSJ9.RXhhbXBsZSBvZiBFZDI1NTE5IHNpZ25pbmc";
+
+    /** RFC 8037 Appendix A.4: the signature over {@link #RFC8037_SIGNING_INPUT}. */
+    static final String RFC8037_SIGNATURE =
+            "hgyY0il_MGCjP0JzlnLWG1PPOt7-09PGcvMg3AIbQR6dWbhijcNR4ki4iylGjg5BhVsPt9g7sVvpAr_MuM0KAg";
+
     @Test
-    @DisplayName("the OKP JWK and its RFC 7638 thumbprint are stable")
+    @DisplayName("RFC 8037 Appendix A: the OKP JWK encoding and the RFC 7638 thumbprint of the example key")
     void jwk() {
-        byte[] x = new byte[32];
-        for (int k = 0; k < x.length; k++) {
-            x[k] = (byte) k;
-        }
-        Map<String, Object> jwk = Jwk.of("abc", x);
+        byte[] x = Base64.getUrlDecoder().decode(RFC8037_X);
+        Map<String, Object> jwk = Jwk.of(RFC8037_THUMBPRINT, x);
         assertThat(jwk).containsEntry("kty", "OKP").containsEntry("crv", "Ed25519").containsEntry("alg", "Ed25519");
-        assertThat(jwk.get("x")).isEqualTo(URL.encodeToString(x));
-        String kid = Jwk.thumbprint(x);
-        assertThat(kid).isEqualTo(Jwk.thumbprint(x));
-        assertThat(jwk).containsEntry("kid", "abc");
+        assertThat(jwk.get("x")).isEqualTo(RFC8037_X);
+        assertThat(Jwk.thumbprint(x)).isEqualTo(RFC8037_THUMBPRINT);
+        assertThat(jwk).containsEntry("kid", RFC8037_THUMBPRINT);
+    }
+
+    @Test
+    @DisplayName("RFC 8037 Appendix A.4: the JDK's Ed25519 over the example key gives the published signature")
+    void rfc8037Signature() throws Exception {
+        byte[] d = Base64.getUrlDecoder().decode(RFC8037_D);
+        byte[] pkcs8 = new byte[48];
+        byte[] prefix = {0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04, 0x20};
+        System.arraycopy(prefix, 0, pkcs8, 0, prefix.length);
+        System.arraycopy(d, 0, pkcs8, prefix.length, d.length);
+        java.security.PrivateKey key = java.security.KeyFactory.getInstance("Ed25519")
+                .generatePrivate(new java.security.spec.PKCS8EncodedKeySpec(pkcs8));
+        Signature signature = Signature.getInstance("Ed25519");
+        signature.initSign(key);
+        signature.update(RFC8037_SIGNING_INPUT.getBytes(StandardCharsets.US_ASCII));
+        assertThat(URL.encodeToString(signature.sign())).isEqualTo(RFC8037_SIGNATURE);
+    }
+
+    @Test
+    @DisplayName("the verifier refuses alg none, an unknown alg, b64 not false and a crit other than [b64]")
+    void headerChecks() {
+        assertThat(JwsVerifier.acceptable(Map.of("alg", "Ed25519", "b64", false, "crit", List.of("b64")))).isTrue();
+        assertThat(JwsVerifier.acceptable(Map.of("alg", "EdDSA", "b64", false, "crit", List.of("b64")))).isTrue();
+        assertThat(JwsVerifier.acceptable(Map.of("alg", "none", "b64", false, "crit", List.of("b64")))).isFalse();
+        assertThat(JwsVerifier.acceptable(Map.of("alg", "HS256", "b64", false, "crit", List.of("b64")))).isFalse();
+        assertThat(JwsVerifier.acceptable(Map.of("alg", "Ed25519", "crit", List.of("b64")))).isFalse();
+        assertThat(JwsVerifier.acceptable(Map.of("alg", "Ed25519", "b64", true, "crit", List.of("b64")))).isFalse();
+        assertThat(JwsVerifier.acceptable(Map.of("alg", "Ed25519", "b64", false))).isFalse();
+        assertThat(JwsVerifier.acceptable(Map.of("alg", "Ed25519", "b64", false, "crit", List.of("b64", "exp"))))
+                .isFalse();
+        assertThat(JwsVerifier.acceptable(null)).isFalse();
     }
 
     @Test

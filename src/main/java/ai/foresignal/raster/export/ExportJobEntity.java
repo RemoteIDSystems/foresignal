@@ -69,6 +69,10 @@ public class ExportJobEntity {
     @Column(name = "expires_at")
     private Instant expiresAt;
 
+    /** The place pack input hash (prompt 108: a pack is reused for 10 minutes per input), or null. */
+    @Column(name = "input_hash", length = 64)
+    private String inputHash;
+
     /** JPA. */
     protected ExportJobEntity() {}
 
@@ -198,5 +202,15 @@ public class ExportJobEntity {
 
     public void setExpiresAt(Instant expiresAt) {
         this.expiresAt = expiresAt;
+    }
+
+    /** The input hash of a place pack, or null. */
+    public String getInputHash() {
+        return inputHash;
+    }
+
+    /** Sets the input hash. */
+    public void setInputHash(String inputHash) {
+        this.inputHash = inputHash;
     }
 }

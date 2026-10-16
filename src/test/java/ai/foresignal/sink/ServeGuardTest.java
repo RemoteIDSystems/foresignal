@@ -38,4 +38,18 @@ class ServeGuardTest {
         assertThat(guard.allowedPeer(InetAddress.getByName("127.0.0.1"), false)).isTrue();
         assertThat(guard.allowedPeer(InetAddress.getByName("10.0.0.5"), false)).isTrue();
     }
+
+    @Test
+    @DisplayName("lanMulticast: 239/8 and 224.0.0/24 and IPv6 link/site/org scope only; never unicast or global")
+    void lanMulticast() throws Exception {
+        assertThat(ServeGuard.lanMulticast(InetAddress.getByName("239.2.3.1"))).isTrue();
+        assertThat(ServeGuard.lanMulticast(InetAddress.getByName("224.0.0.251"))).isTrue();
+        assertThat(ServeGuard.lanMulticast(InetAddress.getByName("ff02::1"))).isTrue();
+        assertThat(ServeGuard.lanMulticast(InetAddress.getByName("ff05::1:3"))).isTrue();
+        assertThat(ServeGuard.lanMulticast(InetAddress.getByName("224.0.1.1"))).isFalse();
+        assertThat(ServeGuard.lanMulticast(InetAddress.getByName("233.1.1.1"))).isFalse();
+        assertThat(ServeGuard.lanMulticast(InetAddress.getByName("ff0e::1"))).isFalse();
+        assertThat(ServeGuard.lanMulticast(InetAddress.getByName("192.168.1.1"))).isFalse();
+        assertThat(ServeGuard.lanMulticast(null)).isFalse();
+    }
 }

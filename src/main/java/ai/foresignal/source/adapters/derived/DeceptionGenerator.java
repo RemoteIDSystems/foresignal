@@ -24,8 +24,9 @@ import org.springframework.stereotype.Component;
  * seconds apart (skipping the 102.3-knot sentinel, high-speed craft 40–49 and WIG 20–29), and an
  * aircraft implied ground speed over 1,400 knots between ADS-B fixes (never MLAT or TIS-B).
  *
- * <p>{@code externalId} is the entity; the payload lists {@code checks[]} with counts, and the
- * record is tombstoned after an hour without recurrence.
+ * <p>{@code externalId} is the entity; the payload lists {@code checks[]} with counts and {@code members[]}
+ * ({@code sourceId}, {@code externalId}) of the observations that matched a check (prompt 109 reads these for
+ * the credibility grade 5), and the record is tombstoned after an hour without recurrence.
  */
 @Component
 public class DeceptionGenerator extends LayerGenerator {
@@ -79,6 +80,8 @@ public class DeceptionGenerator extends LayerGenerator {
     static final class Active {
 
         final Map<String, Integer> checks = new LinkedHashMap<>();
+        /** The {@code sourceId|externalId} of each observation that matched a check (109 credibility). */
+        final Set<String> members = new java.util.LinkedHashSet<>();
         Instant lastSeen;
     }
 
@@ -162,7 +165,7 @@ public class DeceptionGenerator extends LayerGenerator {
         boolean aircraft = DerivedSources.AIRCRAFT.equals(observation.kind());
         if (aircraft) {
             if (knots > AIRCRAFT_KN && LayerSupport.adsbPosition(observation)) {
-                mark(observation.externalId(), "implied-speed", at);
+                mark(observation.externalId(), "implied-speed", at, observation);
             }
             return;
         }
@@ -171,7 +174,7 @@ public class DeceptionGenerator extends LayerGenerator {
         boolean sentinel = sog != null && sog == 102.3;
         boolean fast = type != null && ((type >= 40 && type <= 49) || (type >= 20 && type <= 29));
         if (knots > VESSEL_KN && !sentinel && !fast) {
-            mark(observation.externalId(), "implied-speed", at);
+            mark(observation.externalId(), "implied-speed", at, observation);
         }
     }
 
@@ -190,17 +193,22 @@ public class DeceptionGenerator extends LayerGenerator {
                         continue;
                     }
                     if (Geo.haversineKm(a.latitude(), a.longitude(), b.latitude(), b.longitude()) > DUPLICATE_KM) {
-                        mark(entry.getKey(), "duplicate-mmsi", a.observedAt());
+                        mark(entry.getKey(), "duplicate-mmsi", a.observedAt(), a, b);
                     }
                 }
             }
         }
     }
 
-    private void mark(String entity, String check, Instant at) {
+    private void mark(String entity, String check, Instant at, Observation... matched) {
         Active state = active.computeIfAbsent(entity, k -> new Active());
         state.checks.merge(check, 1, Integer::sum);
         state.lastSeen = at;
+        for (Observation observation : matched) {
+            if (observation != null && observation.sourceId() != null && observation.externalId() != null) {
+                state.members.add(observation.sourceId() + "|" + observation.externalId());
+            }
+        }
     }
 
     private void emit(DerivedContext ctx, Instant now, String entity, Active state) {
@@ -208,8 +216,16 @@ public class DeceptionGenerator extends LayerGenerator {
         for (Map.Entry<String, Integer> check : state.checks.entrySet()) {
             checks.add(Map.of("check", check.getKey(), "count", check.getValue()));
         }
+        List<Map<String, Object>> members = new ArrayList<>();
+        for (String member : state.members) {
+            int bar = member.indexOf('|');
+            members.add(Map.of("sourceId", member.substring(0, bar), "externalId", member.substring(bar + 1)));
+        }
         Map<String, Object> payload = LayerPayload.base(ID, LayerStatus.OK, 0.6, List.of());
         payload.put("checks", checks);
+        // The records whose observations matched a check, in the members[] shape 099's corroboration uses, so
+        // 109's CredibilityService can grade them 5 with its one membership query per response.
+        payload.put("members", members);
         ctx.emit(NormalizedRecord.builder(entity, KIND).observedAt(now).putAll(payload).build());
     }
 

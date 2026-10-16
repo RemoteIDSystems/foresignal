@@ -2,6 +2,8 @@ package ai.foresignal.security;
 
 import ai.foresignal.llm.LlmSettings;
 import ai.foresignal.net.OutboundUrlPolicy;
+import ai.foresignal.provenance.LicenceEgressGuard;
+import ai.foresignal.provenance.LicenceTerms;
 import ai.foresignal.security.visibility.PrivateFilter;
 import ai.foresignal.security.visibility.SourceVisibility;
 import ai.foresignal.security.visibility.Viewer;
@@ -47,9 +49,17 @@ import org.springframework.stereotype.Component;
  *       severity and a link unless the channel has {@code privatePayload: true}
  *       ({@link #allowsNotificationPayload}); Web Push, APNs and FCM payloads never carry it
  *       ({@link #allowsPushPayload}).
- *   <li><em>Later paths:</em> {@link #allows(EgressPath, String, Viewer)} for exports, sinks,
- *       federation, share links and feeds.
+ *   <li><em>Later paths (109):</em> {@link #decide(EgressPath, String, LicenceTerms, Map, EgressContext)} (and
+ *       its {@code allows} overloads) for exports, archive, sinks, federation, share links and feeds. A private
+ *       record is excluded on every one of them except {@code ARCHIVE}, with two explicit, conditional
+ *       exceptions from later prompts: {@code EXPORT} for an admin with {@code includePrivate=true} (111) and the
+ *       sink paths with {@code includePrivate=true} on a local target (110). {@code FEED}, {@code SHARE},
+ *       {@code PUBLIC_SHARE} and {@code FEDERATION} never carry a private record.
  * </ul>
+ *
+ * <p><strong>License (prompt 109).</strong> The license table ({@link LicenceEgressGuard}, an internal delegate
+ * of this class) is applied on every path, {@code EXPORT} and {@code ARCHIVE} included, to the record's own
+ * terms when the caller resolved them, else to {@link #sourceTerms(String)}.
  *
  * <p><strong>{@code LOCAL_ONLY} sources (prompt 062, EGR-2).</strong> A descriptor with
  * {@code egress: LOCAL_ONLY} ({@code opensky-states}, whose terms forbid redistribution) is served to this
@@ -118,8 +128,8 @@ public class EgressPolicy {
      * The paths that take a record off this instance to another party (prompt 069): an MLAT position never
      * leaves on them, whatever the source's egress.
      */
-    static final Set<EgressPath> NON_LOCAL_PATHS =
-            java.util.EnumSet.of(EgressPath.SINK, EgressPath.FEDERATION, EgressPath.SHARE, EgressPath.FEED);
+    static final Set<EgressPath> NON_LOCAL_PATHS = java.util.EnumSet.of(EgressPath.SINK, EgressPath.SINK_PUSH,
+            EgressPath.FEDERATION, EgressPath.SHARE, EgressPath.PUBLIC_SHARE, EgressPath.FEED);
 
     private static final tools.jackson.databind.json.JsonMapper JSON =
             tools.jackson.databind.json.JsonMapper.builder().build();
@@ -189,11 +199,27 @@ public class EgressPolicy {
     // ------------------------------------------------------------------------- LOCAL_ONLY egress
 
     /**
-     * The later paths a {@code LOCAL_ONLY} source may still take (prompt 062): an export to this
-     * instance's own API client. Sinks, federation, share links and feeds (feed keys) re-serve data to
-     * another party and are refused. Off-box cold-archive exports are 111's to refuse when it builds them.
+     * The paths a {@code LOCAL_ONLY} source may take (prompts 062, 109): this instance's own serving surface
+     * (API reads, tiles, SSE, MCP, LLM context, notifications), an export to this instance's own API client and
+     * the operator-owned cold archive (111). Sinks, federation, share links and feeds (feed keys) re-serve data
+     * to another party and are refused; a LAN-serving sink is allowed only on a loopback or private bind
+     * ({@link EgressContext#localTarget()}), the 110 rule for {@code LOCAL_ONLY} records.
      */
-    static final Set<EgressPath> LOCAL_ONLY_PATHS = java.util.EnumSet.of(EgressPath.EXPORT);
+    static final Set<EgressPath> LOCAL_ONLY_PATHS = java.util.EnumSet.of(EgressPath.API_READ, EgressPath.TILE,
+            EgressPath.SSE, EgressPath.MCP, EgressPath.LLM_LOCAL, EgressPath.LLM_REMOTE, EgressPath.NOTIFICATION,
+            EgressPath.EXPORT, EgressPath.ARCHIVE);
+
+    /**
+     * The paths on which a viewer allowed to see private sources ({@link Viewer#canSeePrivate()}) receives a
+     * private record (prompt 109, task 4: "excluded on every path except {@code API_READ}/{@code TILE}/
+     * {@code SSE}/{@code MCP} for permitted tokens, and {@code ARCHIVE}").
+     */
+    static final Set<EgressPath> PRIVATE_VIEWER_PATHS =
+            java.util.EnumSet.of(EgressPath.API_READ, EgressPath.TILE, EgressPath.SSE, EgressPath.MCP);
+
+    /** The sink paths (110), where a private record needs {@code includePrivate} and a local target. */
+    static final Set<EgressPath> SINK_PATHS =
+            java.util.EnumSet.of(EgressPath.SINK, EgressPath.SINK_SERVE_LAN, EgressPath.SINK_PUSH);
 
     /**
      * True when {@code sourceId}'s descriptor declares {@code egress: LOCAL_ONLY} (prompt 062, EGR-2): its
@@ -245,10 +271,7 @@ public class EgressPolicy {
      * @param payload the record's payload, or null when unknown (then only the source rules apply)
      */
     public boolean allows(EgressPath path, String sourceId, Map<String, Object> payload, Viewer viewer) {
-        if (!allows(path, sourceId, viewer)) {
-            return false;
-        }
-        return !(NON_LOCAL_PATHS.contains(path) && isMlat(payload));
+        return decide(path, sourceId, null, payload, EgressContext.of(viewer)).allowed();
     }
 
     /**
@@ -257,15 +280,22 @@ public class EgressPolicy {
      * cannot be read is refused on a non-local path when its source declares {@code posSource} (fail closed).
      */
     public boolean allows(RecordRow row, EgressPath path) {
+        return decide(row, path, null, EgressContext.NONE).allowed();
+    }
+
+    /**
+     * {@link #decide(EgressPath, String, LicenceTerms, Map, EgressContext)} for a stored row: the row's payload
+     * JSON is read for {@code posSource}; a row whose payload cannot be read is treated as MLAT when its source
+     * declares {@code posSource} (fail closed).
+     *
+     * @param recordTerms the row's resolved license ({@code LicenceResolver}), or null for the source's terms
+     */
+    public Decision decide(RecordRow row, EgressPath path, LicenceTerms recordTerms, EgressContext context) {
         Objects.requireNonNull(row, "row");
-        if (!allows(path, row.sourceId(), null)) {
-            return false;
-        }
-        if (!NON_LOCAL_PATHS.contains(path)) {
-            return true;
-        }
         Boolean mlat = mlatOf(row, true);
-        return mlat == null ? !reportsPosSource(row.sourceId()) : !mlat;
+        boolean treatAsMlat = mlat == null ? reportsPosSource(row.sourceId()) : mlat;
+        Map<String, Object> payload = treatAsMlat ? Map.of(POS_SOURCE, MLAT) : null;
+        return decide(path, row.sourceId(), recordTerms, payload, context);
     }
 
     /** True when {@code payload} says its position is MLAT. */
@@ -350,66 +380,221 @@ public class EgressPolicy {
     /**
      * {@link #allows(EgressPath, String, Viewer)} for a path with no viewer, such as a sink or a federated
      * peer (prompt 062): a {@code LOCAL_ONLY} source never leaves on a re-serving path, and a private
-     * source never leaves without a viewer allowed to see it.
+     * source never leaves (there is no viewer allowed to see it and no sink opt-in).
      */
     public boolean allows(String sourceId, EgressPath path) {
         return allows(path, sourceId, null);
     }
 
     /**
-     * The later-path hook (prompt 039, §2): may a record of {@code sourceId} leave on {@code path} for
-     * {@code viewer}? A {@code LOCAL_ONLY} source (062) leaves only on {@link #LOCAL_ONLY_PATHS}. Otherwise a
-     * source that is not private always may (109 adds the licence rules here). A
-     * private source may leave on {@code EXPORT}, {@code SHARE}, {@code FEED} and {@code SINK} only for a
-     * viewer that can see private sources, and never on {@code FEDERATION} (a peer instance is a remote
-     * party). An unregistered source never leaves (fail closed).
+     * The source-level hook: may a record of {@code sourceId} leave on {@code path} for {@code viewer}, with no
+     * per-record facts and no path options ({@link EgressContext#of(Viewer)})? See
+     * {@link #decide(EgressPath, String, LicenceTerms, Map, EgressContext)} for the rules. A re-serving path that
+     * has the record must call a record-level overload instead, so the MLAT rule applies.
      */
     public boolean allows(EgressPath path, String sourceId, Viewer viewer) {
-        Objects.requireNonNull(path, "path");
-        if (sourceId == null || !registry.contains(sourceId)) {
-            return false;
-        }
-        if (isLocalOnly(sourceId) && !LOCAL_ONLY_PATHS.contains(path)) {
-            return false;
-        }
-        boolean privateOk;
-        if (!isPrivate(sourceId)) {
-            privateOk = true;
-        } else if (path == EgressPath.FEDERATION) {
-            privateOk = false;
-        } else {
-            privateOk = viewer != null && viewer.canSeePrivate() && visible(sourceId, viewer);
-        }
-        return privateOk && licenceAllows(path, sourceId);
+        return decide(path, sourceId, null, null, EgressContext.of(viewer)).allowed();
     }
 
     /**
-     * The licence rule (prompt 109): a re-serving path is refused when the source's structured licence
-     * terms forbid it ({@link LicenceEgressGuard}). The guard is resolved lazily so the constructor
-     * stays usable in tests.
+     * The per-call facts the egress decision needs beyond the record (prompts 109, 110, 111).
+     *
+     * @param viewer who receives the record, or null for a path with no viewer (a sink, a peer)
+     * @param includePrivate the caller opted private sources in: a sink's {@code filter.includePrivate} (110) or
+     *     an export's {@code includePrivate} (111)
+     * @param localTarget true when the destination stays on this operator's network: a SERVE sink bound to
+     *     loopback or a private address, or a PUSH target that resolves to a private address (110)
+     * @param personalUse the operator exports for personal use (111): {@code LOCAL_ONLY} and {@code FORBIDDEN}
+     *     licenses may then leave on {@code EXPORT}
      */
-    private boolean licenceAllows(EgressPath path, String sourceId) {
-        if (licenceGuard == null || licenceCatalog == null || !LICENCE_GUARDED.contains(path)) {
-            return true;
+    public record EgressContext(Viewer viewer, boolean includePrivate, boolean localTarget, boolean personalUse) {
+
+        /** No viewer, no opt-ins. */
+        public static final EgressContext NONE = new EgressContext(null, false, false, false);
+
+        /** A viewer with no opt-ins (the source-level and read paths). */
+        public static EgressContext of(Viewer viewer) {
+            return new EgressContext(viewer, false, false, false);
         }
-        SourceDescriptor descriptor = registry.descriptor(sourceId);
-        return licenceGuard.allows(path, licenceCatalog.forDescriptor(descriptor));
+
+        /**
+         * A sink's context (110).
+         *
+         * @param includePrivate the sink filter's {@code includePrivate}
+         * @param localTarget the sink binds loopback/private, or its PUSH target resolves private
+         */
+        public static EgressContext sink(boolean includePrivate, boolean localTarget) {
+            return new EgressContext(null, includePrivate, localTarget, false);
+        }
+
+        /**
+         * An export's context (111).
+         *
+         * @param viewer the principal that requested the export
+         * @param includePrivate the export spec's {@code includePrivate}
+         * @param personalUse the export spec's {@code personalUse}
+         */
+        public static EgressContext export(Viewer viewer, boolean includePrivate, boolean personalUse) {
+            return new EgressContext(viewer, includePrivate, false, personalUse);
+        }
     }
 
-    /** The re-serving paths the licence guard governs (prompt 109). */
-    private static final Set<EgressPath> LICENCE_GUARDED = java.util.EnumSet.of(EgressPath.SINK,
-            EgressPath.SINK_SERVE_LAN, EgressPath.SINK_PUSH, EgressPath.PUBLIC_SHARE, EgressPath.FEDERATION,
-            EgressPath.SHARE, EgressPath.FEED);
+    /**
+     * The outcome of {@link #decide(EgressPath, String, LicenceTerms, Map, EgressContext)}.
+     *
+     * @param allowed true when the record may leave
+     * @param reason why it may not ({@link #REASON_UNREGISTERED}, {@link #REASON_PRIVATE},
+     *     {@link #REASON_LOCAL_ONLY}, {@link #REASON_MLAT}, {@link #REASON_LICENCE_FORBIDDEN},
+     *     {@link #REASON_LICENCE_LOCAL_ONLY}), null when allowed
+     * @param terms the license terms the decision used (after the MLAT downgrade); null when the decision was
+     *     made before the license step or the license components are not wired
+     */
+    public record Decision(boolean allowed, String reason, LicenceTerms terms) {
 
-    private ai.foresignal.provenance.LicenceEgressGuard licenceGuard;
-    private ai.foresignal.provenance.LicenceCatalog licenceCatalog;
+        static Decision deny(String reason, LicenceTerms terms) {
+            return new Decision(false, reason, terms);
+        }
+    }
 
-    /** Wires the licence guard and catalogue (prompt 109); resolved lazily. */
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    public void setLicenceGuard(ai.foresignal.provenance.LicenceEgressGuard licenceGuard,
-            ai.foresignal.provenance.LicenceCatalog licenceCatalog) {
+    /** The source is not registered (fail closed). */
+    public static final String REASON_UNREGISTERED = "unregistered";
+
+    /** The source is private and the path or caller may not carry private records. */
+    public static final String REASON_PRIVATE = "private";
+
+    /** The source's effective descriptor egress is {@code LOCAL_ONLY} (062, EGR-2). */
+    public static final String REASON_LOCAL_ONLY = "local-only";
+
+    /** The record's position is MLAT (069) and the path re-serves it. */
+    public static final String REASON_MLAT = "mlat";
+
+    /** The record's license forbids redistribution on this path (109). */
+    public static final String REASON_LICENCE_FORBIDDEN = "licence-forbidden";
+
+    /** The record's license is {@code LOCAL_ONLY} (or {@code UNKNOWN}) and the path leaves the instance (109). */
+    public static final String REASON_LICENCE_LOCAL_ONLY = "licence-local-only";
+
+    /**
+     * The single egress decision (prompts 039, 062, 069, 109, 110, 111): may a record of {@code sourceId} leave
+     * on {@code path}? Every path that takes records off the instance goes through here, directly or through an
+     * {@code allows} overload; {@link LicenceEgressGuard} is this method's internal license table and is not an
+     * entry point of its own ({@code docs/Conventions.md}: one {@code EgressPolicy}). In order:
+     *
+     * <ol>
+     *   <li><em>Registration:</em> an unregistered source never leaves (fail closed).
+     *   <li><em>Private sources (039, 109):</em> a private record is excluded on every path except
+     *       {@code API_READ}, {@code TILE}, {@code SSE} and {@code MCP} for a viewer that may see it, and
+     *       {@code ARCHIVE} (operator-owned storage), regardless of license. Two later prompts make explicit,
+     *       conditional exceptions, implemented here and nowhere else:
+     *       <ul>
+     *         <li>{@code EXPORT} (111: "Private sources need admin plus {@code includePrivate=true}"): an admin
+     *             viewer with {@link EgressContext#includePrivate()}.
+     *         <li>{@code SINK}, {@code SINK_SERVE_LAN}, {@code SINK_PUSH} (110: "excluded unless
+     *             {@code filter.includePrivate=true} and the sink is SERVE on loopback or a PUSH target that
+     *             resolves to a private address"): {@link EgressContext#includePrivate()} and
+     *             {@link EgressContext#localTarget()}.
+     *       </ul>
+     *       {@code FEED}, {@code SHARE}, {@code PUBLIC_SHARE}, {@code FEDERATION}, {@code NOTIFICATION} and the
+     *       LLM paths never carry a private record through this method; LLM context and notification payloads
+     *       keep their dedicated 026/039 methods ({@link #filter(Collection, LlmDestination)},
+     *       {@link #allowsNotificationPayload}).
+     *   <li><em>Descriptor egress (062, 069):</em> a source whose effective egress is {@code LOCAL_ONLY} leaves only
+     *       on {@link #LOCAL_ONLY_PATHS}, or on {@code SINK_SERVE_LAN} to a local target.
+     *   <li><em>MLAT (069, 109):</em> a record whose {@code posSource} is {@code mlat} never leaves on
+     *       {@link #NON_LOCAL_PATHS} nor on a non-local {@code SINK_SERVE_LAN}, and its license is downgraded to
+     *       {@code LOCAL_ONLY} with its attribution kept ({@link LicenceTerms#downgradedToLocalOnly()}).
+     *   <li><em>License (109):</em> the record's terms ({@code recordTerms}, else {@link #sourceTerms(String)},
+     *       which follows {@code derivedFrom}) go through the license table with
+     *       {@link EgressContext#personalUse()} and {@link EgressContext#localTarget()}, on every path including
+     *       {@code EXPORT} and {@code ARCHIVE} (the table allows {@code ARCHIVE} for every license, 111).
+     * </ol>
+     *
+     * @param recordTerms the record's resolved license ({@code LicenceResolver}: batch license or peer origin),
+     *     or null to use the source's terms
+     * @param payload the record's payload, or null when unknown (then only the source rules apply)
+     * @param context the viewer and path options; null means {@link EgressContext#NONE}
+     */
+    public Decision decide(EgressPath path, String sourceId, LicenceTerms recordTerms, Map<String, ?> payload,
+            EgressContext context) {
+        Objects.requireNonNull(path, "path");
+        EgressContext ctx = context == null ? EgressContext.NONE : context;
+        if (sourceId == null || !registry.contains(sourceId)) {
+            return Decision.deny(REASON_UNREGISTERED, null);
+        }
+        if (isPrivate(sourceId) && !privateAllowed(path, sourceId, ctx)) {
+            return Decision.deny(REASON_PRIVATE, null);
+        }
+        if (isLocalOnly(sourceId) && !LOCAL_ONLY_PATHS.contains(path)
+                && !(path == EgressPath.SINK_SERVE_LAN && ctx.localTarget())) {
+            return Decision.deny(REASON_LOCAL_ONLY, null);
+        }
+        boolean mlat = isMlat(payload);
+        if (mlat && (NON_LOCAL_PATHS.contains(path) || (path == EgressPath.SINK_SERVE_LAN && !ctx.localTarget()))) {
+            return Decision.deny(REASON_MLAT, null);
+        }
+        if (licenceGuard == null || sourceLicences == null) {
+            return new Decision(true, null, null);
+        }
+        LicenceTerms terms = recordTerms != null ? recordTerms : sourceTerms(sourceId);
+        if (mlat) {
+            terms = terms.downgradedToLocalOnly();
+        }
+        if (licenceGuard.allows(path, terms, ctx.personalUse(), ctx.localTarget())) {
+            return new Decision(true, null, terms);
+        }
+        return Decision.deny(terms.forbidsRedistribution() ? REASON_LICENCE_FORBIDDEN : REASON_LICENCE_LOCAL_ONLY,
+                terms);
+    }
+
+    /**
+     * The license terms a record of {@code sourceId} carries when nothing per record says otherwise
+     * ({@code SourceLicences}, which follows {@code derivedFrom}). The operator's {@code OPEN} override of an
+     * {@code egressOverridable} source (069) lifts a {@code LOCAL_ONLY} license default
+     * ({@link LicenceTerms#openedByOperator()}; {@code docs/Conventions.md} "Operator choice": license egress
+     * flags are defaults the operator can override per source); {@code FORBIDDEN} terms are never lifted. The
+     * restrictive {@code unknown} terms when the license components are not wired.
+     */
+    public LicenceTerms sourceTerms(String sourceId) {
+        if (sourceLicences == null) {
+            return LicenceTerms.unknown();
+        }
+        LicenceTerms terms = sourceLicences.termsOf(sourceId);
+        SourceDescriptor descriptor = sourceId == null || !registry.contains(sourceId) ? null
+                : registry.descriptor(sourceId);
+        if (descriptor != null && descriptor.egressOverridable() && egressOf(descriptor) == Egress.OPEN) {
+            terms = terms.openedByOperator();
+        }
+        return terms;
+    }
+
+    private boolean privateAllowed(EgressPath path, String sourceId, EgressContext ctx) {
+        if (path == EgressPath.ARCHIVE) {
+            return true;
+        }
+        if (PRIVATE_VIEWER_PATHS.contains(path)) {
+            return ctx.viewer() != null && ctx.viewer().canSeePrivate() && visible(sourceId, ctx.viewer());
+        }
+        if (path == EgressPath.EXPORT) {
+            return ctx.includePrivate() && ctx.viewer() != null && ctx.viewer().isAdmin();
+        }
+        if (SINK_PATHS.contains(path)) {
+            return ctx.includePrivate() && ctx.localTarget();
+        }
+        return false;
+    }
+
+    private LicenceEgressGuard licenceGuard;
+    private ai.foresignal.provenance.SourceLicences sourceLicences;
+
+    /**
+     * Wires the license table and the source-terms resolver (prompt 109). Required in the application context;
+     * the four- and five-argument constructors leave them unset so unit tests of the private and
+     * {@code LOCAL_ONLY} rules need no catalogue (the license step is then skipped).
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setLicenceGuard(LicenceEgressGuard licenceGuard, ai.foresignal.provenance.SourceLicences sourceLicences) {
         this.licenceGuard = licenceGuard;
-        this.licenceCatalog = licenceCatalog;
+        this.sourceLicences = sourceLicences;
     }
 
     /**

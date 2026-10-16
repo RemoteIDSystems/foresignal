@@ -35,4 +35,14 @@ class SbsEncoderTest {
         assertThat(line).contains(",480,90,");
         assertThat(line).contains(",-2048,");
     }
+
+    @Test
+    @DisplayName("free-text fields are CSV-safe: commas and line breaks cannot add columns or messages")
+    void fieldEscaping() {
+        assertThat(SbsEncoder.field("AB,C\r\nMSG,3")).isEqualTo("AB C  MSG 3");
+        assertThat(SbsEncoder.field(null)).isEmpty();
+        String line = SbsEncoder.callsign("ABC123", "EVIL,1,2\r\nMSG", Instant.parse("2026-10-16T12:00:00Z"));
+        assertThat(line.split(",", -1)).hasSize(22);
+        assertThat(line).doesNotContain("\r", "\n");
+    }
 }

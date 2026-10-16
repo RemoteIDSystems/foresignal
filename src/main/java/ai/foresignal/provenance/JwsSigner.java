@@ -42,8 +42,10 @@ public class JwsSigner {
      * @return {@code BASE64URL(header)..BASE64URL(signature)}
      */
     public String signDetached(byte[] payload, String typ) {
-        SigningKeyService.Key key = signing.active();
-        PrivateKey privateKey = signing.activePrivate();
+        // kid and private key come from one row in one read, so a rotation cannot pair one key's kid with
+        // another key's signature.
+        SigningKeyService.Material key = signing.activeMaterial();
+        PrivateKey privateKey = key.privateKey();
         Map<String, Object> header = new LinkedHashMap<>();
         header.put("alg", legacyAlg ? "EdDSA" : SigningKeyService.ALG);
         header.put("kid", key.kid());

@@ -16,6 +16,9 @@ import ai.foresignal.raster.render.RasterCachePolicy;
 import ai.foresignal.raster.render.RasterRenderService;
 import ai.foresignal.raster.render.TileMatrixSet;
 import ai.foresignal.raster.render.TileMatrixSets;
+import ai.foresignal.raster.sample.EdrArea;
+import ai.foresignal.raster.sample.FrameChoice;
+import ai.foresignal.raster.sample.FrameView;
 import ai.foresignal.raster.sample.SampleService;
 import ai.foresignal.raster.sample.SampleValue;
 import ai.foresignal.raster.sample.TimeSpec;
@@ -297,31 +300,19 @@ public class OgcController {
         ReadCaller caller = callers.resolve(request);
         ProductRegistry.Registered product = samples.visible(collectionId, callers.excludedSources(caller));
         TimeSpec time = TimeSpec.parse("datetime", datetime);
-        double step = Math.max((bbox[2] - bbox[0]) / 512.0, (bbox[3] - bbox[1]) / 512.0);
-        if (step <= 0) {
-            step = 1.0;
+        FrameChoice choice = samples.choose(product, time, null, clock.instant());
+        if (!choice.hasFrame()) {
+            throw new ForesignalException(HttpStatus.NOT_FOUND, ErrorCodes.UNKNOWN_FRAME, choice.text());
         }
-        long cols = (long) Math.floor((bbox[2] - bbox[0]) / step) + 1;
-        long rows = (long) Math.floor((bbox[3] - bbox[1]) / step) + 1;
-        long cells = Math.max(1, cols) * Math.max(1, rows);
-        if (cells > MAX_AREA_CELLS) {
+        FrameView view = samples.view(choice.frame()).orElseThrow(() -> new ForesignalException(HttpStatus.NOT_FOUND,
+                ErrorCodes.UNKNOWN_FRAME, "Frame " + choice.frame().frameKey() + " could not be read."));
+        EdrArea.Subset subset = EdrArea.of(view, bbox, MAX_AREA_CELLS);
+        if (subset.tooLarge()) {
             throw new ForesignalException(HttpStatus.PAYLOAD_TOO_LARGE, ErrorCodes.EDR_TOO_LARGE,
-                    "The area covers " + cells + " cells; at most " + MAX_AREA_CELLS + ".");
-        }
-        int ncols = (int) Math.max(1, cols);
-        int nrows = (int) Math.max(1, rows);
-        List<List<Double>> values = new ArrayList<>(ncols * nrows);
-        for (int r = 0; r < nrows; r++) {
-            double lat = bbox[1] + r * step;
-            for (int c = 0; c < ncols; c++) {
-                double lon = bbox[0] + c * step;
-                SampleValue v = samples.value(product, new SampleService.Point(lon, lat, null, ZoneOffset.UTC), time,
-                        null, false, clock.instant());
-                values.add(v.value() == null ? null : List.of(v.value()));
-            }
+                    "The area covers " + subset.cells() + " native cells; at most " + MAX_AREA_CELLS + ".");
         }
         return ResponseEntity.ok().contentType(COVERAGE_JSON)
-                .body(coverageArea(product.spec(), bbox, step, ncols, nrows, values));
+                .body(coverageArea(product.spec(), choice.frame(), subset));
     }
 
     /** {@code edrInstances}: the forecast runs of a product. */
@@ -383,7 +374,8 @@ public class OgcController {
         return out;
     }
 
-    private static Map<String, Object> coveragePoint(ProductSpec spec, double[] point, SampleValue value) {
+    /** The CoverageJSON of one point value (one {@code t,y,x} cell; {@code null} when there is no value). */
+    static Map<String, Object> coveragePoint(ProductSpec spec, double[] point, SampleValue value) {
         Map<String, Object> t = Map.of("values", List.of(value.validTime() == null ? null
                 : value.validTime().toString()));
         Map<String, Object> domain = new LinkedHashMap<>();
@@ -400,8 +392,8 @@ public class OgcController {
         range.put("dataType", "float");
         range.put("axisNames", List.of("t", "y", "x"));
         range.put("shape", List.of(1, 1, 1));
-        range.put("values", value.value() == null ? List.of()
-                : List.of(value.value()));
+        // shape [1,1,1] always holds one value: null is the CoverageJSON no-data marker
+        range.put("values", java.util.Collections.singletonList(value.value()));
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("type", "Coverage");
         out.put("domain", domain);
@@ -410,28 +402,31 @@ public class OgcController {
         return out;
     }
 
-    private static Map<String, Object> coverageArea(ProductSpec spec, double[] bbox, double step, int cols, int rows,
-            List<List<Double>> values) {
-        Map<String, Object> domain = new LinkedHashMap<>();
-        domain.put("type", "Domain");
-        domain.put("domainType", "Grid");
-        domain.put("axes", Map.of(
-                "x", Map.of("start", bbox[0], "stop", bbox[0] + (cols - 1) * step, "num", cols),
-                "y", Map.of("start", bbox[1], "stop", bbox[1] + (rows - 1) * step, "num", rows)));
-        domain.put("referencing", List.of(Map.of("coordinates", List.of("x", "y"),
-                "system", Map.of("type", "GeographicCRS", "id", "http://www.opengis.net/def/crs/OGC/1.3/CRS84"))));
+    /** The CoverageJSON of a native-grid subset: flat values, the subset's domain and the frame's time. */
+    static Map<String, Object> coverageArea(ProductSpec spec, RasterFrameRow frame, EdrArea.Subset subset) {
+        Map<String, Object> domain = new LinkedHashMap<>(subset.domain());
+        if (frame != null && frame.validTime() != null) {
+            Map<String, Object> axes = new LinkedHashMap<>(castMap(domain.get("axes")));
+            axes.put("t", Map.of("values", List.of(frame.validTime().toString())));
+            domain.put("axes", axes);
+        }
         Map<String, Object> range = new LinkedHashMap<>();
         range.put("type", "NdArray");
         range.put("dataType", "float");
-        range.put("axisNames", List.of("y", "x"));
-        range.put("shape", List.of(rows, cols));
-        range.put("values", values);
+        range.put("axisNames", subset.axisNames());
+        range.put("shape", subset.shape());
+        range.put("values", subset.values());
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("type", "Coverage");
         out.put("domain", domain);
         out.put("parameters", Map.of("value", parameter(spec, null)));
         out.put("ranges", Map.of("value", range));
         return out;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> castMap(Object value) {
+        return (Map<String, Object>) value;
     }
 
     private static Map<String, Object> parameter(ProductSpec spec, SampleValue value) {

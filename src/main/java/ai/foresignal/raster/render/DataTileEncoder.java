@@ -87,10 +87,7 @@ public final class DataTileEncoder {
                 if (v < 0 || v > 65535.996) {
                     continue;
                 }
-                int r = (int) (v / 256.0);
-                int g = (int) (v - r * 256.0);
-                int b = (int) Math.round((v - Math.floor(v)) * 256.0) & 0xFF;
-                argb[p] = 0xFF000000 | (r << 16) | (g << 8) | b;
+                argb[p] = 0xFF000000 | terrarium(v);
                 continue;
             }
             int code16 = (signed ? code + 32768 : code) & 0xFFFF;
@@ -107,6 +104,20 @@ public final class DataTileEncoder {
             meta.put("baseShift", signed ? offset - 32768.0 * scale : offset);
         }
         return new Result(ImageEncoding.argbPng(width, height, argb), meta);
+    }
+
+    /**
+     * The Terrarium RGB of {@code v} = physical + 32768: the value in 1/256 steps as one 24-bit integer,
+     * so a fraction that rounds up to a whole step carries into green (and green into red) instead of
+     * wrapping blue to 0.
+     *
+     * @param v the shifted value, 0 to 65535.996
+     * @return {@code 0xRRGGBB}
+     */
+    static int terrarium(double v) {
+        long steps = Math.round(v * 256.0);
+        steps = Math.max(0, Math.min(0xFFFFFFL, steps));
+        return (int) steps;
     }
 
     /** The no-data code in the input array. */

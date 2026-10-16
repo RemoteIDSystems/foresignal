@@ -158,6 +158,19 @@ EXTRA_HEADERS = {
 }
 
 BODIES = {
+  # 108: raster exports (MBTiles/PMTiles take WebMercatorQuad only; a COG in WebMercatorQuad is EPSG:3857) and the place pack
+  "createProductExport": {"format": "pmtiles", "frameKey": "latest", "bbox": [-98.6, 29.6, -96.9, 31.0], "minZoom": 4, "maxZoom": 7,
+                          "tms": "WebMercatorQuad"},
+  "createPlacePack": {"products": [], "frames": 6, "radiusKm": 150, "maxZoom": 6},
+  # 110: outbound sinks. Created disabled; secrets are write-only (an update merges them: omitted fields keep their value, null removes one).
+  "createSink": {"id": "home-mqtt", "type": "mqtt-state", "name": "Home Assistant MQTT", "enabled": False,
+                 "config": {"brokerUrl": "mqtt://192.168.1.10:1883", "prefix": "foresignal", "changesTopic": False},
+                 "secrets": {"username": "foresignal", "password": "REPLACE_ME"},
+                 "filter": {"sources": ["usgs-earthquakes"], "kinds": ["earthquake"], "includePrivate": False}},
+  "updateSink": {"name": "Home Assistant MQTT", "enabled": False,
+                 "config": {"brokerUrl": "mqtt://192.168.1.10:1883", "prefix": "foresignal", "changesTopic": True},
+                 "secrets": {"password": "REPLACE_ME"}},
+  "testSink": {"kind": "earthquake"},
   # downsampleInterval: TRACK sources only (STANDARD -> 400); null clears the override and is accepted for any source.
   "updateSource": {"enabled": True, "interval": "60s", "params": {"feed": "all_day"}, "budget": {"perMinute": 4, "perDay": 2000}, "retention": "365d",
                    "ingestPolicy": {"mode": "SAMPLED", "minInterval": "60s", "keyframe": "240s", "minDeviationMeters": 1000, "thresholds": True, "edgeMinInterval": "30s"},
@@ -186,6 +199,8 @@ BODIES = {
                     "secrets": {"webhookUrl": "https://hooks.slack.com/services/REPLACE"}, "events": ["alert", "briefing"], "ruleIds": None,
                     "minSeverity": "info", "waitForEnrichmentSeconds": 20, "enabled": True},
   "createToken": {"name": "openclaw-agent", "scope": "agent", "expiresAt": None},
+  # 109: replace a token's licence-policy floor (null or [] clears it)
+  "updateToken": {"licencePolicy": ["no-nc"]},
   "createCustomSource": {"id": "custom-home-sensors", "name": "Home sensors", "kinds": ["sensor-reading"], "attribution": "My bench",
                          "recordTtl": "1h", "tileProperties": ["value", "unit"], "searchFields": ["name"], "embedFields": [], "rateLimitPerMinute": 60,
                          "observedAtMode": "UPSTREAM", "ttlAnchor": "RECEIVED", "volatileFields": ["rssi"], "significantFields": [],

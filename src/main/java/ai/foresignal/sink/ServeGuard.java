@@ -48,6 +48,24 @@ public class ServeGuard {
         return allowTailnet && LocalAddresses.isCarrierGradeNat(address);
     }
 
+    /**
+     * True for a multicast group that stays on the LAN (prompt 110, CoT SA "LAN only, TTL 1"): IPv4
+     * administratively scoped {@code 239.0.0.0/8} or local network control {@code 224.0.0.0/24}; IPv6 link-,
+     * site- or organization-local scope ({@code ff02::/16}, {@code ff05::/16}, {@code ff08::/16}). Global-scope
+     * groups ({@code 224.0.1.0}–{@code 238.255.255.255}, {@code ff0e::/16}) are refused.
+     */
+    public static boolean lanMulticast(InetAddress address) {
+        if (address == null || !address.isMulticastAddress()) {
+            return false;
+        }
+        byte[] raw = address.getAddress();
+        if (raw.length == 4) {
+            int first = raw[0] & 0xFF;
+            return first == 239 || (first == 224 && raw[1] == 0 && raw[2] == 0);
+        }
+        return address.isMCLinkLocal() || address.isMCSiteLocal() || address.isMCOrgLocal();
+    }
+
     /** Resolves and validates a bind host, throwing {@code 400 VALIDATION_FAILED}. */
     public InetAddress resolveBind(String host, boolean allowAllInterfaces, boolean allowTailnet) {
         if (host == null || host.isBlank()) {

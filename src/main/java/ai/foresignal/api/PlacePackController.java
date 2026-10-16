@@ -25,7 +25,9 @@ import tools.jackson.databind.JsonNode;
 /**
  * The place offline pack (OpenAPI tag {@code Places}, prompt 108; Weather-Imagery-Design §11):
  * {@code createPlacePack} submits an async ZIP of place weather, forecast series, alerts, legends, a
- * loop GIF and one PMTiles per product. Capped at 50 MB (413 {@code PACK_TOO_LARGE}).
+ * loop GIF and one PMTiles per product. Capped at 50 MB (413 {@code PACK_TOO_LARGE}). An empty or
+ * absent {@code products} list means the default set; the same input from the same token within 10
+ * minutes answers the pack already built.
  */
 @RestController
 @Tag(name = "Places")
@@ -84,7 +86,10 @@ public class PlacePackController {
                 maxZoom = z;
             }
         }
-        PlacePackService.Request pack = new PlacePackService.Request(placeId, products, frames, radiusKm, maxZoom);
+        // the build runs later on a worker: carry the caller's visibility (private and restricted sources)
+        List<String> excluded = new ArrayList<>(callers.excludedSources(request));
+        PlacePackService.Request pack = new PlacePackService.Request(placeId, products, frames, radiusKm, maxZoom,
+                excluded);
         ExportJobEntity job = jobs.submitPlacePack(placeId, pack, tokenId(request));
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(jobs.view(job, urls.base(request)));
     }
