@@ -4826,8 +4826,8 @@ docker compose exec -T db dropdb -U foresignal restore_drill
 - **The privacy choices are deliberate.** No contributor usernames, descriptions or comments are ever stored.
   Obscured observations keep their randomised upstream coordinates with the upstream's own positional accuracy;
   `private` observations and observations without coordinates are skipped. iNaturalist photo links are kept only
-  when the photo's licence is open and its host is exactly the open-data bucket
-  (`inaturalist-open-data.s3.amazonaws.com`); licences are per record (see `licenseCode`).
+  when the photo's license is open and its host is exactly the open-data bucket
+  (`inaturalist-open-data.s3.amazonaws.com`); licenses are per record (see `licenseCode`).
 - **`ebird-notable` is off by default and non-commercial.** It needs your own eBird key (`apiKey`, one per eBird
   account). Private locations are rounded to 0.05 degrees with a 5000 m accuracy, and neither their place name
   nor their eBird location id is stored. eBird's terms are non-commercial with attribution and the source is
