@@ -9,6 +9,7 @@ import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.api.support.QueryParams;
 import ai.foresignal.api.support.ReadCaller;
 import ai.foresignal.api.support.ReadCallerResolver;
+import ai.foresignal.security.EgressPath;
 import ai.foresignal.security.restrict.RestrictedRead;
 import ai.foresignal.source.SourceRegistry;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,7 +36,9 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>Both apply the caller's visibility like the record reads (prompt 035): a private source the caller may not
  * see is answered {@code 404} when named and is absent from the catalog, and the caller's restriction is applied
- * through {@link SeriesQueryService.Visibility}.
+ * through {@link SeriesQueryService.Visibility}. A source {@code EgressPolicy} refuses to send the caller on
+ * {@code API_READ} (a {@code LOCAL_ONLY} source for a caller not allowed local egress, EGR-2) is excluded too
+ * ({@link SeriesEgress}).
  */
 @RestController
 @Tag(name = "Series")
@@ -59,12 +62,15 @@ public class SeriesController {
     private final SeriesQueryService series;
     private final SourceRegistry registry;
     private final ReadCallerResolver callers;
+    private final SeriesEgress egress;
 
     /** Creates the controller. */
-    public SeriesController(SeriesQueryService series, SourceRegistry registry, ReadCallerResolver callers) {
+    public SeriesController(SeriesQueryService series, SourceRegistry registry, ReadCallerResolver callers,
+            SeriesEgress egress) {
         this.series = series;
         this.registry = registry;
         this.callers = callers;
+        this.egress = egress;
     }
 
     /**
@@ -80,7 +86,7 @@ public class SeriesController {
                 throw NotFoundException.of("Source", id);
             }
         }
-        return new SeriesQueryService.Visibility(callers.excludedSources(caller), caller.restriction());
+        return egress.visibility(caller, callers.excludedSources(caller), caller.restriction(), EgressPath.API_READ);
     }
 
     /** {@code listSeries}: the series catalogue from {@code series-latest} records. */

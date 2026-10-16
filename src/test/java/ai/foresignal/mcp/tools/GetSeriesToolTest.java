@@ -4,18 +4,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ai.foresignal.api.SeriesEgress;
 import ai.foresignal.api.SeriesQueryService;
 import ai.foresignal.api.support.ReadCaller;
 import ai.foresignal.mcp.McpCaller;
 import ai.foresignal.mcp.McpOutputShaper;
 import ai.foresignal.mcp.McpToolException;
 import ai.foresignal.mcp.ToolContext;
+import ai.foresignal.security.EgressPath;
+import ai.foresignal.security.EgressPolicy;
 import ai.foresignal.security.restrict.ReadRestriction;
 import ai.foresignal.source.SourceRegistry;
 import java.util.List;
@@ -35,7 +39,10 @@ class GetSeriesToolTest {
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private final SeriesQueryService series = mock(SeriesQueryService.class);
-    private final GetSeriesTool tool = new GetSeriesTool(series, new McpOutputShaper(JSON, mock(SourceRegistry.class)));
+    private final EgressPolicy policy = mock(EgressPolicy.class);
+    private final SourceRegistry registry = mock(SourceRegistry.class);
+    private final GetSeriesTool tool = new GetSeriesTool(series, new McpOutputShaper(JSON, mock(SourceRegistry.class)),
+            new SeriesEgress(policy, registry));
 
     private static ToolContext context(Set<String> excluded, ReadRestriction restriction) {
         return new ToolContext(new McpCaller(null, new ReadCaller(null, false, true, restriction), excluded,
@@ -68,6 +75,23 @@ class GetSeriesToolTest {
         ArgumentCaptor<SeriesQueryService.Visibility> captor = ArgumentCaptor.forClass(SeriesQueryService.Visibility.class);
         verify(series).info(eq("eia-petroleum"), eq("eia:RWTC"), captor.capture());
         assertThat(captor.getValue().allows("eia-petroleum")).isFalse();
+    }
+
+    @Test
+    @DisplayName("a source EgressPolicy refuses on MCP (LOCAL_ONLY, caller not allowed local egress) is excluded")
+    void localOnlyExcluded() {
+        when(registry.ids()).thenReturn(Set.of("fred", "eia-930"));
+        when(policy.decide(any(EgressPath.class), anyString(), isNull(), isNull(), any()))
+                .thenReturn(new EgressPolicy.Decision(true, null, null));
+        when(policy.decide(eq(EgressPath.MCP), eq("fred"), isNull(), isNull(), any()))
+                .thenReturn(new EgressPolicy.Decision(false, EgressPolicy.REASON_LOCAL_ONLY, null));
+        when(series.list(any(), any(), any(), anyInt(), any()))
+                .thenReturn(new SeriesQueryService.Catalogue(List.of(), null));
+        tool.call(context(Set.of(), ReadRestriction.NONE), JSON.readTree("{}"));
+        ArgumentCaptor<SeriesQueryService.Visibility> captor = ArgumentCaptor.forClass(SeriesQueryService.Visibility.class);
+        verify(series).list(eq(List.of()), isNull(), isNull(), eq(GetSeriesTool.DEFAULT_LIMIT), captor.capture());
+        assertThat(captor.getValue().allows("fred")).isFalse();
+        assertThat(captor.getValue().allows("eia-930")).isTrue();
     }
 
     @Test

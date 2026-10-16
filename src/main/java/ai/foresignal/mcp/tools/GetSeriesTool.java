@@ -7,6 +7,7 @@ import static ai.foresignal.mcp.JsonSchemas.object;
 import static ai.foresignal.mcp.JsonSchemas.props;
 import static ai.foresignal.mcp.JsonSchemas.string;
 
+import ai.foresignal.api.SeriesEgress;
 import ai.foresignal.api.SeriesQueryService;
 import ai.foresignal.api.dto.SeriesInfoDto;
 import ai.foresignal.api.dto.SeriesPointDto;
@@ -18,6 +19,7 @@ import ai.foresignal.mcp.McpOutputShaper.Detail;
 import ai.foresignal.mcp.McpToolException;
 import ai.foresignal.mcp.ToolContext;
 import ai.foresignal.mcp.ToolResult;
+import ai.foresignal.security.EgressPath;
 import ai.foresignal.security.Scope;
 import ai.foresignal.security.restrict.RestrictedRead;
 import java.time.Instant;
@@ -35,7 +37,9 @@ import tools.jackson.databind.node.ObjectNode;
  * <p>Reads are filtered by the caller's excluded sources and restriction (prompt 035), exactly as
  * {@code query_records}: on the Ask path the excluded sources include those the LLM destination may not receive
  * ({@code EgressPolicy.llmExcludedSources}, folded into the tool caller by {@code AskService}). A series of a source
- * the caller may not read is reported as missing.
+ * the caller may not read is reported as missing. A source {@code EgressPolicy} refuses to send the caller on
+ * {@code MCP} (a {@code LOCAL_ONLY} source for a caller not allowed local egress, EGR-2) is excluded too
+ * ({@link SeriesEgress}).
  */
 @RestrictedRead("visibility: excluded sources and RestrictionClamp")
 @Component
@@ -58,11 +62,13 @@ public class GetSeriesTool implements ForesignalMcpTool {
 
     private final SeriesQueryService series;
     private final McpOutputShaper shaper;
+    private final SeriesEgress egress;
 
     /** Creates the tool. */
-    public GetSeriesTool(SeriesQueryService series, McpOutputShaper shaper) {
+    public GetSeriesTool(SeriesQueryService series, McpOutputShaper shaper, SeriesEgress egress) {
         this.series = series;
         this.shaper = shaper;
+        this.egress = egress;
     }
 
     @Override
@@ -105,8 +111,8 @@ public class GetSeriesTool implements ForesignalMcpTool {
         String source = McpArgs.text(args, "source");
         String seriesId = McpArgs.text(args, "series");
         int limit = McpArgs.integer(args, "limit", DEFAULT_LIMIT);
-        SeriesQueryService.Visibility visibility =
-                new SeriesQueryService.Visibility(context.excludedSources(), context.restriction());
+        SeriesQueryService.Visibility visibility = egress.visibility(context.readCaller(), context.excludedSources(),
+                context.restriction(), EgressPath.MCP);
         if (source != null && seriesId != null) {
             return ToolResult.json(points(source, seriesId, args, limit, visibility));
         }
