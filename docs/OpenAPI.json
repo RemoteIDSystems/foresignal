@@ -432,6 +432,11 @@
         "version": "1.3.0",
         "date": "2026-10-15",
         "note": "107: SatDump extras. satdump-{station} gains filtered DCS (dcp-observation) and EMWIN products and warnings (emwin-product, emwin-warning) with the EMWIN warnings fallback; new glm-local-{station} source feeding the shared GLM ring with dedup; the CelesTrak per-group TLE alias /compat/celestrak/NORAD/elements/{group}.txt; the SatDump 2.0 foresignal-manifest.json reader and the MIT contrib/satdump hook."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-16",
+        "note": "101 (post-review): IntelEventMemberInput.signalFamily and weight are accepted but ignored; the server derives both from the recipe registry (invariant INT-3)."
       }
     ]
   },
@@ -119820,13 +119825,14 @@
           },
           "signalFamily": {
             "type": "string",
-            "description": "Signal family from the shared registry (`intel/signal-families.json`, 119), e.g. `ais-behaviour`, `nav-warning`, `internet-measurement`",
+            "description": "Ignored: the server derives a member's signal family from the recipe registry (invariant INT-3). Accepted for compatibility only.",
             "example": "ais-behaviour"
           },
           "weight": {
             "type": "number",
             "minimum": 0,
-            "maximum": 1
+            "maximum": 1,
+            "description": "Ignored: the server derives a member's weight from the recipe registry (invariant INT-3). Accepted for compatibility only."
           }
         },
         "required": [

@@ -3,6 +3,9 @@ package ai.foresignal.api;
 import ai.foresignal.intel.InvestigationItemEntity;
 import ai.foresignal.intel.InvestigationEntity;
 import ai.foresignal.intel.InvestigationService;
+import ai.foresignal.intel.IntelVisibility;
+import ai.foresignal.security.CurrentToken;
+import jakarta.servlet.http.HttpServletRequest;
 import ai.foresignal.security.restrict.RestrictedRead;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,17 +26,27 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 
-/** Investigations (prompt 101): case files, items with snapshots, and JSON/Markdown/GeoJSON export. */
+/**
+ * Investigations (prompt 101): case files, items with snapshots, and JSON/Markdown/GeoJSON export.
+ * Items built from private sources are added, listed, removed and exported only for callers with
+ * private access ({@link IntelVisibility}, EGR-1).
+ */
 @RestController
 @Tag(name = "Intelligence")
 @RequestMapping("/v1/investigations")
 public class InvestigationsController {
 
     private final InvestigationService investigations;
+    private final IntelVisibility visibility;
 
     /** Creates the controller. */
-    public InvestigationsController(InvestigationService investigations) {
+    public InvestigationsController(InvestigationService investigations, IntelVisibility visibility) {
         this.investigations = investigations;
+        this.visibility = visibility;
+    }
+
+    private static String actor(HttpServletRequest request) {
+        return CurrentToken.of(request).map(t -> "token:" + t.name()).orElse("operator");
     }
 
     /** {@code listInvestigations}. */
@@ -50,17 +63,19 @@ public class InvestigationsController {
     @GetMapping("/{id}")
     @RestrictedRead
     @Operation(operationId = "getInvestigation", tags = "Intelligence")
-    public Map<String, Object> getInvestigation(@PathVariable String id) {
+    public Map<String, Object> getInvestigation(@PathVariable String id, HttpServletRequest request) {
         Map<String, Object> out = new LinkedHashMap<>(view(investigations.get(id)));
-        out.put("items", investigations.items(id).stream().map(InvestigationsController::item).toList());
+        out.put("items", investigations.items(id, visibility.seesPrivate(request)).stream()
+                .map(InvestigationsController::item).toList());
         return out;
     }
 
     /** {@code createInvestigation}. */
     @PostMapping
     @Operation(operationId = "createInvestigation", tags = "Intelligence")
-    public ResponseEntity<Map<String, Object>> createInvestigation(@RequestBody JsonNode body) {
-        InvestigationEntity entity = investigations.create(body, null);
+    public ResponseEntity<Map<String, Object>> createInvestigation(@RequestBody JsonNode body,
+            HttpServletRequest request) {
+        InvestigationEntity entity = investigations.create(body, actor(request));
         return ResponseEntity.created(URI.create("/v1/investigations/" + entity.getId())).body(view(entity));
     }
 
@@ -82,15 +97,17 @@ public class InvestigationsController {
     /** {@code addInvestigationItem}. */
     @PostMapping("/{id}/items")
     @Operation(operationId = "addInvestigationItem", tags = "Intelligence")
-    public Map<String, Object> addInvestigationItem(@PathVariable String id, @RequestBody JsonNode body) {
-        return item(investigations.addItem(id, body, null));
+    public Map<String, Object> addInvestigationItem(@PathVariable String id, @RequestBody JsonNode body,
+            HttpServletRequest request) {
+        return item(investigations.addItem(id, body, actor(request), visibility.seesPrivate(request)));
     }
 
     /** {@code removeInvestigationItem}. */
     @DeleteMapping("/{id}/items/{itemId}")
     @Operation(operationId = "removeInvestigationItem", tags = "Intelligence")
-    public ResponseEntity<Void> removeInvestigationItem(@PathVariable String id, @PathVariable long itemId) {
-        investigations.removeItem(id, itemId);
+    public ResponseEntity<Void> removeInvestigationItem(@PathVariable String id, @PathVariable long itemId,
+            HttpServletRequest request) {
+        investigations.removeItem(id, itemId, visibility.seesPrivate(request));
         return ResponseEntity.noContent().build();
     }
 
@@ -99,8 +116,8 @@ public class InvestigationsController {
     @RestrictedRead
     @Operation(operationId = "exportInvestigation", tags = "Intelligence")
     public ResponseEntity<String> exportInvestigation(@PathVariable String id,
-            @RequestParam(required = false, defaultValue = "json") String format) {
-        String body = investigations.export(id, format);
+            @RequestParam(required = false, defaultValue = "json") String format, HttpServletRequest request) {
+        String body = investigations.export(id, format, visibility.seesPrivate(request));
         return ResponseEntity.ok().contentType(MediaType.parseMediaType(InvestigationService.contentType(format)))
                 .body(body);
     }

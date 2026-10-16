@@ -372,7 +372,7 @@ public class AnalystRunner {
 
     private AnalystChangeDetector.Packet detect(AnalystProfileEntity profile, AnalystCursor cursor) {
         List<AnalystChangeDetector.Input> candidates = new ArrayList<>();
-        for (IntelligenceEventEntity event : intelEvents.list(null, null, cursor.eventUpdatedAt(), null, 200)) {
+        for (IntelligenceEventEntity event : intelEvents.list(null, null, cursor.eventUpdatedAt(), null, 200, false)) {
             Map<String, Object> summary = IntelEventMapper.summary(event);
             candidates.add(new AnalystChangeDetector.Input("event", event.getId(), event.getTitle(),
                     event.getSeverity(), event.getConfidence(), event.getUpdatedAt(), event.getOrigin(), summary));

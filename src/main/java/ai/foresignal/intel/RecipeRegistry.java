@@ -97,6 +97,70 @@ public class RecipeRegistry {
         return out;
     }
 
+    /**
+     * Records a correlation pass of recipe {@code id}: {@code last_run_at}, and {@code last_error} (null
+     * clears it). A missing recipe is ignored.
+     */
+    public void recordRun(String id, java.time.Instant at, String error) {
+        try {
+            recipes.findById(id).ifPresent(entity -> {
+                entity.setLastRunAt(at);
+                entity.setLastError(error == null ? null : error.length() > 1_000 ? error.substring(0, 1_000) : error);
+                recipes.save(entity);
+            });
+        } catch (RuntimeException e) {
+            log.debug("Could not record the run of recipe {}: {}", id, e.toString());
+        }
+    }
+
+    /** A stored recipe (enabled or not) as a parsed definition; empty when unknown. */
+    public java.util.Optional<RecipeDefinition> definition(String id) {
+        return recipes.findById(id).map(entity -> RecipeDefinition.of(entity.getId(), entity.getVersion(),
+                override(entity.getDefinition(), entity.getParams()), operators));
+    }
+
+    /**
+     * A member's signal family and weight, derived by the server (prompt 101, invariant INT-3): from the
+     * clause of a stored recipe of {@code eventType} that reads {@code kind} (a join's {@code signalFamily}
+     * and {@code weight}; a seed kind contributes its {@link SignalFamilies#forKind} family at
+     * {@link #SEED_WEIGHT}), otherwise {@link SignalFamilies#forKind} at {@link EventScorer#DEFAULT_RELIABILITY}.
+     * Clients and models never choose either number.
+     */
+    public FamilyWeight familyWeight(String eventType, String kind) {
+        try {
+            for (CorrelationRecipeEntity entity : recipes.findAll()) {
+                RecipeDefinition definition = RecipeDefinition.of(entity.getId(), entity.getVersion(),
+                        override(entity.getDefinition(), entity.getParams()), operators);
+                if (eventType == null || !eventType.equals(definition.type())) {
+                    continue;
+                }
+                for (RecipeDefinition.Join join : definition.joins()) {
+                    if (join.kinds().contains(kind)) {
+                        return new FamilyWeight(join.signalFamily() == null ? SignalFamilies.forKind(kind)
+                                : join.signalFamily(), join.weight());
+                    }
+                }
+                if (definition.seed().kinds().contains(kind)) {
+                    return new FamilyWeight(SignalFamilies.forKind(kind), SEED_WEIGHT);
+                }
+            }
+        } catch (RuntimeException e) {
+            log.debug("Recipe lookup for {}/{} failed: {}", eventType, kind, e.toString());
+        }
+        return new FamilyWeight(SignalFamilies.forKind(kind), EventScorer.DEFAULT_RELIABILITY);
+    }
+
+    /** The weight of a seed member (the correlation engine's seed clause). */
+    public static final double SEED_WEIGHT = 0.6;
+
+    /**
+     * A server-derived signal family and recipe weight.
+     *
+     * @param family the signal family
+     * @param weight the recipe weight (0–1)
+     */
+    public record FamilyWeight(String family, double weight) {}
+
     private Map<String, Object> read(String name) {
         try (InputStream in = RecipeRegistry.class.getResourceAsStream(DIR + name + ".json")) {
             return in == null ? null : json.readValue(in, MAP);

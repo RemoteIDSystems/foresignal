@@ -5,6 +5,7 @@ import static ai.foresignal.mcp.JsonSchemas.string;
 
 import ai.foresignal.intel.IntelEventMapper;
 import ai.foresignal.intel.IntelEventService;
+import ai.foresignal.intel.IntelVisibility;
 import ai.foresignal.mcp.ForesignalMcpTool;
 import ai.foresignal.mcp.JsonSchemas;
 import ai.foresignal.mcp.McpArgs;
@@ -25,12 +26,14 @@ public class GetIntelEventTool implements ForesignalMcpTool {
 
     private final IntelEventService events;
     private final IntelEventMapper mapper;
+    private final IntelVisibility visibility;
     private final tools.jackson.databind.json.JsonMapper json;
 
     /** Creates the tool. */
-    public GetIntelEventTool(IntelEventService events, IntelEventMapper mapper,
+    public GetIntelEventTool(IntelEventService events, IntelEventMapper mapper, IntelVisibility visibility,
             tools.jackson.databind.json.JsonMapper json) {
         this.events = events;
+        this.visibility = visibility;
         this.mapper = mapper;
         this.json = json;
     }
@@ -70,7 +73,7 @@ public class GetIntelEventTool implements ForesignalMcpTool {
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
         String id = McpArgs.requiredText(args, "id");
-        var event = events.get(id);
+        var event = events.visible(id, visibility.seesPrivate(context.caller()));
         return ToolResult.json(json.valueToTree(mapper.full(event, events.members(id), events.log(id))));
     }
 }

@@ -17,6 +17,18 @@ public interface IntelligenceEventRepository extends JpaRepository<IntelligenceE
     /** Open events of a type, newest first (dedup scans these). */
     List<IntelligenceEventEntity> findByTypeAndStatusInOrderByUpdatedAtDesc(String type, List<String> statuses);
 
+    /** Events of a type and status that ended at or after {@code endAfter}, newest first (reopen scans these). */
+    List<IntelligenceEventEntity> findByTypeAndStatusAndEndTimeGreaterThanEqualOrderByUpdatedAtDesc(String type,
+            String status, Instant endAfter);
+
+    /** One page of every event in id order (the {@code foresignal-intel} generator's full pass). */
+    org.springframework.data.domain.Slice<IntelligenceEventEntity> findAllByOrderByIdAsc(
+            org.springframework.data.domain.Pageable page);
+
+    /** Events updated at or after {@code since}, in id order, one page at a time (incremental passes). */
+    org.springframework.data.domain.Slice<IntelligenceEventEntity> findByUpdatedAtGreaterThanEqualOrderByIdAsc(
+            Instant since, org.springframework.data.domain.Pageable page);
+
     /** The events a merged one points at. */
     List<IntelligenceEventEntity> findByMergedInto(String mergedInto);
 }

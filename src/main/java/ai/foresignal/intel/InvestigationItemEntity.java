@@ -40,6 +40,10 @@ public class InvestigationItemEntity {
     @Column(name = "snapshot")
     private Map<String, Object> snapshot;
 
+    /** True when the item was built from a private source (039); visible only to private-access callers. */
+    @Column(name = "private", nullable = false, columnDefinition = "boolean default false")
+    private boolean privateItem;
+
     @Column(name = "note", columnDefinition = "text")
     private String note;
 
@@ -90,6 +94,16 @@ public class InvestigationItemEntity {
 
     public void setSnapshot(Map<String, Object> snapshot) {
         this.snapshot = snapshot;
+    }
+
+    /** True when the item was built from a private source. */
+    public boolean isPrivateItem() {
+        return privateItem;
+    }
+
+    /** Marks the item private (or not). */
+    public void setPrivateItem(boolean privateItem) {
+        this.privateItem = privateItem;
     }
 
     public String getNote() {

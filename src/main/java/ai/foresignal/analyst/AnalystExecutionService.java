@@ -182,7 +182,7 @@ public class AnalystExecutionService {
     private String createEvent(AnalystProposalEntity proposal) {
         Map<String, Object> body = new java.util.LinkedHashMap<>(proposal.getPayload());
         body.put("origin", "analyst");
-        IntelligenceEventEntity event = intelEvents.create(json.valueToTree(body), "analyst", "analyst");
+        IntelligenceEventEntity event = intelEvents.create(json.valueToTree(body), "analyst", "analyst", false);
         return event.getId();
     }
 
@@ -193,7 +193,7 @@ public class AnalystExecutionService {
         if (!"open".equals(investigation.getStatus())) {
             throw new IllegalStateException("investigation " + investigationId + " is not open");
         }
-        var item = investigations.addItem(investigationId, json.valueToTree(payload), "analyst");
+        var item = investigations.addItem(investigationId, json.valueToTree(payload), "analyst", false);
         return String.valueOf(item.getId());
     }
 
