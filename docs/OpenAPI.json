@@ -432,6 +432,11 @@
         "version": "1.3.0",
         "date": "2026-10-15",
         "note": "107: SatDump extras. satdump-{station} gains filtered DCS (dcp-observation) and EMWIN products and warnings (emwin-product, emwin-warning) with the EMWIN warnings fallback; new glm-local-{station} source feeding the shared GLM ring with dedup; the CelesTrak per-group TLE alias /compat/celestrak/NORAD/elements/{group}.txt; the SatDump 2.0 foresignal-manifest.json reader and the MIT contrib/satdump hook."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-16",
+        "note": "111: the 14 export, snapshot, hold, cold-archive and pack operations (createExport, listExports, downloadExport, getExportManifest, deleteExport, createSnapshot, listHolds, createHold, deleteHold, listHoldVersions, getArchiveSettings, updateArchiveSettings, getArchiveCatalog, createPack) are implemented, and getExport serves 111 jobs to their creator or admin. SnapshotInput gains includePrivate and personalUse (the export rules); HoldInput.reason is capped at 2000 characters; ArchiveSettings.root may be absolute. createPack documents 413 PACK_TOO_LARGE (the response it always declared) and 400 EXPORT_SPEC_INVALID; downloadExport and getExportManifest name 409 EXPORT_NOT_READY; createHold names 409 HOLD_LIMIT and the hold operations 404 UNKNOWN_HOLD. SystemInfo.exports gains quotaBytes and maxConcurrent; SystemInfo.archive gains target, lastRunBytes, lastRunFailures and lastFailureAt (bytes and failures count since start)."
       }
     ]
   },
@@ -45047,7 +45052,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "111",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -46314,7 +46319,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "111",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -46417,7 +46422,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "111",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -46432,7 +46437,7 @@
         ],
         "operationId": "downloadExport",
         "summary": "Download an export, snapshot or pack",
-        "description": "The single data file, a named file (`file`, e.g. one of a pack's MVT and PNG .pmtiles), or `bundle=zip` with the data, `manifest.json`, `manifest.json.jws`, `licence.json` and `ATTRIBUTION.txt`. Supports `Range` and `If-None-Match` (ETag = sha256). Errors: `410 EXPORT_EXPIRED`; 409 while the job is not DONE.\n\n**Scope:** `agent`.",
+        "description": "The single data file, a named file (`file`, e.g. one of a pack's MVT and PNG .pmtiles), or `bundle=zip` with the data, `manifest.json`, `manifest.json.jws`, `licence.json` and `ATTRIBUTION.txt`. Supports `Range` and `If-None-Match` (ETag = sha256). Errors: `410 EXPORT_EXPIRED`; `409 EXPORT_NOT_READY` while the job is not DONE.\n\n**Scope:** `agent`.",
         "parameters": [
           {
             "name": "exportId",
@@ -46602,7 +46607,7 @@
             }
           },
           "409": {
-            "description": "Job not finished",
+            "description": "Job not finished (EXPORT_NOT_READY)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -46654,7 +46659,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "111",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -46669,7 +46674,7 @@
         ],
         "operationId": "getExportManifest",
         "summary": "Get an export's signed manifest",
-        "description": "The SHA-256 manifest; the `Foresignal-Signature` header carries the detached JWS (also in the bundle as `manifest.json.jws`), verifiable against the JWKS. Errors: `410 EXPORT_EXPIRED`.\n\n**Scope:** `agent`.",
+        "description": "The SHA-256 manifest; the `Foresignal-Signature` header carries the detached JWS (also in the bundle as `manifest.json.jws`), verifiable against the JWKS. Errors: `410 EXPORT_EXPIRED`; `409 EXPORT_NOT_READY` while the job is not DONE.\n\n**Scope:** `agent`.",
         "parameters": [
           {
             "name": "exportId",
@@ -46711,7 +46716,7 @@
             }
           },
           "409": {
-            "description": "Job not finished",
+            "description": "Job not finished (EXPORT_NOT_READY)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -46753,7 +46758,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "111",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -46768,7 +46773,7 @@
         ],
         "operationId": "createSnapshot",
         "summary": "Create an atSeq snapshot",
-        "description": "Rebuilds state at seq S (default the current watermarkSeq, or `asOf` translated with S(T)) from record_version per tier, writing GeoParquet plus a signed manifest. Below a source's floorSeq rows come from held copies, else `400 SNAPSHOT_BEYOND_RETENTION`. Snapshots are export jobs of kind SNAPSHOT (list, poll and download through `/v1/exports`) and never expire unless `expiresAt` is set.\n\n**Scope:** `admin`.",
+        "description": "Rebuilds state at seq S (default the current watermarkSeq, or `asOf` translated with S(T)) from record_version per tier, writing GeoParquet plus a signed manifest. Below a source's floorSeq rows come from held copies, else `400 SNAPSHOT_BEYOND_RETENTION`. Validity is judged at the transaction time of S (its ingested_at, or the requested asOf); a source whose state at S lies before its retention horizon is read from the copies of holds covering it. Private sources need `includePrivate=true`; FORBIDDEN and LOCAL_ONLY sources need `personalUse=true`, as for exports. Snapshots are export jobs of kind SNAPSHOT (list, poll and download through `/v1/exports`) and never expire unless `expiresAt` is set.\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -46833,7 +46838,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "111",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -46906,7 +46911,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "111",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -46952,7 +46957,7 @@
             }
           },
           "409": {
-            "description": "holds.max reached",
+            "description": "holds.max reached (HOLD_LIMIT)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -46984,7 +46989,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "111",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -47016,7 +47021,7 @@
             "description": "Deleted"
           },
           "404": {
-            "description": "Not found",
+            "description": "Not found (UNKNOWN_HOLD)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -47048,7 +47053,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "111",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -47108,7 +47113,7 @@
             }
           },
           "404": {
-            "description": "Not found",
+            "description": "Not found (UNKNOWN_HOLD)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -47140,7 +47145,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "111",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -47190,7 +47195,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "111",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -47258,7 +47263,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "111",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -47360,7 +47365,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "111",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -47375,7 +47380,7 @@
         ],
         "operationId": "createPack",
         "summary": "Build a PMTiles offline pack",
-        "description": "Queues a PMTiles v3 pack job (kind PACK): one .pmtiles per tile type (MVT from 016/037, PNG from 045), deduplicated, with 109 attribution in the metadata. Download through `/v1/exports/{id}/download`. Licence and private rules as exports (EXPORT egress). Errors: `400 PACK_TOO_LARGE` (more than packs.maxTiles, 200,000; the problem states the computed count).\n\n**Scope:** `agent`.",
+        "description": "Queues a PMTiles v3 pack job (kind PACK): one .pmtiles per tile type (MVT from 016/037, PNG from 045), deduplicated, with 109 attribution in the metadata. Download through `/v1/exports/{id}/download`. Licence and private rules as exports (EXPORT egress). Errors: `413 PACK_TOO_LARGE` (more than packs.maxTiles, 200,000; the problem's `tileCount` states the computed count), `400 EXPORT_SPEC_INVALID`, `409 EXPORT_QUOTA`.\n\n**Scope:** `agent`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -47398,7 +47403,7 @@
             }
           },
           "400": {
-            "description": "Invalid spec (VALIDATION_FAILED)",
+            "description": "Invalid spec (EXPORT_SPEC_INVALID)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -47450,7 +47455,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "111",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -94372,6 +94377,15 @@
               "bytes": {
                 "type": "integer",
                 "format": "int64"
+              },
+              "quotaBytes": {
+                "type": "integer",
+                "format": "int64",
+                "description": "exports.diskQuotaGb in bytes"
+              },
+              "maxConcurrent": {
+                "type": "integer",
+                "description": "exports.maxConcurrent"
               }
             },
             "x-foresignal-prompt": "111"
@@ -94396,6 +94410,27 @@
               },
               "failures": {
                 "type": "integer"
+              },
+              "target": {
+                "type": "string",
+                "enum": [
+                  "local",
+                  "s3"
+                ]
+              },
+              "lastRunBytes": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "lastRunFailures": {
+                "type": "integer"
+              },
+              "lastFailureAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
               }
             },
             "x-foresignal-prompt": "111"
@@ -125428,6 +125463,16 @@
             "maxItems": 4,
             "description": "[minLon, minLat, maxLon, maxLat] (WGS84)"
           },
+          "includePrivate": {
+            "type": "boolean",
+            "description": "Include private sources (039); the endpoint is admin-only",
+            "default": false
+          },
+          "personalUse": {
+            "type": "boolean",
+            "description": "Include FORBIDDEN and LOCAL_ONLY sources; the sidecar then says personal use only \u2014 do not redistribute",
+            "default": false
+          },
           "expiresAt": {
             "type": [
               "string",
@@ -125490,7 +125535,8 @@
           },
           "reason": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 2000
           },
           "sources": {
             "type": "array",
@@ -125692,7 +125738,7 @@
           },
           "root": {
             "type": "string",
-            "description": "Default ${FORESIGNAL_DATA_DIR}/archive"
+            "description": "Default ${FORESIGNAL_DATA_DIR}/archive; an absolute path, or a path relative to the data directory"
           },
           "target": {
             "type": "string",

@@ -5,7 +5,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 
-/** The {@code holds} block of {@code /v1/system} (prompt 111): count, held rows and bytes. */
+/**
+ * The {@code holds} block of {@code /v1/system} (prompt 111): the number of holds, the rows copied
+ * into {@code record_version_held} and the table's size.
+ */
 @Component
 public class HoldsSystemBlock implements SystemBlockContributor {
 

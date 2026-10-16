@@ -158,6 +158,18 @@ foresignal:
     initial-delay: 5m
     chunk-size: 10000
     purge-timeout: 10m
+  exports:
+    # Bulk exports, snapshots, holds and offline packs (111). maxConcurrent workers share one
+    # pool; files live in ${FORESIGNAL_DATA_DIR}/exports and /snapshots for ttl (snapshots only
+    # with an expiresAt). pack-max-tiles is packs.maxTiles and holds-max is holds.max.
+    max-concurrent: 1
+    max-rows: 5000000
+    disk-quota-gb: 20
+    ttl: 7d
+    pack-max-tiles: 200000
+    holds-max: 20
+    page-size: 10000
+    query-timeout: 5m
   watchdog:
     # The off-box heartbeat and the ingest canary (019). What to ping is an
     # operator setting (PUT /v1/settings/watchdog). Off in tests.

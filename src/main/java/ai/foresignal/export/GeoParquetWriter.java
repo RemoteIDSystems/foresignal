@@ -1,23 +1,22 @@
 package ai.foresignal.export;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.parquet.bytes.HeapByteBufferAllocator;
+import org.apache.parquet.column.ColumnWriteStore;
 import org.apache.parquet.column.ParquetProperties;
-import org.apache.parquet.column.impl.ColumnWriteStoreV1;
-import org.apache.parquet.column.page.PageWriteStore;
-import org.apache.parquet.conf.PlainParquetConfiguration;
-import org.apache.parquet.hadoop.CodecFactory;
 import org.apache.parquet.hadoop.ColumnChunkPageWriteStore;
 import org.apache.parquet.hadoop.ParquetFileWriter;
-import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.io.ColumnIOFactory;
+import org.apache.parquet.io.LocalOutputFile;
 import org.apache.parquet.io.MessageColumnIO;
 import org.apache.parquet.io.api.Binary;
 import org.apache.parquet.io.api.RecordConsumer;
@@ -25,40 +24,74 @@ import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName;
 import org.apache.parquet.schema.Types;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
- * A GeoParquet 1.1 writer (prompt 111). Uses the Hadoop-free parquet-java path: a local
- * {@link LocalOutputFile}, {@code PlainParquetConfiguration}, {@link ParquetFileWriter} and
- * {@link ColumnWriteStoreV1}. Compression is {@code UNCOMPRESSED} (no codec natives needed). The
- * {@code geo} file metadata (version 1.1.0, WKB, observed geometry types, bbox and {@code covering}) is
- * written at close.
+ * A GeoParquet 1.1 writer (prompt 111) on the Hadoop-free parquet-java path: parquet's own
+ * {@link LocalOutputFile}, {@link ParquetFileWriter}, a {@link ColumnChunkPageWriteStore} with the
+ * zstd-jni compressor of {@link ParquetCodecs}, and a column store from
+ * {@link ParquetProperties#newColumnWriteStore}.
+ *
+ * <p>Layout: the {@link ExportSchema} columns ({@code seq} int64, {@code version} int32, timestamps as
+ * {@code TIMESTAMP(MICROS, isAdjustedToUTC=true)}, text as {@code STRING}), then {@code geometry}
+ * (WKB in a {@code BYTE_ARRAY}) and the {@code bbox} covering struct {@code {xmin, ymin, xmax, ymax}}
+ * of doubles. Rows are written in the order they arrive (the export queries sort by
+ * {@code (kind, source_id, external_id, seq)}); a row group is closed every {@value #ROW_GROUP} rows.
+ *
+ * <p>The file metadata key {@code geo} is written at close: version {@code 1.1.0}, primary column
+ * {@code geometry}, encoding {@code WKB}, the geometry types actually seen ({@code []}, meaning
+ * unknown, when no row had a geometry), the overall {@code bbox} (omitted when no row had one) and the
+ * {@code covering.bbox} paths. No {@code crs} member, so the CRS is OGC:CRS84.
  */
 public final class GeoParquetWriter implements ExportWriter {
 
+    /** Rows per row group. */
+    public static final int ROW_GROUP = 65_536;
+
+    /** The file metadata key of the GeoParquet metadata. */
+    public static final String GEO_KEY = "geo";
+
+    /** The GeoParquet version written. */
+    public static final String GEOPARQUET_VERSION = "1.1.0";
+
     private static final int PAGE_SIZE = 1 << 20;
-    private static final int BLOCK_SIZE = 128 * 1024 * 1024;
-    private static final int MAX_PADDING = 8 * 1024;
-    private static final int ROW_GROUP = 65_536;
+    private static final long ROW_GROUP_BYTES = 128L * 1024 * 1024;
+    private static final int COLUMN_INDEX_TRUNCATE = 64;
+    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private ExportSchema schema;
     private MessageType messageType;
+    private ParquetProperties properties;
     private ParquetFileWriter fileWriter;
-    private CodecFactory codecFactory;
-    private PageWriteStore pageStore;
-    private ColumnWriteStoreV1 columnStore;
+    private ColumnChunkPageWriteStore pageStore;
+    private ColumnWriteStore columnStore;
     private RecordConsumer consumer;
+    private Map<String, String> extraMetadata;
     private long rows;
     private int blockRows;
     private final Set<String> geometryTypes = new LinkedHashSet<>();
     private double[] bbox;
+    private boolean closed;
 
     @Override
-    public void open(Path file, ExportSchema schema, Map<String, String> metadata) throws IOException {
-        this.schema = schema;
-        this.messageType = messageType(schema);
-        this.codecFactory = new CodecFactory(new PlainParquetConfiguration(), PAGE_SIZE);
+    public void open(Path file, ExportSchema exportSchema, Map<String, String> metadata) throws IOException {
+        this.schema = exportSchema;
+        this.messageType = messageType(exportSchema);
+        this.properties = ParquetProperties.builder()
+                .withPageSize(PAGE_SIZE)
+                .withDictionaryPageSize(PAGE_SIZE)
+                .withAllocator(new HeapByteBufferAllocator())
+                .build();
+        this.extraMetadata = new LinkedHashMap<>();
+        if (metadata != null) {
+            metadata.forEach((key, value) -> {
+                if (value != null) {
+                    extraMetadata.put("foresignal." + key, value);
+                }
+            });
+        }
         this.fileWriter = new ParquetFileWriter(new LocalOutputFile(file), messageType,
-                ParquetFileWriter.Mode.CREATE, BLOCK_SIZE, MAX_PADDING);
+                ParquetFileWriter.Mode.OVERWRITE, ROW_GROUP_BYTES, 0, null, properties);
         fileWriter.start();
         startBlock();
     }
@@ -66,44 +99,40 @@ public final class GeoParquetWriter implements ExportWriter {
     @Override
     public void write(Map<String, Object> row) throws IOException {
         consumer.startMessage();
-        List<ExportSchema.Column> columns = schema.columns();
         int index = 0;
-        for (ExportSchema.Column column : columns) {
+        for (ExportSchema.Column column : schema.columns()) {
             Object value = row.get(column.name());
             if (value != null) {
                 consumer.startField(column.name(), index);
                 writeValue(column.type(), value);
                 consumer.endField(column.name(), index);
+            } else if (!column.nullable()) {
+                throw new IllegalArgumentException("The export column " + column.name() + " is required");
             }
             index++;
         }
         if (schema.geometry()) {
-            Object wkb = row.get("geometry");
-            if (wkb instanceof byte[] bytes && bytes.length > 0) {
-                consumer.startField("geometry", index);
-                consumer.addBinary(Binary.fromConstantByteArray(bytes));
-                consumer.endField("geometry", index);
-                geometryTypes.add(geometryType(bytes));
+            if (row.get(GEOMETRY) instanceof byte[] wkb && wkb.length > 0) {
+                consumer.startField(GEOMETRY, index);
+                consumer.addBinary(Binary.fromConstantByteArray(wkb));
+                consumer.endField(GEOMETRY, index);
+                String type = Wkb.geoParquetType(wkb);
+                if (type != null) {
+                    geometryTypes.add(type);
+                }
             }
             index++;
-            Object box = row.get("bbox");
-            if (box instanceof double[] b && b.length == 4) {
-                consumer.startField("bbox", index);
+            if (row.get(BBOX) instanceof double[] b && b.length == 4) {
+                consumer.startField(BBOX, index);
                 consumer.startGroup();
-                consumer.startField("xmin", 0);
-                consumer.addDouble(b[0]);
-                consumer.endField("xmin", 0);
-                consumer.startField("ymin", 1);
-                consumer.addDouble(b[1]);
-                consumer.endField("ymin", 1);
-                consumer.startField("xmax", 2);
-                consumer.addDouble(b[2]);
-                consumer.endField("xmax", 2);
-                consumer.startField("ymax", 3);
-                consumer.addDouble(b[3]);
-                consumer.endField("ymax", 3);
+                String[] names = {"xmin", "ymin", "xmax", "ymax"};
+                for (int k = 0; k < 4; k++) {
+                    consumer.startField(names[k], k);
+                    consumer.addDouble(b[k]);
+                    consumer.endField(names[k], k);
+                }
                 consumer.endGroup();
-                consumer.endField("bbox", index);
+                consumer.endField(BBOX, index);
                 merge(b);
             }
         }
@@ -117,7 +146,7 @@ public final class GeoParquetWriter implements ExportWriter {
 
     private void writeValue(ExportSchema.Type type, Object value) {
         switch (type) {
-            case STRING, WKB -> consumer.addBinary(Binary.fromString(String.valueOf(value)));
+            case STRING -> consumer.addBinary(Binary.fromString(String.valueOf(value)));
             case INT64 -> consumer.addLong(((Number) value).longValue());
             case INT32 -> consumer.addInteger(((Number) value).intValue());
             case DOUBLE -> consumer.addDouble(((Number) value).doubleValue());
@@ -125,29 +154,34 @@ public final class GeoParquetWriter implements ExportWriter {
         }
     }
 
-    private static long micros(Object value) {
+    /** Microseconds since the epoch of an {@link Instant} (or a number taken as microseconds). */
+    static long micros(Object value) {
         if (value instanceof Instant instant) {
-            return instant.getEpochSecond() * 1_000_000L + instant.getNano() / 1_000L;
+            return Math.addExact(Math.multiplyExact(instant.getEpochSecond(), 1_000_000L), instant.getNano() / 1_000L);
         }
         return ((Number) value).longValue();
     }
 
     private void startBlock() {
-        pageStore = new ColumnChunkPageWriteStore(
-                codecFactory.getCompressor(CompressionCodecName.UNCOMPRESSED), messageType,
-                new HeapByteBufferAllocator(), PAGE_SIZE);
-        ParquetProperties props = ParquetProperties.builder().build();
-        columnStore = new ColumnWriteStoreV1(messageType, pageStore, props);
+        pageStore = new ColumnChunkPageWriteStore(ParquetCodecs.INSTANCE.getCompressor(ParquetCodecs.DEFAULT_CODEC),
+                messageType, new HeapByteBufferAllocator(), COLUMN_INDEX_TRUNCATE, false);
+        columnStore = properties.newColumnWriteStore(messageType, pageStore, pageStore);
         MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(messageType);
         consumer = columnIO.getRecordWriter(columnStore);
         blockRows = 0;
     }
 
     private void endBlock() throws IOException {
+        if (blockRows == 0) {
+            return;
+        }
         columnStore.flush();
         fileWriter.startBlock(blockRows);
-        ((ColumnChunkPageWriteStore) pageStore).flushToFileWriter(fileWriter);
+        pageStore.flushToFileWriter(fileWriter);
         fileWriter.endBlock();
+        columnStore.close();
+        pageStore.close();
+        blockRows = 0;
     }
 
     @Override
@@ -157,15 +191,17 @@ public final class GeoParquetWriter implements ExportWriter {
 
     @Override
     public void close() throws IOException {
-        if (blockRows > 0) {
-            endBlock();
+        if (closed || fileWriter == null) {
+            closed = true;
+            return;
         }
-        java.util.Map<String, String> extra = new java.util.LinkedHashMap<>();
-        extra.put("geo", geoMetadata());
+        closed = true;
+        endBlock();
+        Map<String, String> extra = new LinkedHashMap<>(extraMetadata);
+        extra.put(GEO_KEY, geoMetadata());
         extra.put("foresignal.row_count", Long.toString(rows));
         fileWriter.end(extra);
         fileWriter.close();
-        codecFactory.release();
     }
 
     private void merge(double[] b) {
@@ -179,73 +215,63 @@ public final class GeoParquetWriter implements ExportWriter {
         bbox[3] = Math.max(bbox[3], b[3]);
     }
 
-    private String geoMetadata() {
-        List<String> types = geometryTypes.isEmpty() ? List.of("Point") : new ArrayList<>(geometryTypes);
-        String box = bbox == null ? "[-180.0,-90.0,180.0,90.0]" : "[" + bbox[0] + "," + bbox[1] + "," + bbox[2] + ","
-                + bbox[3] + "]";
-        return "{\"version\":\"1.1.0\",\"primary_column\":\"geometry\",\"columns\":{\"geometry\":{"
-                + "\"encoding\":\"WKB\",\"geometry_types\":" + jsonArray(types) + ",\"bbox\":" + box + ","
-                + "\"covering\":{\"bbox\":{\"xmin\":[\"bbox\",\"xmin\"],\"ymin\":[\"bbox\",\"ymin\"],"
-                + "\"xmax\":[\"bbox\",\"xmax\"],\"ymax\":[\"bbox\",\"ymax\"]}}}}}";
-    }
-
-    private static String jsonArray(List<String> values) {
-        StringBuilder out = new StringBuilder("[");
-        for (int k = 0; k < values.size(); k++) {
-            if (k > 0) {
-                out.append(',');
-            }
-            out.append('"').append(values.get(k)).append('"');
+    /** The {@code geo} metadata JSON (GeoParquet 1.1.0). */
+    String geoMetadata() {
+        Map<String, Object> column = new LinkedHashMap<>();
+        column.put("encoding", "WKB");
+        column.put("geometry_types", new ArrayList<>(geometryTypes));
+        if (bbox != null) {
+            column.put("bbox", List.of(bbox[0], bbox[1], bbox[2], bbox[3]));
         }
-        return out.append(']').toString();
+        Map<String, Object> covering = new LinkedHashMap<>();
+        covering.put("xmin", List.of(BBOX, "xmin"));
+        covering.put("ymin", List.of(BBOX, "ymin"));
+        covering.put("xmax", List.of(BBOX, "xmax"));
+        covering.put("ymax", List.of(BBOX, "ymax"));
+        column.put("covering", Map.of(BBOX, covering));
+        Map<String, Object> geo = new LinkedHashMap<>();
+        geo.put("version", GEOPARQUET_VERSION);
+        geo.put("primary_column", GEOMETRY);
+        geo.put("columns", Map.of(GEOMETRY, column));
+        return new String(JSON.writeValueAsBytes(geo), StandardCharsets.UTF_8);
     }
 
-    /** The WKB geometry type name (first little-endian byte). */
-    static String geometryType(byte[] wkb) {
-        if (wkb.length < 5) {
-            return "Point";
-        }
-        int type = (wkb[0] & 0xFF);
-        return switch (type) {
-            case 1 -> "Point";
-            case 2 -> "LineString";
-            case 3 -> "Polygon";
-            case 4 -> "MultiPoint";
-            case 5 -> "MultiLineString";
-            case 6 -> "MultiPolygon";
-            case 7 -> "GeometryCollection";
-            default -> "Point";
-        };
-    }
-
-    private static MessageType messageType(ExportSchema schema) {
+    /** The Parquet schema of {@code schema}: its columns, then {@code geometry} and {@code bbox}. */
+    static MessageType messageType(ExportSchema schema) {
         Types.MessageTypeBuilder builder = Types.buildMessage();
         for (ExportSchema.Column column : schema.columns()) {
-            Types.Builder<?, ?> field = column.nullable() ? builder.optional(primitive(column.type()))
-                    : builder.required(primitive(column.type()));
+            Types.PrimitiveBuilder<Types.GroupBuilder<MessageType>> field;
+            if (column.nullable()) {
+                field = builder.optional(primitive(column.type()));
+            } else {
+                field = builder.required(primitive(column.type()));
+            }
             if (column.type() == ExportSchema.Type.STRING) {
                 field = field.as(LogicalTypeAnnotation.stringType());
             } else if (column.type() == ExportSchema.Type.TIMESTAMP_MICROS) {
-                field = field.as(LogicalTypeAnnotation.timestampType(true,
-                        LogicalTypeAnnotation.TimeUnit.MICROS));
+                field = field.as(LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MICROS));
+            } else if (column.type() == ExportSchema.Type.INT32) {
+                field = field.as(LogicalTypeAnnotation.intType(32, true));
+            } else if (column.type() == ExportSchema.Type.INT64) {
+                field = field.as(LogicalTypeAnnotation.intType(64, true));
             }
             field.named(column.name());
         }
         if (schema.geometry()) {
-            builder.optional(PrimitiveTypeName.BINARY).named("geometry");
+            builder.optional(PrimitiveTypeName.BINARY).named(GEOMETRY);
             builder.optionalGroup()
-                    .optional(PrimitiveTypeName.DOUBLE).named("xmin")
-                    .optional(PrimitiveTypeName.DOUBLE).named("ymin")
-                    .optional(PrimitiveTypeName.DOUBLE).named("xmax")
-                    .optional(PrimitiveTypeName.DOUBLE).named("ymax")
-                    .named("bbox");
+                    .required(PrimitiveTypeName.DOUBLE).named("xmin")
+                    .required(PrimitiveTypeName.DOUBLE).named("ymin")
+                    .required(PrimitiveTypeName.DOUBLE).named("xmax")
+                    .required(PrimitiveTypeName.DOUBLE).named("ymax")
+                    .named(BBOX);
         }
         return builder.named("foresignal");
     }
 
     private static PrimitiveTypeName primitive(ExportSchema.Type type) {
         return switch (type) {
-            case STRING, WKB -> PrimitiveTypeName.BINARY;
+            case STRING -> PrimitiveTypeName.BINARY;
             case INT64, TIMESTAMP_MICROS -> PrimitiveTypeName.INT64;
             case INT32 -> PrimitiveTypeName.INT32;
             case DOUBLE -> PrimitiveTypeName.DOUBLE;

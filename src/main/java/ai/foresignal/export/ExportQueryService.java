@@ -1,88 +1,100 @@
 package ai.foresignal.export;
 
-import ai.foresignal.api.error.ErrorCodes;
-import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.security.restrict.ReadRestriction;
 import ai.foresignal.security.restrict.RestrictionClamp;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.spi.HistoryTier;
 import ai.foresignal.source.spi.SourceDescriptor;
-import ai.foresignal.store.history.AsOfPlan;
-import ai.foresignal.store.history.AsOfResolver;
 import ai.foresignal.store.query.ReadQueryRunner;
 import ai.foresignal.store.query.SeqClockQuery;
 import ai.foresignal.store.query.SqlParams;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import ai.foresignal.stream.ChangeBus;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import org.locationtech.jts.geom.Envelope;
-import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
 /**
- * Streams the rows of a bulk export (prompt 111) as the column map the {@link ExportWriter} layer
- * expects, straight from {@code record_head ⋈ record_live} (current), {@code record_version}
- * (history) or the Core-Data-Model §12 asOf/atSeq query. Geometry is emitted as WKB
- * ({@code ST_AsBinary}) with its envelope; keyset reads never load a full result into memory.
+ * Streams the rows of an export or snapshot (prompt 111) in keyset pages of
+ * {@code exports.pageSize} (10,000) rows, each page its own read transaction, so no result is ever
+ * held whole and a cancellation takes effect between pages ({@link Sink#page}).
  *
- * <p>The row map keys are the {@link ExportSchema} columns plus {@code geometry} (WKB, byte[]) and
- * {@code bbox} (double[4]).
+ * <ul>
+ *   <li><b>current</b>: {@code record_head ⋈ record_live} with the merged payload (HIST-2), per kind,
+ *       keyset on {@code (source_id, external_id)};
+ *   <li><b>history</b>: {@code record_version}, per kind and source, keyset on
+ *       {@code (external_id, seq)} (the {@code (source_id, external_id, seq)} index); an
+ *       {@code ingested} time window becomes a seq range through {@code seq_clock};
+ *   <li><b>asOf / atSeq</b>: the Core-Data-Model §12 query per tier and source, {@code DISTINCT ON
+ *       (external_id) … seq BETWEEN L AND S ORDER BY external_id, seq DESC}, unioned with the copies
+ *       of covering holds when the state lies below the source's retention floor; tombstones dropped,
+ *       validity judged on the transaction axis, and kind, bbox, time and restriction applied to the
+ *       chosen version; keyset on {@code external_id}.
+ * </ul>
+ *
+ * <p>Rows come out ordered by {@code (kind, source_id, external_id, seq)} for current and history
+ * (kinds a source does not declare come last), and by {@code (tier, source_id, external_id)} for a
+ * point in time. The caller's {@link ReadRestriction} applies to every mode. The row maps are those
+ * of {@link ExportRows#map}.
  */
 @Service
 public class ExportQueryService {
 
-    /** Receives streamed export rows. */
+    /** Receives streamed rows. */
     public interface Sink {
 
-        /** Called once, before the first row, with the watermark seq read before the query. */
+        /** Called once, before the first row, with the watermark of the export. */
         void begin(long watermarkSeq);
 
-        /** Called for each row, in keyset order. */
+        /** Called for each row, in order. */
         void row(Map<String, Object> row);
+
+        /** Called between pages; throwing here stops the export (cancellation). */
+        default void page() {}
     }
 
-    private static final String CURRENT_FROM =
-            " FROM record_head h JOIN record_live l ON l.source_id = h.source_id AND l.external_id = h.external_id";
+    private static final String CURRENT_PAYLOAD = "jsonb_strip_nulls(h.payload || l.kinematic)";
 
     private final ReadQueryRunner runner;
     private final SeqClockQuery seqClock;
-    private final AsOfResolver asOf;
     private final SourceRegistry registry;
-    private final ai.foresignal.stream.ChangeBus changeBus;
+    private final ChangeBus changeBus;
+    private final ExportProperties properties;
     private final Clock clock;
 
     /** Creates the service. */
-    public ExportQueryService(ReadQueryRunner runner, SeqClockQuery seqClock, AsOfResolver asOf,
-            SourceRegistry registry, ai.foresignal.stream.ChangeBus changeBus, Clock clock) {
+    public ExportQueryService(ReadQueryRunner runner, SeqClockQuery seqClock, SourceRegistry registry,
+            ChangeBus changeBus, ExportProperties properties, Clock clock) {
         this.runner = runner;
         this.seqClock = seqClock;
-        this.asOf = asOf;
         this.registry = registry;
         this.changeBus = changeBus;
+        this.properties = properties;
         this.clock = clock;
     }
 
     /**
-     * Streams the export's rows. {@code sources} is the already licence- and privacy-filtered source
-     * set (empty means "every visible source").
+     * Streams the rows of {@code spec} over {@code sources} (already license- and privacy-filtered;
+     * never empty).
+     *
+     * @param pointInTime the state to read for {@code asOf} and {@code atSeq}; ignored otherwise
      */
-    public void stream(ExportSpec spec, Collection<String> sources, ReadRestriction restriction, Sink sink) {
+    public void stream(ExportSpec spec, List<String> sources, ReadRestriction restriction, PointInTime pointInTime,
+            Sink sink) {
+        ReadRestriction r = restriction == null ? ReadRestriction.NONE : restriction;
+        List<String> ordered = new ArrayList<>(new TreeSet<>(sources));
         switch (spec.mode()) {
-            case "history" -> streamHistory(spec, sources, restriction, sink);
-            case "asOf" -> streamAsOf(spec, sources, restriction, sink);
-            case "atSeq" -> streamAtSeq(spec, sources, restriction, sink);
-            default -> streamCurrent(spec, sources, restriction, sink);
+            case "history" -> streamHistory(spec, ordered, r, sink);
+            case "asOf", "atSeq" -> streamPointInTime(spec, ordered, r, pointInTime, sink);
+            default -> streamCurrent(spec, ordered, r, sink);
         }
     }
 
@@ -90,29 +102,57 @@ public class ExportQueryService {
     // Current
     // =====================================================================================
 
-    private void streamCurrent(ExportSpec spec, Collection<String> sources, ReadRestriction restriction, Sink sink) {
-        long watermark = changeBus.lastPublishedSeq();
+    private void streamCurrent(ExportSpec spec, List<String> sources, ReadRestriction r, Sink sink) {
+        sink.begin(changeBus.lastPublishedSeq());
         Instant now = clock.instant();
-        runner.stream(jdbc -> {
+        List<String> kinds = spec.kinds().isEmpty() ? currentKinds(sources) : new ArrayList<>(new TreeSet<>(spec.kinds()));
+        for (String kind : kinds) {
+            String lastSource = "";
+            String lastExternal = "";
+            while (true) {
+                String fromSource = lastSource;
+                String fromExternal = lastExternal;
+                List<Map<String, Object>> page = runner.read(properties.queryTimeout(), jdbc -> {
+                    SqlParams p = new SqlParams();
+                    List<String> where = new ArrayList<>();
+                    where.add("h.kind = " + p.text(kind));
+                    where.add("h.source_id = ANY(" + p.textArray(sources) + ")");
+                    where.add("NOT h.tombstone");
+                    where.add("(l.valid_until IS NULL OR l.valid_until > " + p.instant(now) + ")");
+                    where.add("(h.source_id, h.external_id) > (" + p.text(fromSource) + ", " + p.text(fromExternal) + ")");
+                    addBbox(where, "l.geom", spec.bbox(), p);
+                    addTime(jdbc, where, spec, p, "COALESCE(h.event_time, l.observed_at)", "l.observed_at", "h.event_time",
+                            "h.seq");
+                    RestrictionClamp.addTo(where, "h.source_id", "h.kind", "l.geom", CURRENT_PAYLOAD, r, p);
+                    String sql = "SELECT h.source_id, h.external_id, h.kind, h.seq, h.version, l.observed_at,"
+                            + " h.event_time, l.valid_until, NULL::timestamptz AS ingested_at, h.title,"
+                            + " " + CURRENT_PAYLOAD + "::text AS payload, ST_AsBinary(l.geom) AS geom_wkb,"
+                            + " ST_XMin(l.geom) AS xmin, ST_YMin(l.geom) AS ymin, ST_XMax(l.geom) AS xmax,"
+                            + " ST_YMax(l.geom) AS ymax"
+                            + " FROM record_head h JOIN record_live l ON l.source_id = h.source_id"
+                            + " AND l.external_id = h.external_id"
+                            + " WHERE " + String.join(" AND ", where)
+                            + " ORDER BY h.source_id, h.external_id LIMIT " + properties.pageSize();
+                    return jdbc.query(sql, p.source(), (rs, i) -> ExportRows.map(rs));
+                });
+                page.forEach(sink::row);
+                sink.page();
+                if (page.size() < properties.pageSize()) {
+                    break;
+                }
+                Map<String, Object> last = page.getLast();
+                lastSource = (String) last.get("source_id");
+                lastExternal = (String) last.get("external_id");
+            }
+        }
+    }
+
+    /** The distinct current kinds of {@code sources}, sorted (the {@code record_head(kind)} index). */
+    private List<String> currentKinds(List<String> sources) {
+        return runner.read(properties.queryTimeout(), jdbc -> {
             SqlParams p = new SqlParams();
-            List<String> where = new ArrayList<>();
-            addIn(where, "h.source_id", sources, p);
-            addIn(where, "h.kind", spec.kinds(), p);
-            RestrictionClamp.addTo(where, "h.source_id", "h.kind", "l.geom", CURRENT_PAYLOAD, restriction, p);
-            where.add("NOT h.tombstone");
-            where.add("(l.valid_until IS NULL OR l.valid_until > " + p.instant(now) + ")");
-            addBbox(where, "l.geom", spec.bbox(), p);
-            addTimeBounds(jdbc, where, spec.timeField(), spec.from(), spec.to(), p,
-                    "COALESCE(h.event_time, l.observed_at)", "l.observed_at", "h.event_time", "h.seq");
-            String sql = "SELECT h.source_id, h.external_id, h.kind, h.seq, h.version, l.observed_at,"
-                    + " h.event_time, l.valid_until, NULL::timestamptz AS ingested_at, h.title,"
-                    + " " + CURRENT_PAYLOAD + "::text AS payload, ST_AsBinary(l.geom) AS geom,"
-                    + " ST_XMin(l.geom) AS xmin, ST_YMin(l.geom) AS ymin, ST_XMax(l.geom) AS xmax,"
-                    + " ST_YMax(l.geom) AS ymax"
-                    + CURRENT_FROM + where(where) + " ORDER BY h.kind, h.source_id, h.external_id";
-            sink.begin(watermark);
-            jdbc.query(sql, p.source(), mapper(sink));
-            return null;
+            return jdbc.queryForList("SELECT DISTINCT kind FROM record_head WHERE source_id = ANY("
+                    + p.textArray(sources) + ") ORDER BY kind", p.source(), String.class);
         });
     }
 
@@ -120,168 +160,156 @@ public class ExportQueryService {
     // History
     // =====================================================================================
 
-    private void streamHistory(ExportSpec spec, Collection<String> sources, ReadRestriction restriction, Sink sink) {
-        long watermark = changeBus.lastPublishedSeq();
-        runner.stream(jdbc -> {
-            SqlParams p = new SqlParams();
-            List<String> where = new ArrayList<>();
-            addIn(where, "v.source_id", sources, p);
-            addIn(where, "v.kind", spec.kinds(), p);
-            RestrictionClamp.addTo(where, "v.source_id", "v.kind", "v.geom", "v.payload", restriction, p);
-            addBbox(where, "v.geom", spec.bbox(), p);
-            addTimeBounds(jdbc, where, spec.timeField(), spec.from(), spec.to(), p,
-                    "COALESCE(v.event_time, v.observed_at)", "v.observed_at", "v.event_time", "v.seq");
-            String sql = "SELECT v.source_id, v.external_id, v.kind, v.seq, v.version, v.observed_at,"
-                    + " v.event_time, v.valid_until, v.ingested_at, NULL::varchar AS title, v.payload::text AS payload,"
-                    + " ST_AsBinary(v.geom) AS geom, ST_XMin(v.geom) AS xmin, ST_YMin(v.geom) AS ymin,"
-                    + " ST_XMax(v.geom) AS xmax, ST_YMax(v.geom) AS ymax"
-                    + " FROM record_version v" + where(where)
-                    + " ORDER BY v.kind, v.source_id, v.external_id, v.seq";
-            sink.begin(watermark);
-            jdbc.query(sql, p.source(), mapper(sink));
-            return null;
-        });
+    private void streamHistory(ExportSpec spec, List<String> sources, ReadRestriction r, Sink sink) {
+        sink.begin(changeBus.lastPublishedSeq());
+        Map<String, List<String>> kindsBySource = new LinkedHashMap<>();
+        TreeMap<String, List<String>> sourcesByKind = new TreeMap<>();
+        for (String source : sources) {
+            List<String> kinds = spec.kinds().isEmpty() ? knownKinds(source) : new ArrayList<>(new TreeSet<>(spec.kinds()));
+            kindsBySource.put(source, kinds);
+            for (String kind : kinds) {
+                sourcesByKind.computeIfAbsent(kind, k -> new ArrayList<>()).add(source);
+            }
+        }
+        for (Map.Entry<String, List<String>> kind : sourcesByKind.entrySet()) {
+            for (String source : kind.getValue()) {
+                historyPages(spec, source, " AND v.kind = :kind", Map.of("kind", kind.getKey()), r, sink);
+            }
+        }
+        if (spec.kinds().isEmpty()) {
+            for (String source : sources) {
+                List<String> known = kindsBySource.get(source);
+                if (known.isEmpty()) {
+                    historyPages(spec, source, "", Map.of(), r, sink);
+                } else {
+                    historyPages(spec, source, " AND v.kind <> ALL(CAST(:known AS text[]))",
+                            Map.of("known", ai.foresignal.store.query.PgArrays.text(known)), r, sink);
+                }
+            }
+        }
+    }
+
+    /** The kinds {@code source} declares or has heads of, sorted. */
+    private List<String> knownKinds(String source) {
+        TreeSet<String> kinds = new TreeSet<>();
+        registry.find(source).ifPresent(registered -> kinds.addAll(registered.descriptor().kinds()));
+        kinds.addAll(runner.read(properties.queryTimeout(), jdbc -> jdbc.queryForList(
+                "SELECT DISTINCT kind FROM record_head WHERE source_id = :source",
+                new org.springframework.jdbc.core.namedparam.MapSqlParameterSource("source", source), String.class)));
+        return new ArrayList<>(kinds);
+    }
+
+    private void historyPages(ExportSpec spec, String source, String kindClause, Map<String, Object> kindParams,
+            ReadRestriction r, Sink sink) {
+        String lastExternal = "";
+        long lastSeq = -1;
+        while (true) {
+            String fromExternal = lastExternal;
+            long fromSeq = lastSeq;
+            List<Map<String, Object>> page = runner.read(properties.queryTimeout(), jdbc -> {
+                SqlParams p = new SqlParams();
+                kindParams.forEach((name, value) -> p.source().addValue(name, value));
+                List<String> where = new ArrayList<>();
+                where.add("v.source_id = " + p.text(source));
+                where.add("(v.external_id, v.seq) > (" + p.text(fromExternal) + ", " + p.bigint(fromSeq) + ")");
+                addBbox(where, "v.geom", spec.bbox(), p);
+                addTime(jdbc, where, spec, p, "COALESCE(v.event_time, v.observed_at)", "v.observed_at", "v.event_time",
+                        "v.seq");
+                RestrictionClamp.addTo(where, "v.source_id", "v.kind", "v.geom", "v.payload", r, p);
+                String sql = "SELECT " + ExportRows.versionColumns("v") + " FROM record_version v WHERE "
+                        + String.join(" AND ", where) + kindClause
+                        + " ORDER BY v.external_id, v.seq LIMIT " + properties.pageSize();
+                return jdbc.query(sql, p.source(), (rs, i) -> ExportRows.map(rs));
+            });
+            page.forEach(sink::row);
+            sink.page();
+            if (page.size() < properties.pageSize()) {
+                return;
+            }
+            Map<String, Object> last = page.getLast();
+            lastExternal = (String) last.get("external_id");
+            lastSeq = (Long) last.get("seq");
+        }
     }
 
     // =====================================================================================
     // asOf and atSeq
     // =====================================================================================
 
-    private void streamAsOf(ExportSpec spec, Collection<String> sources, ReadRestriction restriction, Sink sink) {
-        if (spec.asOf() == null) {
-            throw ValidationException.forField("asOf", "is required when mode=asOf");
+    private void streamPointInTime(ExportSpec spec, List<String> sources, ReadRestriction r, PointInTime plan,
+            Sink sink) {
+        if (plan == null) {
+            throw new IllegalStateException("An asOf or atSeq export needs a point-in-time plan");
         }
-        if ((sources == null || sources.isEmpty()) && spec.kinds().isEmpty()) {
-            throw new ValidationException(ErrorCodes.EXPORT_SPEC_INVALID,
-                    "mode=asOf needs a source or kind filter.", List.of());
-        }
-        AsOfPlan plan = asOf.plan(spec.asOf(), sources, spec.kinds(), Set.of());
-        streamDistinctOn(plan.t(), plan.s(), plan, sources, spec, restriction, sink);
-    }
-
-    private void streamAtSeq(ExportSpec spec, Collection<String> sources, ReadRestriction restriction, Sink sink) {
-        if (spec.atSeq() == null) {
-            throw ValidationException.forField("atSeq", "is required when mode=atSeq");
-        }
-        Instant t = clock.instant();
-        streamDistinctOn(t, spec.atSeq(), null, sources, spec, restriction, sink);
-    }
-
-    private void streamDistinctOn(Instant t, long s, AsOfPlan plan, Collection<String> sources, ExportSpec spec,
-            ReadRestriction restriction, Sink sink) {
-        long watermark = changeBus.lastPublishedSeq();
-        runner.stream(jdbc -> {
-            sink.begin(Math.max(s, 0));
-            for (HistoryTier tier : HistoryTier.values()) {
-                long l = plan != null ? plan.lower(tier) : 0L;
-                SqlParams p = new SqlParams();
-                List<String> where = new ArrayList<>();
-                where.add("v.history_tier = " + p.add(tier.code()));
-                where.add("v.seq BETWEEN " + p.bigint(l) + " AND " + p.bigint(s));
-                addIn(where, "v.source_id", sources, p);
-                addIn(where, "v.kind", spec.kinds(), p);
-                RestrictionClamp.addTo(where, "v.source_id", "v.kind", "v.geom", "v.payload", restriction, p);
-                addBbox(where, "v.geom", spec.bbox(), p);
-                addTimeBounds(jdbc, where, spec.timeField(), spec.from(), spec.to(), p,
-                        "COALESCE(v.event_time, v.observed_at)", "v.observed_at", "v.event_time", "v.seq");
-                String cols = "v.source_id, v.external_id, v.kind, v.seq, v.version, v.observed_at, v.event_time,"
-                        + " v.valid_until, v.valid_until_explicit, v.ingested_at, v.tombstone, v.payload, v.geom";
-                String union = "SELECT " + cols + " FROM record_version v" + where(where)
-                        + " UNION ALL SELECT " + cols + " FROM " + ExportSchemaInitializer.HELD_TABLE + " v"
-                        + where(where);
-                String picked = "SELECT DISTINCT ON (source_id, external_id) * FROM (" + union + ") u"
-                        + " ORDER BY source_id, external_id, seq DESC";
-                String sql = "SELECT source_id, external_id, kind, seq, version, observed_at, event_time, valid_until,"
-                        + " ingested_at, NULL::varchar AS title, payload::text AS payload, ST_AsBinary(geom) AS geom,"
-                        + " ST_XMin(geom) AS xmin, ST_YMin(geom) AS ymin, ST_XMax(geom) AS xmax, ST_YMax(geom) AS ymax,"
-                        + " tombstone AS tombstone, valid_until_explicit AS valid_until_explicit"
-                        + " FROM (" + picked + ") c"
-                        + " ORDER BY kind, source_id, external_id";
-                jdbc.query(sql, p.source(), (RowCallbackHandler) rs -> {
-                    if (rs.getBoolean("tombstone")) {
-                        return;
-                    }
-                    if (!valid(tier, plan, rs, t)) {
-                        return;
-                    }
-                    sink.row(map(rs));
-                });
+        sink.begin(plan.s());
+        for (HistoryTier tier : HistoryTier.values()) {
+            for (String source : sources) {
+                SourceDescriptor descriptor = registry.find(source).map(reg -> reg.descriptor()).orElse(null);
+                if (descriptor == null || descriptor.historyTier() != tier) {
+                    continue;
+                }
+                pointInTimePages(spec, tier, source, r, plan, sink);
             }
-            return null;
-        });
+        }
     }
 
-    private boolean valid(HistoryTier tier, AsOfPlan plan, ResultSet rs, Instant t) throws SQLException {
-        String sourceId = rs.getString("source_id");
-        Instant ingestedAt = instant(rs.getObject("ingested_at"));
-        Instant explicit = instant(rs.getObject("valid_until_explicit"));
-        if (plan != null) {
-            return plan.valid(tier, sourceId, ingestedAt, explicit, t);
+    private void pointInTimePages(ExportSpec spec, HistoryTier tier, String source, ReadRestriction r, PointInTime plan,
+            Sink sink) {
+        List<String> holds = plan.holdsFor(source);
+        String lastExternal = "";
+        while (true) {
+            String fromExternal = lastExternal;
+            List<Map<String, Object>> page = runner.read(properties.queryTimeout(), jdbc -> {
+                SqlParams p = new SqlParams();
+                String inner = "SELECT v.source_id, v.external_id, v.kind, v.seq, v.version, v.observed_at, v.event_time,"
+                        + " v.valid_until, v.valid_until_explicit, v.ingested_at, v.tombstone, v.payload, v.geom FROM %s v"
+                        + " WHERE v.history_tier = " + p.add(tier.code()) + " AND v.source_id = " + p.text(source)
+                        + " AND v.seq BETWEEN " + p.bigint(plan.lower(tier)) + " AND " + p.bigint(plan.s())
+                        + " AND v.external_id > " + p.text(fromExternal);
+                String union = inner.formatted("record_version");
+                if (!holds.isEmpty()) {
+                    union += " UNION ALL " + inner.formatted(ExportSchemaInitializer.HELD_TABLE)
+                            + " AND v.hold_id = ANY(" + p.textArray(holds) + ")";
+                }
+                List<String> keep = new ArrayList<>();
+                if (!spec.kinds().isEmpty()) {
+                    keep.add("c.kind = ANY(" + p.textArray(spec.kinds()) + ")");
+                }
+                addBbox(keep, "c.geom", spec.bbox(), p);
+                addTime(jdbc, keep, spec, p, "COALESCE(c.event_time, c.observed_at)", "c.observed_at", "c.event_time",
+                        "c.seq");
+                RestrictionClamp.addTo(keep, "c.source_id", "c.kind", "c.geom", "c.payload", r, p);
+                String keepExpression = keep.isEmpty() ? "TRUE" : "(" + String.join(" AND ", keep) + ")";
+                String sql = "SELECT " + ExportRows.versionColumns("c") + ", c.tombstone, c.valid_until_explicit,"
+                        + " " + keepExpression + " AS keep_row"
+                        + " FROM (SELECT DISTINCT ON (u.external_id) u.* FROM (" + union + ") u"
+                        + " ORDER BY u.external_id, u.seq DESC LIMIT " + properties.pageSize() + ") c"
+                        + " ORDER BY c.external_id";
+                return jdbc.query(sql, p.source(), (rs, i) -> {
+                    Map<String, Object> row = ExportRows.map(rs);
+                    boolean emit = rs.getBoolean("keep_row") && !rs.getBoolean("tombstone")
+                            && plan.valid(tier, source, (Instant) row.get("ingested_at"),
+                                    ExportRows.instant(rs.getObject("valid_until_explicit")));
+                    row.put("__emit", emit);
+                    return row;
+                });
+            });
+            for (Map<String, Object> row : page) {
+                if (Boolean.TRUE.equals(row.remove("__emit"))) {
+                    sink.row(row);
+                }
+            }
+            sink.page();
+            if (page.size() < properties.pageSize()) {
+                return;
+            }
+            lastExternal = (String) page.getLast().get("external_id");
         }
-        Duration ttl = registry.find(sourceId).map(r -> r.descriptor().recordTtl()).orElse(null);
-        if (tier == HistoryTier.STANDARD && explicit != null) {
-            return explicit.isAfter(t);
-        }
-        return ttl == null || (ingestedAt != null && ingestedAt.plus(ttl).isAfter(t));
     }
 
     // =====================================================================================
     // Shared SQL assembly
     // =====================================================================================
-
-    private static final String CURRENT_PAYLOAD = "jsonb_strip_nulls(h.payload || l.kinematic)";
-
-    private RowCallbackHandler mapper(Sink sink) {
-        return rs -> sink.row(map(rs));
-    }
-
-    private static Map<String, Object> map(ResultSet rs) throws SQLException {
-        Map<String, Object> row = new LinkedHashMap<>();
-        row.put("source_id", rs.getString("source_id"));
-        row.put("external_id", rs.getString("external_id"));
-        row.put("kind", rs.getString("kind"));
-        row.put("seq", rs.getLong("seq"));
-        row.put("version", rs.getInt("version"));
-        row.put("observed_at", instant(rs.getObject("observed_at")));
-        row.put("event_time", instant(rs.getObject("event_time")));
-        row.put("valid_until", instant(rs.getObject("valid_until")));
-        row.put("ingested_at", instant(rs.getObject("ingested_at")));
-        row.put("title", rs.getString("title"));
-        row.put("payload", rs.getString("payload"));
-        row.put("geometry", rs.getBytes("geom"));
-        Double xmin = dbl(rs.getObject("xmin"));
-        if (xmin != null) {
-            row.put("bbox", new double[] {xmin, dbl(rs.getObject("ymin")), dbl(rs.getObject("xmax")),
-                dbl(rs.getObject("ymax"))});
-        }
-        return row;
-    }
-
-    private static Instant instant(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof OffsetDateTime odt) {
-            return odt.toInstant();
-        }
-        if (value instanceof java.sql.Timestamp ts) {
-            return ts.toInstant();
-        }
-        if (value instanceof Instant i) {
-            return i;
-        }
-        return null;
-    }
-
-    private static Double dbl(Object value) {
-        return value instanceof Number n ? n.doubleValue() : null;
-    }
-
-    private static void addIn(List<String> where, String column, Collection<String> values, SqlParams p) {
-        if (values != null && !values.isEmpty()) {
-            where.add(column + " = ANY(" + p.textArray(new java.util.LinkedHashSet<>(values)) + ")");
-        }
-    }
 
     private static void addBbox(List<String> where, String column, double[] bbox, SqlParams p) {
         if (bbox == null) {
@@ -289,15 +317,21 @@ public class ExportQueryService {
         }
         String envelope = "ST_MakeEnvelope(" + p.dbl(bbox[0]) + ", " + p.dbl(bbox[1]) + ", " + p.dbl(bbox[2]) + ", "
                 + p.dbl(bbox[3]) + ", 4326)";
-        where.add(column + " && " + envelope + " AND ST_Intersects(" + column + ", " + envelope + ")");
+        where.add("(" + column + " && " + envelope + " AND ST_Intersects(" + column + ", " + envelope + "))");
     }
 
-    private void addTimeBounds(NamedParameterJdbcTemplate jdbc, List<String> where, String field, Instant since,
-            Instant until, SqlParams p, String effective, String observed, String event, String seqColumn) {
-        if (since == null && until == null || field == null) {
+    /**
+     * Adds the {@code from}/{@code to} window on {@code timeField} (014 semantics): {@code ingested}
+     * becomes a seq range through {@code seq_clock}; the others compare the chosen column.
+     */
+    private void addTime(NamedParameterJdbcTemplate jdbc, List<String> where, ExportSpec spec, SqlParams p,
+            String effective, String observed, String event, String seqColumn) {
+        Instant since = spec.from();
+        Instant until = spec.to();
+        if (since == null && until == null) {
             return;
         }
-        String axis = field.toLowerCase(Locale.ROOT);
+        String axis = spec.timeField() == null ? "effective" : spec.timeField();
         if ("ingested".equals(axis)) {
             if (since != null) {
                 where.add(seqColumn + " > " + p.bigint(seqClock.lastSeqBefore(jdbc, since)));
@@ -320,11 +354,7 @@ public class ExportQueryService {
         }
     }
 
-    private static String where(List<String> clauses) {
-        return clauses.isEmpty() ? "" : " WHERE " + String.join(" AND ", clauses);
-    }
-
-    /** The envelope of {@code placeId}, or null. Used by the job service to resolve a place to a box. */
+    /** The envelope {@code [minX, minY, maxX, maxY]} of {@code geometry}, or null when empty. */
     public static double[] envelopeOf(org.locationtech.jts.geom.Geometry geometry) {
         if (geometry == null || geometry.isEmpty()) {
             return null;
@@ -333,11 +363,11 @@ public class ExportQueryService {
         return new double[] {e.getMinX(), e.getMinY(), e.getMaxX(), e.getMaxY()};
     }
 
-    /** Exposes the involved descriptors for the licence summary. */
+    /** The descriptors of {@code sources} that are registered, in order. */
     public List<SourceDescriptor> descriptors(Collection<String> sources) {
         List<SourceDescriptor> out = new ArrayList<>();
         for (String id : sources) {
-            registry.find(id).ifPresent(r -> out.add(r.descriptor()));
+            registry.find(id).ifPresent(reg -> out.add(reg.descriptor()));
         }
         return out;
     }

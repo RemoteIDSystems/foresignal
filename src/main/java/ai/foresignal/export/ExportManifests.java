@@ -2,14 +2,12 @@ package ai.foresignal.export;
 
 import ai.foresignal.provenance.ManifestSigner;
 import ai.foresignal.provenance.SigningKeyService;
-import ai.foresignal.settings.AppSettingService;
-import ai.foresignal.settings.SettingKeys;
+import ai.foresignal.security.InstallIdService;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -21,20 +19,46 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Writes an export's {@code manifest.json}, its detached JWS, {@code licence.json} and
- * {@code ATTRIBUTION.txt} (prompt 111, 109). The signed manifest is the canonical record of the
- * export's contents and rights.
+ * Writes the sidecars of an export, snapshot or pack (prompt 111, 109): {@code manifest.json} (the
+ * {@code ExportManifest}: every data file with its SHA-256, the spec, the watermark and the license
+ * summary), its detached Ed25519 JWS {@code manifest.json.jws} ({@link ManifestSigner}, verifiable
+ * against {@code /.well-known/jwks.json}), {@code licence.json} (the {@code ExportLicenceSummary})
+ * and {@code ATTRIBUTION.txt} (one attribution per line, plus the personal-use notice when it
+ * applies).
  */
 @Component
 public class ExportManifests {
 
-    /** The signing algorithm name carried in the manifest. */
+    /** The signing algorithm named in the manifest. */
     public static final String ALG = "EdDSA";
 
-    /** One file of an export. */
+    /** The manifest file. */
+    public static final String MANIFEST = "manifest.json";
+
+    /** The detached JWS of the manifest. */
+    public static final String SIGNATURE = "manifest.json.jws";
+
+    /** The license sidecar. */
+    public static final String LICENSE = "licence.json";
+
+    /** The attribution sidecar. */
+    public static final String ATTRIBUTION = "ATTRIBUTION.txt";
+
+    /** The sidecar names, which are never data files. */
+    public static final List<String> SIDECARS = List.of(MANIFEST, SIGNATURE, LICENSE, ATTRIBUTION);
+
+    /**
+     * One data file of a job.
+     *
+     * @param name the file name
+     * @param mediaType its media type
+     * @param bytes its size
+     * @param sha256 its SHA-256, lowercase hex
+     * @param rows the rows (or tiles) it holds
+     */
     public record ExportFile(String name, String mediaType, long bytes, String sha256, long rows) {
 
-        /** The JSON shape of a manifest file entry. */
+        /** The manifest entry. */
         public Map<String, Object> toMap() {
             Map<String, Object> out = new LinkedHashMap<>();
             out.put("name", name);
@@ -49,66 +73,81 @@ public class ExportManifests {
     private final JsonMapper jsonMapper;
     private final ManifestSigner signer;
     private final SigningKeyService keys;
-    private final AppSettingService settings;
+    private final InstallIdService installId;
 
     /** Creates the writer. */
     public ExportManifests(JsonMapper jsonMapper, ManifestSigner signer, SigningKeyService keys,
-            AppSettingService settings) {
+            InstallIdService installId) {
         this.jsonMapper = jsonMapper;
         this.signer = signer;
         this.keys = keys;
-        this.settings = settings;
+        this.installId = installId;
     }
 
-    /** Writes the sidecars and returns the manifest's SHA-256. */
-    public String write(Path dir, ExportJobEntity job, List<ExportFile> files, long watermarkSeq, Long atSeq,
-            Map<String, Object> licenceSummary, List<String> attributions) {
+    /**
+     * Writes the four sidecars into {@code dir}.
+     *
+     * @return the SHA-256 of {@code manifest.json}
+     */
+    public String write(Path dir, ExportJobEntity job, List<ExportFile> files, Long watermarkSeq, Long atSeq,
+            Map<String, Object> licenceSummary) {
         try {
             Files.createDirectories(dir);
+            Map<String, Object> license = licenceSummary == null ? Map.of() : licenceSummary;
             Map<String, Object> manifest = new LinkedHashMap<>();
             manifest.put("manifestVersion", 1);
             manifest.put("id", job.getId());
             manifest.put("kind", job.getKind());
             manifest.put("format", job.getFormat());
-            manifest.put("instanceId", settings.getOrDefault(SettingKeys.INSTALL_ID, String.class, () -> "unknown"));
+            manifest.put("instanceId", installId.installId());
             manifest.put("createdAt", job.getCreatedAt().toString());
             manifest.put("watermarkSeq", watermarkSeq);
             manifest.put("atSeq", atSeq);
             manifest.put("spec", job.getSpec());
-            manifest.put("rowCount", job.getRowCount());
-            List<Map<String, Object>> fileMaps = new ArrayList<>();
+            manifest.put("rowCount", job.getRowCount() == null ? 0L : job.getRowCount());
+            List<Map<String, Object>> entries = new ArrayList<>();
             for (ExportFile file : files) {
-                fileMaps.add(file.toMap());
+                entries.add(file.toMap());
             }
-            manifest.put("files", fileMaps);
-            manifest.put("licence", licenceSummary);
+            manifest.put("files", entries);
+            manifest.put("licence", license);
             manifest.put("personalUse", job.isPersonalUse());
             Map<String, Object> signature = new LinkedHashMap<>();
             signature.put("alg", ALG);
             signature.put("kid", keys.activeKid());
-            signature.put("file", "manifest.json.jws");
+            signature.put("file", SIGNATURE);
             manifest.put("signature", signature);
             byte[] bytes = jsonMapper.writeValueAsBytes(manifest);
-            Files.write(dir.resolve("manifest.json"), bytes, StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING);
-            Files.writeString(dir.resolve("manifest.json.jws"), signer.sign(bytes), StandardCharsets.UTF_8);
-            Files.write(dir.resolve("licence.json"), jsonMapper.writeValueAsBytes(licenceSummary),
-                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            StringBuilder attribution = new StringBuilder();
-            for (String line : attributions) {
-                attribution.append(line).append('\n');
-            }
-            if (job.isPersonalUse()) {
-                attribution.append("Personal use only — do not redistribute.\n");
-            }
-            Files.writeString(dir.resolve("ATTRIBUTION.txt"), attribution.toString(), StandardCharsets.UTF_8);
+            Files.write(dir.resolve(MANIFEST), bytes);
+            Files.writeString(dir.resolve(SIGNATURE), signer.sign(bytes), StandardCharsets.UTF_8);
+            Files.write(dir.resolve(LICENSE), jsonMapper.writeValueAsBytes(license));
+            Files.writeString(dir.resolve(ATTRIBUTION), attributionText(license), StandardCharsets.UTF_8);
             return sha256(bytes);
         } catch (IOException e) {
             throw new UncheckedIOException("Could not write the export manifest", e);
         }
     }
 
-    /** The SHA-256 of a byte array, lowercase hex. */
+    /** The {@code ATTRIBUTION.txt} text of a license summary. */
+    static String attributionText(Map<String, Object> license) {
+        StringBuilder text = new StringBuilder();
+        for (String line : ExportLicenceService.attributionLines(license)) {
+            text.append(line).append('\n');
+        }
+        if (Boolean.TRUE.equals(license.get("personalUseOnly"))) {
+            text.append(ExportLicenceService.PERSONAL_USE_NOTICE);
+            if (license.get("personalUseSources") instanceof List<?> sources && !sources.isEmpty()) {
+                text.append(" Sources included for personal use: ");
+                List<String> names = new ArrayList<>();
+                sources.forEach(s -> names.add(String.valueOf(s)));
+                text.append(String.join(", ", names)).append('.');
+            }
+            text.append('\n');
+        }
+        return text.toString();
+    }
+
+    /** The SHA-256 of {@code bytes}, lowercase hex. */
     public static String sha256(byte[] bytes) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
@@ -117,7 +156,7 @@ public class ExportManifests {
         }
     }
 
-    /** The SHA-256 of a file, lowercase hex. */
+    /** The SHA-256 of {@code file}, lowercase hex, read in 64 KiB blocks. */
     public static String sha256(Path file) throws IOException {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");

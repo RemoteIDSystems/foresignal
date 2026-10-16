@@ -1,17 +1,3 @@
-deleteExport 111
-createExport 111
-listExports 111
-downloadExport 111
-getExportManifest 111
-createSnapshot 111
-listHolds 111
-createHold 111
-deleteHold 111
-listHoldVersions 111
-getArchiveSettings 111
-updateArchiveSettings 111
-getArchiveCatalog 111
-createPack 111
 ogcItems 112
 ogcItem 112
 ogcQueryables 112
