@@ -3,9 +3,10 @@
 | | |
 |---|---|
 | Prompt | 096-Satellite-Scenes-STAC.md |
-| Status | Complete |
+| Status | Complete (post-review fixes 2026-10-16) |
 | Implementation commit | c0fc6425d435ec7c11da6b020045091fa93f3692 |
-| Date | 2026-10-14 |
+| Post-review fix commit | 8a04064d6bba9f8f3f31f8b5444d3b2f153c265d (plus the framework commit 94a06bdd0c778319829d3d1be589a805432ddfea) |
+| Date | 2026-10-14; corrected 2026-10-16 |
 
 ## Summary
 
@@ -20,17 +21,23 @@ default). Every source is STANDARD/ALL, no TTL, `observedAtMode=UPSTREAM`, `zero
 interval 1 h (min 15 min), budget 4/min and 300/day, `maxResponseBytes` 8 MB, `defaultRetention` 90 d (the
 `bulk-event` class). `aoi` (a bbox or a 036 place id) is required, so enabling without it fails with 400
 `VALIDATION_FAILED` (the `ParamSpec` is required). A bbox that crosses the antimeridian is split into two
-requests.
+requests. A place AOI is searched with the place's own `area` (since the review; before it, a ±0.25° box around
+the place point), split into eastern and western requests when it straddles the antimeridian.
 
 **2. Search.** `POST {base}/search` with `collections`, `intersects` (a place AOI) or `bbox` (a box AOI),
 `datetime: "{from}/.."`, `query: {"eo:cloud_cover": {"lt": maxCloudCover}}`, `sortby` newest-first,
 `limit` 100 and the `fields.include` projection. The `query` extension is used (CQL2 `filter` is silently
 ignored by Earth Search). The `rel=next` link's POST body (an opaque `next` token) is followed verbatim, at
-most `maxPages`; a page whose items are older than `from` ends the run. The newest acquisition is stored in
-adapter state after a successful run (`stac:lastAcquisition`), and the next run starts 2 days behind it.
+most `maxPages` pages per AOI part and, since the review, never more requests per run than the 4/min budget
+(shared by the parts of a split AOI); a page whose items are older than `from` ends the run. The newest
+acquisition is stored in adapter state after a successful run (`stac:lastAcquisition`; it commits with the
+fetch's records), and the next run starts 2 days behind it.
 
 **3. `StacItemParser` (pure).** Kind `satellite-scene`, `externalId = {collection}:{id}`,
-`eventTime = properties.datetime`, `observedAt = properties.updated ?? created` (fixed per collection).
+`eventTime = properties.datetime`, `observedAt` read from the one property the collection fixes
+(`StacSource.observedAtField`: `updated` for all three, decided by the fixtures; an item without it is skipped).
+As implemented in c0fc642 the parser chose `updated ?? created` per item, contrary to the prompt; fixed in
+8a04064. A malformed footprint, or one whose AOI intersection fails, drops that item only and is counted.
 Footprint via Foresignal's GeoJSON reader (raised vertex cap), split at the antimeridian into a MultiPolygon
 (the shared `raster.geotiff.Antimeridian` helper) and simplified with `TopologyPreservingSimplifier` below
 9,500 vertices. Payload `collection, platform, constellation, instruments, cloudCover` (1 dp, absent for
@@ -57,6 +64,9 @@ never fetches imagery.
 **Created, main** (`src/main/java/ai/foresignal/source/adapters/stac/`)
 - `package-info.java`, `StacSource.java`, `StacSources.java`, `Footprints.java`, `StacItemParser.java`,
   `EarthSearchAdapter.java`, `EarthSearchFamily.java`.
+
+**Modified in the review**
+- `source/spi/PlacePoints.java` (`area(placeId)`, default empty) and `place/PlaceService.java` (implements it).
 
 **Created, test** (`src/test/java/ai/foresignal/source/adapters/stac/`)
 - `StacItemParserTest.java`, `EarthSearchAdapterTest.java`, `StacDescriptorsTest.java`, `StacIngestIT.java`.
@@ -104,6 +114,11 @@ never fetches imagery.
 8. **`src/test/.../StacItemParserTest` simplification fixture is generated in-memory** (a 12,000-vertex
    circle) rather than committed, to keep the repository small; the three search fixtures are trimmed real
    captures.
+9. **A place area reaches the adapter through a new `PlacePoints.area` SPI method** (adapters see places only
+   through SPI types); a place without an area, and every test double, keeps the point box.
+10. **`maxPages` is bounded by the request budget.** The prompt's default `maxPages` 5 exceeds the 4/min
+    budget it also sets; a run sends at most 4 searches, and a search that the budget cuts short is logged
+    (older scenes in the window are then not read, because the prompt's newest-first sort cannot resume).
 
 ## Issues found / open questions
 
@@ -120,6 +135,9 @@ never fetches imagery.
    (`sentinel-s1-l1c`) thumbnails are requester-pays; a client that wants them must mint its own credentials.
 6. **No schema change**, so no Flyway work is expected at 144; the only new persisted state is the adapter
    key `stac:lastAcquisition`.
+7. **Budget truncation loses the oldest scenes of a window.** With the newest-first sort the prompt requires,
+   a window holding more than 400 scenes per AOI part cannot be resumed; this is logged, and only a first run
+   over a very large AOI can hit it.
 
 ## Tests written (not run)
 
@@ -138,6 +156,9 @@ never fetches imagery.
   - A reprocessed item (only `updated` moved) has an identical payload and a stable static hash
     (`SnapshotContract`).
   - A non-ItemCollection body is a format change.
+  - A malformed footprint drops that item only and is counted (`Result.malformed`).
+  - `observedAt` comes from the collection's fixed property (an item with only `created` is skipped under
+    `updated` and read under `created`); every reviewed feed uses `updated`.
 - **`EarthSearchAdapterTest`** (`@IntegrationTest`, WireMock via `AdapterHttpHarness`):
   - the descriptor validates;
   - the POST body carries `collections`, `bbox`, `datetime`, the `query` cloud clause, `sortby`, `limit`
@@ -146,7 +167,10 @@ never fetches imagery.
   - an item older than the window ends the run after one page;
   - no request is made outside `POST /search`;
   - adapter state advances only after a successful run (a 500 leaves it unset);
-  - a 429 with `Retry-After` puts the source in backoff.
+  - a 429 with `Retry-After` puts the source in backoff;
+  - a place AOI is searched with the place's area (`intersects`, not a point box);
+  - a place area across the antimeridian becomes two request parts;
+  - a run's searches fit the 4/min budget, shared by the AOI parts.
 - **`StacDescriptorsTest`:**
   - the family registers the three feeds and validates the list;
   - Sentinel-1 is off by default, the other two on;
@@ -172,7 +196,7 @@ never fetches imagery.
 
 ## Notes for the next prompt
 
-1. **097 checkpoint:** first run of every 096 test. New source ids `stac-sentinel2`, `stac-landsat`,
+1. **097 checkpoint** (and the next one for the review additions): first run of every 096 test. New source ids `stac-sentinel2`, `stac-landsat`,
    `stac-sentinel1`; three new fixture directories each with a README; `WeatherIngestSupport` gained the
    STAC base-URL property and the three ids in `SOURCES`; `FamilyDefaultsTest` gained `EarthSearchAdapter`
    (`bulk-event`).
@@ -183,3 +207,20 @@ never fetches imagery.
 4. **143:** recapture the three fixture sets per their READMEs; confirm the Sentinel-2 `rel=next` presence and
    that the C1 collection still uses `grid:code`.
 5. **144 (Flyway):** no schema change; the only new adapter-state key is `stac:lastAcquisition`.
+
+## Post-review fixes (2026-10-16)
+
+Commit: `8a04064d6bba9f8f3f31f8b5444d3b2f153c265d`. The framework commit
+`94a06bdd0c778319829d3d1be589a805432ddfea` makes `stac:lastAcquisition` commit only after the run's records are
+written.
+
+| # | Finding | Fix |
+|---|---|---|
+| 1 | Place AOI used only the point ±0.25° | `PlacePoints.area` / `PlaceService.area`; `EarthSearchAdapter.areaAoi` searches the area with `intersects`, split east/west when its parts straddle the antimeridian, and `aoiCoverPct` is measured against it. Tested. |
+| 2 | One malformed footprint failed the page | The parser catches a per-item failure, drops and counts it (`Result.malformed`, logged by the adapter); `Footprints.aoiCoverPct` retries a `TopologyException` once with `GeometryFixer`. Tested. |
+| 3 | 4/min budget below `maxPages` 5 (×2 split) | `pagesPerPart = min(maxPages, budget / parts)`, at least 1. Tested. |
+| 4 | `observedAt` chosen per item | `StacSource.observedAtField` (`updated` for all three) passed in `StacItemParser.Options`; an item without it is skipped. Tested. |
+
+CR corrections made in this document: `observedAt` was described as fixed per collection while the code chose
+it per item; the paging description did not disclose that `maxPages` could exceed the budget; the place AOI was
+described as an `intersects` search of the place without saying it was a box around the point.
