@@ -2,13 +2,16 @@ package ai.foresignal.source.adapters.wikidata;
 
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.UpstreamFormatException;
-import java.nio.charset.StandardCharsets;
+import ai.foresignal.source.support.ReferenceStreams;
+import ai.foresignal.source.support.ReferenceSupport;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * The Wikidata SPARQL result for nuclear power plants (prompt 094).
@@ -16,54 +19,76 @@ import tools.jackson.databind.json.JsonMapper;
  * <p>Property ids: {@code P31} instance of, {@code Q134447} nuclear power plant, {@code P625} coordinate
  * location, {@code P17} country, {@code P2109} nominal power capacity, {@code P5817} state of use, {@code P571}
  * inception. {@code externalId} = {@code wikidata:{Qid}}.
+ *
+ * <p><strong>One row per plant, deterministically</strong> (2026-10 review). Country, capacity, state of use,
+ * inception and even the coordinate can be multi-valued on Wikidata; unconstrained OPTIONALs would return one
+ * binding per combination and an arbitrary one would win. The query therefore groups by item and aggregates each
+ * property with a fixed rule: the alphabetically first English label of the country and state of use, the
+ * earliest inception, the alphabetically first coordinate, and the largest best-rank capacity. Capacity is read
+ * from the statement's <em>normalized</em> value ({@code psn:P2109}), which Wikibase converts to the SI unit
+ * (watts) whatever unit the editor used (MW, kW, GW), and divided by 10<sup>6</sup> here, so {@code capacityMw} is
+ * always megawatts. The parser also drops a repeated Qid, keeping the first, should the endpoint ever return one.
  */
 public final class WikidataNuclearParser {
 
     /** The record kind. */
     public static final String KIND = "nuclear-plant";
 
+    /** Watts per megawatt. */
+    static final double WATTS_PER_MW = 1_000_000d;
+
     /** The SPARQL query, fixed in code (the operator cannot change it). */
     public static final String QUERY =
             """
-            SELECT ?item ?itemLabel ?coord ?countryLabel ?capacity ?stateLabel ?inception WHERE {
+            SELECT ?item (MIN(STR(?label)) AS ?itemLabel) (MIN(STR(?coord)) AS ?location)
+                   (MIN(STR(?countryName)) AS ?countryLabel) (MAX(?capacityW) AS ?capacityWatts)
+                   (MIN(STR(?stateName)) AS ?stateLabel) (MIN(?inceptionDate) AS ?inception)
+            WHERE {
               ?item wdt:P31/wdt:P279* wd:Q134447 .
               ?item wdt:P625 ?coord .
-              OPTIONAL { ?item wdt:P17 ?country . }
-              OPTIONAL { ?item wdt:P2109 ?capacity . }
-              OPTIONAL { ?item wdt:P5817 ?state . }
-              OPTIONAL { ?item wdt:P571 ?inception . }
-              SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+              OPTIONAL { ?item rdfs:label ?label . FILTER(LANG(?label) = "en") }
+              OPTIONAL { ?item wdt:P17 ?country . ?country rdfs:label ?countryName . FILTER(LANG(?countryName) = "en") }
+              OPTIONAL { ?item p:P2109 ?capacityStatement .
+                         ?capacityStatement a wikibase:BestRank ;
+                                            psn:P2109/wikibase:quantityAmount ?capacityW . }
+              OPTIONAL { ?item wdt:P5817 ?state . ?state rdfs:label ?stateName . FILTER(LANG(?stateName) = "en") }
+              OPTIONAL { ?item wdt:P571 ?inceptionDate . }
             }
+            GROUP BY ?item
+            ORDER BY ?item
             """;
-
-    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private WikidataNuclearParser() {}
 
-    /** Parses a SPARQL JSON results document. */
+    /** Parses a SPARQL JSON results document into a list. */
     public static List<NormalizedRecord> parse(byte[] body) {
-        JsonNode root;
-        try {
-            root = JSON.readTree(body);
-        } catch (RuntimeException e) {
-            throw new UpstreamFormatException("Wikidata SPARQL response could not be parsed",
-                    new String(body, 0, Math.min(500, body.length), StandardCharsets.UTF_8), e);
-        }
-        JsonNode bindings = root == null ? null : root.path("results").path("bindings");
-        if (bindings == null || !bindings.isArray()) {
-            throw new UpstreamFormatException("Wikidata SPARQL response has no results.bindings array", "");
-        }
-        List<NormalizedRecord> out = new ArrayList<>(bindings.size());
-        for (JsonNode binding : bindings) {
-            NormalizedRecord record = map(binding);
-            if (record != null) {
-                out.add(record);
-            }
-        }
+        List<NormalizedRecord> out = new ArrayList<>();
+        parse(body, out::add);
         return out;
     }
 
-    /** One binding, or null without an item or a coordinate. */
+    /**
+     * Streams a SPARQL JSON results document into {@code sink}, one binding at a time; a binding repeating a Qid
+     * already handed over is skipped and counted.
+     *
+     * @throws UpstreamFormatException when the document does not parse or has no {@code results.bindings} array
+     */
+    public static ReferenceSupport.ParseCounts parse(byte[] body, Consumer<NormalizedRecord> sink) {
+        int[] counts = new int[3];
+        Set<String> seen = new HashSet<>();
+        ReferenceStreams.forEachElement(body, "Wikidata SPARQL response", binding -> {
+            NormalizedRecord record = map(binding);
+            if (record == null || !seen.add(record.externalId())) {
+                counts[1]++;
+            } else {
+                sink.accept(record);
+                counts[0]++;
+            }
+        }, "results", "bindings");
+        return new ReferenceSupport.ParseCounts(counts[0], counts[1], counts[2]);
+    }
+
+    /** One binding, or null without an item. */
     static NormalizedRecord map(JsonNode binding) {
         String item = value(binding, "item");
         if (item == null) {
@@ -73,14 +98,27 @@ public final class WikidataNuclearParser {
         NormalizedRecord.Builder b = NormalizedRecord.builder("wikidata:" + qid, KIND)
                 .put("name", value(binding, "itemLabel"))
                 .put("country", value(binding, "countryLabel"))
-                .put("capacityMw", number(value(binding, "capacity")))
+                .put("capacityMw", capacityMw(binding))
                 .put("stateOfUse", value(binding, "stateLabel"))
                 .put("inception", isoInstant(value(binding, "inception")));
-        double[] point = point(value(binding, "coord"));
+        String location = value(binding, "location");
+        double[] point = point(location != null ? location : value(binding, "coord"));
         if (point != null) {
             b.point(point[0], point[1]);
         }
         return b.build();
+    }
+
+    /**
+     * The capacity in megawatts: the normalized {@code capacityWatts} (SI watts) divided by 10<sup>6</sup>, or, for
+     * a result in the pre-review shape, a bare {@code capacity} taken as megawatts.
+     */
+    static Double capacityMw(JsonNode binding) {
+        Double watts = number(value(binding, "capacityWatts"));
+        if (watts != null) {
+            return watts / WATTS_PER_MW;
+        }
+        return number(value(binding, "capacity"));
     }
 
     /** The {@code Q…} id from a Wikidata entity URI. */

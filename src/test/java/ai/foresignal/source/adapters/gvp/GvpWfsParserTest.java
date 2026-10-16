@@ -39,4 +39,28 @@ class GvpWfsParserTest {
         NormalizedRecord ancient = records.get(2);
         assertThat(ancient.payload()).containsEntry("lastEruptionYear", -1200L);
     }
+
+    @Test
+    @DisplayName("streams into a sink, counting a feature without a number and a malformed geometry kept bare")
+    void streamsAndCounts() {
+        String body = """
+                {"type":"FeatureCollection","features":[
+                  {"type":"Feature","properties":{"Volcano_Number":"1","Volcano_Name":"Good"},
+                   "geometry":{"type":"Point","coordinates":[15.0,37.7]}},
+                  {"type":"Feature","properties":{"Volcano_Number":"2","Volcano_Name":"Bad geometry"},
+                   "geometry":{"type":"Point","coordinates":"nowhere"}},
+                  {"type":"Feature","properties":{"Volcano_Name":"No number"},"geometry":null}
+                ]}
+                """;
+        List<NormalizedRecord> out = new java.util.ArrayList<>();
+        ai.foresignal.source.support.ReferenceSupport.ParseCounts counts =
+                GvpWfsParser.parse(body.getBytes(java.nio.charset.StandardCharsets.UTF_8), out::add);
+
+        assertThat(out).extracting(NormalizedRecord::externalId).containsExactly("1", "2");
+        assertThat(out.get(0).geometry()).isNotNull();
+        assertThat(out.get(1).geometry()).isNull();
+        assertThat(counts.records()).isEqualTo(2);
+        assertThat(counts.skipped()).isEqualTo(1);
+        assertThat(counts.badGeometry()).isEqualTo(1);
+    }
 }

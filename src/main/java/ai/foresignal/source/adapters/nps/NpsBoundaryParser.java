@@ -51,6 +51,14 @@ public final class NpsBoundaryParser {
 
     /** One feature, or null without a {@code UNIT_CODE}. */
     public static NormalizedRecord map(JsonNode feature) {
+        return map(feature, () -> {});
+    }
+
+    /**
+     * One feature, or null without a {@code UNIT_CODE}. A malformed geometry keeps the record without geometry
+     * and calls {@code onBadGeometry}, so the adapter can count it rather than lose it silently.
+     */
+    public static NormalizedRecord map(JsonNode feature, Runnable onBadGeometry) {
         JsonNode properties = feature.get("properties");
         String unitCode = text(properties, "UNIT_CODE");
         if (unitCode == null) {
@@ -59,8 +67,9 @@ public final class NpsBoundaryParser {
         FeatureGeometry.Result geometry;
         try {
             geometry = FeatureGeometry.fromGeoJson(feature.get("geometry"));
-        } catch (UpstreamFormatException e) {
+        } catch (RuntimeException e) {
             geometry = FeatureGeometry.Result.NONE;
+            onBadGeometry.run();
         }
         Quality quality = geometry.simplified()
                 ? Quality.none().withExtra("geom.simplified", true)

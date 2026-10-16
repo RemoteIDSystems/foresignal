@@ -1356,7 +1356,7 @@
             "name": "allowShrink",
             "in": "query",
             "required": false,
-            "description": "Allow complete-set reconciliation to tombstone more than `reconcile.maxAbsentRatio` of the dataset, once (094)",
+            "description": "Allow complete-set reconciliation to tombstone more than `reconcile.maxAbsentRatio` of the dataset, once (094). The run sends no stored conditional-GET validators, so it re-reads every file in full.",
             "schema": {
               "type": "boolean",
               "default": false

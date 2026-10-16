@@ -72,14 +72,20 @@ public class WorldPortIndexAdapter implements PollingAdapter {
             throw new UpstreamFormatException(ID + (response.status() != 200
                     ? ": the WPI answered HTTP " + response.status() : ": the WPI response exceeds the cap"), "");
         }
-        List<ai.foresignal.source.spi.NormalizedRecord> records;
+        // Streamed port by port into chunks: the dataset is never held as one list of records.
+        ReferenceSupport.ChunkEmitter chunks = ReferenceSupport.chunks(ctx);
+        ReferenceSupport.ParseCounts counts;
         try {
-            records = WpiParser.parse(response.body());
+            counts = WpiParser.parse(response.body(), chunks);
         } catch (UpstreamFormatException e) {
             SourceHttp.forgetValidators(ctx.state(), STATE_KEY);
             throw e;
         }
-        ReferenceSupport.emit(ctx, records);
+        chunks.flush();
+        if (counts.skipped() > 0) {
+            ctx.log().info("{}: {} record(s), {} port(s) without a number skipped", ID, counts.records(),
+                    counts.skipped());
+        }
         return FetchResult.complete(List.of(), release(response));
     }
 

@@ -100,6 +100,19 @@ public interface SourceHttp {
             throws AdapterException;
 
     /**
+     * {@link #post(URI, String, byte[], Map)} whose response may take up to {@code requestTimeout} rather than the
+     * client's default (20 s): for an upstream with a documented longer limit, such as the Wikidata SPARQL
+     * endpoint's 60 s query timeout (prompt 094). The fetch's own {@code fetchTimeout} still bounds the run.
+     *
+     * <p>The default ignores the timeout (a hand-built test double); {@code UpstreamClient}'s implementation
+     * applies it.
+     */
+    default UpstreamResponse post(URI uri, String contentType, byte[] body, Map<String, String> headers,
+            java.time.Duration requestTimeout) throws AdapterException {
+        return post(uri, contentType, body, headers);
+    }
+
+    /**
      * A ranged GET, for reading part of a large object.
      *
      * <p>Accepts only 206, or 200 when {@code start} is 0, and rejects a body shorter than the

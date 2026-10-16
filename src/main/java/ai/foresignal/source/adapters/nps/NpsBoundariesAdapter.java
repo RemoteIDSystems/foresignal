@@ -72,14 +72,24 @@ public class NpsBoundariesAdapter implements PollingAdapter {
         if (fetch.unchanged()) {
             return FetchResult.unchanged();
         }
-        java.util.ArrayList<NormalizedRecord> records = new java.util.ArrayList<>(fetch.size());
+        // Records go straight into chunks; no list of the dataset's records is built. (The 073 kit itself holds
+        // the layer's feature trees, 442 of them, while it pages.)
+        ReferenceSupport.ChunkEmitter chunks = ReferenceSupport.chunks(ctx);
+        int[] badGeometry = {0};
+        int skipped = 0;
         for (JsonNode feature : fetch) {
-            NormalizedRecord record = NpsBoundaryParser.map(feature);
+            NormalizedRecord record = NpsBoundaryParser.map(feature, () -> badGeometry[0]++);
             if (record != null) {
-                records.add(record);
+                chunks.accept(record);
+            } else {
+                skipped++;
             }
         }
-        ReferenceSupport.emit(ctx, records);
+        chunks.flush();
+        if (skipped > 0 || badGeometry[0] > 0) {
+            ctx.log().info("{}: {} unit(s), {} without UNIT_CODE skipped, {} malformed geometry(ies) kept without"
+                    + " geometry", ID, chunks.emitted(), skipped, badGeometry[0]);
+        }
         String release = null;
         ArcGisQueryClient.LayerMeta meta = ArcGisQueryClient.cachedMeta(ctx.state());
         if (meta != null && meta.lastEditDate() != null) {

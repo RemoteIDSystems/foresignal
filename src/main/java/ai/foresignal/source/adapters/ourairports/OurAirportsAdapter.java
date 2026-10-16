@@ -27,8 +27,8 @@ import org.springframework.stereotype.Component;
  *
  * <p>{@code airports.csv} is rebuilt nightly; the conditional GET returns 304 when nothing changed. The
  * {@code types} parameter selects airport types and {@code navaids=true} adds {@code navaids.csv} as kind
- * {@code navaid}. Complete-set reconciliation runs only when every fetched file arrived fresh, so a 304 on one
- * file never tombstone's the other's records.
+ * {@code navaid}. Each file is its own kind and is reconciled when it arrived fresh, so a 304 on one file never
+ * tombstones that file's records and never blocks the other file's reconciliation (2026-10 review).
  */
 @Component
 public class OurAirportsAdapter implements PollingAdapter {
@@ -96,10 +96,9 @@ public class OurAirportsAdapter implements PollingAdapter {
         if (!withNavaids && airports.notModified()) {
             return FetchResult.unchanged();
         }
-        boolean allFresh = true;
+        Set<String> fresh = new java.util.LinkedHashSet<>();
         String release;
         if (airports.notModified()) {
-            allFresh = false;
             release = null;
         } else {
             requireComplete(airports, AIRPORTS_STATE, ctx, "airports.csv");
@@ -111,13 +110,12 @@ public class OurAirportsAdapter implements PollingAdapter {
                 throw e;
             }
             release = release(airports);
+            fresh.add(OurAirportsParser.AIRPORT_KIND);
         }
 
         if (withNavaids) {
             UpstreamResponse navaids = ctx.http().getConditional(navaidsUri, NAVAIDS_STATE);
-            if (navaids.notModified()) {
-                allFresh = false;
-            } else {
+            if (!navaids.notModified()) {
                 requireComplete(navaids, NAVAIDS_STATE, ctx, "navaids.csv");
                 try {
                     OurAirportsParser.Result result = OurAirportsParser.parseNavaids(navaids.body(), ctx::emitChunk);
@@ -128,11 +126,13 @@ public class OurAirportsAdapter implements PollingAdapter {
                 }
                 String navaidsRelease = release(navaids);
                 release = release == null ? navaidsRelease : release + ";navaids=" + navaidsRelease;
+                fresh.add(OurAirportsParser.NAVAID_KIND);
             }
         }
-        return allFresh
-                ? FetchResult.complete(List.of(), release)
-                : FetchResult.of(List.of());
+        if (fresh.isEmpty()) {
+            return FetchResult.unchanged();
+        }
+        return FetchResult.completeFor(fresh, List.of(), release);
     }
 
     private static void requireComplete(UpstreamResponse response, String stateKey, FetchContext ctx, String what) {

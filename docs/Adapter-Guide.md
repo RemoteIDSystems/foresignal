@@ -857,7 +857,12 @@ facilities are the family; `world-port-index` and `ourairports` feed 099.
   `licence`, `termsUrl` and `attribution`.
 - **Chunked fetch.** `ctx.emitChunk(records)` (at most 5,000 records) hands one chunk to the executor, which
   submits it as its own `IngestBatch` and waits for it before accepting the next: a dataset larger than the
-  heap budget is never held as records, and the writer's back-pressure reaches the parser. The final
+  heap budget is never held as records, and the writer's back-pressure reaches the parser. Parse with a
+  streaming reader and hand each record to `ReferenceSupport.chunks(ctx)` (a `ChunkEmitter`; call `flush()` at
+  the end); `ReferenceStreams.forEachElement(body, what, consumer, path...)` walks a JSON document to an array
+  (`features`, `ports`, `results.bindings`) and reads one element tree at a time, and the CSV and TSV parsers
+  read line by line. Never build a `List<NormalizedRecord>` of the whole dataset. Count records skipped for a
+  missing id and records kept without geometry because theirs was malformed, and log the counts. The final
   `FetchResult.complete(records, release)` reports the dataset's own version (ETag, Last-Modified or its
   version string).
 - **Complete-set reconciliation.** When a run returns `complete=true`, the executor submits `TombstoneAbsent`
@@ -866,17 +871,24 @@ facilities are the family; `world-port-index` and `ourairports` feed 099.
   10,000. A 304, a failed run and a partial run never reconcile.
 - **Shrink guard.** If more than `reconcile.maxAbsentRatio` of the dataset (descriptor field, default 0.2)
   would be tombstoned at once — a truncated download must never read as a mass deletion — nothing is written,
-  health shows "dataset shrank by N% — reconciliation skipped", and the operator releases it once with
-  `allowShrink=true` on `POST /v1/sources/{id}/fetch`.
+  health shows "dataset shrank by N% — reconciliation skipped", a `DISCARDED` `fetch_log` row with the run's
+  `run_id` records the skipped reconciliation, and the operator releases it once with `allowShrink=true` on
+  `POST /v1/sources/{id}/fetch`. That run's conditional GETs send no stored validators, so it re-reads every
+  file rather than getting a 304. The degradation clears whenever a reconciliation runs (the override, or a
+  later complete run back within the ratio). The tombstone batches' `fetch_log` rows carry the run's `run_id`.
 - **Forced touches.** Every batch of a complete-set run sets `IngestBatch.forceTouch`, so an unchanged record
   advances `record_live.last_received_at` even inside `touchMin` (TOUCH, never TOUCH_THROTTLED); otherwise a
   re-run inside the throttle would make the reconciliation think the record disappeared.
 - **`dataset-release`.** After reconciliation the executor emits one record, kind `dataset-release`,
   `externalId` = the release, payload `upstreamVersion`, `records`, `appeared` (FIRST+REAPPEAR), `changed`
   (SIGNIFICANT+CHANGE) and `disappeared` (TOMBSTONE). Rules and briefings notice a release from it.
-- **Multiple files (OurAirports, submarine cables, spaceports).** Reconcile only when every file arrived fresh
-  (a 304 on one file makes the run incomplete), because reconciliation is per source and would otherwise
-  tombstone the records of the file that did not change.
+- **Multiple files (OurAirports, submarine cables, spaceports).** Each file is its own kind. Return
+  `FetchResult.completeFor(freshKinds, records, release)` with the kinds whose file arrived fresh: the executor
+  reconciles those kinds only, so a 304 on one file neither tombstones that file's records nor blocks the other
+  file's reconciliation. When every file answered 304, return `FetchResult.unchanged()`.
+- **Validators commit with the run.** The `ETag`/`Last-Modified` of a file is durable only once the run's
+  records are written (§7, "Adapter state commits with the fetch"); a download that fails, or a run whose chunks
+  are not ingested, keeps the old validators, so the next run re-reads the file.
 - **Fixture READMEs** note `synthetic: true` when a capture needs a key or is trimmed; recapture at 143.
 
 ## Licence terms and reliability (prompt 109)

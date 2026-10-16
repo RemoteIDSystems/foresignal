@@ -77,5 +77,20 @@ class OurAirportsAdapterTest extends WireMockSupport {
         assertThat(result.complete()).isTrue();
         assertThat(collected).extracting(NormalizedRecord::kind).contains(OurAirportsParser.NAVAID_KIND);
         assertThat(collected).extracting(NormalizedRecord::externalId).contains("navaid:1", "navaid:2");
+        assertThat(result.reconcileKinds()).containsExactlyInAnyOrder(
+                OurAirportsParser.AIRPORT_KIND, OurAirportsParser.NAVAID_KIND);
+    }
+
+    @Test
+    @DisplayName("a 304 on airports.csv still reconciles the navaids, and leaves the airports alone")
+    void airportsUnchanged() throws Exception {
+        WIREMOCK.stubFor(WireMock.get(urlPathEqualTo(java.net.URI.create(adapter.airportsUri().toString()).getPath()))
+                .willReturn(aResponse().withStatus(304)));
+        serve(adapter.navaidsUri().toString(), "navaids.csv");
+        FetchResult result = adapter.fetch(
+                harness.context(adapter, Map.of("navaids", true), null, null, collected::addAll));
+        assertThat(result.complete()).isTrue();
+        assertThat(result.reconcileKinds()).containsExactly(OurAirportsParser.NAVAID_KIND);
+        assertThat(collected).extracting(NormalizedRecord::kind).containsOnly(OurAirportsParser.NAVAID_KIND);
     }
 }

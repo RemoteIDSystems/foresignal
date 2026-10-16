@@ -66,17 +66,33 @@ class SubmarineCablesAdapterTest extends WireMockSupport {
         serve(adapter.landingUri().toString(), "landing-point-geo.json");
         FetchResult result = adapter.fetch(harness.context(adapter, Map.of(), null, null, collected::addAll));
         assertThat(result.complete()).isTrue();
+        assertThat(result.reconcileKinds()).containsExactlyInAnyOrder(
+                SubmarineCableParser.CABLE_KIND, SubmarineCableParser.LANDING_KIND);
         assertThat(collected).hasSize(4);
     }
 
     @Test
-    @DisplayName("a 304 on either file makes the run incomplete so reconciliation is skipped")
+    @DisplayName("a 304 on one file reconciles only the other file's kind, so neither file's records are lost")
     void partial() throws Exception {
         WIREMOCK.stubFor(WireMock.get(urlPathEqualTo(URI.create(adapter.cableUri().toString()).getPath()))
                 .willReturn(aResponse().withStatus(304)));
         serve(adapter.landingUri().toString(), "landing-point-geo.json");
         FetchResult result = adapter.fetch(harness.context(adapter, Map.of(), null, null, collected::addAll));
-        assertThat(result.complete()).isFalse();
+        assertThat(result.complete()).isTrue();
+        assertThat(result.reconcileKinds()).containsExactly(SubmarineCableParser.LANDING_KIND);
+        assertThat(collected).allSatisfy(r -> assertThat(r.kind()).isEqualTo(SubmarineCableParser.LANDING_KIND));
         assertThat(adapter.descriptor().egress()).isEqualTo(Egress.LOCAL_ONLY);
+    }
+
+    @Test
+    @DisplayName("a 304 on both files is a 304 run")
+    void bothUnchanged() throws Exception {
+        WIREMOCK.stubFor(WireMock.get(urlPathEqualTo(URI.create(adapter.cableUri().toString()).getPath()))
+                .willReturn(aResponse().withStatus(304)));
+        WIREMOCK.stubFor(WireMock.get(urlPathEqualTo(URI.create(adapter.landingUri().toString()).getPath()))
+                .willReturn(aResponse().withStatus(304)));
+        FetchResult result = adapter.fetch(harness.context(adapter, Map.of(), null, null, collected::addAll));
+        assertThat(result.notModified()).isTrue();
+        assertThat(collected).isEmpty();
     }
 }

@@ -25,7 +25,8 @@ import org.springframework.stereotype.Component;
  * {@code sites.tsv} and {@code lp.tsv} tables.
  *
  * <p>Launch Library 2 is not used (064 already covers launches). Coordinates may be missing; a record is
- * still emitted without geometry. Complete-set reconciliation runs only when both files arrived fresh.
+ * still emitted without geometry. Each table is its own kind and is reconciled when it arrived fresh; a table
+ * that answered 304 keeps its records (2026-10 review).
  */
 @Component
 public class SpaceportsAdapter implements PollingAdapter {
@@ -76,39 +77,45 @@ public class SpaceportsAdapter implements PollingAdapter {
 
     @Override
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
-        boolean allFresh = true;
+        // Each table is its own kind, so a 304 on one leaves its records alone and the other is still reconciled
+        // (FetchResult.completeFor; 2026-10 review).
+        java.util.Set<String> fresh = new java.util.LinkedHashSet<>();
         List<String> releases = new java.util.ArrayList<>(2);
 
         UpstreamResponse sites = ctx.http().getConditional(sitesUri, SITES_STATE);
-        if (sites.notModified()) {
-            allFresh = false;
-        } else {
+        if (!sites.notModified()) {
             requireComplete(sites, SITES_STATE, ctx, "sites.tsv");
+            ReferenceSupport.ChunkEmitter chunks = ReferenceSupport.chunks(ctx);
             try {
-                ReferenceSupport.emit(ctx, GcatParser.parseSites(sites.body()));
+                GcatParser.parseSites(sites.body(), chunks);
             } catch (UpstreamFormatException e) {
                 SourceHttp.forgetValidators(ctx.state(), SITES_STATE);
                 throw e;
             }
+            chunks.flush();
+            fresh.add(GcatParser.SITE_KIND);
             releases.add(release(sites));
         }
 
         UpstreamResponse pads = ctx.http().getConditional(padsUri, PADS_STATE);
-        if (pads.notModified()) {
-            allFresh = false;
-        } else {
+        if (!pads.notModified()) {
             requireComplete(pads, PADS_STATE, ctx, "lp.tsv");
+            ReferenceSupport.ChunkEmitter chunks = ReferenceSupport.chunks(ctx);
             try {
-                ReferenceSupport.emit(ctx, GcatParser.parsePads(pads.body()));
+                GcatParser.parsePads(pads.body(), chunks);
             } catch (UpstreamFormatException e) {
                 SourceHttp.forgetValidators(ctx.state(), PADS_STATE);
                 throw e;
             }
+            chunks.flush();
+            fresh.add(GcatParser.PAD_KIND);
             releases.add(release(pads));
         }
 
-        String release = String.join(";", releases);
-        return allFresh ? FetchResult.complete(List.of(), release) : FetchResult.of(List.of());
+        if (fresh.isEmpty()) {
+            return FetchResult.unchanged();
+        }
+        return FetchResult.completeFor(fresh, List.of(), String.join(";", releases));
     }
 
     private static void requireComplete(UpstreamResponse response, String stateKey, FetchContext ctx, String what) {

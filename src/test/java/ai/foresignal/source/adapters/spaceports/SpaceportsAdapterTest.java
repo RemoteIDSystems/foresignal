@@ -69,4 +69,16 @@ class SpaceportsAdapterTest extends WireMockSupport {
                 .contains(GcatParser.SITE_KIND, GcatParser.PAD_KIND);
         assertThat(collected).hasSize(5);
     }
+
+    @Test
+    @DisplayName("a 304 on the sites table still reconciles the pads (2026-10 review)")
+    void sitesUnchanged() throws Exception {
+        WIREMOCK.stubFor(WireMock.get(urlPathEqualTo(URI.create(adapter.sitesUri().toString()).getPath()))
+                .willReturn(aResponse().withStatus(304)));
+        serve(adapter.padsUri().toString(), "lp.tsv");
+        FetchResult result = adapter.fetch(harness.context(adapter, Map.of(), null, null, collected::addAll));
+        assertThat(result.complete()).isTrue();
+        assertThat(result.reconcileKinds()).containsExactly(GcatParser.PAD_KIND);
+        assertThat(collected).extracting(NormalizedRecord::kind).containsOnly(GcatParser.PAD_KIND);
+    }
 }

@@ -49,10 +49,18 @@ class ReferenceDescriptorsTest {
             assertThat(descriptor.zeroResultsNormal()).as("%s zeroResultsNormal", descriptor.id()).isFalse();
             assertThat(descriptor.defaultRetention()).as("%s retention", descriptor.id())
                     .isEqualTo(ReferenceSupport.RETENTION);
-            assertThat(descriptor.defaultInterval()).as("%s interval", descriptor.id())
-                    .isEqualTo(Duration.ofDays(7));
-            assertThat(descriptor.minInterval()).as("%s minInterval", descriptor.id())
-                    .isEqualTo(Duration.ofDays(1));
+            if (descriptor.id().equals(NuclearReactorsUsAdapter.ID)) {
+                // FEMA republishes the NRC status daily: 24 h, min 6 h (prompt 094, Source-Catalog).
+                assertThat(descriptor.defaultInterval()).as("%s interval", descriptor.id())
+                        .isEqualTo(Duration.ofHours(24));
+                assertThat(descriptor.minInterval()).as("%s minInterval", descriptor.id())
+                        .isEqualTo(Duration.ofHours(6));
+            } else {
+                assertThat(descriptor.defaultInterval()).as("%s interval", descriptor.id())
+                        .isEqualTo(Duration.ofDays(7));
+                assertThat(descriptor.minInterval()).as("%s minInterval", descriptor.id())
+                        .isEqualTo(Duration.ofDays(1));
+            }
             assertThat(descriptor.defaultBudget().perMinute()).as("%s budget/min", descriptor.id()).isEqualTo(2);
             assertThat(descriptor.defaultBudget().perDay()).as("%s budget/day", descriptor.id()).isEqualTo(20);
         }

@@ -14,6 +14,7 @@ import ai.foresignal.source.spi.UpstreamResponse;
 import ai.foresignal.source.support.ReferenceSupport;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -62,22 +63,30 @@ public class NuclearPlantsWikidataAdapter implements PollingAdapter {
     @Override
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
         byte[] body = ("query=" + KitUrls.encode(WikidataNuclearParser.QUERY)).getBytes(StandardCharsets.UTF_8);
+        // WDQS runs a query for up to 60 s; the client's default 20 s request timeout would cut it short.
         UpstreamResponse response = ctx.http().post(endpoint, "application/x-www-form-urlencoded", body,
-                Map.of("Accept", "application/sparql-results+json"));
+                Map.of("Accept", "application/sparql-results+json"), QUERY_TIMEOUT);
         if (response.status() != 200 || response.truncated()) {
             throw new UpstreamFormatException(ID + (response.status() != 200
                     ? ": the SPARQL endpoint answered HTTP " + response.status()
                     : ": the SPARQL response exceeds the cap"), "");
         }
-        List<ai.foresignal.source.spi.NormalizedRecord> records;
-        try {
-            records = WikidataNuclearParser.parse(response.body());
-        } catch (UpstreamFormatException e) {
-            throw e;
+        // Streamed binding by binding into chunks: the result is never held as one list of records.
+        ReferenceSupport.ChunkEmitter chunks = ReferenceSupport.chunks(ctx);
+        ReferenceSupport.ParseCounts counts = WikidataNuclearParser.parse(response.body(), chunks);
+        chunks.flush();
+        if (counts.skipped() > 0) {
+            ctx.log().info("{}: {} plant(s), {} binding(s) without an item or repeating one skipped", ID,
+                    counts.records(), counts.skipped());
         }
-        ReferenceSupport.emit(ctx, records);
         return FetchResult.complete(List.of(), null);
     }
+
+    /** The SPARQL request timeout: the Wikidata Query Service's own 60 s query limit (prompt 094). */
+    public static final Duration QUERY_TIMEOUT = Duration.ofSeconds(60);
+
+    /** The fetch timeout: the 60 s query plus the time to stream the result into the writer. */
+    public static final Duration FETCH_TIMEOUT = Duration.ofSeconds(120);
 
     private static SourceDescriptor buildDescriptor() {
         SourceDescriptor.Builder b = ReferenceSupport.defaults(SourceDescriptor.builder(ID)
@@ -95,7 +104,8 @@ public class NuclearPlantsWikidataAdapter implements PollingAdapter {
                 .searchFields("name", "country")
                 .tileProperties("name", "stateOfUse")
                 .kindDisplay(WikidataNuclearParser.KIND,
-                        new KindDisplay("{name}", "radiation", "#F03E3E", null)));
+                        new KindDisplay("{name}", "radiation", "#F03E3E", null))
+                .fetchTimeout(FETCH_TIMEOUT));
         b.fieldSpec("name", new FieldSpec(FieldType.STRING, null, "Name", "The English label", null, Set.of()));
         b.fieldSpec("country", new FieldSpec(FieldType.STRING, null, "Country", "The country label", null, Set.of()));
         b.fieldSpec("capacityMw", new FieldSpec(FieldType.NUMBER, "MW", "Capacity", "Nominal power capacity, MW",

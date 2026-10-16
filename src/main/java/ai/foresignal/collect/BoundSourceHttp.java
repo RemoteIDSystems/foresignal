@@ -214,6 +214,30 @@ class BoundSourceHttp implements SourceHttp {
         return execute("POST", uri, merged, body, null, descriptor.maxResponseBytes(), descriptor.followRedirects(), 0);
     }
 
+    /**
+     * A POST whose response may take up to {@code requestTimeout} instead of the default 20 s (prompt 094: the
+     * Wikidata SPARQL endpoint's 60 s query limit). Budgeted, metered and traced like every other request.
+     */
+    @Override
+    public UpstreamResponse post(URI uri, String contentType, byte[] body, Map<String, String> headers,
+            Duration requestTimeout) throws AdapterException {
+        Map<String, String> merged = new LinkedHashMap<>(headers == null ? Map.of() : headers);
+        if (contentType != null) {
+            merged.put("Content-Type", contentType);
+        }
+        checkBackoff();
+        HostPacer.Permit permit = pace(uri);
+        try {
+            consumeBudget(0);
+            return send("POST", uri, merged, body, null, descriptor.maxResponseBytes(), descriptor.followRedirects(),
+                    0, requestTimeout);
+        } finally {
+            if (permit != null) {
+                permit.close();
+            }
+        }
+    }
+
     @Override
     public UpstreamResponse getRange(URI uri, long start, long end, long maxBytes)
             throws AdapterException {
@@ -530,7 +554,7 @@ class BoundSourceHttp implements SourceHttp {
         }
     }
 
-    /** Sends one request whose backoff, pacing and budget have been checked. */
+    /** Sends one request whose backoff, pacing and budget have been checked, with the default request timeout. */
     private UpstreamResponse send(
             String method,
             URI uri,
@@ -541,10 +565,32 @@ class BoundSourceHttp implements SourceHttp {
             boolean allowRedirects,
             long expectedBytes)
             throws AdapterException {
+        return send(method, uri, headers, body, contentType, maxBytes, allowRedirects, expectedBytes, null);
+    }
+
+    /**
+     * Sends one request whose backoff, pacing and budget have been checked.
+     *
+     * @param requestTimeout how long the response may take, or null for the default
+     */
+    private UpstreamResponse send(
+            String method,
+            URI uri,
+            Map<String, String> headers,
+            byte[] body,
+            String contentType,
+            long maxBytes,
+            boolean allowRedirects,
+            long expectedBytes,
+            Duration requestTimeout)
+            throws AdapterException {
 
         Instant startedAt = parent.clock().instant();
 
         HttpRequest.Builder builder = requestBuilder(uri, headers);
+        if (requestTimeout != null && !requestTimeout.isNegative() && !requestTimeout.isZero()) {
+            builder.timeout(requestTimeout);
+        }
         if ("POST".equals(method)) {
             builder.POST(
                     body == null

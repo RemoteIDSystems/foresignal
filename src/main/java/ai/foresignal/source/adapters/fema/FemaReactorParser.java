@@ -3,11 +3,12 @@ package ai.foresignal.source.adapters.fema;
 import ai.foresignal.source.kit.feature.FeatureGeometry;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.UpstreamFormatException;
-import java.nio.charset.StandardCharsets;
+import ai.foresignal.source.support.ReferenceStreams;
+import ai.foresignal.source.support.ReferenceSupport;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * The FEMA Nuclear Plant Power Reactor Status layer as GeoJSON (prompt 094).
@@ -19,35 +20,44 @@ public final class FemaReactorParser {
     /** The record kind. */
     public static final String KIND = "nuclear-reactor";
 
-    private static final JsonMapper JSON = JsonMapper.builder().build();
-
     private FemaReactorParser() {}
 
-    /** Parses a GeoJSON FeatureCollection. */
+    /** Parses a GeoJSON FeatureCollection into a list. */
     public static List<NormalizedRecord> parse(byte[] body) {
-        JsonNode root;
-        try {
-            root = JSON.readTree(body);
-        } catch (RuntimeException e) {
-            throw new UpstreamFormatException("FEMA reactor document could not be parsed",
-                    new String(body, 0, Math.min(500, body.length), StandardCharsets.UTF_8), e);
-        }
-        JsonNode features = root == null ? null : root.get("features");
-        if (features == null || !features.isArray()) {
-            throw new UpstreamFormatException("FEMA reactor document has no features array", "");
-        }
-        List<NormalizedRecord> out = new ArrayList<>(features.size());
-        for (JsonNode feature : features) {
-            NormalizedRecord record = map(feature);
-            if (record != null) {
-                out.add(record);
-            }
-        }
+        List<NormalizedRecord> out = new ArrayList<>();
+        parse(body, out::add);
         return out;
+    }
+
+    /**
+     * Streams a GeoJSON FeatureCollection into {@code sink}, one feature at a time.
+     *
+     * @throws UpstreamFormatException when the document does not parse or has no features array
+     */
+    public static ReferenceSupport.ParseCounts parse(byte[] body, Consumer<NormalizedRecord> sink) {
+        int[] counts = new int[3];
+        ReferenceStreams.forEachElement(body, "FEMA reactor document", feature -> {
+            NormalizedRecord record = map(feature, () -> counts[2]++);
+            if (record == null) {
+                counts[1]++;
+            } else {
+                sink.accept(record);
+                counts[0]++;
+            }
+        }, "features");
+        return new ReferenceSupport.ParseCounts(counts[0], counts[1], counts[2]);
     }
 
     /** One feature, or null without a license number. */
     public static NormalizedRecord map(JsonNode feature) {
+        return map(feature, () -> {});
+    }
+
+    /**
+     * One feature, or null without a license number; a malformed geometry keeps the record without geometry and
+     * calls {@code onBadGeometry}.
+     */
+    public static NormalizedRecord map(JsonNode feature, Runnable onBadGeometry) {
         JsonNode p = feature.get("properties");
         String license = text(p, "license_number", "LICENSE_NUMBER", "licenseNumber");
         if (license == null) {
@@ -68,8 +78,9 @@ public final class FemaReactorParser {
         FeatureGeometry.Result geometry;
         try {
             geometry = FeatureGeometry.fromGeoJson(feature.get("geometry"));
-        } catch (UpstreamFormatException e) {
+        } catch (RuntimeException e) {
             geometry = FeatureGeometry.Result.NONE;
+            onBadGeometry.run();
         }
         return b.geometry(geometry.geometry()).build();
     }

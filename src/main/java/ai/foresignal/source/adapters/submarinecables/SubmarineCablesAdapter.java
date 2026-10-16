@@ -79,40 +79,52 @@ public class SubmarineCablesAdapter implements PollingAdapter {
 
     @Override
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
-        boolean allFresh = true;
+        // Each file is its own kind, so a 304 on one leaves its records alone and the other is still reconciled
+        // (FetchResult.completeFor; 2026-10 review).
+        java.util.Set<String> fresh = new java.util.LinkedHashSet<>();
         List<String> releases = new java.util.ArrayList<>(2);
 
         UpstreamResponse cables = ctx.http().getConditional(cableUri, CABLE_STATE);
-        if (cables.notModified()) {
-            allFresh = false;
-        } else {
+        if (!cables.notModified()) {
             requireComplete(cables, CABLE_STATE, ctx, "cable-geo.json");
+            ReferenceSupport.ChunkEmitter chunks = ReferenceSupport.chunks(ctx);
             try {
-                List<NormalizedRecord> records = SubmarineCableParser.parseCables(cables.body());
-                ReferenceSupport.emit(ctx, records);
+                logCounts(ctx, "cable", SubmarineCableParser.parseCables(cables.body(), chunks));
             } catch (UpstreamFormatException e) {
                 SourceHttp.forgetValidators(ctx.state(), CABLE_STATE);
                 throw e;
             }
+            chunks.flush();
+            fresh.add(SubmarineCableParser.CABLE_KIND);
             releases.add(release(cables));
         }
 
         UpstreamResponse landings = ctx.http().getConditional(landingUri, LANDING_STATE);
-        if (landings.notModified()) {
-            allFresh = false;
-        } else {
+        if (!landings.notModified()) {
             requireComplete(landings, LANDING_STATE, ctx, "landing-point-geo.json");
+            ReferenceSupport.ChunkEmitter chunks = ReferenceSupport.chunks(ctx);
             try {
-                ReferenceSupport.emit(ctx, SubmarineCableParser.parseLandings(landings.body()));
+                logCounts(ctx, "landing point", SubmarineCableParser.parseLandings(landings.body(), chunks));
             } catch (UpstreamFormatException e) {
                 SourceHttp.forgetValidators(ctx.state(), LANDING_STATE);
                 throw e;
             }
+            chunks.flush();
+            fresh.add(SubmarineCableParser.LANDING_KIND);
             releases.add(release(landings));
         }
 
-        String release = String.join(";", releases);
-        return allFresh ? FetchResult.complete(List.of(), release) : FetchResult.of(List.of());
+        if (fresh.isEmpty()) {
+            return FetchResult.unchanged();
+        }
+        return FetchResult.completeFor(fresh, List.of(), String.join(";", releases));
+    }
+
+    private static void logCounts(FetchContext ctx, String what, ReferenceSupport.ParseCounts counts) {
+        if (counts.skipped() > 0 || counts.badGeometry() > 0) {
+            ctx.log().info("{}: {} {}(s), {} without an id skipped, {} malformed geometry(ies) kept without geometry",
+                    ID, counts.records(), what, counts.skipped(), counts.badGeometry());
+        }
     }
 
     private static void requireComplete(UpstreamResponse response, String stateKey, FetchContext ctx, String what) {

@@ -2,19 +2,27 @@ package ai.foresignal.source.adapters.spaceports;
 
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.UpstreamFormatException;
+import ai.foresignal.source.support.ReferenceSupport;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * The Jonathan McDowell GCAT TSV tables (prompt 094): {@code sites.tsv} (launch sites) and {@code lp.tsv}
  * (launch pads).
  *
  * <p>The header is the first line, prefixed with {@code #}. A field of {@code -} is blank. Coordinates may be
- * missing; the record is still emitted with null geometry.
+ * missing; the record is still emitted with null geometry. Rows are read line by line and handed to a sink, so
+ * a table is never held as one list of records.
  */
 public final class GcatParser {
 
@@ -31,42 +39,80 @@ public final class GcatParser {
         return parse(body, SITE_KIND, "site:", "Site");
     }
 
+    /** Streams {@code sites.tsv} into {@code sink}. */
+    public static ReferenceSupport.ParseCounts parseSites(byte[] body, Consumer<NormalizedRecord> sink) {
+        return parse(body, SITE_KIND, "site:", "Site", sink);
+    }
+
     /** Parses {@code lp.tsv}. */
     public static List<NormalizedRecord> parsePads(byte[] body) {
         return parse(body, PAD_KIND, "pad:", "Pad");
     }
 
+    /** Streams {@code lp.tsv} into {@code sink}. */
+    public static ReferenceSupport.ParseCounts parsePads(byte[] body, Consumer<NormalizedRecord> sink) {
+        return parse(body, PAD_KIND, "pad:", "Pad", sink);
+    }
+
     /**
-     * Parses a GCAT TSV document.
+     * Parses a GCAT TSV document into a list.
      *
      * @param kind the record kind
      * @param idPrefix the externalId prefix
      * @param idColumn the header naming the identity column; falls back to {@code Site}
      */
     public static List<NormalizedRecord> parse(byte[] body, String kind, String idPrefix, String idColumn) {
-        List<String> lines = new ArrayList<>();
-        for (String line : new String(body, StandardCharsets.UTF_8).split("\r\n|\n|\r")) {
-            if (!line.isBlank()) {
-                lines.add(line);
-            }
-        }
-        if (lines.isEmpty() || !lines.get(0).startsWith("#")) {
-            throw new UpstreamFormatException("GCAT TSV has no #-prefixed header", "");
-        }
-        String[] header = split(lines.get(0).substring(1));
-        Map<String, Integer> index = new HashMap<>();
-        for (int i = 0; i < header.length; i++) {
-            index.putIfAbsent(header[i].strip().toLowerCase(Locale.ROOT), i);
-        }
-        List<NormalizedRecord> out = new ArrayList<>(Math.max(0, lines.size() - 1));
-        for (int i = 1; i < lines.size(); i++) {
-            String[] fields = split(lines.get(i));
-            NormalizedRecord record = map(fields, index, kind, idPrefix, idColumn);
-            if (record != null) {
-                out.add(record);
-            }
-        }
+        List<NormalizedRecord> out = new ArrayList<>();
+        parse(body, kind, idPrefix, idColumn, out::add);
         return out;
+    }
+
+    /**
+     * Streams a GCAT TSV document into {@code sink}, line by line.
+     *
+     * @param kind the record kind
+     * @param idPrefix the externalId prefix
+     * @param idColumn the header naming the identity column; falls back to {@code Site}
+     * @throws UpstreamFormatException when the first non-blank line is not a {@code #}-prefixed header
+     */
+    public static ReferenceSupport.ParseCounts parse(byte[] body, String kind, String idPrefix, String idColumn,
+            Consumer<NormalizedRecord> sink) {
+        int records = 0;
+        int skipped = 0;
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(new ByteArrayInputStream(body), StandardCharsets.UTF_8))) {
+            Map<String, Integer> index = null;
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.isBlank()) {
+                    continue;
+                }
+                if (index == null) {
+                    if (!line.startsWith("#")) {
+                        throw new UpstreamFormatException("GCAT TSV has no #-prefixed header", "");
+                    }
+                    String[] header = split(line.substring(1));
+                    index = new HashMap<>();
+                    for (int i = 0; i < header.length; i++) {
+                        index.putIfAbsent(header[i].strip().toLowerCase(Locale.ROOT), i);
+                    }
+                    continue;
+                }
+                NormalizedRecord record = map(split(line), index, kind, idPrefix, idColumn);
+                if (record == null) {
+                    skipped++;
+                } else {
+                    sink.accept(record);
+                    records++;
+                }
+            }
+            if (index == null) {
+                throw new UpstreamFormatException("GCAT TSV has no #-prefixed header", "");
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return new ReferenceSupport.ParseCounts(records, skipped, 0);
     }
 
     private static NormalizedRecord map(String[] fields, Map<String, Integer> index, String kind, String idPrefix,

@@ -77,14 +77,20 @@ public class NuclearReactorsUsAdapter implements PollingAdapter {
                     ? ": the reactor layer answered HTTP " + response.status()
                     : ": the reactor response exceeds the cap"), "");
         }
-        List<ai.foresignal.source.spi.NormalizedRecord> records;
+        // Streamed feature by feature into chunks: the layer is never held as one list of records.
+        ReferenceSupport.ChunkEmitter chunks = ReferenceSupport.chunks(ctx);
+        ReferenceSupport.ParseCounts counts;
         try {
-            records = FemaReactorParser.parse(response.body());
+            counts = FemaReactorParser.parse(response.body(), chunks);
         } catch (UpstreamFormatException e) {
             SourceHttp.forgetValidators(ctx.state(), STATE_KEY);
             throw e;
         }
-        ReferenceSupport.emit(ctx, records);
+        chunks.flush();
+        if (counts.skipped() > 0 || counts.badGeometry() > 0) {
+            ctx.log().info("{}: {} reactor(s), {} without a license number skipped, {} malformed geometry(ies)"
+                    + " kept without geometry", ID, counts.records(), counts.skipped(), counts.badGeometry());
+        }
         return FetchResult.complete(List.of(), release(response));
     }
 
@@ -95,6 +101,12 @@ public class NuclearReactorsUsAdapter implements PollingAdapter {
         }
         return response.header("Last-Modified");
     }
+
+    /** The default interval: FEMA republishes the NRC reactor status daily (prompt 094). */
+    public static final Duration INTERVAL = Duration.ofHours(24);
+
+    /** The shortest interval allowed. */
+    public static final Duration INTERVAL_MIN = Duration.ofHours(6);
 
     private static SourceDescriptor buildDescriptor() {
         SourceDescriptor.Builder b = ReferenceSupport.defaults(SourceDescriptor.builder(ID)
@@ -114,7 +126,10 @@ public class NuclearReactorsUsAdapter implements PollingAdapter {
                 .searchFields("reactorName", "powerPlant", "state", "ownerOperator")
                 .tileProperties("reactorName", "status", "powerPct")
                 .rankField("mwe")
-                .kindDisplay(FemaReactorParser.KIND, new KindDisplay("{reactorName}", "radiation", "#E03131", null)));
+                .kindDisplay(FemaReactorParser.KIND, new KindDisplay("{reactorName}", "radiation", "#E03131", null)))
+                // After the shared defaults, which set the weekly reference interval: FEMA republishes the NRC
+                // status daily, so this source polls every 24 h (min 6 h; prompt 094, Source-Catalog).
+                .interval(INTERVAL_MIN, INTERVAL);
         text(b, "reactorName", "Reactor", "The reactor name");
         text(b, "powerPlant", "Plant", "The power plant name");
         text(b, "state", "State", "The state");

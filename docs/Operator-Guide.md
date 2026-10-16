@@ -4795,8 +4795,12 @@ docker compose exec -T db dropdb -U foresignal restore_drill
 - **`allowShrink`.** A reference dataset normally changes slowly, so if a complete run would remove more than
   `reconcile.maxAbsentRatio` of it (20 % by default), Foresignal writes no tombstones and shows the source
   degraded ("dataset shrank by N% — reconciliation skipped"): a truncated download must never read as a mass
-  deletion. After you have verified the smaller upstream dataset is genuine, release the guard **once** with
-  `POST /v1/sources/{sourceId}/fetch?allowShrink=true`. The next ordinary run re-applies the guard.
+  deletion. The skipped reconciliation also leaves a `DISCARDED` row in the fetch log, carrying the run's
+  `runId` and the reason. After you have verified the smaller upstream dataset is genuine, release the guard
+  **once** with `POST /v1/sources/{sourceId}/fetch?allowShrink=true`: that run re-reads every file in full
+  (it sends no stored `ETag`/`Last-Modified`, so it cannot be answered with a 304) and reconciles. The
+  degradation clears as soon as a reconciliation runs, after the override or after an ordinary complete run
+  whose dataset is back within the ratio. The next ordinary run re-applies the guard.
 - **Licence flags you should read before enabling:**
   - `submarine-cables` is **non-commercial**: the public Submarine Cable Map is CC BY-SA 4.0, the geometry is
     stylised and TeleGeography's underlying database is subscriber-only. Egress is local-only for prompts
