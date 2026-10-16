@@ -242,7 +242,7 @@
                 {
                   "key": "allowShrink",
                   "value": "false",
-                  "description": "Allow complete-set reconciliation to tombstone more than `reconcile.maxAbsentRatio` of the dataset, once (094)",
+                  "description": "Allow complete-set reconciliation to tombstone more than `reconcile.maxAbsentRatio` of the dataset, once (094). The run sends no stored conditional-GET validators, so it re-reads every file in full.",
                   "disabled": true
                 }
               ]
@@ -6603,7 +6603,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('holdId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -6644,7 +6647,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Hurricane review\",\n  \"reason\": \"Keep the storm's records for the after-action review\",\n  \"sources\": [\n    \"usgs-earthquakes\"\n  ],\n  \"kinds\": [\n    \"earthquake\"\n  ],\n  \"from\": \"2026-10-01T00:00:00Z\",\n  \"to\": null,\n  \"expiresAt\": \"2027-10-01T00:00:00Z\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -18097,7 +18100,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"format\": \"pmtiles\",\n  \"frameKey\": \"latest\",\n  \"bbox\": [\n    -98.6,\n    29.6,\n    -96.9,\n    31.0\n  ],\n  \"minZoom\": 4,\n  \"maxZoom\": 7,\n  \"tms\": \"WebMercatorQuad\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -18285,7 +18288,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"products\": [],\n  \"frames\": 6,\n  \"radiusKm\": 150,\n  \"maxZoom\": 6\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -18302,7 +18305,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));"
+                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -18343,7 +18349,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Texas quakes, last week\",\n  \"format\": \"geoparquet\",\n  \"sources\": [\n    \"usgs-earthquakes\"\n  ],\n  \"kinds\": [\n    \"earthquake\"\n  ],\n  \"bbox\": [\n    -106.7,\n    25.8,\n    -93.5,\n    36.5\n  ],\n  \"from\": \"2026-10-09T00:00:00Z\",\n  \"to\": \"2026-10-16T00:00:00Z\",\n  \"timeField\": \"observed\",\n  \"mode\": \"history\",\n  \"flatten\": true,\n  \"fields\": [\n    \"mag\",\n    \"place\"\n  ],\n  \"personalUse\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -18481,7 +18487,7 @@
                 }
               ]
             },
-            "description": "The single data file, a named file (`file`, e.g. one of a pack's MVT and PNG .pmtiles), or `bundle=zip` with the data, `manifest.json`, `manifest.json.jws`, `licence.json` and `ATTRIBUTION.txt`. Supports `Range` and `If-None-Match` (ETag = sha256). Errors: `410 EXPORT_EXPIRED`; 409 while the job is not DONE.\n\n**Scope:** `agent`.\n\noperationId: `downloadExport`",
+            "description": "The single data file, a named file (`file`, e.g. one of a pack's MVT and PNG .pmtiles), or `bundle=zip` with the data, `manifest.json`, `manifest.json.jws`, `licence.json` and `ATTRIBUTION.txt`. Supports `Range` and `If-None-Match` (ETag = sha256). Errors: `410 EXPORT_EXPIRED`; `409 EXPORT_NOT_READY` while the job is not DONE.\n\n**Scope:** `agent`.\n\noperationId: `downloadExport`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -18528,7 +18534,7 @@
               ],
               "query": []
             },
-            "description": "The SHA-256 manifest; the `Foresignal-Signature` header carries the detached JWS (also in the bundle as `manifest.json.jws`), verifiable against the JWKS. Errors: `410 EXPORT_EXPIRED`.\n\n**Scope:** `agent`.\n\noperationId: `getExportManifest`",
+            "description": "The SHA-256 manifest; the `Foresignal-Signature` header carries the detached JWS (also in the bundle as `manifest.json.jws`), verifiable against the JWKS. Errors: `410 EXPORT_EXPIRED`; `409 EXPORT_NOT_READY` while the job is not DONE.\n\n**Scope:** `agent`.\n\noperationId: `getExportManifest`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -18549,7 +18555,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));"
+                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -18577,7 +18586,7 @@
               ],
               "query": []
             },
-            "description": "Rebuilds state at seq S (default the current watermarkSeq, or `asOf` translated with S(T)) from record_version per tier, writing GeoParquet plus a signed manifest. Below a source's floorSeq rows come from held copies, else `400 SNAPSHOT_BEYOND_RETENTION`. Snapshots are export jobs of kind SNAPSHOT (list, poll and download through `/v1/exports`) and never expire unless `expiresAt` is set.\n\n**Scope:** `admin`.\n\noperationId: `createSnapshot`",
+            "description": "Rebuilds state at seq S (default the current watermarkSeq, or `asOf` translated with S(T)) from record_version per tier, writing GeoParquet plus a signed manifest. Below a source's floorSeq rows come from held copies, else `400 SNAPSHOT_BEYOND_RETENTION`. Validity is judged at the transaction time of S (its ingested_at, or the requested asOf); a source whose state at S lies before its retention horizon is read from the copies of holds covering it. Private sources need `includePrivate=true`; FORBIDDEN and LOCAL_ONLY sources need `personalUse=true`, as for exports. Snapshots are export jobs of kind SNAPSHOT (list, poll and download through `/v1/exports`) and never expire unless `expiresAt` is set.\n\n**Scope:** `admin`.\n\noperationId: `createSnapshot`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -18590,7 +18599,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Before the outage\",\n  \"asOf\": \"2026-10-15T12:00:00Z\",\n  \"sources\": [\n    \"usgs-earthquakes\"\n  ],\n  \"expiresAt\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -18607,7 +18616,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));"
+                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -18635,7 +18647,7 @@
               ],
               "query": []
             },
-            "description": "Queues a PMTiles v3 pack job (kind PACK): one .pmtiles per tile type (MVT from 016/037, PNG from 045), deduplicated, with 109 attribution in the metadata. Download through `/v1/exports/{id}/download`. Licence and private rules as exports (EXPORT egress). Errors: `400 PACK_TOO_LARGE` (more than packs.maxTiles, 200,000; the problem states the computed count).\n\n**Scope:** `agent`.\n\noperationId: `createPack`",
+            "description": "Queues a PMTiles v3 pack job (kind PACK): one .pmtiles per tile type (MVT from 016/037, PNG from 045), deduplicated, with 109 attribution in the metadata. Download through `/v1/exports/{id}/download`. Licence and private rules as exports (EXPORT egress). Errors: `413 PACK_TOO_LARGE` (more than packs.maxTiles, 200,000; the problem's `tileCount` states the computed count), `400 EXPORT_SPEC_INVALID`, `409 EXPORT_QUOTA`.\n\n**Scope:** `agent`.\n\noperationId: `createPack`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -18648,7 +18660,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Austin field pack\",\n  \"bbox\": [\n    -97.95,\n    30.1,\n    -97.55,\n    30.5\n  ],\n  \"minZoom\": 6,\n  \"maxZoom\": 12,\n  \"vector\": {\n    \"sources\": [\n      \"usgs-earthquakes\"\n    ],\n    \"kinds\": [\n      \"earthquake\"\n    ],\n    \"asOf\": null\n  },\n  \"raster\": {\n    \"productId\": \"mrms-reflectivity\",\n    \"frame\": \"latest\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -23631,7 +23643,7 @@
               ],
               "query": []
             },
-            "description": "Registers a runtime PUSH source (STANDARD tier, `custom=true`) after registry validation and `IngestPolicyValidator`; id unique across static and dynamic sources (409). Returns the ingest key (`eik_` + 32 random bytes) exactly once. `profile: personal-location` applies the 039 defaults. `preset` (059) fills every member the input leaves out from a MappingPreset, with `presetParams` (`lon`/`lat` rounded to 0.01\u00b0 unless `exactLocation`; `tombstoneOnResolve` for alertmanager), and the response's `setup` carries the device instructions with the concrete URL (it may contain the key; shown once). `mapping` is compiled against the input's kinds and observedAtMode (400 MAPPING_INVALID). Members a later prompt owns and enforces (`licenceTerms` 109) are refused with 400 until that prompt, because accepting them unenforced would fail open.\n\n**Scope:** `admin`.\n\noperationId: `createCustomSource`",
+            "description": "Registers a runtime PUSH source (STANDARD tier, `custom=true`) after registry validation and `IngestPolicyValidator`; id unique across static and dynamic sources (409). Returns the ingest key (`eik_` + 32 random bytes) exactly once. `profile: personal-location` applies the 039 defaults. `preset` (059) fills every member the input leaves out from a MappingPreset, with `presetParams` (`lon`/`lat` rounded to 0.01\u00b0 unless `exactLocation`; `tombstoneOnResolve` for alertmanager), and the response's `setup` carries the device instructions with the concrete URL (it may contain the key; shown once). `mapping` is compiled against the input's kinds and observedAtMode (400 MAPPING_INVALID). `licenceTerms` (109) sets the structured terms of the pushed data: each PUSH batch snapshots their id on its fetch row and every egress path enforces them.\n\n**Scope:** `admin`.\n\noperationId: `createCustomSource`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -23692,7 +23704,7 @@
               ],
               "query": []
             },
-            "description": "Registers a runtime PUSH source (STANDARD tier, `custom=true`) after registry validation and `IngestPolicyValidator`; id unique across static and dynamic sources (409). Returns the ingest key (`eik_` + 32 random bytes) exactly once. `profile: personal-location` applies the 039 defaults. `preset` (059) fills every member the input leaves out from a MappingPreset, with `presetParams` (`lon`/`lat` rounded to 0.01\u00b0 unless `exactLocation`; `tombstoneOnResolve` for alertmanager), and the response's `setup` carries the device instructions with the concrete URL (it may contain the key; shown once). `mapping` is compiled against the input's kinds and observedAtMode (400 MAPPING_INVALID). Members a later prompt owns and enforces (`licenceTerms` 109) are refused with 400 until that prompt, because accepting them unenforced would fail open.\n\n**Scope:** `admin`.\n\noperationId: `createCustomSource`",
+            "description": "Registers a runtime PUSH source (STANDARD tier, `custom=true`) after registry validation and `IngestPolicyValidator`; id unique across static and dynamic sources (409). Returns the ingest key (`eik_` + 32 random bytes) exactly once. `profile: personal-location` applies the 039 defaults. `preset` (059) fills every member the input leaves out from a MappingPreset, with `presetParams` (`lon`/`lat` rounded to 0.01\u00b0 unless `exactLocation`; `tombstoneOnResolve` for alertmanager), and the response's `setup` carries the device instructions with the concrete URL (it may contain the key; shown once). `mapping` is compiled against the input's kinds and observedAtMode (400 MAPPING_INVALID). `licenceTerms` (109) sets the structured terms of the pushed data: each PUSH batch snapshots their id on its fetch row and every egress path enforces them.\n\n**Scope:** `admin`.\n\noperationId: `createCustomSource`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -30392,7 +30404,7 @@
               ],
               "query": []
             },
-            "description": "One layer per product \u00d7 style with both tile matrix sets, `Time` (and `RefTime` for forecasts) dimensions and RESTful ResourceURL templates. Through `/v1/k/{key}/wmts/...` every URL embeds the key prefix. ETag, max-age=60.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getWmtsCapabilities`",
+            "description": "One layer per product \u00d7 style with both tile matrix sets, `Time` (and `RefTime` for forecasts) dimensions and RESTful ResourceURL templates. Through `/v1/k/{key}/wmts/...` every URL embeds the key prefix. Each layer carries `TileMatrixSetLimits` for its native zoom range and bounds. ETag, `private, max-age=60` with `Vary: Authorization` (the layer list depends on the caller).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getWmtsCapabilities`",
             "auth": {
               "type": "noauth"
             }
@@ -31095,7 +31107,7 @@
                 }
               ]
             },
-            "description": "Native-grid subset inside a polygon with units and the nodata mask; > 100,000 cells is 413 EDR_TOO_LARGE.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `edrArea`",
+            "description": "Native-grid subset of the polygon's bounding box with units and the nodata mask (`null` values), values flat and row-major. A regular lat/lon grid answers a `Grid` domain; a projected grid (geostationary, Lambert, affine) answers a `MultiPoint` domain of its cell centers. More than 100,000 native cells is 413 EDR_TOO_LARGE.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `edrArea`",
             "auth": {
               "type": "noauth"
             }
@@ -41899,7 +41911,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"id\": \"home-mqtt\",\n  \"type\": \"mqtt-state\",\n  \"name\": \"Home Assistant MQTT\",\n  \"enabled\": false,\n  \"config\": {\n    \"brokerUrl\": \"mqtt://192.168.1.10:1883\",\n    \"prefix\": \"foresignal\",\n    \"changesTopic\": false\n  },\n  \"secrets\": {\n    \"username\": \"foresignal\",\n    \"password\": \"REPLACE_ME\"\n  },\n  \"filter\": {\n    \"sources\": [\n      \"usgs-earthquakes\"\n    ],\n    \"kinds\": [\n      \"earthquake\"\n    ],\n    \"includePrivate\": false\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -42004,7 +42016,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Home Assistant MQTT\",\n  \"enabled\": false,\n  \"config\": {\n    \"brokerUrl\": \"mqtt://192.168.1.10:1883\",\n    \"prefix\": \"foresignal\",\n    \"changesTopic\": true\n  },\n  \"secrets\": {\n    \"password\": \"REPLACE_ME\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -42105,7 +42117,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"kind\": \"earthquake\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -44834,7 +44846,7 @@
                 {
                   "key": "allowShrink",
                   "value": "false",
-                  "description": "Allow complete-set reconciliation to tombstone more than `reconcile.maxAbsentRatio` of the dataset, once (094)",
+                  "description": "Allow complete-set reconciliation to tombstone more than `reconcile.maxAbsentRatio` of the dataset, once (094). The run sends no stored conditional-GET validators, so it re-reads every file in full.",
                   "disabled": true
                 }
               ]
@@ -47141,6 +47153,65 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"family-phone\",\n  \"scope\": \"read\",\n  \"expiresAt\": null,\n  \"restrictions\": {\n    \"kinds\": [\n      \"earthquake\",\n      \"weather-alert\"\n    ],\n    \"bbox\": [\n      -80.5,\n      43.0,\n      -78.5,\n      44.5\n    ],\n    \"maxRequestsPerMinute\": 120\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update an API token's licence policy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/tokens/{{tokenId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "tokens",
+                "{{tokenId}}"
+              ],
+              "query": []
+            },
+            "description": "Replaces the token's default licence policy (109): the floor every request made with the token applies, which a request may add to but never remove. `licencePolicy: null` or `[]` clears it. Other members are refused (400 VALIDATION_FAILED); the token value, scope and restrictions never change after creation. Path keys and revoked tokens are 404.\n\n**Scope:** `admin`.\n\noperationId: `updateToken`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"licencePolicy\": [\n    \"no-nc\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -51176,6 +51247,14 @@
     },
     {
       "key": "watchlistId",
+      "value": ""
+    },
+    {
+      "key": "exportId",
+      "value": ""
+    },
+    {
+      "key": "holdId",
       "value": ""
     },
     {
