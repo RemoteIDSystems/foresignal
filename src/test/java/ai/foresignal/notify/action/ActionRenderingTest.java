@@ -151,7 +151,7 @@ class ActionRenderingTest {
                 null, PushMessage.ACTIONABLE_CATEGORY, List.of(
                         new PushMessage.Action("ack", "Acknowledge", BASE + ACK_TOKEN),
                         new PushMessage.Action("snooze", "Snooze 1h", BASE + SNOOZE_TOKEN),
-                        new PushMessage.Action("mute", "Mute 4h", BASE + MUTE_TOKEN)), BASE + ACK_TOKEN);
+                        new PushMessage.Action("mute", "Mute 4h", BASE + MUTE_TOKEN)), BASE + ACK_TOKEN, null);
         assertThat(message.actions()).hasSize(2);
         JsonNode payload = JSON.readTree(new PushPayloadBudget(JSON).fit(message, PushPayloads.FORESIGNAL, "en"));
         assertThat(payload.get("actions")).hasSize(2);

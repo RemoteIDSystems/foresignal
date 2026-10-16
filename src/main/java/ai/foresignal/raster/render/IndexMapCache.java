@@ -74,6 +74,26 @@ public class IndexMapCache {
                 k -> IndexMap.build(grid, size, size, IndexMap.tile(z, x, y, size), bilinear));
     }
 
+    /**
+     * The key of a tile's map in a named tile matrix set at a given tile size (prompt 108).
+     *
+     * @param gridId the grid
+     * @param tms the tile matrix set id
+     * @param z zoom
+     * @param x column
+     * @param y row
+     * @param size the tile side, pixels
+     * @param bilinear the four-cell variant
+     */
+    public record TmsTileKey(String gridId, String tms, int z, int x, int y, int size, boolean bilinear) {}
+
+    /** The map of a tile in {@code tms}, built on a miss (prompt 108). */
+    public IndexMap tile(String gridId, GridDef grid, TileMatrixSet tms, int z, int x, int y, int size,
+            boolean bilinear) {
+        return cache.get(new TmsTileKey(gridId, tms.id(), z, x, y, size, bilinear),
+                k -> IndexMap.build(grid, size, size, tms.locator(z, x, y, size), bilinear));
+    }
+
     /** The map of an image, built on a miss. */
     public IndexMap image(String gridId, GridDef grid, ImageKey key) {
         return cache.get(key, k -> IndexMap.build(grid, key.width(), key.height(),

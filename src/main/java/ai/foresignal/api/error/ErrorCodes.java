@@ -450,6 +450,21 @@ public final class ErrorCodes {
     /** 404: the record of a position sample is unknown (prompt 106). */
     public static final String UNKNOWN_RECORD = "UNKNOWN_RECORD";
 
+    /** 406: the requested raster format is not available (WebP unhealthy; prompt 108). */
+    public static final String FORMAT_UNAVAILABLE = "FORMAT_UNAVAILABLE";
+
+    /** 413: an EDR area request covers more cells than allowed (prompt 108). */
+    public static final String EDR_TOO_LARGE = "EDR_TOO_LARGE";
+
+    /** 413: a place offline pack exceeds its size cap (prompt 108). */
+    public static final String PACK_TOO_LARGE = "PACK_TOO_LARGE";
+
+    /** 404: the export job is unknown (prompt 108). */
+    public static final String UNKNOWN_EXPORT = "UNKNOWN_EXPORT";
+
+    /** 400: notification image links need a public https base URL (prompt 108). */
+    public static final String IMAGE_LINKS_REQUIRE_HTTPS = "IMAGE_LINKS_REQUIRE_HTTPS";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

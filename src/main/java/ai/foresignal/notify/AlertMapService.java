@@ -156,9 +156,12 @@ public class AlertMapService {
     private final NotificationChannelRepository channelRepository;
     private final DeliveryStore deliveries;
     private final AlertStore alerts;
+    private final ai.foresignal.security.feed.FeedKeyService feedKeys;
+    private final ai.foresignal.settings.AppSettingService settings;
     private final JsonMapper json;
     private final Clock clock;
     private final Map<String, Job> jobs = new ConcurrentHashMap<>();
+    private final Map<String, String> mediaKeys = new ConcurrentHashMap<>();
     private final Object frames = new Object();
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
@@ -168,7 +171,8 @@ public class AlertMapService {
     /** Creates the service. */
     public AlertMapService(StaticMapService maps, SampleService samples, MediaStore media, ThumbnailService thumbnails,
             ChannelService channels, NotificationChannelRepository channelRepository, DeliveryStore deliveries,
-            AlertStore alerts, JsonMapper json, Clock clock) {
+            AlertStore alerts, ai.foresignal.security.feed.FeedKeyService feedKeys,
+            ai.foresignal.settings.AppSettingService settings, JsonMapper json, Clock clock) {
         this.maps = maps;
         this.samples = samples;
         this.media = media;
@@ -177,6 +181,8 @@ public class AlertMapService {
         this.channelRepository = channelRepository;
         this.deliveries = deliveries;
         this.alerts = alerts;
+        this.feedKeys = feedKeys;
+        this.settings = settings;
         this.json = json;
         this.clock = clock;
     }
@@ -580,7 +586,47 @@ public class AlertMapService {
         } catch (RuntimeException e) {
             base = null;
         }
-        return (base == null ? NotificationRouter.DEFAULT_BASE_URL : base) + "/v1/media/" + id;
+        if (base == null) {
+            return NotificationRouter.DEFAULT_BASE_URL + "/v1/media/" + id;
+        }
+        if (imageLinksOn() && base.toLowerCase(java.util.Locale.ROOT).startsWith("https://")) {
+            String key = mediaKey(id);
+            if (key != null) {
+                return base + "/v1/k/" + key + "/media/" + id;
+            }
+        }
+        return base + "/v1/media/" + id;
+    }
+
+    /** True when {@code notifications.imageLinks} is on (prompt 108). */
+    private boolean imageLinksOn() {
+        try {
+            return settings.getOrDefault(ai.foresignal.settings.SettingKeys.NOTIFICATIONS,
+                    ai.foresignal.settings.NotificationSettings.class,
+                    ai.foresignal.settings.NotificationSettings::defaults).imageLinksOn();
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    /** A feed key bound to exactly one media path, read-only, expiring with the media (7 d; prompt 108). */
+    private String mediaKey(String mediaId) {
+        String cached = mediaKeys.get(mediaId);
+        if (cached != null) {
+            return cached;
+        }
+        try {
+            ai.foresignal.security.feed.FeedKeyService.CreatedKey created = feedKeys.mint(
+                    ai.foresignal.security.ApiTokenEntity.TYPE_FEED_KEY,
+                    ai.foresignal.security.feed.FeedKeyService.KEY_PREFIX, "map-" + mediaId,
+                    List.of("/v1/media/" + mediaId), ai.foresignal.security.TokenRestrictions.NONE,
+                    clock.instant().plus(java.time.Duration.ofDays(7)), false);
+            mediaKeys.put(mediaId, created.key());
+            return created.key();
+        } catch (RuntimeException e) {
+            log.warn("Could not mint a media feed key for {}: {}", mediaId, e.getMessage());
+            return null;
+        }
     }
 
     static String key(long alertId, List<String> products, double radiusKm) {

@@ -4863,3 +4863,18 @@ docker compose exec -T db dropdb -U foresignal restore_drill
   the first run looks `lookbackDays` (default 3) behind, later runs start two days behind the newest scene
   already seen. `maxPages` (default 5, at most 10) caps the pages of 100 read per run. A cloudy week returns
   nothing, which is normal (no silent-break warning).
+
+## Raster exports and offline packs (prompt 108)
+
+Async raster exports and place offline packs write files under
+`${FORESIGNAL_DATA_DIR}/exports/{exportId}/` and keep them for 48 h; they count against the raster disk
+quota. Submit an export with `POST /v1/products/{id}/exports` (`format`: `mbtiles`, `pmtiles` or `cog`,
+plus `frameKey`/`frameKeys`, `bbox` or `placeId`+`radiusKm`, `minZoom`, `maxZoom`, `style`, `tms`), poll
+`GET /v1/exports/{id}`, and download via `GET /v1/exports/{id}/files/{name}`. Caps: 50,000 tiles per
+tileset and 2 GB per file. `POST /v1/places/{id}/pack` builds a ZIP (≤ 50 MB) of place weather, forecast
+series, nearby alerts, legends, a loop GIF and one PMTiles per product.
+
+WebP tiles need the bundled `webp-imageio` native library. A missing native (an unsupported platform)
+disables WebP: `/v1/system` reports a `WEBP_UNAVAILABLE` warning and `.webp` answers `406
+FORMAT_UNAVAILABLE`. Set `notifications.imageLinks` only on an instance with an https `publicBaseUrl`;
+enabling it on a LAN-only instance exposes one media path per feed key and is refused without https.

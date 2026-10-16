@@ -99,6 +99,9 @@ public class TeamsChannel extends AbstractChannelType {
         }
         body.add(obj("type", "TextBlock", "text", m.severity() + " · " + displayTime(m, s), "isSubtle", true,
                 "size", "Small", "wrap", true));
+        if (m.imageUrl() != null) {
+            body.add(obj("type", "Image", "url", m.imageUrl(), "altText", m.title()));
+        }
         List<Object> actions = new ArrayList<>();
         for (NotificationMessage.Link link : buttons(m)) {
             actions.add(obj("type", "Action.OpenUrl", "title", link.label(), "url", link.url()));

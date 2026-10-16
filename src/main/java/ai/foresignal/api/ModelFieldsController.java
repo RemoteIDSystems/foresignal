@@ -259,6 +259,89 @@ public class ModelFieldsController {
         return ResponseEntity.ok().headers(headers).contentType(MediaType.IMAGE_PNG).body(png.png());
     }
 
+    /** {@code getProductFieldI16}: planar little-endian int16 u then v (prompt 108). */
+    @GetMapping("/v1/products/{productId}/fields/{frameKey}.i16")
+    @Operation(operationId = "getProductFieldI16", tags = "Products")
+    public ResponseEntity<byte[]> getProductFieldI16(
+            @PathVariable String productId,
+            @PathVariable String frameKey,
+            @RequestParam(required = false) String run,
+            @RequestParam(required = false) String res,
+            @RequestParam(required = false) String bbox,
+            HttpServletRequest request) {
+        String resolution = FieldService.resolution(res);
+        double[] box = FieldService.parseBox(bbox);
+        ReadCaller caller = callers.resolve(request);
+        ProductRegistry.Registered product = catalog.visible(productId, callers.excludedSources(caller));
+        ProductSpec spec = product.spec();
+        RasterRenderService.requireRendered(spec);
+        catalog.requireAvailable(product);
+        FieldService.requireFields(spec);
+        String base = urls.base(request);
+        FrameResolver.Resolution choice = resolver.resolve(spec, frameKey, run, false, clock.instant(),
+                k -> ProductUrls.product(base, spec.id()) + "/fields/" + k + ".i16" + query(request));
+        if (choice instanceof FrameResolver.Redirect redirect) {
+            return redirect(base, request, frameKey, redirect.canonicalToken(), ".i16");
+        }
+        FrameResolver.Found found = (FrameResolver.Found) choice;
+        RasterFrameRow frame = found.frame();
+        FieldService.FieldData data = fields.data(spec, frame, resolution, box);
+        requireWithinPoints(data.window());
+        ai.foresignal.raster.model.I16FieldEncoder.Result encoded = fields.i16(data);
+        String etag = "\"i16-" + FrameStore.sha256Hex(encoded.bytes()).substring(0, 16) + "\"";
+        HttpHeaders headers = RasterCachePolicy.headers(
+                RasterCachePolicy.decide(found.contentAddressed(), publicFor(caller, product), spec), etag,
+                frame.validTime());
+        headers.set("Foresignal-Field-Scale", encoded.vScale() + "," + encoded.vOffset());
+        headers.set("Foresignal-Field-Scale-U", encoded.uScale() + "," + encoded.uOffset());
+        if (RasterCachePolicy.notModified(request, etag)) {
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(headers).build();
+        }
+        return ResponseEntity.ok().headers(headers).contentType(MediaType.APPLICATION_OCTET_STREAM).body(encoded.bytes());
+    }
+
+    /** {@code getProductFieldTile}: a png-uv tile of the wind field (prompt 108). */
+    @GetMapping("/v1/products/{productId}/fields/{frameKey}/{z}/{x}/{y}.png")
+    @Operation(operationId = "getProductFieldTile", tags = "Products")
+    public ResponseEntity<byte[]> getProductFieldTile(
+            @PathVariable String productId,
+            @PathVariable String frameKey,
+            @PathVariable int z,
+            @PathVariable int x,
+            @PathVariable int y,
+            @RequestParam(required = false) String tms,
+            @RequestParam(required = false) String run,
+            @RequestParam(required = false) String res,
+            HttpServletRequest request) {
+        String resolution = FieldService.resolution(res);
+        ai.foresignal.raster.render.TileMatrixSet set = ai.foresignal.raster.render.TileMatrixSets.resolve(tms);
+        ReadCaller caller = callers.resolve(request);
+        ProductRegistry.Registered product = catalog.visible(productId, callers.excludedSources(caller));
+        ProductSpec spec = product.spec();
+        RasterRenderService.requireRendered(spec);
+        catalog.requireAvailable(product);
+        FieldService.requireFields(spec);
+        RasterRenderService.checkTile(spec, set, z, x, y);
+        String base = urls.base(request);
+        FrameResolver.Resolution choice = resolver.resolve(spec, frameKey, run, false, clock.instant(),
+                k -> ProductUrls.product(base, spec.id()) + "/fields/" + k + "/" + z + "/" + x + "/" + y + ".png"
+                        + query(request));
+        if (choice instanceof FrameResolver.Redirect redirect) {
+            return redirect(base, request, frameKey, redirect.canonicalToken(), "/");
+        }
+        FrameResolver.Found found = (FrameResolver.Found) choice;
+        RasterFrameRow frame = found.frame();
+        PngUvEncoder.Result png = fields.pngTile(spec, frame, resolution, set, z, x, y, 256);
+        String etag = "\"ft-" + FrameStore.sha256Hex(png.png()).substring(0, 16) + "\"";
+        HttpHeaders headers = RasterCachePolicy.headers(
+                RasterCachePolicy.decide(found.contentAddressed(), publicFor(caller, product), spec), etag,
+                frame.validTime());
+        if (RasterCachePolicy.notModified(request, etag)) {
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(headers).build();
+        }
+        return ResponseEntity.ok().headers(headers).contentType(MediaType.IMAGE_PNG).body(png.png());
+    }
+
     /** Refuses a window over the point cap (400 {@code FIELD_TOO_LARGE}). */
     static void requireWithinPoints(FieldService.Window window) {
         if ((long) window.cols() * window.rows() > VelocityJsonEncoder.MAX_POINTS) {

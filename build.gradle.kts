@@ -92,6 +92,8 @@ dependencies {
     implementation(libs.protobuf.java)
     // Feed-kit item text (073): HTML summaries become plain text with Safelist.none().
     implementation(libs.jsoup)
+    implementation(libs.webp.imageio)
+    implementation(libs.sqlite.jdbc)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))

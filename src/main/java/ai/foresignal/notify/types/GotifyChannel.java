@@ -47,6 +47,9 @@ public class GotifyChannel extends AbstractChannelType {
     @Override
     public PreparedRequest render(NotificationMessage m, ChannelSettings s) {
         String body = MarkdownRenderer.render(m.bodyMarkdown(), MarkdownRenderer.Format.ZULIP);
+        if (m.imageUrl() != null) {
+            body = (body.isBlank() ? "" : body + "\n\n") + "![map](" + m.imageUrl() + ")";
+        }
         Map<String, Object> extras = obj(
                 "client::display", obj("contentType", "text/markdown"),
                 "client::notification", m.url() == null ? null : obj("click", obj("url", m.url())),

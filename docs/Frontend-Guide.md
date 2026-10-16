@@ -578,3 +578,34 @@ modulo `nx`, so seed and keep particles inside the box (`lo1` east by `nx · dx`
 check `sha256` with `crypto.subtle.digest("SHA-256", bytes)`. `stale: true` means the field is not from
 the newest complete run (a `previous` or pinned run). Show `attribution` (NOAA GFS, public domain) with
 the layer.
+
+## Map interop and offline clients (prompt 108)
+
+Foresignal's raster products reach GIS, TAK, 3D and offline clients without a custom client:
+
+- **WMTS 1.0.0.** `GET /v1/wmts/1.0.0/WMTSCapabilities.xml` (or KVP `GET /v1/wmts?SERVICE=WMTS&REQUEST=GetCapabilities`)
+  describe one layer per product with a `Time` dimension (`current` plus the newest frame times; forecast
+  products add `RefTime`). In **QGIS** add a WMTS connection pointing at the capabilities URL and use the
+  temporal controller; in **Cesium** use `WebMapTileServiceImageryProvider` with the capabilities URL and
+  `{ Time: cesiumTime, RefTime: run }`. A concrete time resolves and 301-redirects to the immutable,
+  content-addressed tile, so caches stay correct. Through `/v1/k/{key}/…` every URL carries your key.
+- **OGC API – Tiles / EDR.** `/v1/ogc`, `/v1/ogc/collections`, `/v1/ogc/collections/{product}/map/tiles[/{tms}]`
+  and the OGC tile path `…/{tileMatrix}/{tileRow}/{tileCol}` (note row/col order). EDR:
+  `/v1/ogc/collections/{product}/position?coords=POINT(lon lat)&datetime=` and `/area?coords=POLYGON((…))`
+  answer `application/prs.coverage+json` whose values match `/v1/sample`; `/instances` lists forecast runs.
+- **MapLibre `raster-dem` data tiles.** `GET /v1/products/{id}/data/{frameKey}/{z}/{x}/{y}.png?encoding=custom|terrarium`
+  carries physical values (no-data is alpha 0). The TileJSON `foresignal:dataTiles` block gives the
+  `{redFactor, greenFactor, blueFactor, baseShift}`, `units` and `nodata`; colour client-side.
+- **Style fragment.** `GET /v1/products/{id}/style-fragment.json` (or `/v1/products/style-fragment.json?products=a,b`)
+  returns a MapLibre `{version:8, sources, layers}` with concrete content-addressed URLs and layer ids
+  `foresignal-{product}`. Insert those `sources` and `layers` into your basemap style's `sources` and, below
+  a named basemap layer, into `layers`; legend links are in `metadata.legends`.
+- **ATAK / MOBAC.** `GET /v1/products/{id}/mobac.xml` returns a `<customMapSource>` using `{$z}/{$x}/{$y}` on
+  the `latest` alias; request it through a tile-key path so ATAK caches under your key. Rotate keys weekly.
+- **Offline packs.** `POST /v1/places/{placeId}/pack` (agent) starts an async ZIP with the place weather,
+  forecast series, nearby alerts (GeoJSON), legends, a `loop.gif` and one PMTiles per product; poll
+  `GET /v1/exports/{id}` and download the file. `POST /v1/products/{id}/exports` starts MBTiles, PMTiles or
+  COG exports over frames and a box.
+- **Image links.** When `notifications.imageLinks` is on (admin; needs an https `publicBaseUrl`), the map
+  attachment also becomes a URL `{publicBaseUrl}/v1/k/{key}/media/{id}` for channels that cannot take
+  attachments; the key is read-only and expires with the media (7 d).

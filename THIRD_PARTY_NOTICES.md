@@ -582,3 +582,20 @@ scientific colormaps. Each style's `notice` field names its origin.
 - **osmium:** `osmium-tool` (GPL-3.0) is documented as an optional external command the operator may
   run to produce the extract. It is **not linked, bundled or invoked** by Foresignal; the optional
   `WITH_OSMIUM=true` image only documents the operator's own use.
+
+## webp-imageio (Java library, bundled)
+
+- **Library:** `com.github.usefulness:webp-imageio` 0.10.0 (Apache-2.0), an ImageIO plugin that encodes and
+  decodes WebP (prompt 108). It bundles `libwebp` (BSD-3-Clause, © Google) natives for linux-x86_64,
+  linux-aarch64, macOS and Windows.
+- **Use:** the `.webp` tile and `/image` encodings. A startup health check encodes one 256×256 tile; on
+  failure WebP is disabled with a `/v1/system` reason and `.webp` answers 406 `FORMAT_UNAVAILABLE`.
+- **Licences:** Apache-2.0 (the Java wrapper) and BSD-3-Clause (libwebp). `libwebp` is bundled, not
+  separately installed.
+
+## sqlite-jdbc (Java library, bundled)
+
+- **Library:** `org.xerial:sqlite-jdbc` 3.53.4.0 (Apache-2.0), which bundles the SQLite native library
+  (public domain). Used only to write MBTiles export files (prompt 108); Foresignal's own stores stay
+  PostgreSQL/PostGIS.
+- **Licence:** Apache-2.0 (SQLite itself is public domain).

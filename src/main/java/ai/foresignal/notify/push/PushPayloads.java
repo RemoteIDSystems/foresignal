@@ -124,6 +124,7 @@ public final class PushPayloads {
             out.put("actions", actions);
         }
         putIfPresent(out, "confirmUrl", m.confirmUrl());
+        putIfPresent(out, "image", m.imageUrl());
         return out;
     }
 
@@ -140,6 +141,7 @@ public final class PushPayloads {
         notification.put("navigate", m.confirmUrl() != null ? m.confirmUrl() : navigate(m.linkWeb(), f.linkApi()));
         putIfPresent(notification, "lang", f.lang());
         putIfPresent(notification, "tag", m.tag());
+        putIfPresent(notification, "image", m.imageUrl());
         notification.put("silent", m.silent());
         notification.put("data", data);
         Map<String, Object> out = new LinkedHashMap<>();

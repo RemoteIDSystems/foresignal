@@ -16,17 +16,22 @@ import ai.foresignal.raster.ProductRegistry;
 import ai.foresignal.raster.ProductUrls;
 import ai.foresignal.raster.RasterFrameRow;
 import ai.foresignal.raster.RasterPipeline;
+import ai.foresignal.raster.render.DataTileEncoder;
 import ai.foresignal.raster.render.LoopService;
 import ai.foresignal.raster.render.RasterCachePolicy;
 import ai.foresignal.raster.render.RasterRenderService;
 import ai.foresignal.raster.render.RenderQueue;
 import ai.foresignal.raster.render.StyleRegistry;
 import ai.foresignal.raster.render.TileCache;
+import ai.foresignal.raster.render.TileMatrixSet;
+import ai.foresignal.raster.render.TileMatrixSets;
 import ai.foresignal.raster.render.TransparentTile;
 import ai.foresignal.raster.render.WebMercator;
+import ai.foresignal.raster.render.WebpSupport;
 import ai.foresignal.security.restrict.RequestPrincipal;
 import ai.foresignal.security.visibility.SourceVisibility;
 import ai.foresignal.source.spi.ProductSpec;
+import ai.foresignal.source.spi.RasterDtype;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -83,11 +88,12 @@ public class RasterTilesController {
     private final ProductUrls urls;
     private final JsonMapper json;
     private final Clock clock;
+    private final WebpSupport webp;
 
     /** Creates the controller. */
     public RasterTilesController(ProductCatalogService catalog, FrameResolver resolver, RasterRenderService renderer,
             LoopService loops, GridStore grids, ReadCallerResolver callers, SourceVisibility visibility,
-            PlaceService places, ProductUrls urls, JsonMapper json, Clock clock) {
+            PlaceService places, ProductUrls urls, JsonMapper json, Clock clock, WebpSupport webp) {
         this.catalog = catalog;
         this.resolver = resolver;
         this.renderer = renderer;
@@ -99,30 +105,134 @@ public class RasterTilesController {
         this.urls = urls;
         this.json = json;
         this.clock = clock;
+        this.webp = webp;
     }
+
+    static final MediaType WEBP = MediaType.parseMediaType("image/webp");
 
     /** {@code getProductTile}: a WebMercatorQuad PNG tile, 256 px or {@code @2x} 512 px. */
     @GetMapping("/v1/products/{productId}/tiles/{frameKey}/{z}/{x}/{y}.png")
     @Operation(operationId = "getProductTile", tags = "Products")
     public ResponseEntity<byte[]> getProductTile(
-            @PathVariable String productId,
-            @PathVariable String frameKey,
-            @PathVariable int z,
-            @PathVariable int x,
-            @PathVariable String y,
-            @RequestParam(required = false) String style,
-            @RequestParam(required = false) String run,
-            @RequestParam(required = false) String empty,
-            @RequestParam(required = false) String onExpired,
-            @RequestParam(required = false) String prefetch,
+            @PathVariable String productId, @PathVariable String frameKey, @PathVariable int z, @PathVariable int x,
+            @PathVariable String y, @RequestParam(required = false) String style,
+            @RequestParam(required = false) String run, @RequestParam(required = false) String empty,
+            @RequestParam(required = false) String onExpired, @RequestParam(required = false) String prefetch,
             @RequestHeader(value = PREFETCH_HEADER, required = false) String prefetchHeader,
             HttpServletRequest request) {
+        return serveTile(productId, frameKey, null, z, x, y, "png", null, style, run, empty, onExpired, prefetch,
+                prefetchHeader, request);
+    }
+
+    /** {@code getProductTileWebp}: the same tile as WebP (prompt 108). */
+    @GetMapping("/v1/products/{productId}/tiles/{frameKey}/{z}/{x}/{y}.webp")
+    @Operation(operationId = "getProductTileWebp", tags = "Products")
+    public ResponseEntity<byte[]> getProductTileWebp(
+            @PathVariable String productId, @PathVariable String frameKey, @PathVariable int z, @PathVariable int x,
+            @PathVariable String y, @RequestParam(required = false) String style,
+            @RequestParam(required = false) String run, @RequestParam(required = false) String empty,
+            @RequestParam(required = false) String onExpired, @RequestParam(required = false) String prefetch,
+            @RequestHeader(value = PREFETCH_HEADER, required = false) String prefetchHeader,
+            HttpServletRequest request) {
+        return serveTile(productId, frameKey, null, z, x, y, "webp", null, style, run, empty, onExpired, prefetch,
+                prefetchHeader, request);
+    }
+
+    /** {@code getProductTileTms}: a tile in a named tile matrix set, PNG or WebP (prompt 108). */
+    @GetMapping("/v1/products/{productId}/tiles/{frameKey}/{tileMatrixSetId}/{z}/{x}/{y}.{format}")
+    @Operation(operationId = "getProductTileTms", tags = "Products")
+    public ResponseEntity<byte[]> getProductTileTms(
+            @PathVariable String productId, @PathVariable String frameKey, @PathVariable String tileMatrixSetId,
+            @PathVariable int z, @PathVariable int x, @PathVariable String y,
+            @PathVariable String format, @RequestParam(required = false) String style,
+            @RequestParam(required = false) String run, @RequestParam(required = false) String empty,
+            @RequestParam(required = false) String onExpired, @RequestParam(required = false) String prefetch,
+            @RequestParam(required = false) String tileSize,
+            @RequestHeader(value = PREFETCH_HEADER, required = false) String prefetchHeader,
+            HttpServletRequest request) {
+        return serveTile(productId, frameKey, tileMatrixSetId, z, x, y, format, tileSize, style, run, empty, onExpired,
+                prefetch, prefetchHeader, request);
+    }
+
+    /** {@code getProductDataTile}: band 0's values as Terrain-RGB style RGB (prompt 108). */
+    @GetMapping("/v1/products/{productId}/data/{frameKey}/{z}/{x}/{y}.png")
+    @Operation(operationId = "getProductDataTile", tags = "Products")
+    public ResponseEntity<byte[]> getProductDataTile(
+            @PathVariable String productId, @PathVariable String frameKey, @PathVariable int z, @PathVariable int x,
+            @PathVariable String y, @RequestParam(required = false) String encoding,
+            @RequestParam(required = false) String tms, @RequestParam(required = false) String run,
+            HttpServletRequest request) {
+        String enc = QueryParams.oneOf("encoding", encoding, List.of("custom", "terrarium"), "custom");
+        Matcher row = TILE_ROW.matcher(y);
+        if (!row.matches() || row.group(2) != null) {
+            throw ValidationException.forField("y", "must be a tile row");
+        }
+        int tileY = Integer.parseInt(row.group(1));
+        TileMatrixSet set = TileMatrixSets.resolve(tms);
+        ReadCaller caller = callers.resolve(request);
+        ProductRegistry.Registered product = catalog.visible(productId, callers.excludedSources(caller));
+        ProductSpec spec = product.spec();
+        RasterRenderService.requireRendered(spec);
+        catalog.requireAvailable(product);
+        RasterRenderService.checkTile(spec, set, z, x, tileY);
+        boolean signed = spec.dtype() == RasterDtype.I16;
+        DataTileEncoder.Encoding choice;
+        if ("terrarium".equals(enc)) {
+            if (spec.dtype() == null || !spec.dtype().isInteger()) {
+                throw ValidationException.forField("encoding", "terrarium needs an integer product");
+            }
+            choice = DataTileEncoder.Encoding.terrarium();
+        } else {
+            choice = signed ? DataTileEncoder.Encoding.signedCustom() : DataTileEncoder.Encoding.unsignedCustom();
+        }
+        String base = urls.base(request);
+        FrameResolver.Resolution resolution = resolver.resolve(spec, frameKey, run, false, clock.instant(),
+                k -> ProductUrls.product(base, spec.id()) + "/data/" + k + "/" + z + "/" + x + "/" + y + ".png"
+                        + query(request));
+        if (resolution instanceof FrameResolver.Redirect redirect) {
+            return redirect(base, request, frameKey, redirect.canonicalToken());
+        }
+        FrameResolver.Found found = (FrameResolver.Found) resolution;
+        RasterFrameRow frame = found.frame();
+        boolean contentAddressed = found.contentAddressed();
+        String etag = RasterCachePolicy.etag(spec.id(), frame.frameKey(), runOf(frame), frame.status(), "data",
+                set.id() + "/" + z + "/" + x + "/" + tileY + "/" + choice.encoding());
+        HttpHeaders headers = RasterCachePolicy.headers(
+                RasterCachePolicy.decide(contentAddressed, publicFor(caller, product), spec), etag, frame.validTime());
+        if (RasterCachePolicy.notModified(request, etag)) {
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(headers).build();
+        }
+        byte[] bytes = renderer.dataTile(spec, frame, set, z, x, tileY, 256, choice,
+                priority(null, null), clientKey(request));
+        if (bytes == TileCache.EMPTY || bytes.length == 0) {
+            return ResponseEntity.ok().headers(headers).contentType(MediaType.IMAGE_PNG)
+                    .body(TransparentTile.png());
+        }
+        return ResponseEntity.ok().headers(headers).contentType(MediaType.IMAGE_PNG).body(bytes);
+    }
+
+    /** The shared tile body. */
+    private ResponseEntity<byte[]> serveTile(String productId, String frameKey, String tmsId, int z, int x, String y,
+            String format, String tileSize, String style, String run, String empty, String onExpired, String prefetch,
+            String prefetchHeader, HttpServletRequest request) {
+        if (!"png".equals(format) && !"webp".equals(format)) {
+            throw ValidationException.forField("format", "must be png or webp");
+        }
+        if ("webp".equals(format) && !webp.available()) {
+            throw new ForesignalException(HttpStatus.NOT_ACCEPTABLE, ErrorCodes.FORMAT_UNAVAILABLE,
+                    webp.reason() == null ? "WebP is unavailable" : webp.reason());
+        }
         Matcher row = TILE_ROW.matcher(y);
         if (!row.matches()) {
             throw ValidationException.forField("y", "must be a tile row, optionally suffixed @2x");
         }
         int tileY = Integer.parseInt(row.group(1));
         int scale = row.group(2) == null ? 1 : 2;
+        int size = scale == 2 || "512".equals(tileSize == null ? null : tileSize.strip()) ? 512 : 256;
+        if (tileSize != null && !tileSize.isBlank() && !"256".equals(tileSize.strip()) && !"512".equals(tileSize.strip())) {
+            throw ValidationException.forField("tileSize", "must be 256 or 512");
+        }
+        TileMatrixSet tms = TileMatrixSets.resolve(tmsId);
         boolean empty204 = "204".equals(QueryParams.oneOf("empty", empty, List.of("204"), null));
         boolean expiredTransparent = QueryParams.oneOf("onExpired", onExpired, List.of("transparent"), null) != null;
         ReadCaller caller = callers.resolve(request);
@@ -130,21 +240,22 @@ public class RasterTilesController {
         ProductSpec spec = product.spec();
         RasterRenderService.requireRendered(spec);
         catalog.requireAvailable(product);
-        RasterRenderService.checkTile(spec, z, x, tileY);
+        RasterRenderService.checkTile(spec, tms, z, x, tileY);
         StyleRegistry.Resolved resolvedStyle = renderer.style(spec, style);
         boolean publicCache = publicFor(caller, product);
         String base = urls.base(request);
+        String tmsSegment = tmsId == null || tmsId.isBlank() ? "" : tms.id() + "/";
         FrameResolver.Resolution resolution;
         try {
             resolution = resolver.resolve(spec, frameKey, run, false, clock.instant(),
-                    k -> ProductUrls.product(base, spec.id()) + "/tiles/" + k + "/" + z + "/" + x + "/" + y + ".png"
-                            + query(request));
+                    k -> ProductUrls.product(base, spec.id()) + "/tiles/" + k + "/" + tmsSegment + z + "/" + x + "/" + y
+                            + "." + format + query(request));
         } catch (ForesignalException e) {
             if (expiredTransparent && ErrorCodes.FRAME_EXPIRED.equals(e.getCode())) {
                 HttpHeaders headers = RasterCachePolicy.headers(RasterCachePolicy.decide(false, publicCache, spec),
                         TransparentTile.ETAG, null);
                 headers.set(RasterCachePolicy.FRAME_EXPIRED_HEADER, "true");
-                return transparent(headers, empty204, request);
+                return transparent(headers, empty204, request, format);
             }
             throw e;
         }
@@ -156,21 +267,27 @@ public class RasterTilesController {
         boolean contentAddressed = found.contentAddressed() && versioned(style, resolvedStyle);
         RasterCachePolicy.Decision decision = RasterCachePolicy.decide(contentAddressed, publicCache, spec);
         String etag = RasterCachePolicy.etag(spec.id(), frame.frameKey(), runOf(frame), frame.status(),
-                resolvedStyle.ref(), z + "/" + x + "/" + tileY + "@" + scale);
+                resolvedStyle.ref(), tms.id() + "/" + z + "/" + x + "/" + tileY + "/" + size + "/" + format);
         HttpHeaders headers = RasterCachePolicy.headers(decision, etag, frame.validTime());
         if (RasterCachePolicy.notModified(request, etag)) {
             return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(headers).build();
         }
-        byte[] bytes = renderer.tile(spec, frame, resolvedStyle, z, x, tileY, scale, priority(prefetch, prefetchHeader),
-                clientKey(request));
+        byte[] bytes = renderer.tile(spec, frame, resolvedStyle, tms, z, x, tileY, size, format,
+                priority(prefetch, prefetchHeader), clientKey(request));
         if (bytes == TileCache.EMPTY || bytes.length == 0) {
             HttpHeaders emptyHeaders = RasterCachePolicy.headers(decision, TransparentTile.ETAG, frame.validTime());
-            return transparent(emptyHeaders, empty204, request);
+            return transparent(emptyHeaders, empty204, request, format);
         }
-        return ResponseEntity.ok().headers(headers).contentType(MediaType.IMAGE_PNG).body(bytes);
+        return ResponseEntity.ok().headers(headers)
+                .contentType("webp".equals(format) ? WEBP : MediaType.IMAGE_PNG).body(bytes);
     }
 
     private ResponseEntity<byte[]> transparent(HttpHeaders headers, boolean empty204, HttpServletRequest request) {
+        return transparent(headers, empty204, request, "png");
+    }
+
+    private ResponseEntity<byte[]> transparent(HttpHeaders headers, boolean empty204, HttpServletRequest request,
+            String format) {
         if (empty204) {
             return ResponseEntity.noContent().headers(headers).build();
         }
@@ -250,7 +367,40 @@ public class RasterTilesController {
         doc.put("foresignal:style", style.ref());
         doc.put("foresignal:run", runOf(frame));
         doc.put("foresignal:expiresAt", frame.expiresAt() == null ? null : frame.expiresAt().toString());
+        doc.put("foresignal:dataTiles", dataTileJson(base, spec, frame));
         return doc;
+    }
+
+    /** The data-tile block of a TileJSON document (prompt 108): template and `raster-dem` metadata. */
+    static Map<String, Object> dataTileJson(String base, ProductSpec spec, RasterFrameRow frame) {
+        boolean signed = spec.dtype() == RasterDtype.I16;
+        boolean integer = spec.dtype() != null && spec.dtype().isInteger();
+        String template = ProductUrls.product(base, spec.id()) + "/data/" + frame.frameKey() + "/{z}/{x}/{y}.png"
+                + "?encoding={encoding}";
+        Map<String, Object> custom = new LinkedHashMap<>();
+        custom.put("encoding", "custom");
+        custom.put("redFactor", 256.0 * spec.scale());
+        custom.put("greenFactor", spec.scale());
+        custom.put("blueFactor", 0.0);
+        custom.put("baseShift", signed ? spec.offset() - 32768.0 * spec.scale() : spec.offset());
+        custom.put("units", spec.units());
+        custom.put("nodata", spec.nodata());
+        Map<String, Object> encodings = new LinkedHashMap<>();
+        encodings.put("custom", custom);
+        if (integer) {
+            Map<String, Object> terrarium = new LinkedHashMap<>();
+            terrarium.put("encoding", "terrarium");
+            terrarium.put("units", spec.units());
+            terrarium.put("nodata", spec.nodata());
+            encodings.put("terrarium", terrarium);
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("template", template);
+        out.put("tileSize", WebMercator.TILE);
+        out.put("encodings", encodings);
+        out.put("units", spec.units());
+        out.put("nodata", spec.nodata());
+        return out;
     }
 
     /** {@code getProductImage}: one frame over a box, PNG or JPEG, up to 2048 px a side. */
@@ -270,8 +420,9 @@ public class RasterTilesController {
             @RequestHeader(value = PREFETCH_HEADER, required = false) String prefetchHeader,
             HttpServletRequest request) {
         String fmt = QueryParams.oneOf("format", format, List.of("png", "jpg", "webp"), null);
-        if ("webp".equals(fmt)) {
-            throw ValidationException.forField("format", "webp is not served yet; use png or jpg");
+        if ("webp".equals(fmt) && !webp.available()) {
+            throw new ForesignalException(HttpStatus.NOT_ACCEPTABLE, ErrorCodes.FORMAT_UNAVAILABLE,
+                    webp.reason() == null ? "WebP is unavailable" : webp.reason());
         }
         boolean mercator = !"EPSG:4326".equals(QueryParams.oneOf("crs", crs, List.of("EPSG:3857", "EPSG:4326"),
                 "EPSG:3857"));
@@ -309,10 +460,10 @@ public class RasterTilesController {
         if (RasterCachePolicy.notModified(request, etag)) {
             return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(headers).build();
         }
-        byte[] bytes = renderer.image(spec, frame, resolvedStyle, image, priority(prefetch, prefetchHeader),
+        byte[] bytes = renderer.image(spec, frame, resolvedStyle, image, fmt, priority(prefetch, prefetchHeader),
                 clientKey(request));
-        return ResponseEntity.ok().headers(headers).contentType("jpg".equals(fmt) ? JPEG : MediaType.IMAGE_PNG)
-                .body(bytes);
+        MediaType type = "webp".equals(fmt) ? WEBP : "jpg".equals(fmt) ? JPEG : MediaType.IMAGE_PNG;
+        return ResponseEntity.ok().headers(headers).contentType(type).body(bytes);
     }
 
     /** {@code getProductLoop}: a snapped box and up to 24 {@code /image} frame URLs. */
@@ -378,6 +529,104 @@ public class RasterTilesController {
             return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(headers).build();
         }
         return ResponseEntity.ok().headers(headers).contentType(JSON).body(text);
+    }
+
+    /** {@code getProductLoopGif}: an animated GIF of the same frames as {@code /loop} (prompt 108). */
+    @GetMapping("/v1/products/loop.gif")
+    @Operation(operationId = "getProductLoopGif", tags = "Products")
+    public ResponseEntity<byte[]> getProductLoopGif(
+            @RequestParam(required = false) List<String> products,
+            @RequestParam(required = false) String past,
+            @RequestParam(required = false) String future,
+            @RequestParam(required = false) String bbox,
+            @RequestParam(required = false) String place,
+            @RequestParam(required = false) String radiusKm,
+            @RequestParam(required = false) String frames,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @RequestParam(required = false) String width,
+            @RequestParam(required = false) String crs,
+            @RequestParam(required = false) String style,
+            @RequestParam(required = false) String run,
+            @RequestParam(required = false) String delay,
+            HttpServletRequest request) {
+        QueryParams.oneOf("crs", crs, List.of("EPSG:3857"), "EPSG:3857");
+        int delayMs = delay == null || delay.isBlank() ? ai.foresignal.raster.render.GifEncoder.DEFAULT_DELAY_MS
+                : QueryParams.intInRange("delay", delay, ai.foresignal.raster.render.GifEncoder.MIN_DELAY_MS,
+                        ai.foresignal.raster.render.GifEncoder.MAX_DELAY_MS,
+                        ai.foresignal.raster.render.GifEncoder.DEFAULT_DELAY_MS);
+        boolean hasBox = bbox != null && !bbox.isBlank();
+        boolean hasPlace = place != null && !place.isBlank();
+        if (hasBox == hasPlace) {
+            throw ValidationException.forField("bbox", "give exactly one of bbox or place");
+        }
+        Double radius = QueryParams.doubleInRange("radiusKm", radiusKm, 1, 2000);
+        if (radius != null && !hasPlace) {
+            throw ValidationException.forField("radiusKm", "applies only with place");
+        }
+        double[] box;
+        if (hasPlace) {
+            if (!ReadCallerResolver.tokenPresent(request)) {
+                throw new ForesignalException(HttpStatus.UNAUTHORIZED, ErrorCodes.UNAUTHORIZED,
+                        "A loop around a place needs a token: places are never anonymous.");
+            }
+            box = placeBox(places.get(place.strip()), radius);
+        } else {
+            box = parseBox(bbox);
+        }
+        ReadCaller caller = callers.resolve(request);
+        LoopService.LoopRequest loopRequest = new LoopService.LoopRequest(QueryParams.multi("products", products, 2),
+                blankToNull(past), blankToNull(future), box,
+                frames == null || frames.isBlank() ? null
+                        : QueryParams.intInRange("frames", frames, 1, LoopService.MAX_FRAMES, LoopService.DEFAULT_FRAMES),
+                QueryParams.instant("from", from), QueryParams.instant("to", to),
+                width == null || width.isBlank() ? null
+                        : QueryParams.intInRange("width", width, LoopService.MIN_WIDTH,
+                                ai.foresignal.raster.render.GifEncoder.MAX_WIDTH, LoopService.DEFAULT_WIDTH),
+                blankToNull(style), blankToNull(run));
+        Map<String, Object> loop = loops.loop(loopRequest, callers.excludedSources(caller), urls.base(request),
+                clock.instant());
+        List<java.awt.image.BufferedImage> images = new java.util.ArrayList<>();
+        boolean contentAddressed = true;
+        if (loop.get("frames") instanceof List<?> items) {
+            int w = ((Number) loop.get("width")).intValue();
+            int h = ((Number) loop.get("height")).intValue();
+            @SuppressWarnings("unchecked")
+            List<Number> b = (List<Number>) loop.get("bounds");
+            double[] bounds = {b.get(0).doubleValue(), b.get(1).doubleValue(), b.get(2).doubleValue(),
+                b.get(3).doubleValue()};
+            for (Object raw : items) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> item = (Map<String, Object>) raw;
+                String productId = String.valueOf(item.get("productId"));
+                String frameKey = String.valueOf(item.get("frameKey"));
+                String itemRun = item.get("run") == null ? null : String.valueOf(item.get("run"));
+                contentAddressed &= FrameKeys.parseFrameKey(frameKey).contentAddressed();
+                ProductRegistry.Registered product = catalog.visible(productId, callers.excludedSources(caller));
+                ProductSpec spec = product.spec();
+                StyleRegistry.Resolved resolvedStyle = renderer.style(spec,
+                        loop.get("products") instanceof List<?> p && p.size() == 1 ? style : null);
+                FrameResolver.Resolution resolution = resolver.resolve(spec, frameKey, itemRun, false, clock.instant(),
+                        k -> ProductUrls.product(urls.base(request), spec.id()) + "/image/" + k + ".png");
+                if (resolution instanceof FrameResolver.Found found) {
+                    RasterRenderService.ImageRequest image = new RasterRenderService.ImageRequest(bounds[0], bounds[1],
+                            bounds[2], bounds[3], w, h, true, false);
+                    images.add(renderer.drawDirect(spec, found.frame(), resolvedStyle, image).image());
+                }
+            }
+        }
+        if (images.isEmpty()) {
+            throw new ForesignalException(HttpStatus.NOT_FOUND, ErrorCodes.UNKNOWN_FRAME,
+                    "No frames are available for this loop.");
+        }
+        byte[] gif = ai.foresignal.raster.render.GifEncoder.encode(images, delayMs);
+        String etag = RasterCachePolicy.etagOf(gif);
+        HttpHeaders headers = RasterCachePolicy.headers(RasterCachePolicy.decide(contentAddressed, false, null), etag,
+                null);
+        if (RasterCachePolicy.notModified(request, etag)) {
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(headers).build();
+        }
+        return ResponseEntity.ok().headers(headers).contentType(MediaType.IMAGE_GIF).body(gif);
     }
 
     /** A box around a place: a point's radius (or {@code radiusKm}), else its area grown by {@code radiusKm}. */

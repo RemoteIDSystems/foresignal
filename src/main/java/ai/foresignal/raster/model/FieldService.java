@@ -6,10 +6,15 @@ import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.raster.FrameKeys;
 import ai.foresignal.raster.FrameResolver;
 import ai.foresignal.raster.FrameStore;
+import ai.foresignal.raster.GridDef;
 import ai.foresignal.raster.ProductSpecJson;
 import ai.foresignal.raster.ProductUrls;
 import ai.foresignal.raster.RasterFrameRow;
+import ai.foresignal.raster.render.ImageEncoding;
+import ai.foresignal.raster.render.IndexMap;
 import ai.foresignal.raster.render.TileCache;
+import ai.foresignal.raster.render.TileMatrixSet;
+import ai.foresignal.source.spi.GridDefinition;
 import ai.foresignal.source.spi.ProductSpec;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -306,9 +311,27 @@ public class FieldService {
         png.put("height", w.rows());
         double[] box = w.box();
         png.put("bounds", List.of(box[0], box[1], box[2], box[3]));
+        Map<String, Object> i16 = new LinkedHashMap<>();
+        i16.put("url", encodingUrl(base, spec, frame, res, w, "i16"));
+        i16.put("uScale", I16FieldEncoder.scale(uv[0], uv[1]));
+        i16.put("uOffset", I16FieldEncoder.offset(uv[0], I16FieldEncoder.scale(uv[0], uv[1])));
+        i16.put("vScale", I16FieldEncoder.scale(uv[2], uv[3]));
+        i16.put("vOffset", I16FieldEncoder.offset(uv[2], I16FieldEncoder.scale(uv[2], uv[3])));
+        i16.put("width", w.cols());
+        i16.put("height", w.rows());
+        Map<String, Object> tiles = new LinkedHashMap<>();
+        tiles.put("url", ProductUrls.product(base, spec.id()) + "/fields/" + frame.frameKey() + "/{z}/{x}/{y}.png?run="
+                + FrameKeys.runIso(frame.referenceTime()) + "&res=" + res);
+        tiles.put("uMin", uv[0]);
+        tiles.put("uMax", uv[1]);
+        tiles.put("vMin", uv[2]);
+        tiles.put("vMax", uv[3]);
+        tiles.put("tileSize", 256);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("velocityJson", Map.of("url", encodingUrl(base, spec, frame, res, w, "velocity-json")));
         out.put("pngUv", png);
+        out.put("i16", i16);
+        out.put("pngTiles", tiles);
         return out;
     }
 
@@ -341,6 +364,56 @@ public class FieldService {
             vMax = 1;
         }
         return new double[] {uMin, uMax, vMin, vMax};
+    }
+
+    /**
+     * The {@code .i16} encoding of a window (prompt 108): planar little-endian int16 {@code u} then
+     * {@code v} with per-component scale/offset.
+     */
+    public I16FieldEncoder.Result i16(FieldData data) {
+        return I16FieldEncoder.encode(FieldStore.gunzip(data.gzip()), data.window().cols(), data.window().rows());
+    }
+
+    /** The lat/lon grid of a stored field (the God's Eye View layout: {@code lo1=0, la1=90}). */
+    public GridDef fieldGrid(FieldStore.StoredField stored) {
+        double north = 90.0;
+        double south = 90.0 - (stored.ny() - 1) * stored.dy();
+        return GridDef.of(new GridDefinition(GridDefinition.LATLON, stored.nx(), stored.ny(), -180.0, south, 180.0,
+                north, Map.of("lo1", 0.0, "la1", 90.0, "dx", stored.dx(), "dy", stored.dy())));
+    }
+
+    /**
+     * A {@code png-uv} tile of the wind field at {@code (z, x, y)} in {@code tms} (prompt 108): sample
+     * the stored field grid with {@code nearest} sampling and reuse the 106 encoder with the field's
+     * global min/max.
+     */
+    public PngUvEncoder.Result pngTile(ProductSpec spec, RasterFrameRow frame, String res, TileMatrixSet tms, int z,
+            int x, int y, int size) {
+        FieldStore.StoredField stored = stored(spec, frame, res);
+        GridDef grid = fieldGrid(stored);
+        if (!ai.foresignal.raster.render.RasterRenderService.intersects(tms.tileBounds(z, x, y), grid.bounds())) {
+            throw new ForesignalException(HttpStatus.NOT_FOUND, ErrorCodes.UNKNOWN_FRAME,
+                    "Tile " + z + "/" + x + "/" + y + " does not intersect the field grid.");
+        }
+        IndexMap map = IndexMap.build(grid, size, size, tms.locator(z, x, y, size), false);
+        byte[] raw = store.readRaw(stored.path());
+        int cells = stored.nx() * stored.ny();
+        double[] uv = uvBounds(raw);
+        int[] nearest = map.nearest();
+        int[] argb = new int[size * size];
+        ByteBuffer in = ByteBuffer.wrap(raw).order(ByteOrder.LITTLE_ENDIAN);
+        for (int p = 0; p < argb.length; p++) {
+            int cell = nearest[p];
+            if (cell < 0) {
+                continue;
+            }
+            float u = in.getFloat(cell * 4);
+            float v = in.getFloat((cells + cell) * 4);
+            int r = PngUvEncoder.channel(u, uv[0], uv[1]);
+            int g = PngUvEncoder.channel(v, uv[2], uv[3]);
+            argb[p] = 0xFF000000 | (r << 16) | (g << 8);
+        }
+        return new PngUvEncoder.Result(ImageEncoding.argbPng(size, size, argb), uv[0], uv[1], uv[2], uv[3], size, size);
     }
 
     /** The content-addressed data URL of an alternative encoding ({@code ext} = {@code velocity-json} or {@code png-uv}). */

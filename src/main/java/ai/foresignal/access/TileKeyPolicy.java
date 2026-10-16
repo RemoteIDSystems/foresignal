@@ -34,7 +34,9 @@ public final class TileKeyPolicy {
             "/v1/ground-stations/",
             "/v1/changes/stream",
             "/v1/events/stream",
-            "/v1/map/");
+            "/v1/map/",
+            "/v1/wmts/",
+            "/v1/ogc/");
 
     private TileKeyPolicy() {}
 

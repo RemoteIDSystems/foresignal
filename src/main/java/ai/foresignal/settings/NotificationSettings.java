@@ -9,33 +9,48 @@ import java.time.Instant;
  *
  * <p>While {@code pausedUntil} is in the future every delivery is deferred to it, except messages at
  * or above {@code pauseBypassSeverity}; deferred deliveries are released as one digest per channel.
- * {@code chatops} (prompt 061) holds the global kill switch of interactive chat channels. The
- * {@code imageLinks} member (108) belongs to a later prompt and is not stored yet.
+ * {@code chatops} (prompt 061) holds the global kill switch of interactive chat channels.
+ * {@code imageLinks} (prompt 108) makes the map attachment also a URL for channels that cannot take
+ * attachments; enabling it requires an https {@code publicBaseUrl} (400
+ * {@code IMAGE_LINKS_REQUIRE_HTTPS}).
  *
  * @param pausedUntil pause deliveries until this instant, or null for no pause
  * @param pauseBypassSeverity the severity wire value at or above which messages are sent anyway, or
  *     null when nothing bypasses the pause
  * @param chatops the interactive chat-command settings (prompt 061); null reads as the defaults
+ * @param imageLinks expose the map as a URL for non-attachment channels (prompt 108); default false
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record NotificationSettings(Instant pausedUntil, String pauseBypassSeverity, ChatOps chatops) {
+public record NotificationSettings(Instant pausedUntil, String pauseBypassSeverity, ChatOps chatops,
+        Boolean imageLinks) {
 
     /** The shipped bypass severity. */
     public static final String DEFAULT_BYPASS = "critical";
 
-    /** A null {@code chatops} becomes {@link ChatOps#defaults()}. */
+    /** Nulls read as their defaults. */
     public NotificationSettings {
         chatops = chatops == null ? ChatOps.defaults() : chatops;
+        imageLinks = imageLinks == null ? Boolean.FALSE : imageLinks;
     }
 
-    /** Settings with the default {@code chatops} (the shape before prompt 061). */
+    /** Settings with the default {@code chatops} and image links off (the shape before prompt 061). */
     public NotificationSettings(Instant pausedUntil, String pauseBypassSeverity) {
-        this(pausedUntil, pauseBypassSeverity, null);
+        this(pausedUntil, pauseBypassSeverity, null, false);
     }
 
-    /** No pause; critical bypasses; interactive chat channels enabled. */
+    /** Settings with image links off (the shape before prompt 108). */
+    public NotificationSettings(Instant pausedUntil, String pauseBypassSeverity, ChatOps chatops) {
+        this(pausedUntil, pauseBypassSeverity, chatops, false);
+    }
+
+    /** No pause; critical bypasses; interactive chat channels enabled; image links off. */
     public static NotificationSettings defaults() {
-        return new NotificationSettings(null, DEFAULT_BYPASS, ChatOps.defaults());
+        return new NotificationSettings(null, DEFAULT_BYPASS, ChatOps.defaults(), false);
+    }
+
+    /** True when image links are enabled. */
+    public boolean imageLinksOn() {
+        return Boolean.TRUE.equals(imageLinks);
     }
 
     /**

@@ -35,6 +35,11 @@ mcp = "2.0.1"
 # and OkHttp (Apache-2.0). Only provider type `anthropic` uses it; the OpenAI-compatible and Ollama
 # clients use java.net.http.
 anthropic = "2.71.0"
+# WebP tiles and images (108): webp-imageio 0.10.0, Apache-2.0 (libwebp BSD-3). Verified on Maven
+# Central 2026-10-15 (0.11.0 from the design is not published there).
+webpImageio = "0.10.0"
+# MBTiles exports (108): sqlite-jdbc 3.53.4.0, Apache-2.0. Verified on Maven Central 2026-10-15.
+sqliteJdbc = "3.53.4.0"
 # Briefing HTML renditions (029): CommonMark with GFM tables, BSD-2-Clause, no runtime dependencies.
 # Verified on Maven Central 2026-10-12: 0.30.1 is the latest release of org.commonmark:commonmark and
 # commonmark-ext-gfm-tables (Java 11 bytecode). Raw HTML in the markdown is escaped, not passed through.
@@ -177,6 +182,12 @@ java-websocket = { module = "org.java-websocket:Java-WebSocket", version.ref = "
 gtfs-realtime-bindings = { module = "org.mobilitydata:gtfs-realtime-bindings", version.ref = "gtfsRealtimeBindings" }
 protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobufJava" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+# WebP tiles and images (108): webp-imageio, Apache-2.0, bundles libwebp (BSD-3) natives for
+# linux-x86_64/aarch64 and macOS/Windows. The design cites 0.11.0; 0.10.0 is the latest on Central
+# (verified 2026-10-15).
+webp-imageio = { module = "com.github.usefulness:webp-imageio", version.ref = "webpImageio" }
+# MBTiles exports (108): sqlite-jdbc, Apache-2.0, bundles the SQLite native library.
+sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbc" }
 
 # --- Test; versions from the Testcontainers BOM where unspecified ---
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }

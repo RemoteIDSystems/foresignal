@@ -59,6 +59,16 @@ public class NotificationSettingsService {
     /** Stores {@code value} and releases deliveries the pause no longer defers. */
     @Transactional
     public NotificationSettings apply(NotificationSettings value) {
+        if (value.imageLinksOn()) {
+            ai.foresignal.settings.ServerSettings server = settings.getOrDefault(SettingKeys.SERVER,
+                    ai.foresignal.settings.ServerSettings.class, ai.foresignal.settings.ServerSettings::defaults);
+            String base = server.normalizedPublicBaseUrl();
+            if (base == null || !base.toLowerCase(java.util.Locale.ROOT).startsWith("https://")) {
+                throw new ai.foresignal.api.error.ForesignalException(org.springframework.http.HttpStatus.BAD_REQUEST,
+                        ai.foresignal.api.error.ErrorCodes.IMAGE_LINKS_REQUIRE_HTTPS,
+                        "notifications.imageLinks needs a publicBaseUrl with https.");
+            }
+        }
         settings.put(SettingKeys.NOTIFICATIONS, value);
         Instant now = clock.instant();
         Instant release = value.pausedAt(now) ? value.pausedUntil() : now;
@@ -105,10 +115,21 @@ public class NotificationSettingsService {
             }
         }
         NotificationSettings.ChatOps chatops = chatops(body.get("chatops"), errors);
+        boolean imageLinks = false;
+        if (body.has("imageLinks")) {
+            JsonNode node = body.get("imageLinks");
+            if (node.isNull()) {
+                imageLinks = false;
+            } else if (!node.isBoolean()) {
+                errors.add(new FieldError("imageLinks", "must be true or false"));
+            } else {
+                imageLinks = node.asBoolean();
+            }
+        }
         if (!errors.isEmpty()) {
             throw new ValidationException("The notification settings are not valid.", errors);
         }
-        return new NotificationSettings(until, bypass, chatops);
+        return new NotificationSettings(until, bypass, chatops, imageLinks);
     }
 
     /** Parses {@code chatops} (prompt 061): an object whose only member is the boolean {@code enabled}. */
@@ -142,6 +163,7 @@ public class NotificationSettingsService {
         out.put("pausedUntil", value.pausedUntil() == null ? null : value.pausedUntil().toString());
         out.put("pauseBypassSeverity", value.pauseBypassSeverity());
         out.put("chatops", Map.of("enabled", value.chatops().on()));
+        out.put("imageLinks", value.imageLinksOn());
         return out;
     }
 }

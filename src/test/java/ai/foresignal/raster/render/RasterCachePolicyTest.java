@@ -111,7 +111,8 @@ class RasterCachePolicyTest {
                 .thenReturn(new FrameResolver.Found(frame, true));
         var controller = new RasterTilesController(catalog, resolver, renderer, mock(LoopService.class),
                 mock(GridStore.class), callers, mock(SourceVisibility.class), mock(PlaceService.class), urls,
-                JsonMapper.builder().build(), Clock.fixed(T, ZoneOffset.UTC));
+                JsonMapper.builder().build(), Clock.fixed(T, ZoneOffset.UTC),
+                mock(ai.foresignal.raster.render.WebpSupport.class));
         String etag = RasterCachePolicy.etag(spec.id(), frame.frameKey(), null, frame.status(), "nws-reflectivity@1",
                 "5/7/12@1");
         MockHttpServletRequest request = new MockHttpServletRequest("GET",

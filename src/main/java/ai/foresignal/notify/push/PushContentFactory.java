@@ -121,7 +121,7 @@ public class PushContentFactory {
         return new PushMessage(message.event(), id, message.alertId(), message.ruleId(), message.severity(),
                 message.title(), message.shortTitle(), body, message.url(), app, web, message.tags(), tag, topic, false,
                 created.toEpochMilli(), null, null, null, category, buttons,
-                given.isEmpty() ? null : given.getFirst().url());
+                given.isEmpty() ? null : given.getFirst().url(), message.imageUrl());
     }
 
     private static String cut(String text, int max) {

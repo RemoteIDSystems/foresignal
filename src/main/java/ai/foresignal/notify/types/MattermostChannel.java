@@ -57,6 +57,7 @@ public class MattermostChannel extends AbstractChannelType {
                 "title", m.title(),
                 "title_link", m.url(),
                 "text", body,
+                "image_url", m.imageUrl(),
                 "footer", "Foresignal · " + m.severity() + " · " + displayTime(m, s));
         Object payload = obj(
                 "text", MarkdownRenderer.escape(m.title(), MarkdownRenderer.Format.ZULIP),

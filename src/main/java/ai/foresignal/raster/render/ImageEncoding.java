@@ -90,6 +90,50 @@ public final class ImageEncoding {
         return out.toByteArray();
     }
 
+    /** True when a WebP ImageIO writer is registered (the health-checked dependency, prompt 108). */
+    public static boolean webpAvailable() {
+        return ImageIO.getImageWritersByFormatName("webp").hasNext();
+    }
+
+    /** {@code image} as WebP at {@code quality} (1.0 lossless) via the webp-imageio writer. */
+    public static byte[] webp(BufferedImage image, float quality) {
+        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("webp");
+        if (!writers.hasNext()) {
+            throw new IllegalStateException("No WebP writer is available");
+        }
+        ImageWriter writer = writers.next();
+        ByteArrayOutputStream out = new ByteArrayOutputStream(16 * 1024);
+        try (ImageOutputStream ios = ImageIO.createImageOutputStream(out)) {
+            writer.setOutput(ios);
+            ImageWriteParam param = writer.getDefaultWriteParam();
+            if (param.canWriteCompressed()) {
+                param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                param.setCompressionQuality(quality);
+            }
+            writer.write(null, new IIOImage(image, null, null), param);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not encode WebP", e);
+        } finally {
+            writer.dispose();
+        }
+        return out.toByteArray();
+    }
+
+    /** A palette image as a BufferedImage (for WebP). */
+    public static BufferedImage indexed(int width, int height, byte[] pixels, IndexColorModel colors) {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_INDEXED, colors);
+        byte[] target = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+        System.arraycopy(pixels, 0, target, 0, pixels.length);
+        return image;
+    }
+
+    /** An ARGB image as a BufferedImage (for WebP). */
+    public static BufferedImage argb(int width, int height, int[] argb) {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        image.setRGB(0, 0, width, height, argb, 0, width);
+        return image;
+    }
+
     /** Expands palette pixels to ARGB. */
     public static int[] toArgb(byte[] pixels, int[] palette) {
         int[] out = new int[pixels.length];

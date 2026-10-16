@@ -68,6 +68,10 @@ public class SlackChannel extends AbstractChannelType {
         }
         String context = "Severity: *" + m.severity() + "* · " + displayTime(m, s);
         blocks.add(obj("type", "context", "elements", List.of(obj("type", "mrkdwn", "text", context))));
+        if (m.imageUrl() != null) {
+            blocks.add(obj("type", "image", "image_url", m.imageUrl(), "alt_text",
+                    Truncator.truncate(m.title(), HEADER_MAX, Truncator.Unit.CHARS, Truncator.Mode.PLAIN, null)));
+        }
         List<Object> buttons = new ArrayList<>();
         for (NotificationMessage.Link link : buttons(m)) {
             String label = Truncator.truncate(link.label(), BUTTON_MAX, Truncator.Unit.CHARS, Truncator.Mode.PLAIN, null);

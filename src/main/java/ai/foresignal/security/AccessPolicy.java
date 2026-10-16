@@ -299,7 +299,17 @@ public class AccessPolicy {
 
                 // ---- Raster products and styles (042, Weather-Imagery-Design §6.11): reads ----
                 rule(HttpMethod.GET, "/v1/products", AccessRequirement.READ),
+                // Raster exports (108): submit is agent, but /v1/products/** GET stays read.
+                rule(HttpMethod.POST, "/v1/products/*/exports", AccessRequirement.AGENT),
                 rule(HttpMethod.GET, "/v1/products/**", AccessRequirement.READ),
+                // WMTS and OGC API for raster products (108): read.
+                rule(HttpMethod.GET, "/v1/wmts", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/wmts/**", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/ogc", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/ogc/**", AccessRequirement.READ),
+                // Exports (108): downloading a file is read, polling the job is agent.
+                rule(HttpMethod.GET, "/v1/exports/*/files/*", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/exports/**", AccessRequirement.AGENT),
                 // ---- Sampling (052, Weather-Imagery-Design §6.5): reads, the POSTs included ----
                 rule(HttpMethod.GET, "/v1/sample", AccessRequirement.READ),
                 rule(HttpMethod.POST, "/v1/sample", AccessRequirement.READ),

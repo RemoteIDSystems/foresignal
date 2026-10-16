@@ -3,6 +3,7 @@ package ai.foresignal.raster.render;
 import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.api.error.ValidationException;
+import ai.foresignal.raster.ElgCodec;
 import ai.foresignal.raster.FrameStore;
 import ai.foresignal.raster.GridDef;
 import ai.foresignal.raster.GridStore;
@@ -112,6 +113,100 @@ public class RasterRenderService {
         }
     }
 
+    /** Checks a tile address against the product's zoom range in a tile matrix set (prompt 108). */
+    public static void checkTile(ProductSpec spec, TileMatrixSet tms, int z, int x, int y) {
+        int min = spec.spatial() == null || spec.spatial().minZoom() == null ? 0 : spec.spatial().minZoom();
+        int max = spec.spatial() == null || spec.spatial().nativeMaxZoom() == null ? 0 : spec.spatial().nativeMaxZoom();
+        if (z < min || z > max) {
+            throw new ForesignalException(HttpStatus.BAD_REQUEST, ErrorCodes.TILE_OUT_OF_RANGE, "Zoom " + z + " is outside "
+                    + spec.id() + "'s native range " + min + "–" + max + "; overzoom the max-zoom tiles instead.")
+                    .withProperty("minzoom", min).withProperty("maxzoom", max);
+        }
+        if (x < 0 || y < 0 || x >= tms.tilesX(z) || y >= tms.tilesY(z)) {
+            throw new ForesignalException(HttpStatus.BAD_REQUEST, ErrorCodes.TILE_OUT_OF_RANGE,
+                    "Tile " + z + "/" + x + "/" + y + " does not exist at zoom " + z + " in " + tms.id() + ".");
+        }
+    }
+
+    /**
+     * A tile in {@code tms} at {@code size} pixels, from the cache or rendered through the queue
+     * (prompt 108): {@code size} is 256 (base) or 512 (the native 512 px pyramid; {@code z} is the same
+     * as the 256 tile it covers).
+     */
+    public byte[] tile(ProductSpec spec, RasterFrameRow frame, StyleRegistry.Resolved style, TileMatrixSet tms, int z,
+            int x, int y, int size, String format, RenderQueue.Priority priority, String client) {
+        TileCache.Key key = new TileCache.Key(spec.id(), frame.frameKey(), style.ref(),
+                "tms:" + tms.id() + ":" + z + "/" + x + "/" + y + "/" + size + ":" + format);
+        byte[] cached = tiles.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        return queue.render(key, priority, client, () -> renderTile(spec, frame, style, tms, z, x, y, size, format, key));
+    }
+
+    /** Renders one tile in a tile matrix set and caches it ({@code format} is {@code png} or {@code webp}). */
+    byte[] renderTile(ProductSpec spec, RasterFrameRow frame, StyleRegistry.Resolved style, TileMatrixSet tms, int z,
+            int x, int y, int size, String format, TileCache.Key key) {
+        byte[] cached = tiles.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        GridDef grid = projection(frame.gridId());
+        byte[] out;
+        if (!intersects(tms.tileBounds(z, x, y), grid.bounds())) {
+            out = TileCache.EMPTY;
+        } else {
+            IndexMap map = indexMaps.tile(frame.gridId(), grid, tms, z, x, y, size, spec.bilinear());
+            if (map.isEmpty()) {
+                out = TileCache.EMPTY;
+            } else {
+                TileRenderer.Drawn drawn = TileRenderer.draw(store.read(frame.path()),
+                        styles.compiled(style.style(), spec), map);
+                out = drawn.empty() ? TileCache.EMPTY
+                        : "webp".equals(format) ? drawn.webp() : drawn.png();
+            }
+        }
+        tiles.put(key, out);
+        return out;
+    }
+
+    /**
+     * A data tile (prompt 108; Weather-Imagery-Design §11): band 0's physical values as RGB for
+     * MapLibre {@code raster-dem} and client-side colouring, encoded by {@link DataTileEncoder} with
+     * {@code nearest} sampling only. Served from the cache or rendered through the queue.
+     *
+     * @param encoding {@link DataTileEncoder#CUSTOM} or {@link DataTileEncoder#TERRARIUM}
+     * @param signed true for an i16 frame (codes shifted into the unsigned field)
+     * @return PNG bytes, or {@link TileCache#EMPTY} when every pixel has no data
+     */
+    public byte[] dataTile(ProductSpec spec, RasterFrameRow frame, TileMatrixSet tms, int z, int x, int y, int size,
+            DataTileEncoder.Encoding encoding, RenderQueue.Priority priority, String client) {
+        TileCache.Key key = new TileCache.Key(spec.id(), frame.frameKey(), "data",
+                "tms:" + tms.id() + ":" + z + "/" + x + "/" + y + "/" + size + ":" + encoding.encoding());
+        byte[] cached = tiles.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        return queue.render(key, priority, client, () -> {
+            byte[] hit = tiles.get(key);
+            if (hit != null) {
+                return hit;
+            }
+            GridDef grid = projection(frame.gridId());
+            byte[] out = TileCache.EMPTY;
+            if (intersects(tms.tileBounds(z, x, y), grid.bounds())) {
+                IndexMap map = indexMaps.tile(frame.gridId(), grid, tms, z, x, y, size, false);
+                if (!map.isEmpty()) {
+                    int[] codes = TileRenderer.codes(store.read(frame.path()), map);
+                    out = DataTileEncoder.encode(codes, size, size, spec.scale(), spec.offset(), encoding.signed(),
+                            encoding.encoding()).png();
+                }
+            }
+            tiles.put(key, out);
+            return out;
+        });
+    }
+
     /**
      * A tile: from the cache, or rendered through the queue.
      *
@@ -215,7 +310,13 @@ public class RasterRenderService {
      */
     public byte[] image(ProductSpec spec, RasterFrameRow frame, StyleRegistry.Resolved style, ImageRequest request,
             RenderQueue.Priority priority, String client) {
-        TileCache.Key key = imageKey(spec, frame, style, request);
+        return image(spec, frame, style, request, request.jpeg() ? "jpg" : "png", priority, client);
+    }
+
+    /** An image over a box in {@code format} ({@code png}, {@code jpg} or {@code webp}), prompt 108. */
+    public byte[] image(ProductSpec spec, RasterFrameRow frame, StyleRegistry.Resolved style, ImageRequest request,
+            String format, RenderQueue.Priority priority, String client) {
+        TileCache.Key key = new TileCache.Key(spec.id(), frame.frameKey(), style.ref(), request.region() + ":" + format);
         byte[] cached = tiles.get(key);
         if (cached != null) {
             return cached;
@@ -227,11 +328,44 @@ public class RasterRenderService {
                     request.width(), request.height(), spec.bilinear()));
             TileRenderer.Drawn drawn = TileRenderer.draw(store.read(frame.path()), styles.compiled(style.style(), spec),
                     map);
-            byte[] out = request.jpeg() ? drawn.jpeg() : drawn.png();
+            byte[] out = switch (format) {
+                case "webp" -> drawn.webp();
+                case "jpg", "jpeg" -> drawn.jpeg();
+                default -> drawn.png();
+            };
             tiles.put(key, out);
             return out;
         };
         return queue.render(key, priority, client, work);
+    }
+
+    /**
+     * Samples band 0's physical values over an image box (prompt 108 COG exports): one value per pixel,
+     * {@code NaN} where there is no cell. Nearest sampling; no queue and no cache.
+     */
+    public float[] values(ProductSpec spec, RasterFrameRow frame, double west, double south, double east,
+            double north, int width, int height, boolean mercator) {
+        GridDef grid = projection(frame.gridId());
+        IndexMap map = indexMaps.image(frame.gridId(), grid, new IndexMapCache.ImageKey(frame.gridId(), mercator, west,
+                south, east, north, width, height, false));
+        ElgCodec.Decoded decoded = store.read(frame.path());
+        RasterDtype dtype = decoded.header().dtype();
+        java.nio.ByteBuffer data = java.nio.ByteBuffer.wrap(decoded.payload())
+                .order(java.nio.ByteOrder.LITTLE_ENDIAN);
+        int[] nearest = map.nearest();
+        float[] out = new float[width * height];
+        double nodata = spec.nodata() == null ? Double.NaN : spec.nodata();
+        for (int p = 0; p < out.length; p++) {
+            int cell = nearest[p];
+            if (cell < 0) {
+                out[p] = Float.NaN;
+                continue;
+            }
+            double code = TileRenderer.code(data, dtype, cell);
+            double physical = spec.physical(code);
+            out[p] = !Double.isFinite(code) || code == nodata ? Float.NaN : (float) physical;
+        }
+        return out;
     }
 
     /**

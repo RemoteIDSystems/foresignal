@@ -35,6 +35,7 @@ import java.util.UUID;
  * @param category the native notification category ({@code FORESIGNAL_<EVENT>}), or null (032)
  * @param actions action buttons for Web Push, at most two (prompt 033); empty when none
  * @param confirmUrl the confirm page for a browser without action buttons (prompt 033), or null
+ * @param imageUrl the map image URL for Web Push (Chromium only; prompt 108), or null
  */
 public record PushMessage(
         String event,
@@ -58,7 +59,8 @@ public record PushMessage(
         Integer badge,
         String category,
         List<Action> actions,
-        String confirmUrl) {
+        String confirmUrl,
+        String imageUrl) {
 
     /**
      * One Web Push action button (prompt 033, {@code PushPayload.actions}).
@@ -91,19 +93,19 @@ public record PushMessage(
             String tag, String topic, boolean silent, long ts, UUID subscriptionId, String code, Integer badge,
             String category) {
         this(event, id, alertId, ruleId, severity, title, shortTitle, body, linkApi, linkApp, linkWeb, tags, tag, topic,
-                silent, ts, subscriptionId, code, badge, category, List.of(), null);
+                silent, ts, subscriptionId, code, badge, category, List.of(), null, null);
     }
 
     /** A copy with another badge (prompt 033: the device's unread count, set at send time). */
     public PushMessage withBadge(Integer newBadge) {
         return new PushMessage(event, id, alertId, ruleId, severity, title, shortTitle, body, linkApi, linkApp, linkWeb,
-                tags, tag, topic, silent, ts, subscriptionId, code, newBadge, category, actions, confirmUrl);
+                tags, tag, topic, silent, ts, subscriptionId, code, newBadge, category, actions, confirmUrl, imageUrl);
     }
 
     /** A copy with another {@code silent} flag (a quiet-hours downgrade makes the payload silent, checkpoint 041). */
     public PushMessage withSilent(boolean newSilent) {
         return new PushMessage(event, id, alertId, ruleId, severity, title, shortTitle, body, linkApi, linkApp, linkWeb,
-                tags, tag, topic, newSilent, ts, subscriptionId, code, badge, category, actions, confirmUrl);
+                tags, tag, topic, newSilent, ts, subscriptionId, code, badge, category, actions, confirmUrl, imageUrl);
     }
 
     /** A message without a badge or category (the 031 form). */
@@ -111,7 +113,7 @@ public record PushMessage(
             String shortTitle, String body, String linkApi, String linkApp, String linkWeb, List<String> tags,
             String tag, String topic, boolean silent, long ts, UUID subscriptionId, String code) {
         this(event, id, alertId, ruleId, severity, title, shortTitle, body, linkApi, linkApp, linkWeb, tags, tag, topic,
-                silent, ts, subscriptionId, code, null, null, List.of(), null);
+                silent, ts, subscriptionId, code, null, null, List.of(), null, null);
     }
 
     /** The native category of an event: {@code FORESIGNAL_ALERT}, {@code FORESIGNAL_BRIEFING}, … */
@@ -166,6 +168,9 @@ public record PushMessage(
         if (confirmUrl != null) {
             out.put("confirmUrl", confirmUrl);
         }
+        if (imageUrl != null) {
+            out.put("imageUrl", imageUrl);
+        }
         return out;
     }
 
@@ -190,7 +195,7 @@ public record PushMessage(
                 text(map.get("linkApp")), text(map.get("linkWeb")), tags, text(map.get("tag")), text(map.get("topic")),
                 Boolean.TRUE.equals(map.get("silent")), number(map.get("ts")) == null ? 0 : number(map.get("ts")), null,
                 null, number(map.get("badge")) == null ? null : number(map.get("badge")).intValue(),
-                text(map.get("category")), actions, text(map.get("confirmUrl")));
+                text(map.get("category")), actions, text(map.get("confirmUrl")), text(map.get("imageUrl")));
     }
 
     private static Long number(Object value) {

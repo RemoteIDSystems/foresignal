@@ -176,6 +176,16 @@ public record NotificationMessage(
         return null;
     }
 
+    /** The URL of the first attachment that has one (prompt 108 image links), or null. */
+    public String imageUrl() {
+        for (Attachment a : attachments) {
+            if (a.url() != null) {
+                return a.url();
+            }
+        }
+        return null;
+    }
+
     /** Builds a {@link NotificationMessage}. */
     public static final class Builder {
         private Long id;

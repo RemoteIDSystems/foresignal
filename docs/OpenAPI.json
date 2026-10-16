@@ -41582,7 +41582,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -41867,7 +41867,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -42084,7 +42084,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -42227,7 +42227,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -42412,7 +42412,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -42649,7 +42649,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -42772,7 +42772,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -42898,7 +42898,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -42988,7 +42988,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -43058,7 +43058,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -43328,7 +43328,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -43576,7 +43576,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -43635,7 +43635,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -43697,7 +43697,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -43759,7 +43759,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -43849,7 +43849,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -43912,7 +43912,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -43971,7 +43971,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -44055,7 +44055,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -44135,7 +44135,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -44228,7 +44228,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -44468,7 +44468,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -44589,7 +44589,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -44720,7 +44720,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -44800,7 +44800,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -44901,7 +44901,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -44982,7 +44982,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -45182,7 +45182,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -45293,7 +45293,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "108",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -86210,6 +86210,7 @@
           "status"
         ],
         "x-foresignal-extended-by": [
+        "108",
           "013",
           "023",
           "024",
@@ -86226,6 +86227,31 @@
           "135"
         ],
         "x-foresignal-error-codes": [
+      {
+        "code": "FORMAT_UNAVAILABLE",
+        "status": 406,
+        "prompt": "108"
+      },
+      {
+        "code": "EDR_TOO_LARGE",
+        "status": 413,
+        "prompt": "108"
+      },
+      {
+        "code": "PACK_TOO_LARGE",
+        "status": 413,
+        "prompt": "108"
+      },
+      {
+        "code": "UNKNOWN_EXPORT",
+        "status": 404,
+        "prompt": "108"
+      },
+      {
+        "code": "IMAGE_LINKS_REQUIRE_HTTPS",
+        "status": 400,
+        "prompt": "108"
+      },
           {
             "code": "NOT_FOUND",
             "status": 404,

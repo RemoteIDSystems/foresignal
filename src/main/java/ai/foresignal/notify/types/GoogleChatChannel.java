@@ -54,6 +54,9 @@ public class GoogleChatChannel extends AbstractChannelType {
             widgets.add(obj("textParagraph", obj("text",
                     Truncator.truncate(text, TEXT_MAX, Truncator.Unit.CHARS, Truncator.Mode.HTML, m.url()))));
         }
+        if (m.imageUrl() != null) {
+            widgets.add(obj("image", obj("imageUrl", m.imageUrl(), "altText", m.title())));
+        }
         List<Object> buttons = new ArrayList<>();
         for (NotificationMessage.Link link : buttons(m)) {
             buttons.add(obj("text", link.label(), "onClick", obj("openLink", obj("url", link.url()))));

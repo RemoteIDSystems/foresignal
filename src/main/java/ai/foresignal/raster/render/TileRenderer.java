@@ -45,6 +45,20 @@ public final class TileRenderer {
             int[] colors = pixels != null ? ImageEncoding.toArgb(pixels, style.palette()) : argb;
             return ImageEncoding.jpeg(width, height, colors);
         }
+
+        /** As WebP (lossless for a palette, quality 0.8 for passthrough), prompt 108. */
+        public byte[] webp() {
+            if (pixels != null) {
+                return ImageEncoding.webp(ImageEncoding.indexed(width, height, pixels, style.colorModel()), 1.0f);
+            }
+            return ImageEncoding.webp(ImageEncoding.argb(width, height, argb), 0.8f);
+        }
+
+        /** As a {@link java.awt.image.BufferedImage} (palette or ARGB), prompt 108 GIF loops. */
+        public java.awt.image.BufferedImage image() {
+            return pixels != null ? ImageEncoding.indexed(width, height, pixels, style.colorModel())
+                    : ImageEncoding.argb(width, height, argb);
+        }
     }
 
     /** Draws {@code frame} through {@code map}. */
@@ -191,6 +205,31 @@ public final class TileRenderer {
             }
         }
         return new Drawn(w, h, pixels, null, style, empty);
+    }
+
+    /**
+     * Gathers band 0's raw codes through {@code map}, one per pixel (prompt 108 data tiles):
+     * {@link DataTileEncoder#NO_DATA} where the pixel has no cell. Sampling is always {@code nearest}.
+     *
+     * @return {@code width × height} codes, row-major north to south
+     */
+    public static int[] codes(ElgCodec.Decoded frame, IndexMap map) {
+        int w = map.width();
+        int h = map.height();
+        int[] out = new int[w * h];
+        RasterDtype dtype = frame.header().dtype();
+        ByteBuffer data = ByteBuffer.wrap(frame.payload()).order(ByteOrder.LITTLE_ENDIAN);
+        int[] nearest = map.nearest();
+        for (int p = 0; p < out.length; p++) {
+            int cell = nearest[p];
+            if (cell < 0) {
+                out[p] = DataTileEncoder.NO_DATA;
+                continue;
+            }
+            double code = code(data, dtype, cell);
+            out[p] = Double.isFinite(code) ? (int) code : DataTileEncoder.NO_DATA;
+        }
+        return out;
     }
 
     /** The raw code of band 0 at {@code cell} (a later band's sample at {@code cell + band × cells}). */

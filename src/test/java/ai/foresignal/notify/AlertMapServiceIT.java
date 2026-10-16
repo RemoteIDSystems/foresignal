@@ -71,7 +71,8 @@ class AlertMapServiceIT extends RasterApiSupport {
         channels.clear();
         when(channelRepository.findByEnabledTrue()).thenReturn(channels);
         service = new AlertMapService(maps, samples, media, thumbnails, channelService, channelRepository, deliveries,
-                alerts, json, clock);
+                alerts, mock(ai.foresignal.security.feed.FeedKeyService.class),
+                mock(ai.foresignal.settings.AppSettingService.class), json, clock);
     }
 
     @AfterEach
