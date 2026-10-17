@@ -273,8 +273,16 @@ public final class ChangePointDetector {
         return false;
     }
 
-    /** {@code μ₀ₜ}: the mean of the last same-slot covered values before {@code t}. */
-    static void countBaseline(double[] x, boolean[] gap, int period, double[] mu0) {
+    /**
+     * {@code μ₀ₜ}: the mean of the last same-slot covered values before {@code t} (also the count baseline that prompt
+     * 120 pre-whitens series pairs with).
+     *
+     * @param x the values
+     * @param gap true where a value is missing or uncovered
+     * @param period the slot period in buckets (7 for daily series, 1 otherwise)
+     * @param mu0 receives the baseline per bucket ({@code NaN} with fewer than {@value #MIN_BASELINE} slots)
+     */
+    public static void countBaseline(double[] x, boolean[] gap, int period, double[] mu0) {
         int step = Math.max(1, period);
         for (int t = 0; t < x.length; t++) {
             double sum = 0;

@@ -37,7 +37,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              # 118: situations and their members.
              "situationId": "situationId", "memberId": "situationMemberId",
              # 119: analytic findings.
-             "findingId": "findingId"}
+             "findingId": "findingId",
+             # 120: precursors, mining batches and operator candidates.
+             "precursorId": "precursorId", "batchId": "precursorBatchId", "candidateId": "precursorCandidateId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -496,6 +498,17 @@ BODIES = {
                        "target": "series:fred-series/fred.DCOILWTICO", "from": "2025-01-01T00:00:00Z",
                        "to": "2026-10-01T00:00:00Z"},
   "updateFinding": {"status": "dismissed", "reason": "A known holiday effect, not a change in activity"},
+  # 120: register an operator precursor candidate (GNSS interference alerts in Yemen followed by maritime disruption
+  # events in the same country within three days), and retire the precursor in {{precursorId}}. Mining itself
+  # (minePrecursors) takes no body.
+  "createPrecursorCandidate": {"name": "GNSS interference before Red Sea disruptions", "kind": "event",
+                               "antecedent": {"selector": {"alertRuleTag": "gnss-interference"},
+                                              "label": "GNSS interference alerts"},
+                               "consequent": {"selector": {"intelEventType": "maritime-disruption"},
+                                              "label": "maritime disruption events"},
+                               "spatial": {"rule": "sameRegion", "regionLevel": "country"},
+                               "lagMin": "P0D", "lagMax": "P3D", "regionCodes": ["YE"]},
+  "updatePrecursor": {"status": "retired", "reason": "The pattern reflects a reporting artifact, not activity"},
   # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
   # one nautical mile in the next hour.
   "cpaBatch": {"subject": "aisstream/244660000", "filter": {"kinds": ["vessel"], "sources": [],
@@ -524,6 +537,12 @@ CAPTURE = {
   # 119: the newest finding and the event-study job.
   "listFindings": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('findingId', j.items[0].id);",
   "createEventStudy": "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
+  # 120: the newest precursor, batch and candidate, and the mining job.
+  "listPrecursors": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('precursorId', j.items[0].id);",
+  "listPrecursorBatches": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('precursorBatchId', j.items[0].id);",
+  "createPrecursorCandidate": "const j = pm.response.json(); pm.collectionVariables.set('precursorCandidateId', j.id);",
+  "minePrecursors": "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
+  "retestPrecursors": "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
   # 117: the created attention topic.
   "createAttentionTopic": "const j = pm.response.json(); pm.collectionVariables.set('attentionTopicId', j.id);",
   "rotatePeerIngestKey": "const j = pm.response.json(); pm.collectionVariables.set('peerIngestKey', j.key); console.log('New peer ingest key (shown once):', j.key);",
@@ -866,6 +885,7 @@ collection = {
       ("attentionTopicId", "red-sea-shipping"),
       ("situationId", ""), ("situationMemberId", ""), ("otherSituationId", ""),
       ("findingId", ""), ("seriesRef", "rollup:day/*/earthquake/US"),
+      ("precursorId", ""), ("precursorBatchId", ""), ("precursorCandidateId", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

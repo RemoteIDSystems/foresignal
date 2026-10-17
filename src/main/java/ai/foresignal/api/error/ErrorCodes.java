@@ -585,6 +585,12 @@ public final class ErrorCodes {
     /** 400: an event study's selector, target or range failed validation (119). */
     public static final String EVENT_STUDY_INVALID = "EVENT_STUDY_INVALID";
 
+    /** 404: no precursor has that id (120). */
+    public static final String UNKNOWN_PRECURSOR = "UNKNOWN_PRECURSOR";
+
+    /** 409: a precursor mining or re-test run is already queued or running (120). */
+    public static final String PRECURSOR_MINING_IN_PROGRESS = "PRECURSOR_MINING_IN_PROGRESS";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

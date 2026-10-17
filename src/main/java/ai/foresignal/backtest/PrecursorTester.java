@@ -200,12 +200,25 @@ public final class PrecursorTester {
             Duration maxLag, Spatial spatial, Duration dedupWindow, Instant rangeStart, Instant rangeEnd,
             double coverageGapFraction, String seedText) {}
 
-    /** Runs the precursor test in both directions. Never recursive. */
+    /** Runs the precursor test in both directions with {@link #SHIFTS} shifted copies. Never recursive. */
     public static Result test(Request request) {
+        return test(request, SHIFTS);
+    }
+
+    /**
+     * Runs the precursor test in both directions with {@code shifts} circular time-shifted copies (prompt 120: mining
+     * uses more shifts than the one-off test so that p-values can survive false-discovery control in a batch).
+     *
+     * @param request the resolved request
+     * @param shifts the number of shifted copies (at least 1)
+     * @return the result; its p-value is {@code (1 + #shifted ≥ observed) / (shifts + 1)}
+     */
+    public static Result test(Request request, int shifts) {
+        int n = Math.max(1, shifts);
         long seed = seed(request.seedText());
-        Direction forward = direction(request.antecedents(), request.consequents(), request, seed);
+        Direction forward = direction(request.antecedents(), request.consequents(), request, seed, n);
         Direction reverse = direction(request.consequents(), request.antecedents(), request,
-                seed(request.seedText() + ":reverse"));
+                seed(request.seedText() + ":reverse"), n);
         boolean insufficient = forward.nAntecedent() < MIN_ANTECEDENTS
                 || request.coverageGapFraction() > COVERAGE_GAP_LIMIT;
         boolean coOccurrence = !insufficient && forward.strong() && reverse.strong();
@@ -226,6 +239,12 @@ public final class PrecursorTester {
      */
     static Direction direction(List<Occurrence> rawAntecedents, List<Occurrence> rawConsequents, Request request,
             long seed) {
+        return direction(rawAntecedents, rawConsequents, request, seed, SHIFTS);
+    }
+
+    /** {@link #direction(List, List, Request, long)} with {@code shifts} shifted copies. */
+    static Direction direction(List<Occurrence> rawAntecedents, List<Occurrence> rawConsequents, Request request,
+            long seed, int shifts) {
         List<Occurrence> a = dedup(sort(rawAntecedents), request.dedupWindow());
         Consequents c = new Consequents(sort(rawConsequents));
         long nA = a.size();
@@ -245,7 +264,7 @@ public final class PrecursorTester {
         Random random = new Random(seed);
         double sumShifted = 0;
         int atLeast = 0;
-        for (int i = 0; i < SHIFTS; i++) {
+        for (int i = 0; i < shifts; i++) {
             long shift = low + (long) (random.nextDouble() * (high - low));
             int shiftedHits = 0;
             for (Occurrence occurrence : a) {
@@ -261,9 +280,9 @@ public final class PrecursorTester {
                 atLeast++;
             }
         }
-        double baseRate = sumShifted / SHIFTS;
+        double baseRate = sumShifted / shifts;
         double lift = baseRate == 0 ? (hitRate > 0 ? Double.POSITIVE_INFINITY : 0) : hitRate / baseRate;
-        double pValue = (1.0 + atLeast) / (SHIFTS + 1.0);
+        double pValue = (1.0 + atLeast) / (shifts + 1.0);
         return new Direction(nA, c.size(), hits, hitRate, baseRate, lift, pValue, List.copyOf(lags));
     }
 

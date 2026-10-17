@@ -1,13 +1,3 @@
-listPrecursors 120
-getPrecursor 120
-updatePrecursor 120
-listPrecursorBatches 120
-getPrecursorBatch 120
-listPrecursorCandidates 120
-createPrecursorCandidate 120
-deletePrecursorCandidate 120
-minePrecursors 120
-retestPrecursors 120
 createReferenceImport 121
 listReferenceImports 121
 getReferenceImport 121

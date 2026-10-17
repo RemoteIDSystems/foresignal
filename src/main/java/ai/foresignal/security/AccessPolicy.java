@@ -492,6 +492,15 @@ public class AccessPolicy {
                 rule(HttpMethod.PATCH, "/v1/analytics/findings/*", AccessRequirement.AGENT),
                 rule(HttpMethod.POST, "/v1/analytics/event-studies", AccessRequirement.AGENT),
 
+                // ---- Precursor library (prompt 120): the library is a read; batches, candidates, retire/pin, mining
+                // and re-tests are agent operations (no LLM is used). ----
+                rule(HttpMethod.GET, "/v1/precursors/batches", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/precursors/batches/*", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/precursors/candidates", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/precursors", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/precursors/*", AccessRequirement.READ),
+                rule(null, "/v1/precursors/**", AccessRequirement.AGENT),
+
                 // ---- Autonomous analyst (prompt 102) ----
                 rule(HttpMethod.POST, "/v1/analyst/profiles/*/run", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/analyst/profiles/**", AccessRequirement.READ),

@@ -6028,3 +6028,72 @@ findings (off by default; private findings send none). The `analytics` topic of 
 series; the series cap (`analysis.series.max`) bounds the work. `analysis.findings.publishInfo=true` also publishes
 `info` findings as records (off: they are stored and listed only). Operator rows of the signal-family registry go in
 the app setting `intel.signalFamilies` (the shape of `intel/signal-families.json`).
+
+## Precursors (prompt 120)
+
+A precursor is a pattern where one kind of event, or one series' movement, tended to come before another in stored
+data: "GNSS interference alerts in Yemen were followed by maritime disruption events within three days in 12 of 30
+cases, against 11% expected by chance". Foresignal looks for these on its own every night, keeps the ones that hold on
+later data in a **precursor library** (`GET /v1/precursors`), and tells you when a validated precursor's first half
+happens. Everything is deterministic database work without an LLM, and every precursor says what it is: an
+**association in stored data, not causation**.
+
+**Where candidates come from.** Each night at 01:30 UTC a mining run (a 103 job of type `precursor-mining`; `POST
+/v1/precursors/mine` runs one now) builds a batch of candidate pairs:
+
+- **Your pairs** (`POST /v1/precursors/candidates`): an antecedent and a consequent (event selectors, as in event
+  studies, or two series references), a spatial rule (`sameRegion`, `withinKm`, `sameEntity` or `none`) and lag bounds.
+  Every run includes them.
+- **Automatic event pairs:** in each country, the 12 busiest event families over the discovery window (intel event
+  types, alert rule tags, anomaly classifications per rule, change points and unexplained moves per signal family,
+  situations turning active per theme), every ordered pair of two of them, with lags up to 1, 3, 7 and 14 days, in the
+  same country (or the same first-level region when both families carry one).
+- **Automatic series pairs:** enabled analysis series that share a region, a family or a topic, with lags of 1 to 14
+  days (daily) or 1 to 8 weeks (weekly).
+
+A run tests at most `analysis.precursors.maxTestsPerRun` (500) candidates: yours first, then the busiest antecedents.
+The batch (`GET /v1/precursors/batches`) says how many were generated, tested, cut by the cap (`capped`) and skipped as
+`insufficient`.
+
+**What "validated" means.** The history of each pair (the last `analysis.precursors.lookbackDays`, 365, where both
+sides have data) is split by time: the oldest two thirds (`analysis.precursors.discoveryFraction`) is the **discovery**
+window and the newest third the **validation** window. A candidate is tested on discovery only. Those that pass are
+tested again, with exactly the same definition, on the validation window, which the first test never saw. Only a
+pattern that holds there too becomes `validated`:
+
+- event pairs: again `notable` (p ≤ 0.05 and a lift of 2 or more against the circular-shift baseline), a lift of at
+  least 1.5, and the hit rate's 95% interval entirely above the rate expected by chance;
+- series pairs: the same direction (positive or negative correlation) and p ≤ 0.05.
+
+**Why most candidates fail.** That is the point. With hundreds of tests a night, some will look striking by luck alone.
+Foresignal counts every test of a batch and adjusts the p-values for that number (Benjamini–Hochberg at a false-discovery
+rate of 10%, or the stricter Benjamini–Yekutieli when series pairs share a series), so a test has to beat the whole
+batch, not just chance. Then it has to hold again on newer data. A pattern that passes the first step but not the second
+stays a `candidate` with the reason (`statusReason`), and you can see both windows' numbers (`discovery`, `validation`:
+raw and adjusted p, hit rate, base rate, lift, verdict and the reverse test). Short histories (under 60 days), coverage
+gaps over 30% and fewer than 10 antecedents are `insufficient`, not failures.
+
+**Honest counting.** Re-reports of one event by several sources count once (116 canonical events). An antecedent with
+no consequent counts as a miss only when the sources that would have seen the consequent could have seen it (116
+detectability); otherwise it is left out and counted under `LOW_DETECTABILITY`. The reverse direction (does the
+consequent precede the antecedent?) is always tested; when it is as strong, the precursor says "co-occurrence, not
+precedence". Mining uses non-private data only, so precursors are never private.
+
+**The monthly re-test.** `POST /v1/precursors/retest` (and, from prompt 128, the monthly analysis cycle) tests every
+validated and stale precursor on the newest third of its range. A validated precursor whose lift falls below 1.2, or
+whose hit-rate interval now includes the chance rate, becomes `stale`; stale twice in a row, it is `retired`; a stale
+precursor that validates again returns to `validated`. Each change is announced on the `analytics` topic of
+`/v1/events/stream` (`precursor.validated`, `precursor.stale`, `precursor.retired`) and logged in the precursor's
+`history`. Only one mining or re-test run happens at a time (409 `PRECURSOR_MINING_IN_PROGRESS`).
+
+**Your judgment.** `PATCH /v1/precursors/{id}` with `{"status": "retired", "reason": "…"}` retires a pattern you know to
+be an artifact; `{"status": "validated", "reason": "…"}` pins one as operator-validated, which the re-test then leaves
+alone. Both are logged with your token in `history`, and a pinned precursor carries the `OPERATOR_VALIDATED` caveat.
+
+**Live watch.** Every minute Foresignal checks new intel events, situations turning active, change points, unexplained
+moves, alerts and anomalies against the antecedents of validated event precursors (and, daily at 06:15 UTC, whether a
+validated series precursor's antecedent moved 2 or more robust standard deviations). A match writes a
+`precursor-active` finding with the expected window for the consequent and a probability: the precursor's hit rate,
+`(hits + 1) / (n + 2)`, pulled toward the chance rate by its sample size (`n / (n + 20)`), so a pattern seen ten times
+says less than one seen a hundred times. Prompt 122 turns these into forecast questions. Its position is the durable
+cursor `precursor.cursor`, which retention respects.

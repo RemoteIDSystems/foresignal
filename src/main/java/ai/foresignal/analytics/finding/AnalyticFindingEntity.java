@@ -323,6 +323,11 @@ public class AnalyticFindingEntity {
         return precursorId;
     }
 
+    /** Sets the precursor a {@code precursor-active} finding comes from (prompt 120). */
+    public void setPrecursorId(String precursorId) {
+        this.precursorId = precursorId;
+    }
+
     /** The forecast questions (122). */
     public List<String> getQuestionIds() {
         return questionIds == null ? List.of() : Arrays.asList(questionIds);

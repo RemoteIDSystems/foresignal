@@ -512,6 +512,11 @@
         "version": "1.3.0",
         "date": "2026-10-17",
         "note": "119: getAnalyticsSeriesData, listAnalysisSeries, upsertAnalysisSeries, deleteAnalysisSeries, listFindings, getFinding, updateFinding and createEventStudy are implemented, with region rollups (activity_rollup resolutions 2 and 3; getStatsTimeseries groupBy=region and region=, getStatsTop by=region and region= are served from them), the analytics topic of /v1/events/stream (cursor key f; finding.created, finding.updated, finding.dismissed), the MCP tools list_findings, get_finding, get_series_data, list_analysis_series, run_event_study and upsert_analysis_series, the notification event type finding.significant, the 103 job type event-study and foresignal-analytics records of kind analytic-finding. Reconciliations (additive): Problem lists UNKNOWN_FINDING (404), SERIES_REF_INVALID (400), SERIES_NOT_FOUND (404) and EVENT_STUDY_INVALID (400); BacktestJob.result may be an EventStudyResult; a rollup reference's sourceId may be * (the cross-source event count, canonical events counted once); series:imf-portwatch-chokepoints/{portId} reads the PortWatch daily transit total; RetentionSettings.stats.regionHourly and regionDaily are stored."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-17",
+        "note": "120: listPrecursors, getPrecursor, updatePrecursor, listPrecursorBatches, getPrecursorBatch, listPrecursorCandidates, createPrecursorCandidate, deletePrecursorCandidate, minePrecursors and retestPrecursors are implemented, with the 103 job type precursor-mining (mode mine or retest), the analytics topic events precursor.validated, precursor.stale and precursor.retired, precursor-active findings and the MCP tools list_precursors, get_precursor and mine_precursors. Reconciliations (additive): Problem lists UNKNOWN_PRECURSOR (404) and PRECURSOR_MINING_IN_PROGRESS (409); Precursor gains lastRetest and history; PrecursorBatch gains insufficient and windows; PrecursorWindowStats gains coverageGapFraction, blockLength and reason; BacktestJob.result may be a PrecursorBatch."
       }
     ]
   },
@@ -56701,7 +56706,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "120",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -56781,7 +56786,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "120",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -56871,7 +56876,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "120",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -56944,7 +56949,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "120",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -57015,7 +57020,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "120",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -57088,7 +57093,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "120",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -57156,7 +57161,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "120",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -57220,7 +57225,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "120",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -57280,7 +57285,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "120",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -57340,7 +57345,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "120",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -87230,6 +87235,18 @@
             "status": 400,
             "prompt": "119",
             "note": "createEventStudy: the selector does not name exactly one supported form (the inline rule form and referenceFamily before 121 are refused), a family is unknown, the range is empty or longer than 10 years, asOf is in the future, or the target is not a daily, weekly or hourly series"
+          },
+          {
+            "code": "UNKNOWN_PRECURSOR",
+            "status": 404,
+            "prompt": "120",
+            "note": "getPrecursor, updatePrecursor: no precursor has that id"
+          },
+          {
+            "code": "PRECURSOR_MINING_IN_PROGRESS",
+            "status": 409,
+            "prompt": "120",
+            "note": "minePrecursors, retestPrecursors: a precursor-mining job (mining or re-test) is already queued or running"
           }
         ]
       },
@@ -116960,6 +116977,9 @@
                 "$ref": "#/components/schemas/EventStudyResult"
               },
               {
+                "$ref": "#/components/schemas/PrecursorBatch"
+              },
+              {
                 "type": "null"
               }
             ],
@@ -134162,6 +134182,27 @@
           "lowDetectabilityExcluded": {
             "type": "integer",
             "description": "Antecedent occurrences excluded under `LOW_DETECTABILITY`"
+          },
+          "coverageGapFraction": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Share of the window touched by coverage gaps (events: involved sources; series: missing buckets)"
+          },
+          "blockLength": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Series: surrogate block length in buckets"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the window was insufficient"
           }
         },
         "required": [
@@ -134319,6 +134360,17 @@
               }
             ]
           },
+          "lastRetest": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PrecursorWindowStats"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Statistics of the latest monthly re-test window (newest third of the range), or null before the first re-test"
+          },
           "batchId": {
             "$ref": "#/components/schemas/Ulid"
           },
@@ -134381,6 +134433,42 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Caveat"
+            }
+          },
+          "history": {
+            "type": "array",
+            "description": "Status changes, oldest first (who, when, from, to, why); operator retire/pin actions are logged here",
+            "items": {
+              "type": "object",
+              "properties": {
+                "at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "by": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "to": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "at",
+                "by",
+                "to"
+              ]
             }
           },
           "manifestId": {
@@ -134523,6 +134611,10 @@
             "type": "integer",
             "description": "Candidates dropped by `analysis.precursors.maxTestsPerRun`"
           },
+          "insufficient": {
+            "type": "integer",
+            "description": "Candidates skipped as insufficient (range under 60 days, coverage gaps over 30%, fewer than 10 antecedents or too little series overlap)"
+          },
           "survivors": {
             "type": "integer"
           },
@@ -134538,6 +134630,11 @@
               "BH",
               "BY"
             ]
+          },
+          "windows": {
+            "type": "object",
+            "description": "The global range and its split (`start`, `split`, `end`, `discoveryFraction`); for a re-test, `split` starts the re-test window",
+            "additionalProperties": true
           },
           "error": {
             "type": [

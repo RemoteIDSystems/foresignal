@@ -31,7 +31,7 @@ Format: `| id | invariant | owner | enforced by | tests |`
 | Id | Invariant | Owner | Enforced by | Tests |
 |---|---|---|---|---|
 | RET-1 | A head is purged only when every version of it is gone (Core I7) | 019 | `RetentionJob`, `HeadPurge` | `RetentionJobIT` |
-| RET-2 | Retention never deletes rows a durable consumer has not processed (consumer clamp), except after the documented release (2 × window) with an alarm | 019 | consumer clamp registry | `ConsumerClampIT`, `RegionRollupJobIT` (119: `stats.region.cursor`) |
+| RET-2 | Retention never deletes rows a durable consumer has not processed (consumer clamp), except after the documented release (2 × window) with an alarm | 019 | consumer clamp registry | `ConsumerClampIT`, `RegionRollupJobIT` (119: `stats.region.cursor`), `PrecursorLiveWatchIT` (120: `precursor.cursor`) |
 | RET-3 | Adapters set retention by analytic class (Conventions); intelligence tables are never touched by `RetentionJob` | 019 | descriptors, `RetentionResolver` | `RetentionResolverTest`, `FamilyDefaultsTest` |
 | RET-4 | `RetentionState.purgeSeq` advances only when heads are purged | 019 | `RetentionState` | `PurgeSeqIT` |
 
@@ -72,7 +72,7 @@ Format: `| id | invariant | owner | enforced by | tests |`
 
 | Id | Invariant | Owner | Enforced by | Tests |
 |---|---|---|---|---|
-| INT-1 | Detectors, scorers, updaters and forecasters are deterministic for identical inputs, seeds and `asOfSeq` | 100 | all analytic components | `DeterminismTest`, `StatisticsGoldenTest` (119: seeded CUSUM thresholds and placebo dates), `ChangePointDetectorTest` and `EventStudyEngineTest` (119: identical input, identical output) |
+| INT-1 | Detectors, scorers, updaters and forecasters are deterministic for identical inputs, seeds and `asOfSeq` | 100 | all analytic components | `DeterminismTest`, `StatisticsGoldenTest` (119: seeded CUSUM thresholds and placebo dates), `ChangePointDetectorTest` and `EventStudyEngineTest` (119: identical input, identical output), `LeadLagCcfTest` and `CandidateGeneratorTest` (120: seeded surrogates, deterministic plans) |
 | INT-2 | No look-ahead: live detection uses only data with `knownAt` ≤ decision time; replays and evaluations read through `asOf` | 100 | `SeriesReader`, backtest framework | `LookAheadTest`, `AnomalyBacktestIT`, `SeriesReaderIT` (119: `asOf` hides later versions and revisions), `EventStudyEngineTest` (119: a later point changes nothing), `LiveEventStudyIT` (119: pre-event windows read as of the event) |
 | INT-3 | LLM output never creates evidence, changes membership or changes a deterministic score | 101 | validators | `AnalystOutputValidatorTest`, `EventScorerTest`, `SituationBriefIT` (118, the brief never changes members, status or severity) |
 | INT-4 | Every analytic response separates evidence, inference and speculation | 101 | response builders | `IntelControllersIT`, `SituationControllersIT` (118) |
@@ -80,7 +80,7 @@ Format: `| id | invariant | owner | enforced by | tests |`
 | OBS-1 | An absence or "no event" conclusion requires healthy sources and `p_detect ≥ absenceMinDetect`; otherwise `unknown` / `LOW_DETECTABILITY` | 116 | `ObservabilityService` | `AbsenceRetrofitIT`, `ObservabilityServiceTest` |
 | OBS-2 | Retrospective analysis uses the observability estimate valid at the time | 116 | time-versioned estimates | `CaptureRecaptureTest` |
 | MAN-1 | Every analytic output from 100 onward stores a `manifest_id`; deterministic manifests replay identically | 116 | `ManifestService` | `ManifestReplayIT`, `ManifestReplayCheckTest`, `FindingServiceIT` (119: every analytic finding) |
-| FDR-1 | Mining controls the false-discovery rate and validates survivors on a later, disjoint window before `validated` | 120 | precursor mining | `PrecursorValidationIT`, `FdrTest` |
+| FDR-1 | Mining controls the false-discovery rate and validates survivors on a later, disjoint window before `validated` | 120 | precursor mining | `PrecursorValidationIT`, `FdrTest`, `PrecursorRulesTest` (120: validation, staleness and the lifecycle) |
 | LED-1 | Forecasts are immutable; `made_at` and `asof_seq` are server-set; annulled questions are never scored | 122 | ledger | `ForecastControllersIT`, `ForecastScorerTest` |
 | LED-2 | LLM retrospective evaluation excludes questions opened before the model's knowledge cutoff | 122 | retrospective evaluation | `RetrospectiveEvaluationIT` |
 | LED-3 | Probabilities are stored as numbers; generated text passes `EstimativeLanguage.lint` (no mismatched term, no mixed rows, no likelihood term with a confidence level in one sentence) | 122 | `EstimativeLanguage` | `EstimativeLanguageTest`, `AssessmentLintIT` |

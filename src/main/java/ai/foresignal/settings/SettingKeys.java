@@ -230,6 +230,24 @@ public final class SettingKeys {
     /** Pending pre-event re-checks of lagged weekly series (prompt 119), a list of objects. */
     public static final String ANALYSIS_LIVE_RECHECKS = "analysis.live.rechecks";
 
+    /** The most tests one precursor mining run makes (prompt 120, {@code analysis.precursors.maxTestsPerRun}); 500. */
+    public static final String ANALYSIS_PRECURSORS_MAX_TESTS = "analysis.precursors.maxTestsPerRun";
+
+    /** The days of history precursor mining splits into discovery and validation (prompt 120); 365. */
+    public static final String ANALYSIS_PRECURSORS_LOOKBACK_DAYS = "analysis.precursors.lookbackDays";
+
+    /** The share of the range precursor mining uses for discovery, oldest first (prompt 120); 2/3. */
+    public static final String ANALYSIS_PRECURSORS_DISCOVERY_FRACTION = "analysis.precursors.discoveryFraction";
+
+    /** The durable seq cursor of the precursor live watch (prompt 120; the consumer clamp of retention). */
+    public static final String PRECURSOR_CURSOR = "precursor.cursor";
+
+    /**
+     * The precursor live watch's id cursors over the finding log, alerts and anomaly observations (prompt 120), an
+     * object {@code {findings, alerts, anomalies}}.
+     */
+    public static final String PRECURSOR_STREAM_CURSORS = "precursor.cursor.streams";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -240,7 +258,9 @@ public final class SettingKeys {
                     SITUATION_LINK_THRESHOLD, SITUATION_DORMANCY_WINDOW, SITUATION_REOPEN_WINDOW,
                     SITUATION_BRIEFS_ENABLED, SITUATION_BRIEFS_MAX_PER_DAY, SITUATION_BRIEF_MIN_INTERVAL, INTEL_THEMES,
                     INTEL_THEMES_LLM_CLASSIFY, INTEL_SIGNAL_FAMILIES, STATS_REGION_CURSOR, STATS_REGION_LEVEL,
-                    ANALYSIS_SERIES_MAX, ANALYSIS_FINDINGS_PUBLISH_INFO, ANALYSIS_LIVE_CURSOR, ANALYSIS_LIVE_RECHECKS);
+                    ANALYSIS_SERIES_MAX, ANALYSIS_FINDINGS_PUBLISH_INFO, ANALYSIS_LIVE_CURSOR, ANALYSIS_LIVE_RECHECKS,
+                    ANALYSIS_PRECURSORS_MAX_TESTS, ANALYSIS_PRECURSORS_LOOKBACK_DAYS,
+                    ANALYSIS_PRECURSORS_DISCOVERY_FRACTION, PRECURSOR_CURSOR, PRECURSOR_STREAM_CURSORS);
 
     private SettingKeys() {}
 }

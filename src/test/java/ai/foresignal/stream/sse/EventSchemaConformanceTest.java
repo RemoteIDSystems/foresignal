@@ -125,7 +125,14 @@ class EventSchemaConformanceTest {
             entry(ai.foresignal.analytics.finding.FindingEvent.UPDATED,
                     () -> findingEvents(ai.foresignal.analytics.finding.FindingEvent.UPDATED)),
             entry(ai.foresignal.analytics.finding.FindingEvent.DISMISSED,
-                    () -> findingEvents(ai.foresignal.analytics.finding.FindingEvent.DISMISSED)));
+                    () -> findingEvents(ai.foresignal.analytics.finding.FindingEvent.DISMISSED)),
+            // 120: AnalyticsTopic sends precursor lifecycle events with the PrecursorEvent payload.
+            entry(ai.foresignal.analytics.finding.FindingEvent.PRECURSOR_VALIDATED,
+                    () -> precursorEvents(ai.foresignal.analytics.finding.FindingEvent.PRECURSOR_VALIDATED)),
+            entry(ai.foresignal.analytics.finding.FindingEvent.PRECURSOR_STALE,
+                    () -> precursorEvents(ai.foresignal.analytics.finding.FindingEvent.PRECURSOR_STALE)),
+            entry(ai.foresignal.analytics.finding.FindingEvent.PRECURSOR_RETIRED,
+                    () -> precursorEvents(ai.foresignal.analytics.finding.FindingEvent.PRECURSOR_RETIRED)));
 
     /** {@code situation.*} payloads as {@code SituationEvent.payload()} writes them (prompt 118), located and not. */
     static List<JsonNode> situationEvents(String type) {
@@ -168,6 +175,23 @@ class EventSchemaConformanceTest {
         for (String situation : java.util.Arrays.asList("01JA8Q3V7S2K9W4T6Y1B5N0M3D", null)) {
             out.add(toTree(new ai.foresignal.analytics.finding.FindingEvent(5, type, f.getId(),
                     ai.foresignal.analytics.finding.FindingViews.summary(f, situation), at).payload()));
+        }
+        return out;
+    }
+
+    /** {@code precursor.*} payloads as {@code FindingEvent.payload()} writes them (prompt 120), with and without lift. */
+    static List<JsonNode> precursorEvents(String type) {
+        java.time.Instant at = java.time.Instant.parse("2026-03-01T12:00:00Z");
+        List<JsonNode> out = new java.util.ArrayList<>();
+        for (Double lift : java.util.Arrays.asList(3.2, null)) {
+            ai.foresignal.precursor.PrecursorEntity p = new ai.foresignal.precursor.PrecursorEntity(
+                    "01JA8Q3V7S2K9W4T6Y1B5N0M3C", "k", "event", at);
+            p.setStatus(type.substring("precursor.".length()));
+            p.setStatusReason(lift == null ? null : "validated on 2026-01-01 to 2026-03-01");
+            p.setDescription("In YE, GNSS interference alerts was followed by maritime disruption events.");
+            p.setLift(lift);
+            out.add(toTree(new ai.foresignal.analytics.finding.FindingEvent(9, type, p.getId(),
+                    ai.foresignal.precursor.PrecursorViews.summary(p), at).payload()));
         }
         return out;
     }

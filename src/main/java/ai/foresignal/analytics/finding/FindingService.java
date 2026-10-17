@@ -78,6 +78,10 @@ public class FindingService {
     private final ObjectProvider<CountryCentroids> countries;
     private final Clock clock;
 
+    /** Precursor summaries for the {@code precursor.*} events (prompt 120), when that package is present. */
+    @org.springframework.beans.factory.annotation.Autowired
+    private ObjectProvider<PrecursorSummaries> precursorSummaries;
+
     /** Creates the service. */
     public FindingService(AnalyticFindingRepository findings, FindingLogRepository logs, FindingEventBus bus,
             NamedParameterJdbcTemplate jdbc, ObjectProvider<ManifestService> manifests,
@@ -149,6 +153,9 @@ public class FindingService {
         f.setLocalOnlySources(draft.localOnlySources());
         f.setRawStatKeys(draft.rawStatKeys());
         f.setDedupKey(dedupKey);
+        if ("precursor-active".equals(draft.findingType()) && draft.stats().get("precursorId") != null) {
+            f.setPrecursorId(String.valueOf(draft.stats().get("precursorId")));
+        }
         f.setManifestId(manifest(draft));
         findings.save(f);
         List<FindingLogEntity> announced = new ArrayList<>();
@@ -346,9 +353,36 @@ public class FindingService {
         return findings.findByFindingTypeAndDetectedAtBetweenOrderByDetectedAtAsc(type, from, to);
     }
 
-    /** The event of a log row, or null when the finding no longer exists. */
+    /**
+     * Announces a precursor lifecycle change on the {@code analytics} topic (prompt 120): a log row whose
+     * {@code finding_id} is the precursor id and whose event is {@code precursor.validated}, {@code precursor.stale}
+     * or {@code precursor.retired}, published after commit and replayed like finding events.
+     *
+     * @param precursorId the precursor
+     * @param event the {@code precursor.*} event
+     * @param actor who changed it (a detector, a token id or {@code operator})
+     * @param reason why, or null
+     */
+    @Transactional
+    public void announcePrecursor(String precursorId, String event, String actor, String reason) {
+        Objects.requireNonNull(precursorId, "precursorId");
+        if (event == null || !event.startsWith("precursor.")) {
+            throw new IllegalArgumentException("not a precursor event: " + event);
+        }
+        FindingLogEntity row = logs.save(new FindingLogEntity(precursorId, clock.instant(), actor,
+                event.replace('.', '-'), event, reason));
+        publishAfterCommit(List.of(row), null);
+    }
+
+    /** The event of a log row, or null when the finding (or precursor) no longer exists. */
     @Transactional(readOnly = true)
     public FindingEvent eventOf(FindingLogEntity row) {
+        if (row.getEvent() != null && row.getEvent().startsWith("precursor.")) {
+            PrecursorSummaries summaries = precursorSummaries == null ? null : precursorSummaries.getIfAvailable();
+            Map<String, Object> summary = summaries == null ? null : summaries.summary(row.getFindingId());
+            return summary == null ? null : new FindingEvent(row.getId(), row.getEvent(), row.getFindingId(), summary,
+                    row.getAt());
+        }
         AnalyticFindingEntity f = findings.findById(row.getFindingId()).orElse(null);
         if (f == null || row.getEvent() == null) {
             return null;

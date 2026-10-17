@@ -5744,7 +5744,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('precursorId', j.items[0].id);",
+                  "}"
                 ]
               }
             }
@@ -5900,7 +5903,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"status\": \"retired\",\n  \"reason\": \"The pattern reflects a reporting artifact, not activity\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5917,7 +5920,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('precursorBatchId', j.items[0].id);",
+                  "}"
                 ]
               }
             }
@@ -5990,7 +5996,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/precursors/batches/{{batchId}}",
+              "raw": "{{baseUrl}}/v1/precursors/batches/{{precursorBatchId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -5998,7 +6004,7 @@
                 "v1",
                 "precursors",
                 "batches",
-                "{{batchId}}"
+                "{{precursorBatchId}}"
               ],
               "query": []
             },
@@ -6082,7 +6088,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('precursorCandidateId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -6124,7 +6133,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"GNSS interference before Red Sea disruptions\",\n  \"kind\": \"event\",\n  \"antecedent\": {\n    \"selector\": {\n      \"alertRuleTag\": \"gnss-interference\"\n    },\n    \"label\": \"GNSS interference alerts\"\n  },\n  \"consequent\": {\n    \"selector\": {\n      \"intelEventType\": \"maritime-disruption\"\n    },\n    \"label\": \"maritime disruption events\"\n  },\n  \"spatial\": {\n    \"rule\": \"sameRegion\",\n    \"regionLevel\": \"country\"\n  },\n  \"lagMin\": \"P0D\",\n  \"lagMax\": \"P3D\",\n  \"regionCodes\": [\n    \"YE\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6150,7 +6159,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/precursors/candidates/{{candidateId}}",
+              "raw": "{{baseUrl}}/v1/precursors/candidates/{{precursorCandidateId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -6158,7 +6167,7 @@
                 "v1",
                 "precursors",
                 "candidates",
-                "{{candidateId}}"
+                "{{precursorCandidateId}}"
               ],
               "query": []
             },
@@ -6183,7 +6192,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));"
+                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -6229,7 +6241,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));"
+                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -51476,6 +51491,18 @@
     {
       "key": "seriesRef",
       "value": "rollup:day/*/earthquake/US"
+    },
+    {
+      "key": "precursorId",
+      "value": ""
+    },
+    {
+      "key": "precursorBatchId",
+      "value": ""
+    },
+    {
+      "key": "precursorCandidateId",
+      "value": ""
     },
     {
       "key": "tileLayer",
