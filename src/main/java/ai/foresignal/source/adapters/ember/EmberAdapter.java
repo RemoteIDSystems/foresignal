@@ -121,7 +121,8 @@ public class EmberAdapter implements PollingAdapter {
             List<NormalizedRecord> points = EmberParser.parse(
                     body(ctx, ctx.http().get(dataUri(dataset, entities, ctx.now(), key.strip()))), dataset);
             out.addAll(points);
-            out.addAll(SeriesPoint.latestPerSeries(points));
+            out.addAll(SeriesPoint.latestPerSeries(points,
+                ai.foresignal.source.series.EnergySeriesMetadata.forSource(DESCRIPTOR)));
             if (newest != null) {
                 ctx.state().put(stateKey, newest);
             }

@@ -1,0 +1,22 @@
+{
+ "query_details": {
+  "title": "\"strait of hormuz\""
+ },
+ "timeline": [
+  {
+   "series": "Article Count",
+   "data": [
+    {
+     "date": "20261015T000000Z",
+     "value": 40,
+     "norm": 180000
+    },
+    {
+     "date": "20261015T010000Z",
+     "value": 35,
+     "norm": 175000
+    }
+   ]
+  }
+ ]
+}

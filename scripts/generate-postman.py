@@ -31,7 +31,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              # 115: exercise runs, tuning suggestions and tuning log entries.
              "exerciseId": "exerciseId", "suggestionId": "suggestionId", "logId": "tuningLogId",
              # 116: canonical events, analysis manifests and prompt templates.
-             "canonicalEventId": "canonicalEventId", "manifestId": "manifestId", "templateId": "templateId"}
+             "canonicalEventId": "canonicalEventId", "manifestId": "manifestId", "templateId": "templateId",
+             # 117: attention topics.
+             "topicId": "attentionTopicId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -446,6 +448,24 @@ BODIES = {
   # 115: apply or dismiss the suggestion in {{suggestionId}} (captured from getTriggerSuggestions).
   "applyTuningSuggestion": {"note": "Applied after reviewing a week of feedback"},
   "dismissTuningSuggestion": {"reason": "The night alerts are wanted"},
+  # 117: an attention topic that drives gdelt-timelines and wikimedia-pageviews once enabled (each change re-syncs
+  # their topics parameter); the GDELT query puts OR'd terms in parentheses.
+  "createAttentionTopic": {"id": "bab-el-mandeb-transits", "name": "Bab el-Mandeb transits",
+                           "description": "Shipping attention around the Bab el-Mandeb strait",
+                           "gdeltQuery": "(\"Bab el-Mandeb\" OR \"Red Sea\") (tanker OR container OR Houthi)",
+                           "wikiArticles": [{"project": "en.wikipedia", "article": "Bab-el-Mandeb"}],
+                           "keywords": ["Bab el-Mandeb", "Red Sea", "Houthi"], "regionCodes": ["YE", "DJ", "ER"],
+                           "themes": ["shipping"], "enabled": True},
+  "updateAttentionTopic": {"id": "{{attentionTopicId}}", "name": "Red Sea shipping",
+                           "description": "Shipping disruption in the Red Sea and the Bab el-Mandeb strait.",
+                           "gdeltQuery": "(\"Red Sea\" OR \"Bab el-Mandeb\") (shipping OR tanker OR vessel OR Houthi)",
+                           "wikiArticles": [{"project": "en.wikipedia", "article": "Bab-el-Mandeb"},
+                                            {"project": "en.wikipedia", "article": "Red_Sea"}],
+                           "keywords": ["Red Sea", "Bab el-Mandeb", "Houthi"], "regionCodes": ["YE", "ER", "DJ"],
+                           "themes": ["shipping", "maritime-security"], "enabled": True},
+  # 117: backfill the CFTC Commitments of Traders history down to 2010 (needs cftc-cot enabled; budget-limited and
+  # resumable, so it may take several runs).
+  "backfillCftcCot": {"from": "2010-01-01"},
   # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
   # one nautical mile in the next hour.
   "cpaBatch": {"subject": "aisstream/244660000", "filter": {"kinds": ["vessel"], "sources": [],
@@ -468,6 +488,8 @@ CAPTURE = {
   "listCanonicalEvents": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('canonicalEventId', j.items[0].id);",
   "listAnomalies": "const j = pm.response.json(); const a = (j.items || []).find(i => i.manifestId); if (a) pm.collectionVariables.set('manifestId', a.manifestId);",
   "replayManifest": "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.jobId);",
+  # 117: the created attention topic.
+  "createAttentionTopic": "const j = pm.response.json(); pm.collectionVariables.set('attentionTopicId', j.id);",
   "rotatePeerIngestKey": "const j = pm.response.json(); pm.collectionVariables.set('peerIngestKey', j.key); console.log('New peer ingest key (shown once):', j.key);",
   "createSnapshot": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
   "createPack": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
@@ -803,6 +825,7 @@ collection = {
       ("polSubjectId", ""), ("polPlaceId", ""), ("tripId", ""),
       ("exerciseId", ""), ("suggestionId", ""), ("tuningLogId", ""),
       ("canonicalEventId", ""), ("manifestId", ""), ("templateId", "ask-system"), ("jobId", ""),
+      ("attentionTopicId", "red-sea-shipping"),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

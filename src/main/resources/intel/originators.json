@@ -691,6 +691,33 @@
       "class": "agency",
       "independenceGroup": "copernicus",
       "notes": "Copernicus satellite scenes"
+    },
+    {
+      "id": "cftc",
+      "class": "agency",
+      "independenceGroup": "cftc",
+      "domains": [
+        "cftc.gov"
+      ],
+      "notes": "US Commodity Futures Trading Commission (Commitments of Traders)"
+    },
+    {
+      "id": "fred",
+      "class": "aggregator",
+      "independenceGroup": "fred",
+      "domains": [
+        "stlouisfed.org"
+      ],
+      "notes": "Federal Reserve Bank of St. Louis FRED; republishes series from many owners"
+    },
+    {
+      "id": "world-bank",
+      "class": "aggregator",
+      "independenceGroup": "world-bank",
+      "domains": [
+        "worldbank.org"
+      ],
+      "notes": "World Bank Indicators; compiled from national statistical offices and UN agencies"
     }
   ],
   "sources": {
@@ -850,7 +877,12 @@
     },
     "rule-windows": {
       "originator": "foresignal"
-    }
+    },
+    "cftc-cot": "cftc",
+    "fred-series": "fred",
+    "wikimedia-pageviews": "wikidata",
+    "gdelt-timelines": "gdelt",
+    "worldbank-indicators": "world-bank"
   },
   "patterns": {
     "cap-*": {

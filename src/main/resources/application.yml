@@ -117,6 +117,10 @@ foresignal:
   # receiver-range estimates. Off in tests.
   observability:
     scheduled: true
+  # History backfills (117): the CFTC COT backfill tick copies progress and asks for the next manual fetch every two
+  # minutes while a job is open. Off in tests (the ITs call CotBackfillService.tick()).
+  backfill:
+    scheduled: true
   # Root for INBOX_PATH source parameters. Every inbox read is confined to this
   # directory, re-checked per file, so a symlink cannot redirect a read out of it.
   inbox-dir: ${FORESIGNAL_INBOX_DIR:${FORESIGNAL_DATA_DIR:./data}/inbox}

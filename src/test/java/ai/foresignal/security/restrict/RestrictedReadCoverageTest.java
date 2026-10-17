@@ -62,7 +62,9 @@ class RestrictedReadCoverageTest {
             // 112: creating a share link returns the link and its key, never records.
             "create_share_link",
             // 113: federation peers and their replication state, never records.
-            "list_peers", "peer_status");
+            "list_peers", "peer_status",
+            // 117: attention topics are configuration, never records.
+            "list_attention_topics");
 
     @Test
     @DisplayName("every record- or alert-returning controller method carries @RestrictedRead")

@@ -5784,3 +5784,83 @@ LLM steps, the provider, model, prompt hash and prompt template. Identical manif
 `differs` (with what changed) or `not-replayable` (inputs purged by retention, a component that no longer exists,
 or LLM output: "inputs recorded; model output not reproducible"). Every LLM role's system prompt is a versioned
 template; `GET /v1/prompt-templates/{id}` shows exactly what the model was asked.
+
+## Markets and attention (prompt 117)
+
+Five sources add the market and attention signals the intelligence layer correlates with events. All of them write
+`series-point` records (one per period) and one `series-latest` per series, so `/v1/series`, `get_series`, rules
+and briefings work on them like on the energy series of 093. Every catalog entry now says what kind of number it is:
+
+- `family`: `price`, `volume`, `open-interest`, `position`, `rate`, `attention`, `tone`, `count`, `index` or
+  `structural`;
+- `transform`: the hint for analysis (`log-return` for prices, `log-level` for counts and attention, `difference`
+  for positions and storage, `level` otherwise);
+- `releaseLagDays`: how long after its period a value is normally published. The point's `knownAt` is when
+  Foresignal received it; its period is never back-dated, so analyses only use what was known at the time;
+- `egress`: `OPEN` or `LOCAL_ONLY`; `regionCode` and `topicId` where they apply; `attribution`, the credit line.
+
+**What each source gives.**
+
+| Source | What | Lag | Needs |
+|---|---|---|---|
+| `cftc-cot` | Weekly futures positioning from the CFTC Commitments of Traders: open interest and the net position of each trader category (managed money, producers, swap dealers, asset managers, leveraged funds…) for twelve default contracts (`contracts`), from the disaggregated, legacy and TFF reports (`reports`; `futuresOnly=false` reads the futures-and-options reports). Series `cot.{code}.{report}.{measure}`, for example `cot.067651.disaggregated.mm_net` (WTI managed money net). | Positions as of Tuesday, published Friday 15:30 ET: 3 days | nothing; an optional Socrata `appToken` raises the rate limit |
+| `fred-series` | Rates and prices from FRED: 10- and 2-year Treasury yields, the 10y−2y spread, the effective federal funds rate, the broad dollar index, WTI and Henry Hub spot prices (`series`). Series `fred.{id}`. | about 1 day | a free FRED API key (`PUT /v1/sources/fred-series/credentials` with `apiKey`) |
+| `wikimedia-pageviews` | Daily Wikipedia pageviews of your attention topics' articles (human readers), and each project's daily top 100 articles (`attention-top`). Series `wiki.{project}.{article}`. | 1 day (read once a day after 02:30 UTC) | attention topics with articles |
+| `gdelt-timelines` | News volume (matching articles per 15 minutes, with `extra.share` of everything GDELT monitored) and average tone per attention topic. Series `gdelt.{topicId}.vol` and `gdelt.{topicId}.tone`. | none | attention topics with a GDELT query |
+| `worldbank-indicators` | Slow structural covariates per country and year: population, GDP per capita, infant mortality, urbanization, trade share, electricity access (`indicators`, from `fromYear`). Series `wb.{indicator}.{iso2}`. | about 180 days | nothing |
+
+**Daily and weekly data cannot show intraday trading.** COT positions are a weekly snapshot and FRED prices are
+daily closes: they can show that positioning moved before an event, never when within a day it moved. Market
+findings say "unusual positioning before the event", never more.
+
+**The FRED key and notice.** FRED is free with a key from <https://fred.stlouisfed.org/docs/api/api_key.html>.
+FRED's terms require this notice wherever its data appears: "This product uses the FRED® API but is not endorsed or
+certified by the Federal Reserve Bank of St. Louis." Foresignal carries it, with the series' own source line, in the
+`attribution` of every FRED series and in the source's attribution.
+
+**Copyrighted series and `LOCAL_ONLY`.** FRED republishes series owned by others (Cboe's VIX and OVX, ICE's Brent
+price…). The whole `fred-series` source is `LOCAL_ONLY`: its raw values are served to this instance's own callers
+allowed local egress and never leave through sinks, federation, share links or feeds; derived, standardized
+statistics may. A series whose FRED notes mark it as copyrighted is skipped (the source shows `degraded` with the
+skipped ids) until you list it in `allowCopyrighted`, which records that you accept it for personal use:
+
+```
+PUT /v1/sources/fred-series
+{"params": {"series": ["DGS10", "VIXCLS"], "allowCopyrighted": ["VIXCLS"]}}
+```
+
+**Attention topics.** A topic names what you want to watch: `GET /v1/attention/topics` lists them, `POST` creates
+one, `PUT /v1/attention/topics/{id}` replaces it and `DELETE` removes it (stored series stay). Enabled topics are
+written into the `topics` parameter of `wikimedia-pageviews` and `gdelt-timelines` on every change, so enable those
+two sources as well. Five examples ship disabled: `red-sea-shipping`, `strait-of-hormuz`,
+`gulf-energy-infrastructure`, `taiwan-strait` and `ukraine-front`; enable one with a `PUT` that sets
+`"enabled": true`. A topic has an id (`a-z`, `0-9` and `-`, 3 to 48 characters), a name, up to 20 Wikipedia articles
+(`{"project": "en.wikipedia", "article": "Strait_of_Hormuz"}`), up to 30 keywords (the situation linker uses them),
+040 region codes and themes.
+
+**Writing a GDELT query** (at most 250 characters): quote phrases (`"Strait of Hormuz"`), and put alternatives joined
+with `OR` in parentheses (`("Red Sea" OR "Bab el-Mandeb") (tanker OR Houthi)`); terms side by side must all match.
+Foresignal checks the characters (balanced quotes and parentheses, no control characters) and, when you create a
+topic while `gdelt-timelines` is enabled, makes one budgeted test call; a query GDELT does not answer with a
+timeline is refused with `400 TOPIC_INVALID`. GDELT allows one request every 5 seconds, so a run covers at most five
+topics (two requests each, 5 seconds apart) and takes the rest in turn on the next runs.
+
+**Wikipedia's User-Agent policy** asks for contact details. Foresignal's User-Agent always carries the project URL;
+set `contactEmail` with `PUT /v1/settings/server` and it is appended as `; contact=…` for every upstream. If
+Wikimedia answers 403, the source shows `failing` with that reason.
+
+**Backfilling COT history.** Live polling reads the last year. To load older reports:
+
+```
+POST /v1/sources/cftc-cot/backfill
+{"from": "2010-01-01"}
+```
+
+The source must be enabled. The answer (202) is the job; the backfill reads older pages during the source's runs
+and a tick every two minutes, at most five pages a run and never past the source's budget, so a history back to 2010 takes
+some minutes. An interrupted backfill continues where its last successful run stopped, and running it again changes
+nothing that is already stored (`409 BACKFILL_RUNNING` while one is open).
+
+**Not built:** ICE's own weekly COT for Brent and gasoil (its website terms forbid automated collection), CME and ICE
+end-of-day prices, UKMTO advisories and Metaculus. An external provider (EDP, prompt 024) can supply any of them
+from your own subscription.

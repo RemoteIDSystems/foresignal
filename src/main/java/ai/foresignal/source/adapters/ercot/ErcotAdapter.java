@@ -175,7 +175,8 @@ public class ErcotAdapter implements PollingAdapter {
             ctx.state().put(LOAD_AT_KEY, ctx.now().toString());
         }
         List<NormalizedRecord> out = new ArrayList<>(points);
-        out.addAll(SeriesPoint.latestPerSeries(points));
+        out.addAll(SeriesPoint.latestPerSeries(points,
+                ai.foresignal.source.series.EnergySeriesMetadata.forSource(DESCRIPTOR)));
         ctx.state().clearDegraded();
         ctx.log().debug("{}: {} record(s)", ID, out.size());
         // A run that skipped the hourly load report is not the full set of series.

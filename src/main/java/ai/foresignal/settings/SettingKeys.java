@@ -154,6 +154,12 @@ public final class SettingKeys {
      */
     public static final String INTEL_ORIGINATORS = "intel.originators";
 
+    /**
+     * True once the five example attention topics were created (prompt 117), so an operator who deletes them does
+     * not see them come back on the next start.
+     */
+    public static final String ATTENTION_SEEDED = "attention.seeded";
+
     /** The lowest link confidence the evidence resolver links at (prompt 116), a number; default 0.5. */
     public static final String EVIDENCE_MIN_LINK_CONFIDENCE = "evidence.minLinkConfidence";
 
@@ -169,7 +175,7 @@ public final class SettingKeys {
                     STATS, GLANCE, METRICS, VISIBILITY, REGION_CURSOR, REGION_TAGGING, WEATHER, ENTITY_CURSOR,
                     ENTITY, INTEL_CURSOR, ARCHIVE, CAP_SENDER, INSTANCE_NAME, FEDERATION_INSTANCE_NAME,
                     POL_RETENTION, EXERCISE_MAX_WINDOW, EXERCISE_ALERT_RETENTION, EVIDENCE_CURSOR, INTEL_ORIGINATORS,
-                    EVIDENCE_MIN_LINK_CONFIDENCE, ABSENCE_MIN_DETECT);
+                    EVIDENCE_MIN_LINK_CONFIDENCE, ABSENCE_MIN_DETECT, ATTENTION_SEEDED);
 
     private SettingKeys() {}
 }

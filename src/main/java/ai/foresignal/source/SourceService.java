@@ -798,6 +798,21 @@ public class SourceService implements ApplicationRunner {
         return paramValidator.validate(descriptor, raw);
     }
 
+    /**
+     * The parameters as the operator stored them, before defaults and coercion (prompt 117: the attention topics are
+     * merged into them as one key, so the rest of the stored set is kept when {@link #update} replaces it wholesale).
+     *
+     * @return a copy, empty when nothing is stored
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> storedParams(String id) {
+        registry.descriptor(id);
+        return settings.findById(id)
+                .map(SourceSettingsEntity::getParams)
+                .map(params -> (Map<String, Object>) new LinkedHashMap<>(params))
+                .orElseGet(LinkedHashMap::new);
+    }
+
     /** The budget a fetch should be charged against. */
     @Transactional(readOnly = true)
     public Budget effectiveBudget(String id) {

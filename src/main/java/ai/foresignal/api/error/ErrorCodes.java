@@ -549,6 +549,18 @@ public final class ErrorCodes {
     /** 409: a manifest whose component cannot be replayed, known before a replay job is queued (116). */
     public static final String MANIFEST_NOT_REPLAYABLE = "MANIFEST_NOT_REPLAYABLE";
 
+    /** 404: no attention topic has that id (117). */
+    public static final String UNKNOWN_ATTENTION_TOPIC = "UNKNOWN_ATTENTION_TOPIC";
+
+    /** 400: an attention topic failed validation, including its GDELT query test call (117). */
+    public static final String TOPIC_INVALID = "TOPIC_INVALID";
+
+    /** 409: an attention topic with that id already exists (117). */
+    public static final String ATTENTION_TOPIC_EXISTS = "ATTENTION_TOPIC_EXISTS";
+
+    /** 409: a history backfill of that source is already running (117). */
+    public static final String BACKFILL_RUNNING = "BACKFILL_RUNNING";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

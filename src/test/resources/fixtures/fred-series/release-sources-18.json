@@ -1,0 +1,13 @@
+{
+ "realtime_start": "2026-10-16",
+ "realtime_end": "2026-10-16",
+ "sources": [
+  {
+   "id": 1,
+   "realtime_start": "2026-10-16",
+   "realtime_end": "2026-10-16",
+   "name": "Board of Governors of the Federal Reserve System (US)",
+   "link": "http://www.federalreserve.gov/"
+  }
+ ]
+}

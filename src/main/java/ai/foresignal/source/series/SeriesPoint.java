@@ -34,8 +34,9 @@ public final class SeriesPoint {
     /** The per-series catalogue record kind. */
     public static final String LATEST_KIND = "series-latest";
 
-    /** The accepted frequency codes. */
-    public static final Set<String> FREQUENCIES = Set.of("PT15S", "PT15M", "PT30M", "PT1H", "P1D", "P1W", "P1M");
+    /** The accepted frequency codes ({@code P3M} and {@code P1Y} added by prompt 117 for FRED and the World Bank). */
+    public static final Set<String> FREQUENCIES = Set.of("PT15S", "PT15M", "PT30M", "PT1H", "P1D", "P1W", "P1M",
+            "P3M", "P1Y");
 
     /** The series analytic class's default raw retention (Conventions "Analytic retention"). */
     public static final Duration RETENTION = Duration.ofDays(3650);
@@ -132,6 +133,19 @@ public final class SeriesPoint {
      * only points are forecasts gets no latest record.
      */
     public static List<NormalizedRecord> latestPerSeries(List<NormalizedRecord> points) {
+        return latestPerSeries(points, point -> null);
+    }
+
+    /**
+     * One {@code series-latest} record per series, carrying the newest <em>non-forecast</em> point, with the series
+     * metadata of prompt 117 ({@link SeriesMeta}) added to its payload.
+     *
+     * @param points the points of one fetch
+     * @param metadata the metadata of the series a point belongs to; null leaves that series' latest record without
+     *     metadata
+     */
+    public static List<NormalizedRecord> latestPerSeries(List<NormalizedRecord> points,
+            java.util.function.Function<NormalizedRecord, SeriesMeta> metadata) {
         Map<String, NormalizedRecord> newest = new java.util.LinkedHashMap<>();
         for (NormalizedRecord point : points) {
             if ("forecast".equals(String.valueOf(point.payload().get("status")))) {
@@ -145,7 +159,8 @@ public final class SeriesPoint {
         }
         List<NormalizedRecord> out = new java.util.ArrayList<>();
         for (NormalizedRecord point : newest.values()) {
-            out.add(latest(
+            SeriesMeta meta = metadata == null ? null : metadata.apply(point);
+            NormalizedRecord latest = latest(
                     str(point, "series"),
                     str(point, "seriesName"),
                     str(point, "dataset"),
@@ -155,9 +170,25 @@ public final class SeriesPoint {
                     str(point, "unit"),
                     str(point, "area"),
                     str(point, "status"),
-                    point.observedAt()));
+                    point.observedAt());
+            out.add(meta == null ? latest : meta.applyTo(latest));
         }
         return out;
+    }
+
+    /**
+     * {@code record} with one more payload entry (prompt 117: a series' own attribution line on its
+     * {@code series-latest}). A null {@code value} returns the record unchanged.
+     */
+    public static NormalizedRecord withPayload(NormalizedRecord record, String key, Object value) {
+        if (value == null) {
+            return record;
+        }
+        Map<String, Object> payload = new LinkedHashMap<>(record.payload());
+        payload.put(key, value);
+        return new NormalizedRecord(record.externalId(), record.kind(), record.observedAt(), record.eventTime(),
+                record.geometry(), record.validUntil(), record.validFrom(), payload, record.tombstone(),
+                record.quality(), record.observers());
     }
 
     private static boolean isNewer(NormalizedRecord candidate, NormalizedRecord prior) {
@@ -249,7 +280,7 @@ public final class SeriesPoint {
                 new FieldSpec(FieldType.STRING, null, "Dataset", "Upstream dataset or route the point came from",
                         null, Set.of()));
         builder.fieldSpec("frequency", new FieldSpec(FieldType.STRING, null, "Frequency",
-                "Fixed frequency code: PT15S, PT15M, PT30M, PT1H, P1D, P1W or P1M", null, Set.of()));
+                "Fixed frequency code: PT15S, PT15M, PT30M, PT1H, P1D, P1W, P1M, P3M or P1Y", null, Set.of()));
         builder.fieldSpec("period", new FieldSpec(FieldType.STRING, null, "Period",
                 "The upstream period label, for example 2026-10-09 or 2026-10-09T14", null, Set.of()));
         builder.fieldSpec("periodStart", new FieldSpec(FieldType.TIMESTAMP, null, "Period start",
@@ -265,6 +296,24 @@ public final class SeriesPoint {
                 "Area the series covers: a country code, a region or a respondent", null, Set.of()));
         builder.fieldSpec("status", new FieldSpec(FieldType.STRING, null, "Status",
                 "final, preliminary, estimated or forecast", null, Set.of()));
+        builder.fieldSpec("family", new FieldSpec(FieldType.STRING, null, "Family",
+                "Series family (prompt 117): price, volume, open-interest, position, rate, attention, tone, count,"
+                        + " index or structural", null, Set.of()));
+        builder.fieldSpec("transform", new FieldSpec(FieldType.STRING, null, "Transform",
+                "Transform hint for analysis (prompt 117): log-return, log-level, difference or level", null,
+                Set.of()));
+        builder.fieldSpec("releaseLagDays", new FieldSpec(FieldType.NUMBER, "d", "Release lag",
+                "Typical delay between the period and its publication (prompt 117); the version's ingest time is its"
+                        + " knownAt", null, Set.of()));
+        builder.fieldSpec("egress", new FieldSpec(FieldType.STRING, null, "Egress",
+                "The source's egress (OPEN or LOCAL_ONLY) when the record was made (prompt 117)", null, Set.of()));
+        builder.fieldSpec("regionCode", new FieldSpec(FieldType.STRING, null, "Region",
+                "The 040 region code the series covers, when it covers one (prompt 117)", null, Set.of()));
+        builder.fieldSpec("topicId", new FieldSpec(FieldType.STRING, null, "Attention topic",
+                "The attention topic the series belongs to (prompt 117)", null, Set.of()));
+        builder.fieldSpec("attribution", new FieldSpec(FieldType.STRING, null, "Attribution",
+                "The credit line the series' provider asks for, when it differs per series (prompt 117)", null,
+                Set.of()));
         builder.fieldSpec("extra", new FieldSpec(FieldType.OBJECT, null, "Extra",
                 "Flat scalar extras (at most " + MAX_EXTRA_KEYS + " keys), for example gasInStorageTWh or sharePct",
                 null, Set.of()));

@@ -129,7 +129,8 @@ public class AgsiAdapter implements PollingAdapter {
         }
         List<NormalizedRecord> records = new ArrayList<>(byId.values());
         List<NormalizedRecord> out = new ArrayList<>(records);
-        out.addAll(SeriesPoint.latestPerSeries(records));
+        out.addAll(SeriesPoint.latestPerSeries(records,
+                ai.foresignal.source.series.EnergySeriesMetadata.forSource(DESCRIPTOR)));
         ctx.log().debug("{}: {} record(s)", ID, out.size());
         return FetchResult.complete(out);
     }

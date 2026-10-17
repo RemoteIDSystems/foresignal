@@ -73,7 +73,8 @@ public class CarbonIntensityAdapter implements PollingAdapter {
             ctx.state().put(PT24H_STATE_KEY, hour);
         }
         List<NormalizedRecord> out = new ArrayList<>(points);
-        out.addAll(SeriesPoint.latestPerSeries(points));
+        out.addAll(SeriesPoint.latestPerSeries(points,
+                ai.foresignal.source.series.EnergySeriesMetadata.forSource(DESCRIPTOR)));
         ctx.log().debug("{}: {} record(s)", ID, out.size());
         return FetchResult.complete(out);
     }

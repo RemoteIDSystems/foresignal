@@ -1,9 +1,3 @@
-listAttentionTopics 117
-createAttentionTopic 117
-getAttentionTopic 117
-updateAttentionTopic 117
-deleteAttentionTopic 117
-backfillCftcCot 117
 listSituations 118
 createSituation 118
 getSituation 118

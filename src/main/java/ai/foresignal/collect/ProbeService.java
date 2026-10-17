@@ -108,6 +108,63 @@ public class ProbeService {
                         + " source; it has no upstream to probe.");
     }
 
+    /**
+     * One call into a polling adapter, made with a probe context (prompt 117): the call's requests are budgeted,
+     * metered and recorded like a probe's, its adapter-state writes stay in memory, and nothing it returns is
+     * stored. {@code AttentionTopicService} uses it for the one budgeted GDELT test call that validates a topic's
+     * query.
+     */
+    @FunctionalInterface
+    public interface ProbeCall {
+
+        /**
+         * Calls the adapter.
+         *
+         * @param adapter the source's adapter
+         * @param ctx the probe context
+         * @return what the call produced (only previewed)
+         * @throws ai.foresignal.source.spi.AdapterException when the upstream refused or failed
+         */
+        FetchResult call(PollingAdapter adapter, ai.foresignal.source.spi.FetchContext ctx)
+                throws ai.foresignal.source.spi.AdapterException;
+    }
+
+    /**
+     * Runs {@code call} against polling source {@code sourceId} with a probe context (prompt 117).
+     *
+     * @param sourceId the polling source
+     * @param call the call
+     * @return the recorded exchanges, previews and parse error, as for {@link #probe}
+     * @throws ConflictException (409) {@code NOT_SUPPORTED_FOR_MODE} for a source that is not polling
+     * @throws BudgetExceededProblem (429) when the budget refused the request
+     */
+    public ProbeResult probeCall(String sourceId, ProbeCall call) {
+        SourceRegistry.Registration registration = registry.get(sourceId);
+        SourceDescriptor descriptor = registration.descriptor();
+        SourceAdapter adapter = registration.adapterIfPresent().orElse(null);
+        if (descriptor.mode() != Mode.POLLING || !(adapter instanceof PollingAdapter polling)) {
+            throw new ConflictException(ConflictException.NOT_SUPPORTED_FOR_MODE,
+                    "'" + sourceId + "' is not a polling source.");
+        }
+        RequestRecorder recorder = new RequestRecorder(DEFAULT_MAX_BYTES, RequestRecorder.DEFAULT_MAX_EXCHANGES);
+        DefaultFetchContext ctx = contexts.forFetch(descriptor, recorder);
+        Duration timeout =
+                descriptor.fetchTimeout() == null ? SourceDescriptor.DEFAULT_FETCH_TIMEOUT : descriptor.fetchTimeout();
+        List<NormalizedRecordPreview> previews = List.of();
+        String parseError = null;
+        try {
+            FetchResult result = dispatcher.call(descriptor, () -> call.call(polling, ctx), timeout);
+            previews = previews(result == null ? List.of() : result.records());
+        } catch (Exception e) {
+            if (FetchExecutor.causeOf(e, BudgetExceededException.class) != null) {
+                throw new BudgetExceededProblem(
+                        "The budget for '" + descriptor.id() + "' is spent; the call was not sent.");
+            }
+            parseError = health.errorMessage(descriptor.id(), e);
+        }
+        return new ProbeResult(descriptor.id(), requests(recorder, DEFAULT_MAX_BYTES), previews, parseError);
+    }
+
     private ProbeResult probePolling(SourceDescriptor descriptor, PollingAdapter adapter, int maxBytes) {
         RequestRecorder recorder = new RequestRecorder(maxBytes, RequestRecorder.DEFAULT_MAX_EXCHANGES);
         DefaultFetchContext ctx = contexts.forFetch(descriptor, recorder);

@@ -8278,7 +8278,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('attentionTopicId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -8320,7 +8323,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"id\": \"bab-el-mandeb-transits\",\n  \"name\": \"Bab el-Mandeb transits\",\n  \"description\": \"Shipping attention around the Bab el-Mandeb strait\",\n  \"gdeltQuery\": \"(\\\"Bab el-Mandeb\\\" OR \\\"Red Sea\\\") (tanker OR container OR Houthi)\",\n  \"wikiArticles\": [\n    {\n      \"project\": \"en.wikipedia\",\n      \"article\": \"Bab-el-Mandeb\"\n    }\n  ],\n  \"keywords\": [\n    \"Bab el-Mandeb\",\n    \"Red Sea\",\n    \"Houthi\"\n  ],\n  \"regionCodes\": [\n    \"YE\",\n    \"DJ\",\n    \"ER\"\n  ],\n  \"themes\": [\n    \"shipping\"\n  ],\n  \"enabled\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -8351,7 +8354,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/attention/topics/{{topicId}}",
+              "raw": "{{baseUrl}}/v1/attention/topics/{{attentionTopicId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -8359,7 +8362,7 @@
                 "v1",
                 "attention",
                 "topics",
-                "{{topicId}}"
+                "{{attentionTopicId}}"
               ],
               "query": []
             },
@@ -8395,7 +8398,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/attention/topics/{{topicId}}",
+              "raw": "{{baseUrl}}/v1/attention/topics/{{attentionTopicId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -8403,7 +8406,7 @@
                 "v1",
                 "attention",
                 "topics",
-                "{{topicId}}"
+                "{{attentionTopicId}}"
               ],
               "query": []
             },
@@ -8420,7 +8423,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"id\": \"{{attentionTopicId}}\",\n  \"name\": \"Red Sea shipping\",\n  \"description\": \"Shipping disruption in the Red Sea and the Bab el-Mandeb strait.\",\n  \"gdeltQuery\": \"(\\\"Red Sea\\\" OR \\\"Bab el-Mandeb\\\") (shipping OR tanker OR vessel OR Houthi)\",\n  \"wikiArticles\": [\n    {\n      \"project\": \"en.wikipedia\",\n      \"article\": \"Bab-el-Mandeb\"\n    },\n    {\n      \"project\": \"en.wikipedia\",\n      \"article\": \"Red_Sea\"\n    }\n  ],\n  \"keywords\": [\n    \"Red Sea\",\n    \"Bab el-Mandeb\",\n    \"Houthi\"\n  ],\n  \"regionCodes\": [\n    \"YE\",\n    \"ER\",\n    \"DJ\"\n  ],\n  \"themes\": [\n    \"shipping\",\n    \"maritime-security\"\n  ],\n  \"enabled\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -8446,7 +8449,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/attention/topics/{{topicId}}",
+              "raw": "{{baseUrl}}/v1/attention/topics/{{attentionTopicId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -8454,7 +8457,7 @@
                 "v1",
                 "attention",
                 "topics",
-                "{{topicId}}"
+                "{{attentionTopicId}}"
               ],
               "query": []
             },
@@ -39955,7 +39958,7 @@
                 }
               ]
             },
-            "description": "Series catalogue built from `series-latest` records (093 energy sources and later series sources): one entry per series with its newest non-forecast point. LOCAL_ONLY sources' values are served only to callers allowed local egress.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listSeries`",
+            "description": "Series catalog built from `series-latest` records (093 energy sources and later series sources): one entry per series with its newest non-forecast point. Each entry carries the series metadata of 117 (family, transform, releaseLagDays, egress, regionCode, topicId, attribution). LOCAL_ONLY sources' series are served only to callers allowed local egress (EgressPolicy on API_READ).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listSeries`",
             "auth": {
               "type": "noauth"
             }
@@ -45257,7 +45260,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"from\": \"2010-01-01\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -51425,6 +51428,10 @@
     {
       "key": "jobId",
       "value": ""
+    },
+    {
+      "key": "attentionTopicId",
+      "value": "red-sea-shipping"
     },
     {
       "key": "tileLayer",

@@ -6,7 +6,10 @@ import ai.foresignal.api.dto.SeriesPointDto;
 import ai.foresignal.api.dto.SeriesPointPageDto;
 import ai.foresignal.security.restrict.ReadRestriction;
 import ai.foresignal.security.restrict.RestrictionClamp;
+import ai.foresignal.source.series.EnergySeriesMetadata;
+import ai.foresignal.source.series.SeriesMeta;
 import ai.foresignal.source.series.SeriesPoint;
+import ai.foresignal.source.spi.Egress;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -49,10 +52,32 @@ public class SeriesQueryService {
     private final NamedParameterJdbcTemplate jdbc;
     private final JsonMapper json;
 
+    /** The egress in force per source (prompt 117), or null in a hand-built service. */
+    private ai.foresignal.security.EgressPolicy egressPolicy;
+
+    /** The descriptors, for the attribution fallback (prompt 117), or null in a hand-built service. */
+    private ai.foresignal.source.SourceRegistry registry;
+
     /** Creates the service. */
     public SeriesQueryService(NamedParameterJdbcTemplate jdbc, JsonMapper json) {
         this.jdbc = jdbc;
         this.json = json;
+    }
+
+    /**
+     * Installs the egress policy whose {@code isLocalOnly} gives each catalog entry its {@code egress} (prompt 117).
+     * The label is informational; whether a caller may read a source's values is still decided by
+     * {@link SeriesEgress} through {@code EgressPolicy.decide}.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setEgressPolicy(ai.foresignal.security.EgressPolicy egressPolicy) {
+        this.egressPolicy = egressPolicy;
+    }
+
+    /** Installs the registry whose descriptors supply the attribution fallback and egress label (prompt 117). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setRegistry(ai.foresignal.source.SourceRegistry registry) {
+        this.registry = registry;
     }
 
     /** A catalogue page. */
@@ -227,19 +252,58 @@ public class SeriesQueryService {
     private RowMapper<InfoRow> infoRowMapper() {
         return (rs, rowNum) -> {
             Map<String, Object> payload = parse(rs.getString("payload"));
-            SeriesInfoDto dto = new SeriesInfoDto(
-                    rs.getString("source_id"),
-                    str(payload, "series"),
-                    str(payload, "seriesName"),
-                    str(payload, "dataset"),
-                    str(payload, "unit"),
-                    str(payload, "frequency"),
-                    str(payload, "area"),
-                    str(payload, "period"),
-                    SeriesPoint.number(payload.get("value")),
-                    str(payload, "status"));
-            return new InfoRow(rs.getString("source_id"), rs.getString("external_id"), dto);
+            String sourceId = rs.getString("source_id");
+            return new InfoRow(sourceId, rs.getString("external_id"), info(sourceId, payload));
         };
+    }
+
+    /**
+     * The catalog entry of a {@code series-latest} (or {@code series-point}) payload, with the prompt 117 metadata:
+     * the payload's own {@link SeriesMeta}, else the 093 mapping table ({@link EnergySeriesMetadata}) for a record
+     * written before prompt 117; the egress in force; and the payload's attribution, else the descriptor's.
+     */
+    SeriesInfoDto info(String sourceId, Map<String, Object> payload) {
+        String series = str(payload, "series");
+        SeriesMeta meta = SeriesMeta.fromPayload(payload);
+        if (meta == null) {
+            meta = EnergySeriesMetadata.lookup(sourceId, series, str(payload, "dataset"));
+        }
+        String attribution = str(payload, "attribution");
+        if (attribution == null && registry != null && registry.contains(sourceId)) {
+            attribution = registry.descriptor(sourceId).attribution();
+        }
+        return new SeriesInfoDto(
+                sourceId,
+                series,
+                str(payload, "seriesName"),
+                str(payload, "dataset"),
+                str(payload, "unit"),
+                str(payload, "frequency"),
+                str(payload, "area"),
+                str(payload, "period"),
+                SeriesPoint.number(payload.get("value")),
+                str(payload, "status"),
+                meta == null ? null : meta.family(),
+                meta == null ? null : meta.transform(),
+                meta == null ? null : meta.releaseLagDays(),
+                egressOf(sourceId, meta),
+                meta == null ? null : meta.regionCode(),
+                meta == null ? null : meta.topicId(),
+                attribution);
+    }
+
+    /** The egress label: the policy's value in force, else the payload's, else the descriptor's, else OPEN. */
+    private String egressOf(String sourceId, SeriesMeta meta) {
+        if (egressPolicy != null) {
+            return egressPolicy.isLocalOnly(sourceId) ? Egress.LOCAL_ONLY.name() : Egress.OPEN.name();
+        }
+        if (meta != null && meta.egress() != null) {
+            return meta.egress();
+        }
+        if (registry != null && registry.contains(sourceId)) {
+            return registry.descriptor(sourceId).egress().name();
+        }
+        return Egress.OPEN.name();
     }
 
     private RowMapper<PointRow> pointRowMapper() {

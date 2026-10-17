@@ -1,0 +1,33 @@
+{
+ "query_details": {
+  "title": "\"strait of hormuz\"",
+  "date_resolution": "15m"
+ },
+ "timeline": [
+  {
+   "series": "Article Count",
+   "data": [
+    {
+     "date": "20261016T000000Z",
+     "value": 12,
+     "norm": 48000
+    },
+    {
+     "date": "20261016T001500Z",
+     "value": 9,
+     "norm": 45000
+    },
+    {
+     "date": "20261016T003000Z",
+     "value": 0,
+     "norm": 47000
+    },
+    {
+     "date": "20261016T004500Z",
+     "value": 15,
+     "norm": 50000
+    }
+   ]
+  }
+ ]
+}

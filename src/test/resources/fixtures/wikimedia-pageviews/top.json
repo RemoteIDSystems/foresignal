@@ -1,0 +1,613 @@
+{
+ "items": [
+  {
+   "project": "en.wikipedia",
+   "access": "all-access",
+   "year": "2026",
+   "month": "10",
+   "day": "14",
+   "articles": [
+    {
+     "article": "Main_Page",
+     "views": 6203737,
+     "rank": 1
+    },
+    {
+     "article": "Katie_Zacharia",
+     "views": 906890,
+     "rank": 2
+    },
+    {
+     "article": "Special:Search",
+     "views": 869579,
+     "rank": 3
+    },
+    {
+     "article": "Wikipedia:Featured_pictures",
+     "views": 569237,
+     "rank": 4
+    },
+    {
+     "article": "RJ_Mitte",
+     "views": 409408,
+     "rank": 5
+    },
+    {
+     "article": "Mathematics",
+     "views": 236760,
+     "rank": 6
+    },
+    {
+     "article": "List_of_equations",
+     "views": 232910,
+     "rank": 7
+    },
+    {
+     "article": "Kimberly_Guilfoyle",
+     "views": 230773,
+     "rank": 8
+    },
+    {
+     "article": "VisionQuest",
+     "views": 156179,
+     "rank": 9
+    },
+    {
+     "article": "Deaths_in_2026",
+     "views": 131410,
+     "rank": 10
+    },
+    {
+     "article": "Dancing_with_the_Stars_(American_TV_series)_season_35",
+     "views": 129908,
+     "rank": 11
+    },
+    {
+     "article": "Carrie_(miniseries)",
+     "views": 120021,
+     "rank": 12
+    },
+    {
+     "article": "Selma_Blair",
+     "views": 114269,
+     "rank": 13
+    },
+    {
+     "article": "Karoline_Leavitt",
+     "views": 111774,
+     "rank": 14
+    },
+    {
+     "article": "Below_(miniseries)",
+     "views": 88608,
+     "rank": 15
+    },
+    {
+     "article": "Ilhan_Omar",
+     "views": 87603,
+     "rank": 16
+    },
+    {
+     "article": "Christopher_Coke",
+     "views": 83046,
+     "rank": 17
+    },
+    {
+     "article": "Unparliamentary_language",
+     "views": 82850,
+     "rank": 18
+    },
+    {
+     "article": "Nidal_Hasan",
+     "views": 81605,
+     "rank": 19
+    },
+    {
+     "article": ".xxx",
+     "views": 79339,
+     "rank": 20
+    },
+    {
+     "article": "Narnia:_The_Magician's_Nephew",
+     "views": 78046,
+     "rank": 21
+    },
+    {
+     "article": "Limonene",
+     "views": 77859,
+     "rank": 22
+    },
+    {
+     "article": "Pope_Leo_XIV",
+     "views": 75186,
+     "rank": 23
+    },
+    {
+     "article": "Russell_Brand",
+     "views": 75152,
+     "rank": 24
+    },
+    {
+     "article": "Neatsville,_Kentucky",
+     "views": 73402,
+     "rank": 25
+    },
+    {
+     "article": "Josie_Totah",
+     "views": 67097,
+     "rank": 26
+    },
+    {
+     "article": "The_Magician's_Nephew",
+     "views": 66934,
+     "rank": 27
+    },
+    {
+     "article": "Digger_(2026_film)",
+     "views": 64341,
+     "rank": 28
+    },
+    {
+     "article": "Drishyam:_The_Conclusion",
+     "views": 64180,
+     "rank": 29
+    },
+    {
+     "article": "Lizzie_Borden",
+     "views": 64044,
+     "rank": 30
+    },
+    {
+     "article": "Christa_Pike",
+     "views": 62864,
+     "rank": 31
+    },
+    {
+     "article": "Wikipedia",
+     "views": 62517,
+     "rank": 32
+    },
+    {
+     "article": "Street_Fighter_(2026_film)",
+     "views": 61692,
+     "rank": 33
+    },
+    {
+     "article": "East_of_Eden_(2026_miniseries)",
+     "views": 61414,
+     "rank": 34
+    },
+    {
+     "article": "Portal:Current_events",
+     "views": 60944,
+     "rank": 35
+    },
+    {
+     "article": "Ansel_Adams",
+     "views": 60330,
+     "rank": 36
+    },
+    {
+     "article": "Julia_Stiles",
+     "views": 59021,
+     "rank": 37
+    },
+    {
+     "article": "East_of_Eden_(novel)",
+     "views": 58797,
+     "rank": 38
+    },
+    {
+     "article": "Anna's_Archive",
+     "views": 57875,
+     "rank": 39
+    },
+    {
+     "article": "XXX_(2002_film)",
+     "views": 57154,
+     "rank": 40
+    },
+    {
+     "article": "Mike_Tyson",
+     "views": 56342,
+     "rank": 41
+    },
+    {
+     "article": "ChatGPT",
+     "views": 56162,
+     "rank": 42
+    },
+    {
+     "article": "Shane_Gillis",
+     "views": 55988,
+     "rank": 43
+    },
+    {
+     "article": "United_States",
+     "views": 55228,
+     "rank": 44
+    },
+    {
+     "article": "Harrison_Mevis",
+     "views": 54669,
+     "rank": 45
+    },
+    {
+     "article": "List_of_S&P_500_companies",
+     "views": 53123,
+     "rank": 46
+    },
+    {
+     "article": "Animals_(2026_film)",
+     "views": 53106,
+     "rank": 47
+    },
+    {
+     "article": "White_House_Press_Secretary",
+     "views": 50457,
+     "rank": 48
+    },
+    {
+     "article": "Jeff_Bezos",
+     "views": 50274,
+     "rank": 49
+    },
+    {
+     "article": "The_Chronicles_of_Narnia",
+     "views": 49752,
+     "rank": 50
+    },
+    {
+     "article": "Slow_Horses",
+     "views": 49196,
+     "rank": 51
+    },
+    {
+     "article": "Beauty_trends_among_American_conservatives",
+     "views": 47727,
+     "rank": 52
+    },
+    {
+     "article": "James_Talarico",
+     "views": 47317,
+     "rank": 53
+    },
+    {
+     "article": "Neha_Bora",
+     "views": 46594,
+     "rank": 54
+    },
+    {
+     "article": "Luis_Moncada",
+     "views": 46582,
+     "rank": 55
+    },
+    {
+     "article": "Pepperdine_University",
+     "views": 45858,
+     "rank": 56
+    },
+    {
+     "article": "Josh_Hartnett",
+     "views": 45507,
+     "rank": 57
+    },
+    {
+     "article": "Bigg_Boss_(Hindi_TV_series)_season_20",
+     "views": 44667,
+     "rank": 58
+    },
+    {
+     "article": "Jailer_2",
+     "views": 43841,
+     "rank": 59
+    },
+    {
+     "article": "Gavin_Newsom",
+     "views": 43346,
+     "rank": 60
+    },
+    {
+     "article": "Whalefall_(film)",
+     "views": 43093,
+     "rank": 61
+    },
+    {
+     "article": "LASK",
+     "views": 42313,
+     "rank": 62
+    },
+    {
+     "article": "Clayface_(film)",
+     "views": 41932,
+     "rank": 63
+    },
+    {
+     "article": "Other_Mommy",
+     "views": 41552,
+     "rank": 64
+    },
+    {
+     "article": "File:Traffic_Sign_GR_-_KOK_2009_-_R-54.svg",
+     "views": 41313,
+     "rank": 65
+    },
+    {
+     "article": "Ted_Kaczynski",
+     "views": 40247,
+     "rank": 66
+    },
+    {
+     "article": "Donald_Trump",
+     "views": 38124,
+     "rank": 67
+    },
+    {
+     "article": "Donald_Trump_Jr.",
+     "views": 37493,
+     "rank": 68
+    },
+    {
+     "article": "Dancing_with_the_Stars_(American_TV_series)",
+     "views": 37213,
+     "rank": 69
+    },
+    {
+     "article": "YouTube",
+     "views": 37043,
+     "rank": 70
+    },
+    {
+     "article": "Keri_Russell",
+     "views": 36959,
+     "rank": 71
+    },
+    {
+     "article": "Elizabeth_Holmes",
+     "views": 36895,
+     "rank": 72
+    },
+    {
+     "article": "The_Irishman",
+     "views": 36516,
+     "rank": 73
+    },
+    {
+     "article": "XXXX_(beer)",
+     "views": 36246,
+     "rank": 74
+    },
+    {
+     "article": "Nicol\u00f2_Tresoldi",
+     "views": 35710,
+     "rank": 75
+    },
+    {
+     "article": "Joe_Buck",
+     "views": 35604,
+     "rank": 76
+    },
+    {
+     "article": "Ezra_Frech",
+     "views": 35525,
+     "rank": 77
+    },
+    {
+     "article": ".xyz",
+     "views": 35397,
+     "rank": 78
+    },
+    {
+     "article": "2026_United_States_elections",
+     "views": 35082,
+     "rank": 79
+    },
+    {
+     "article": "Lewis_Koumas",
+     "views": 34939,
+     "rank": 80
+    },
+    {
+     "article": "You_Can_See_Everything",
+     "views": 34842,
+     "rank": 81
+    },
+    {
+     "article": "Bettina_Anderson",
+     "views": 34570,
+     "rank": 82
+    },
+    {
+     "article": "Spider-Man:_Brand_New_Day",
+     "views": 34469,
+     "rank": 83
+    },
+    {
+     "article": "Abdul_El-Sayed",
+     "views": 34055,
+     "rank": 84
+    },
+    {
+     "article": "Susan_Dell",
+     "views": 34052,
+     "rank": 85
+    },
+    {
+     "article": "Florence_Pugh",
+     "views": 34030,
+     "rank": 86
+    },
+    {
+     "article": "Hatching_(heraldry)",
+     "views": 33279,
+     "rank": 87
+    },
+    {
+     "article": "Hope_(2026_film)",
+     "views": 33152,
+     "rank": 88
+    },
+    {
+     "article": "Amelia_Earhart",
+     "views": 32503,
+     "rank": 89
+    },
+    {
+     "article": "Aileen_Wuornos",
+     "views": 32078,
+     "rank": 90
+    },
+    {
+     "article": "Robin_Givens",
+     "views": 32068,
+     "rank": 91
+    },
+    {
+     "article": "Resident_Evil_(2026_film)",
+     "views": 31903,
+     "rank": 92
+    },
+    {
+     "article": "Jenna_Dewan",
+     "views": 31892,
+     "rank": 93
+    },
+    {
+     "article": "Love_of_Your_Life_(film)",
+     "views": 31810,
+     "rank": 94
+    },
+    {
+     "article": "Summer_H._Howell",
+     "views": 31694,
+     "rank": 95
+    },
+    {
+     "article": "Avatar:_Seven_Havens",
+     "views": 31363,
+     "rank": 96
+    },
+    {
+     "article": "Hailee_Steinfeld",
+     "views": 31220,
+     "rank": 97
+    },
+    {
+     "article": "Paul_McCartney",
+     "views": 31186,
+     "rank": 98
+    },
+    {
+     "article": "Tyler_Cameron",
+     "views": 31146,
+     "rank": 99
+    },
+    {
+     "article": "Carrie_(1976_film)",
+     "views": 30950,
+     "rank": 100
+    },
+    {
+     "article": "Murder_of_Tupac_Shakur",
+     "views": 30389,
+     "rank": 101
+    },
+    {
+     "article": "The_Social_Reckoning",
+     "views": 30370,
+     "rank": 102
+    },
+    {
+     "article": "Tatyana_Ali",
+     "views": 29494,
+     "rank": 103
+    },
+    {
+     "article": "Verity_(film)",
+     "views": 28436,
+     "rank": 104
+    },
+    {
+     "article": "Ruaridh_Mollica",
+     "views": 28416,
+     "rank": 105
+    },
+    {
+     "article": "Houthis",
+     "views": 28405,
+     "rank": 106
+    },
+    {
+     "article": "The_Odyssey_(2026_film)",
+     "views": 27490,
+     "rank": 107
+    },
+    {
+     "article": "Carrie_(novel)",
+     "views": 27146,
+     "rank": 108
+    },
+    {
+     "article": "Tupac_Shakur",
+     "views": 26780,
+     "rank": 109
+    },
+    {
+     "article": "Jon_Ossoff",
+     "views": 26714,
+     "rank": 110
+    },
+    {
+     "article": "Mike_Flanagan_(filmmaker)",
+     "views": 26166,
+     "rank": 111
+    },
+    {
+     "article": "Joni_Mitchell",
+     "views": 26119,
+     "rank": 112
+    },
+    {
+     "article": "Matthew_Rhys",
+     "views": 25906,
+     "rank": 113
+    },
+    {
+     "article": "2024_Cornell_University_rape_allegations",
+     "views": 25854,
+     "rank": 114
+    },
+    {
+     "article": "Primetime_(film)",
+     "views": 25523,
+     "rank": 115
+    },
+    {
+     "article": "World_War_II",
+     "views": 25257,
+     "rank": 116
+    },
+    {
+     "article": "Greta_Gerwig",
+     "views": 25113,
+     "rank": 117
+    },
+    {
+     "article": "Sex_worker",
+     "views": 24840,
+     "rank": 118
+    },
+    {
+     "article": "Artificial_intelligence",
+     "views": 24797,
+     "rank": 119
+    },
+    {
+     "article": "2009_Fort_Hood_shooting",
+     "views": 24655,
+     "rank": 120
+    }
+   ]
+  }
+ ]
+}

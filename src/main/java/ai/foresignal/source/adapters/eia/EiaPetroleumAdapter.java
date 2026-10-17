@@ -130,7 +130,10 @@ public class EiaPetroleumAdapter implements PollingAdapter {
             }
         }
         if (newest != null) {
-            out.add(newest);
+            // Prompt 117: the series metadata (spot prices are price/log-return, stocks volume/difference).
+            ai.foresignal.source.series.SeriesMeta meta =
+                    ai.foresignal.source.series.EnergySeriesMetadata.forSource(DESCRIPTOR).apply(newest);
+            out.add(meta == null ? newest : meta.applyTo(newest));
         }
     }
 

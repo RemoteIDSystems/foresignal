@@ -103,7 +103,8 @@ public class Eia930Adapter implements PollingAdapter {
             readFuel(ctx, key.strip(), respondents, start, points, incomplete);
         }
         List<NormalizedRecord> records = new ArrayList<>(points);
-        records.addAll(SeriesPoint.latestPerSeries(points));
+        records.addAll(SeriesPoint.latestPerSeries(points,
+                ai.foresignal.source.series.EnergySeriesMetadata.forSource(DESCRIPTOR)));
         ctx.log().debug("{}: {} record(s)", ID, records.size());
         if (!incomplete.isEmpty()) {
             ctx.state().degrade("window too large: " + String.join("; ", incomplete)

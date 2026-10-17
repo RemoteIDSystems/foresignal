@@ -26,7 +26,8 @@ public final class SeriesPeriods {
     /**
      * The window of {@code period} at {@code frequency}.
      *
-     * @param frequency one of {@code PT15S, PT15M, PT30M, PT1H, P1D, P1W, P1M}; the label is the period's start
+     * @param frequency one of {@code PT15S, PT15M, PT30M, PT1H, P1D, P1W, P1M}, or (prompt 117) {@code P3M} and
+     *     {@code P1Y}; the label is the period's start (a bare year {@code YYYY} is read as January 1)
      * @param period the upstream label
      * @return the start and end, or null when the label cannot be read
      * @see #weekEnding(String)
@@ -48,6 +49,8 @@ public final class SeriesPeriods {
             case "P1D" -> new Period(start, start.plus(1, ChronoUnit.DAYS));
             case "P1W" -> new Period(start, start.plus(7, ChronoUnit.DAYS));
             case "P1M" -> new Period(start, start.atOffset(ZoneOffset.UTC).plusMonths(1).toInstant());
+            case "P3M" -> new Period(start, start.atOffset(ZoneOffset.UTC).plusMonths(3).toInstant());
+            case "P1Y" -> new Period(start, start.atOffset(ZoneOffset.UTC).plusYears(1).toInstant());
             default -> null;
         };
     }
@@ -75,6 +78,9 @@ public final class SeriesPeriods {
 
     private static Instant start(String text) {
         try {
+            if (text.matches("\\d{4}")) {
+                return LocalDate.of(Integer.parseInt(text), 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant();
+            }
             if (text.matches("\\d{4}-\\d{2}")) {
                 return YearMonth.parse(text).atDay(1).atStartOfDay(ZoneOffset.UTC).toInstant();
             }

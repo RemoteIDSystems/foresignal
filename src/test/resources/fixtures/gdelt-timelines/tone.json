@@ -1,0 +1,29 @@
+{
+ "query_details": {
+  "title": "\"strait of hormuz\"",
+  "date_resolution": "15m"
+ },
+ "timeline": [
+  {
+   "series": "Average Tone",
+   "data": [
+    {
+     "date": "20261016T000000Z",
+     "value": -3.21
+    },
+    {
+     "date": "20261016T001500Z",
+     "value": -2.5
+    },
+    {
+     "date": "20261016T003000Z",
+     "value": 0
+    },
+    {
+     "date": "20261016T004500Z",
+     "value": -4.75
+    }
+   ]
+  }
+ ]
+}

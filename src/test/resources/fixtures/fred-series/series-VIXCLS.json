@@ -1,0 +1,23 @@
+{
+ "realtime_start": "2026-10-16",
+ "realtime_end": "2026-10-16",
+ "seriess": [
+  {
+   "id": "VIXCLS",
+   "realtime_start": "2026-10-16",
+   "realtime_end": "2026-10-16",
+   "title": "CBOE Volatility Index: VIX",
+   "observation_start": "1962-01-02",
+   "observation_end": "2026-10-14",
+   "frequency": "Daily, Close",
+   "frequency_short": "D",
+   "units": "Index",
+   "units_short": "Index",
+   "seasonal_adjustment": "Not Seasonally Adjusted",
+   "seasonal_adjustment_short": "NSA",
+   "last_updated": "2026-10-15 15:16:02-05",
+   "popularity": 90,
+   "notes": "Copyright, 2026, Chicago Board Options Exchange, Inc. Reprinted with permission. VIX measures market expectation of near term volatility conveyed by stock index option prices."
+  }
+ ]
+}

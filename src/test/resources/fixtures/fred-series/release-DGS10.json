@@ -1,0 +1,14 @@
+{
+ "realtime_start": "2026-10-16",
+ "realtime_end": "2026-10-16",
+ "releases": [
+  {
+   "id": 18,
+   "realtime_start": "2026-10-16",
+   "realtime_end": "2026-10-16",
+   "name": "H.15 Selected Interest Rates",
+   "press_release": true,
+   "link": "http://www.federalreserve.gov/releases/h15/"
+  }
+ ]
+}

@@ -1,0 +1,40 @@
+{
+ "items": [
+  {
+   "project": "en.wikipedia",
+   "article": "Strait_of_Hormuz",
+   "granularity": "daily",
+   "timestamp": "2026100500",
+   "access": "all-access",
+   "agent": "user",
+   "views": 2355
+  },
+  {
+   "project": "en.wikipedia",
+   "article": "Strait_of_Hormuz",
+   "granularity": "daily",
+   "timestamp": "2026100600",
+   "access": "all-access",
+   "agent": "user",
+   "views": 2055
+  },
+  {
+   "project": "en.wikipedia",
+   "article": "Strait_of_Hormuz",
+   "granularity": "daily",
+   "timestamp": "2026100700",
+   "access": "all-access",
+   "agent": "user",
+   "views": 2195
+  },
+  {
+   "project": "en.wikipedia",
+   "article": "Strait_of_Hormuz",
+   "granularity": "daily",
+   "timestamp": "2026100800",
+   "access": "all-access",
+   "agent": "user",
+   "views": 2144
+  }
+ ]
+}

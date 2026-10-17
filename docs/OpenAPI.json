@@ -497,6 +497,11 @@
         "version": "1.3.0",
         "date": "2026-10-16",
         "note": "116: listCanonicalEvents, getCanonicalEvent, getRecordEvidence, getObservability, getObservabilityTile, getManifest, replayManifest and getPromptTemplate are implemented, with the evidence SSE topic (canonical.created, canonical.merged, canonical.flagged) and the SourceDescriptor fields originator, upstreamRefFields and observability. Reconciliations (additive): manifestId (nullable) on IntelligenceEvent, AnalystRun, BacktestJob and AnomalyObservation; BacktestJob.type gains manifest-replay and BacktestJob.result may be a ReplayResult (the replay job polled with getJob); Problem lists UNKNOWN_CANONICAL_EVENT (404), UNKNOWN_MANIFEST (404) and MANIFEST_NOT_REPLAYABLE (409); getObservability pages bbox cells with an offset cursor; upstreamRefFields entries may be field@namespace and cite:field."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-16",
+        "note": "117: listAttentionTopics, getAttentionTopic, createAttentionTopic, updateAttentionTopic, deleteAttentionTopic and backfillCftcCot are implemented, with the sources cftc-cot, fred-series, wikimedia-pageviews, gdelt-timelines and worldbank-indicators. Reconciliations (additive): SeriesPage.items and SeriesPointPage.series are SeriesCatalogEntry (093's SeriesInfo plus the 117 metadata), and SeriesCatalogEntry gains attribution (nullable); SeriesInfo.frequency gains P3M (FRED quarterly) and P1Y (World Bank annual); Problem lists UNKNOWN_ATTENTION_TOPIC (404), TOPIC_INVALID (400), ATTENTION_TOPIC_EXISTS (409) and BACKFILL_RUNNING (409). AttentionTopicInput.social is accepted and not stored until 135."
       }
     ]
   },
@@ -34507,7 +34512,7 @@
         ],
         "operationId": "listSeries",
         "summary": "List time series",
-        "description": "Series catalogue built from `series-latest` records (093 energy sources and later series sources): one entry per series with its newest non-forecast point. LOCAL_ONLY sources' values are served only to callers allowed local egress.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Series catalog built from `series-latest` records (093 energy sources and later series sources): one entry per series with its newest non-forecast point. Each entry carries the series metadata of 117 (family, transform, releaseLagDays, egress, regionCode, topicId, attribution). LOCAL_ONLY sources' series are served only to callers allowed local egress (EgressPolicy on API_READ).\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "source",
@@ -53903,7 +53908,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "117",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -53950,7 +53955,7 @@
             }
           },
           "409": {
-            "description": "A topic with this id exists",
+            "description": "A topic with this id exists (ATTENTION_TOPIC_EXISTS)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -53982,7 +53987,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "117",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -54065,7 +54070,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "117",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -54156,7 +54161,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "117",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -54222,7 +54227,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "117",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -54270,7 +54275,7 @@
             }
           },
           "409": {
-            "description": "A backfill is already running, or the source is disabled",
+            "description": "A backfill is already running (BACKFILL_RUNNING), or the source is disabled (SOURCE_DISABLED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -54302,7 +54307,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "117",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -87119,6 +87124,30 @@
             "status": 409,
             "prompt": "116",
             "note": "replayManifest: no replayer exists for the manifest's component (component-removed), known before a job is queued; LLM manifests and purged inputs are reported by the job as not-replayable"
+          },
+          {
+            "code": "UNKNOWN_ATTENTION_TOPIC",
+            "status": 404,
+            "prompt": "117",
+            "note": "getAttentionTopic, updateAttentionTopic, deleteAttentionTopic: no attention topic has that id"
+          },
+          {
+            "code": "TOPIC_INVALID",
+            "status": 400,
+            "prompt": "117",
+            "note": "createAttentionTopic, updateAttentionTopic: a field failed validation (id pattern, name, the GDELT query character check, articles, keywords, region codes), the body id differs from the path id, or GDELT did not answer the test call with a timeline"
+          },
+          {
+            "code": "ATTENTION_TOPIC_EXISTS",
+            "status": 409,
+            "prompt": "117",
+            "note": "createAttentionTopic: a topic with this id exists"
+          },
+          {
+            "code": "BACKFILL_RUNNING",
+            "status": 409,
+            "prompt": "117",
+            "note": "backfillCftcCot: a backfill of cftc-cot is already queued or running (SOURCE_DISABLED when the source is disabled)"
           }
         ]
       },
@@ -114659,7 +114688,9 @@
               "PT1H",
               "P1D",
               "P1W",
-              "P1M"
+              "P1M",
+              "P3M",
+              "P1Y"
             ]
           },
           "area": {
@@ -114712,7 +114743,7 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SeriesInfo"
+              "$ref": "#/components/schemas/SeriesCatalogEntry"
             }
           },
           "nextCursor": {
@@ -114806,7 +114837,7 @@
         "description": "Points of one series in `periodStart` order, with its catalogue entry (093)",
         "properties": {
           "series": {
-            "$ref": "#/components/schemas/SeriesInfo"
+            "$ref": "#/components/schemas/SeriesCatalogEntry"
           },
           "items": {
             "type": "array",
@@ -130854,7 +130885,7 @@
                   "OPEN",
                   "LOCAL_ONLY"
                 ],
-                "description": "From the descriptor (062); LOCAL_ONLY raw values are served only to callers allowed local egress"
+                "description": "The egress in force for the source (062; the operator override where the descriptor allows one); LOCAL_ONLY raw values are served only to callers allowed local egress, so such a series is absent from the catalog for other callers"
               },
               "regionCode": {
                 "type": [
@@ -130869,6 +130900,13 @@
                   "null"
                 ],
                 "description": "Attention topic id"
+              },
+              "attribution": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The credit line the provider asks for: the FRED notice plus the series' source line for fred-series, the indicator's source organization for worldbank-indicators, else the source's attribution (117)"
               }
             },
             "required": [

@@ -298,6 +298,8 @@ public class AccessPolicy {
                 rule(HttpMethod.PUT, "/v1/sources/*/credentials", AccessRequirement.ADMIN),
                 rule(HttpMethod.DELETE, "/v1/sources/*/credentials", AccessRequirement.ADMIN),
                 rule(HttpMethod.POST, "/v1/sources/*/fetch", AccessRequirement.ADMIN),
+                // The CFTC COT history backfill (prompt 117) spends the source's budget: admin.
+                rule(HttpMethod.POST, "/v1/sources/cftc-cot/backfill", AccessRequirement.ADMIN),
                 rule(HttpMethod.POST, "/v1/sources/*/probe", AccessRequirement.ADMIN),
                 rule(HttpMethod.PUT, "/v1/sources/*", AccessRequirement.ADMIN),
                 // The provenance log exposes redacted URLs, ETags and body hashes: admin (013).
@@ -452,6 +454,13 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/exposure", AccessRequirement.READ),
                 rule(HttpMethod.POST, "/v1/packs/population/import", AccessRequirement.ADMIN),
                 rule(HttpMethod.POST, "/v1/packs", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
+
+                // ---- Attention topics (prompt 117): reads are read, changes agent ----
+                rule(HttpMethod.GET, "/v1/attention/topics", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/attention/topics/*", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/attention/topics", AccessRequirement.AGENT),
+                rule(HttpMethod.PUT, "/v1/attention/topics/*", AccessRequirement.AGENT),
+                rule(HttpMethod.DELETE, "/v1/attention/topics/*", AccessRequirement.AGENT),
 
                 // ---- Evidence identity, observability and manifests (prompt 116) ----
                 // Canonical events, the coverage layer and prompt templates are reads; manifests and their

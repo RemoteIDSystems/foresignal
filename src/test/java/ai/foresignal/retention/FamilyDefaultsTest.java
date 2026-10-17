@@ -515,6 +515,20 @@ class FamilyDefaultsTest {
             Map.entry("NwssDetectionAdapter", new Entry(
                     new ai.foresignal.source.adapters.cdc.NwssDetectionAdapter("",
                             ai.foresignal.source.spi.CountyGeometries.none()).descriptor(), "event")),
+            // Prompt 117: the market and attention series are the series class (3650 d). wikimedia-pageviews is
+            // checked as bulk-event, the class of its attention-top kind (90 d); its series kinds keep the series
+            // window (3650 d), which is longer.
+            Map.entry("CftcCotAdapter", new Entry(
+                    new ai.foresignal.source.adapters.cftc.CftcCotAdapter("").descriptor(), "series")),
+            Map.entry("FredSeriesAdapter", new Entry(
+                    new ai.foresignal.source.adapters.fred.FredSeriesAdapter("").descriptor(), "series")),
+            Map.entry("GdeltTimelineAdapter", new Entry(
+                    new ai.foresignal.source.adapters.gdelt.GdeltTimelineAdapter("").descriptor(), "series")),
+            Map.entry("WorldBankIndicatorsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.worldbank.WorldBankIndicatorsAdapter("").descriptor(), "series")),
+            Map.entry("WikimediaPageviewsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.wikimedia.WikimediaPageviewsAdapter("").descriptor(),
+                    "bulk-event")),
             Map.entry("WikiStreamAdapter", new Entry(
                     new ai.foresignal.source.adapters.wikistream.WikiStreamAdapter("").descriptor(), "bulk-event")),
             // Prompt 096: satellite scenes are high-volume event-like observations; the prompt's 90 d matches
