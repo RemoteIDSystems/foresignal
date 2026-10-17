@@ -487,6 +487,11 @@
         "version": "1.3.0",
         "date": "2026-10-16",
         "note": "114: listPolSubjects, createPolSubject, deletePolSubject, listPolPlaces, updatePolPlace, listPolStays, recomputePolSubject, listTrips, createTrip, getTrip, updateTrip, deleteTrip, checkTrip, listTripRuns, getCpa, getEta and cpaBatch are implemented, with the approach trigger condition. Reconciliations: Problem lists CPA_RANGE (400), TRIP_ROUTE_INVALID (400) and STATE_TOO_OLD (422); getEta's place target needs an agent token (places are never coordinates to read tokens; read callers pass lon,lat); the CPA horizon is at most 24h. Private pattern-of-life subjects publish on the private derived source pattern-of-life-private; the in-trip rule is tagged trip-{lower-case trip id} because rule tags allow only [a-z0-9_-]."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-16",
+        "note": "115: createExercise, listExercises, getExercise, cancelExercise, purgeExerciseAlerts, applyTuningSuggestion, dismissTuningSuggestion, undoTuning and listTuningLog are implemented, with exercise on Alert, AlertEvent, NotificationMessage, WebhookEnvelope and push payloads, includeExercise on listAlerts, streamAlerts and the events-stream alerts filter, acceptExercise on channels, and signals, signalScore, signalWeights and daily on RuleQuality. Reconciliations: Problem lists REPLAY_BEYOND_RETENTION (400), EXERCISE_RUNNING (409), EXERCISE_NOT_RUNNING (409, cancelExercise of a finished run) and SUGGESTION_STALE (409, also undoTuning after a later edit); purgeExerciseAlerts answers 409 EXERCISE_RUNNING while the run is active; getTriggerSuggestions returns TuningSuggestionRecord items (with explanation when explain=true for an authenticated caller) and TuningSuggester is 1.1.0 (ACTIVE_WINDOW, SEVERITY_UP, SEVERITY_DOWN); ExerciseStats gains alertsRaised and error; the action enums gain feedback:useful and feedback:noise; AskAction.type gains set_alert_feedback and apply_tuning_suggestion; BriefingScope gains includeAlertQuality (default false)."
       }
     ]
   },
@@ -52235,7 +52240,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "115",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -52323,7 +52328,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "115",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -52395,7 +52400,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "115",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -52445,7 +52450,7 @@
             }
           },
           "409": {
-            "description": "Run is not running",
+            "description": "The run is no longer planned or running (EXERCISE_NOT_RUNNING)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -52477,7 +52482,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "115",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -52538,11 +52543,21 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "The run is still planned or running (EXERCISE_RUNNING); cancel it first",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "115",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -52654,7 +52669,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "115",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -52755,7 +52770,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "115",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -52846,7 +52861,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "115",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -52947,7 +52962,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "115",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -87057,6 +87072,30 @@
             "status": 422,
             "prompt": "114",
             "note": "getCpa, getEta, cpaBatch: a kinematic state older than 1 h"
+          },
+          {
+            "code": "REPLAY_BEYOND_RETENTION",
+            "status": 400,
+            "prompt": "115",
+            "note": "createExercise: the window starts below an involved source's retained history; the detail names the source and its earliest replayable time"
+          },
+          {
+            "code": "EXERCISE_RUNNING",
+            "status": 409,
+            "prompt": "115",
+            "note": "createExercise: another exercise is planned or running (one at a time); purgeExerciseAlerts: the run is still active"
+          },
+          {
+            "code": "EXERCISE_NOT_RUNNING",
+            "status": 409,
+            "prompt": "115",
+            "note": "cancelExercise: the run is already DONE, CANCELLED or FAILED"
+          },
+          {
+            "code": "SUGGESTION_STALE",
+            "status": 409,
+            "prompt": "115",
+            "note": "applyTuningSuggestion: the rule changed since the suggestion was generated, or it is not OPEN; dismissTuningSuggestion: already applied or dismissed; undoTuning: the rule changed since the change, or it was undone"
           }
         ]
       },
@@ -97284,7 +97323,9 @@
               "acknowledge_alert",
               "alert_status",
               "snooze_alert",
-              "create_view"
+              "create_view",
+              "set_alert_feedback",
+              "apply_tuning_suggestion"
             ]
           },
           "description": {
@@ -97622,6 +97663,12 @@
               "type": "string"
             },
             "description": "Products for the section (default: those backing place-weather: mrms-reflectivity, mrms-mesh-60m, mrms-precip-rate, hrrr-smoke, gfs-gust, gfs-apcp); they choose the radar and MESH values and the GFS and HRRR rows (lightning, NWS alerts and the NWS forecast are always shown); unknown ids → 400"
+          },
+          "includeAlertQuality": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include the weekly alert-quality section: lowest precision (at least 10 labeled), noisiest rules by alerts per day, rules with open tuning suggestions (115)",
+            "x-foresignal-prompt": "115"
           }
         },
         "x-foresignal-extended-by": [
@@ -102992,7 +103039,9 @@
                   "enum": [
                     "ack",
                     "snooze",
-                    "mute"
+                    "mute",
+                    "feedback:useful",
+                    "feedback:noise"
                   ]
                 },
                 "title": {
@@ -103759,7 +103808,9 @@
             "enum": [
               "ack",
               "snooze",
-              "mute"
+              "mute",
+              "feedback:useful",
+              "feedback:noise"
             ]
           },
           "alertId": {
@@ -103787,7 +103838,9 @@
             "enum": [
               "ack",
               "snooze",
-              "mute"
+              "mute",
+              "feedback:useful",
+              "feedback:noise"
             ]
           },
           "label": {
@@ -104314,7 +104367,9 @@
               "enum": [
                 "ack",
                 "snooze",
-                "mute"
+                "mute",
+                "feedback:useful",
+                "feedback:noise"
               ]
             },
             "default": [
@@ -123276,6 +123331,14 @@
             },
             "description": "Daily trend rows since `since`",
             "x-foresignal-prompt": "115"
+          },
+          "signalWeights": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "The weight table of signalScore (ACK_FAST 0.5, SNOOZED -0.5, FLAP -0.5, UNOPENED -0.25); signalScore = sum(weight x count) / alerts",
+            "x-foresignal-prompt": "115"
           }
         },
         "required": [
@@ -123875,7 +123938,7 @@
       },
       "TuningSuggestionList": {
         "type": "object",
-        "description": "Tuning suggestions for one rule (TuningSuggester 1.0.0)",
+        "description": "Tuning suggestions for one rule (TuningSuggester 1.1.0, 115): persisted records with their lifecycle",
         "properties": {
           "ruleId": {
             "type": "string",
@@ -123892,7 +123955,7 @@
           "suggestions": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TuningSuggestion"
+              "$ref": "#/components/schemas/TuningSuggestionRecord"
             }
           },
           "simulationJobId": {
@@ -123905,6 +123968,13 @@
               }
             ],
             "description": "Backtest job id when simulate=true"
+          },
+          "jobId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Alias of simulationJobId (103)"
           }
         },
         "required": [
@@ -128970,6 +129040,17 @@
               "$ref": "#/components/schemas/Caveat"
             },
             "description": "e.g. PREDECESSOR_OUTSIDE_WINDOW"
+          },
+          "alertsRaised": {
+            "type": "integer",
+            "description": "Exercise alerts actually raised (a canceled run stops early); absent for a dry run"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why a FAILED run failed"
           }
         },
         "required": [
@@ -129344,6 +129425,13 @@
                   "string",
                   "null"
                 ]
+              },
+              "explanation": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Plain-language summary from the chat role when explain=true and the caller is authenticated (never edits the patch)"
               }
             },
             "required": [

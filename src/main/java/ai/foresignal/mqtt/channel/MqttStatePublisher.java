@@ -126,7 +126,8 @@ public class MqttStatePublisher implements AlertListener {
 
     @Override
     public void onAlert(AlertEvent event) {
-        if (event.suppressed() || event.alert().ruleId() == null) {
+        // Exercise alerts (prompt 115) never change the published real state.
+        if (event.suppressed() || event.alert().ruleId() == null || event.alert().exercise()) {
             return;
         }
         switch (event.type()) {

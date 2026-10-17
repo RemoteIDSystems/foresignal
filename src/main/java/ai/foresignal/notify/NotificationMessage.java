@@ -30,6 +30,8 @@ import java.util.UUID;
  * @param alertId the alert, or null
  * @param ruleId the rule, or null
  * @param briefingRunId the briefing run, or null
+ * @param exercise true for an exercise message (prompt 115): every renderer marks it through
+ *     {@link ExerciseMarking}
  */
 public record NotificationMessage(
         Long id,
@@ -49,7 +51,17 @@ public record NotificationMessage(
         Instant createdAt,
         Long alertId,
         UUID ruleId,
-        UUID briefingRunId) {
+        UUID briefingRunId,
+        boolean exercise) {
+
+    /** A message that is not an exercise (the shape before prompt 115). */
+    public NotificationMessage(Long id, String event, String subtype, String title, String shortTitle,
+            String bodyMarkdown, String severity, String url, List<Link> links, Map<String, Object> data,
+            List<String> tags, List<Attachment> attachments, Long updateOf, String origin, Instant createdAt,
+            Long alertId, UUID ruleId, UUID briefingRunId) {
+        this(id, event, subtype, title, shortTitle, bodyMarkdown, severity, url, links, data, tags, attachments,
+                updateOf, origin, createdAt, alertId, ruleId, briefingRunId, false);
+    }
 
     /** {@code event} of alert messages. */
     public static final String ALERT = "alert";
@@ -90,10 +102,16 @@ public record NotificationMessage(
         return updateOf != null;
     }
 
+    /** A copy marked (or not) as an exercise (prompt 115). */
+    public NotificationMessage withExercise(boolean value) {
+        return new NotificationMessage(id, event, subtype, title, shortTitle, bodyMarkdown, severity, url, links, data,
+                tags, attachments, updateOf, origin, createdAt, alertId, ruleId, briefingRunId, value);
+    }
+
     /** A copy with another id. */
     public NotificationMessage withId(Long newId) {
         return new NotificationMessage(newId, event, subtype, title, shortTitle, bodyMarkdown, severity, url, links,
-                data, tags, attachments, updateOf, origin, createdAt, alertId, ruleId, briefingRunId);
+                data, tags, attachments, updateOf, origin, createdAt, alertId, ruleId, briefingRunId, exercise);
     }
 
     /** A copy with another title and body (channel templates, digests). */
@@ -102,7 +120,7 @@ public record NotificationMessage(
         // the title, not what watches, mesh and push show (checkpoint 041; it was re-derived from the templated
         // title, so a Web Push shortTitle read "[critical] Quakes" instead of "Quakes").
         return new NotificationMessage(id, event, subtype, newTitle, shortTitle, newBody, severity, url, links, data,
-                tags, attachments, updateOf, origin, createdAt, alertId, ruleId, briefingRunId);
+                tags, attachments, updateOf, origin, createdAt, alertId, ruleId, briefingRunId, exercise);
     }
 
     /** A new builder. */
@@ -157,13 +175,13 @@ public record NotificationMessage(
     /** A copy carrying {@code newAttachments} (prompt 055: the delivery worker attaches the alert's map). */
     public NotificationMessage withAttachments(List<Attachment> newAttachments) {
         return new NotificationMessage(id, event, subtype, title, shortTitle, bodyMarkdown, severity, url, links, data,
-                tags, newAttachments, updateOf, origin, createdAt, alertId, ruleId, briefingRunId);
+                tags, newAttachments, updateOf, origin, createdAt, alertId, ruleId, briefingRunId, exercise);
     }
 
     /** A copy with other link buttons (still capped at three). */
     public NotificationMessage withLinks(List<Link> newLinks) {
         return new NotificationMessage(id, event, subtype, title, shortTitle, bodyMarkdown, severity, url, newLinks, data,
-                tags, attachments, updateOf, origin, createdAt, alertId, ruleId, briefingRunId);
+                tags, attachments, updateOf, origin, createdAt, alertId, ruleId, briefingRunId, exercise);
     }
 
     /** The first attachment whose bytes are loaded, or null. */
@@ -205,6 +223,7 @@ public record NotificationMessage(
         private Long alertId;
         private UUID ruleId;
         private UUID briefingRunId;
+        private boolean exercise;
 
         private Builder(String event, String subtype, String title, String severity) {
             this.event = event;
@@ -291,10 +310,16 @@ public record NotificationMessage(
             return this;
         }
 
+        /** Marks the message as an exercise (prompt 115). */
+        public Builder exercise(boolean value) {
+            this.exercise = value;
+            return this;
+        }
+
         /** The message. */
         public NotificationMessage build() {
             return new NotificationMessage(id, event, subtype, title, shortTitle, body, severity, url, links, data, tags,
-                    List.of(), updateOf, origin, createdAt, alertId, ruleId, briefingRunId);
+                    List.of(), updateOf, origin, createdAt, alertId, ruleId, briefingRunId, exercise);
         }
     }
 }

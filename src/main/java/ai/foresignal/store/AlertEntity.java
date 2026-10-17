@@ -36,7 +36,9 @@ import org.hibernate.type.SqlTypes;
             @Index(name = "alert_rule_observed_idx", columnList = "rule_id, observed_at"),
             // The alert stream's resume (rev > Last-Event-ID).
             @Index(name = "alert_rev_idx", columnList = "rev"),
-            @Index(name = "alert_fired_at_idx", columnList = "fired_at")
+            @Index(name = "alert_fired_at_idx", columnList = "fired_at"),
+            // Purging and listing one exercise run's alerts (prompt 115).
+            @Index(name = "alert_exercise_run_idx", columnList = "exercise_run_id")
         })
 public class AlertEntity {
 
@@ -177,6 +179,17 @@ public class AlertEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "region")
     private Map<String, Object> region;
+
+    /**
+     * True for an exercise replay alert (prompt 115): delivered only to opted-in or named channels and never
+     * counted in real alert state, cooldowns, rate caps or statistics.
+     */
+    @Column(name = "exercise", nullable = false, columnDefinition = "boolean default false")
+    private boolean exercise;
+
+    /** The exercise run that produced this alert (prompt 115), or null for a real alert. */
+    @Column(name = "exercise_run_id", length = 26)
+    private String exerciseRunId;
 
     protected AlertEntity() {
         // for JPA
@@ -382,5 +395,15 @@ public class AlertEntity {
     /** The verified citations of the summary, or null. */
     public List<Map<String, Object>> getSummaryCitations() {
         return summaryCitations;
+    }
+
+    /** True for an exercise replay alert (prompt 115). */
+    public boolean isExercise() {
+        return exercise;
+    }
+
+    /** The exercise run of an exercise alert, or null (prompt 115). */
+    public String getExerciseRunId() {
+        return exerciseRunId;
     }
 }

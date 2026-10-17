@@ -58,7 +58,8 @@ public class AlertsTopic implements EventTopic<AlertQuery>, AlertListener {
     static final int REPLAY_PAGE = 500;
 
     /** The PATCH block fields ({@code EventStreamAlertsFilter}). */
-    static final Set<String> JSON_FIELDS = Set.of("minSeverity", "ruleId", "source", "kind", "includeSuppressed");
+    static final Set<String> JSON_FIELDS = Set.of("minSeverity", "ruleId", "source", "kind", "includeSuppressed",
+            "includeExercise");
 
     private final AlertStore store;
     private final AlertBus bus;
@@ -110,8 +111,10 @@ public class AlertsTopic implements EventTopic<AlertQuery>, AlertListener {
         List<String> sources = params.multi("source");
         checkSources(sources);
         boolean suppressed = QueryParams.bool(params.field("includeSuppressed"), params.single("includeSuppressed"), false);
+        // Exercise replay alerts (prompt 115) are streamed only with includeExercise=true.
+        boolean exercise = QueryParams.bool(params.field("includeExercise"), params.single("includeExercise"), false);
         return new AlertQuery(rules, sources, params.multi("kind"), null, null, null, null, min, null, suppressed,
-                excludedSources(principal), principal.restriction());
+                excludedSources(principal), principal.restriction(), exercise);
     }
 
     @Override
@@ -141,8 +144,13 @@ public class AlertsTopic implements EventTopic<AlertQuery>, AlertListener {
         if (suppressed != null && !suppressed.isNull() && !suppressed.isBoolean()) {
             throw ValidationException.forField(prefix + "includeSuppressed", "must be true or false");
         }
+        JsonNode exercise = block.get("includeExercise");
+        if (exercise != null && !exercise.isNull() && !exercise.isBoolean()) {
+            throw ValidationException.forField(prefix + "includeExercise", "must be true or false");
+        }
         return new AlertQuery(rules, sources, strings(block, "kind", prefix), null, null, null, null, min, null,
-                suppressed != null && suppressed.asBoolean(false), excludedSources(principal), principal.restriction());
+                suppressed != null && suppressed.asBoolean(false), excludedSources(principal), principal.restriction(),
+                exercise != null && exercise.asBoolean(false));
     }
 
     private void checkSources(List<String> sources) {

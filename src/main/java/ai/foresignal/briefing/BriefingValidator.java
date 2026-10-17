@@ -76,7 +76,7 @@ public class BriefingValidator {
 
     /** Scope members this prompt implements. */
     static final Set<String> SCOPE_MEMBERS = Set.of("sources", "kinds", "bbox", "ruleIds", "includeHealth", "placeIds",
-            "viewId", "country", "admin1", "county", "places", "weatherProducts");
+            "viewId", "country", "admin1", "county", "places", "weatherProducts", "includeAlertQuality");
 
     /** Scope members of later prompts: accepted only when empty (none since prompt 056). */
     static final Map<String, String> LATER_SCOPE_MEMBERS = Map.of();
@@ -387,8 +387,11 @@ public class BriefingValidator {
                 errors.add(new FieldError("scope.weatherProducts", "unknown product: " + product));
             }
         }
+        // Prompt 115: the optional weekly alert-quality section, off by default.
+        boolean includeAlertQuality = bool(node, "includeAlertQuality", false, errors, "scope.");
         return new BriefingScope(dedupe(sources), dedupe(kinds), bbox, ruleIds, includeHealth, dedupe(placeIds), viewId,
-                dedupe(country), dedupe(admin1), dedupe(county), dedupe(places), dedupe(weatherProducts));
+                dedupe(country), dedupe(admin1), dedupe(county), dedupe(places), dedupe(weatherProducts),
+                includeAlertQuality);
     }
 
     private static List<String> upper(List<String> values) {

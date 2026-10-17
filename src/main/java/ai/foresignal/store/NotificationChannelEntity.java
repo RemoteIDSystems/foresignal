@@ -100,6 +100,10 @@ public class NotificationChannelEntity {
     @Column(name = "defer_while_active_seconds", nullable = false, columnDefinition = "integer default 0")
     private int deferWhileActiveSeconds;
 
+    /** Whether the channel receives exercise alerts (prompt 115); off by default. */
+    @Column(name = "accept_exercise", nullable = false, columnDefinition = "boolean default false")
+    private boolean acceptExercise;
+
     protected NotificationChannelEntity() {
         // for JPA
     }
@@ -314,5 +318,15 @@ public class NotificationChannelEntity {
     /** Sets the presence deferral. */
     public void setDeferWhileActiveSeconds(int deferWhileActiveSeconds) {
         this.deferWhileActiveSeconds = deferWhileActiveSeconds;
+    }
+
+    /** Whether the channel receives exercise alerts (prompt 115). */
+    public boolean isAcceptExercise() {
+        return acceptExercise;
+    }
+
+    /** Sets whether the channel receives exercise alerts (prompt 115). */
+    public void setAcceptExercise(boolean acceptExercise) {
+        this.acceptExercise = acceptExercise;
     }
 }

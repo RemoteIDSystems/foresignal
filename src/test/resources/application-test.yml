@@ -83,6 +83,8 @@ foresignal:
     scheduled: false
   trips:
     scheduled: false
+  quality:
+    scheduled: false
   # The enrichment worker does not subscribe on its own in tests (EnrichmentWorkerIT starts it), and
   # the LLM timeout is short so EnrichmentWorkerIT can provoke a timeout quickly.
   enrichment:

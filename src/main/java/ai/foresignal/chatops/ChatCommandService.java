@@ -302,6 +302,32 @@ public class ChatCommandService {
                 ref.messageId());
     }
 
+    /**
+     * {@code /feedback <id> <value>} (prompt 115): records {@code useful}, {@code noise}, {@code late} or
+     * {@code false_positive} on the alert, in any state.
+     */
+    public ChatOutcome feedback(ChatPrincipal principal, ChatRef ref, List<String> args) {
+        if (args.size() != 2) {
+            return usage(ChatCommand.FEEDBACK, ref);
+        }
+        Long id = alertId(args.subList(0, 1), 1);
+        String value;
+        try {
+            value = ai.foresignal.trigger.Feedback.fromWire(args.get(1).toLowerCase(java.util.Locale.ROOT)).wire();
+        } catch (IllegalArgumentException e) {
+            value = null;
+        }
+        if (id == null || value == null) {
+            return usage(ChatCommand.FEEDBACK, ref);
+        }
+        Optional<AlertView> found = visibleAlert(principal, id);
+        if (found.isEmpty()) {
+            return ChatOutcome.of(ChatOutcome.NOT_FOUND, "No alert " + id + ".", ref.messageId());
+        }
+        alerts.setFeedback(id, new AlertService.Transition(null, value));
+        return ChatOutcome.ok("Alert " + id + " marked " + value + ".", ref.messageId());
+    }
+
     /** {@code /snooze <id> <duration>}: a positive duration such as {@code 2h}, at most 7 days. */
     public ChatOutcome snooze(ChatPrincipal principal, ChatRef ref, List<String> args) {
         if (args.size() != 2) {

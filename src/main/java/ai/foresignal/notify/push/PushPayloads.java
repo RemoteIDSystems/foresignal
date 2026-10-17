@@ -125,6 +125,9 @@ public final class PushPayloads {
         }
         putIfPresent(out, "confirmUrl", m.confirmUrl());
         putIfPresent(out, "image", m.imageUrl());
+        if (m.exercise()) {
+            out.put("exercise", true);
+        }
         return out;
     }
 

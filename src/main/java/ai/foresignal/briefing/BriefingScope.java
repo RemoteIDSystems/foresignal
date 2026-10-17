@@ -28,10 +28,19 @@ import java.util.UUID;
  * @param county US county FIPS5 codes (prompt 040); empty for any
  * @param places places of the "Weather at places" section (prompt 056); empty for none
  * @param weatherProducts products of that section (prompt 056); empty for the default set
+ * @param includeAlertQuality whether the weekly alert-quality section is included (prompt 115; default false)
  */
 public record BriefingScope(List<String> sources, List<String> kinds, String bbox, List<UUID> ruleIds,
         boolean includeHealth, List<String> placeIds, String viewId, List<String> country, List<String> admin1,
-        List<String> county, List<String> places, List<String> weatherProducts) {
+        List<String> county, List<String> places, List<String> weatherProducts, boolean includeAlertQuality) {
+
+    /** A scope without the alert-quality section (the shape before prompt 115). */
+    public BriefingScope(List<String> sources, List<String> kinds, String bbox, List<UUID> ruleIds,
+            boolean includeHealth, List<String> placeIds, String viewId, List<String> country, List<String> admin1,
+            List<String> county, List<String> places, List<String> weatherProducts) {
+        this(sources, kinds, bbox, ruleIds, includeHealth, placeIds, viewId, country, admin1, county, places,
+                weatherProducts, false);
+    }
 
     /** A scope without the weather section (the shape before prompt 056). */
     public BriefingScope(List<String> sources, List<String> kinds, String bbox, List<UUID> ruleIds,
@@ -93,6 +102,7 @@ public record BriefingScope(List<String> sources, List<String> kinds, String bbo
         out.put("county", county);
         out.put("places", places);
         out.put("weatherProducts", weatherProducts);
+        out.put("includeAlertQuality", includeAlertQuality);
         return out;
     }
 
@@ -116,7 +126,7 @@ public record BriefingScope(List<String> sources, List<String> kinds, String bbo
                 bbox == null ? null : bbox.toString(), rules, !(health instanceof Boolean b) || b,
                 strings(map.get("placeIds")), view == null ? null : view.toString(), strings(map.get("country")),
                 strings(map.get("admin1")), strings(map.get("county")), strings(map.get("places")),
-                strings(map.get("weatherProducts")));
+                strings(map.get("weatherProducts")), Boolean.TRUE.equals(map.get("includeAlertQuality")));
     }
 
     private static List<String> strings(Object value) {

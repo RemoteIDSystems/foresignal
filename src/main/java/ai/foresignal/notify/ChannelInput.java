@@ -24,6 +24,7 @@ import java.util.UUID;
  * @param backlogCap the backlog cap
  * @param editInPlace the edit-in-place switch
  * @param deferWhileActiveSeconds presence deferral while a desktop is active (0–600, prompt 033)
+ * @param acceptExercise whether the channel receives exercise alerts (prompt 115)
  */
 public record ChannelInput(
         String name,
@@ -42,4 +43,16 @@ public record ChannelInput(
         int groupWindowSeconds,
         int backlogCap,
         boolean editInPlace,
-        int deferWhileActiveSeconds) {}
+        int deferWhileActiveSeconds,
+        boolean acceptExercise) {
+
+    /** An input without the exercise opt-in (the shape before prompt 115). */
+    public ChannelInput(String name, String type, Map<String, Object> config, Map<String, String> secrets,
+            List<String> events, List<UUID> ruleIds, String minSeverity, String titleTemplate, String bodyTemplate,
+            int waitForEnrichmentSeconds, boolean enabled, String timezone, QuietHours quietHours,
+            int groupWindowSeconds, int backlogCap, boolean editInPlace, int deferWhileActiveSeconds) {
+        this(name, type, config, secrets, events, ruleIds, minSeverity, titleTemplate, bodyTemplate,
+                waitForEnrichmentSeconds, enabled, timezone, quietHours, groupWindowSeconds, backlogCap, editInPlace,
+                deferWhileActiveSeconds, false);
+    }
+}

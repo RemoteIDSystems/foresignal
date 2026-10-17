@@ -99,6 +99,10 @@ public class WebhookChannel extends AbstractChannelType {
         headers.put("X-Foresignal-Event", m.event());
         headers.put("X-Foresignal-Delivery", Long.toString(s.deliveryId()));
         headers.put("X-Foresignal-Timestamp", timestamp);
+        if (m.exercise()) {
+            // Prompt 115: an exercise delivery says so in a header as well as in the payload.
+            headers.put(ai.foresignal.exercise.ExerciseMarking.WEBHOOK_HEADER, "true");
+        }
         headers.putAll(s.map("headers"));
         s.secrets().forEach((name, value) -> {
             if (name.startsWith(SECRET_HEADER_PREFIX) && name.length() > SECRET_HEADER_PREFIX.length()) {
@@ -131,6 +135,9 @@ public class WebhookChannel extends AbstractChannelType {
         out.put("message", NotificationJson.toMap(m));
         out.put("data", m.data());
         out.put(OriginMarker.JSON_FIELD, origin);
+        if (m.exercise()) {
+            out.put("exercise", true);
+        }
         if (!m.attachments().isEmpty()) {
             // Prompt 055: the map as metadata; the image itself is at the in-app URL.
             List<Map<String, Object>> list = new ArrayList<>();

@@ -202,9 +202,10 @@ public class CapService implements AlertListener {
     // ------------------------------------------------------------------------------------- content
 
     CapMessage.Status status(AlertView alert) {
-        JsonNode context = tree(alert.context());
-        return context != null && context.path("exercise").asBoolean(false) ? CapMessage.Status.Exercise
-                : CapMessage.Status.Actual;
+        // Prompt 115: the exercise column, or the 112 context flag, through the one marking helper.
+        return ai.foresignal.exercise.ExerciseMarking.CAP_EXERCISE.equals(
+                ai.foresignal.exercise.ExerciseMarking.capStatus(alert, json))
+                ? CapMessage.Status.Exercise : CapMessage.Status.Actual;
     }
 
     CapMessage.Info info(AlertView alert, boolean allClear) {

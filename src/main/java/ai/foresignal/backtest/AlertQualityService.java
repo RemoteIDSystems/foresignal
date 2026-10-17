@@ -18,6 +18,11 @@ import org.springframework.stereotype.Service;
  * Alert quality for one rule (prompt 103): maps the 017 feedback enum into positive / negative /
  * neutral classes, then reports precision with a Wilson interval, median time-to-ack and
  * time-to-resolve, flapping, duplicates and the severity distribution.
+ *
+ * <p>Prompt 115 extends the report, next to (never mixed into) the feedback precision, with the implicit
+ * signal counts ({@code signals}), their weighted {@code signalScore} ({@link ai.foresignal.quality.AlertSignalType})
+ * and the {@code daily[]} trend rows of {@code rule_quality_daily}. Exercise alerts are excluded everywhere: the
+ * {@link AlertQuery} used here never includes them.
  */
 @Service
 public class AlertQualityService {
@@ -44,6 +49,14 @@ public class AlertQualityService {
     private final AlertStore alerts;
     private final ai.foresignal.trigger.TriggerRuleService rules;
 
+    /** The implicit signals (prompt 115); absent in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.quality.AlertSignalStore signals;
+
+    /** The daily trend rows (prompt 115); absent in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.quality.RuleQualityDailyStore daily;
+
     /** Creates the service. */
     public AlertQualityService(AlertStore alerts, ai.foresignal.trigger.TriggerRuleService rules) {
         this.alerts = alerts;
@@ -51,12 +64,21 @@ public class AlertQualityService {
     }
 
     /**
-     * One labeled alert, for the threshold scan and the geofence check of {@link TuningSuggester}.
+     * One labeled alert, for the threshold scan, the geofence check and (prompt 115) the active-window and
+     * severity checks of {@link TuningSuggester}.
      *
      * @param feedbackClass {@code positive}, {@code negative} or {@code neutral}
      * @param recordSnapshot the alert's record snapshot as JSON text, or null
+     * @param feedback the feedback wire value, or null when unknown
+     * @param firedAt when the alert fired, or null when unknown
      */
-    public record Labeled(String feedbackClass, String recordSnapshot) {}
+    public record Labeled(String feedbackClass, String recordSnapshot, String feedback, Instant firedAt) {
+
+        /** A labeled alert without its feedback value and time (the shape before prompt 115). */
+        public Labeled(String feedbackClass, String recordSnapshot) {
+            this(feedbackClass, recordSnapshot, null, null);
+        }
+    }
 
     /** The alerts of a rule since {@code since} that carry feedback, with their class and snapshot. */
     public List<Labeled> labeled(UUID ruleId, Instant since) {
@@ -64,7 +86,7 @@ public class AlertQualityService {
         for (AlertView alert : alerts.feed(query(ruleId, since), MAX_ALERTS)) {
             if (alert.feedback() != null) {
                 out.add(new Labeled(FEEDBACK_CLASSES.getOrDefault(alert.feedback(), "neutral"),
-                        alert.recordSnapshot()));
+                        alert.recordSnapshot(), alert.feedback(), alert.firedAt()));
             }
         }
         return out;
@@ -162,6 +184,13 @@ public class AlertQualityService {
         out.put("duplicates", duplicates);
         out.put("duplicateWindow", duplicateWindow.toString());
         out.put("severity", severity);
+        // Prompt 115: implicit signals and the daily trend, next to the feedback precision.
+        Map<String, Long> signalCounts = signals == null ? ai.foresignal.quality.AlertSignalType.complete(Map.of())
+                : signals.counts(ruleId, since);
+        out.put("signals", signalCounts);
+        out.put("signalScore", ai.foresignal.quality.AlertSignalType.score(signalCounts, rows.size()));
+        out.put("signalWeights", ai.foresignal.quality.AlertSignalType.weights());
+        out.put("daily", daily == null ? List.of() : daily.daily(ruleId, since));
         return out;
     }
 

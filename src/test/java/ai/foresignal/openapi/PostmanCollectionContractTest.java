@@ -214,6 +214,10 @@ class PostmanCollectionContractTest {
             Map.entry("updateTrip", ai.foresignal.trip.TripService::validateInput),
             Map.entry("checkTrip", ai.foresignal.api.TripsController::parseCheck),
             Map.entry("cpaBatch", ai.foresignal.api.KinematicsController::parseBatch),
+            // 115: the production readers of the apply note and the dismissal reason.
+            Map.entry("applyTuningSuggestion", body -> ai.foresignal.api.RuleAnalysisController.bodyText(body, "note")),
+            Map.entry("dismissTuningSuggestion",
+                    body -> ai.foresignal.api.RuleAnalysisController.bodyText(body, "reason")),
             Map.entry("createStreamTicket", body -> new TicketStore(new TokenHasher(), null, Clock.fixed(NOW, ZoneOffset.UTC))
                     .mint(new AuthenticatedToken(UUID.randomUUID(), "t", Scope.READ, TokenRestrictions.NONE, null,
                             "01JA8Q3V7S2K9W4T6Y1B5N0M3C", false), body)));
@@ -433,7 +437,10 @@ class PostmanCollectionContractTest {
                 // 113: peers check the base URL against the outbound policy and the id against stored peers and
                 // sources (PeerSourceIT, FederationIngestIT); an edge batch must carry a valid signature over its
                 // exact body by a pinned key (FederationIngestIT); a bundle is CBOR (CompactMessageCodecTest).
-                "createPeer", "updatePeer", "federationIngest", "receiveFederationBundle");
+                "createPeer", "updatePeer", "federationIngest", "receiveFederationBundle",
+                // 115: an exercise resolves its rules, channels and window against the database (seq_clock,
+                // retention floors), so ExerciseIsolationIT and ReplayRunIT cover its parser.
+                "createExercise");
         List<String> uncovered = OpenApiSpec.routes().stream()
                 .filter(SpecOperation::implemented)
                 .filter(op -> op.node().has("requestBody"))

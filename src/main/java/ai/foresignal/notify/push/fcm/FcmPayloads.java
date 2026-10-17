@@ -27,7 +27,8 @@ public final class FcmPayloads {
 
     /** {@code HIGH} for warning and critical, {@code NORMAL} for info or a downgrade. */
     public static String priority(PushMessage message, PushOptions options) {
-        if (options.downgraded()) {
+        if (options.downgraded() || message.exercise()) {
+            // Prompt 115: an exercise is delivered at normal priority.
             return "NORMAL";
         }
         String severity = NativeContent.severity(message);
@@ -44,6 +45,9 @@ public final class FcmPayloads {
         }
         data.put("s", NativeContent.severity(message));
         data.put("ev", message.event());
+        if (message.exercise()) {
+            data.put("exercise", "true");
+        }
         String link = NativeContent.link(message);
         if (link != null) {
             data.put("l", link);

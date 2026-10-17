@@ -121,6 +121,7 @@ public class NotificationStore {
         e.setUpdateOf(m.updateOf());
         e.setOrigin(m.origin());
         e.setCreatedAt(m.createdAt());
+        e.setExercise(m.exercise());
         return e;
     }
 
@@ -139,6 +140,6 @@ public class NotificationStore {
         return new NotificationMessage(e.getId(), e.getEvent(), e.getSubtype(), e.getTitle(), e.getShortTitle(),
                 e.getBodyMarkdown(), e.getSeverity(), e.getUrl(), links, e.getData(),
                 e.getTags() == null ? List.of() : Arrays.asList(e.getTags()), List.of(), e.getUpdateOf(), e.getOrigin(),
-                e.getCreatedAt(), e.getAlertId(), e.getRuleId(), e.getBriefingRunId());
+                e.getCreatedAt(), e.getAlertId(), e.getRuleId(), e.getBriefingRunId(), e.isExercise());
     }
 }

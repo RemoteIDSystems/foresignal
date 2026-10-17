@@ -155,7 +155,8 @@ public class EscalationWorker implements AlertListener {
         try {
             switch (event.type()) {
                 case AlertEvent.FIRED -> {
-                    if (!event.suppressed()) {
+                    // Exercise alerts (prompt 115) never escalate.
+                    if (!event.suppressed() && !event.alert().exercise()) {
                         begin(event.alert());
                     }
                 }

@@ -40,7 +40,11 @@ import tools.jackson.databind.node.ObjectNode;
  *   <li>{@code propose_snooze}: snooze an alert (prompt 033, offered once a {@code snooze_alert}
  *       handler exists);
  *   <li>{@code propose_view}: create a saved view (prompt 036, offered once a {@code create_view}
- *       handler exists).
+ *       handler exists);
+ *   <li>{@code propose_feedback}: set an alert's quality feedback (prompt 115, offered once a
+ *       {@code set_alert_feedback} handler exists);
+ *   <li>{@code propose_tuning}: apply an open tuning suggestion, its patch shown verbatim (prompt 115, offered once
+ *       an {@code apply_tuning_suggestion} handler exists).
  * </ul>
  * These tools are never MCP tools: an MCP agent with {@code agent} scope calls the write tools
  * directly.
@@ -90,6 +94,18 @@ public class AskActionTools {
             "view", ai.foresignal.mcp.tools.CreateViewTool.VIEW_SCHEMA,
             "reason", string(REASON_NOTE, 1, 300)), "view");
 
+    private static final Map<String, Object> PROPOSE_FEEDBACK = object(props(
+            "alertId", JsonSchemas.integer("The alert id (from list_alerts).", 1, Long.MAX_VALUE, null),
+            "feedback", enumeration("How useful the alert was.", null, "useful", "noise", "late", "false_positive"),
+            "note", string("A note recorded on the alert (at most 2000 characters).", 1, AlertService.MAX_NOTE),
+            "reason", string(REASON_NOTE, 1, 300)), "alertId", "feedback");
+
+    private static final Map<String, Object> PROPOSE_TUNING = object(props(
+            "ruleId", uuid("The rule id."),
+            "suggestionId", string("The suggestion id (from get_tuning_suggestions).", 1, 64),
+            "note", string("A note recorded in the tuning log.", 1, 2_000),
+            "reason", string(REASON_NOTE, 1, 300)), "ruleId", "suggestionId");
+
     private static final String CONFIRM_NOTE = " Nothing changes now: the proposal is shown to the person, who confirms"
             + " or rejects it. Returns {actionId, status}.";
 
@@ -136,6 +152,14 @@ public class AskActionTools {
             out.add(spec("propose_view", "Proposes a saved view: a named record filter (sources, kinds, places,"
                     + " conditions) that records, map tiles and streams render." + CONFIRM_NOTE, PROPOSE_VIEW));
         }
+        if (handlers.containsKey("set_alert_feedback")) {
+            out.add(spec("propose_feedback", "Proposes recording how useful an alert was (useful, noise, late,"
+                    + " false_positive)." + CONFIRM_NOTE, PROPOSE_FEEDBACK));
+        }
+        if (handlers.containsKey("apply_tuning_suggestion")) {
+            out.add(spec("propose_tuning", "Proposes applying an open tuning suggestion of a rule; the person sees"
+                    + " the suggestion's patch verbatim before it changes anything." + CONFIRM_NOTE, PROPOSE_TUNING));
+        }
         if (handlers.containsKey("snooze_alert")) {
             out.add(spec("propose_snooze", "Proposes snoozing an alert until a time or for a while, which also stops"
                     + " its escalation." + CONFIRM_NOTE, PROPOSE_SNOOZE));
@@ -162,7 +186,9 @@ public class AskActionTools {
         Map<String, Object> schema = schema(tool);
         if (schema == null || (tool.equals("propose_briefing") && !handlers.containsKey("create_briefing"))
                 || (tool.equals("propose_snooze") && !handlers.containsKey("snooze_alert"))
-                || (tool.equals("propose_view") && !handlers.containsKey("create_view"))) {
+                || (tool.equals("propose_view") && !handlers.containsKey("create_view"))
+                || (tool.equals("propose_feedback") && !handlers.containsKey("set_alert_feedback"))
+                || (tool.equals("propose_tuning") && !handlers.containsKey("apply_tuning_suggestion"))) {
             throw new McpToolException("Unknown tool: " + tool);
         }
         JsonNode arguments = args == null || args.isNull() ? json.createObjectNode() : args;
@@ -185,6 +211,8 @@ public class AskActionTools {
             }
             case "propose_ack" -> type = "acknowledge_alert";
             case "propose_snooze" -> type = "snooze_alert";
+            case "propose_feedback" -> type = "set_alert_feedback";
+            case "propose_tuning" -> type = "apply_tuning_suggestion";
             case "propose_view" -> {
                 type = "create_view";
                 JsonNode view = payload.get("view");
@@ -213,6 +241,8 @@ public class AskActionTools {
             case "propose_alert_status" -> PROPOSE_ALERT_STATUS;
             case "propose_snooze" -> PROPOSE_SNOOZE;
             case "propose_view" -> PROPOSE_VIEW;
+            case "propose_feedback" -> PROPOSE_FEEDBACK;
+            case "propose_tuning" -> PROPOSE_TUNING;
             default -> null;
         };
     }

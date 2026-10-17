@@ -48,7 +48,7 @@ public class AlertStore {
                     + " a.resolved_by, a.resolved_seq, a.feedback, a.feedback_at, a.note, a.snoozed_until, a.suppressed,"
                     + " a.suppressed_reason, a.tags::text AS tags, a.record_snapshot::text AS record_snapshot,"
                     + " a.summary, a.enriched_at, a.summary_citations::text AS summary_citations,"
-                    + " a.sensitive, a.context::text AS context, a.region::text AS region";
+                    + " a.sensitive, a.context::text AS context, a.region::text AS region, a.exercise, a.exercise_run_id";
 
     static final String FROM = " FROM alert a LEFT JOIN trigger_rule r ON r.id = a.rule_id";
 
@@ -64,7 +64,16 @@ public class AlertStore {
             "UPDATE alert SET state = 'resolved', resolved_at = :now, resolved_by = :by, resolved_seq = :resolvedSeq,"
                     + " rev = nextval('alert_rev')"
                     + " WHERE rule_id = :rule AND source_id = :source AND external_id = :externalId"
-                    + " AND state <> 'resolved' AND seq < :before RETURNING id";
+                    + " AND state <> 'resolved' AND NOT exercise AND seq < :before RETURNING id";
+
+    static final String INSERT_EXERCISE =
+            "INSERT INTO alert (rule_id, seq, source_id, external_id, kind, fired_at, observed_at, message, severity, state,"
+                    + " suppressed, suppressed_reason, tags, record_snapshot, rev, sensitive, context, region, exercise,"
+                    + " exercise_run_id)"
+                    + " VALUES (:rule, :seq, :source, :externalId, :kind, :firedAt, :observedAt, :message, :severity, 'firing',"
+                    + " false, NULL, CAST(:tags AS jsonb), CAST(:snapshot AS jsonb), nextval('alert_rev'),"
+                    + " :sensitive, CAST(:context AS jsonb), CAST(:region AS jsonb), true, :runId)"
+                    + " RETURNING id";
 
     static final String RESOLVE_IDS =
             "UPDATE alert SET state = 'resolved', resolved_at = :now, resolved_by = :by, rev = nextval('alert_rev')"
@@ -202,7 +211,7 @@ public class AlertStore {
                        count(*) FILTER (WHERE feedback = 'noise') AS noise,
                        count(*) FILTER (WHERE feedback = 'late') AS late,
                        count(*) FILTER (WHERE feedback = 'false_positive') AS false_positive
-                  FROM alert WHERE rule_id = ANY(CAST(:ids AS uuid[])) GROUP BY rule_id""", p, rs -> {
+                  FROM alert WHERE rule_id = ANY(CAST(:ids AS uuid[])) AND NOT exercise GROUP BY rule_id""", p, rs -> {
             Map<String, Long> feedback = new LinkedHashMap<>();
             for (String name : Feedback.WIRE_VALUES) {
                 feedback.put(name, rs.getLong(name));
@@ -217,7 +226,7 @@ public class AlertStore {
     public Set<String> snoozedEntities(UUID ruleId, Instant now) {
         Set<String> keys = new HashSet<>();
         jdbc.query("SELECT source_id, external_id FROM alert WHERE rule_id = :rule AND state <> 'resolved'"
-                        + " AND snoozed_until > :now",
+                        + " AND NOT exercise AND snoozed_until > :now",
                 new MapSqlParameterSource("rule", ruleId).addValue("now", utc(now)),
                 rs -> {
                     keys.add(rs.getString(1) + '\u0000' + rs.getString(2));
@@ -227,7 +236,7 @@ public class AlertStore {
 
     /** When {@code ruleId}'s unsuppressed alerts fired since {@code since}, oldest first (storm seed). */
     public List<Instant> firedSince(UUID ruleId, Instant since) {
-        return jdbc.query("SELECT fired_at FROM alert WHERE rule_id = :rule AND NOT suppressed AND fired_at > :since"
+        return jdbc.query("SELECT fired_at FROM alert WHERE rule_id = :rule AND NOT suppressed AND NOT exercise AND fired_at > :since"
                         + " ORDER BY fired_at",
                 new MapSqlParameterSource("rule", ruleId).addValue("since", utc(since)),
                 (rs, i) -> instant(rs, "fired_at"));
@@ -239,7 +248,7 @@ public class AlertStore {
                 SELECT a.id FROM alert a
                   LEFT JOIN record_head h ON h.source_id = a.source_id AND h.external_id = a.external_id
                   LEFT JOIN record_live l ON l.source_id = a.source_id AND l.external_id = a.external_id
-                 WHERE a.rule_id = :rule AND a.state <> 'resolved'
+                 WHERE a.rule_id = :rule AND a.state <> 'resolved' AND NOT a.exercise
                    AND (h.source_id IS NULL OR (l.valid_until IS NOT NULL AND l.valid_until < :now))""",
                 new MapSqlParameterSource("rule", ruleId).addValue("now", utc(now)), Long.class);
     }
@@ -249,7 +258,7 @@ public class AlertStore {
         return jdbc.queryForList("""
                 SELECT a.id FROM alert a
                   JOIN record_live l ON l.source_id = a.source_id AND l.external_id = a.external_id
-                 WHERE a.rule_id = :rule AND a.state <> 'resolved' AND l.observed_at < :cutoff""",
+                 WHERE a.rule_id = :rule AND a.state <> 'resolved' AND NOT a.exercise AND l.observed_at < :cutoff""",
                 new MapSqlParameterSource("rule", ruleId).addValue("cutoff", utc(cutoff)), Long.class);
     }
 
@@ -341,6 +350,33 @@ public class AlertStore {
                     .addValue("context", alert.context())
                     .addValue("region", alert.region());
             Long id = jdbc.queryForObject(INSERT, p, Long.class);
+            AlertView view = find(id).orElseThrow();
+            events.add(AlertEvent.of(AlertEvent.FIRED, view));
+            return view;
+        }
+
+        /**
+         * Inserts an exercise replay alert (prompt 115) of run {@code runId} and records a {@code fired}
+         * event. It is never suppressed and touches no real alert state.
+         */
+        public AlertView insertExercise(NewAlert alert, String runId) {
+            MapSqlParameterSource p = new MapSqlParameterSource()
+                    .addValue("rule", alert.rule().id())
+                    .addValue("seq", alert.row().seq())
+                    .addValue("source", alert.row().sourceId())
+                    .addValue("externalId", alert.row().externalId())
+                    .addValue("kind", alert.row().kind())
+                    .addValue("firedAt", utc(alert.firedAt()))
+                    .addValue("observedAt", utc(alert.row().observedAt()))
+                    .addValue("message", alert.message())
+                    .addValue("severity", alert.rule().severity().wire())
+                    .addValue("tags", json.writeValueAsString(alert.rule().tags()))
+                    .addValue("snapshot", alert.snapshot())
+                    .addValue("sensitive", alert.rule().sensitive())
+                    .addValue("context", alert.context())
+                    .addValue("region", alert.region())
+                    .addValue("runId", runId);
+            Long id = jdbc.queryForObject(INSERT_EXERCISE, p, Long.class);
             AlertView view = find(id).orElseThrow();
             events.add(AlertEvent.of(AlertEvent.FIRED, view));
             return view;
@@ -441,6 +477,10 @@ public class AlertStore {
         if (!q.includeSuppressed()) {
             where.add("NOT a.suppressed");
         }
+        if (!q.includeExercise()) {
+            // Exercise replay alerts (prompt 115) are shown only when asked for.
+            where.add("NOT a.exercise");
+        }
         if (!q.excludedSources().isEmpty()) {
             where.add("NOT (a.source_id = ANY(CAST(:excluded AS text[])))");
             p.addValue("excluded", PgArrays.text(q.excludedSources().stream().sorted().toList()));
@@ -499,7 +539,9 @@ public class AlertStore {
                 rs.getString("summary_citations"),
                 rs.getBoolean("sensitive"),
                 rs.getString("context"),
-                rs.getString("region"));
+                rs.getString("region"),
+                rs.getBoolean("exercise"),
+                rs.getString("exercise_run_id"));
     }
 
     static Instant instant(ResultSet rs, String label) throws SQLException {

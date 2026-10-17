@@ -640,7 +640,7 @@ public class WindowEngine {
         Duration cooldown = rule.spec().cooldown();
         if (cooldown != null && !cooldown.isZero()) {
             List<Timestamp> last = jdbc.queryForList("SELECT max(fired_at) FROM alert WHERE rule_id = ?"
-                    + " AND source_id = ? AND external_id = ? AND NOT suppressed", Timestamp.class,
+                    + " AND source_id = ? AND external_id = ? AND NOT suppressed AND NOT exercise", Timestamp.class,
                     rule.spec().id(), SOURCE_ID, externalId);
             if (!last.isEmpty() && last.get(0) != null && now.isBefore(last.get(0).toInstant().plus(cooldown))) {
                 return "cooldown " + cooldown;
@@ -649,7 +649,7 @@ public class WindowEngine {
         Integer cap = rule.spec().maxAlertsPerHour();
         if (cap != null) {
             Integer fired = jdbc.queryForObject("SELECT count(*) FROM alert WHERE rule_id = ? AND source_id = ?"
-                    + " AND external_id = ? AND NOT suppressed AND fired_at > ?", Integer.class, rule.spec().id(),
+                    + " AND external_id = ? AND NOT suppressed AND NOT exercise AND fired_at > ?", Integer.class, rule.spec().id(),
                     SOURCE_ID, externalId, Timestamp.from(now.minus(Duration.ofHours(1))));
             if (fired != null && fired >= cap) {
                 return "maxAlertsPerHour " + cap;

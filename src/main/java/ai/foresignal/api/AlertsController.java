@@ -136,6 +136,7 @@ public class AlertsController {
             @RequestParam(required = false) String minSeverity,
             @RequestParam(required = false) String tag,
             @RequestParam(required = false) String includeSuppressed,
+            @RequestParam(required = false) String includeExercise,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) String limit,
             @RequestParam(required = false) List<String> include,
@@ -150,6 +151,8 @@ public class AlertsController {
         Severity min = minSeverity == null ? null
                 : Severity.fromWire(QueryParams.oneOf("minSeverity", minSeverity, Severity.WIRE_VALUES, null));
         boolean suppressed = QueryParams.bool("includeSuppressed", includeSuppressed, false);
+        // Exercise replay alerts (prompt 115) are hidden unless asked for.
+        boolean exercise = QueryParams.bool("includeExercise", includeExercise, false);
         int size = QueryParams.intInRange("limit", limit, 1, MAX_LIMIT, DEFAULT_LIMIT);
         ReadCaller caller = callers.resolve(request);
         Set<String> excluded = callers.excludedSources(caller);
@@ -159,7 +162,7 @@ public class AlertsController {
         ai.foresignal.security.restrict.ReadRestriction restriction = region == null ? caller.restriction()
                 : caller.restriction().withRegionFilter(region);
         AlertQuery query = new AlertQuery(rules, QueryParams.multi("source", source), QueryParams.multi("kind", kind),
-                sinceValue, ack, states, feedbacks, min, tag, suppressed, excluded, restriction);
+                sinceValue, ack, states, feedbacks, min, tag, suppressed, excluded, restriction, exercise);
         String fingerprint = CursorCodec.fingerprint(canonical(query, size));
         Cursor.Seq position = CursorCodec.decode(cursor, Cursor.Seq.class, fingerprint);
         List<AlertView> page = alerts.list(query, position == null ? null : position.q(), size + 1);
@@ -287,7 +290,7 @@ public class AlertsController {
                 q.states().stream().sorted().toList().toString(),
                 q.feedback().stream().sorted().toList().toString(),
                 String.valueOf(q.minSeverity()), String.valueOf(q.tag()), String.valueOf(q.includeSuppressed()),
-                q.excludedSources().stream().sorted().toList().toString(), q.restriction().canonical(),
+                String.valueOf(q.includeExercise()), q.excludedSources().stream().sorted().toList().toString(), q.restriction().canonical(),
                 Integer.toString(size));
     }
 

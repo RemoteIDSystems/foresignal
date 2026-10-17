@@ -105,6 +105,10 @@ foresignal:
   # Off in tests.
   trips:
     scheduled: true
+  # Alert quality (115): the nightly job (after 02:00 UTC) that records UNOPENED signals, writes rule_quality_daily
+  # and generates tuning suggestions. Off in tests.
+  quality:
+    scheduled: true
   # Root for INBOX_PATH source parameters. Every inbox read is confined to this
   # directory, re-checked per file, so a symlink cannot redirect a read out of it.
   inbox-dir: ${FORESIGNAL_INBOX_DIR:${FORESIGNAL_DATA_DIR:./data}/inbox}

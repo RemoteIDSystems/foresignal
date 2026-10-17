@@ -119,6 +119,10 @@ public class AlertItems {
             }
         }
         out.put("record", alert.sourceId() + ":" + alert.externalId());
+        if (alert.exercise()) {
+            // Exercise replay alerts (prompt 115) are marked in every MCP form.
+            out.put("exercise", true);
+        }
         String message = alert.message() == null ? "" : alert.message();
         out.put("message", message.length() > McpOutputShaper.MAX_TEXT_CHARS
                 ? message.substring(0, McpOutputShaper.MAX_TEXT_CHARS - 1) + "…" : message);

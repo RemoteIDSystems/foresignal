@@ -99,6 +99,9 @@ public class AlertMapper {
         out.put("context", alert.context() == null ? null : RawJson.of(alert.context()));
         // The record's region tags at fire time (prompt 040), with the GeoNames credit when near is set.
         out.put("region", alert.region() == null ? null : RawJson.of(alert.region()));
+        // Exercise replay alerts (prompt 115).
+        out.put("exercise", alert.exercise());
+        out.put("exerciseRunId", alert.exerciseRunId());
         if (record != null) {
             out.put("record", record);
         }
@@ -111,6 +114,7 @@ public class AlertMapper {
         out.put("type", event.type());
         out.put("alert", alert(event.alert(), null));
         out.put("suppressed", event.suppressed());
+        out.put("exercise", event.alert().exercise());
         return out;
     }
 }

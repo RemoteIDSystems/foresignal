@@ -118,14 +118,14 @@ public class OperatorGauges {
         try {
             Map<String, Double> counts = new HashMap<>();
             SEVERITIES.forEach(s -> counts.put(s, 0.0));
-            jdbc.query("SELECT severity, count(*) FROM alert WHERE state <> 'resolved' AND NOT suppressed GROUP BY severity",
+            jdbc.query("SELECT severity, count(*) FROM alert WHERE state <> 'resolved' AND NOT suppressed AND NOT exercise GROUP BY severity",
                     rs -> {
                         counts.put(rs.getString(1), (double) rs.getLong(2));
                     });
             alerts.putAll(counts);
             Map<String, Double> open = new HashMap<>();
             SEVERITIES.forEach(s -> open.put(s, 0.0));
-            jdbc.query("SELECT severity, count(*) FROM alert WHERE state = 'firing' AND NOT suppressed GROUP BY severity",
+            jdbc.query("SELECT severity, count(*) FROM alert WHERE state = 'firing' AND NOT suppressed AND NOT exercise GROUP BY severity",
                     rs -> {
                         open.put(rs.getString(1), (double) rs.getLong(2));
                     });

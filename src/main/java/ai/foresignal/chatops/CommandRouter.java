@@ -219,6 +219,7 @@ public class CommandRouter {
                 case ACK -> commands.ack(principal, ref, parsed.args());
                 case RESOLVE -> commands.resolve(principal, ref, parsed.args());
                 case SNOOZE -> commands.snooze(principal, ref, parsed.args());
+                case FEEDBACK -> commands.feedback(principal, ref, parsed.args());
                 case ASK -> commands.ask(session, principal, ref, parsed.rest());
                 case BRIEF -> briefRun ? commands.briefRun(session, principal, ref, parsed.args().subList(1, parsed.args().size()))
                         : commands.brief(principal, ref, parsed.args());

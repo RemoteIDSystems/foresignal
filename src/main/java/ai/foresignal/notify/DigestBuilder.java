@@ -67,7 +67,8 @@ public final class DigestBuilder {
         }
         return new NotificationMessage(newest.id(), NotificationMessage.ALERT, SUBTYPE, title, count + " alerts",
                 body.toString().strip(), max.wire(), newest.url(), newest.links(), data, List.of(), List.of(), null,
-                newest.origin(), newest.createdAt(), null, rule == null ? null : newest.ruleId(), null);
+                newest.origin(), newest.createdAt(), null, rule == null ? null : newest.ruleId(), null,
+                newest.exercise());
     }
 
     /** The highest severity among {@code items}. */

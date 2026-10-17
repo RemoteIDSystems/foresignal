@@ -164,7 +164,7 @@ public class ActionService {
         String base = baseUrl();
         List<NotificationAction> out = new ArrayList<>();
         for (String action : actions) {
-            if (!ActionsConfig.DEFAULT_LIST.contains(action)
+            if (!ActionsConfig.SUPPORTED.contains(action)
                     || (NotificationAction.MUTE.equals(action) && alert.ruleId() == null)) {
                 continue;
             }
@@ -254,6 +254,16 @@ public class ActionService {
         }
         AlertView alert = found.get();
         String outcome;
+        String feedback = NotificationAction.feedbackOf(row.action());
+        if (feedback != null) {
+            // Prompt 115: feedback is recorded in any state and does not supersede the other capabilities.
+            markUsed(row.id(), now, via, "executing");
+            alertService.setFeedback(alert.id(), new AlertService.Transition(null, feedback));
+            outcome = "feedback-" + feedback;
+            jdbc.update("update action_capability set result = :result where id = :id",
+                    new MapSqlParameterSource("result", outcome).addValue("id", row.id()));
+            return new Result(row.action(), row.alertId(), outcome, row.deliveryId(), row.channelId());
+        }
         if (!AlertState.FIRING.wire().equals(alert.state())) {
             outcome = "already-" + alert.state();
             markUsed(row.id(), now, via, outcome);

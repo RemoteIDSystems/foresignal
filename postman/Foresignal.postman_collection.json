@@ -3194,7 +3194,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); if (j.suggestions && j.suggestions.length) pm.collectionVariables.set('suggestionId', j.suggestions[0].id);",
+                  "}"
                 ]
               }
             }
@@ -17815,7 +17818,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                  "pm.test('status is 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('exerciseId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -17856,7 +17862,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Morning rehearsal\",\n  \"ruleIds\": [\n    \"{{ruleId}}\"\n  ],\n  \"tag\": null,\n  \"from\": \"2026-10-15T00:00:00Z\",\n  \"to\": \"2026-10-16T00:00:00Z\",\n  \"speed\": \"x60\",\n  \"channelIds\": [\n    \"{{channelId}}\"\n  ],\n  \"enrich\": false,\n  \"dryRun\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -48876,7 +48882,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('tuningLogId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -48921,7 +48930,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"note\": \"Applied after reviewing a week of feedback\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -48983,7 +48992,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"reason\": \"The night alerts are wanted\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -49014,7 +49023,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/triggers/{{ruleId}}/tuning-log/{{logId}}/undo",
+              "raw": "{{baseUrl}}/v1/triggers/{{ruleId}}/tuning-log/{{tuningLogId}}/undo",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -49023,7 +49032,7 @@
                 "triggers",
                 "{{ruleId}}",
                 "tuning-log",
-                "{{logId}}",
+                "{{tuningLogId}}",
                 "undo"
               ],
               "query": []
@@ -51378,6 +51387,18 @@
     },
     {
       "key": "tripId",
+      "value": ""
+    },
+    {
+      "key": "exerciseId",
+      "value": ""
+    },
+    {
+      "key": "suggestionId",
+      "value": ""
+    },
+    {
+      "key": "tuningLogId",
       "value": ""
     },
     {

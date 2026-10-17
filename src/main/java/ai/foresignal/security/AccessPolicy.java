@@ -422,6 +422,12 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/triggers/*.kml", AccessRequirement.READ),
 
                 // ---- Triggers: read to list, agent to change ----
+                // ---- Exercise replays (prompt 115): agent, always authenticated (they deliver to channels) ----
+                rule(null, "/v1/exercises", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
+                rule(null, "/v1/exercises/**", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
+                // Tuning (115): suggestions and the tuning log are reads; apply, dismiss and undo fall under the
+                // agent rule for /v1/triggers/** below.
+                rule(HttpMethod.GET, "/v1/triggers/*/tuning-log", AccessRequirement.READ),
                 // ---- Pattern of life, trips and kinematics (prompt 114) ----
                 // Pattern of life and trips are agent operations, reads included (private subjects need admin,
                 // which the service checks); CPA and ETA are reads.

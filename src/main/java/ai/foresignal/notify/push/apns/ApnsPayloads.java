@@ -57,7 +57,10 @@ public final class ApnsPayloads {
             aps.put("sound", "default");
         }
         aps.put("mutable-content", 1);
-        aps.put("interruption-level", interruptionLevel(message.severity(), options.downgraded(), timeSensitive));
+        // Prompt 115: an exercise is at most "active", never time-sensitive.
+        aps.put("interruption-level", message.exercise()
+                ? (options.downgraded() ? "passive" : "active")
+                : interruptionLevel(message.severity(), options.downgraded(), timeSensitive));
         aps.put("thread-id", NativeContent.threadId(message));
         aps.put("category", NativeContent.category(message));
         if (message.badge() != null) {
@@ -74,6 +77,9 @@ public final class ApnsPayloads {
         e.put("a", message.alertId());
         e.put("s", NativeContent.severity(message));
         e.put("ev", message.event());
+        if (message.exercise()) {
+            e.put("exercise", true);
+        }
         String link = NativeContent.link(message);
         if (withLink && link != null) {
             e.put("l", link);

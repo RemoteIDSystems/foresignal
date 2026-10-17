@@ -267,6 +267,10 @@ public class DeliveryWorker {
             }
         }
         NotificationMessage message = message(d, stored, channel, zone, now);
+        if (stored.exercise()) {
+            // Prompt 115: the channel's templates re-render the text, so the exercise marking is applied last.
+            message = ai.foresignal.exercise.ExerciseMarking.mark(message.withExercise(true));
+        }
         Optional<Deferral.Decision> deferral = Deferral.check(message.severity(),
                 QuietHours.fromMap(channel.getQuietHours()), zone, service.pause(), now);
         if (deferral.isPresent() && d.getEscalationStep() != null && "critical".equals(message.severity())

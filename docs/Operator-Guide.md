@@ -5626,3 +5626,91 @@ POST /v1/trips
   resolution is the source's poll or flush resolution; unknown speed, course or a stale target counts as not
   approaching. Approach conditions apply to record rules only and cannot be combined with `hysteresisMeters` or a
   moving anchor.
+
+## Exercises and replay (prompt 115)
+
+An exercise replays a past window of retained history through selected rules and delivers the matches as
+clearly marked exercise alerts, so you can rehearse the whole alert chain (rule → notification → phone → action)
+without touching real alert state.
+
+**Rehearsal checklist**
+
+1. Opt in the channels that should take part: set `acceptExercise: true` on them (`PUT /v1/channels/{id}`), or name
+   them in the run's `channelIds`. Every other channel never receives an exercise alert. Good candidates are a test
+   ntfy topic, your own phone's Web Push or native push, and a webhook pointed at the automation you want to
+   rehearse.
+2. Pick a window you remember (an evening with a known storm, a busy shipping morning) and the rules to replay
+   (`ruleIds`, or a `tag`).
+3. Project it first: `POST /v1/exercises` with `"dryRun": true` returns `stats.alertsByRule` and
+   `stats.notificationsByChannel` without delivering anything.
+4. Start it with a pace: `realtime`, `x10`, `x60` (the default) or `max`. The replay sleeps the scaled gap between
+   the versions' ingest times, never more than 60 s ÷ the factor at once.
+5. Watch `GET /v1/exercises/{id}`; stop it with `POST /v1/exercises/{id}/cancel` (it stops between matches).
+6. Afterwards remove its alerts and notifications with `DELETE /v1/exercises/{id}/alerts`. They also expire on
+   their own after `exercise.alertRetention` (7 days).
+
+One exercise runs at a time (`409 EXERCISE_RUNNING`). Start, cancel and purge are audited, and channels subscribed
+to system events get an `[EXERCISE]` start and finish notification.
+
+**How an exercise is marked**
+
+| Where | Marking |
+|---|---|
+| Every notification | title prefixed `[EXERCISE] `; body footer "This is an exercise replay of data from {from}–{to}. No action required." |
+| Webhook | header `X-Foresignal-Exercise: true`, payload field `exercise: true` |
+| Web Push, APNs, FCM | `exercise: true`; urgency `normal`, APNs `active`, FCM `NORMAL`, never time-sensitive or critical |
+| CAP output | `status` `Exercise` |
+| API, SSE and MCP | `exercise: true` and `exerciseRunId` on the alert; hidden unless `includeExercise=true` |
+
+**What an exercise never touches**: real cooldowns, `maxAlertsPerHour` counters and storm state, real alerts'
+lifecycle, escalation policies, proposed actions, federation, digests and briefings, rollups and statistics,
+glance counts, and alert-quality statistics. Enrichment runs only when the run sets `enrich: true`.
+
+**Replay limits**
+
+- The window is at most `exercise.maxWindow` (7 days) and must lie inside retained history: a window that starts
+  below any involved source's floor is refused with `400 REPLAY_BEYOND_RETENTION`, naming the source and its
+  earliest replayable time. TRACK sources keep only `retention.trackWindow` (3 days) of raw history.
+- Cooldowns, the hourly cap and active windows are simulated in run-local state, from the start of the window.
+- Enter and exit come from each version's predecessor. A version whose predecessor lies before the window and was
+  already removed by retention fires nothing; `stats.caveats` says so (`PREDECESSOR_OUTSIDE_WINDOW`).
+- Count and absence rules replay at record level (`WINDOW_APPROXIMATE`); anomaly rules are not replayed and are
+  listed in `stats.skippedRules`.
+- Replays create no records, so trip briefings and pattern-of-life analyses are not triggered by an exercise.
+
+## Tuning alert quality (prompt 115)
+
+**Giving feedback.** Every alert takes one of `useful`, `noise`, `late` or `false_positive`:
+
+- REST: `PUT /v1/alerts/{id}/feedback`;
+- notification buttons: `feedback:useful` and `feedback:noise` (Telegram and Matrix show them by default; on ntfy
+  and Web Push, which show two buttons, list them in `config.actions.list`, for example
+  `["ack", "feedback:noise"]`);
+- chat: `/feedback <alertId> <value>` (agent chats);
+- MCP: `set_alert_feedback`; Ask: the model proposes it (`propose_feedback`) and you confirm.
+
+**Implicit signals.** Without any feedback, Foresignal also records `ACK_FAST` (acknowledged within 15 minutes),
+`SNOOZED` (the alert, or its rule while the alert was open, was snoozed), `FLAP` (resolved by the inverse edge within
+10 minutes) and `UNOPENED` (its notification was not read within 24 hours; only when a device uses the inbox read
+cursors). They are never stored as feedback. `signalScore` weighs them (+0.5, −0.5, −0.5, −0.25) per alert.
+
+**Reading the quality view.** `GET /v1/triggers/{id}/quality?since=` shows feedback precision (with a Wilson
+interval once five alerts are labeled), the signal counts and `signalScore` next to it (never mixed in), and
+`daily[]`: per-day alerts, feedback counts, signals, median time to acknowledge, flaps and matches suppressed by
+the cooldown or the rate cap. A nightly job (after 02:00 UTC) writes these rows and keeps them 400 days. Exercise
+alerts never count. A briefing can include a weekly quality section with `scope.includeAlertQuality: true`.
+
+**Suggestions.** `GET /v1/triggers/{id}/suggestions` generates and stores deterministic suggestions (tuning 1.1.0):
+thresholds, cooldowns, enter mode, a smaller geofence, anomaly sensitivity, an `ACTIVE_WINDOW` when most negative
+alerts fall in hours with few positives, `SEVERITY_UP` when many labels say `late`, and `SEVERITY_DOWN` for a
+critical rule labeled mostly noise. `status=OPEN` lists the stored ones; `explain=true` adds a short plain-language
+summary from the chat provider (budgeted; needs a token). Nothing changes a rule on its own.
+
+- **Apply:** `POST /v1/triggers/{id}/suggestions/{suggestionId}/apply` with an optional `note` applies the patch as
+  an ordinary rule update (the same validation and events as `PUT /v1/triggers/{id}`) and writes a tuning log
+  entry with the rule before and after. A suggestion generated before the rule last changed is `STALE` and refused
+  with `409 SUGGESTION_STALE`; generate suggestions again.
+- **Dismiss:** `POST …/dismiss` with an optional `reason`.
+- **Undo:** `POST /v1/triggers/{id}/tuning-log/{logId}/undo` restores the earlier definition while the rule is
+  unchanged since the change (`409` otherwise). `GET /v1/triggers/{id}/tuning-log` lists the changes.
+

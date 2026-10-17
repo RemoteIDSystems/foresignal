@@ -42,6 +42,16 @@ import tools.jackson.databind.json.JsonMapper;
  *       negatives fall outside the convex hull of the positives buffered by 10% of the hull's
  *       larger extent, the patch is that buffered hull as the new geofence.
  *   <li><strong>lower-anomaly-sensitivity</strong>: an anomaly rule (prompt 100) with low precision.
+ *   <li><strong>ACTIVE_WINDOW</strong> (prompt 115): with at least {@value #MIN_WINDOW_SAMPLES} positives and
+ *       negatives with a fire time, the hours of day (UTC) are taken quietest-first (fewest positives, then most
+ *       negatives, then the earlier hour) while together they hold under {@value #WINDOW_POSITIVE_PERCENT}% of
+ *       the positives; when those hours hold at least {@value #WINDOW_NEGATIVE_PERCENT}% of the negatives, the
+ *       patch is an {@code activeWindow} (UTC, every day) covering the remaining hours.
+ *   <li><strong>SEVERITY_UP</strong> (prompt 115): {@code late} is at least {@value #LATE_PERCENT}% of at least
+ *       {@value #MIN_SEVERITY_LABELS} labels on an {@code info} or {@code warning} rule: the next severity.
+ *   <li><strong>SEVERITY_DOWN</strong> (prompt 115): {@code noise} is at least {@value #NOISE_PERCENT}% of at
+ *       least {@value #MIN_SEVERITY_LABELS} labels with no {@code useful} on a {@code critical} rule:
+ *       {@code warning}.
  * </ul>
  *
  * <p>{@code expectedEffect} is the effect on the labeled alerts for the threshold and geofence
@@ -52,7 +62,25 @@ import tools.jackson.databind.json.JsonMapper;
 public class TuningSuggester {
 
     /** The suggester version. */
-    public static final String VERSION = "1.0.0";
+    public static final String VERSION = "1.1.0";
+
+    /** The fewest positives and negatives with a fire time for an active-window suggestion (prompt 115). */
+    public static final int MIN_WINDOW_SAMPLES = 5;
+
+    /** The share of positives the quiet hours may hold, percent (prompt 115). */
+    public static final int WINDOW_POSITIVE_PERCENT = 10;
+
+    /** The share of negatives the quiet hours must hold, percent (prompt 115). */
+    public static final int WINDOW_NEGATIVE_PERCENT = 70;
+
+    /** The fewest labels for a severity suggestion (prompt 115). */
+    public static final int MIN_SEVERITY_LABELS = 10;
+
+    /** The share of {@code late} labels that suggests a higher severity, percent (prompt 115). */
+    public static final int LATE_PERCENT = 30;
+
+    /** The share of {@code noise} labels that suggests a lower severity, percent (prompt 115). */
+    public static final int NOISE_PERCENT = 50;
 
     /** The precision below which a lower anomaly sensitivity is suggested. */
     public static final double LOW_PRECISION = 0.5;
@@ -91,9 +119,17 @@ public class TuningSuggester {
      * @param anomaly true for an anomaly rule
      * @param window the anomaly rule's stored window specification, or null
      * @param labeled the labeled alerts
+     * @param severity the rule's severity wire value, or null (prompt 115)
      */
     public record Inputs(Map<String, Object> report, List<TriggerCondition> conditions, boolean hasGeofence,
-            boolean anomaly, Map<String, Object> window, List<AlertQualityService.Labeled> labeled) {}
+            boolean anomaly, Map<String, Object> window, List<AlertQualityService.Labeled> labeled, String severity) {
+
+        /** Inputs without the rule's severity (the shape before prompt 115). */
+        public Inputs(Map<String, Object> report, List<TriggerCondition> conditions, boolean hasGeofence,
+                boolean anomaly, Map<String, Object> window, List<AlertQualityService.Labeled> labeled) {
+            this(report, conditions, hasGeofence, anomaly, window, labeled, null);
+        }
+    }
 
     /** The suggestions for a rule since {@code since}. */
     public List<Map<String, Object>> forRule(UUID ruleId, Instant since) {
@@ -106,7 +142,8 @@ public class TuningSuggester {
             anomaly = false;
         }
         return suggest(new Inputs(report, rule.getConditions() == null ? List.of() : rule.getConditions(),
-                rule.getGeofence() != null, anomaly, rule.getWindowSpec(), quality.labeled(ruleId, since)), json);
+                rule.getGeofence() != null, anomaly, rule.getWindowSpec(), quality.labeled(ruleId, since),
+                rule.getSeverity()), json);
     }
 
     /** The suggestions from {@code inputs}. Deterministic: the same inputs give the same list. */
@@ -153,7 +190,157 @@ public class TuningSuggester {
                         Map.of("window", window), null));
             }
         }
+        Map<String, Object> window = activeWindow(inputs.labeled());
+        if (window != null) {
+            suggestions.add(window);
+        }
+        Map<String, Object> severity = severity(inputs.labeled(), inputs.severity());
+        if (severity != null) {
+            suggestions.add(severity);
+        }
         return suggestions;
+    }
+
+    /**
+     * The {@code ACTIVE_WINDOW} suggestion (prompt 115; see the class comment), or null.
+     *
+     * @param labeled the labeled alerts with their fire times
+     */
+    static Map<String, Object> activeWindow(List<AlertQualityService.Labeled> labeled) {
+        int[] positives = new int[24];
+        int[] negatives = new int[24];
+        int totalPositive = 0;
+        int totalNegative = 0;
+        for (AlertQualityService.Labeled alert : labeled == null ? List.<AlertQualityService.Labeled>of() : labeled) {
+            if (alert.firedAt() == null) {
+                continue;
+            }
+            int hour = alert.firedAt().atZone(java.time.ZoneOffset.UTC).getHour();
+            if ("positive".equals(alert.feedbackClass())) {
+                positives[hour]++;
+                totalPositive++;
+            } else if ("negative".equals(alert.feedbackClass())) {
+                negatives[hour]++;
+                totalNegative++;
+            }
+        }
+        if (totalPositive < MIN_WINDOW_SAMPLES || totalNegative < MIN_WINDOW_SAMPLES) {
+            return null;
+        }
+        List<Integer> order = new ArrayList<>();
+        for (int h = 0; h < 24; h++) {
+            order.add(h);
+        }
+        order.sort((a, b) -> positives[a] != positives[b] ? Integer.compare(positives[a], positives[b])
+                : negatives[a] != negatives[b] ? Integer.compare(negatives[b], negatives[a]) : Integer.compare(a, b));
+        boolean[] quiet = new boolean[24];
+        int quietPositive = 0;
+        int quietNegative = 0;
+        for (int hour : order) {
+            if ((quietPositive + positives[hour]) * 100 >= WINDOW_POSITIVE_PERCENT * totalPositive) {
+                break;
+            }
+            quiet[hour] = true;
+            quietPositive += positives[hour];
+            quietNegative += negatives[hour];
+        }
+        if (quietNegative == 0 || quietNegative * 100 < WINDOW_NEGATIVE_PERCENT * totalNegative) {
+            return null;
+        }
+        List<Map<String, Object>> windows = activeRuns(quiet);
+        if (windows.isEmpty()) {
+            return null;
+        }
+        Map<String, Object> activeWindow = new LinkedHashMap<>();
+        activeWindow.put("timezone", "UTC");
+        activeWindow.put("windows", windows);
+        Map<String, Object> effect = new LinkedHashMap<>();
+        effect.put("removedNegatives", quietNegative);
+        effect.put("negatives", totalNegative);
+        effect.put("keptPositives", totalPositive - quietPositive);
+        effect.put("positives", totalPositive);
+        effect.put("basis", "labeled alerts");
+        return suggestion("ACTIVE_WINDOW", "ACTIVE_WINDOW", quietNegative + " of " + totalNegative
+                        + " negative alerts fired in hours (UTC) that hold " + quietPositive + " of " + totalPositive
+                        + " positives; an active window over the other hours keeps the rest.",
+                Map.of("activeWindow", activeWindow), effect);
+    }
+
+    /** The maximal runs of active (non-quiet) hours as {@code activeWindow.windows}, every day, wrapping midnight. */
+    static List<Map<String, Object>> activeRuns(boolean[] quiet) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        int first = -1;
+        for (int h = 0; h < 24; h++) {
+            if (quiet[h]) {
+                first = h;
+                break;
+            }
+        }
+        if (first < 0) {
+            return out;
+        }
+        List<String> days = List.of("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN");
+        for (int step = 0; step < 24; ) {
+            int hour = (first + step) % 24;
+            if (quiet[hour]) {
+                step++;
+                continue;
+            }
+            int start = hour;
+            int length = 0;
+            while (step < 24 && !quiet[(first + step) % 24]) {
+                length++;
+                step++;
+            }
+            Map<String, Object> window = new LinkedHashMap<>();
+            window.put("days", days);
+            window.put("start", String.format(java.util.Locale.ROOT, "%02d:00", start));
+            window.put("end", String.format(java.util.Locale.ROOT, "%02d:00", (start + length) % 24));
+            out.add(window);
+        }
+        out.sort((a, b) -> String.valueOf(a.get("start")).compareTo(String.valueOf(b.get("start"))));
+        return out;
+    }
+
+    /**
+     * The {@code SEVERITY_UP} or {@code SEVERITY_DOWN} suggestion (prompt 115; see the class comment), or null.
+     *
+     * @param labeled the labeled alerts with their feedback values
+     * @param severity the rule's severity
+     */
+    static Map<String, Object> severity(List<AlertQualityService.Labeled> labeled, String severity) {
+        if (severity == null || labeled == null) {
+            return null;
+        }
+        int labels = 0;
+        int late = 0;
+        int noise = 0;
+        int useful = 0;
+        for (AlertQualityService.Labeled alert : labeled) {
+            if (alert.feedback() == null) {
+                continue;
+            }
+            labels++;
+            switch (alert.feedback()) {
+                case "late" -> late++;
+                case "noise" -> noise++;
+                case "useful" -> useful++;
+                default -> { }
+            }
+        }
+        if (labels < MIN_SEVERITY_LABELS) {
+            return null;
+        }
+        if (("info".equals(severity) || "warning".equals(severity)) && late * 100 >= LATE_PERCENT * labels) {
+            String next = "info".equals(severity) ? "warning" : "critical";
+            return suggestion("SEVERITY_UP", "SEVERITY_UP", late + " of " + labels + " labels say the alert came too"
+                    + " late; severity " + severity + " → " + next + ".", Map.of("severity", next), null);
+        }
+        if ("critical".equals(severity) && useful == 0 && noise * 100 >= NOISE_PERCENT * labels) {
+            return suggestion("SEVERITY_DOWN", "SEVERITY_DOWN", noise + " of " + labels + " labels say noise and none"
+                    + " useful; severity critical → warning.", Map.of("severity", "warning"), null);
+        }
+        return null;
     }
 
     /** A labeled alert with its parsed payload and point. */

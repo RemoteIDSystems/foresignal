@@ -186,7 +186,7 @@ class RuleSqlBuilderTest {
             RuleSqlBuilder.RuleSql s = sql(rule().when("a", ">", 1).cooldown(Duration.ofMinutes(15), CooldownScope.RECORD).build());
             assertThat(s.sql()).contains("NOT EXISTS (SELECT 1 FROM alert a WHERE a.rule_id = :rule"
                     + " AND a.source_id = v.source_id AND a.external_id = v.external_id"
-                    + " AND NOT a.suppressed AND a.observed_at > v.observed_at - make_interval(secs => CAST(:cooldown AS double precision)))");
+                    + " AND NOT a.suppressed AND NOT a.exercise AND a.observed_at > v.observed_at - make_interval(secs => CAST(:cooldown AS double precision)))");
             assertThat(s.values()).containsEntry("cooldown", 900.0).containsKey("rule");
         }
 

@@ -303,7 +303,7 @@ public final class RuleSqlBuilder {
                 ? " AND a.source_id = v.source_id AND a.external_id = v.external_id"
                 : "";
         return "NOT EXISTS (SELECT 1 FROM alert a WHERE a.rule_id = :rule" + entity
-                + " AND NOT a.suppressed AND a.observed_at > v.observed_at"
+                + " AND NOT a.suppressed AND NOT a.exercise AND a.observed_at > v.observed_at"
                 + " - make_interval(secs => CAST(:cooldown AS double precision)))";
     }
 

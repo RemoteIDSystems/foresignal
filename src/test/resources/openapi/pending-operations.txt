@@ -1,12 +1,3 @@
-createExercise 115
-listExercises 115
-getExercise 115
-cancelExercise 115
-purgeExerciseAlerts 115
-applyTuningSuggestion 115
-dismissTuningSuggestion 115
-undoTuning 115
-listTuningLog 115
 listCanonicalEvents 116
 getCanonicalEvent 116
 getRecordEvidence 116

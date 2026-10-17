@@ -25,6 +25,9 @@ public enum ChatCommand {
     RESOLVE("resolve", HttpMethod.POST, "/v1/alerts/1/resolve", List.of("id"), "Resolve: /resolve <id>"),
     /** Snoozes an alert. */
     SNOOZE("snooze", HttpMethod.POST, "/v1/alerts/1/snooze", List.of("id", "duration"), "Snooze: /snooze <id> <duration>"),
+    /** Records an alert's quality feedback (prompt 115). */
+    FEEDBACK("feedback", HttpMethod.PUT, "/v1/alerts/1/feedback", List.of("id", "value"),
+            "Feedback: /feedback <id> useful|noise|late|false_positive"),
     /** Asks a question (028). */
     ASK("ask", HttpMethod.POST, "/v1/ask", List.of("question"), "Ask a question: /ask <question>, /ask new"),
     /** The latest briefing run, or runs one ({@code /brief run}, checked separately). */

@@ -36,6 +36,8 @@ import java.util.UUID;
  * @param actions action buttons for Web Push, at most two (prompt 033); empty when none
  * @param confirmUrl the confirm page for a browser without action buttons (prompt 033), or null
  * @param imageUrl the map image URL for Web Push (Chromium only; prompt 108), or null
+ * @param exercise true for an exercise push (prompt 115): marked {@code exercise: true}, urgency forced to
+ *     {@code normal}, never a time-sensitive or critical interruption level
  */
 public record PushMessage(
         String event,
@@ -60,7 +62,17 @@ public record PushMessage(
         String category,
         List<Action> actions,
         String confirmUrl,
-        String imageUrl) {
+        String imageUrl,
+        boolean exercise) {
+
+    /** A push that is not an exercise (the shape before prompt 115). */
+    public PushMessage(String event, Long id, Long alertId, UUID ruleId, String severity, String title,
+            String shortTitle, String body, String linkApi, String linkApp, String linkWeb, List<String> tags,
+            String tag, String topic, boolean silent, long ts, UUID subscriptionId, String code, Integer badge,
+            String category, List<Action> actions, String confirmUrl, String imageUrl) {
+        this(event, id, alertId, ruleId, severity, title, shortTitle, body, linkApi, linkApp, linkWeb, tags, tag, topic,
+                silent, ts, subscriptionId, code, badge, category, actions, confirmUrl, imageUrl, false);
+    }
 
     /**
      * One Web Push action button (prompt 033, {@code PushPayload.actions}).
@@ -99,13 +111,15 @@ public record PushMessage(
     /** A copy with another badge (prompt 033: the device's unread count, set at send time). */
     public PushMessage withBadge(Integer newBadge) {
         return new PushMessage(event, id, alertId, ruleId, severity, title, shortTitle, body, linkApi, linkApp, linkWeb,
-                tags, tag, topic, silent, ts, subscriptionId, code, newBadge, category, actions, confirmUrl, imageUrl);
+                tags, tag, topic, silent, ts, subscriptionId, code, newBadge, category, actions, confirmUrl, imageUrl,
+                exercise);
     }
 
     /** A copy with another {@code silent} flag (a quiet-hours downgrade makes the payload silent, checkpoint 041). */
     public PushMessage withSilent(boolean newSilent) {
         return new PushMessage(event, id, alertId, ruleId, severity, title, shortTitle, body, linkApi, linkApp, linkWeb,
-                tags, tag, topic, newSilent, ts, subscriptionId, code, badge, category, actions, confirmUrl, imageUrl);
+                tags, tag, topic, newSilent, ts, subscriptionId, code, badge, category, actions, confirmUrl, imageUrl,
+                exercise);
     }
 
     /** A message without a badge or category (the 031 form). */
@@ -171,6 +185,9 @@ public record PushMessage(
         if (imageUrl != null) {
             out.put("imageUrl", imageUrl);
         }
+        if (exercise) {
+            out.put("exercise", true);
+        }
         return out;
     }
 
@@ -195,7 +212,8 @@ public record PushMessage(
                 text(map.get("linkApp")), text(map.get("linkWeb")), tags, text(map.get("tag")), text(map.get("topic")),
                 Boolean.TRUE.equals(map.get("silent")), number(map.get("ts")) == null ? 0 : number(map.get("ts")), null,
                 null, number(map.get("badge")) == null ? null : number(map.get("badge")).intValue(),
-                text(map.get("category")), actions, text(map.get("confirmUrl")), text(map.get("imageUrl")));
+                text(map.get("category")), actions, text(map.get("confirmUrl")), text(map.get("imageUrl")),
+                Boolean.TRUE.equals(map.get("exercise")));
     }
 
     private static Long number(Object value) {

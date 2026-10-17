@@ -133,6 +133,8 @@ public class SqlDigestStatsProvider implements DigestStatsProvider {
         where.add("a.id > " + p.bigint(sinceAlertId));
         where.add("a.id <= " + p.bigint(untilAlertId));
         where.add("NOT a.suppressed");
+        // Exercise alerts (prompt 115) are left out of digests and briefings.
+        where.add("NOT a.exercise");
         if (!filter.ruleIds().isEmpty()) {
             where.add("a.rule_id = ANY(CAST(" + p.add(uuidArray(filter.ruleIds())) + " AS uuid[]))");
         }

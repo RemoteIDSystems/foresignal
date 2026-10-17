@@ -85,7 +85,8 @@ public class CompactOutboxService implements AlertListener, IntelListener, Inges
     @Override
     public void onAlert(AlertEvent event) {
         try {
-            if (event.suppressed() || !alertMayLeave(event.alert().sourceId())) {
+            // Exercise alerts (prompt 115) are never federated.
+            if (event.suppressed() || event.alert().exercise() || !alertMayLeave(event.alert().sourceId())) {
                 return;
             }
             MeshCborMessage message = CompactMessages.alert(event, identity.shortId(), identity.instanceId());

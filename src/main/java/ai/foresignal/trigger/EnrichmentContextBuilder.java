@@ -348,7 +348,7 @@ public class EnrichmentContextBuilder {
         p.addValue("alertId", anchor.alert().id());
         String excluded = excludedClause("a.source_id", anchor, p);
         String geom = "ST_SetSRID(ST_GeomFromGeoJSON((a.record_snapshot -> 'geometry')::text), 4326)";
-        List<Long> ids = jdbc.queryForList("SELECT a.id FROM alert a WHERE a.id <> :alertId AND NOT a.suppressed"
+        List<Long> ids = jdbc.queryForList("SELECT a.id FROM alert a WHERE a.id <> :alertId AND NOT a.suppressed AND NOT a.exercise"
                 + " AND a.fired_at >= :from AND a.observed_at BETWEEN :from AND :to"
                 + " AND jsonb_typeof(a.record_snapshot -> 'geometry') = 'object'"
                 + " AND ST_DWithin(" + geom + "::geography, " + ANCHOR + "::geography, :radius)" + excluded

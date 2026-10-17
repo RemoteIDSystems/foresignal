@@ -346,6 +346,7 @@ public class ChannelService {
         e.setBacklogCap(input.backlogCap());
         e.setEditInPlace(input.editInPlace());
         e.setDeferWhileActiveSeconds(input.deferWhileActiveSeconds());
+        e.setAcceptExercise(input.acceptExercise());
         e.setUpdatedAt(now);
     }
 

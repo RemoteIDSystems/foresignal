@@ -188,6 +188,8 @@ public class RawTimelineBackend implements TimelineBackend {
         List<String> where = new ArrayList<>();
         where.add("a.fired_at >= " + p.instant(q.from()) + " AND a.fired_at < " + p.instant(q.to()));
         where.add("a.source_id = ANY(" + p.textArray(q.sources()) + ")");
+        // Exercise alerts (prompt 115) are not part of the timeline.
+        where.add("NOT a.exercise");
         if (!q.kinds().isEmpty()) {
             where.add("a.kind = ANY(" + p.textArray(q.kinds()) + ")");
         }

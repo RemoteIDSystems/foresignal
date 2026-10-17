@@ -417,7 +417,7 @@ public class PrecursorTestService {
                             + " ST_X(ST_Centroid(ST_GeomFromGeoJSON((record_snapshot -> 'geometry')::text))) END AS lon,"
                             + " CASE WHEN jsonb_typeof(record_snapshot -> 'geometry') = 'object' THEN"
                             + " ST_Y(ST_Centroid(ST_GeomFromGeoJSON((record_snapshot -> 'geometry')::text))) END AS lat"
-                            + " FROM alert WHERE rule_id = ? AND fired_at >= ? AND fired_at <= ? AND suppressed = false"
+                            + " FROM alert WHERE rule_id = ? AND fired_at >= ? AND fired_at <= ? AND suppressed = false AND NOT exercise"
                             + " ORDER BY fired_at, id LIMIT " + MAX_OCCURRENCES,
                     (rs, n) -> alertOccurrence(rs), ruleId, start, end));
         }

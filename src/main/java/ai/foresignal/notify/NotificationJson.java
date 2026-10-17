@@ -48,6 +48,8 @@ public final class NotificationJson {
         out.put("updateOf", m.updateOf());
         out.put("origin", m.origin());
         out.put("createdAt", m.createdAt() == null ? null : m.createdAt().toString());
+        // Exercise messages (prompt 115) say so in every serialized form.
+        out.put("exercise", m.exercise());
         return out;
     }
 }

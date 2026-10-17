@@ -310,7 +310,8 @@ public class TelegramConnector extends AbstractChatConnector {
         List<Map<String, String>> out = new ArrayList<>();
         for (ChatCommand command : ChatCommand.values()) {
             boolean agentOnly = command == ChatCommand.ACK || command == ChatCommand.RESOLVE
-                    || command == ChatCommand.SNOOZE || command == ChatCommand.CONFIRM || command == ChatCommand.REJECT;
+                    || command == ChatCommand.SNOOZE || command == ChatCommand.CONFIRM || command == ChatCommand.REJECT
+                    || command == ChatCommand.FEEDBACK;
             if (agentOnly && scope != Scope.AGENT) {
                 continue;
             }

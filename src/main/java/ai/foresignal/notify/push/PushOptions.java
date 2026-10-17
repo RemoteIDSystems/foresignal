@@ -64,7 +64,9 @@ public record PushOptions(Duration ttl, Urgency urgency, String topic, boolean s
         if ("verify".equals(message.event())) {
             return new PushOptions(VERIFY_TTL, Urgency.HIGH, null, false);
         }
-        Urgency urgency = downgraded ? Urgency.VERY_LOW : Urgency.of(message.severity());
+        // Prompt 115: an exercise push is never more urgent than normal, whatever the rule's severity.
+        Urgency urgency = downgraded ? Urgency.VERY_LOW
+                : message.exercise() ? Urgency.NORMAL : Urgency.of(message.severity());
         return new PushOptions(ttlOf(message.event()), urgency, message.topic(), downgraded || message.silent(),
                 downgraded, null);
     }

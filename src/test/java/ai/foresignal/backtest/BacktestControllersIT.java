@@ -172,9 +172,11 @@ class BacktestControllersIT {
     void analysisEndpoints() {
         UUID ruleId = seededRule("r2");
         assertThat(analysis.getTriggerQuality(ruleId.toString(), null)).containsKeys("alerts", "duplicateWindow");
-        assertThat(analysis.getTriggerSuggestions(ruleId.toString(), null, null, new MockHttpServletRequest()))
+        assertThat(analysis.getTriggerSuggestions(ruleId.toString(), null, null, null, null,
+                new MockHttpServletRequest()))
                 .containsKey("suggestions").doesNotContainKey("jobId");
-        assertThat(analysis.getTriggerSuggestions(ruleId.toString(), null, "true", request(token(Scope.AGENT))))
+        assertThat(analysis.getTriggerSuggestions(ruleId.toString(), null, "true", null, null,
+                request(token(Scope.AGENT))))
                 .containsKey("jobId");
     }
 

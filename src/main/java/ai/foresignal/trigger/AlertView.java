@@ -42,6 +42,8 @@ import java.util.UUID;
  * @param context the computed alert context ({@code AlertContext}) as JSON text, or null (prompt 036:
  *     {@code near}, {@code anchor})
  * @param region the record's {@code RegionTags} at fire time as JSON text, or null (prompt 040)
+ * @param exercise true for an exercise replay alert (prompt 115)
+ * @param exerciseRunId the exercise run of an exercise alert, or null (prompt 115)
  */
 public record AlertView(
         long id,
@@ -75,7 +77,22 @@ public record AlertView(
         String summaryCitations,
         boolean sensitive,
         String context,
-        String region) {
+        String region,
+        boolean exercise,
+        String exerciseRunId) {
+
+    /** A real (non-exercise) alert: the shape before prompt 115. */
+    public AlertView(long id, UUID ruleId, String ruleName, long seq, String sourceId, String externalId, String kind,
+            Instant firedAt, Instant observedAt, String message, String severity, String state, long rev,
+            Instant acknowledgedAt, String acknowledgedBy, Instant resolvedAt, String resolvedBy, Long resolvedSeq,
+            String feedback, Instant feedbackAt, String note, Instant snoozedUntil, boolean suppressed,
+            String suppressedReason, List<String> tags, String recordSnapshot, String summary, Instant enrichedAt,
+            String summaryCitations, boolean sensitive, String context, String region) {
+        this(id, ruleId, ruleName, seq, sourceId, externalId, kind, firedAt, observedAt, message, severity, state, rev,
+                acknowledgedAt, acknowledgedBy, resolvedAt, resolvedBy, resolvedSeq, feedback, feedbackAt, note,
+                snoozedUntil, suppressed, suppressedReason, tags, recordSnapshot, summary, enrichedAt, summaryCitations,
+                sensitive, context, region, false, null);
+    }
 
     /** An alert without region tags (the shape before prompt 040). */
     public AlertView(long id, UUID ruleId, String ruleName, long seq, String sourceId, String externalId, String kind,

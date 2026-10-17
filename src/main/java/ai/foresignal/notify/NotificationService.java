@@ -202,7 +202,8 @@ public class NotificationService {
             out = new NotificationMessage(m.id(), m.event(), m.subtype(), m.title(), m.shortTitle(), m.bodyMarkdown(),
                     m.severity(), m.url(), m.links(), m.data(), m.tags(), m.attachments(), m.updateOf(),
                     m.origin() == null ? installId.installId() : m.origin(),
-                    m.createdAt() == null ? now : m.createdAt(), m.alertId(), m.ruleId(), m.briefingRunId());
+                    m.createdAt() == null ? now : m.createdAt(), m.alertId(), m.ruleId(), m.briefingRunId(),
+                    m.exercise());
         }
         return out;
     }

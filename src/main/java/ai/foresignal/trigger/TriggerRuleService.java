@@ -191,6 +191,7 @@ public class TriggerRuleService {
         rule.setSnoozedUntil(until);
         TriggerRuleEntity saved = repository.saveAndFlush(rule);
         changed(id);
+        events.publishEvent(new TriggerRuleSnoozedEvent(id, until, clock.instant()));
         return view(saved);
     }
 

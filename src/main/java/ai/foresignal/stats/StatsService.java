@@ -517,6 +517,8 @@ public class StatsService {
         List<String> where = new ArrayList<>();
         where.add("a.fired_at >= " + p.instant(from) + " AND a.fired_at < " + p.instant(to));
         where.add("NOT a.suppressed");
+        // Exercise alerts (prompt 115) never count in rollups or statistics.
+        where.add("NOT a.exercise");
         where.add("a.source_id = ANY(" + p.textArray(q.sources()) + ")");
         if (!q.kinds().isEmpty()) {
             where.add("a.kind = ANY(" + p.textArray(q.kinds()) + ")");

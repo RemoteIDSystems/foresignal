@@ -150,7 +150,19 @@ public class NotificationRouter implements AlertListener {
                 .tags(alert.tags())
                 .alertId(alert.id())
                 .ruleId(alert.ruleId())
+                .exercise(alert.exercise())
                 .build();
+        if (alert.exercise()) {
+            // Prompt 115: an exercise alert is marked and routed only to channels that opted in or were named in
+            // its run; the rule's mute (real routing state) does not apply to a rehearsal.
+            java.util.List<String> named = ai.foresignal.exercise.ExerciseMarking.namedChannels(alert, json);
+            NotificationMessage persisted = service.publish(ai.foresignal.exercise.ExerciseMarking.mark(message),
+                    c -> ai.foresignal.exercise.ExerciseMarking.routes(c, named));
+            if (alertMaps != null) {
+                alertMaps.prepare(alert, persisted);
+            }
+            return persisted;
+        }
         // A muted rule's alerts are recorded and kept in the inbox, but not routed (prompt 033).
         boolean muted = alert.ruleId() != null
                 && rules.findById(alert.ruleId()).map(r -> r.mutedAt(clock.instant())).orElse(false);
@@ -222,8 +234,9 @@ public class NotificationRouter implements AlertListener {
                 .alertId(alert.id())
                 .ruleId(alert.ruleId())
                 .updateOf(original.map(NotificationMessage::id).orElse(null))
+                .exercise(alert.exercise())
                 .build();
-        return service.publishUpdate(message);
+        return service.publishUpdate(ai.foresignal.exercise.ExerciseMarking.mark(message));
     }
 
     /** {@code system.source_failing} when a source turns failing. */
@@ -381,6 +394,13 @@ public class NotificationRouter implements AlertListener {
             }
         }
         data.put("context", context);
+        if (a.exercise()) {
+            // Prompt 115: the replayed window for the exercise footer; enrichment only when the run allows it.
+            data.put(ai.foresignal.exercise.ExerciseMarking.DATA_MEMBER,
+                    ai.foresignal.exercise.ExerciseMarking.dataMember(a, json));
+            data.put("enrich", Boolean.TRUE.equals(data.get("enrich"))
+                    && ai.foresignal.exercise.ExerciseMarking.enrichAllowed(a, json));
+        }
         return data;
     }
 

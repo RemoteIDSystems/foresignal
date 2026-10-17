@@ -340,10 +340,10 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
             Object since = AlertStore.utc(row.observedAt().minus(rule.cooldown()));
             Boolean recent = rule.cooldownScope() == CooldownScope.RECORD
                     ? jdbc.queryForObject("SELECT EXISTS (SELECT 1 FROM alert WHERE rule_id = ? AND source_id = ?"
-                            + " AND external_id = ? AND NOT suppressed AND observed_at > ?)", Boolean.class,
+                            + " AND external_id = ? AND NOT suppressed AND NOT exercise AND observed_at > ?)", Boolean.class,
                             rule.id(), row.sourceId(), row.externalId(), since)
                     : jdbc.queryForObject("SELECT EXISTS (SELECT 1 FROM alert WHERE rule_id = ? AND NOT suppressed"
-                            + " AND observed_at > ?)", Boolean.class, rule.id(), since);
+                            + " AND NOT exercise AND observed_at > ?)", Boolean.class, rule.id(), since);
             if (!Boolean.TRUE.equals(recent)) {
                 out.add(row);
             }
@@ -492,7 +492,7 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
         reads.read(t -> {
             t.query("""
                     SELECT DISTINCT ON (source_id, external_id) source_id, external_id, state FROM alert
-                     WHERE rule_id = :rule AND NOT suppressed AND external_id = ANY(CAST(:ids AS text[]))
+                     WHERE rule_id = :rule AND NOT suppressed AND NOT exercise AND external_id = ANY(CAST(:ids AS text[]))
                      ORDER BY source_id, external_id, id DESC""",
                     new MapSqlParameterSource("rule", rule.id())
                             .addValue("ids", ai.foresignal.store.query.PgArrays.text(new ArrayList<>(externalIds))),
@@ -565,6 +565,13 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
                         resolve.row().externalId(), resolve.row().seq(), resolve.row().resolvedBy(), resolve.row().seq(), now);
             }
         }
+        if (result.cooldownSuppressed() > 0 || result.stormSuppressed() > 0) {
+            // Prompt 115: the daily alert-quality trend counts the matches the cooldown and the rate cap dropped.
+            UUID ruleId = rule.id();
+            int byCooldown = result.cooldownSuppressed();
+            int byRateCap = result.stormSuppressed();
+            writer.afterCommit(() -> countSuppressed(ruleId, byCooldown, byRateCap, now));
+        }
         if (result.stormSuppressed() == 0) {
             return false;
         }
@@ -583,6 +590,17 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
             log.warn("Trigger rule {} ('{}') hit its storm cap and was disabled", rule.id(), rule.name());
         }
         return result.disable();
+    }
+
+    /** Adds suppressed matches to the rule's {@code rule_quality_daily} row of today (UTC); never fails a pass. */
+    private void countSuppressed(UUID ruleId, int byCooldown, int byRateCap, Instant now) {
+        try {
+            jdbc.update(ai.foresignal.quality.RuleQualityDailyStore.COUNT_SUPPRESSED, ruleId,
+                    java.sql.Date.valueOf(now.atZone(java.time.ZoneOffset.UTC).toLocalDate()), byCooldown, byRateCap,
+                    java.sql.Timestamp.from(now));
+        } catch (RuntimeException e) {
+            log.debug("Could not count suppressed matches of rule {}: {}", ruleId, e.toString());
+        }
     }
 
     private int defaultCap() {

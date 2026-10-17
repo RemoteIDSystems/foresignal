@@ -89,6 +89,10 @@ public class NotificationEntity {
     @Column(name = "origin", length = 64)
     private String origin;
 
+    /** True for an exercise notification (prompt 115): title prefix and footer added at send time. */
+    @Column(name = "exercise", nullable = false, columnDefinition = "boolean default false")
+    private boolean exercise;
+
     @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -261,5 +265,15 @@ public class NotificationEntity {
     /** Sets when created. */
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    /** True for an exercise notification (prompt 115). */
+    public boolean isExercise() {
+        return exercise;
+    }
+
+    /** Marks the notification as an exercise (prompt 115). */
+    public void setExercise(boolean exercise) {
+        this.exercise = exercise;
     }
 }

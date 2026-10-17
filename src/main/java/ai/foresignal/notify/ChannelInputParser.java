@@ -225,6 +225,7 @@ public class ChannelInputParser {
         int cap = integer(body, "backlogCap", 20, 1, MAX_BACKLOG_CAP, errors);
         boolean edit = bool(body, "editInPlace", true, errors);
         int deferWhileActive = integer(body, "deferWhileActiveSeconds", 0, 0, 600, errors);
+        boolean acceptExercise = bool(body, "acceptExercise", false, errors);
         actionsConfig(config, errors, typeId);
         if (!errors.isEmpty()) {
             if (urlRefused) {
@@ -237,7 +238,7 @@ public class ChannelInputParser {
             throw new ValidationException("The channel is not valid.", errors);
         }
         return new ChannelInput(name.strip(), typeId, config, secrets, events, ruleIds, minSeverity, titleTemplate,
-                bodyTemplate, wait, enabled, timezone, quietHours, group, cap, edit, deferWhileActive);
+                bodyTemplate, wait, enabled, timezone, quietHours, group, cap, edit, deferWhileActive, acceptExercise);
     }
 
     /**

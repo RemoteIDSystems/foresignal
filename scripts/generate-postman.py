@@ -27,7 +27,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              # 113: federation peers.
              "peerId": "peerId",
              # 114: pattern-of-life subjects and trips.
-             "subjectId": "polSubjectId", "tripId": "tripId"}
+             "subjectId": "polSubjectId", "tripId": "tripId",
+             # 115: exercise runs, tuning suggestions and tuning log entries.
+             "exerciseId": "exerciseId", "suggestionId": "suggestionId", "logId": "tuningLogId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -433,6 +435,15 @@ BODIES = {
                               "timezone": "America/Chicago"},
                  "expectedDuration": "45m", "leadTime": "45m", "notifyWhenClear": False},
   "checkTrip": {"dryRun": True, "occurrence": None},
+  # 115: rehearse the alert chain: replay the last day of the rule in {{ruleId}} at sixty times speed to the
+  # channel in {{channelId}} (and every channel with acceptExercise) as [EXERCISE] alerts. Set dryRun to true to
+  # see the projected counts first.
+  "createExercise": {"name": "Morning rehearsal", "ruleIds": ["{{ruleId}}"], "tag": None,
+                     "from": "2026-10-15T00:00:00Z", "to": "2026-10-16T00:00:00Z", "speed": "x60",
+                     "channelIds": ["{{channelId}}"], "enrich": False, "dryRun": True},
+  # 115: apply or dismiss the suggestion in {{suggestionId}} (captured from getTriggerSuggestions).
+  "applyTuningSuggestion": {"note": "Applied after reviewing a week of feedback"},
+  "dismissTuningSuggestion": {"reason": "The night alerts are wanted"},
   # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
   # one nautical mile in the next hour.
   "cpaBatch": {"subject": "aisstream/244660000", "filter": {"kinds": ["vessel"], "sources": [],
@@ -448,6 +459,9 @@ CAPTURE = {
   "createPolSubject": "const j = pm.response.json(); pm.collectionVariables.set('polSubjectId', j.id);",
   "listPolPlaces": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('polPlaceId', j.items[0].id);",
   "createTrip": "const j = pm.response.json(); pm.collectionVariables.set('tripId', j.id);",
+  "createExercise": "const j = pm.response.json(); pm.collectionVariables.set('exerciseId', j.id);",
+  "getTriggerSuggestions": "const j = pm.response.json(); if (j.suggestions && j.suggestions.length) pm.collectionVariables.set('suggestionId', j.suggestions[0].id);",
+  "applyTuningSuggestion": "const j = pm.response.json(); pm.collectionVariables.set('tuningLogId', j.id);",
   "rotatePeerIngestKey": "const j = pm.response.json(); pm.collectionVariables.set('peerIngestKey', j.key); console.log('New peer ingest key (shown once):', j.key);",
   "createSnapshot": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
   "createPack": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
@@ -781,6 +795,7 @@ collection = {
       ("placeId", "home"), ("viewId", ""), ("watchlistId", ""), ("exportId", ""), ("holdId", ""),
       ("peerId", ""), ("peerIngestKey", ""), ("federationToken", ""),
       ("polSubjectId", ""), ("polPlaceId", ""), ("tripId", ""),
+      ("exerciseId", ""), ("suggestionId", ""), ("tuningLogId", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

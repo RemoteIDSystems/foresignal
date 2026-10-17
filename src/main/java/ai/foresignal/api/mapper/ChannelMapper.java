@@ -59,6 +59,7 @@ public class ChannelMapper {
         out.put("backlogCap", c.backlogCap());
         out.put("editInPlace", c.editInPlace());
         out.put("deferWhileActiveSeconds", c.deferWhileActiveSeconds());
+        out.put("acceptExercise", c.acceptExercise());
         List<Map<String, Object>> warnings = warnings(c);
         if (!warnings.isEmpty()) {
             out.put("warnings", warnings);

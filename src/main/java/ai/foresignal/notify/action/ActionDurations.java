@@ -83,6 +83,8 @@ public final class ActionDurations {
         return switch (action) {
             case NotificationAction.SNOOZE -> "Snooze " + Durations.format(duration);
             case NotificationAction.MUTE -> "Mute " + Durations.format(duration);
+            case NotificationAction.FEEDBACK_USEFUL -> "Useful";
+            case NotificationAction.FEEDBACK_NOISE -> "Noise";
             default -> "Acknowledge";
         };
     }

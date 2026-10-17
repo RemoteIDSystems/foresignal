@@ -525,6 +525,21 @@ public final class ErrorCodes {
     /** 422: a kinematic state older than 1 h (114). */
     public static final String STATE_TOO_OLD = "STATE_TOO_OLD";
 
+    /**
+     * 400: an exercise replay window starts below a source's retained history (115); the detail names the
+     * source and its earliest replayable time.
+     */
+    public static final String REPLAY_BEYOND_RETENTION = "REPLAY_BEYOND_RETENTION";
+
+    /** 409: another exercise replay is running (115); one runs at a time. */
+    public static final String EXERCISE_RUNNING = "EXERCISE_RUNNING";
+
+    /** 409: cancelling an exercise replay that is no longer planned or running (115). */
+    public static final String EXERCISE_NOT_RUNNING = "EXERCISE_NOT_RUNNING";
+
+    /** 409: a tuning suggestion's rule changed since it was generated, or the suggestion is not open (115). */
+    public static final String SUGGESTION_STALE = "SUGGESTION_STALE";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

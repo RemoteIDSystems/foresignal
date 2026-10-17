@@ -24,6 +24,7 @@ import java.util.UUID;
  * @param excludedSources sources the caller may not see (private sources for anonymous callers)
  * @param restriction the caller's read restriction (prompt 035): source, kind and, through the
  *     alert's record snapshot geometry, area
+ * @param includeExercise include exercise replay alerts (prompt 115); false everywhere but where a caller asks
  */
 public record AlertQuery(
         Set<UUID> ruleIds,
@@ -37,7 +38,16 @@ public record AlertQuery(
         String tag,
         boolean includeSuppressed,
         Set<String> excludedSources,
-        ReadRestriction restriction) {
+        ReadRestriction restriction,
+        boolean includeExercise) {
+
+    /** A query without exercise alerts (the shape before prompt 115). */
+    public AlertQuery(Set<UUID> ruleIds, List<String> sources, List<String> kinds, Instant since, Boolean acknowledged,
+            List<String> states, List<String> feedback, Severity minSeverity, String tag, boolean includeSuppressed,
+            Set<String> excludedSources, ReadRestriction restriction) {
+        this(ruleIds, sources, kinds, since, acknowledged, states, feedback, minSeverity, tag, includeSuppressed,
+                excludedSources, restriction, false);
+    }
 
     /** An unrestricted query (the shape before prompt 035). */
     public AlertQuery(Set<UUID> ruleIds, List<String> sources, List<String> kinds, Instant since, Boolean acknowledged,
@@ -61,7 +71,13 @@ public record AlertQuery(
     /** This query under {@code r}. */
     public AlertQuery withRestriction(ReadRestriction r) {
         return new AlertQuery(ruleIds, sources, kinds, since, acknowledged, states, feedback, minSeverity, tag,
-                includeSuppressed, excludedSources, r);
+                includeSuppressed, excludedSources, r, includeExercise);
+    }
+
+    /** This query with or without exercise alerts (prompt 115). */
+    public AlertQuery withIncludeExercise(boolean include) {
+        return new AlertQuery(ruleIds, sources, kinds, since, acknowledged, states, feedback, minSeverity, tag,
+                includeSuppressed, excludedSources, restriction, include);
     }
 
     /** No filter except hiding suppressed alerts. */
@@ -99,6 +115,9 @@ public record AlertQuery(
             return false;
         }
         if (!includeSuppressed && alert.suppressed()) {
+            return false;
+        }
+        if (!includeExercise && alert.exercise()) {
             return false;
         }
         if (restriction.regionFilter() != null && !restriction.regionFilter().test(regionOf(alert))) {

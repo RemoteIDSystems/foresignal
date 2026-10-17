@@ -38,6 +38,10 @@ public class EnrichmentWorker implements AlertListener {
     /** Alerts dropped because the queue was full. */
     public static final String DROPPED_METRIC = "foresignal.enrichment.dropped";
 
+    /** Reads exercise alert contexts (prompt 115). */
+    private static final tools.jackson.databind.json.JsonMapper EXERCISE_JSON =
+            tools.jackson.databind.json.JsonMapper.builder().build();
+
     private final AlertBus bus;
     private final EnrichmentService service;
     private final EnrichmentProperties properties;
@@ -105,6 +109,10 @@ public class EnrichmentWorker implements AlertListener {
     @Override
     public void onAlert(AlertEvent event) {
         if (!AlertEvent.FIRED.equals(event.type()) || event.suppressed()) {
+            return;
+        }
+        if (event.alert().exercise() && !ai.foresignal.exercise.ExerciseMarking.enrichAllowed(event.alert(), EXERCISE_JSON)) {
+            // Exercise alerts (prompt 115) are enriched only when their run set enrich=true.
             return;
         }
         submit(event.alert());

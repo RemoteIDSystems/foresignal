@@ -319,6 +319,26 @@ public class RuleBacktest {
     }
 
     /**
+     * The match rows of {@code rule} in {@code (lo, hi]} as the live engine would have selected them, with no
+     * cooldown seed from the {@code alert} table (prompt 115: exercise replays reuse this engine and keep their
+     * cooldown, rate cap and active windows in run-local state). Rules with approach conditions are judged in
+     * Java as in the backtest. Null when nothing could be read.
+     *
+     * @param rule the compiled rule
+     * @param lo exclusive lower seq bound
+     * @param hi inclusive upper seq bound
+     */
+    public List<MatchRow> replayMatches(RuleSpec rule, long lo, long hi) {
+        return matches(rule, lo, hi);
+    }
+
+    /** The storm cap of rules without their own {@code maxAlertsPerHour} (the {@code triggers} setting). */
+    public int defaultCap() {
+        return settings.getOrDefault(SettingKeys.TRIGGERS, TriggerSettings.class, TriggerSettings::defaults)
+                .defaultMaxAlertsPerHour();
+    }
+
+    /**
      * The match rows of one chunk {@code (lo, hi]}, as the live engine would have selected them when
      * it processed each version (see the class comment on forecast-horizon rules).
      */
@@ -382,7 +402,7 @@ public class RuleBacktest {
         }
         return reads.read(BacktestCoverage.STATEMENT_TIMEOUT, t -> {
             Long n = t.getJdbcTemplate().queryForObject("SELECT count(*) FROM alert WHERE rule_id = ? AND seq > ?"
-                    + " AND seq <= ? AND suppressed = false AND fired_at < ?",
+                    + " AND seq <= ? AND suppressed = false AND NOT exercise AND fired_at < ?",
                     Long.class, ruleId, fromSeq, toSeq, Timestamp.from(updatedAt));
             return n == null ? 0L : n;
         });
@@ -431,7 +451,7 @@ public class RuleBacktest {
 
     private Set<Long> actualAlertSeqs(UUID ruleId, long fromSeq, long toSeq) {
         List<Long> seqs = reads.read(BacktestCoverage.STATEMENT_TIMEOUT, t -> t.getJdbcTemplate().queryForList(
-                "SELECT seq FROM alert WHERE rule_id = ? AND seq > ? AND seq <= ? AND suppressed = false",
+                "SELECT seq FROM alert WHERE rule_id = ? AND seq > ? AND seq <= ? AND suppressed = false AND NOT exercise",
                 Long.class, ruleId, fromSeq, toSeq));
         return new HashSet<>(seqs);
     }

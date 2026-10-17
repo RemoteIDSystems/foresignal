@@ -126,6 +126,20 @@ public class RetentionStateStore implements RetentionState, IngestStateReset {
         return entry == null ? 0L : entry.purgeSeq();
     }
 
+    /**
+     * Every source with a recorded floor and that floor (prompt 115: an exercise replay names the source whose
+     * retained history begins after the requested window start).
+     */
+    public Map<String, Long> floors() {
+        Map<String, Long> out = new java.util.TreeMap<>();
+        for (Map.Entry<String, Entry> entry : current().entrySet()) {
+            if (entry.getValue().floorSeq() > 0) {
+                out.put(entry.getKey(), entry.getValue().floorSeq());
+            }
+        }
+        return out;
+    }
+
     /** The source's floor: every version of it below this seq is gone; 0 when unknown. */
     public long floorSeq(String sourceId) {
         Entry entry = current().get(sourceId);
