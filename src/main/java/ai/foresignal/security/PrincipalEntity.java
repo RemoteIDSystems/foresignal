@@ -16,9 +16,10 @@ import org.hibernate.type.SqlTypes;
  * entries and ownership fields refer to the principal, not the token. There are no passwords:
  * principals authenticate only with their tokens and pairing codes.
  *
- * <p>Prompt 130 adds groups, profiles (email, avatar, timezone, organization), notification
- * preferences and access lists; this entity keeps only the columns 023 needs and is open for
- * those (Hibernate {@code update} adds new nullable columns).
+ * <p>Prompt 130 adds the profile: an optional email (used only for this principal's own email
+ * notifications), an avatar (a 043 media id), a timezone and a free-text organization, which draws the
+ * TLP {@code AMBER} and {@code AMBER+STRICT} boundaries. Groups, notification preferences and access
+ * lists live in {@code ai.foresignal.collab}.
  */
 @Entity
 @Table(name = "principal")
@@ -42,6 +43,18 @@ public class PrincipalEntity {
 
     @Column(name = "disabled", nullable = false)
     private boolean disabled;
+
+    @Column(name = "email", length = 320)
+    private String email;
+
+    @Column(name = "avatar_media_id", length = 80)
+    private String avatarMediaId;
+
+    @Column(name = "timezone", length = 64)
+    private String timezone;
+
+    @Column(name = "organization", length = 200)
+    private String organization;
 
     @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
     @Column(name = "created_at", nullable = false)
@@ -104,5 +117,55 @@ public class PrincipalEntity {
     /** When the principal last changed. */
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    /** Changes the display name. */
+    public void setDisplayName(String displayName, Instant now) {
+        this.displayName = displayName;
+        this.updatedAt = now;
+    }
+
+    /** The email used only for this principal's email notifications, or null. */
+    public String getEmail() {
+        return email;
+    }
+
+    /** Sets the email. */
+    public void setEmail(String email, Instant now) {
+        this.email = email;
+        this.updatedAt = now;
+    }
+
+    /** The 043 media id of the avatar, or null. */
+    public String getAvatarMediaId() {
+        return avatarMediaId;
+    }
+
+    /** Sets the avatar. */
+    public void setAvatarMediaId(String avatarMediaId, Instant now) {
+        this.avatarMediaId = avatarMediaId;
+        this.updatedAt = now;
+    }
+
+    /** The IANA timezone, or null. */
+    public String getTimezone() {
+        return timezone;
+    }
+
+    /** Sets the timezone. */
+    public void setTimezone(String timezone, Instant now) {
+        this.timezone = timezone;
+        this.updatedAt = now;
+    }
+
+    /** The free-text organization (TLP AMBER boundaries), or null. */
+    public String getOrganization() {
+        return organization;
+    }
+
+    /** Sets the organization. */
+    public void setOrganization(String organization, Instant now) {
+        this.organization = organization;
+        this.updatedAt = now;
     }
 }

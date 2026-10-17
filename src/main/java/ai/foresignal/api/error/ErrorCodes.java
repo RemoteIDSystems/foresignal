@@ -717,6 +717,42 @@ public final class ErrorCodes {
     /** 403: the caller's workspace role does not allow the change (129). */
     public static final String WORKSPACE_FORBIDDEN = "WORKSPACE_FORBIDDEN";
 
+    /** 404: no principal has that id or handle (130). */
+    public static final String UNKNOWN_PRINCIPAL = "UNKNOWN_PRINCIPAL";
+
+    /** 404: no such group (130). */
+    public static final String UNKNOWN_GROUP = "UNKNOWN_GROUP";
+
+    /** 404: no such tag, or a personal tag of someone else (130). */
+    public static final String UNKNOWN_TAG = "UNKNOWN_TAG";
+
+    /** 404: no such attachment, or the caller may not see it (130). */
+    public static final String UNKNOWN_ATTACHMENT = "UNKNOWN_ATTACHMENT";
+
+    /** 404: no such evidence item, or the caller may not see it (130). */
+    public static final String UNKNOWN_EVIDENCE_ITEM = "UNKNOWN_EVIDENCE_ITEM";
+
+    /** 404: no such saved search, or the caller may not see it (130). */
+    public static final String UNKNOWN_SAVED_SEARCH = "UNKNOWN_SAVED_SEARCH";
+
+    /** 403: the object's TLP label forbids the share target; the problem names the rule (130). */
+    public static final String TLP_VIOLATION = "TLP_VIOLATION";
+
+    /** 413: the upload exceeds {@code foresignal.collab.max-upload-mb} (130). */
+    public static final String UPLOAD_TOO_LARGE = "UPLOAD_TOO_LARGE";
+
+    /** 415: the upload's type is not an allowed attachment type (130). */
+    public static final String UPLOAD_TYPE_NOT_ALLOWED = "UPLOAD_TYPE_NOT_ALLOWED";
+
+    /** 409: another principal has that handle (130). */
+    public static final String PRINCIPAL_HANDLE_TAKEN = "PRINCIPAL_HANDLE_TAKEN";
+
+    /** 409: the owner already has a tag with that name in the namespace (130). */
+    public static final String TAG_NAME_TAKEN = "TAG_NAME_TAKEN";
+
+    /** 409: an evidence item still cites the attachment (130). */
+    public static final String ATTACHMENT_IN_USE = "ATTACHMENT_IN_USE";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

@@ -28,4 +28,7 @@ public interface ApiTokenRepository extends JpaRepository<ApiTokenEntity, UUID> 
     @Modifying
     @Query("update ApiTokenEntity t set t.lastUsedAt = :at where t.id = :id and (t.lastUsedAt is null or t.lastUsedAt < :at)")
     int touch(@Param("id") UUID id, @Param("at") Instant at);
+
+    /** The tokens of a principal, newest first (prompt 130). */
+    List<ApiTokenEntity> findByPrincipalIdOrderByCreatedAtDesc(String principalId);
 }

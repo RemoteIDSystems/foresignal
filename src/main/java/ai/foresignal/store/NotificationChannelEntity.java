@@ -104,6 +104,13 @@ public class NotificationChannelEntity {
     @Column(name = "accept_exercise", nullable = false, columnDefinition = "boolean default false")
     private boolean acceptExercise;
 
+    /**
+     * The principal that owns a personal channel (prompt 130), or null for an instance channel. Personal channels
+     * take only that principal's personal notifications, never the instance's alert, briefing or system fan-out.
+     */
+    @Column(name = "owner_principal_id", length = 64)
+    private String ownerPrincipalId;
+
     protected NotificationChannelEntity() {
         // for JPA
     }
@@ -328,5 +335,15 @@ public class NotificationChannelEntity {
     /** Sets whether the channel receives exercise alerts (prompt 115). */
     public void setAcceptExercise(boolean acceptExercise) {
         this.acceptExercise = acceptExercise;
+    }
+
+    /** The owning principal of a personal channel (prompt 130), or null. */
+    public String getOwnerPrincipalId() {
+        return ownerPrincipalId;
+    }
+
+    /** Makes the channel personal to {@code value}. */
+    public void setOwnerPrincipalId(String value) {
+        this.ownerPrincipalId = value;
     }
 }

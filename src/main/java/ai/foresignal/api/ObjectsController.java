@@ -5,7 +5,6 @@ import ai.foresignal.api.support.AsOfParam;
 import ai.foresignal.api.support.BboxParser;
 import ai.foresignal.api.support.ETags;
 import ai.foresignal.api.support.QueryParams;
-import ai.foresignal.object.AnnotationEntity;
 import ai.foresignal.object.AnnotationService;
 import ai.foresignal.object.ContextLinks;
 import ai.foresignal.object.ContextSummaryService;
@@ -69,11 +68,14 @@ public class ObjectsController {
     private final AnnotationService annotations;
     private final PrecisionService precision;
     private final SensorDiscoveryService sensors;
+    private final ai.foresignal.collab.CommentService comments;
 
     /** Creates the controller. */
     public ObjectsController(ObjectService objects, ObjectCallers callers, DossierService dossiers,
             RelationService relations, ContextSummaryService summaries, AnnotationService annotations,
-            PrecisionService precision, SensorDiscoveryService sensors) {
+            PrecisionService precision, SensorDiscoveryService sensors,
+            ai.foresignal.collab.CommentService comments) {
+        this.comments = comments;
         this.objects = objects;
         this.callers = callers;
         this.dossiers = dossiers;
@@ -215,8 +217,13 @@ public class ObjectsController {
             @RequestParam(required = false) String cursor, @RequestParam(required = false) String limit,
             @RequestParam(required = false) String thread, HttpServletRequest request) {
         ObjectCaller caller = callers.authenticated(request);
-        return annotations.list(ObjectRef.parse(ref), cursor == null || cursor.isBlank() ? null : cursor.strip(),
-                QueryParams.intInRange("limit", limit, 1, 200, 50), new ResolveContext(caller, null));
+        String after = cursor == null || cursor.isBlank() ? null : cursor.strip();
+        int max = QueryParams.intInRange("limit", limit, 1, 200, 50);
+        if (QueryParams.bool("thread", thread, false)) {
+            // Prompt 130: comment threads, a root with its replies.
+            return comments.threads(ObjectRef.parse(ref), after, max, caller);
+        }
+        return annotations.list(ObjectRef.parse(ref), after, max, new ResolveContext(caller, null));
     }
 
     /** {@code createAnnotation}: notes by any token, verdicts by agent scope. */
@@ -225,9 +232,25 @@ public class ObjectsController {
     @Operation(operationId = "createAnnotation", tags = "Objects")
     public Map<String, Object> createAnnotation(@PathVariable String ref, @RequestBody JsonNode body,
             HttpServletRequest request) {
-        ObjectCaller caller = callers.authenticated(request);
-        AnnotationEntity a = annotations.create(ObjectRef.parse(ref), body, new ResolveContext(caller, null));
-        return AnnotationService.view(a);
+        // Prompt 130: the commenter role on work products, the TLP label and @mentions.
+        return comments.create(ObjectRef.parse(ref), body, callers.authenticated(request));
+    }
+
+    /** {@code replyToAnnotation}: a reply in a comment thread; mentions notify those who can see the target. */
+    @PostMapping("/v1/annotations/{annotationId}/replies")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(operationId = "replyToAnnotation", tags = "Collaboration")
+    public Map<String, Object> replyToAnnotation(@PathVariable String annotationId, @RequestBody JsonNode body,
+            HttpServletRequest request) {
+        return comments.reply(annotationId, body, callers.authenticated(request));
+    }
+
+    /** {@code resolveAnnotation}: resolves or reopens a thread (commenters, editors and owners of the target). */
+    @PostMapping("/v1/annotations/{annotationId}/resolve")
+    @Operation(operationId = "resolveAnnotation", tags = "Collaboration")
+    public Map<String, Object> resolveAnnotation(@PathVariable String annotationId,
+            @RequestBody(required = false) JsonNode body, HttpServletRequest request) {
+        return comments.resolve(annotationId, body, callers.authenticated(request));
     }
 
     /** {@code updateAnnotation}: a JSON merge patch by the author or an admin. */

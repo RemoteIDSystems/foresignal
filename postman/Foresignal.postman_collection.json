@@ -13514,7 +13514,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"items\": [\n    {\n      \"eventTypes\": [\n        \"mention\",\n        \"share\",\n        \"comment-reply\"\n      ],\n      \"channel\": {\n        \"type\": \"ntfy\",\n        \"config\": {\n          \"topic\": \"jsmith-foresignal\"\n        }\n      },\n      \"quietHours\": {\n        \"start\": \"22:00\",\n        \"end\": \"07:00\"\n      },\n      \"enabled\": true\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -13677,7 +13677,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('principalId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -13718,7 +13721,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"handle\": \"jsmith\",\n  \"displayName\": \"Jo Smith\",\n  \"kind\": \"person\",\n  \"email\": \"jo.smith@example.org\",\n  \"timezone\": \"Europe/London\",\n  \"organization\": \"Example Analysis Ltd\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -13795,7 +13798,7 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/merge-patch+json"
               }
             ],
             "url": {
@@ -13823,7 +13826,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"organization\": \"Example Analysis Ltd\",\n  \"timezone\": \"Europe/London\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -13883,7 +13886,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"jsmith-laptop\",\n  \"scope\": \"read\",\n  \"expiresAt\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -13970,7 +13973,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('groupId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -14011,7 +14017,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Red Sea desk\",\n  \"description\": \"Maritime analysts\",\n  \"members\": [\n    {\n      \"principalId\": \"{{principalId}}\",\n      \"role\": \"member\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -14088,7 +14094,7 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/merge-patch+json"
               }
             ],
             "url": {
@@ -14116,7 +14122,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"description\": \"Red Sea desk, all shifts\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -14217,7 +14223,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"members\": [\n    {\n      \"principalId\": \"{{principalId}}\",\n      \"role\": \"manager\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -14378,7 +14384,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"visibility\": \"shared\",\n  \"tlp\": \"AMBER\",\n  \"entries\": [\n    {\n      \"grantee\": \"group:{{groupId}}\",\n      \"role\": \"editor\",\n      \"expiresAt\": null\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -14438,7 +14444,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"grantees\": [\n    \"group:{{groupId}}\",\n    \"principal:{{principalId}}\"\n  ],\n  \"role\": \"commenter\",\n  \"message\": \"Please review the shipping section.\",\n  \"expiresAt\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -14653,7 +14659,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('tagId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -14694,7 +14703,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"red-sea\",\n  \"namespace\": \"shared\",\n  \"color\": \"#2f7fd9\",\n  \"description\": \"Red Sea shipping disruption\",\n  \"visibility\": \"instance\",\n  \"tlp\": \"GREEN\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -14771,7 +14780,7 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/merge-patch+json"
               }
             ],
             "url": {
@@ -14799,7 +14808,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"color\": \"#d94f30\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -14900,7 +14909,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"refs\": [\n    \"situation:{{situationId}}\",\n    \"finding:{{findingId}}\",\n    \"record:{{sourceId}}/{{externalId}}\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -14960,7 +14969,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"refs\": [\n    \"finding:{{findingId}}\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -15133,7 +15142,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"body\": \"Agreed, @jsmith please check the port notice.\",\n  \"private\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -15193,7 +15202,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"resolved\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -15210,7 +15219,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('attachmentId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -15220,10 +15232,6 @@
             "header": [
               {
                 "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
                 "value": "application/json"
               }
             ],
@@ -15250,13 +15258,25 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "The document or image (pick it in Postman)"
+                },
+                {
+                  "key": "tlp",
+                  "type": "text",
+                  "value": "AMBER"
+                },
+                {
+                  "key": "visibility",
+                  "type": "text",
+                  "value": "private"
                 }
-              }
+              ]
             }
           }
         },
@@ -15484,7 +15504,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('evidenceItemId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -15525,7 +15548,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"title\": \"Port authority notice of berth closure\",\n  \"description\": \"Scanned notice received from a shipping agent.\",\n  \"attachmentIds\": [\n    \"{{attachmentId}}\"\n  ],\n  \"url\": \"https://example.org/notice\",\n  \"sourceDescription\": \"Shipping agent in Aden\",\n  \"sourceReliability\": \"B\",\n  \"informationCredibility\": 2,\n  \"citedRefs\": [\n    \"situation:{{situationId}}\"\n  ],\n  \"geometry\": {\n    \"type\": \"Point\",\n    \"coordinates\": [\n      45.0,\n      12.8\n    ]\n  },\n  \"eventTime\": \"2026-10-16T08:00:00Z\",\n  \"tagIds\": [\n    \"{{tagId}}\"\n  ],\n  \"visibility\": \"private\",\n  \"tlp\": \"AMBER\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -15602,7 +15625,7 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/merge-patch+json"
               }
             ],
             "url": {
@@ -15630,7 +15653,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"sourceReliability\": \"B\",\n  \"informationCredibility\": 2\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -15746,7 +15769,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('savedSearchId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -15787,7 +15813,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Red Sea port closures\",\n  \"query\": {\n    \"types\": [\n      \"record\",\n      \"evidence-item\"\n    ],\n    \"text\": \"port closure\",\n    \"area\": {\n      \"bbox\": \"32,11,45,21\"\n    },\n    \"timeWindow\": {\n      \"relative\": \"P7D\"\n    },\n    \"tags\": []\n  },\n  \"visibility\": \"private\",\n  \"tlp\": \"AMBER\",\n  \"notify\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -15864,7 +15890,7 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/merge-patch+json"
               }
             ],
             "url": {
@@ -15892,7 +15918,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"notify\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -27739,7 +27765,7 @@
                 {
                   "key": "status",
                   "value": "open",
-                  "description": "Filter by status",
+                  "description": "Filter by status (130 adds active and archived)",
                   "disabled": true
                 },
                 {
@@ -51887,7 +51913,7 @@
               ],
               "query": []
             },
-            "description": "Issues a read-only 112 share link (`/v1/k/{key}/\u2026`) to the workspace context; the key is shown once.\n\n**Scope:** `agent`.\n\noperationId: `shareWorkspace`",
+            "description": "Issues a read-only 112 share link (`/v1/k/{key}/\u2026`) to the workspace context; the key is shown once. A share link is public, so the workspace's TLP label must be CLEAR (130, `TLP_VIOLATION`).\n\n**Scope:** `agent`.\n\noperationId: `shareWorkspace`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -52211,6 +52237,30 @@
     },
     {
       "key": "relationId",
+      "value": ""
+    },
+    {
+      "key": "principalId",
+      "value": ""
+    },
+    {
+      "key": "groupId",
+      "value": ""
+    },
+    {
+      "key": "tagId",
+      "value": ""
+    },
+    {
+      "key": "attachmentId",
+      "value": ""
+    },
+    {
+      "key": "evidenceItemId",
+      "value": ""
+    },
+    {
+      "key": "savedSearchId",
       "value": ""
     },
     {

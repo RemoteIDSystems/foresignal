@@ -50,13 +50,16 @@ public class WorkspaceTopic implements EventTopic<WorkspaceFilter> {
     private static final Pattern CLIENT_ID = Pattern.compile("^[A-Za-z0-9._:-]{1,128}$");
 
     private final WorkspaceRepository workspaces;
+    private final WorkspaceAccess access;
     private final ApiTokenRepository tokens;
     private final Clock clock;
     private volatile SseHub hub;
 
     /** Creates the topic. */
-    public WorkspaceTopic(WorkspaceRepository workspaces, ApiTokenRepository tokens, Clock clock) {
+    public WorkspaceTopic(WorkspaceRepository workspaces, WorkspaceAccess access, ApiTokenRepository tokens,
+            Clock clock) {
         this.workspaces = workspaces;
+        this.access = access;
         this.tokens = tokens;
         this.clock = clock;
     }
@@ -126,7 +129,7 @@ public class WorkspaceTopic implements EventTopic<WorkspaceFilter> {
         ObjectCaller caller = new ObjectCaller(principalId, principal.id(), principal.scope(),
                 SourceVisibility.canSeePrivate(principal.scope(), principal.privateAccess())
                         && !principal.restriction().excludePrivate(), java.util.Set.of());
-        WorkspaceEntity w = workspaces.findById(workspaceId).filter(x -> WorkspaceAccess.canRead(x, caller))
+        WorkspaceEntity w = workspaces.findById(workspaceId).filter(x -> access.canRead(x, caller))
                 .orElseThrow(() -> new NotFoundException(ErrorCodes.UNKNOWN_WORKSPACE,
                         "No workspace '" + workspaceId + "' exists, or you are not a member."));
         return new WorkspaceFilter(w.getId(), clientId == null ? "c-" + UUID.randomUUID() : clientId, kind,

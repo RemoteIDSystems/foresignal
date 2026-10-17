@@ -115,9 +115,12 @@ public final class HypothesisVocabulary {
     /** The ACH ratings. */
     public static final List<String> RATINGS = List.of("CC", "C", "N", "NA", "I", "II");
 
-    /** The evidence sources that can be added through the API (extensible: 136 adds {@code social-claim}). */
+    /**
+     * The evidence sources that can be added through the API (extensible: 130 adds {@code evidence-item}, a 130
+     * evidence item the caller can see; 136 adds {@code social-claim}).
+     */
     public static final List<String> INPUT_EVIDENCE_SOURCES = List.of("record", "finding", "intel_event", "alert",
-            "manual", "social-claim");
+            "manual", "evidence-item", "social-claim");
 
     /** Every evidence source a row may carry. */
     public static final List<String> EVIDENCE_SOURCES = List.of("indicator", "record", "finding", "intel_event",

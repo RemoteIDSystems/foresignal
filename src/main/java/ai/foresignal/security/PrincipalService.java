@@ -12,8 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Creates and resolves {@link PrincipalEntity principals} for tokens (v1.3, prompt 023).
  *
- * <p>Prompt 130 adds the principal endpoints; 023 only needs the owner of the bootstrap token, a
- * principal per token created without one, and a lookup by id or handle.
+ * <p>023 needs the owner of the bootstrap token, a principal per token created without one, and a
+ * lookup by id or handle. Prompt 130 adds the disabled check that {@link TokenService} applies to every
+ * authentication; the principal endpoints live in {@code ai.foresignal.collab.PrincipalAdminService}.
  */
 @Service
 public class PrincipalService {
@@ -25,6 +26,9 @@ public class PrincipalService {
 
     private final PrincipalRepository principals;
     private final Clock clock;
+    private final com.github.benmanes.caffeine.cache.Cache<String, Boolean> disabled =
+            com.github.benmanes.caffeine.cache.Caffeine.newBuilder().maximumSize(10_000)
+                    .expireAfterWrite(java.time.Duration.ofSeconds(30)).build();
 
     /** Creates the service. */
     public PrincipalService(PrincipalRepository principals, Clock clock) {
@@ -86,6 +90,24 @@ public class PrincipalService {
     @Transactional(readOnly = true)
     public Optional<PrincipalEntity> find(String id) {
         return id == null ? Optional.empty() : principals.findById(id);
+    }
+
+    /**
+     * True when principal {@code id} is disabled (prompt 130): its tokens stop working. Cached for 30
+     * seconds per principal; {@link #forget} drops the entry when an admin changes the principal.
+     */
+    public boolean isDisabled(String id) {
+        if (id == null) {
+            return false;
+        }
+        return disabled.get(id, key -> principals.findById(key).map(PrincipalEntity::isDisabled).orElse(false));
+    }
+
+    /** Drops the cached disabled flag of {@code id}. */
+    public void forget(String id) {
+        if (id != null) {
+            disabled.invalidate(id);
+        }
     }
 
     /** A valid handle derived from {@code name}. */

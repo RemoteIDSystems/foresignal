@@ -31,6 +31,12 @@ public record DocInput(String docType, String docId, String sourceId, String kin
     /** Enriched alerts (030). */
     public static final String ALERT = "alert";
 
+    /**
+     * User-contributed evidence items (prompt 130), embedded with their attachments' text. They are work products
+     * under access lists, so general searches leave them out; the saved-search runner asks for them by type.
+     */
+    public static final String EVIDENCE_ITEM = "evidence_item";
+
     /** Validates the members and cuts the text to {@link EmbeddingText#MAX_CHARS}. */
     public DocInput {
         Objects.requireNonNull(docType, "docType");

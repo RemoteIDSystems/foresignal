@@ -19,7 +19,8 @@ import java.util.Map;
  * @param geometry a simplified GeoJSON geometry (≤ 500 vertices) or a centroid point, or null
  * @param bbox {@code [minLon, minLat, maxLon, maxLat]}, or null
  * @param privateObject true when the object touches a private source (039)
- * @param tags the caller's visible tags (filled by prompt 130; empty here)
+ * @param tlp the TLP 2.0 label of a work product (prompt 130), or null for data and analytic objects
+ * @param tags the names of the caller's visible tags (prompt 130)
  * @param provenance sources, manifest and the seq the envelope reflects
  * @param links the type-specific API URL and the related-objects URL
  * @param actions what the calling token may do with the object
@@ -36,6 +37,7 @@ public record ObjectEnvelope(
         Map<String, Object> geometry,
         List<Double> bbox,
         @JsonProperty("private") boolean privateObject,
+        String tlp,
         List<String> tags,
         Provenance provenance,
         Map<String, String> links,
@@ -73,7 +75,25 @@ public record ObjectEnvelope(
     /** This envelope with {@code actions}. */
     public ObjectEnvelope withActions(List<ObjectAction> newActions) {
         return new ObjectEnvelope(ref, type, title, summary, textOrigin, status, severity, time, geometry, bbox,
-                privateObject, tags, provenance, links, List.copyOf(newActions));
+                privateObject, tlp, tags, provenance, links, List.copyOf(newActions));
+    }
+
+    /**
+     * This envelope with the collaboration fields of prompt 130.
+     *
+     * @param newTags the caller's visible tag names
+     * @param newTlp the TLP label, or null
+     * @param extraActions access-list actions appended to the existing ones
+     * @return the new envelope
+     */
+    public ObjectEnvelope withCollaboration(List<String> newTags, String newTlp, List<ObjectAction> extraActions) {
+        List<ObjectAction> all = new java.util.ArrayList<>(actions == null ? List.of() : actions);
+        if (extraActions != null) {
+            all.addAll(extraActions);
+        }
+        return new ObjectEnvelope(ref, type, title, summary, textOrigin, status, severity, time, geometry, bbox,
+                privateObject, newTlp, newTags == null ? List.of() : List.copyOf(newTags), provenance, links,
+                List.copyOf(all));
     }
 
     /** The parsed reference. */
@@ -189,7 +209,7 @@ public record ObjectEnvelope(
             links.put("related", "/v1/objects/" + text + "/related");
             String t = title == null || title.isBlank() ? text : title.strip();
             return new ObjectEnvelope(text, ref.type(), t, summary, textOrigin, status, severity, time, geometry,
-                    bbox, privateObject, List.of(), provenance, Map.copyOf(links), List.of());
+                    bbox, privateObject, null, List.of(), provenance, Map.copyOf(links), List.of());
         }
 
         private static String clip(String value) {

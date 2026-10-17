@@ -21,4 +21,18 @@ public interface AnnotationRepository extends JpaRepository<AnnotationEntity, St
 
     /** Live verdicts on a target, newest first. */
     List<AnnotationEntity> findByTargetRefAndKindAndDeletedAtIsNullOrderByIdDesc(String targetRef, String kind);
+
+    /** Live replies under a root, oldest first (prompt 130 threads). */
+    List<AnnotationEntity> findByParentIdAndDeletedAtIsNullOrderByCreatedAtAscIdAsc(String parentId);
+
+    /** Live root annotations of a target, newest first (prompt 130 threads). */
+    List<AnnotationEntity> findByTargetRefAndParentIdIsNullAndDeletedAtIsNullOrderByIdDesc(String targetRef,
+            Limit limit);
+
+    /** Live root annotations of a target older than a cursor id, newest first (prompt 130 threads). */
+    List<AnnotationEntity> findByTargetRefAndParentIdIsNullAndDeletedAtIsNullAndIdLessThanOrderByIdDesc(
+            String targetRef, String id, Limit limit);
+
+    /** Live annotations with {@code kind} (the prompt 130 migration of {@code tag} annotations). */
+    List<AnnotationEntity> findByKindAndDeletedAtIsNull(String kind);
 }

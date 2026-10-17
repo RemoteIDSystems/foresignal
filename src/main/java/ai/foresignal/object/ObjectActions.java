@@ -18,6 +18,8 @@ import java.util.Set;
  *   <li>{@code acknowledge}: agent scope, a firing alert;</li>
  *   <li>{@code open-investigation}: agent scope, on events, situations, findings, alerts and records.</li>
  * </ul>
+ * Prompt 130 adds the access-list actions ({@code share}, {@code edit-acl}, {@code comment}) for shareable objects
+ * through {@link EnvelopeDecorator}.
  */
 public final class ObjectActions {
 
@@ -34,8 +36,12 @@ public final class ObjectActions {
     static final Set<String> INVESTIGATE_TYPES = Set.of(ObjectTypes.RECORD, ObjectTypes.INTEL_EVENT,
             ObjectTypes.SITUATION, ObjectTypes.FINDING, ObjectTypes.ALERT, ObjectTypes.CANONICAL_EVENT);
 
-    /** Types that are not annotated or added to a workspace (they are the containers themselves). */
-    static final Set<String> CONTAINER_TYPES = Set.of(ObjectTypes.WORKSPACE, ObjectTypes.ANNOTATION);
+    /**
+     * Types that are not annotated or added to a workspace: the containers themselves, and the collaboration objects
+     * that are not analytic content (principals, groups, tags and saved searches; prompt 130).
+     */
+    static final Set<String> CONTAINER_TYPES = Set.of(ObjectTypes.WORKSPACE, ObjectTypes.ANNOTATION,
+            ObjectTypes.PRINCIPAL, ObjectTypes.GROUP, ObjectTypes.TAG, ObjectTypes.SAVED_SEARCH);
 
     private ObjectActions() {}
 

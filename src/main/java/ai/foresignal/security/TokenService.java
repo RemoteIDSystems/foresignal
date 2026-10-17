@@ -227,6 +227,7 @@ public class TokenService {
     @Transactional(readOnly = true)
     public Optional<AuthenticatedToken> current(UUID id) {
         return tokens.findById(id).filter(t -> !t.isPathKey() && t.isActive(clock.instant()))
+                .filter(t -> t.isBootstrap() || !principals.isDisabled(t.getPrincipalId()))
                 .map(AuthenticatedToken::of);
     }
 
@@ -282,6 +283,10 @@ public class TokenService {
         ApiTokenEntity entity = found.get();
         if (!hasher.matches(presented, entity.getTokenHash()) || entity.isPathKey()
                 || !entity.isActive(clock.instant())) {
+            return Optional.empty();
+        }
+        if (!entity.isBootstrap() && principals.isDisabled(entity.getPrincipalId())) {
+            // A disabled principal's tokens stop working (prompt 130); the bootstrap token never does.
             return Optional.empty();
         }
         recordUse(entity.getId());

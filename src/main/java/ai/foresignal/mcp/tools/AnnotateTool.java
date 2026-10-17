@@ -10,11 +10,9 @@ import ai.foresignal.mcp.McpArgs;
 import ai.foresignal.mcp.McpToolException;
 import ai.foresignal.mcp.ToolContext;
 import ai.foresignal.mcp.ToolResult;
-import ai.foresignal.object.AnnotationService;
 import ai.foresignal.object.ObjectCaller;
 import ai.foresignal.object.ObjectCallers;
 import ai.foresignal.object.ObjectRef;
-import ai.foresignal.object.ResolveContext;
 import ai.foresignal.security.Scope;
 import ai.foresignal.security.restrict.RestrictedRead;
 import java.util.Map;
@@ -43,13 +41,13 @@ public class AnnotateTool implements ForesignalMcpTool {
             "applyStatus", JsonSchemas.bool("With a rejected verdict: also dismiss the finding or intel event.",
                     false)), "ref");
 
-    private final AnnotationService annotations;
+    private final ai.foresignal.collab.CommentService comments;
     private final ObjectCallers callers;
     private final JsonMapper json;
 
-    /** Creates the tool. */
-    public AnnotateTool(AnnotationService annotations, ObjectCallers callers, JsonMapper json) {
-        this.annotations = annotations;
+    /** Creates the tool (prompt 130 routes it through the comment service: commenter role, TLP, mentions). */
+    public AnnotateTool(ai.foresignal.collab.CommentService comments, ObjectCallers callers, JsonMapper json) {
+        this.comments = comments;
         this.callers = callers;
         this.json = json;
     }
@@ -103,7 +101,6 @@ public class AnnotateTool implements ForesignalMcpTool {
         if (!body.has("kind")) {
             body.put("kind", "note");
         }
-        return ToolResult.json(json.valueToTree(AnnotationService.view(annotations.create(ref, body,
-                new ResolveContext(caller, null)))));
+        return ToolResult.json(json.valueToTree(comments.create(ref, body, caller)));
     }
 }

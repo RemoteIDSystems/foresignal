@@ -38,6 +38,10 @@ public record NotificationFilter(Set<String> excludedSources, ReadRestriction re
 
     /** True when the caller may see {@code message}. */
     public boolean matches(NotificationMessage message) {
+        if (ai.foresignal.notify.ChannelService.PERSONAL_EVENT.equals(message.event())) {
+            // A principal's personal notification (prompt 130) is never on an instance-wide topic.
+            return false;
+        }
         Object source = message.data() == null ? null : message.data().get("sourceId");
         if (source != null && excludedSources.contains(String.valueOf(source))) {
             return false;

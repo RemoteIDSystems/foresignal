@@ -18,7 +18,10 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** {@code add_to_investigation} (agent, prompt 101): pins an item, taking its snapshot now. */
+/**
+ * {@code add_to_investigation} (agent, prompt 101): pins an item, taking its snapshot now. Since prompt 130 it needs
+ * the editor role on the investigation; an investigation the caller may not see is reported as not found.
+ */
 @ai.foresignal.security.restrict.RestrictedRead("items are added with the caller private access (IntelVisibility)")
 @Component
 public class AddToInvestigationTool implements ForesignalMcpTool {
@@ -32,10 +35,15 @@ public class AddToInvestigationTool implements ForesignalMcpTool {
 
     private final InvestigationService investigations;
     private final IntelVisibility visibility;
+    private final ai.foresignal.collab.AccessResolver access;
+    private final ai.foresignal.object.ObjectCallers callers;
     private final JsonMapper json;
 
     /** Creates the tool. */
-    public AddToInvestigationTool(InvestigationService investigations, IntelVisibility visibility, JsonMapper json) {
+    public AddToInvestigationTool(InvestigationService investigations, IntelVisibility visibility,
+            ai.foresignal.collab.AccessResolver access, ai.foresignal.object.ObjectCallers callers, JsonMapper json) {
+        this.access = access;
+        this.callers = callers;
         this.investigations = investigations;
         this.visibility = visibility;
         this.json = json;
@@ -73,7 +81,9 @@ public class AddToInvestigationTool implements ForesignalMcpTool {
 
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
-        String id = McpArgs.requiredText(args, "investigationId");
+        String id = investigations.get(McpArgs.requiredText(args, "investigationId")).getId();
+        access.require(callers.of(context.caller()), "investigation:" + id,
+                ai.foresignal.collab.AccessAction.EDIT);
         var item = investigations.addItem(id, args, context.actor(), visibility.seesPrivate(context.caller()));
         return ToolResult.json(json.valueToTree(Map.of("id", item.getId(), "itemType", item.getItemType(),
                 "ref", item.getRef(), "addedAt", item.getAddedAt().toString())));

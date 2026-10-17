@@ -557,6 +557,11 @@
         "version": "1.3.0",
         "date": "2026-10-17",
         "note": "129: getContract, getObject, resolveObjects, getObjectDossier, listRelatedObjects, summarizeContext, queryGraph, findCommonDependencies, createRelation, deleteRelation, listObjectAnnotations, createAnnotation, updateAnnotation, deleteAnnotation, getPrecision, listSensors, listWorkspaces, createWorkspace, getWorkspace, updateWorkspace, deleteWorkspace, putWorkspaceLayout, patchWorkspaceContext, getWorkspaceSummary, getWorkspaceContextLink, createContextLink and shareWorkspace are implemented, with the SSE topic workspace (workspace.context, workspace.presence; id-less control events), the share-link target type workspace, and the MCP tools get_object, get_related, get_workspace_context (read), annotate (read; verdicts need agent) and set_workspace_focus (agent). Reconciliations (additive except where noted): AnnotationInput.kind drops the never-implemented tag value (labels are 130 tags; notes carry free tags), and the annotation descriptions say so; x-foresignal-sse-topics lists workspace; getWorkspaceSummary's 409 is WORKSPACE_CONTEXT_INCOMPLETE; Problem lists OBJECT_REF_INVALID, UNKNOWN_OBJECT, UNKNOWN_RELATION, RELATION_NOT_EDITABLE, UNKNOWN_ANNOTATION, UNKNOWN_WORKSPACE, WORKSPACE_FORBIDDEN, WORKSPACE_CONTEXT_STALE and WORKSPACE_CONTEXT_INCOMPLETE."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-17",
+        "note": "130: getMe, listMyNotificationPreferences, replaceMyNotificationPreferences, listInbox, listPrincipals, createPrincipal, getPrincipal, updatePrincipal, createPrincipalToken, listGroups, createGroup, getGroup, updateGroup, deleteGroup, addGroupMembers, removeGroupMembers, getObjectAcl, replaceObjectAcl, shareObject, listSharedWithMe, listMyObjects, listTags, createTag, getTag, updateTag, deleteTag, assignTag, unassignTag, listTaggedObjects, listObjectTags, replyToAnnotation, resolveAnnotation, uploadAttachment, getAttachment, deleteAttachment, getAttachmentContent, listEvidenceItems, createEvidenceItem, getEvidenceItem, updateEvidenceItem, deleteEvidenceItem, listSavedSearches, createSavedSearch, getSavedSearch, updateSavedSearch, deleteSavedSearch, runSavedSearch are implemented, with the SSE topic me (share.received, mention, comment.reply, saved-search.matches), contract 1.1 (object types principal, group, tag, attachment, evidence-item and saved-search), owners, visibility, access lists and TLP labels on investigations and workspaces, investigation statuses active and archived with links to workspaces, hypothesis sets, questions, chronicles and reports, evidence-item, attachment and object investigation items, ACH evidence source evidence-item, tlp on ObjectAclInput, and the error codes UNKNOWN_PRINCIPAL, UNKNOWN_GROUP, UNKNOWN_TAG, UNKNOWN_ATTACHMENT, UNKNOWN_EVIDENCE_ITEM, UNKNOWN_SAVED_SEARCH, TLP_VIOLATION, UPLOAD_TOO_LARGE, UPLOAD_TYPE_NOT_ALLOWED, PRINCIPAL_HANDLE_TAKEN, TAG_NAME_TAKEN and ATTACHMENT_IN_USE."
       }
     ]
   },
@@ -37049,12 +37054,14 @@
             "name": "status",
             "in": "query",
             "required": false,
-            "description": "Filter by status",
+            "description": "Filter by status (130 adds active and archived)",
             "schema": {
               "type": "string",
               "enum": [
                 "open",
-                "closed"
+                "active",
+                "closed",
+                "archived"
               ]
             }
           },
@@ -68040,7 +68047,7 @@
         ],
         "operationId": "shareWorkspace",
         "summary": "Share a workspace context read-only",
-        "description": "Issues a read-only 112 share link (`/v1/k/{key}/…`) to the workspace context; the key is shown once.\n\n**Scope:** `agent`.",
+        "description": "Issues a read-only 112 share link (`/v1/k/{key}/…`) to the workspace context; the key is shown once. A share link is public, so the workspace's TLP label must be CLEAR (130, `TLP_VIOLATION`).\n\n**Scope:** `agent`.",
         "parameters": [
           {
             "name": "workspaceId",
@@ -68084,7 +68091,7 @@
             }
           },
           "403": {
-            "description": "Insufficient workspace role (WORKSPACE_FORBIDDEN)",
+            "description": "Insufficient workspace role (WORKSPACE_FORBIDDEN), or the workspace TLP label is not CLEAR (TLP_VIOLATION)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -68169,7 +68176,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -68231,7 +68238,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "put": {
@@ -68311,7 +68318,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -68432,7 +68439,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -68537,7 +68544,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "post": {
@@ -68616,7 +68623,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/principals/{principalId}": {
@@ -68702,7 +68709,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "patch": {
@@ -68792,7 +68799,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/principals/{principalId}/tokens": {
@@ -68883,7 +68890,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/groups": {
@@ -68982,7 +68989,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "post": {
@@ -69061,7 +69068,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/groups/{groupId}": {
@@ -69140,7 +69147,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "patch": {
@@ -69230,7 +69237,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "delete": {
         "tags": [
@@ -69292,7 +69299,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/groups/{groupId}/members": {
@@ -69383,7 +69390,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "delete": {
         "tags": [
@@ -69464,7 +69471,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/objects/{ref}/acl": {
@@ -69553,7 +69560,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "put": {
@@ -69643,7 +69650,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/objects/{ref}/share": {
@@ -69734,7 +69741,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/shared-with-me": {
@@ -69824,7 +69831,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -69915,7 +69922,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -70019,7 +70026,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "post": {
@@ -70061,7 +70068,7 @@
             }
           },
           "409": {
-            "description": "A tag with this name exists in the namespace (Conflict)",
+            "description": "A tag with this name exists in the namespace (TAG_NAME_TAKEN)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -70106,7 +70113,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -70186,7 +70193,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "patch": {
@@ -70294,7 +70301,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "delete": {
@@ -70365,7 +70372,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -70465,7 +70472,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -70565,7 +70572,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -70675,7 +70682,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -70768,7 +70775,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -70868,7 +70875,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -70958,7 +70965,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -71074,7 +71081,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -71154,7 +71161,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "delete": {
@@ -71190,7 +71197,7 @@
             }
           },
           "409": {
-            "description": "Still cited by an evidence item or a published report (Conflict)",
+            "description": "Still cited by an evidence item (ATTACHMENT_IN_USE)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -71235,7 +71242,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -71404,7 +71411,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -71531,7 +71538,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "post": {
@@ -71618,7 +71625,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -71698,7 +71705,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "patch": {
@@ -71806,7 +71813,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "delete": {
@@ -71877,7 +71884,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -71959,7 +71966,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "post": {
@@ -72036,7 +72043,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -72116,7 +72123,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "patch": {
@@ -72214,7 +72221,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "delete": {
@@ -72285,7 +72292,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -72386,7 +72393,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -87617,6 +87624,78 @@
             "status": 409,
             "prompt": "129",
             "note": "getWorkspaceSummary: the workspace context has no viewport or time range to summarize"
+          },
+          {
+            "code": "UNKNOWN_PRINCIPAL",
+            "status": 404,
+            "prompt": "130",
+            "note": "getPrincipal, updatePrincipal, createPrincipalToken, createGroup, addGroupMembers, removeGroupMembers, replaceObjectAcl, shareObject: no principal has that id or handle"
+          },
+          {
+            "code": "UNKNOWN_GROUP",
+            "status": 404,
+            "prompt": "130",
+            "note": "getGroup, updateGroup, deleteGroup, addGroupMembers, removeGroupMembers, replaceObjectAcl, shareObject: no such group"
+          },
+          {
+            "code": "UNKNOWN_TAG",
+            "status": 404,
+            "prompt": "130",
+            "note": "getTag, updateTag, deleteTag, assignTag, unassignTag, listTaggedObjects, createEvidenceItem: no such tag, or a tag the caller may not see (personal tags are visible only to their owner)"
+          },
+          {
+            "code": "UNKNOWN_ATTACHMENT",
+            "status": 404,
+            "prompt": "130",
+            "note": "getAttachment, getAttachmentContent, deleteAttachment, createEvidenceItem: no such attachment, or the caller may not see it"
+          },
+          {
+            "code": "UNKNOWN_EVIDENCE_ITEM",
+            "status": 404,
+            "prompt": "130",
+            "note": "getEvidenceItem, updateEvidenceItem, deleteEvidenceItem, addAchEvidence (source evidence-item): no such evidence item, or the caller may not see it"
+          },
+          {
+            "code": "UNKNOWN_SAVED_SEARCH",
+            "status": 404,
+            "prompt": "130",
+            "note": "getSavedSearch, updateSavedSearch, deleteSavedSearch, runSavedSearch: no such saved search, or the caller may not see it"
+          },
+          {
+            "code": "TLP_VIOLATION",
+            "status": 403,
+            "prompt": "130",
+            "note": "replaceObjectAcl, shareObject, shareWorkspace, updateTag, updateEvidenceItem and the create operations of work products: the object's TLP label forbids the share target or visibility; the problem's rule property names the TLP 2.0 rule"
+          },
+          {
+            "code": "UPLOAD_TOO_LARGE",
+            "status": 413,
+            "prompt": "130",
+            "note": "uploadAttachment: the upload exceeds collab.maxUploadMb (default 50)"
+          },
+          {
+            "code": "UPLOAD_TYPE_NOT_ALLOWED",
+            "status": 415,
+            "prompt": "130",
+            "note": "uploadAttachment: the bytes are not PNG, JPEG, PDF or UTF-8 plain text, CSV, JSON, GeoJSON, KML or Markdown; the problem lists the allowed types"
+          },
+          {
+            "code": "PRINCIPAL_HANDLE_TAKEN",
+            "status": 409,
+            "prompt": "130",
+            "note": "createPrincipal: another principal has the handle"
+          },
+          {
+            "code": "TAG_NAME_TAKEN",
+            "status": 409,
+            "prompt": "130",
+            "note": "createTag, updateTag: the owner already has a personal tag of that name, or a shared tag has it"
+          },
+          {
+            "code": "ATTACHMENT_IN_USE",
+            "status": 409,
+            "prompt": "130",
+            "note": "deleteAttachment: an evidence item still cites the attachment"
           }
         ]
       },
@@ -121606,7 +121685,7 @@
       },
       "InvestigationInput": {
         "type": "object",
-        "description": "New investigation",
+        "description": "New investigation, owned by the calling principal (130 adds visibility, TLP and links)",
         "properties": {
           "title": {
             "type": "string",
@@ -121621,6 +121700,75 @@
             "items": {
               "type": "string"
             }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "active",
+              "closed",
+              "archived"
+            ],
+            "default": "open"
+          },
+          "visibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Visibility"
+              }
+            ],
+            "description": "Default instance (investigations were instance-wide before 130)"
+          },
+          "tlp": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Tlp"
+              }
+            ],
+            "description": "Default collab.defaultTlp (AMBER)"
+          },
+          "workspaceId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Linked 129 workspace (130)"
+          },
+          "hypothesisSetIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "maxItems": 100,
+            "description": "Linked 125 hypothesis sets (130)"
+          },
+          "questionIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "maxItems": 100,
+            "description": "Linked 122 forecast questions (130)"
+          },
+          "chronicleIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "maxItems": 100,
+            "description": "Linked chronicles (131)"
+          },
+          "reportIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "maxItems": 100,
+            "description": "Linked reports (132)"
           }
         },
         "required": [
@@ -121699,7 +121847,7 @@
       },
       "InvestigationItemInput": {
         "type": "object",
-        "description": "Item to add; adding an alert sets its 017 state to `investigating` when that state exists",
+        "description": "Item to add; adding an alert sets its 017 state to `investigating` when that state exists; 130: evidence items, attachments and any object reference, snapshotted from the envelope, raising the investigation TLP to the strictest item label",
         "properties": {
           "itemType": {
             "type": "string",
@@ -121710,11 +121858,15 @@
               "anomaly",
               "place",
               "briefing_run",
-              "note"
+              "note",
+              "evidence-item",
+              "attachment",
+              "object"
             ]
           },
           "ref": {
-            "type": "string"
+            "type": "string",
+            "description": "Item reference; for evidence-item, attachment and object an object reference (or the bare id of an evidence item or attachment), which the caller must be able to see"
           },
           "seq": {
             "type": "integer",
@@ -121756,7 +121908,7 @@
       },
       "InvestigationPatch": {
         "type": "object",
-        "description": "Changes to an investigation",
+        "description": "Changes to an investigation (editor); owner, visibility, TLP and grants change through PUT /v1/objects/{ref}/acl",
         "properties": {
           "title": {
             "type": "string",
@@ -121767,7 +121919,9 @@
             "type": "string",
             "enum": [
               "open",
-              "closed"
+              "active",
+              "closed",
+              "archived"
             ]
           },
           "summary": {
@@ -121781,6 +121935,49 @@
             "items": {
               "type": "string"
             }
+          },
+          "workspaceId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Linked 129 workspace (130)"
+          },
+          "hypothesisSetIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "maxItems": 100,
+            "description": "Linked 125 hypothesis sets (130)"
+          },
+          "questionIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "maxItems": 100,
+            "description": "Linked 122 forecast questions (130)"
+          },
+          "chronicleIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "maxItems": 100,
+            "description": "Linked chronicles (131)"
+          },
+          "reportIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "maxItems": 100,
+            "description": "Linked reports (132)"
           }
         },
         "additionalProperties": false
@@ -140870,6 +141067,7 @@
               "intel_event",
               "alert",
               "manual",
+              "evidence-item",
               "social-claim"
             ]
           },
@@ -147373,7 +147571,7 @@
         "properties": {
           "contractVersion": {
             "type": "string",
-            "example": "1.0"
+            "example": "1.1"
           },
           "objectTypes": {
             "type": "array",
@@ -150528,7 +150726,7 @@
       },
       "ObjectAclInput": {
         "type": "object",
-        "description": "Replace an object's access list; changing `owner` (transfer) is allowed only to owners",
+        "description": "Replace an object's access list, visibility and TLP label; changing `owner` (transfer) or granting `owner` is allowed only to owners",
         "properties": {
           "visibility": {
             "$ref": "#/components/schemas/Visibility"
@@ -150543,6 +150741,14 @@
           "owner": {
             "type": "string",
             "description": "Principal id or handle of the new owner (owners only)"
+          },
+          "tlp": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Tlp"
+              }
+            ],
+            "description": "Change the TLP label (owner or editor); grants and visibility are checked against the new label"
           }
         },
         "required": [

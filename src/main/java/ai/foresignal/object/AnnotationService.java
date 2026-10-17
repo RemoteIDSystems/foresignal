@@ -106,6 +106,10 @@ public class AnnotationService {
         out.put("createdAt", a.getCreatedAt());
         out.put("updatedAt", a.getUpdatedAt());
         out.put("deletedAt", a.getDeletedAt());
+        out.put("parentId", a.getParentId());
+        out.put("mentions", a.getMentions());
+        out.put("resolved", a.isResolved());
+        out.put("editedAt", a.getEditedAt());
         return out;
     }
 
@@ -147,6 +151,118 @@ public class AnnotationService {
         out.put("items", items.stream().map(AnnotationService::view).toList());
         out.put("nextCursor", more ? items.get(items.size() - 1).getId() : null);
         return out;
+    }
+
+    /**
+     * A page of comment threads of {@code target} (prompt 130, {@code thread=true}): root annotations newest first,
+     * each with its live replies oldest first.
+     *
+     * @param target the annotated object (must be visible to the caller)
+     * @param cursor the last root id of the previous page, or null
+     * @param limit the page size (roots)
+     * @param context the caller
+     * @param view renders one annotation for the caller
+     * @return the {@code AnnotationThreadPage} view: {@code items} of {@code AnnotationThread} and {@code nextCursor}
+     */
+    public Map<String, Object> threads(ObjectRef target, String cursor, int limit, ResolveContext context,
+            java.util.function.Function<AnnotationEntity, Map<String, Object>> view) {
+        ObjectEnvelope envelope = objects.get(target, context);
+        String key = envelope.objectRef().withoutSeq().format();
+        List<AnnotationEntity> roots = new ArrayList<>();
+        String after = cursor;
+        while (roots.size() <= limit) {
+            List<AnnotationEntity> page = after == null
+                    ? annotations.findByTargetRefAndParentIdIsNullAndDeletedAtIsNullOrderByIdDesc(key,
+                            Limit.of(limit + 1))
+                    : annotations.findByTargetRefAndParentIdIsNullAndDeletedAtIsNullAndIdLessThanOrderByIdDesc(key,
+                            after, Limit.of(limit + 1));
+            for (AnnotationEntity a : page) {
+                if (!a.isPrivateAnnotation() || context.seesPrivate()) {
+                    roots.add(a);
+                }
+            }
+            if (page.size() < limit + 1) {
+                break;
+            }
+            after = page.get(page.size() - 1).getId();
+        }
+        boolean more = roots.size() > limit;
+        List<AnnotationEntity> items = more ? roots.subList(0, limit) : roots;
+        List<Map<String, Object>> threads = new ArrayList<>();
+        for (AnnotationEntity root : items) {
+            List<Map<String, Object>> replies = new ArrayList<>();
+            Instant last = root.getUpdatedAt();
+            for (AnnotationEntity r : replies(root.getId())) {
+                if (!r.isPrivateAnnotation() || context.seesPrivate()) {
+                    replies.add(view.apply(r));
+                    if (r.getUpdatedAt() != null && r.getUpdatedAt().isAfter(last)) {
+                        last = r.getUpdatedAt();
+                    }
+                }
+            }
+            Map<String, Object> thread = new LinkedHashMap<>();
+            thread.put("root", view.apply(root));
+            thread.put("replies", replies);
+            thread.put("replyCount", replies.size());
+            thread.put("resolved", root.isResolved());
+            thread.put("lastActivityAt", last);
+            threads.add(thread);
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("items", threads);
+        out.put("nextCursor", more ? items.get(items.size() - 1).getId() : null);
+        return out;
+    }
+
+    /** The live replies under root {@code rootId}, oldest first. */
+    public List<AnnotationEntity> replies(String rootId) {
+        return annotations.findByParentIdAndDeletedAtIsNullOrderByCreatedAtAscIdAsc(rootId);
+    }
+
+    /**
+     * Adds a reply under {@code root} (prompt 130, {@code replyToAnnotation}). A reply is a note on the root's target;
+     * it is private when the root is private or the author asks for it. Replies to replies attach to the root.
+     *
+     * @param root the thread's root (a visible, live annotation)
+     * @param body the markdown body (1 to 10,000 characters)
+     * @param privateReply true to make the reply private
+     * @param caller the author
+     * @return the saved reply
+     */
+    @Transactional
+    public AnnotationEntity reply(AnnotationEntity root, String body, boolean privateReply, ObjectCaller caller) {
+        String text = body == null ? null : body.strip();
+        if (text == null || text.isEmpty()) {
+            throw ValidationException.forField("body", "is required");
+        }
+        if (body.length() > MAX_BODY) {
+            throw ValidationException.forField("body", "must be at most " + MAX_BODY + " characters");
+        }
+        AnnotationEntity thread = root.getParentId() == null ? root : get(root.getParentId(), caller);
+        Instant now = clock.instant();
+        AnnotationEntity a = new AnnotationEntity(Ulids.next(now), thread.getTargetRef(), "note", caller.principal(),
+                now);
+        a.setParentId(thread.getId());
+        a.setBody(body);
+        a.setPrivateAnnotation(privateReply || thread.isPrivateAnnotation());
+        thread.setUpdatedAt(now);
+        annotations.save(thread);
+        return annotations.save(a);
+    }
+
+    /** Resolves or reopens the thread rooted at {@code root} (prompt 130; the caller's right is checked by 130). */
+    @Transactional
+    public AnnotationEntity setResolved(AnnotationEntity root, boolean resolved) {
+        root.setResolved(resolved);
+        root.setUpdatedAt(clock.instant());
+        return annotations.save(root);
+    }
+
+    /** Records the handles a note mentioned and notified (prompt 130). */
+    @Transactional
+    public AnnotationEntity setMentions(AnnotationEntity a, List<String> handles) {
+        a.setMentions(handles);
+        return annotations.save(a);
     }
 
     /** The annotation {@code id} visible to the caller ({@code 404 UNKNOWN_ANNOTATION} otherwise). */
@@ -271,7 +387,11 @@ public class AnnotationService {
             a.setDuplicateOfRef(duplicateOf(value, "duplicate-of".equals(value) ? dup : null, caller));
         }
         if (body.has("body")) {
+            String before = a.getBody();
             a.setBody(bodyText(body.get("body")));
+            if (!java.util.Objects.equals(before, a.getBody())) {
+                a.setEditedAt(clock.instant());
+            }
         }
         if (body.has("tags")) {
             a.setTags(tags(body.get("tags")));

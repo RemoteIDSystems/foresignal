@@ -53,7 +53,10 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              "cycleId": "cycleId", "assessmentId": "assessmentId",
              # 129: object references (one path segment, / percent-encoded), workspaces, annotations, relations.
              "ref": "objectRef", "workspaceId": "workspaceId", "annotationId": "annotationId",
-             "relationId": "relationId"}
+             "relationId": "relationId",
+             # 130: principals, groups, tags, attachments, evidence items and saved searches.
+             "principalId": "principalId", "groupId": "groupId", "tagId": "tagId", "attachmentId": "attachmentId",
+             "evidenceItemId": "evidenceItemId", "savedSearchId": "savedSearchId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -154,6 +157,15 @@ RAW_BODIES = {
       "focusRef": "situation:{{situationId}}", "selectedRefs": ["situation:{{situationId}}"],
       "timeRange": {"start": "2026-10-16T00:00:00Z", "end": None}, "playback": {"state": "paused", "rate": 60}},
       indent=2), "json"),
+  # 130: merge patches of a principal (admin), a group (managers), a tag, an evidence item and a saved search.
+  "updatePrincipal": ("application/merge-patch+json", json.dumps({"organization": "Example Analysis Ltd",
+                                                                  "timezone": "Europe/London"}, indent=2), "json"),
+  "updateGroup": ("application/merge-patch+json", json.dumps({"description": "Red Sea desk, all shifts"}, indent=2),
+                  "json"),
+  "updateTag": ("application/merge-patch+json", json.dumps({"color": "#d94f30"}, indent=2), "json"),
+  "updateEvidenceItem": ("application/merge-patch+json", json.dumps({"sourceReliability": "B",
+                                                                     "informationCredibility": 2}, indent=2), "json"),
+  "updateSavedSearch": ("application/merge-patch+json", json.dumps({"notify": True}, indent=2), "json"),
   "ntfyPublish": ("text/plain", "Backup finished on pve1", "text"),
   "ntfyPublishPut": ("text/plain", "Disk usage above 90% on nas", "text"),
   # 036: a watchlist CSV import (header value[,label,notes,tags]; tags separated by ;).
@@ -183,6 +195,12 @@ RAW_BODIES = {
 # placeholders (src empty): pick the files in Postman before sending. Postman sets the boundary itself, so
 # no Content-Type header is added.
 FORMDATA_BODIES = {
+  # 130: an attachment upload (PNG, JPEG, PDF or UTF-8 text, CSV, JSON, GeoJSON, KML, Markdown; at most 50 MB).
+  "uploadAttachment": [
+    {"key": "file", "type": "file", "src": "", "description": "The document or image (pick it in Postman)"},
+    {"key": "tlp", "type": "text", "value": "AMBER"},
+    {"key": "visibility", "type": "text", "value": "private"},
+  ],
   "ingestSourceMedia": [
     {"key": "meta", "type": "text", "contentType": "application/json",
      "value": json.dumps({"composite": "msu_mr_rgb_221", "timestamp": "2026-10-12T18:02:10Z",
@@ -808,6 +826,44 @@ BODIES = {
   "createContextLink": {"context": {"focusRef": "situation:{{situationId}}",
                                     "viewport": {"center": [43.1, 14.8], "radiusKm": 150}}},
   "shareWorkspace": {"expiresAt": None, "maxUses": 50},
+  # 130: a principal and its token (admin), a group, a share and an access list (agent; {{objectRef}} must name a
+  # work product such as investigation:{id}), a tag and a bulk assignment, a comment reply, an evidence item graded
+  # with the Admiralty system, a saved search and the caller's notification preferences.
+  "createPrincipal": {"handle": "jsmith", "displayName": "Jo Smith", "kind": "person",
+                      "email": "jo.smith@example.org", "timezone": "Europe/London",
+                      "organization": "Example Analysis Ltd"},
+  "createPrincipalToken": {"name": "jsmith-laptop", "scope": "read", "expiresAt": None},
+  "createGroup": {"name": "Red Sea desk", "description": "Maritime analysts",
+                  "members": [{"principalId": "{{principalId}}", "role": "member"}]},
+  "addGroupMembers": {"members": [{"principalId": "{{principalId}}", "role": "manager"}]},
+  "shareObject": {"grantees": ["group:{{groupId}}", "principal:{{principalId}}"], "role": "commenter",
+                  "message": "Please review the shipping section.", "expiresAt": None},
+  "replaceObjectAcl": {"visibility": "shared", "tlp": "AMBER",
+                       "entries": [{"grantee": "group:{{groupId}}", "role": "editor", "expiresAt": None}]},
+  "createTag": {"name": "red-sea", "namespace": "shared", "color": "#2f7fd9",
+                "description": "Red Sea shipping disruption", "visibility": "instance", "tlp": "GREEN"},
+  "assignTag": {"refs": ["situation:{{situationId}}", "finding:{{findingId}}", "record:{{sourceId}}/{{externalId}}"]},
+  "unassignTag": {"refs": ["finding:{{findingId}}"]},
+  "replyToAnnotation": {"body": "Agreed, @jsmith please check the port notice.", "private": False},
+  "resolveAnnotation": {"resolved": True},
+  "createEvidenceItem": {"title": "Port authority notice of berth closure",
+                         "description": "Scanned notice received from a shipping agent.",
+                         "attachmentIds": ["{{attachmentId}}"], "url": "https://example.org/notice",
+                         "sourceDescription": "Shipping agent in Aden", "sourceReliability": "B",
+                         "informationCredibility": 2, "citedRefs": ["situation:{{situationId}}"],
+                         "geometry": {"type": "Point", "coordinates": [45.0, 12.8]},
+                         "eventTime": "2026-10-16T08:00:00Z", "tagIds": ["{{tagId}}"], "visibility": "private",
+                         "tlp": "AMBER"},
+  "createSavedSearch": {"name": "Red Sea port closures",
+                        "query": {"types": ["record", "evidence-item"], "text": "port closure",
+                                  "area": {"bbox": "32,11,45,21"}, "timeWindow": {"relative": "P7D"},
+                                  "tags": []},
+                        "visibility": "private", "tlp": "AMBER", "notify": True},
+  "replaceMyNotificationPreferences": {"items": [{"eventTypes": ["mention", "share", "comment-reply"],
+                                                  "channel": {"type": "ntfy",
+                                                              "config": {"topic": "jsmith-foresignal"}},
+                                                  "quietHours": {"start": "22:00", "end": "07:00"},
+                                                  "enabled": True}]},
   "putWorkspaceLayout": {"panels": ["globe", "timeline", "dossier"], "globe": {"pitch": 45}},
   # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
   # one nautical mile in the next hour.
@@ -867,6 +923,13 @@ CAPTURE = {
   "patchWorkspaceContext": "const j = pm.response.json(); pm.collectionVariables.set('contextVersion', String(j.contextVersion));",
   "createAnnotation": "const j = pm.response.json(); pm.collectionVariables.set('annotationId', j.id);",
   "createRelation": "const j = pm.response.json(); pm.collectionVariables.set('relationId', j.id);",
+  # 130: the principal, group, tag, attachment, evidence item and saved search.
+  "createPrincipal": "const j = pm.response.json(); pm.collectionVariables.set('principalId', j.id);",
+  "createGroup": "const j = pm.response.json(); pm.collectionVariables.set('groupId', j.id);",
+  "createTag": "const j = pm.response.json(); pm.collectionVariables.set('tagId', j.id);",
+  "uploadAttachment": "const j = pm.response.json(); pm.collectionVariables.set('attachmentId', j.id);",
+  "createEvidenceItem": "const j = pm.response.json(); pm.collectionVariables.set('evidenceItemId', j.id);",
+  "createSavedSearch": "const j = pm.response.json(); pm.collectionVariables.set('savedSearchId', j.id);",
   # 126: the queued index fit (a 103 job: read it with getBacktest).
   "fitRegionalIndex": "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
   # 117: the created attention topic.
@@ -1269,6 +1332,8 @@ collection = {
       ("cycleId", ""), ("cycleRunId", ""), ("assessmentId", ""),
       ("objectRef", "situation:{{situationId}}"), ("workspaceId", ""), ("contextVersion", "1"), ("annotationId", ""),
       ("relationId", ""),
+      ("principalId", ""), ("groupId", ""), ("tagId", ""), ("attachmentId", ""), ("evidenceItemId", ""),
+      ("savedSearchId", ""),
       ("benchmarkRunId", ""), ("benchmarkCaseId", ""),
       ("hypothesisSetId", ""), ("hypothesisId", ""), ("indicatorId", ""), ("achEvidenceId", ""), ("assumptionId", ""),
       ("indexId", "instability"), ("outlookRegion", "YE"), ("outlookFamily", "conflict:battles"),

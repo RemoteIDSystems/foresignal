@@ -19,7 +19,8 @@ import org.springframework.stereotype.Service;
 
 /**
  * Resolves object references to envelopes through the per-type {@link ObjectResolver}s and adds the caller's
- * {@code actions} ({@code getObject}, {@code resolveObjects}; docs/Client-Contract.md §3).
+ * {@code actions} ({@code getObject}, {@code resolveObjects}; docs/Client-Contract.md §3). Prompt 130's
+ * {@link EnvelopeDecorator}s then add tags and TLP and drop work products the caller may not see.
  */
 @Service
 public class ObjectService {
@@ -31,6 +32,7 @@ public class ObjectService {
 
     private final Map<String, ObjectResolver> resolvers;
     private final Clock clock;
+    private org.springframework.beans.factory.ObjectProvider<EnvelopeDecorator> decorators;
 
     /** Creates the service over every resolver bean. */
     public ObjectService(List<ObjectResolver> resolvers, Clock clock) {
@@ -42,6 +44,15 @@ public class ObjectService {
         }
         this.resolvers = Map.copyOf(byType);
         this.clock = clock;
+    }
+
+    /**
+     * Injects the envelope decorators of prompt 130 (tags, TLP, access-list visibility). Lazy, because the
+     * decorators themselves resolve objects.
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setDecorators(org.springframework.beans.factory.ObjectProvider<EnvelopeDecorator> decorators) {
+        this.decorators = decorators;
     }
 
     /** The types with a resolver. */
@@ -66,8 +77,26 @@ public class ObjectService {
         if (resolver == null) {
             return Optional.empty();
         }
-        return safe(() -> resolver.resolve(ref, context)).map(e -> e.withActions(ObjectActions.of(e,
-                context.caller())));
+        Optional<ObjectEnvelope> found = safe(() -> resolver.resolve(ref, context)).map(e -> e.withActions(
+                ObjectActions.of(e, context.caller())));
+        if (found.isEmpty()) {
+            return found;
+        }
+        Map<ObjectRef, ObjectEnvelope> one = new LinkedHashMap<>();
+        one.put(ref, found.get());
+        return Optional.ofNullable(decorate(one, context).get(ref));
+    }
+
+    /** Applies every {@link EnvelopeDecorator}: tags, TLP and access-list visibility (prompt 130). */
+    private Map<ObjectRef, ObjectEnvelope> decorate(Map<ObjectRef, ObjectEnvelope> envelopes, ResolveContext context) {
+        if (decorators == null || envelopes.isEmpty()) {
+            return envelopes;
+        }
+        Map<ObjectRef, ObjectEnvelope> out = envelopes;
+        for (EnvelopeDecorator decorator : decorators.orderedStream().toList()) {
+            out = decorator.decorate(out, context);
+        }
+        return out;
     }
 
     /**
@@ -126,7 +155,7 @@ public class ObjectService {
                     context))).orElse(Map.of());
             part.forEach((ref, e) -> out.put(ref, e.withActions(ObjectActions.of(e, context.caller()))));
         }
-        return out;
+        return decorate(out, context);
     }
 
     /** Rejects an {@code asOf} in the future (400 {@code ASOF_INVALID}). */

@@ -183,7 +183,59 @@ class EventSchemaConformanceTest {
             // 129: WorkspaceTopic sends id-less control events built by its payload helpers.
             entry(ai.foresignal.object.WorkspaceTopic.CONTEXT_EVENT, EventSchemaConformanceTest::workspaceContextEvents),
             entry(ai.foresignal.object.WorkspaceTopic.PRESENCE_EVENT,
-                    EventSchemaConformanceTest::workspacePresenceEvents));
+                    EventSchemaConformanceTest::workspacePresenceEvents),
+            // 130: MeTopic sends the payloads MeEvents builds, stored with the personal inbox item.
+            entry(ai.foresignal.collab.MeEvents.SHARE_RECEIVED, EventSchemaConformanceTest::shareReceivedEvents),
+            entry(ai.foresignal.collab.MeEvents.MENTION, () -> commentEvents("mention")),
+            entry(ai.foresignal.collab.MeEvents.COMMENT_REPLY, () -> commentEvents("reply")),
+            entry(ai.foresignal.collab.MeEvents.SAVED_SEARCH_MATCHES,
+                    EventSchemaConformanceTest::savedSearchMatchesEvents));
+
+    /** A {@code PrincipalSummary} as {@code PrincipalViews.summary} writes it (prompt 130). */
+    static Map<String, Object> principalSummary() {
+        Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("id", "01JA8Q3V7S2K9W4T6Y1B5N0M3D");
+        out.put("handle", "jsmith");
+        out.put("displayName", "Jo Smith");
+        out.put("kind", "person");
+        out.put("avatarMediaId", null);
+        return out;
+    }
+
+    /** {@code share.received} payloads as {@code MeEvents.shareReceived} writes them (prompt 130). */
+    static List<JsonNode> shareReceivedEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        return List.of(
+                toTree(ai.foresignal.collab.MeEvents.shareReceived("investigation:01JA8Q3V7S2K9W4T6Y1B5N0M3C", null,
+                        "commenter", principalSummary(), "Please review.", at)),
+                toTree(ai.foresignal.collab.MeEvents.shareReceived("saved-search:01JA8Q3V7S2K9W4T6Y1B5N0M3E", null,
+                        "viewer", principalSummary(), null, at)));
+    }
+
+    /** {@code mention} and {@code comment.reply} payloads as {@code MeEvents.comment} writes them (prompt 130). */
+    static List<JsonNode> commentEvents(String reason) {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        return List.of(
+                toTree(ai.foresignal.collab.MeEvents.comment(reason, "01JA8Q3V7S2K9W4T6Y1B5N0M3F", null,
+                        "situation:01JA8Q3V7S2K9W4T6Y1B5N0M3C", principalSummary(), "@jsmith please check", at)),
+                toTree(ai.foresignal.collab.MeEvents.comment(reason, "01JA8Q3V7S2K9W4T6Y1B5N0M3G",
+                        "01JA8Q3V7S2K9W4T6Y1B5N0M3F", "investigation:01JA8Q3V7S2K9W4T6Y1B5N0M3C", principalSummary(),
+                        "x".repeat(400), at)));
+    }
+
+    /** {@code saved-search.matches} payloads as {@code MeEvents.savedSearchMatches} writes them (prompt 130). */
+    static List<JsonNode> savedSearchMatchesEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        List<String> refs = new ArrayList<>();
+        for (int i = 0; i < 25; i++) {
+            refs.add("record:test-src/e" + i);
+        }
+        return List.of(
+                toTree(ai.foresignal.collab.MeEvents.savedSearchMatches("01JA8Q3V7S2K9W4T6Y1B5N0M3H", "Convoys", 25,
+                        refs, at)),
+                toTree(ai.foresignal.collab.MeEvents.savedSearchMatches("01JA8Q3V7S2K9W4T6Y1B5N0M3H", "Convoys", 1,
+                        List.of("evidence-item:01JA8Q3V7S2K9W4T6Y1B5N0M3J"), at)));
+    }
 
     /** {@code workspace.context} payloads as {@code WorkspaceTopic.contextPayload} writes them (prompt 129). */
     static List<JsonNode> workspaceContextEvents() {

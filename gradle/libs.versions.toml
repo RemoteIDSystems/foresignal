@@ -122,6 +122,10 @@ protobufJava = "4.36.1"
 # HTML to plain text for feed-kit item summaries (073): jsoup, MIT. Verified on Maven Central 2026-10-13: 1.23.2 is
 # the latest release (Java 8 bytecode); no required runtime dependencies (re2j is optional and already present).
 jsoup = "1.23.2"
+# Attachment text extraction (130): Apache PDFBox, Apache-2.0. Verified on Maven Central 2026-10-17: 3.0.8 is the
+# latest release (maven-metadata.xml latest/release 3.0.8, published 2026-07-08); Java 8 bytecode, depends on
+# pdfbox-io, fontbox and commons-logging (bcprov and bcpkix are optional).
+pdfbox = "3.0.8"
 
 # Bulk exports (111): parquet-java 1.18.1 (Apache-2.0) for GeoParquet 1.1; the Hadoop server stack is
 # excluded below. Verified on Maven Central 2026-10-15.
@@ -220,6 +224,7 @@ java-websocket = { module = "org.java-websocket:Java-WebSocket", version.ref = "
 gtfs-realtime-bindings = { module = "org.mobilitydata:gtfs-realtime-bindings", version.ref = "gtfsRealtimeBindings" }
 protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobufJava" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+pdfbox = { module = "org.apache.pdfbox:pdfbox", version.ref = "pdfbox" }
 # GeoParquet 1.1 exports (111): parquet-column + parquet-hadoop; Hadoop server stack excluded in build.gradle.kts.
 parquet-column = { module = "org.apache.parquet:parquet-column", version.ref = "parquetVersion" }
 parquet-hadoop = { module = "org.apache.parquet:parquet-hadoop", version.ref = "parquetVersion" }

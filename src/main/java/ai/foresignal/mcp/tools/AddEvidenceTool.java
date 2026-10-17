@@ -51,9 +51,14 @@ public class AddEvidenceTool implements ForesignalMcpTool {
     private final HypothesisService service;
     private final IntelVisibility visibility;
     private final JsonMapper json;
+    private final ai.foresignal.collab.EvidenceItemService evidenceItems;
+    private final ai.foresignal.object.ObjectCallers callers;
 
     /** Creates the tool. */
-    public AddEvidenceTool(HypothesisService service, IntelVisibility visibility, JsonMapper json) {
+    public AddEvidenceTool(HypothesisService service, IntelVisibility visibility, JsonMapper json,
+            ai.foresignal.collab.EvidenceItemService evidenceItems, ai.foresignal.object.ObjectCallers callers) {
+        this.evidenceItems = evidenceItems;
+        this.callers = callers;
         this.service = service;
         this.visibility = visibility;
         this.json = json;
@@ -96,7 +101,9 @@ public class AddEvidenceTool implements ForesignalMcpTool {
         String setId = McpArgs.requiredText(args, "setId");
         ObjectNode body = ((ObjectNode) args).deepCopy();
         body.remove("setId");
+        HypothesisInputs.EvidenceDraft draft = evidenceItems.citable(HypothesisInputs.evidence(body),
+                callers.of(context.caller()));
         return ToolResult.json(json.valueToTree(HypothesisViews.evidence(service.addEvidence(setId,
-                HypothesisInputs.evidence(body), context.actor(), visibility.seesPrivate(context.caller())), false)));
+                draft, context.actor(), visibility.seesPrivate(context.caller())), false)));
     }
 }

@@ -153,6 +153,41 @@ public class ChannelService {
         return new View(view(e), new Stats(null, 0));
     }
 
+    /** The event of every personal notification (prompt 130); instance fan-out never sends it. */
+    public static final String PERSONAL_EVENT = "personal";
+
+    /**
+     * Creates or replaces a principal's personal channel (prompt 130) from a {@code ChannelInput} body: the type,
+     * config, secrets, quiet hours and timezone are validated exactly as for an instance channel, then the channel is
+     * bound to {@code principalId} and accepts only {@value #PERSONAL_EVENT} notifications, so the alert, briefing and
+     * system fan-out never reaches it. Omitted secrets keep the stored ones on a replace.
+     *
+     * @param id the channel to replace, or null to create one
+     * @param body the channel definition
+     * @param principalId the owning principal
+     * @return the channel id
+     */
+    @Transactional
+    public UUID savePersonal(UUID id, JsonNode body, String principalId) {
+        NotificationChannelEntity e = id == null ? null : channels.findById(id)
+                .filter(c -> principalId.equals(c.getOwnerPrincipalId())).orElse(null);
+        Map<String, String> stored = e == null ? Map.of() : secrets(e);
+        ChannelInput input = parser.parse(body, e == null ? null : stored);
+        Instant now = clock.instant();
+        if (e == null) {
+            e = new NotificationChannelEntity(UUID.randomUUID(), input.name(), input.type());
+            e.setCreatedAt(now);
+        }
+        apply(e, input, stored, now);
+        e.setEvents(new ArrayList<>(List.of(PERSONAL_EVENT)));
+        e.setRuleIds(null);
+        e.setOwnerPrincipalId(principalId);
+        channels.save(e);
+        limiter.forget(e.getId());
+        changed(e.getId(), e.getType(), false);
+        return e.getId();
+    }
+
     /**
      * Creates the channel with {@code id}, or replaces it when it exists; a replaced channel keeps
      * its stored secrets when the body has none (settings import, prompt 019).

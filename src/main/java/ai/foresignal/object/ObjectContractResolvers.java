@@ -14,7 +14,7 @@ public class ObjectContractResolvers {
 
     /** {@code workspace:{id}}. */
     @Bean
-    public ObjectResolver workspaceObjectResolver(WorkspaceRepository workspaces) {
+    public ObjectResolver workspaceObjectResolver(WorkspaceRepository workspaces, WorkspaceAccess access) {
         return new ObjectResolver() {
             @Override
             public String type() {
@@ -23,7 +23,7 @@ public class ObjectContractResolvers {
 
             @Override
             public Optional<ObjectEnvelope> resolve(ObjectRef ref, ResolveContext context) {
-                return workspaces.findById(ref.id()).filter(w -> WorkspaceAccess.canRead(w, context.caller()))
+                return workspaces.findById(ref.id()).filter(w -> access.canRead(w, context.caller()))
                         .filter(w -> context.existedAt(w.getCreatedAt()))
                         .map(w -> ObjectEnvelope.builder(ref)
                                 .title(w.getName())

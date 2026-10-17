@@ -97,6 +97,11 @@ public class WorkspaceEntity {
         this.name = value;
     }
 
+    /** Transfers ownership (prompt 130, through the access list). */
+    public void setOwner(String value) {
+        this.owner = value;
+    }
+
     /** The owner's principal id. */
     public String getOwner() {
         return owner;

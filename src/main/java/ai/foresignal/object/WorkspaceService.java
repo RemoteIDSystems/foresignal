@@ -53,13 +53,15 @@ public class WorkspaceService {
     private final WorkspaceRepository workspaces;
     private final WorkspaceTopic topic;
     private final ShareLinkService shares;
+    private final WorkspaceAccess access;
     private final JsonMapper json;
     private final Clock clock;
     private final TransactionTemplate tx;
 
     /** Creates the service. */
     public WorkspaceService(WorkspaceRepository workspaces, WorkspaceTopic topic, ShareLinkService shares,
-            JsonMapper json, Clock clock, PlatformTransactionManager transactions) {
+            WorkspaceAccess access, JsonMapper json, Clock clock, PlatformTransactionManager transactions) {
+        this.access = access;
         this.workspaces = workspaces;
         this.topic = topic;
         this.shares = shares;
@@ -70,15 +72,19 @@ public class WorkspaceService {
 
     // ------------------------------------------------------------------------- views
 
-    /** The {@code Workspace} view (layout omitted in lists). */
-    public static Map<String, Object> view(WorkspaceEntity w, ObjectCaller caller, boolean withLayout) {
+    /** The {@code Workspace} view (layout omitted in lists), with the caller's effective role. */
+    public Map<String, Object> view(WorkspaceEntity w, ObjectCaller caller, boolean withLayout) {
+        return view(w, access.role(w, caller), withLayout);
+    }
+
+    /** The {@code Workspace} view (layout omitted in lists) for a caller holding {@code role}. */
+    public static Map<String, Object> view(WorkspaceEntity w, String role, boolean withLayout) {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("id", w.getId());
         out.put("ref", ObjectTypes.WORKSPACE + ":" + w.getId());
         out.put("name", w.getName());
         out.put("owner", w.getOwner());
         out.put("members", w.getMembers());
-        String role = WorkspaceAccess.role(w, caller == null ? null : caller.principal());
         out.put("callerRole", role == null ? "viewer" : role);
         out.put("context", w.getContext());
         out.put("contextVersion", w.getContextVersion());
@@ -121,7 +127,7 @@ public class WorkspaceService {
         List<WorkspaceEntity> rows = more ? page.subList(0, limit) : page;
         List<Map<String, Object>> items = new ArrayList<>();
         for (WorkspaceEntity w : rows) {
-            if (WorkspaceAccess.canRead(w, caller)) {
+            if (access.canRead(w, caller)) {
                 items.add(view(w, caller, false));
             }
         }
@@ -133,7 +139,7 @@ public class WorkspaceService {
 
     /** The workspace {@code id} if the caller may read it ({@code 404 UNKNOWN_WORKSPACE} otherwise). */
     public WorkspaceEntity get(String id, ObjectCaller caller) {
-        return workspaces.findById(id).filter(w -> WorkspaceAccess.canRead(w, caller))
+        return workspaces.findById(id).filter(w -> access.canRead(w, caller))
                 .orElseThrow(() -> unknown(id));
     }
 
@@ -175,7 +181,7 @@ public class WorkspaceService {
     public WorkspaceEntity patch(String id, JsonNode body, ObjectCaller caller) {
         return tx.execute(s -> {
             WorkspaceEntity w = get(id, caller);
-            if (!WorkspaceAccess.canEditMetadata(w, caller)) {
+            if (!access.canEditMetadata(w, caller)) {
                 throw forbidden("Changing a workspace needs its owner, or an editor with agent scope.");
             }
             if (body == null || !body.isObject()) {
@@ -212,7 +218,7 @@ public class WorkspaceService {
     public void delete(String id, ObjectCaller caller) {
         tx.executeWithoutResult(s -> {
             WorkspaceEntity w = get(id, caller);
-            if (!WorkspaceAccess.canDelete(w, caller)) {
+            if (!access.canDelete(w, caller)) {
                 throw forbidden("Only the owner or an admin may delete a workspace.");
             }
             workspaces.delete(w);
@@ -223,7 +229,7 @@ public class WorkspaceService {
     public WorkspaceEntity putLayout(String id, JsonNode body, ObjectCaller caller) {
         return tx.execute(s -> {
             WorkspaceEntity w = get(id, caller);
-            if (!WorkspaceAccess.canEditContext(w, caller)) {
+            if (!access.canEditContext(w, caller)) {
                 throw forbidden("Changing the layout needs the owner or an editor.");
             }
             if (body == null || !body.isObject()) {
@@ -284,9 +290,9 @@ public class WorkspaceService {
             throw new ValidationException("The body must be a JSON merge patch object of the workspace context.");
         }
         WorkspaceEntity saved = tx.execute(s -> {
-            WorkspaceEntity w = workspaces.findLocked(id).filter(x -> WorkspaceAccess.canRead(x, caller))
+            WorkspaceEntity w = workspaces.findLocked(id).filter(x -> access.canRead(x, caller))
                     .orElseThrow(() -> unknown(id));
-            if (!WorkspaceAccess.canEditContext(w, caller)) {
+            if (!access.canEditContext(w, caller)) {
                 throw forbidden("Changing the context needs the owner or an editor.");
             }
             if (w.getContextVersion() != expected) {
@@ -316,13 +322,25 @@ public class WorkspaceService {
 
     /**
      * Issues a read-only 112 share link to the workspace context ({@code shareWorkspace}; owner or editor, agent
-     * scope by the access policy). A private workspace is never shared.
+     * scope by the access policy). A private workspace is never shared, and the workspace's TLP label must allow a
+     * public link: only {@code CLEAR} does (prompt 130).
      */
     public ShareLinkService.Created share(String id, JsonNode body, ObjectCaller caller,
             ShareLinkService.Caller shareCaller) {
         WorkspaceEntity w = get(id, caller);
-        if (!WorkspaceAccess.canEditContext(w, caller) && !caller.admin()) {
+        if (!access.canEditContext(w, caller) && !caller.admin()) {
             throw forbidden("Sharing a workspace needs its owner or an editor.");
+        }
+        java.util.Optional<String> label = access.tlp(w);
+        if (label.isPresent()) {
+            // A 112 share link is public: the workspace's TLP label must allow it (prompt 130, COL-2).
+            ai.foresignal.security.TlpTarget.Decision decision = ai.foresignal.security.EgressPolicy.tlp(
+                    ai.foresignal.security.Tlp.fromWire(label.get()), ai.foresignal.security.TlpTarget.publicLink());
+            if (!decision.allowed()) {
+                throw new ForesignalException(HttpStatus.FORBIDDEN, ErrorCodes.TLP_VIOLATION,
+                        "The workspace's TLP label forbids a public share link.").withProperty("rule",
+                                decision.rule());
+            }
         }
         Instant expiresAt = null;
         Integer maxUses = null;

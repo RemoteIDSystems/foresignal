@@ -396,6 +396,16 @@ Apache HttpClient, HttpCore and HttpMime 4 with Commons Logging and Commons Code
 - **License:** MIT License (`META-INF/jsoup/LICENSE` in the jar: "Copyright (c) 2009-2026 Jonathan Hedley"). Project:
   <https://jsoup.org/>.
 
+### Apache PDFBox (prompt 130)
+
+- **Artifact:** `org.apache.pdfbox:pdfbox` 3.0.8 (Maven Central), used unmodified, with its runtime dependencies
+  `org.apache.pdfbox:pdfbox-io` and `org.apache.pdfbox:fontbox` 3.0.8 and `commons-logging`.
+- **Use:** `ai.foresignal.collab.TextExtractor`: the text of uploaded PDF attachments is extracted with
+  `Loader.loadPDF` and `PDFTextStripper` for search. Nothing is rendered or executed.
+- **License:** Apache License 2.0 (`META-INF/LICENSE` and `META-INF/NOTICE` in the jar; the NOTICE reads "Apache PDFBox,
+  Copyright 2002-2026 The Apache Software Foundation" and credits the Adobe Glyph List, Copyright 1997, 1998, 2002,
+  2007, 2010 Adobe Systems Incorporated). Project: <https://pdfbox.apache.org/>.
+
 ### MeshCore (prompt 083)
 
 - **Consulted:** the MIT-licensed MeshCore repository (<https://github.com/meshcore-dev/MeshCore>, local reference clone

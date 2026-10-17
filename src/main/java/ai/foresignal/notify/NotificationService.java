@@ -96,7 +96,8 @@ public class NotificationService {
             NotificationMessage persisted = writer.persist(fill(message, now));
             NotificationSettings pause = pause();
             for (NotificationChannelEntity entity : channels.findByEnabledTrue()) {
-                if (types.find(entity.getType()).isEmpty()) {
+                if (types.find(entity.getType()).isEmpty() || entity.getOwnerPrincipalId() != null) {
+                    // Personal channels (prompt 130) take only their principal's personal notifications.
                     continue;
                 }
                 NotificationChannel channel = NotificationChannel.of(entity, List.of());
@@ -183,6 +184,43 @@ public class NotificationService {
                 d.setDeferredReason(reason);
                 deliveries.save(d);
             }
+            return persisted;
+        });
+    }
+
+    /**
+     * Persists a personal notification (prompt 130, event {@code personal}) and enqueues one delivery to the
+     * principal-owned channel {@code channelId}. The channel's quiet hours and the pause apply, except to critical
+     * messages. Personal notifications never reach the instance fan-out, the device inbox or the {@code notifications}
+     * SSE topic.
+     *
+     * @return the persisted message, or null when the channel is missing, disabled or of an unknown type
+     */
+    public NotificationMessage publishPersonal(NotificationMessage message, UUID channelId) {
+        Instant now = clock.instant();
+        Optional<NotificationChannelEntity> entity = channels.findById(channelId);
+        if (entity.isEmpty() || !entity.get().isEnabled() || entity.get().getOwnerPrincipalId() == null
+                || types.find(entity.get().getType()).isEmpty()) {
+            return null;
+        }
+        return store.write(writer -> {
+            NotificationMessage persisted = writer.persist(fill(message, now));
+            NotificationSettings pause = pause();
+            NotificationDeliveryEntity d = delivery(entity.get(), persisted, now);
+            Instant due = now;
+            String reason = null;
+            if (!"critical".equals(persisted.severity())) {
+                Optional<Deferral.Decision> deferral = quietHoursOverride(entity.get(), Deferral.check(
+                        persisted.severity(), QuietHours.fromMap(entity.get().getQuietHours()),
+                        channelService.zone(entity.get().getTimezone()), pause, now));
+                if (deferral.isPresent()) {
+                    due = deferral.get().until();
+                    reason = deferral.get().reason();
+                }
+            }
+            d.setNextAttemptAt(due);
+            d.setDeferredReason(reason);
+            deliveries.save(d);
             return persisted;
         });
     }

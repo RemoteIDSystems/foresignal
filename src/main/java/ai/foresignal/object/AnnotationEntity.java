@@ -16,11 +16,16 @@ import org.hibernate.type.SqlTypes;
  * duplicate-of) are human validation: they feed precision metrics ({@link PrecisionService}) and benchmark-case
  * proposals. {@code target_component} and {@code target_key} record, at creation, which producer made the target
  * (a finding's detector, an intel event's recipe, the situation linker), so precision is computed per producer.
+ *
+ * <p>Prompt 130 makes notes comment threads: {@code parent_id} names the root of a reply, {@code mentions} holds the
+ * handles parsed from {@code @handle} that were notified, {@code resolved} closes a thread and {@code edited_at}
+ * records the last edit of the body.
  */
 @Entity
 @Table(name = "annotation", indexes = {
         @Index(name = "annotation_target_idx", columnList = "target_ref, created_at"),
-        @Index(name = "annotation_verdict_idx", columnList = "kind, target_component, created_at")})
+        @Index(name = "annotation_verdict_idx", columnList = "kind, target_component, created_at"),
+        @Index(name = "annotation_parent_idx", columnList = "parent_id, created_at")})
 public class AnnotationEntity {
 
     @Id
@@ -63,6 +68,19 @@ public class AnnotationEntity {
 
     @Column(name = "precursor_key", length = 300)
     private String precursorKey;
+
+    @Column(name = "parent_id", length = 26)
+    private String parentId;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "mentions")
+    private List<String> mentions = new ArrayList<>();
+
+    @Column(name = "resolved", nullable = false, columnDefinition = "boolean default false")
+    private boolean resolved;
+
+    @Column(name = "edited_at")
+    private Instant editedAt;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -227,5 +245,45 @@ public class AnnotationEntity {
     /** Soft-deletes it. */
     public void setDeletedAt(Instant value) {
         this.deletedAt = value;
+    }
+
+    /** The root annotation of a reply, or null for a root. */
+    public String getParentId() {
+        return parentId;
+    }
+
+    /** Makes this annotation a reply under {@code value}. */
+    public void setParentId(String value) {
+        this.parentId = value;
+    }
+
+    /** The handles mentioned and notified. */
+    public List<String> getMentions() {
+        return mentions == null ? List.of() : mentions;
+    }
+
+    /** Sets the mentioned handles. */
+    public void setMentions(List<String> value) {
+        this.mentions = value == null ? new ArrayList<>() : new ArrayList<>(value);
+    }
+
+    /** True when the thread (rooted here) is resolved. */
+    public boolean isResolved() {
+        return resolved;
+    }
+
+    /** Resolves or reopens the thread. */
+    public void setResolved(boolean value) {
+        this.resolved = value;
+    }
+
+    /** When the body was last edited, or null. */
+    public Instant getEditedAt() {
+        return editedAt;
+    }
+
+    /** Records an edit. */
+    public void setEditedAt(Instant value) {
+        this.editedAt = value;
     }
 }

@@ -86,7 +86,7 @@ public class WorkspacesController {
         ObjectCaller caller = callers.authenticated(request);
         WorkspaceEntity w = workspaces.create(body, caller);
         return ResponseEntity.status(HttpStatus.CREATED).eTag(WorkspaceService.etag(w))
-                .body(WorkspaceService.view(w, caller, true));
+                .body(workspaces.view(w, caller, true));
     }
 
     /** {@code getWorkspace}: with its context, version (also the ETag) and layout. */
@@ -96,7 +96,7 @@ public class WorkspacesController {
             HttpServletRequest request) {
         ObjectCaller caller = callers.authenticated(request);
         WorkspaceEntity w = workspaces.get(workspaceId, caller);
-        return ResponseEntity.ok().eTag(WorkspaceService.etag(w)).body(WorkspaceService.view(w, caller, true));
+        return ResponseEntity.ok().eTag(WorkspaceService.etag(w)).body(workspaces.view(w, caller, true));
     }
 
     /** {@code updateWorkspace}: a JSON merge patch of the metadata. */
@@ -105,7 +105,7 @@ public class WorkspacesController {
     public Map<String, Object> updateWorkspace(@PathVariable String workspaceId, @RequestBody JsonNode body,
             HttpServletRequest request) {
         ObjectCaller caller = callers.authenticated(request);
-        return WorkspaceService.view(workspaces.patch(workspaceId, body, caller), caller, true);
+        return workspaces.view(workspaces.patch(workspaceId, body, caller), caller, true);
     }
 
     /** {@code deleteWorkspace}: owner or admin. */
@@ -122,7 +122,7 @@ public class WorkspacesController {
     public Map<String, Object> putWorkspaceLayout(@PathVariable String workspaceId, @RequestBody JsonNode body,
             HttpServletRequest request) {
         ObjectCaller caller = callers.authenticated(request);
-        return WorkspaceService.view(workspaces.putLayout(workspaceId, body, caller), caller, true);
+        return workspaces.view(workspaces.putLayout(workspaceId, body, caller), caller, true);
     }
 
     /** {@code patchWorkspaceContext}: a JSON merge patch with {@code If-Match: <contextVersion>}. */

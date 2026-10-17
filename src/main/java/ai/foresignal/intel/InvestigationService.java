@@ -39,6 +39,16 @@ public class InvestigationService {
     /** The banner every export carries. */
     public static final String BANNER = "Automated analysis inputs; verify before acting.";
 
+    /** The statuses an investigation may have (prompt 130 adds {@code active} and {@code archived}). */
+    public static final List<String> STATUSES = List.of("open", "active", "closed", "archived");
+
+    /** The item types an investigation accepts (prompt 130 adds evidence items, attachments and any object). */
+    public static final List<String> ITEM_TYPES = List.of("event", "alert", "record", "anomaly", "place",
+            "briefing_run", "note", "evidence-item", "attachment", "object");
+
+    /** The item types that name a 129 object reference and are snapshotted from its envelope (prompt 130). */
+    public static final List<String> OBJECT_ITEM_TYPES = List.of("evidence-item", "attachment", "object");
+
     /** The advisory-lock key that serializes display-id allocation. */
     static final long DISPLAY_ID_LOCK = 0x494E5649L;
 
@@ -77,9 +87,14 @@ public class InvestigationService {
         return status == null ? investigations.findAll() : investigations.findByStatusOrderByUpdatedAtDesc(status);
     }
 
-    /** One investigation, or 404. */
+    /** One investigation by id or display id ({@code INV-yyyy-nnnn}, prompt 130), or 404. */
     public InvestigationEntity get(String id) {
-        return investigations.findById(id).orElseThrow(
+        java.util.Optional<InvestigationEntity> found = id == null ? java.util.Optional.empty()
+                : investigations.findById(id);
+        if (found.isEmpty() && id != null && id.startsWith("INV-")) {
+            found = investigations.findByDisplayId(id);
+        }
+        return found.orElseThrow(
                 () -> new NotFoundException(ErrorCodes.UNKNOWN_INVESTIGATION, "No such investigation: " + id));
     }
 
@@ -88,8 +103,8 @@ public class InvestigationService {
      * prompt 039) is left out unless {@code privateAccess}.
      */
     public List<InvestigationItemEntity> items(String id, boolean privateAccess) {
-        get(id);
-        return visibleItems(items.findByInvestigationIdOrderByIdAsc(id), privateAccess);
+        String canonical = get(id).getId();
+        return visibleItems(items.findByInvestigationIdOrderByIdAsc(canonical), privateAccess);
     }
 
     private static List<InvestigationItemEntity> visibleItems(List<InvestigationItemEntity> rows,
@@ -123,10 +138,14 @@ public class InvestigationService {
         if (body.hasNonNull("tags")) {
             entity.setTags(strings(body.get("tags")));
         }
+        if (body.hasNonNull("status")) {
+            entity.setStatus(status(text(body, "status")));
+        }
+        links(entity, body);
         return investigations.save(entity);
     }
 
-    /** Patches title, status, summary and tags. */
+    /** Patches title, status, summary, tags and the prompt 130 links. */
     @Transactional
     public InvestigationEntity patch(String id, JsonNode body) {
         InvestigationEntity entity = get(id);
@@ -134,8 +153,9 @@ public class InvestigationService {
             entity.setTitle(text(body, "title"));
         }
         if (body.hasNonNull("status")) {
-            entity.setStatus(text(body, "status"));
+            entity.setStatus(status(text(body, "status")));
         }
+        links(entity, body);
         if (body.hasNonNull("summary")) {
             entity.setSummary(text(body, "summary"));
         }
@@ -146,11 +166,74 @@ public class InvestigationService {
         return investigations.save(entity);
     }
 
+    private static String status(String value) {
+        if (!STATUSES.contains(value)) {
+            throw ValidationException.forField("status", "must be one of " + STATUSES);
+        }
+        return value;
+    }
+
+    /** Applies the prompt 130 links (workspace, hypothesis sets, questions, chronicles, reports). */
+    private static void links(InvestigationEntity entity, JsonNode body) {
+        if (body.has("workspaceId")) {
+            String ws = text(body, "workspaceId");
+            if (ws != null && !ai.foresignal.security.Ulids.isUlid(ws)) {
+                throw ValidationException.forField("workspaceId", "must be a workspace id");
+            }
+            entity.setWorkspaceId(ws);
+        }
+        if (body.has("hypothesisSetIds")) {
+            entity.setHypothesisSetIds(strings(body.get("hypothesisSetIds")));
+        }
+        if (body.has("questionIds")) {
+            entity.setQuestionIds(strings(body.get("questionIds")));
+        }
+        if (body.has("chronicleIds")) {
+            entity.setChronicleIds(strings(body.get("chronicleIds")));
+        }
+        if (body.has("reportIds")) {
+            entity.setReportIds(strings(body.get("reportIds")));
+        }
+    }
+
+    /**
+     * Adds an object item (prompt 130): an evidence item, an attachment or any 129 object reference, whose envelope
+     * the caller resolved (and so may see), stored as the snapshot.
+     *
+     * @param id the investigation
+     * @param itemType {@code evidence-item}, {@code attachment} or {@code object}
+     * @param ref the canonical object reference
+     * @param note the note, or null
+     * @param envelope the object's envelope as JSON
+     * @param privateItem true when the object is private (039)
+     * @param actor the actor
+     * @return the saved item
+     */
+    @Transactional
+    public InvestigationItemEntity addObjectItem(String id, String itemType, String ref, String note,
+            Map<String, Object> envelope, boolean privateItem, String actor) {
+        InvestigationEntity investigation = get(id);
+        Instant now = clock.instant();
+        InvestigationItemEntity item = new InvestigationItemEntity(investigation.getId(), itemType, ref, now);
+        item.setAddedBy(actor);
+        item.setNote(note);
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("itemType", itemType);
+        snapshot.put("ref", ref);
+        snapshot.put("takenAt", now.toString());
+        snapshot.put("envelope", envelope);
+        item.setPrivateItem(privateItem);
+        item.setSnapshot(SnapshotCaps.cap(snapshot, SnapshotCaps.ITEM_MAX_BYTES, json));
+        investigation.setUpdatedAt(now);
+        investigations.save(investigation);
+        return items.save(item);
+    }
+
     /** Deletes an investigation and its items. */
     @Transactional
     public void delete(String id) {
         InvestigationEntity entity = get(id);
-        items.deleteByInvestigationId(id);
+        items.deleteByInvestigationId(entity.getId());
         investigations.delete(entity);
     }
 
@@ -169,8 +252,15 @@ public class InvestigationService {
         if (itemType == null || ref == null) {
             throw ValidationException.forField("item", "itemType and ref are required");
         }
+        if (!ITEM_TYPES.contains(itemType)) {
+            throw ValidationException.forField("itemType", "must be one of " + ITEM_TYPES);
+        }
+        if (OBJECT_ITEM_TYPES.contains(itemType)) {
+            throw ValidationException.forField("itemType", itemType + " items are added through their object"
+                    + " reference (addObjectItem)");
+        }
         Instant now = clock.instant();
-        InvestigationItemEntity item = new InvestigationItemEntity(id, itemType, ref, now);
+        InvestigationItemEntity item = new InvestigationItemEntity(investigation.getId(), itemType, ref, now);
         item.setAddedBy(actor);
         if (body.hasNonNull("note")) {
             item.setNote(text(body, "note"));
@@ -191,9 +281,9 @@ public class InvestigationService {
     /** Removes an item of this investigation; an item of another investigation (or a hidden one) is 404. */
     @Transactional
     public void removeItem(String id, long itemId, boolean privateAccess) {
-        get(id);
+        String canonical = get(id).getId();
         InvestigationItemEntity item = items.findById(itemId).orElse(null);
-        if (item == null || !id.equals(item.getInvestigationId()) || (item.isPrivateItem() && !privateAccess)) {
+        if (item == null || !canonical.equals(item.getInvestigationId()) || (item.isPrivateItem() && !privateAccess)) {
             throw new NotFoundException(ErrorCodes.UNKNOWN_INVESTIGATION,
                     "Investigation " + id + " has no item " + itemId + ".");
         }
@@ -266,13 +356,22 @@ public class InvestigationService {
 
     /** Exports an investigation as json, md or geojson, with only the items the caller may see. */
     public String export(String id, String format, boolean privateAccess) {
+        return export(id, format, privateAccess, null);
+    }
+
+    /**
+     * Exports an investigation with its TLP label printed at the top of every rendition (prompt 130, COL-2).
+     *
+     * @param tlp the TLP label (wire value), or null for none
+     */
+    public String export(String id, String format, boolean privateAccess, String tlp) {
         InvestigationEntity investigation = get(id);
         List<InvestigationItemEntity> itemRows =
-                visibleItems(items.findByInvestigationIdOrderByIdAsc(id), privateAccess);
+                visibleItems(items.findByInvestigationIdOrderByIdAsc(investigation.getId()), privateAccess);
         return switch (format == null ? "json" : format) {
-            case "md" -> markdown(investigation, itemRows);
-            case "geojson" -> geoJson(investigation, itemRows);
-            default -> json(investigation, itemRows);
+            case "md" -> (tlp == null ? "" : "**TLP:" + tlp + "**\n\n") + markdown(investigation, itemRows);
+            case "geojson" -> geoJson(investigation, itemRows, tlp);
+            default -> json(investigation, itemRows, tlp);
         };
     }
 
@@ -285,8 +384,11 @@ public class InvestigationService {
         };
     }
 
-    private String json(InvestigationEntity investigation, List<InvestigationItemEntity> itemRows) {
+    private String json(InvestigationEntity investigation, List<InvestigationItemEntity> itemRows, String tlp) {
         Map<String, Object> out = new LinkedHashMap<>();
+        if (tlp != null) {
+            out.put("tlp", tlp);
+        }
         out.put("header", BANNER);
         out.put("investigation", view(investigation));
         List<Map<String, Object>> list = new ArrayList<>();
@@ -326,7 +428,7 @@ public class InvestigationService {
         return sb.toString();
     }
 
-    private String geoJson(InvestigationEntity investigation, List<InvestigationItemEntity> itemRows) {
+    private String geoJson(InvestigationEntity investigation, List<InvestigationItemEntity> itemRows, String tlp) {
         List<Map<String, Object>> features = new ArrayList<>();
         for (InvestigationItemEntity item : itemRows) {
             Map<String, Object> geometry = geometryOf(item);
@@ -343,6 +445,9 @@ public class InvestigationService {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("type", "FeatureCollection");
         out.put("name", investigation.getTitle());
+        if (tlp != null) {
+            out.put("foresignal:tlp", tlp);
+        }
         out.put("foresignal:header", BANNER);
         out.put("foresignal:attributions", attributionTexts(itemRows));
         out.put("features", features);

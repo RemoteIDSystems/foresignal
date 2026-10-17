@@ -127,6 +127,13 @@ foresignal:
   situations:
     auto-start: true
     scheduled: true
+  # Collaboration (prompt 130): the TLP label of a new work product, EXIF stripping of uploaded images, the upload
+  # limit (keep it under spring.servlet.multipart.max-file-size) and the saved-search notification tick.
+  collab:
+    default-tlp: AMBER
+    keep-exif: false
+    max-upload-mb: 50
+    saved-search-scheduled: true
   # Discovery (119): analysis-series auto-registration (02:00 UTC), change points (03:00 and :20), unexplained moves
   # (04:00), co-occurrence (05:00) and the live event-study poll (every minute). Off in tests.
   analytics:

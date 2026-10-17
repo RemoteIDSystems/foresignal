@@ -53,10 +53,15 @@ public class HypothesisController {
     private final HypothesisAnalysis analysis;
     private final HypothesisDrafter drafter;
     private final IntelVisibility visibility;
+    private final ai.foresignal.collab.EvidenceItemService evidenceItems;
+    private final ai.foresignal.object.ObjectCallers callers;
 
     /** Creates the controller. */
     public HypothesisController(HypothesisService service, HypothesisAnalysis analysis, HypothesisDrafter drafter,
-            IntelVisibility visibility) {
+            IntelVisibility visibility, ai.foresignal.collab.EvidenceItemService evidenceItems,
+            ai.foresignal.object.ObjectCallers callers) {
+        this.evidenceItems = evidenceItems;
+        this.callers = callers;
         this.service = service;
         this.analysis = analysis;
         this.drafter = drafter;
@@ -247,7 +252,10 @@ public class HypothesisController {
     @ApiResponse(responseCode = "201", description = "Added")
     public Map<String, Object> addAchEvidence(@PathVariable String setId, @RequestBody JsonNode body,
             HttpServletRequest request) {
-        return HypothesisViews.evidence(service.addEvidence(setId, HypothesisInputs.evidence(body), actor(request),
+        // Prompt 130: evidence items are cited only when the caller can see them.
+        HypothesisInputs.EvidenceDraft draft = evidenceItems.citable(HypothesisInputs.evidence(body),
+                callers.of(request));
+        return HypothesisViews.evidence(service.addEvidence(setId, draft, actor(request),
                 visibility.seesPrivate(request)), false);
     }
 

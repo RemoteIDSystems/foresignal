@@ -15,7 +15,10 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** {@code create_investigation} (agent, prompt 101): opens an operator case file. */
+/**
+ * {@code create_investigation} (agent, prompt 101): opens an operator case file, owned by the caller's principal
+ * and {@code instance}-visible with the default TLP label (prompt 130).
+ */
 @ai.foresignal.security.restrict.RestrictedRead("returns the new investigation id and title, no record content")
 @Component
 public class CreateInvestigationTool implements ForesignalMcpTool {
@@ -25,11 +28,16 @@ public class CreateInvestigationTool implements ForesignalMcpTool {
             "summary", string("An optional markdown summary.", 1, 20_000)));
 
     private final InvestigationService investigations;
+    private final ai.foresignal.collab.AccessResolver access;
+    private final ai.foresignal.object.ObjectCallers callers;
     private final JsonMapper json;
 
     /** Creates the tool. */
-    public CreateInvestigationTool(InvestigationService investigations, JsonMapper json) {
+    public CreateInvestigationTool(InvestigationService investigations, ai.foresignal.collab.AccessResolver access,
+            ai.foresignal.object.ObjectCallers callers, JsonMapper json) {
         this.investigations = investigations;
+        this.access = access;
+        this.callers = callers;
         this.json = json;
     }
 
@@ -66,7 +74,12 @@ public class CreateInvestigationTool implements ForesignalMcpTool {
 
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
+        ai.foresignal.object.ObjectCaller caller = callers.of(context.caller());
         var investigation = investigations.create(args, context.actor());
+        if (caller.principal() != null) {
+            access.register("investigation:" + investigation.getId(), caller.principal(),
+                    ai.foresignal.collab.Visibility.INSTANCE, null);
+        }
         return ToolResult.json(json.valueToTree(Map.of("id", investigation.getId(),
                 "displayId", investigation.getDisplayId(), "title", investigation.getTitle(),
                 "status", investigation.getStatus())));

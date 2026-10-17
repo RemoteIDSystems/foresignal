@@ -102,6 +102,8 @@ dependencies {
     implementation(libs.protobuf.java)
     // Feed-kit item text (073): HTML summaries become plain text with Safelist.none().
     implementation(libs.jsoup)
+    // Attachment text extraction (130): PDF text through Apache PDFBox; files are never rendered or executed.
+    implementation(libs.pdfbox)
     implementation(libs.webp.imageio)
     implementation(libs.sqlite.jdbc)
     // GeoParquet exports (111): parquet-java, minus the Hadoop server stack (HDFS/YARN/MapReduce/Jetty/Jersey).

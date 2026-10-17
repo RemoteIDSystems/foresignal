@@ -1,6 +1,6 @@
 # Foresignal — Client Contract (v1)
 
-How applications built on Foresignal name, fetch, relate, annotate and share focus on the same objects. It is the reference for every frontend (3D globe, 2D map, analyst workstation, satellite and RF consoles, mobile, embedded widgets) and for agents. Prompt 129 implements it; prompt 141's SDKs ship helpers for it. `GET /v1/contract` reports the versions in force.
+How applications built on Foresignal name, fetch, relate, annotate and share focus on the same objects. It is the reference for every frontend (3D globe, 2D map, analyst workstation, satellite and RF consoles, mobile, embedded widgets) and for agents. Prompt 129 implements it, prompt 130 adds collaboration (principals, access lists, TLP, tags, comment threads, attachments, evidence items and saved searches), and prompt 141's SDKs ship helpers for it. `GET /v1/contract` reports the versions in force.
 
 ---
 
@@ -35,14 +35,15 @@ Grammar: `{type}:{id}`. Ids are opaque to clients; compare references as strings
 | `source` | source id | `source:usgs-earthquakes` | 004 |
 | `sensor` | `{kind}:{id}` with kind `source`, `receiver`, `station`, `satellite` (catalog number), `scene` (`{sourceId}/{externalId}`) or `raster-product` | `sensor:satellite:40697` | 129 |
 | `workspace`, `annotation` | ULID | `workspace:01J…` | 129 |
-| `principal`, `group`, `tag`, `attachment`, `evidence-item`, `saved-search` | id | `principal:jsmith` | 023, 130 |
+| `principal` | ULID (the handle also accepted) | `principal:jsmith` | 023, 130 |
+| `group`, `tag`, `attachment`, `evidence-item`, `saved-search` | ULID | `evidence-item:01J…` | 130 |
 | `chronicle` | ULID (display id `CHR-yyyy-nnnn` also accepted) | `chronicle:01J…` | 131 |
 | `report` | ULID (display id `RPT-yyyy-nnnn`) | `report:01J…` | 132 |
 | `news-story`, `outlet` | ULID / id | `news-story:01J…` | 133 |
 | `narrative`, `claim`, `social-comparison` | ULID | `narrative:01J…` | 136, 137 |
 | `remote` | `{instanceId}/{type}:{id}`, read-only material received from another instance | `remote:fs-eu-1/report:01J…` | 132 |
 
-A type is accepted from the prompt that owns it on: `GET /v1/contract` lists the types in force (the 23 types of prompt 129 today; prompts 130–137 add theirs with a contract minor version bump). Unknown types and malformed ids are rejected with `400 OBJECT_REF_INVALID`. A reference to an object that does not exist, did not exist at `asOf`, or that the caller may not see is `404 UNKNOWN_OBJECT`: private and unshared objects are invisible, not forbidden.
+A type is accepted from the prompt that owns it on: `GET /v1/contract` lists the types in force (contract 1.1: the 23 types of prompt 129 and the six of prompt 130; prompts 131–137 add theirs with a contract minor version bump). Unknown types and malformed ids are rejected with `400 OBJECT_REF_INVALID`. A reference to an object that does not exist, did not exist at `asOf`, or that the caller may not see is `404 UNKNOWN_OBJECT`: private and unshared objects are invisible, not forbidden.
 
 ## 3. Object envelope
 
@@ -61,7 +62,8 @@ Every type resolves to the same envelope (`GET /v1/objects/{ref}`, `POST /v1/obj
   "geometry": { "type": "Polygon", "coordinates": [[…]] },
   "bbox": [32.1, 11.2, 45.0, 20.4],
   "private": false,
-  "tags": [],
+  "tlp": null,
+  "tags": ["red-sea"],
   "provenance": { "sourceIds": ["aisstream", "nga-msi-warnings"], "manifestId": "01JA9…", "asOfSeq": 88120391 },
   "links": { "self": "/v1/situations/01JA8…", "related": "/v1/objects/situation:01JA8…/related" },
   "actions": [
@@ -76,7 +78,8 @@ Every type resolves to the same envelope (`GET /v1/objects/{ref}`, `POST /v1/obj
 - The type-specific API (`links.self`) has the full object.
 - `summary` is at most 280 characters; `textOrigin` says whether it is deterministic or LLM-written (an alert's enrichment summary is `llm`).
 - `geometry` is simplified to at most 500 vertices (topology-preserving), or a point; `bbox` is the unsimplified extent.
-- `tags` stays empty until prompt 130 adds the caller's visible tags.
+- `tags` lists the names of the caller's visible tags (its personal tags and the shared tags it may see, §10).
+- `tlp` is the TLP 2.0 label of a work product (§10) and `null` for data and analytic objects. A work product the caller may not see is not returned at all.
 - **`asOf`** (transaction time) is honored for records (the version known then, `400 ASOF_BEYOND_RETENTION` beyond the source's horizon) and situations (status and severity from the daily snapshot on or before that day). Every other type exists at `asOf` only if it was created by then and otherwise shows its current state. A record reference with `@{seq}` always resolves to that version.
 - **`actions`** list only what the **calling token** may do with this object, from the access policy and the object's state, so clients render buttons from them instead of hard-coding permissions:
 
@@ -90,8 +93,10 @@ Every type resolves to the same envelope (`GET /v1/objects/{ref}`, `POST /v1/obj
 | `acknowledge` | agent | a `firing` alert | `POST /v1/alerts/{id}/ack` |
 | `open-investigation` | agent | records, canonical events, intel events, situations, findings, alerts (not when dismissed) | `POST /v1/investigations` |
 | `delete` | admin | workspaces, annotations | `DELETE` on the object |
+| `share` | owner or editor of a work product | investigations, workspaces, saved searches, notes, attachments, evidence items, shared tags | `POST /v1/objects/{ref}/share` (agent) |
+| `edit-acl` | owner or editor of a work product | the same | `PUT /v1/objects/{ref}/acl` (agent) |
 
-Anonymous callers (`openReads`) get no actions.
+Anonymous callers (`openReads`) get no actions and see no work products. Principals, groups, tags and saved searches are not annotated or added to workspaces.
 
 ### 3.1 Composed reads for panels
 
@@ -173,7 +178,7 @@ A workspace is a shared investigation focus. Its **context** is small, versioned
 }
 ```
 
-**Roles.** The creator owns a workspace; members are `viewer` or `editor` (principal id → role). Reading needs ownership or membership (an admin token may read any workspace), and a private workspace is also invisible without private access; everyone else gets `404 UNKNOWN_WORKSPACE`. Context and layout changes need the owner or an editor; metadata changes (name, members, saved views, investigation, `private`) need the owner, or an editor whose token holds agent scope; deleting needs the owner or an admin. A missing role is `403 WORKSPACE_FORBIDDEN`. Every workspace operation needs a token.
+**Roles.** The creator owns a workspace; members are `viewer` or `editor` (principal id → role), and prompt 130's access list adds principal, group and instance grants (an access-list `owner` or `editor` counts as an editor, a `commenter` or `viewer` as a viewer; ownership transfers through the access list). Reading needs ownership, membership or a grant (an admin token may read any workspace), and a private workspace is also invisible without private access; everyone else gets `404 UNKNOWN_WORKSPACE`. `GET /v1/workspaces` lists owned and member workspaces; workspaces shared through the access list are listed in `/v1/shared-with-me`. Context and layout changes need the owner or an editor; metadata changes (name, members, saved views, investigation, `private`) need the owner, or an editor whose token holds agent scope; deleting needs the owner or an admin. A missing role is `403 WORKSPACE_FORBIDDEN`. Every workspace operation needs a token.
 
 Rules:
 - **Updates** are JSON merge patches (`application/merge-patch+json`) to `PATCH /v1/workspaces/{id}/context` with `If-Match: <contextVersion>` (`42`, `"42"` or `W/"42"`) and, optionally, `Foresignal-Client-Id: <clientId>`. A missing `If-Match` is `400`; a stale version gets `412 WORKSPACE_CONTEXT_STALE` with the current `contextVersion`, and the client re-reads, re-applies its intent and retries. The response is the new state, and its ETag is the new version. `GET /v1/workspaces/{id}` carries the version as its ETag too.
@@ -185,7 +190,7 @@ Rules:
 
 ## 6. Deep links
 
-A context travels between applications as a deep link payload: `{"v":1,"ws":"01JAB…","ctx":{…context…}}`, JSON, base64url-encoded without padding, ≤ 2 KB (`413` beyond), with null members left out. Applications accept it in a URL fragment, `#fs=<payload>`, on their own host. `GET /v1/workspaces/{id}/context-link` and `POST /v1/context-links {context, workspaceId?}` produce validated payloads (`version`, `workspaceId`, `payload`, `fragment`, `bytes`). `POST /v1/workspaces/{id}/share` (agent; owner or editor) issues a read-only 112 share link (`/v1/k/{key}`, target type `workspace`, `expiresAt` up to 30 days, `maxUses`) that shows the workspace's name, context version, context and deep link, never its layout, owner or members; a private workspace is never shared.
+A context travels between applications as a deep link payload: `{"v":1,"ws":"01JAB…","ctx":{…context…}}`, JSON, base64url-encoded without padding, ≤ 2 KB (`413` beyond), with null members left out. Applications accept it in a URL fragment, `#fs=<payload>`, on their own host. `GET /v1/workspaces/{id}/context-link` and `POST /v1/context-links {context, workspaceId?}` produce validated payloads (`version`, `workspaceId`, `payload`, `fragment`, `bytes`). `POST /v1/workspaces/{id}/share` (agent; owner or editor) issues a read-only 112 share link (`/v1/k/{key}`, target type `workspace`, `expiresAt` up to 30 days, `maxUses`) that shows the workspace's name, context version, context and deep link, never its layout, owner or members; a private workspace is never shared. A share link is public, so the workspace's TLP label must be `CLEAR` (`403 TLP_VIOLATION` otherwise; set the label with `PUT /v1/objects/workspace:{id}/acl`).
 
 ## 7. Time model for clients
 
@@ -198,7 +203,7 @@ A context travels between applications as a deep link payload: `{"v":1,"ws":"01J
 - Fetch envelopes in batches (`resolve`, ≤ 500 refs; missing and invisible refs come back in `missing`, not as errors) and cache by `ref` with ETags.
 - Show provenance (sources, manifest) and caveats wherever you show a finding, a probability or a relation; show ICD 203 terms exactly as returned.
 - Show coverage (`observability` layers) next to any absence-based view.
-- Validation is how analysts teach the system; make it one click on any finding, event or situation. Notes need any token; verdicts (`confirmed`, `rejected`, `needs-review`, `duplicate-of` with `duplicateOfRef`) need agent scope. There is no `tag` annotation kind: labels are 130 tags, and a note may carry free tags. The author or an admin edits (a merge patch) or deletes an annotation; changing a verdict still needs agent scope. Annotations of a private object are private.
+- Validation is how analysts teach the system; make it one click on any finding, event or situation. Notes need any token (on a work product, the commenter role); verdicts (`confirmed`, `rejected`, `needs-review`, `duplicate-of` with `duplicateOfRef`) need agent scope. There is no `tag` annotation kind: labels are 130 tags, and a note may carry free tags. The author or an admin edits (a merge patch) or deletes an annotation; changing a verdict still needs agent scope. Annotations of a private object are private. Notes are comment threads (§10).
 - Verdicts feed `GET /v1/analytics/precision?component&since`: per finding detector, intel-event recipe, situation linker and precursor (precursor-active findings), the share confirmed among the latest verdict per object, with a 95% Wilson interval; `needs-review` counts as unlabeled and `duplicate-of` as labeled but not confirmed. A verdict on an object with a time window proposes a historical 123 benchmark case that an operator accepts; nothing is added automatically. A `rejected` verdict dismisses a finding or intel event only when its agent-scope author sends `applyStatus: true`.
 - Sensor discovery (`GET /v1/sensors?bbox|placeId&from&to&kinds&limit`, window ≤ 7 days) lists `sensor` envelopes: enabled sources whose 116 detection probability for the area is above 0.2 (with `pDetect`, method and families), local receivers whose last reported position is within 400 km, SatDump stations within 2,500 km, curated satellites (`intel/satellite-capabilities.json`, operator-extensible) with predicted passes above 10° (`passes`, `capabilities`), STAC scenes in the window (`footprint`, `acquiredAt`, thumbnail link) and raster products over the area. Foresignal cannot task public satellites or third-party sensors.
 - Offline and edge clients use offline packs (111) and federation (113); the context and references are the same.
@@ -212,11 +217,18 @@ A context travels between applications as a deep link payload: `{"v":1,"ws":"01J
 
 ## 10. Collaboration (prompt 130)
 
-- **Who:** every request runs as a principal (person, agent or service) through its token; `GET /v1/me` returns the principal, scopes, groups and preferences.
-- **Data vs work products:** records and analytic objects are readable per scope. Work products (investigations, workspaces, chronicles, reports, saved searches, notes, attachments, evidence items) have an owner, a visibility and an access list; without access they are invisible.
-- **TLP:** every work product carries `tlp` (`CLEAR`, `GREEN`, `AMBER`, `AMBER+STRICT`, `RED`). Show it prominently on screen, in exports and in every rendition; never offer a share target the label forbids (the API refuses with `TLP_VIOLATION`).
-- **Tags** (personal or shared), **comments** (threads, `@mentions`), **attachments** and **evidence items** (Admiralty grades: source reliability A–F, information credibility 1–6) work on any object reference. Envelopes include the caller's visible tags.
-- **Shared with me** and **my items** are single lists (`/v1/shared-with-me`, `/v1/my`), so a workbench's navigation (my investigations, shared with me, recent) needs no client bookkeeping.
+- **Who:** every request runs as a principal (person, agent or service) through its token; there are no passwords. `GET /v1/me` (MCP `whoami`) returns the principal, the token, its scopes, groups, notification preferences and the instance's default TLP label. `GET /v1/principals` lists handles, display names, kinds and avatars; admins create principals and issue their tokens (`POST /v1/principals/{id}/tokens`). A disabled principal's tokens stop working.
+- **Groups** (`/v1/groups`) are named sets of principals used as grantees; the creator is a manager, and managers or admins change them.
+- **Data vs work products:** records and analytic objects stay readable per scope. Work products (investigations, workspaces, chronicles, reports, saved searches, notes, attachments, evidence items, shared tags) have an owner, a `visibility` (`private`: owner only; `shared`: owner and access list; `instance`: also every principal as a viewer) and an access list of grants (`principal:{id}`, `group:{id}` or `instance`, as `viewer`, `commenter`, `editor` or `owner`, optionally expiring). Viewers read, commenters also comment, editors also edit and share, owners also delete and transfer ownership. Without access a work product is invisible (`404`), everywhere: envelopes, listings, search, saved searches, SSE and exports. Admins see everything.
+- **Access lists:** `GET/PUT /v1/objects/{ref}/acl` (owner or editor) and `POST /v1/objects/{ref}/share {grantees, role, message, expiresAt}` (notifies the grantees). Every change is audited. New investigations are `instance`-visible (as before prompt 130); new saved searches, attachments and evidence items are `private`; personal tags are visible only to their owner and shared tags default to `instance`.
+- **TLP:** every work product carries `tlp` (`CLEAR`, `GREEN`, `AMBER`, `AMBER+STRICT`, `RED`; default `AMBER`). The label bounds who may receive it: `RED` only principals named in the access list; `AMBER+STRICT` named principals, and groups or the instance only when everyone reached belongs to the owner's organization; `AMBER` likewise here, plus named recipients' organizations on other instances; `GREEN` the instance and federated peers but no public link; `CLEAR` anyone, public share links included. The API refuses anything else with `403 TLP_VIOLATION` and the rule; never offer a target the label forbids. Derived products inherit the strictest label of their inputs (an evidence item with a `RED` attachment is `RED`; an investigation that receives a `RED` item becomes `RED`). Show the label prominently on screen, in exports (investigation exports print it at the top) and in every rendition.
+- **Tags** (`/v1/tags`): personal or shared, assigned to up to 500 references at once (`POST /v1/tags/{id}/assign` and `/unassign`; references the caller cannot see are skipped and listed); `GET /v1/tags/{id}/objects` and `GET /v1/objects/{ref}/tags`. Envelopes carry the caller's visible tag names.
+- **Comments:** notes are thread roots; `POST /v1/annotations/{id}/replies`, `POST /v1/annotations/{id}/resolve {resolved}` and `GET /v1/objects/{ref}/annotations?thread=true` (`AnnotationThread`s). `@handle` mentions notify only principals who can see the target; the others come back to the author in `droppedMentions`. A reply notifies the thread's earlier participants. A note on a work product carries its label.
+- **Attachments** (`POST /v1/attachments`, multipart, ≤ 50 MB by default): PNG and JPEG (checked by ImageGuard, EXIF stripped), PDF, and UTF-8 plain text, CSV, JSON, GeoJSON, KML and Markdown, decided from the bytes; anything else is `415`. Files are stored content-addressed, their text extracted for search, and served only by `GET /v1/attachments/{id}/content` as an attachment (inline only for images) with `X-Content-Type-Options: nosniff`. Never render one as active content.
+- **Evidence items** (`/v1/evidence-items`): title, description, attachments, a link (stored, never fetched), the Admiralty grade (source reliability `A`–`F`, information credibility `1`–`6`, shown as `grade`, e.g. `B2`), geometry, event time and tags. They are investigation items, ACH evidence (`source: evidence-item`) and relation endpoints; their originator for 116 independence is `operator:{handle}` unless they cite a cataloged source. Items labeled `CLEAR` or `GREEN` are embedded for semantic search.
+- **Saved searches** (`/v1/saved-searches`): text, types, structured filters, area, time window and tags, run on demand (`/results`, envelopes the caller can see); with `notify`, new matches reach the owner at most hourly.
+- **Shared with me** and **my items** are single lists (`/v1/shared-with-me`, `/v1/my`, MCP `list_shared_with_me`), so a workbench's navigation (my investigations, shared with me, recent) needs no client bookkeeping. `GET /v1/investigations?scope=mine|shared|all&status` lists investigations, and display ids (`INV-yyyy-nnnn`) work in every investigation path.
+- **Notifications:** `GET /v1/inbox` is the caller's personal inbox (mentions, shares, replies, saved-search matches), and the `me` topic on `/v1/events/stream` streams the same items (`share.received`, `mention`, `comment.reply`, `saved-search.matches`), resumable by id. `PUT /v1/me/notification-preferences` routes personal events to channels the principal owns (its own ntfy topic, email address, Matrix room, webhook…) with quiet hours; those channels never receive the instance's alert fan-out.
 
 ## 11. Chronicles (prompt 131)
 
@@ -263,5 +275,5 @@ A chronicle is a saved monitoring thread with its own recorded history. Clients:
 
 ## 17. Versioning
 
-- `GET /v1/contract` → `{contractVersion, objectTypes, relationTypes, contextSchemaVersion, deepLinkVersion}` (today `1.0`, the 23 types of §2 owned by prompts up to 129, the 15 relation types of §4, `1`, `1`).
+- `GET /v1/contract` → `{contractVersion, objectTypes, relationTypes, contextSchemaVersion, deepLinkVersion}` (today `1.1`, the 29 types of §2 owned by prompts up to 130, the 15 relation types of §4, `1`, `1`).
 - Within `/v1`, changes are additive (new types, relation types, optional context fields). Removing or renaming anything requires a new major contract version and a deprecation period announced through `Deprecation` headers.

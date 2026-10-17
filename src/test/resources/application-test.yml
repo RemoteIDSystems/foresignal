@@ -118,6 +118,10 @@ foresignal:
   infra:
     auto-rebuild: false
     auth-backoff-enabled: false
+  # Saved-search match notifications do not run on their own in tests; SavedSearchIT calls
+  # SavedSearchService.notifyDue() (prompt 130).
+  collab:
+    saved-search-scheduled: false
 
 logging:
   level:

@@ -1207,7 +1207,8 @@ the detector version and parameters needed to reproduce it.
 - **Investigations.** Case files (`INV-{yyyy}-{nnnn}`) with items that keep a snapshot taken when
   added, so the evidence survives retention; `GET /v1/investigations/{id}/export?format=json|md|geojson`
   exports it, each format carrying the "Automated analysis inputs; verify before acting" header and
-  licence attributions.
+  licence attributions. Since prompt 130 investigations have an owner, an access list and a TLP label, which the
+  export prints at the top (see [People, sharing and TLP](#people-sharing-and-tlp-prompt-130)).
 - **Exposure.** `POST /v1/exposure {geometry | placeId | eventId}` counts reference facilities,
   places, live aircraft and vessels and, with a population pack, an estimate. Every section carries a
   `status`; the population section is `not-installed` until a pack is imported.
@@ -1348,6 +1349,11 @@ with its config and secret fields. Secret fields (`secrets`) are write-only: the
 rest, never returned (a channel lists only the names of its set secrets in `secretFields`), and a
 `PUT` that omits `secrets` keeps the stored ones. `POST /v1/channels/{id}/test` sends a test message
 at once and returns the destination's answer without storing anything.
+
+A channel with an `ownerPrincipalId` is a principal's **personal channel** (prompt 130): it is created and replaced
+through that principal's notification preferences, takes only that principal's personal notifications (mentions,
+shares, replies) and never the instance's alert, briefing or system fan-out. See
+[People, sharing and TLP](#people-sharing-and-tlp-prompt-130).
 
 Every message is stored as a notification before it is delivered, even when no channel takes it.
 Deliveries are durable: a failure retries after 10 s, 1 min, 5 min, 30 min and 2 h, then fails, and
@@ -2309,7 +2315,9 @@ Every caller authenticates with `Authorization: Bearer fsr_…`. Scopes, least t
 - **Create:** `POST /v1/tokens {"name": "openclaw", "scope": "agent", "expiresAt": null}` answers
   `201` with `token` once; only its SHA-256 and its first eight characters (`tokenPrefix`) are
   stored. Every token belongs to a principal: name an existing one with `principalId` (id or
-  handle), or a new one named after the token is created.
+  handle), or a new one named after the token is created. Prompt 130 adds the principal endpoints
+  (`/v1/principals`, `POST /v1/principals/{id}/tokens`), profiles, groups and disabling; see
+  [People, sharing and TLP](#people-sharing-and-tlp-prompt-130).
 - **List:** `GET /v1/tokens` shows names, scopes, prefixes, `lastUsedAt` (updated at most once a
   minute), expiry, revocation, device and restrictions, never values.
 - **Revoke:** `DELETE /v1/tokens/{id}`. The token stops working at once, its tickets are dropped and
@@ -5428,7 +5436,7 @@ File → New Calendar Subscription; in Google Calendar: Other calendars → From
 
 `POST /v1/share-links` (agent token) creates an expiring link (default 7 days, at most 30) to one `record`,
 `alert`, `view`, `track`, `briefing-run` or `export` (a workspace is shared with `POST /v1/workspaces/{id}/share`,
-see "Objects, workspaces and validation"); the `fss_` key is returned once and only its hash is stored. The link works without a token, only at `GET /v1/k/{key}` (JSON, or GeoJSON with
+see "Objects, workspaces and validation", and only while its TLP label is `CLEAR`); the `fss_` key is returned once and only its hash is stored. The link works without a token, only at `GET /v1/k/{key}` (JSON, or GeoJSON with
 `Accept: application/geo+json`), `/v1/k/{key}/geojson`, `/v1/k/{key}/tiles/{z}/{x}/{y}.mvt` (views) and
 `/v1/k/{key}/download` (exports); it is never accepted as a bearer token. Uses are counted (`maxUses`), limited to
 60 a minute per link, and audited (the first use and then at most one an hour); a revoked, expired or used-up link
@@ -6970,8 +6978,9 @@ Every object has a reference of the form `{type}:{id}`: `record:{sourceId}/{exte
 `finding:{id}`, `intel-event:{id}`, `canonical-event:{id}`, `entity:{id}`, `precursor:{id}`, `base-rate:{id}`,
 `hypothesis-set:{id}`, `hypothesis:{id}`, `indicator:{id}`, `question:{id}`, `forecast:{id}`, `assessment:{id}`,
 `alert:{id}`, `investigation:{id}`, `place:{id}`, `view:{id}`, `watchlist:{id}`, `source:{id}`,
-`sensor:{kind}:{id}`, `workspace:{id}` and `annotation:{id}`. `GET /v1/contract` (read) lists the types, the relation
-types, the confidence labels and the client kinds with the contract version (`1.0`).
+`sensor:{kind}:{id}`, `workspace:{id}` and `annotation:{id}`, and since prompt 130 `principal:{id or handle}`,
+`group:{id}`, `tag:{id}`, `attachment:{id}`, `evidence-item:{id}` and `saved-search:{id}`. `GET /v1/contract` (read)
+lists the types, the relation types, the confidence labels and the client kinds with the contract version (`1.1`).
 
 In a URL path the reference is one segment, so its `/` is written `%2F`
 (`GET /v1/objects/record:usgs-quakes%2Fus7000abcd`). Foresignal's Tomcat connector passes encoded slashes through for
@@ -7032,7 +7041,9 @@ itself.
 10,000 characters and up to 20 tags) or a `verdict`: `confirmed`, `rejected`, `needs-review` or `duplicate-of` (with
 `duplicateOfRef`). `GET` lists them (`thread` for replies), `PATCH /v1/annotations/{id}` (JSON merge patch) edits one
 and `DELETE` removes it; 404 `UNKNOWN_ANNOTATION`. A note tagged `propose-watch` is how a client suggests a watch; it is
-an annotation, not a 102 proposal. A private annotation is visible only to callers with private access.
+an annotation, not a 102 proposal. A private annotation is visible only to callers with private access. Prompt 130 makes
+notes comment threads with replies, `@mentions` and resolving (see
+[People, sharing and TLP](#people-sharing-and-tlp-prompt-130)).
 
 Verdicts do three things:
 
@@ -7055,7 +7066,8 @@ change and remove one (404 `UNKNOWN_WORKSPACE`, 403 `WORKSPACE_FORBIDDEN`). Its 
 `activeHypothesisSetId`, `filters` and `layers`; its **layout** (`PUT …/layout`, at most 64 KB) is free-form client
 state.
 
-Roles: the owner, and members (at most 200) as `editor` or `viewer`. Owners and editors change the context and layout;
+Roles: the owner, and members (at most 200) as `editor` or `viewer`; since prompt 130 the access list adds principal,
+group and instance grants, and ownership moves through it. Owners and editors change the context and layout;
 the owner, or an editor with an agent token, changes the name, members, saved views and the private flag; the owner or
 an admin deletes it; an admin may read any workspace. A private workspace is visible only to callers with private
 access.
@@ -7070,6 +7082,8 @@ of connected clients changes (checked every 2 seconds).
 **Deep links and sharing.** `GET /v1/workspaces/{id}/context-link` and `POST /v1/context-links` encode a context as a
 `#fs=` fragment (at most 2,048 bytes) a client can open without a server round trip. `POST /v1/workspaces/{id}/share`
 (agent) creates an expiring share link to a read-only snapshot of the workspace, with the same rules as other share links.
+A share link is public, so the workspace's TLP label must be `CLEAR` first (`PUT /v1/objects/workspace:{id}/acl` with
+`"tlp": "CLEAR"`); otherwise it answers `403 TLP_VIOLATION`.
 
 ### Sensor discovery
 
@@ -7089,3 +7103,163 @@ entries with the same NORAD number. The figures are nominal, not per-pass.
 
 `get_object`, `get_related` and `get_workspace_context` (read; `get_object` and `get_related` are also in the
 analyst's read catalog), `annotate` (read for notes, agent for verdicts) and `set_workspace_focus` (agent).
+
+## People, sharing and TLP (prompt 130)
+
+Foresignal can serve several named people and agents on one instance without becoming a user directory. Everyone
+works through a **principal** that holds scoped tokens; there are no passwords. Records and analytic objects stay
+readable per scope as before; **work products** (investigations, workspaces, saved searches, notes, attachments,
+evidence items, shared tags, and the chronicles and reports of later prompts) get an owner, an access list and a TLP
+label.
+
+### Principals and their tokens
+
+| Call | What it does |
+|---|---|
+| `GET /v1/me` | The calling principal in full, the token used, the scopes it may call, its groups, its notification preferences and the instance's default TLP |
+| `GET /v1/principals` | Handles, display names, kinds and avatars of every principal (`q`, `kind`); any token |
+| `POST /v1/principals` (admin) | Create a `person`, `agent` or `service`: `handle` (`^[a-z0-9][a-z0-9_.-]{1,31}$`, unique, `409 PRINCIPAL_HANDLE_TAKEN`), `displayName`, and optionally `email`, `avatarMediaId`, `timezone` and `organization` |
+| `PATCH /v1/principals/{id}` (admin, merge patch) | Change the profile; `"disabled": true` stops every token of the principal at once (the bootstrap admin token always works). The handle never changes |
+| `POST /v1/principals/{id}/tokens` (admin) | Issue a token for that principal (an `ApiTokenInput`; the scope is your choice); shown once |
+
+```json
+POST /v1/principals
+{"handle": "jsmith", "displayName": "Jo Smith", "kind": "person", "email": "jo@example.org",
+ "timezone": "Europe/London", "organization": "Example Analysis Ltd"}
+
+POST /v1/principals/jsmith/tokens
+{"name": "jsmith-laptop", "scope": "read"}
+```
+
+Pairing codes (`POST /v1/pairing-codes` with `principalId`) give a person's phone its own token under their principal.
+The bootstrap admin token belongs to the principal `owner`; every token created before prompt 130 already has a
+principal (023). `email` is used only for that principal's own email notifications and is shown only to admins and the
+principal itself. **`organization` matters**: it draws the TLP `AMBER` boundaries below. Principals without an
+organization count as one organization, so a single-organization instance needs none.
+
+### Groups
+
+`POST /v1/groups` (agent) creates a group; its creator becomes a `manager`. `POST /v1/groups/{id}/members`
+(`{"members": [{"principalId": "jsmith", "role": "member"}]}`) and `DELETE /v1/groups/{id}/members?principalId=` add and
+remove members; managers and admins change and delete groups (deleting one removes its grants). Any token reads
+`GET /v1/groups` (`member=` filters by principal) and `GET /v1/groups/{id}` with its members.
+
+### What is shareable and who sees it
+
+A work product has a `visibility`: `private` (its owner and admins only), `shared` (the owner and the access list) or
+`instance` (also every principal as a viewer). Its **access list** grants `viewer`, `commenter`, `editor` or `owner` to
+`principal:{id}`, `group:{id}` or `instance`, optionally until `expiresAt`. Viewers read, commenters also comment,
+editors also edit and share, owners also delete and transfer ownership. Admin tokens see everything.
+
+| Work product | Default when created |
+|---|---|
+| Investigation | `instance` (investigations were instance-wide before prompt 130); pass `"visibility": "private"` to keep one to yourself |
+| Workspace | its owner and its 129 members (`private` without members, `shared` with them) |
+| Saved search, attachment, evidence item | `private` |
+| Tag | personal tags are visible only to their owner; shared tags default to `instance` |
+| Note (annotation) | visible to whoever can see the object it is on |
+
+Without access a work product is **invisible**: every API, envelope, listing, search, saved search, SSE topic and export
+answers as if it did not exist (`404`), so ids do not leak. Workspace members keep their roles; investigations, saved
+searches and the rest follow the access list alone.
+
+- `GET /v1/objects/{ref}/acl` (owner or editor): owner, visibility, TLP and grants.
+- `PUT /v1/objects/{ref}/acl` (agent; owner or editor): replace the grants, the visibility and the TLP label; only
+  owners grant `owner` or transfer ownership (`"owner": "jsmith"`).
+- `POST /v1/objects/{ref}/share` (agent; owner or editor): add grants and notify the people reached (`share.received`),
+  with an optional `message` and `expiresAt`. Sharing a private object makes it `shared`.
+- `GET /v1/shared-with-me` and `GET /v1/my` (`type`, `cursor`) list what reached you and what you own;
+  `GET /v1/investigations?scope=mine|shared|all&status=` does the same for investigations. Display ids
+  (`INV-2026-0042`) work in every investigation path and object reference.
+
+Every share and access-list change is written to the audit log (`GET /v1/audit`, target type `object_acl`, with the
+grants, visibility, TLP and any ownership transfer); principal and group changes are audited too.
+
+### TLP rules
+
+Every work product carries a Traffic Light Protocol 2.0 label, `tlp`: `CLEAR`, `GREEN`, `AMBER` (the default,
+`foresignal.collab.default-tlp`), `AMBER+STRICT` or `RED`. The label bounds who may receive the object outside its
+owner; `EgressPolicy` checks every grant, visibility and share link against it and refuses with `403 TLP_VIOLATION`,
+naming the rule (`rule`):
+
+| Label | Principals named in the access list | Groups and `instance` | Public share links | Federated peers | Named recipients on other instances |
+|---|---|---|---|---|---|
+| `RED` | yes | no | no | no | yes |
+| `AMBER+STRICT` | yes | only when everyone reached is in the owner's organization | no | no | only of the owner's organization |
+| `AMBER` | yes | only when everyone reached is in the owner's organization | no | no | yes, with their organization |
+| `GREEN` | yes | yes | no | yes | yes |
+| `CLEAR` | yes | yes | yes | yes | yes |
+
+- **Derived products inherit the strictest label of their inputs**: an evidence item with a `RED` attachment is `RED`,
+  and asking for a weaker label is refused; an investigation that receives a `RED` item becomes `RED` (its grants must
+  allow it); a comment on a work product carries the product's label.
+- **Renditions print the label**: investigation exports start with `TLP:<label>` (and send `Foresignal-TLP`), personal
+  notifications start with `[TLP:<label>]`, and envelopes carry `tlp`.
+- A workspace share link (112) needs `CLEAR`.
+
+### Tags, comments and mentions
+
+- **Tags** (`/v1/tags`): `POST /v1/tags {"name": "red-sea", "namespace": "personal" | "shared"}`; assign one to up to
+  500 references at once with `POST /v1/tags/{id}/assign {"refs": [...]}` (and `/unassign`); references you cannot see
+  are skipped and listed. `GET /v1/tags/{id}/objects` and `GET /v1/objects/{ref}/tags` read them, and every envelope
+  carries the names of the caller's visible tags.
+- **Comments**: a note is a thread; `POST /v1/annotations/{id}/replies {"body": "…"}` replies,
+  `POST /v1/annotations/{id}/resolve {"resolved": true}` resolves (or reopens), and
+  `GET /v1/objects/{ref}/annotations?thread=true` lists threads. On a work product commenting needs the `commenter`
+  role. `@handle` notifies that principal only if it can see the object; otherwise the mention is dropped and returned
+  to the author in `droppedMentions`. A reply notifies the thread's earlier participants.
+
+### Uploads and their limits
+
+`POST /v1/attachments` (multipart `file`, optional `tlp` and `visibility`; any token) stores a document or image:
+
+- **Allowed types**, decided from the bytes, never from the client: PNG and JPEG (checked by the 043 ImageGuard), PDF,
+  and UTF-8 plain text, CSV, JSON, GeoJSON, KML and Markdown. Anything else is `415 UPLOAD_TYPE_NOT_ALLOWED`.
+- **Size**: at most `foresignal.collab.max-upload-mb` (50) MB, `413 UPLOAD_TOO_LARGE` above; keep it under
+  `spring.servlet.multipart.max-file-size` (200 MB), which Tomcat enforces first.
+- **Images lose their EXIF, XMP and IPTC metadata** (including GPS positions) unless `foresignal.collab.keep-exif` is
+  true; pixels are untouched.
+- **Text** is extracted for search (PDF through Apache PDFBox, KML with its markup stripped), at most 1 MB.
+- **Storage** is content-addressed under `${FORESIGNAL_DATA_DIR}/attachments/{ab}/{sha256}.{ext}`; identical uploads
+  share one file, which goes when the last attachment using it is deleted. Include that directory in your backups.
+- **Serving**: `GET /v1/attachments/{id}/content` sends the stored safe content type with
+  `Content-Disposition: attachment` (inline only for images), `X-Content-Type-Options: nosniff` and a sandboxing
+  Content-Security-Policy. Files are data, never code: nothing uploaded is executed or rendered as active content.
+- An attachment cited by an evidence item cannot be deleted (`409 ATTACHMENT_IN_USE`).
+
+### Evidence items and saved searches
+
+- **Evidence items** (`/v1/evidence-items`) turn documents, images and links into graded evidence: a title,
+  description, attachments, a link (stored as metadata, never fetched), the Admiralty grade (source reliability `A`–`F`
+  and information credibility `1`–`6`, default `F6`), an optional cited cataloged source, cited objects, geometry,
+  event time and tags. They can be investigation items, ACH evidence (`"source": "evidence-item"`) and relation
+  endpoints. For 116 independence an evidence item's originator is `operator:{handle}` unless it cites a cataloged
+  source. Only `CLEAR` and `GREEN` items are embedded for semantic search (the text would otherwise reach an embedding
+  provider); the others match by text.
+- **Saved searches** (`/v1/saved-searches`) store a query (text, object types, filters, area, time window, tags);
+  `GET /v1/saved-searches/{id}/results` runs it over the envelopes the caller can see. With `"notify": true` new
+  matches reach the owner's inbox at most hourly (`saved-search.matches`; checked every 15 minutes,
+  `foresignal.collab.saved-search-scheduled`).
+
+### Notifications for people
+
+`GET /v1/inbox` is the caller's personal inbox (mentions, shares, replies, saved-search matches), newest first;
+listing an item marks it read. The `me` topic on `/v1/events/stream` streams the same items
+(`share.received`, `mention`, `comment.reply`, `saved-search.matches`) and resumes by id. To reach a person elsewhere,
+they set `PUT /v1/me/notification-preferences`:
+
+```json
+{"items": [{"eventTypes": ["mention", "share", "comment-reply"],
+            "channel": {"type": "ntfy", "config": {"topic": "jsmith-foresignal"}},
+            "quietHours": {"start": "22:00", "end": "07:00"}}]}
+```
+
+Each preference owns a personal 018 channel (validated like any channel, including the outbound URL policy) delivered
+by the same worker, with the principal's timezone and the preference's quiet hours. An `email` channel without `to`
+goes to the principal's own email. Personal channels never receive the instance's alerts, briefings or system events,
+and personal notifications never appear in the device inbox or on the `notifications` topic.
+
+### MCP
+
+`whoami`, `list_shared_with_me`, `tag_objects` and `comment` (read) and `share_object` (agent). `annotate` follows the
+same comment rules, and `create_investigation` and `add_to_investigation` respect ownership and the editor role.

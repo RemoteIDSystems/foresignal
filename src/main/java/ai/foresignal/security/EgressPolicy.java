@@ -91,6 +91,14 @@ import org.springframework.stereotype.Component;
  *       callers; a record whose {@code posSource} cannot be read (the payload was projected away) from a
  *       source that declares {@code posSource} is stripped too (fail closed).
  * </ul>
+  *
+ * <p><strong>TLP (prompt 130, COL-2).</strong> A work product's {@link Tlp} label bounds who may receive it outside
+ * its access list: {@link #tlp(Tlp, TlpTarget)} decides per share target ({@link TlpTarget}). {@code RED} reaches
+ * only named principals (never groups, the instance, links or peers; named recipients on other instances only);
+ * {@code AMBER+STRICT} named principals and groups or the instance only when everyone reached shares the owner's
+ * organization, and remote recipients of that organization; {@code AMBER} as {@code AMBER+STRICT} plus named
+ * recipients of other organizations on other instances; {@code GREEN} the instance and federated peers but no public
+ * link; {@code CLEAR} everything.
  */
 @Component
 public class EgressPolicy {
@@ -737,5 +745,63 @@ public class EgressPolicy {
      */
     public boolean allowsEmbedding(String sourceId) {
         return sourceId != null && registry.contains(sourceId) && !isPrivate(sourceId);
+    }
+
+    // ------------------------------------------------------------------------- TLP (prompt 130)
+
+    /**
+     * Whether a work product labeled {@code tlp} may go to {@code target} (prompt 130, COL-2).
+     *
+     * @param tlp the object's label (null counts as {@link Tlp#AMBER}, the default)
+     * @param target where it would go
+     * @return the decision and the rule that made it
+     */
+    public static TlpTarget.Decision tlp(Tlp tlp, TlpTarget target) {
+        Tlp label = tlp == null ? Tlp.AMBER : tlp;
+        String name = label.wireValue();
+        return switch (target.kind()) {
+            case PRINCIPAL -> allow(name + ": a principal named in the access list may receive it");
+            case GROUP -> switch (label) {
+                case RED -> refuse("RED: only principals named in the access list, never a group");
+                case AMBER_STRICT, AMBER -> target.sameOrganization()
+                        ? allow(name + ": every member of the group belongs to the owner's organization")
+                        : refuse(name + ": a group with members outside the owner's organization");
+                default -> allow(name + ": groups of this instance may receive it");
+            };
+            case INSTANCE -> switch (label) {
+                case RED -> refuse("RED: never instance visibility");
+                case AMBER_STRICT, AMBER -> target.sameOrganization()
+                        ? allow(name + ": every principal of this instance belongs to the owner's organization")
+                        : refuse(name + ": this instance has principals outside the owner's organization");
+                default -> allow(name + ": the whole instance may receive it");
+            };
+            case PUBLIC_LINK -> label == Tlp.CLEAR
+                    ? allow("CLEAR: public share links are allowed")
+                    : refuse(name + ": public share links need CLEAR");
+            case FEDERATED_PEER -> label == Tlp.CLEAR || label == Tlp.GREEN
+                    ? allow(name + ": federated peers may receive it")
+                    : refuse(name + ": federated peers need GREEN or CLEAR");
+            case REMOTE_RECIPIENT -> switch (label) {
+                case RED -> target.named()
+                        ? allow("RED: a named recipient on another instance")
+                        : refuse("RED: only named recipients on other instances");
+                case AMBER_STRICT -> target.named() && target.sameOrganization()
+                        ? allow("AMBER+STRICT: a named recipient of the owner's organization on another instance")
+                        : refuse("AMBER+STRICT: recipients on other instances must be named and of the owner's"
+                                + " organization");
+                case AMBER -> target.named()
+                        ? allow("AMBER: a named recipient and their organization on another instance")
+                        : refuse("AMBER: recipients on other instances must be named");
+                default -> allow(name + ": recipients on other instances may receive it");
+            };
+        };
+    }
+
+    private static TlpTarget.Decision allow(String rule) {
+        return new TlpTarget.Decision(true, rule);
+    }
+
+    private static TlpTarget.Decision refuse(String rule) {
+        return new TlpTarget.Decision(false, rule);
     }
 }

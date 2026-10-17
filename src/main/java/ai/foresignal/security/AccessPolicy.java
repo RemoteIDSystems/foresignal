@@ -75,6 +75,11 @@ import org.springframework.util.AntPathMatcher;
  * <p>Prompt 064 adds {@code GET /compat/celestrak/**} (the CelesTrak-compatible GP output) as {@code read}; other
  * methods on it are {@code admin}. It sits outside {@code /v1}, so without the rule it would be open.
  *
+ * <p>Prompt 130 adds the collaboration operations: principals ({@code admin} writes, reads always authenticated),
+ * groups, access lists and shares ({@code agent}), and the personal inbox, preferences, tags, comment replies,
+ * attachments, evidence items and saved searches ({@code read}, always authenticated); the access lists then decide per
+ * object.
+ *
  * <p>Prompt 025 adds {@code /mcp} and {@code /mcp/**} (the MCP server, also outside {@code /v1}):
  * {@code read}, with per-tool scope checks inside the server ({@code McpToolRegistry}).
  */
@@ -580,6 +585,57 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/assessments/*/feedback", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/assessments", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/assessments/**", AccessRequirement.READ),
+
+                // ---- Collaboration (prompt 130): every operation needs a token. Reads, tags, comments, attachments,
+                // evidence items and saved searches are read-scope (the access lists decide per object); groups,
+                // access-list changes and shares are agent; principals and their tokens are admin. ----
+                rule(HttpMethod.GET, "/v1/me", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/me/notification-preferences", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PUT, "/v1/me/notification-preferences", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/inbox", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/principals", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/principals", AccessRequirement.ADMIN),
+                rule(HttpMethod.POST, "/v1/principals/*/tokens", AccessRequirement.ADMIN),
+                rule(HttpMethod.GET, "/v1/principals/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PATCH, "/v1/principals/*", AccessRequirement.ADMIN),
+                rule(HttpMethod.GET, "/v1/groups", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/groups", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/groups/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PATCH, "/v1/groups/*", AccessRequirement.AGENT),
+                rule(HttpMethod.DELETE, "/v1/groups/*", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/groups/*/members", AccessRequirement.AGENT),
+                rule(HttpMethod.DELETE, "/v1/groups/*/members", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/objects/*/acl", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PUT, "/v1/objects/*/acl", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/objects/*/share", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/objects/*/tags", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/shared-with-me", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/my", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/tags", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/tags", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/tags/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PATCH, "/v1/tags/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.DELETE, "/v1/tags/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/tags/*/assign", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/tags/*/unassign", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/tags/*/objects", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/annotations/*/replies", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/annotations/*/resolve", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/attachments", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/attachments/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.DELETE, "/v1/attachments/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/attachments/*/content", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/evidence-items", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/evidence-items", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/evidence-items/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PATCH, "/v1/evidence-items/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.DELETE, "/v1/evidence-items/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/saved-searches", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/saved-searches", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/saved-searches/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PATCH, "/v1/saved-searches/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.DELETE, "/v1/saved-searches/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/saved-searches/*/results", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
 
                 // ---- Objects, relations, annotations and workspaces (prompt 129): object reads, graph queries, the
                 // context summary, precision, sensor discovery and deep links are reads; annotations and workspaces are

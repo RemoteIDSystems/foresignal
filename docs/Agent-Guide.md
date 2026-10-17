@@ -80,7 +80,8 @@ Two Server-Sent Events endpoints push changes as they are committed (typically w
   `radiusKm`, `payload` (default false), `live` (default true) and `touches` (default false).
 - `GET /v1/events/stream` multiplexes topics on one connection: `topics=changes,alerts`, and
   `notifications`, `system`, `inbox`, `intel`, `evidence`, `analyst`, `situations`, `analytics`, `forecasts`,
-  `hypotheses`, `assessments` and `workspace` as their prompts add them. Filters take the topic as a prefix
+  `hypotheses`, `assessments`, `workspace` and `me` (130: the caller's own `share.received`, `mention`,
+  `comment.reply` and `saved-search.matches`, resumable by id) as their prompts add them. Filters take the topic as a prefix
   (`changes.bbox=…`, `changes.live=false`, `alerts.minSeverity=warning`). The first event is `hello {streamId, topics,
   watermarkSeq, filterVersion}`. The filter can be swapped without reconnecting (below).
 
@@ -680,7 +681,7 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `get_information_value` | read | A set's pending indicators ranked by expected information gain (`eig`, `potentialEig` at full detectability, `pDetect`, `pObserved`) and whether each is a `collectionGap`. Use it to say what would most change the judgment. |
 | `list_collection_gaps` | read | Indicators that would matter but cannot currently be observed (`setId`, `limit`), with recommendations (`enable-source`, `add-receiver`, `add-sensor`, `none`). Recommendations are advice; enabling a source is the operator's action. |
 | `create_hypothesis_set` | agent | Creates a set: `question`, `kind` (`exclusive` needs exactly one `other` hypothesis and priors summing to 1), `cadence`, optional `horizon`, `regionCodes`, `hypotheses` (each prior with its `priorBasis`), `indicators` (signal, `signalFamily`, credibility, relevance, `lr` per hypothesis label as `{class, direction, rationale}`), `assumptions` and an optional `ledgerQuestion`. **Call `get_base_rate` and `find_analogs` first** and use them as the priors' basis. |
-| `add_evidence` | agent | Adds ACH evidence to a set (`setId`, `source`, `ref`, `description`, `credibility`, `relevance`, `ratings` per hypothesis id for manual evidence). Re-reports of one evidence group attach to the existing row and add no weight; manual ratings move the probabilities through a recorded `evidence-added` revision. |
+| `add_evidence` | agent | Adds ACH evidence to a set (`setId`, `source`, `ref`, `description`, `credibility`, `relevance`, `ratings` per hypothesis id for manual evidence). Re-reports of one evidence group attach to the existing row and add no weight; manual ratings move the probabilities through a recorded `evidence-added` revision. `source: evidence-item` cites a 130 evidence item you can see (`ref` its id). |
 | `review_hypothesis_set` | agent | Records a review revision (`setId`, `rationale`, optional `probabilities`, `lr` and `assumptions` changes, `exceedCap`, `citations`). The rationale must pass the ICD 203 lint (`LINT_FAILED` otherwise): state what changed since the previous revision. |
 | `draft_hypothesis_set` | agent, cost-bearing | Has the LLM draft a set from plain language (`text`, optional `situationId`, `regionCodes`). The draft returns with `warnings` and `valid`; nothing is created until you call `create_hypothesis_set` with it (after the operator agrees). |
 | `get_series_forecast` | read | Foresignal's statistical forecast of a series (126): `ref`, optional `horizon` (1, 7 or 28). Quantiles p05–p95 for each horizon from the method a rolling-origin backtest selected (`model`: the method, its backtest pinball losses, `selectedAt`), and the ledger questions that score it. A `LOCAL_ONLY` series comes back in standardized units to callers without local egress. Quote ranges (p05–p95, p25–p75), never the median alone. 409 `FORECAST_MODEL_NOT_READY` before the first selection. |
@@ -694,9 +695,14 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `get_intel_board` | read | The ≤ 8 KB intel board (128): top situations, band changes and observed indicators of the last 24 h, forecasts due in 7 days, the latest assessment per cadence, the ensemble's 90-day calibration next to the operator's, and benchmark status. Read it first for "what is going on" questions. |
 | `get_object` | read | The uniform envelope of any object by its reference (129): `ref` (`{type}:{id}`, for example `situation:01J…`, `record:{sourceId}/{externalId}`, `intel-event:01J…`), optional `asOf`. Title, summary (with `textOrigin`), status, severity, time, simplified geometry, `private`, provenance and the `actions` your token may perform. Unknown types are refused (`OBJECT_REF_INVALID`); objects you may not see are `UNKNOWN_OBJECT`. |
 | `get_related` | read | The neighborhood of an object through the relation graph (129): `ref`, optional `types`, `direction` (`out`, `in`, `both`), `asOf`, `minConfidence`, `limit` ≤ 200. Each item has the relation (type, validity, confidence, label, provenance: a projecting component or an operator) and the neighbor's envelope; `located-in` places are computed on demand. A relation says how two objects are linked, not that one caused the other: `causes` is only ever asserted by people. |
-| `annotate` | read (verdicts: agent) | Adds a note (`body` ≤ 10,000 characters, `tags`) or, with agent scope, a verdict (`kind: verdict`, `verdict` `confirmed`, `rejected`, `needs-review` or `duplicate-of` with `duplicateOfRef`) to any object (129). Verdicts feed precision metrics and propose benchmark cases; `applyStatus: true` with a rejected verdict also dismisses a finding or intel event, so use it only when you mean to. A token is required. |
+| `annotate` | read (verdicts: agent) | Adds a note (`body` ≤ 10,000 characters, `tags`) or, with agent scope, a verdict (`kind: verdict`, `verdict` `confirmed`, `rejected`, `needs-review` or `duplicate-of` with `duplicateOfRef`) to any object (129). Verdicts feed precision metrics and propose benchmark cases; `applyStatus: true` with a rejected verdict also dismisses a finding or intel event, so use it only when you mean to. A token is required; on a work product the commenter role, and `@handle` mentions notify those who can see it (130). |
 | `get_workspace_context` | read | A workspace's shared context (129): selected objects, `focusRef`, time range, viewport, active situation and hypothesis set, `contextVersion` and the clients following it; without `workspaceId`, your workspaces. Only owners and members see a workspace. |
 | `set_workspace_focus` | agent | Points every client following a workspace at an object (129): sets `focusRef` and selects it (`workspaceId`, `ref`). Needs the owner's or an editor's role on the workspace; the change reaches every open app with `originClientId` `mcp:{session}`. |
+| `whoami` | read | The principal behind your token (130): handle, organization, token scope, groups, notification preferences and the instance's default TLP label. Call it to know which work products are yours and which TLP boundaries apply. |
+| `list_shared_with_me` | read | Work products other principals shared with you (130), newest share first: the envelope, your role (`viewer`, `commenter`, `editor`, `owner`), how it reached you (`principal`, `group`, `instance`) and its TLP label; `type`, `cursor`, `limit`; `mine: true` lists your own work products instead. |
+| `tag_objects` | read | Labels up to 500 object references at once with a tag (130): `tagId`, or `tag` by name (a personal tag is created when you see none of that name); `remove: true` removes it. References you cannot see are skipped and listed, not errors. |
+| `comment` | read | Starts a comment thread on an object (`ref`) or replies in one (`replyTo`), `body` ≤ 10,000 characters (130). `@handle` mentions notify only principals who can see the object; the rest come back in `droppedMentions`. On a work product it needs the commenter role. |
+| `share_object` | agent | Shares a work product you own or edit with `grantees` (`principal:{id or handle}`, `group:{id}`, `instance`) as `viewer`, `commenter` or `editor`, with an optional `message` and `expiresAt`, and notifies them (130). The object's TLP label decides who may receive it (`TLP_VIOLATION` names the rule); every share is audited. |
 | `list_products` | read | The weather and imagery products you may sample: `id`, `title`, `kind`, `units`, `coverage`, `latest` (newest frame or complete run) and `health` (`ok`, or `unavailable` with the reason); optional `category` (052). |
 | `sample_weather` | read | Product values at `lon`/`lat` or a `place` (needs a token), `time` `latest`, `now`, ISO or an offset (`-PT1H`, `+PT6H`), each with `validTime`, `localTime`, `ageMinutes`, `run`, `coverage` and `status`; plus `hazards`: NWS alerts covering the point (`automated: false`) and ProbSevere objects within 50 km (`automated: true`). A status other than `ok` is unknown, never clear (052). |
 | `weather_forecast` | read | A 3-hourly point forecast to 120 h (`hours`) from the stored GFS and HRRR runs: temperature, wind, gusts, precipitation per step and HRRR smoke, with each provider's `run` and `status` (052). For a place it adds provider `nws` (053): the official NWS gridpoint forecast to 72 h with precipitation probability (`popPct`) and sky cover, `coverage: place`, its `updatedAt`, and `status` `stale` once it is more than 6 hours old. |
@@ -709,8 +715,8 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `get_intel_event` | read | One intelligence event with its evidence (pinned members), its inference (type, severity, confidence, geometry) and its speculation (alternatives, any LLM narrative, always labeled). Cite members (101). |
 | `create_intel_event` | agent | Creates an intelligence event from one or more existing record versions. Confidence is computed by the detector; a client-supplied confidence is rejected (101). |
 | `update_intel_event_status` | agent | Updates an intelligence event's status, title or notes; pass the version you last saw to guard against a concurrent edit (`409 EVENT_VERSION_CONFLICT`) (101). |
-| `create_investigation` | agent | Opens an investigation (a case file) with a human-readable display id; add evidence with `add_to_investigation` (101). |
-| `add_to_investigation` | agent | Adds an item to an investigation, snapshotting it now so the evidence survives retention (101). |
+| `create_investigation` | agent | Opens an investigation (a case file) with a human-readable display id; add evidence with `add_to_investigation` (101). It is yours (130): instance-visible with the default TLP label until you change its access list. |
+| `add_to_investigation` | agent | Adds an item to an investigation, snapshotting it now so the evidence survives retention (101). Needs the editor role on it; one you cannot see is not found (130). |
 | `get_exposure` | read | Counts reference facilities, the operator's places, live aircraft and vessels and, when a population pack is installed, an estimated residential population inside an area. The population is a model, not a casualty estimate (101). |
 | `find_similar_events` | read | Intelligence events of the same type within a radius over the recent history. Deterministic: distance and type only (102). |
 | `list_analyst_notes` | read | The autonomous analyst's notes with their typed, cited claims; inference and speculation are labeled (102). |
@@ -791,12 +797,31 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 - **Validation teaches the system.** Prefer a note when you are unsure; record a verdict only when the evidence
   supports it, and say why in `body`. `needs-review` asks a person to look.
 
+### Collaboration, sharing and TLP
+
+- **Know who you are.** Your token belongs to a principal; `whoami` tells you its handle, organization and groups.
+  Work you create (investigations, saved searches, evidence items, comments) is owned by that principal.
+- **Respect the TLP label.** Every work product carries `tlp`. Never repeat a `RED` or `AMBER+STRICT` object's
+  content to anyone outside its access list, never put a non-`CLEAR` object in a public share link, and quote the label
+  when you summarize one (`TLP:AMBER`). A `TLP_VIOLATION` is the label working, not a fault to route around.
+- **Share deliberately.** Use `share_object` only when the operator asked for it, with the least role that does the
+  job (`viewer` before `commenter` before `editor`), and say whom you shared with.
+- **Mention people sparingly.** `@handle` in a comment notifies that person; a mention of someone who cannot see the
+  object is dropped and reported to you in `droppedMentions` (tell the operator rather than sharing the object to make
+  the mention land).
+- **Grade evidence honestly.** An evidence item's Admiralty grade is source reliability (`A` completely reliable …
+  `F` cannot be judged) and information credibility (`1` confirmed … `6` cannot be judged); default to `F6` rather
+  than guess. A link in an evidence item is never fetched by Foresignal: it is a pointer, not verified content.
+
 ### Vocabulary
 
 - A **watch** is a trigger rule: conditions on sources, kinds, payload fields and geofences. When a record matches, the watch raises an **alert**, which can be acknowledged, resolved or snoozed.
 - A **record** is identified as `source:externalId`. Every stored version has a global, increasing **seq**.
 - An **object reference** (`ObjectRef`, prompt 129) names any object as `{type}:{id}`; a record's is
   `record:{sourceId}/{externalId}` (with `@{seq}` for one version).
+- A **principal** (prompt 130) is the person, agent or service behind a token. A **work product** (investigation,
+  workspace, saved search, note, attachment, evidence item, shared tag) has an owner, an access list and a **TLP**
+  label (`CLEAR`, `GREEN`, `AMBER`, `AMBER+STRICT`, `RED`); without access it is invisible.
 
 ### Citing
 
@@ -1006,7 +1031,9 @@ OpenClaw skill in `integrations/openclaw/foresignal/` packages the same knowledg
 | Read places (always a token, even under `openReads`); create, change or delete places and views; watchlists | `read` / `agent` (watchlists: `agent`) | |
 | Acknowledge, resolve, snooze alerts | `agent`, or a capability URL from a notification | |
 | Resolve objects, read relations, add notes, follow workspaces | `read` (notes and workspaces: a token) | |
-| Verdicts, operator relations, set a workspace's focus | `agent` (focus: the workspace's owner or an editor) | |
+| Verdicts, operator relations, set a workspace's focus | `agent` (focus: the workspace's owner or an editor) |
+| `whoami`, shared-with-me, tags, comments, attachments, evidence items, saved searches | `read` (a token; work products also need their access-list role) |
+| Share a work product, change its access list, create groups | `agent` (and the owner's or an editor's role) | |
 | Push records into a custom source | the source's ingest key (`eik_…`) | the source (admin) |
 | Channels, sources, credentials, LLM providers, tokens, settings | `admin` | never an agent |
 

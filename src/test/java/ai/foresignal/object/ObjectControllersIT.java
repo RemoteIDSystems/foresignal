@@ -160,7 +160,7 @@ class ObjectControllersIT extends ObjectItSupport {
     }
 
     @Test
-    @DisplayName("workspaces: create, list, share with agent scope, summary 409 without a viewport")
+    @DisplayName("workspaces: create, list, share with agent scope once CLEAR, summary 409 without a viewport")
     void workspaceEndpoints() throws Exception {
         MockHttpServletResponse created = call(agent, json(post("/v1/workspaces"), "{'name':'Red Sea watch'}"));
         assertThat(created.getStatus()).isEqualTo(201);
@@ -172,6 +172,13 @@ class ObjectControllersIT extends ObjectItSupport {
         assertThat(body(summary).get("code").asString()).isEqualTo("WORKSPACE_CONTEXT_INCOMPLETE");
         assertThat(call(agent, json(post("/v1/workspaces"), "{'name':'Big','layout':{'blob':'" + "x".repeat(70_000)
                 + "'}}")).getStatus()).isEqualTo(413);
+        // Prompt 130: a share link is public, so the workspace's TLP label (AMBER by default) must first be CLEAR.
+        MockHttpServletResponse amber = call(agent, json(post("/v1/workspaces/" + id + "/share"), "{'maxUses':5}"));
+        assertThat(amber.getStatus()).isEqualTo(403);
+        assertThat(body(amber).get("code").asString()).isEqualTo("TLP_VIOLATION");
+        assertThat(call(agent, json(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(
+                URI.create(objectPath("workspace:" + id) + "/acl")), "{'entries':[],'tlp':'CLEAR'}")).getStatus())
+                .isEqualTo(200);
         MockHttpServletResponse share = call(agent, json(post("/v1/workspaces/" + id + "/share"), "{'maxUses':5}"));
         assertThat(share.getStatus()).isEqualTo(201);
         JsonNode link = body(share);

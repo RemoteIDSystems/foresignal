@@ -384,6 +384,10 @@ public class SearchService {
         List<String> where = new ArrayList<>();
         if (!request.docTypes().isEmpty()) {
             where.add("d.doc_type = ANY(" + p.textArray(request.docTypes()) + ")");
+        } else {
+            // Evidence items (prompt 130) are work products under access lists: only a caller that asks for them
+            // by type (the saved-search runner, which then applies the access list) ever gets them.
+            where.add("d.doc_type <> '" + DocInput.EVIDENCE_ITEM + "'");
         }
         if (!request.sources().isEmpty()) {
             where.add("d.source_id = ANY(" + p.textArray(request.sources()) + ")");
