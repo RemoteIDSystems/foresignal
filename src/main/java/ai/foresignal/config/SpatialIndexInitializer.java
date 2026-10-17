@@ -40,7 +40,8 @@ public class SpatialIndexInitializer implements ApplicationRunner {
      * {@code slotStatements}), which 144 moves into the baseline alongside these. Prompt 040 adds the GiST
      * indexes of the reference tables and {@code gazetteer_place.geog}, and the {@code record_region}
      * indexes {@code (iso2)} and {@code (iso2, admin1)}. Prompt 042 adds {@code raster_frame}'s
-     * {@code (product_id, valid_time DESC)} index and the GiST index on its {@code footprint}.
+     * {@code (product_id, valid_time DESC)} index and the GiST index on its {@code footprint}. Prompt 114 adds the GiST
+     * index on {@code trip.corridor}.
      */
     static final List<String> STATEMENTS = List.of(
             "DROP INDEX IF EXISTS record_head_geom_gist",
@@ -80,7 +81,9 @@ public class SpatialIndexInitializer implements ApplicationRunner {
             "CREATE UNIQUE INDEX IF NOT EXISTS entity_link_open_idx ON entity_link (source_id, external_id)"
                     + " WHERE valid_to IS NULL",
             "CREATE INDEX IF NOT EXISTS entity_alias_lower_idx ON entity_alias (lower(alias) text_pattern_ops)",
-            "CREATE INDEX IF NOT EXISTS entity_link_entity_open_idx ON entity_link (entity_id) WHERE valid_to IS NULL");
+            "CREATE INDEX IF NOT EXISTS entity_link_entity_open_idx ON entity_link (entity_id) WHERE valid_to IS NULL",
+            // Trips (prompt 114): the materialized corridor is what hazards are intersected with.
+            "CREATE INDEX IF NOT EXISTS trip_corridor_gist ON trip USING GIST (corridor)");
 
     private final DataSource dataSource;
 

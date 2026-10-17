@@ -64,6 +64,12 @@ import org.springframework.stereotype.Component;
  * {@link AnchorPositions}, the snapshot the SQL also uses; the Java distance is approximate, so a
  * target within a narrow band of the radius counts as ambiguous and flips whenever its geometry
  * changed (conservative). A stale anchor suspends the rule here too.
+ *
+ * <p><b>Prompt 114.</b> An {@code approach} condition is a non-SQL predicate: both sides are judged at the
+ * gate's clock with the side's geometry and its speed and course paths ({@code KinematicFields}, loaded for the
+ * rule's sources) against the target's current state ({@code ApproachEvaluator}; record targets are cached for
+ * {@value #APPROACH_SESSION_SECONDS} s). Ambiguous or stale state is conservative: the condition flips iff the
+ * geometry or a kinematic path differs between the sides.
  */
 @Component
 @Primary
@@ -77,6 +83,16 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
     private final AnchorPositions anchors;
     private final java.time.Clock clock;
     private final AtomicReference<GateSnapshot> snapshot = new AtomicReference<>();
+
+    /** How long one approach session (cached target states) serves the gate, seconds. */
+    static final long APPROACH_SESSION_SECONDS = 5;
+
+    /** The {@code approach} condition evaluator (prompt 114); absent in unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private org.springframework.beans.factory.ObjectProvider<ai.foresignal.kinematics.ApproachEvaluator> approachEvaluator;
+
+    private volatile ApproachMatches.Judge approachSession;
+    private volatile java.time.Instant approachSessionAt = java.time.Instant.EPOCH;
 
     /** Creates the gate; the first snapshot is built when the application is ready. */
     @org.springframework.beans.factory.annotation.Autowired
@@ -144,7 +160,43 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
             }
         }
         snapshot.set(new Compiled(compiled, id -> registry.find(id).map(r -> r.descriptor()).orElse(null),
-                anchors == null ? a -> null : a -> anchors.current(a, clock.instant())));
+                anchors == null ? a -> null : a -> anchors.current(a, clock.instant()), this::approach));
+    }
+
+    /**
+     * Judges an approach condition for one gate side at the gate's clock (prompt 114), with a session of
+     * cached target states renewed every {@value #APPROACH_SESSION_SECONDS} s.
+     */
+    Evaluation approach(ApproachCondition condition, String sourceId, Geometry geometry, Map<String, Object> values) {
+        ai.foresignal.kinematics.ApproachEvaluator evaluator =
+                approachEvaluator == null ? null : approachEvaluator.getIfAvailable();
+        if (evaluator == null) {
+            return Evaluation.AMBIGUOUS;
+        }
+        java.time.Instant now = clock.instant();
+        ApproachMatches.Judge judge = approachSession;
+        if (judge == null || now.isAfter(approachSessionAt.plusSeconds(APPROACH_SESSION_SECONDS))) {
+            judge = evaluator.session()::evaluate;
+            approachSession = judge;
+            approachSessionAt = now;
+        }
+        Double[] k = ai.foresignal.kinematics.KinematicFields.fromPathValues(values);
+        return judge.evaluate(condition, sourceId, null, geometry, now, k[0], k[1]);
+    }
+
+    /** Judges one approach condition for one side of a gate comparison. */
+    @FunctionalInterface
+    public interface ApproachGate {
+
+        /**
+         * The evaluation.
+         *
+         * @param condition the condition
+         * @param sourceId the record's source
+         * @param geometry the side's geometry, or null
+         * @param values the side's path values
+         */
+        Evaluation evaluate(ApproachCondition condition, String sourceId, Geometry geometry, Map<String, Object> values);
     }
 
     /**
@@ -176,9 +228,22 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
          */
         public Compiled(List<RuleSpec> rules, Function<String, SourceDescriptor> descriptors,
                 Function<NearAnchor, org.locationtech.jts.geom.Point> anchors) {
+            this(rules, descriptors, anchors, (c, s, g, v) -> Evaluation.AMBIGUOUS);
+        }
+
+        /**
+         * Compiles {@code rules} with an approach judge (prompt 114).
+         *
+         * @param rules the enabled rules
+         * @param descriptors the descriptor of a source id, or null when unknown
+         * @param anchors the current position of a fresh anchor, or null when stale or unknown
+         * @param approach the approach judge of one gate side
+         */
+        public Compiled(List<RuleSpec> rules, Function<String, SourceDescriptor> descriptors,
+                Function<NearAnchor, org.locationtech.jts.geom.Point> anchors, ApproachGate approach) {
             List<GateRule> list = new ArrayList<>();
             for (RuleSpec rule : rules) {
-                list.add(new GateRule(rule, anchors));
+                list.add(new GateRule(rule, anchors, approach));
             }
             this.rules = List.copyOf(list);
             this.descriptors = descriptors;
@@ -208,6 +273,10 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
                         paths.add(path);
                     }
                 }
+                if (rule.hasApproach()) {
+                    // Prompt 114: the approach judge reads the side's speed, course and altitude paths.
+                    paths.addAll(ai.foresignal.kinematics.KinematicFields.PATHS);
+                }
                 geometry |= rule.spatial();
             }
             return paths.isEmpty() && !geometry ? GateSpec.NONE : new GateSpec(paths, geometry);
@@ -230,14 +299,20 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
         final RuleSpec rule;
         final List<PreparedGeometry> fences;
         final Function<NearAnchor, org.locationtech.jts.geom.Point> anchors;
+        final ApproachGate approach;
 
         GateRule(RuleSpec rule) {
             this(rule, a -> null);
         }
 
         GateRule(RuleSpec rule, Function<NearAnchor, org.locationtech.jts.geom.Point> anchors) {
+            this(rule, anchors, (c, s, g, v) -> Evaluation.AMBIGUOUS);
+        }
+
+        GateRule(RuleSpec rule, Function<NearAnchor, org.locationtech.jts.geom.Point> anchors, ApproachGate approach) {
             this.rule = rule;
             this.anchors = anchors;
+            this.approach = approach;
             List<PreparedGeometry> prepared = new ArrayList<>();
             if (rule.hysteresis()) {
                 prepared.add(prepare(rule.fenceInner()));
@@ -273,6 +348,18 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
                 conditionsBefore &= eb.holds();
                 conditionsCandidate &= ec.holds();
             }
+            for (ApproachCondition condition : rule.approaches()) {
+                // Prompt 114: a non-SQL predicate, conservative on ambiguity.
+                Evaluation ab = approach.evaluate(condition, sourceId, before.geometry(), before.pathValues());
+                Evaluation ac = approach.evaluate(condition, sourceId, candidate.geometry(), candidate.pathValues());
+                if ((ab == Evaluation.AMBIGUOUS || ac == Evaluation.AMBIGUOUS)
+                        && !(geometryEquals(before.geometry(), candidate.geometry())
+                                && kinematicEquals(before.pathValues(), candidate.pathValues()))) {
+                    return true;
+                }
+                conditionsBefore &= ab.holds();
+                conditionsCandidate &= ac.holds();
+            }
             if (rule.anchored()) {
                 org.locationtech.jts.geom.Point anchor = anchors.apply(rule.anchor());
                 if (anchor == null) {
@@ -303,6 +390,16 @@ public class TriggerPersistGate implements PersistGate, IngestStateReset {
         private static boolean inside(PreparedGeometry fence, Geometry geometry) {
             return geometry != null && !geometry.isEmpty() && fence.intersects(geometry);
         }
+    }
+
+    /** True when the kinematic paths of two gate sides are equal (prompt 114). */
+    static boolean kinematicEquals(Map<String, Object> a, Map<String, Object> b) {
+        for (String path : ai.foresignal.kinematics.KinematicFields.PATHS) {
+            if (!jsonEquals(a.get(path), b.get(path))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** True when two geometries are both absent or exactly equal. */

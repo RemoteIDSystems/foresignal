@@ -516,6 +516,15 @@ public final class ErrorCodes {
     /** 409: a peer with this id exists (113). */
     public static final String PEER_EXISTS = "PEER_EXISTS";
 
+    /** 400: a CPA question about two records more than 500 km apart (114). */
+    public static final String CPA_RANGE = "CPA_RANGE";
+
+    /** 400: a trip route that is not a valid LineString of at most 5,000 vertices (114). */
+    public static final String TRIP_ROUTE_INVALID = "TRIP_ROUTE_INVALID";
+
+    /** 422: a kinematic state older than 1 h (114). */
+    public static final String STATE_TOO_OLD = "STATE_TOO_OLD";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

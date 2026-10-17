@@ -335,8 +335,17 @@ public class RuleBacktest {
                 }
                 evalTime = latest.toInstant();
             }
-            RuleSqlBuilder.RuleSql sql = RuleSqlBuilder.matches(rule, lo, hi, evalTime, false);
-            List<MatchRow> rows = t.query(sql.sql(), sql.params(), MatchRow.MAPPER);
+            List<MatchRow> rows;
+            if (rule.hasApproach()) {
+                // Prompt 114: approach conditions are judged in Java over the candidate versions.
+                RuleSqlBuilder.RuleSql sql = RuleSqlBuilder.approachCandidates(rule, lo, hi, evalTime, null);
+                rows = ai.foresignal.trigger.ApproachMatches.evaluate(rule,
+                        t.query(sql.sql(), sql.params(), ai.foresignal.trigger.ApproachMatches.MAPPER),
+                        approachJudge()).matches();
+            } else {
+                RuleSqlBuilder.RuleSql sql = RuleSqlBuilder.matches(rule, lo, hi, evalTime, false);
+                rows = t.query(sql.sql(), sql.params(), MatchRow.MAPPER);
+            }
             if (horizon == null || rows.isEmpty()) {
                 return rows;
             }
@@ -603,5 +612,15 @@ public class RuleBacktest {
             return new OperatorHolder(ai.foresignal.trigger.Operators.builtIns().stream()
                     .filter(o -> o.name().equals(name)).findFirst().orElse(null));
         }
+    }
+
+    /** The {@code approach} condition evaluator (prompt 114); without one every approach is ambiguous. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private org.springframework.beans.factory.ObjectProvider<ai.foresignal.kinematics.ApproachEvaluator> approachEvaluator;
+
+    private ai.foresignal.trigger.ApproachMatches.Judge approachJudge() {
+        ai.foresignal.kinematics.ApproachEvaluator evaluator =
+                approachEvaluator == null ? null : approachEvaluator.getIfAvailable();
+        return evaluator == null ? ai.foresignal.trigger.ApproachMatches.UNKNOWN : evaluator.session()::evaluate;
     }
 }

@@ -25,7 +25,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              # 111: export jobs and holds.
              "exportId": "exportId", "holdId": "holdId",
              # 113: federation peers.
-             "peerId": "peerId"}
+             "peerId": "peerId",
+             # 114: pattern-of-life subjects and trips.
+             "subjectId": "polSubjectId", "tripId": "tripId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -35,7 +37,9 @@ PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
                        # 039: ingest devices are not the push devices of {{pushDeviceId}}; the path key is a
                        # device key.
                        ("/v1/custom-sources/", {"deviceId": "ingestDeviceId"}),
-                       ("/v1/ingest/", {"key": "deviceKey"})]
+                       ("/v1/ingest/", {"key": "deviceKey"}),
+                       # 114: a learned pattern-of-life place is not a 036 place of {{placeId}}.
+                       ("/v1/pol/places/", {"placeId": "polPlaceId"})]
 
 # The EDP manifest of docs/External-Data-Protocol.md §2 (024).
 EDP_MANIFEST = {
@@ -403,6 +407,37 @@ BODIES = {
                                                  "chain": [{"instanceId": "edge-install-id", "sourceId": "local-ais-1",
                                                             "externalId": "244660000", "seq": 1042,
                                                             "ingestedAt": "2026-10-16T08:00:01Z"}]}}]},
+  # 114: opt the operator's own phone (an OwnTracks device record) into pattern of life; it is private, so this
+  # needs the admin token. Places and deviations appear on pattern-of-life-private.
+  "createPolSubject": {"subjectType": "record", "ref": "owntracks-phone/phone", "enabled": True,
+                       "params": {"stayRadiusM": 100, "minDwell": "10m", "maxGap": "30m", "eps": 150, "minPts": 3,
+                                  "lookback": "28d"}},
+  "updatePolPlace": {"label": "home"},
+  # A weekday commute. The route comes from the client's own router (Valhalla can exclude polygons, OSRM cannot);
+  # Foresignal only buffers and watches it.
+  "createTrip": {"name": "Morning commute", "routePlaceId": None,
+                 "route": {"type": "LineString", "coordinates": [[-97.7431, 30.2672], [-97.7300, 30.2900],
+                                                                 [-97.7150, 30.3200], [-97.6990, 30.3600]]},
+                 "bufferMeters": 2000,
+                 "schedule": {"type": "recurring", "days": ["MO", "TU", "WE", "TH", "FR"], "departTime": "07:45",
+                              "timezone": "America/Chicago"},
+                 "expectedDuration": "40m", "leadTime": "60m",
+                 "hazardKinds": ["nws-alert", "road-event", "work-zone", "fire-perimeter", "cyclone-cone", "earthquake",
+                                 "incident"],
+                 "minSeverity": None, "channelIds": [], "anchor": None, "notifyWhenClear": True,
+                 "enabled": True},
+  "updateTrip": {"name": "Morning commute", "route": {"type": "LineString", "coordinates": [[-97.7431, 30.2672],
+                                                                                         [-97.6990, 30.3600]]},
+                 "bufferMeters": 3000,
+                 "schedule": {"type": "recurring", "days": ["MO", "TU", "WE", "TH", "FR"], "departTime": "07:30",
+                              "timezone": "America/Chicago"},
+                 "expectedDuration": "45m", "leadTime": "45m", "notifyWhenClear": False},
+  "checkTrip": {"dryRun": True, "occurrence": None},
+  # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
+  # one nautical mile in the next hour.
+  "cpaBatch": {"subject": "aisstream/244660000", "filter": {"kinds": ["vessel"], "sources": [],
+                                                           "bbox": [3.9, 51.8, 4.6, 52.1]},
+               "horizon": "1h", "maxDcpaM": 1852, "top": 20},
 }
 
 # test scripts: capture ids / assert status
@@ -410,6 +445,9 @@ CAPTURE = {
   "createExport": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
   "createShareLink": "const j = pm.response.json(); pm.collectionVariables.set('shareLinkId', j.id); pm.collectionVariables.set('key', j.key);",
   "createPeer": "const j = pm.response.json(); pm.collectionVariables.set('peerId', j.id);",
+  "createPolSubject": "const j = pm.response.json(); pm.collectionVariables.set('polSubjectId', j.id);",
+  "listPolPlaces": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('polPlaceId', j.items[0].id);",
+  "createTrip": "const j = pm.response.json(); pm.collectionVariables.set('tripId', j.id);",
   "rotatePeerIngestKey": "const j = pm.response.json(); pm.collectionVariables.set('peerIngestKey', j.key); console.log('New peer ingest key (shown once):', j.key);",
   "createSnapshot": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
   "createPack": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
@@ -742,6 +780,7 @@ collection = {
       ("notificationId", ""), ("actionToken", ""), ("escalationPolicyId", ""), ("feedKeyId", ""), ("tileKeyId", ""),
       ("placeId", "home"), ("viewId", ""), ("watchlistId", ""), ("exportId", ""), ("holdId", ""),
       ("peerId", ""), ("peerIngestKey", ""), ("federationToken", ""),
+      ("polSubjectId", ""), ("polPlaceId", ""), ("tripId", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

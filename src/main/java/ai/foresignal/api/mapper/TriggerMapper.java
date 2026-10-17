@@ -37,6 +37,11 @@ public class TriggerMapper {
         out.put("tags", r.getTags());
         List<Map<String, Object>> conditions = new ArrayList<>();
         for (TriggerCondition condition : r.getConditions()) {
+            if (ai.foresignal.trigger.ApproachCondition.OP.equals(condition.op())) {
+                // Prompt 114: an approach condition reads back in its wire form.
+                conditions.add(ai.foresignal.trigger.ApproachCondition.fromValue(condition.value()).toWire());
+                continue;
+            }
             Map<String, Object> c = new LinkedHashMap<>();
             if (condition.path() != null) {
                 // An identity condition (inWatchlist without a path, prompt 036) has none.

@@ -133,11 +133,18 @@ public final class SettingKeys {
      */
     public static final String FEDERATION_INSTANCE_NAME = "federation.instanceName";
 
+    /**
+     * How long pattern-of-life stays and places are kept (prompt 114), a duration string such as {@code 180d};
+     * default 180 days.
+     */
+    public static final String POL_RETENTION = "pol.retention";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
                     STATS, GLANCE, METRICS, VISIBILITY, REGION_CURSOR, REGION_TAGGING, WEATHER, ENTITY_CURSOR,
-                    ENTITY, INTEL_CURSOR, ARCHIVE, CAP_SENDER, INSTANCE_NAME, FEDERATION_INSTANCE_NAME);
+                    ENTITY, INTEL_CURSOR, ARCHIVE, CAP_SENDER, INSTANCE_NAME, FEDERATION_INSTANCE_NAME,
+                    POL_RETENTION);
 
     private SettingKeys() {}
 }

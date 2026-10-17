@@ -73,6 +73,11 @@ import tools.jackson.databind.json.JsonMapper;
  * 500 ms budget; a failure stores {@code {status: unavailable}}), unless the rule's {@code weatherContext} or the
  * global {@code weather.alertContext} is {@code off}. The context is stored with the alert before any event is
  * published, and its fields are template variables ({@code {{context.weather.summary}}} …).
+ *
+ * <p><b>Prompt 114.</b> A rule with {@code approach} conditions runs {@link RuleSqlBuilder#approachCandidates}
+ * instead of its match statement, and {@link ApproachMatches} judges the approach on both sides of each version in
+ * Java ({@code ai.foresignal.kinematics.ApproachEvaluator}) before the usual edge rules; its cooldown is applied by
+ * the same Java seed the anchor side uses. Edge resolution is the poll or flush resolution of the sources.
  */
 @Component
 public class TriggerEngine implements ChangeListener, IngestStateReset {
@@ -111,6 +116,10 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
     /** Alert weather context (prompt 056); null in unit tests. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.weather.AlertWeatherContext alertWeather;
+
+    /** The {@code approach} condition evaluator (prompt 114); absent in unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private org.springframework.beans.factory.ObjectProvider<ai.foresignal.kinematics.ApproachEvaluator> approachEvaluator;
 
     /** Rules whose {@code weatherContext} is {@code off} (prompt 056). */
     private volatile Set<UUID> weatherOff = Set.of();
@@ -434,12 +443,24 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
                     .map(AnchorPositions.Fix::seq).orElse(0L);
             anchorContext = new AnchorContext(seq, anchor);
         }
-        RuleSqlBuilder.RuleSql sql = RuleSqlBuilder.matches(rule, from, to, now, true, anchor);
-        List<MatchRow> matches = reads.read(t -> t.query(sql.sql(), sql.params(), MatchRow.MAPPER));
+        List<MatchRow> matches;
         List<ResolveRow> resolves = List.of();
-        if (rule.autoResolve() != null && rule.autoResolve().needsEdgePass() && rule.mode() != TriggerMode.EXIT) {
-            RuleSqlBuilder.RuleSql inverse = RuleSqlBuilder.inverse(rule, from, to, anchor);
-            resolves = reads.read(t -> t.query(inverse.sql(), inverse.params(), ResolveRow.MAPPER));
+        if (rule.hasApproach()) {
+            // Prompt 114: approach conditions are judged in Java over the candidate versions; the cooldown seed
+            // the SQL would add is applied by withoutCooldown.
+            RuleSqlBuilder.RuleSql sql = RuleSqlBuilder.approachCandidates(rule, from, to, now, anchor);
+            List<ApproachMatches.Candidate> candidates =
+                    reads.read(t -> t.query(sql.sql(), sql.params(), ApproachMatches.MAPPER));
+            ApproachMatches.Result result = ApproachMatches.evaluate(rule, candidates, approachJudge());
+            matches = withoutCooldown(rule, result.matches());
+            resolves = result.resolves();
+        } else {
+            RuleSqlBuilder.RuleSql sql = RuleSqlBuilder.matches(rule, from, to, now, true, anchor);
+            matches = reads.read(t -> t.query(sql.sql(), sql.params(), MatchRow.MAPPER));
+            if (rule.autoResolve() != null && rule.autoResolve().needsEdgePass() && rule.mode() != TriggerMode.EXIT) {
+                RuleSqlBuilder.RuleSql inverse = RuleSqlBuilder.inverse(rule, from, to, anchor);
+                resolves = reads.read(t -> t.query(inverse.sql(), inverse.params(), ResolveRow.MAPPER));
+            }
         }
         if (matches.isEmpty() && resolves.isEmpty()) {
             return null;
@@ -452,6 +473,13 @@ public class TriggerEngine implements ChangeListener, IngestStateReset {
         Map<String, String> seeds = rule.hysteresis() ? edgeSeeds(rule, matches) : Map.of();
         AlertPass.Context context = new AlertPass.Context(now, snoozed, defaultCap, false, seeds::get);
         return new Plan(rule, AlertPass.run(rule, matches, resolves, state, context), anchorContext);
+    }
+
+    /** The approach judge of one evaluation pass (prompt 114); every approach is ambiguous without an evaluator. */
+    private ApproachMatches.Judge approachJudge() {
+        ai.foresignal.kinematics.ApproachEvaluator evaluator =
+                approachEvaluator == null ? null : approachEvaluator.getIfAvailable();
+        return evaluator == null ? ApproachMatches.UNKNOWN : evaluator.session()::evaluate;
     }
 
     /** The edge state each entity's latest unsuppressed alert implies, for hysteresis rules. */

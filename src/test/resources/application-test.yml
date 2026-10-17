@@ -77,6 +77,12 @@ foresignal:
   # (prompt 100), so a background evaluation never races their explicit ones.
   windows:
     scheduled: false
+  # Pattern of life and trips (prompt 114) do not tick on their own in tests; PolServiceIT drives PolEngine.tick and
+  # TripCorridorIT drives TripWatch.tick.
+  pol:
+    scheduled: false
+  trips:
+    scheduled: false
   # The enrichment worker does not subscribe on its own in tests (EnrichmentWorkerIT starts it), and
   # the LLM timeout is short so EnrichmentWorkerIT can provoke a timeout quickly.
   enrichment:

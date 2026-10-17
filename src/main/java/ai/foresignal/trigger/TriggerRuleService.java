@@ -302,6 +302,10 @@ public class TriggerRuleService {
             rule.setWindowSpec(null);
             return;
         }
+        if (rule.getConditions().stream().anyMatch(c -> ApproachCondition.OP.equals(c.op()))) {
+            // Prompt 114: approach conditions are per-version edges of record rules only.
+            throw ValidationException.forField("conditions", "approach conditions apply only to record rules");
+        }
         ai.foresignal.trigger.window.WindowSpec window =
                 ai.foresignal.trigger.window.WindowSpecValidator.validate(type, input);
         rule.setType(type.wire());

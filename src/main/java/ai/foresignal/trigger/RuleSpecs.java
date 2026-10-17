@@ -13,7 +13,8 @@ import org.springframework.stereotype.Component;
  * a condition without a path is an identity condition ({@link IdentityOperator}), resolved per source
  * from the descriptors' {@code entityKeys}; a rule with such an operator is sensitive; a stored
  * {@code near.anchor} becomes the rule's {@link NearAnchor}. Prompt 040: a {@code geofenceRef} preset is
- * resolved through {@link RegionFences} into the fence.
+ * resolved through {@link RegionFences} into the fence. Prompt 114: a stored condition with the operator
+ * {@code approach} becomes an {@link ApproachCondition} of the rule.
  */
 @Component
 public class RuleSpecs {
@@ -41,8 +42,18 @@ public class RuleSpecs {
      */
     public RuleSpec compile(TriggerRuleEntity rule) {
         List<RuleCondition> conditions = new ArrayList<>();
+        List<ApproachCondition> approaches = new ArrayList<>();
         boolean sensitive = false;
         for (TriggerCondition condition : rule.getConditions()) {
+            if (ApproachCondition.OP.equals(condition.op())) {
+                // Prompt 114: an approach condition is evaluated in Java, never rendered in SQL.
+                try {
+                    approaches.add(ApproachCondition.fromValue(condition.value()));
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalStateException("Approach condition of rule " + rule.getId() + ": " + e.getMessage(), e);
+                }
+                continue;
+            }
             Operator op = operators.find(condition.op()).orElseThrow(
                     () -> new IllegalStateException("Unknown operator '" + condition.op() + "' in rule " + rule.getId()));
             Object value;
@@ -104,6 +115,7 @@ public class RuleSpecs {
                 NearAnchor.fromMap(rule.getNear()),
                 rule.getNear(),
                 sensitive,
-                ref);
+                ref,
+                approaches);
     }
 }

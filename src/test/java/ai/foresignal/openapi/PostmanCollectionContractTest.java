@@ -205,6 +205,15 @@ class PostmanCollectionContractTest {
                     .compile(body.get("mapping"), ai.foresignal.mapping.MappingContext.none())),
             Map.entry("suggestMapping", body -> ai.foresignal.mapping.MappingInputs.fromSample(
                     body.get("sample"), OpenApiSpec.JSON)),
+            // 114: the production parsers of pattern-of-life subjects and labels, trips, trip checks and CPA batches
+            // (the database checks of references, places, channels and anchors are covered by PolServiceIT and
+            // TripCorridorIT).
+            Map.entry("createPolSubject", body -> ai.foresignal.pol.PolService.parse(body, OpenApiSpec.JSON)),
+            Map.entry("updatePolPlace", ai.foresignal.pol.PolService::parseLabel),
+            Map.entry("createTrip", ai.foresignal.trip.TripService::validateInput),
+            Map.entry("updateTrip", ai.foresignal.trip.TripService::validateInput),
+            Map.entry("checkTrip", ai.foresignal.api.TripsController::parseCheck),
+            Map.entry("cpaBatch", ai.foresignal.api.KinematicsController::parseBatch),
             Map.entry("createStreamTicket", body -> new TicketStore(new TokenHasher(), null, Clock.fixed(NOW, ZoneOffset.UTC))
                     .mint(new AuthenticatedToken(UUID.randomUUID(), "t", Scope.READ, TokenRestrictions.NONE, null,
                             "01JA8Q3V7S2K9W4T6Y1B5N0M3C", false), body)));

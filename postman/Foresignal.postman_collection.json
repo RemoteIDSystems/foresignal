@@ -27940,7 +27940,7 @@
                 {
                   "key": "horizon",
                   "value": "2h",
-                  "description": "Search horizon",
+                  "description": "Search horizon, more than 0 and at most 24h",
                   "disabled": true
                 }
               ]
@@ -27997,7 +27997,7 @@
                 }
               ]
             },
-            "description": "Approaching when the bearing difference is \u2264 45\u00b0 and speed \u2265 0.5 m/s; then eta = distance / (speed \u00b7 cos \u0394). Errors: `STATE_TOO_OLD`.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getEta`",
+            "description": "Approaching when the bearing difference is \u2264 45\u00b0 and speed \u2265 0.5 m/s; then eta = distance / (speed \u00b7 cos \u0394). A place target resolves to the place's point (or the interior point of a polygon or route) and needs an agent token, since places are never shown as coordinates to read tokens; read callers pass `lon,lat`. Errors: `STATE_TOO_OLD`.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getEta`",
             "auth": {
               "type": "noauth"
             }
@@ -28047,7 +28047,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"subject\": \"aisstream/244660000\",\n  \"filter\": {\n    \"kinds\": [\n      \"vessel\"\n    ],\n    \"sources\": [],\n    \"bbox\": [\n      3.9,\n      51.8,\n      4.6,\n      52.1\n    ]\n  },\n  \"horizon\": \"1h\",\n  \"maxDcpaM\": 1852,\n  \"top\": 20\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -33014,7 +33014,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('polSubjectId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -33056,7 +33059,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"subjectType\": \"record\",\n  \"ref\": \"owntracks-phone/phone\",\n  \"enabled\": true,\n  \"params\": {\n    \"stayRadiusM\": 100,\n    \"minDwell\": \"10m\",\n    \"maxGap\": \"30m\",\n    \"eps\": 150,\n    \"minPts\": 3,\n    \"lookback\": \"28d\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -33082,7 +33085,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/pol/subjects/{{subjectId}}",
+              "raw": "{{baseUrl}}/v1/pol/subjects/{{polSubjectId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -33090,7 +33093,7 @@
                 "v1",
                 "pol",
                 "subjects",
-                "{{subjectId}}"
+                "{{polSubjectId}}"
               ],
               "query": []
             },
@@ -33115,7 +33118,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('polPlaceId', j.items[0].id);",
+                  "}"
                 ]
               }
             }
@@ -33129,7 +33135,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/pol/subjects/{{subjectId}}/places",
+              "raw": "{{baseUrl}}/v1/pol/subjects/{{polSubjectId}}/places",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -33137,7 +33143,7 @@
                 "v1",
                 "pol",
                 "subjects",
-                "{{subjectId}}",
+                "{{polSubjectId}}",
                 "places"
               ],
               "query": [
@@ -33194,7 +33200,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/pol/places/{{placeId}}",
+              "raw": "{{baseUrl}}/v1/pol/places/{{polPlaceId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -33202,7 +33208,7 @@
                 "v1",
                 "pol",
                 "places",
-                "{{placeId}}"
+                "{{polPlaceId}}"
               ],
               "query": []
             },
@@ -33219,7 +33225,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"label\": \"home\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -33250,7 +33256,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/pol/subjects/{{subjectId}}/stays",
+              "raw": "{{baseUrl}}/v1/pol/subjects/{{polSubjectId}}/stays",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -33258,7 +33264,7 @@
                 "v1",
                 "pol",
                 "subjects",
-                "{{subjectId}}",
+                "{{polSubjectId}}",
                 "stays"
               ],
               "query": [
@@ -33323,7 +33329,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/pol/subjects/{{subjectId}}/recompute",
+              "raw": "{{baseUrl}}/v1/pol/subjects/{{polSubjectId}}/recompute",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -33331,7 +33337,7 @@
                 "v1",
                 "pol",
                 "subjects",
-                "{{subjectId}}",
+                "{{polSubjectId}}",
                 "recompute"
               ],
               "query": []
@@ -49160,7 +49166,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('tripId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -49201,7 +49210,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Morning commute\",\n  \"routePlaceId\": null,\n  \"route\": {\n    \"type\": \"LineString\",\n    \"coordinates\": [\n      [\n        -97.7431,\n        30.2672\n      ],\n      [\n        -97.73,\n        30.29\n      ],\n      [\n        -97.715,\n        30.32\n      ],\n      [\n        -97.699,\n        30.36\n      ]\n    ]\n  },\n  \"bufferMeters\": 2000,\n  \"schedule\": {\n    \"type\": \"recurring\",\n    \"days\": [\n      \"MO\",\n      \"TU\",\n      \"WE\",\n      \"TH\",\n      \"FR\"\n    ],\n    \"departTime\": \"07:45\",\n    \"timezone\": \"America/Chicago\"\n  },\n  \"expectedDuration\": \"40m\",\n  \"leadTime\": \"60m\",\n  \"hazardKinds\": [\n    \"nws-alert\",\n    \"road-event\",\n    \"work-zone\",\n    \"fire-perimeter\",\n    \"cyclone-cone\",\n    \"earthquake\",\n    \"incident\"\n  ],\n  \"minSeverity\": null,\n  \"channelIds\": [],\n  \"anchor\": null,\n  \"notifyWhenClear\": true,\n  \"enabled\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -49306,7 +49315,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Morning commute\",\n  \"route\": {\n    \"type\": \"LineString\",\n    \"coordinates\": [\n      [\n        -97.7431,\n        30.2672\n      ],\n      [\n        -97.699,\n        30.36\n      ]\n    ]\n  },\n  \"bufferMeters\": 3000,\n  \"schedule\": {\n    \"type\": \"recurring\",\n    \"days\": [\n      \"MO\",\n      \"TU\",\n      \"WE\",\n      \"TH\",\n      \"FR\"\n    ],\n    \"departTime\": \"07:30\",\n    \"timezone\": \"America/Chicago\"\n  },\n  \"expectedDuration\": \"45m\",\n  \"leadTime\": \"45m\",\n  \"notifyWhenClear\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -49407,7 +49416,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"dryRun\": true,\n  \"occurrence\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -51357,6 +51366,18 @@
     },
     {
       "key": "federationToken",
+      "value": ""
+    },
+    {
+      "key": "polSubjectId",
+      "value": ""
+    },
+    {
+      "key": "polPlaceId",
+      "value": ""
+    },
+    {
+      "key": "tripId",
       "value": ""
     },
     {

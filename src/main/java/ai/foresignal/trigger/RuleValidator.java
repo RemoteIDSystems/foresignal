@@ -61,6 +61,11 @@ import tools.jackson.databind.JsonNode;
  * {@link GeofenceMaterializer} (lines buffered by {@code bufferMeters}, {@code near} buffered by its
  * radius, fixed and split at the antimeridian), and defaults follow the spec ({@code reappearAsEnter}
  * true with a fence, {@code autoResolve} all on for enter rules).
+ *
+ * <p>Prompt 114 adds the {@code approach} condition ({@code {type: "approach", target: {placeId|point|record},
+ * withinMeters, withinMinutes}}): exactly one target (an existing place, a GeoJSON Point or a
+ * {@code {sourceId}/{externalId}}), stored as {@code {path: null, op: "approach", value}}; it cannot be combined
+ * with {@code hysteresisMeters} or a moving anchor.
  */
 @Component
 public class RuleValidator {
@@ -280,6 +285,13 @@ public class RuleValidator {
                 }
             }
 
+            boolean approach = conditions.stream().anyMatch(c -> ApproachCondition.OP.equals(c.op()));
+            if (approach && hysteresis > 0) {
+                error("hysteresisMeters", "is not supported with an approach condition");
+            }
+            if (approach && fence.near() != null && fence.near().containsKey("anchor")) {
+                error("near.anchor", "a moving anchor cannot be combined with an approach condition");
+            }
             AutoResolve autoResolve = autoResolve(mode);
             Integer maxAlertsPerHour = nullableInt("maxAlertsPerHour", 0);
             boolean autoDisableOnStorm = bool("autoDisableOnStorm", false);
@@ -472,6 +484,14 @@ public class RuleValidator {
                     error(prefix, "must be an object with path, op and value");
                     continue;
                 }
+                if (item.has("type") && !item.get("type").isNull()) {
+                    // Prompt 114: {type: "approach", target, withinMeters, withinMinutes}.
+                    TriggerCondition approach = approach(item, prefix);
+                    if (approach != null) {
+                        conditions.add(approach);
+                    }
+                    continue;
+                }
                 JsonNode path = item.get("path");
                 JsonNode op = item.get("op");
                 boolean ok = true;
@@ -521,6 +541,99 @@ public class RuleValidator {
                 }
             }
             return conditions;
+        }
+
+        /**
+         * An {@code approach} condition (prompt 114): exactly one target ({@code placeId} of an existing place,
+         * a GeoJSON {@code point}, or a {@code record} {@code {sourceId}/{externalId}}), {@code withinMeters} and
+         * {@code withinMinutes} ≥ 0. Stored as {@code {path: null, op: "approach", value}}.
+         */
+        private TriggerCondition approach(JsonNode item, String prefix) {
+            JsonNode type = item.get("type");
+            if (!type.isString() || !ApproachCondition.TYPE.equals(type.asString())) {
+                error(prefix + ".type", "must be approach (or omitted for a payload condition)");
+                return null;
+            }
+            for (String field : item.propertyNames()) {
+                if (!List.of("type", "target", "withinMeters", "withinMinutes").contains(field)) {
+                    error(prefix + "." + field, "is not an approach field");
+                    return null;
+                }
+            }
+            JsonNode target = item.get("target");
+            if (target == null || !target.isObject()) {
+                error(prefix + ".target", "must be an object with exactly one of placeId, point or record");
+                return null;
+            }
+            String placeId = null;
+            double[] point = null;
+            String record = null;
+            int given = 0;
+            JsonNode placeNode = target.get("placeId");
+            if (placeNode != null && !placeNode.isNull()) {
+                given++;
+                if (!placeNode.isString()) {
+                    error(prefix + ".target.placeId", "must be a place id");
+                    return null;
+                }
+                placeId = placeNode.asString().strip();
+                PlaceLookup lookup = places.getIfAvailable();
+                if (lookup == null) {
+                    special(ErrorCodes.PLACES_UNAVAILABLE, prefix + ".target.placeId",
+                            "places are not available on this installation");
+                    return null;
+                }
+                if (lookup.geometry(placeId).isEmpty()) {
+                    error(prefix + ".target.placeId", "names no place");
+                    return null;
+                }
+            }
+            JsonNode pointNode = target.get("point");
+            if (pointNode != null && !pointNode.isNull()) {
+                given++;
+                Geometry geometry;
+                try {
+                    geometry = geoJson.read(pointNode);
+                } catch (InvalidInputException e) {
+                    error(prefix + ".target.point", e.getMessage());
+                    return null;
+                }
+                if (!(geometry instanceof org.locationtech.jts.geom.Point p) || p.isEmpty()) {
+                    error(prefix + ".target.point", "must be a GeoJSON Point");
+                    return null;
+                }
+                point = new double[] {p.getX(), p.getY()};
+            }
+            JsonNode recordNode = target.get("record");
+            if (recordNode != null && !recordNode.isNull()) {
+                given++;
+                if (!recordNode.isString() || !recordNode.asString().matches("^[a-z0-9-]+/.+$")) {
+                    error(prefix + ".target.record", "must be {sourceId}/{externalId}");
+                    return null;
+                }
+                record = recordNode.asString().strip();
+            }
+            if (given != 1) {
+                error(prefix + ".target", "must name exactly one of placeId, point or record");
+                return null;
+            }
+            double meters = approachNumber(item, "withinMeters", prefix);
+            double minutes = approachNumber(item, "withinMinutes", prefix);
+            if (meters < 0 || minutes < 0) {
+                return null;
+            }
+            ApproachCondition condition = new ApproachCondition(placeId, point, record, meters, minutes);
+            return new TriggerCondition(null, ApproachCondition.OP, condition.toValue());
+        }
+
+        /** A non-negative number field of an approach condition, or −1 after recording an error. */
+        private double approachNumber(JsonNode item, String field, String prefix) {
+            JsonNode node = item.get(field);
+            if (node == null || !node.isNumber() || !Double.isFinite(node.doubleValue()) || node.doubleValue() < 0) {
+                error(prefix + "." + field, "is required: a number ≥ 0");
+                return -1;
+            }
+            return node.doubleValue();
         }
 
         /** The sources the body names (deprecated alias included); empty for every source. */

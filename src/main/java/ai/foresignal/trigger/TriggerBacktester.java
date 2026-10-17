@@ -194,8 +194,7 @@ public class TriggerBacktester {
         state.seedStorm(List.of());
         for (long lo = from; lo < to; lo += CHUNK) {
             long hi = Math.min(to, lo + CHUNK);
-            RuleSqlBuilder.RuleSql sql = RuleSqlBuilder.matches(rule, lo, hi, now, false);
-            List<MatchRow> rows = reads.read(t -> t.query(sql.sql(), sql.params(), MatchRow.MAPPER));
+            List<MatchRow> rows = matches(rule, lo, hi, now);
             for (MatchRow row : rows) {
                 if (rule.hysteresis() && !row.edge().equals(rule.mode().wireValue())) {
                     // The opposite edge only drives the band's state; it is not a match.
@@ -239,5 +238,27 @@ public class TriggerBacktester {
             return List.of(new Warning(DOWNSAMPLED_RANGE, DOWNSAMPLED_RANGE_MESSAGE));
         }
         return List.of();
+    }
+
+    /** The {@code approach} condition evaluator (prompt 114); without one every approach is ambiguous. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private org.springframework.beans.factory.ObjectProvider<ai.foresignal.kinematics.ApproachEvaluator> approachEvaluator;
+
+    /**
+     * The matches of {@code rule} in {@code (lo, hi]}: the SQL statement, or for a rule with {@code approach}
+     * conditions the candidate statement judged in Java (prompt 114).
+     */
+    private List<MatchRow> matches(RuleSpec rule, long lo, long hi, java.time.Instant now) {
+        if (!rule.hasApproach()) {
+            RuleSqlBuilder.RuleSql sql = RuleSqlBuilder.matches(rule, lo, hi, now, false);
+            return reads.read(t -> t.query(sql.sql(), sql.params(), MatchRow.MAPPER));
+        }
+        RuleSqlBuilder.RuleSql sql = RuleSqlBuilder.approachCandidates(rule, lo, hi, now, null);
+        List<ApproachMatches.Candidate> candidates =
+                reads.read(t -> t.query(sql.sql(), sql.params(), ApproachMatches.MAPPER));
+        ai.foresignal.kinematics.ApproachEvaluator evaluator =
+                approachEvaluator == null ? null : approachEvaluator.getIfAvailable();
+        return ApproachMatches.evaluate(rule, candidates,
+                evaluator == null ? ApproachMatches.UNKNOWN : evaluator.session()::evaluate).matches();
     }
 }

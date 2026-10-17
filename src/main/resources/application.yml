@@ -97,6 +97,14 @@ foresignal:
   federation:
     instance-name: ${FORESIGNAL_FEDERATION_INSTANCE_NAME:}
     max-streams: 16
+  # Pattern of life (114): the derived sources pattern-of-life and pattern-of-life-private are enabled and
+  # ticked while opted-in subjects exist; stays and places are kept for the pol.retention setting (180d). Off in tests.
+  pol:
+    scheduled: true
+  # Trips (114): the one-minute tick that runs pre-trip checks and starts, extends and ends in-trip watches.
+  # Off in tests.
+  trips:
+    scheduled: true
   # Root for INBOX_PATH source parameters. Every inbox read is confined to this
   # directory, re-checked per file, so a symlink cannot redirect a read out of it.
   inbox-dir: ${FORESIGNAL_INBOX_DIR:${FORESIGNAL_DATA_DIR:./data}/inbox}

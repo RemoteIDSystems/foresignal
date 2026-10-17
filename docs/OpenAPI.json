@@ -482,6 +482,11 @@
         "version": "1.3.0",
         "date": "2026-10-16",
         "note": "113: getFederationInfo, listFederationChanges, streamFederation, getFederationSnapshot, federationIngest, getFederationBundle, receiveFederationBundle, listPeers, createPeer, getPeer, updatePeer, deletePeer, testPeer, resyncPeer and rotatePeerIngestKey are implemented, and globalRef is served on Record, RecordVersion and Change. Reconciliations: FederationItem gains historyTier (STANDARD or TRACK) so a consumer can route TRACK items to peer-{id}-trk; federationIngest accepts an optional Foresignal-Key header (the edge's public key) for the first batch, because a hub cannot fetch the JWKS of an edge behind NAT, and pins its thumbprint (TOFU); FederationIngestResult.dropped gains selection; MeshChannelCommonConfig gains compactEvents; Problem lists PEER_KEY_MISMATCH (403) and PEER_EXISTS (409); SystemInfo.features gains federation and federationServing. The federation endpoints need a token whose restrictions set federation=true (admin tokens included); getFederationBundle stays available in edge mode (store-and-forward from an edge)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-16",
+        "note": "114: listPolSubjects, createPolSubject, deletePolSubject, listPolPlaces, updatePolPlace, listPolStays, recomputePolSubject, listTrips, createTrip, getTrip, updateTrip, deleteTrip, checkTrip, listTripRuns, getCpa, getEta and cpaBatch are implemented, with the approach trigger condition. Reconciliations: Problem lists CPA_RANGE (400), TRIP_ROUTE_INVALID (400) and STATE_TOO_OLD (422); getEta's place target needs an agent token (places are never coordinates to read tokens; read callers pass lon,lat); the CPA horizon is at most 24h. Private pattern-of-life subjects publish on the private derived source pattern-of-life-private; the in-trip rule is tagged trip-{lower-case trip id} because rule tags allow only [a-z0-9_-]."
       }
     ]
   },
@@ -50754,7 +50759,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -50832,7 +50837,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -50896,7 +50901,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -50988,7 +50993,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -51079,7 +51084,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -51191,7 +51196,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -51262,7 +51267,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -51335,7 +51340,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -51413,7 +51418,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -51484,7 +51489,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -51573,7 +51578,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -51635,7 +51640,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -51716,7 +51721,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -51808,7 +51813,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -51849,7 +51854,7 @@
             "name": "horizon",
             "in": "query",
             "required": false,
-            "description": "Search horizon",
+            "description": "Search horizon, more than 0 and at most 24h",
             "schema": {
               "type": "string",
               "description": "Search horizon. ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h).",
@@ -51930,7 +51935,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -51946,7 +51951,7 @@
         ],
         "operationId": "getEta",
         "summary": "ETA of a record to a target",
-        "description": "Approaching when the bearing difference is ≤ 45° and speed ≥ 0.5 m/s; then eta = distance / (speed · cos Δ). Errors: `STATE_TOO_OLD`.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Approaching when the bearing difference is ≤ 45° and speed ≥ 0.5 m/s; then eta = distance / (speed · cos Δ). A place target resolves to the place's point (or the interior point of a polygon or route) and needs an agent token, since places are never shown as coordinates to read tokens; read callers pass `lon,lat`. Errors: `STATE_TOO_OLD`.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "record",
@@ -52040,7 +52045,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -52139,7 +52144,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "114",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -87034,6 +87039,24 @@
             "code": "PEER_EXISTS",
             "status": 409,
             "prompt": "113"
+          },
+          {
+            "code": "CPA_RANGE",
+            "status": 400,
+            "prompt": "114",
+            "note": "getCpa: the two records are more than 500 km apart at t0"
+          },
+          {
+            "code": "TRIP_ROUTE_INVALID",
+            "status": 400,
+            "prompt": "114",
+            "note": "createTrip, updateTrip: the route is not a GeoJSON LineString of 2 to 5,000 valid vertices, both or neither of route and routePlaceId are given, or the route place is not a route"
+          },
+          {
+            "code": "STATE_TOO_OLD",
+            "status": 422,
+            "prompt": "114",
+            "note": "getCpa, getEta, cpaBatch: a kinematic state older than 1 h"
           }
         ]
       },

@@ -5533,3 +5533,96 @@ severity, drops expired ones, and sends a message again only when its severity c
   `POST /v1/federation/bundle` with a peer's ingest key accepts the same, as `remote-event` records on
   `peer-{id}-events`. Messages from this instance or already seen are dropped, and received messages are never
   sent on.
+
+## Pattern of life (prompt 114)
+
+Pattern of life learns where a tracked entity dwells and when, and reports deviations as records that rules can
+match. **It is opt-in only**: nothing is analyzed until you create a subject.
+
+```http
+POST /v1/pol/subjects
+{"subjectType": "record", "ref": "owntracks-phone/phone",
+ "params": {"stayRadiusM": 100, "minDwell": "10m", "maxGap": "30m", "eps": 150, "minPts": 3, "lookback": "28d"}}
+```
+
+- **Subjects:** a record (`{sourceId}/{externalId}`), a 098 entity (every record it links) or a 036 watchlist
+  (every record whose identity field holds a value on the list; at most 200 records per subject).
+- **Stays:** consecutive positions within `stayRadiusM` of the stay's first fix, spanning at least `minDwell`; a gap
+  longer than `maxGap` ends a stay. Positions are read incrementally from the stored versions, so a subject needs
+  history in the TRACK window (downsampled ranges are fine: dwell uses observed-time gaps).
+- **Places:** nightly at 03:00 in the server timezone (`PUT /v1/settings/server {"timezone": …}`), or on
+  `POST /v1/pol/subjects/{id}/recompute`, the stays of the trailing `lookback` are clustered with DBSCAN (`eps`
+  meters, `minPts` stays). Between runs a new stay joins the nearest place within its radius. Places keep their
+  id and your label across runs; label one with `PUT /v1/pol/places/{id} {"label": "home"}`. Stays and places
+  outlive the TRACK window; the `pol.retention` setting (default `180d`) removes them.
+- **Records:** `pattern-of-life` publishes `pol-place` (one record per place: label, visits, dwell, typical hours)
+  and `pol-deviation` with `deviationType`:
+  - `NEW_PLACE`: a stay outside every place, once the subject has 14 days of history;
+  - `UNUSUAL_TIME`: a stay at a known place arriving in an hour-of-week bucket that holds under 2% of the place's
+    dwell;
+  - `EXPECTED_ABSENT`: checked every 10 minutes; in a bucket where one place normally holds at least 60% of the
+    subject's dwell, the subject has been elsewhere, or unseen, for more than an hour. Suppressed unless every
+    member source is healthy, so an outage never reads as an absence.
+- **Rule recipes:** `{"name": "Not home at night", "sources": ["pattern-of-life-private"], "kinds":
+  ["pol-deviation"], "conditions": [{"path": "deviationType", "op": "==", "value": "EXPECTED_ABSENT"},
+  {"path": "placeLabel", "op": "==", "value": "home"}], "mode": "match"}`; or a new place for a watched aircraft:
+  `kinds: ["pol-deviation"]`, `deviationType == NEW_PLACE`.
+
+**Privacy.** A subject with a member on a private source (039, such as an OwnTracks device) needs an admin token to
+create, and is visible only to admin tokens. Its stays and places are stored at that source's precision cap, and
+its records go to `pattern-of-life-private`, a private source: never served anonymously, never embedded, exported,
+shared or federated. Deleting a subject deletes its stays and places and tombstones its records; purging an entity
+(`POST /v1/records/{sourceId}/{externalId}/purge`) also deletes the subjects of that record and the stays other
+subjects formed from its positions.
+
+## Trips and commutes (prompt 114)
+
+A trip watches the corridor along a route you supply, around a scheduled departure.
+
+**Routing stays in your client.** Compute the route with your own router and send the line; Foresignal never calls a
+routing service. To route around known hazards, ask a router that can exclude polygons: Valhalla accepts
+`exclude_polygons` (for example the corridor hazards a dry-run check returned), OSRM cannot exclude areas. Then save
+the resulting LineString (at most 5,000 vertices), or a 036 route place:
+
+```http
+POST /v1/trips
+{"name": "Morning commute",
+ "route": {"type": "LineString", "coordinates": [[-97.7431, 30.2672], [-97.6990, 30.3600]]},
+ "bufferMeters": 2000,
+ "schedule": {"type": "recurring", "days": ["MO","TU","WE","TH","FR"], "departTime": "07:45",
+              "timezone": "America/Chicago"},
+ "expectedDuration": "40m", "leadTime": "60m", "channelIds": ["<channel id>"],
+ "anchor": "owntracks-phone/phone"}
+```
+
+- **Corridor:** the route buffered by `bufferMeters` on the ellipsoid (split at the antimeridian), stored on save.
+- **Pre-trip briefing:** at `departAt − leadTime`, the hazards of `hazardKinds` (default weather alerts, road events,
+  work zones, fire perimeters, cyclone cones, M4+ earthquakes, incidents) on the route, near it (within twice the
+  buffer), and forecast hazards whose `validFrom` falls inside the trip, ordered along the route, are sent to the
+  trip's channels (every channel subscribed to briefings when it names none). A clear route is sent too unless
+  `notifyWhenClear` is false. `minSeverity` drops lower-rated hazards. `POST /v1/trips/{id}/check {"dryRun": true}`
+  runs it now without sending; `GET /v1/trips/{id}/runs` lists past checks.
+- **During the trip:** an ephemeral trigger rule tagged `trip-<trip id in lower case>` watches the corridor for new
+  hazards (mode `enter`) from the check until `departAt + expectedDuration`, extended in 15-minute steps (up to twice
+  the duration) while the anchor is still moving, then deleted. Its alerts follow your normal alert routing.
+- **Anchor:** with a moving-anchor record, the briefing lists only hazards ahead of your position on the route,
+  each with an ETA at your average speed over the last 10 minutes.
+- Recurring departures keep their local time across daylight-saving changes.
+
+## CPA/ETA and approach rules (prompt 114)
+
+- `GET /v1/kinematics/cpa?a=aisstream/244660000&b=aisstream/244123000&horizon=1h`: the closest point of approach of
+  two records under constant velocity (`dcpaMeters`, `tcpaSeconds` clamped to the horizon, vertical separation for
+  aircraft). Speed and course come from the payload (`gs`/`track`, `sog`/`cog`, `speed`, `speedMs`/`courseDeg`),
+  or from the last two stored positions. Pairs more than 500 km apart answer `400 CPA_RANGE`; states older than an
+  hour `422 STATE_TOO_OLD`; `stale: true` marks a state older than twice its source TTL.
+- `GET /v1/kinematics/eta?record=…&to=home` (or `to=-97.74,30.27`): approaching when the course is within 45° of the
+  bearing at 0.5 m/s or more; then `etaSeconds = distance / (speed · cos Δ)`.
+- `POST /v1/kinematics/cpa/batch`: one subject against up to 500 records of a filter (kinds, sources, bbox), the
+  closest approaches first.
+- **Approach rules:** a trigger condition `{"type": "approach", "target": {"placeId": "home"} | {"point": {...}} |
+  {"record": "src/id"}, "withinMeters": 1852, "withinMinutes": 20}` fires `enter` when a watched record's CPA to the
+  target is within the distance and the time. It is evaluated on each stored version of the rule's sources, so edge
+  resolution is the source's poll or flush resolution; unknown speed, course or a stale target counts as not
+  approaching. Approach conditions apply to record rules only and cannot be combined with `hysteresisMeters` or a
+  moving anchor.

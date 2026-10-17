@@ -23,7 +23,8 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code message} to {@code {"redacted":true}} (with the enrichment summary and context), or delete the
  * alerts when {@code purgeAlerts}; delete its {@code record_region} rows when that table exists
  * (prompt 040 creates it; until then this is a no-op); drop its metric series; and count, without
- * editing, the Ask messages and briefing runs whose citations reference it.
+ * editing, the Ask messages and briefing runs whose citations reference it. Prompt 114: finally every
+ * {@link EntityPurgeListener} (the pattern-of-life stores) erases what it derived from the entity.
  */
 @Component
 public class PurgeFanout {
@@ -63,6 +64,22 @@ public class PurgeFanout {
     public record Result(int embeddingsDeleted, int notificationsRedacted, int alertsRedacted, int alertsDeleted,
             int regionRowsDeleted, boolean metricSeriesDropped, PurgeReport.CitingDocuments citing) {}
 
+    /** Stores derived from versions that later prompts register (prompt 114: pattern of life). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private List<EntityPurgeListener> listeners = List.of();
+
+    /** Calls every {@link EntityPurgeListener}, each in a transaction of its own. */
+    void notifyListeners(String sourceId, String externalId) {
+        for (EntityPurgeListener listener : listeners) {
+            try {
+                Integer removed = tx.execute(status -> listener.onEntityPurged(sourceId, externalId));
+                log.debug("Purge listener {} removed {} row(s)", listener.getClass().getSimpleName(), removed);
+            } catch (RuntimeException e) {
+                log.warn("Purge listener {} failed: {}", listener.getClass().getSimpleName(), e.getMessage());
+            }
+        }
+    }
+
     /** Runs every step for {@code sourceId}/{@code externalId}. */
     public Result run(String sourceId, String externalId, boolean purgeAlerts) {
         int embeddings = deleteEmbeddings(sourceId, externalId);
@@ -77,6 +94,7 @@ public class PurgeFanout {
         int regions = deleteRegionRows(sourceId, externalId);
         boolean metrics = dropMetricSeries(sourceId, externalId);
         PurgeReport.CitingDocuments citing = countCitations(sourceId, externalId);
+        notifyListeners(sourceId, externalId);
         return new Result(embeddings, notifications, redacted, deleted, regions, metrics, citing);
     }
 

@@ -46,6 +46,8 @@ import org.locationtech.jts.geom.MultiPolygon;
  * @param sensitive true when the rule references a watchlist: its alerts are sensitive (prompt 036)
  * @param fenceRef the region preset of the geofence (prompt 040), or null; {@code fence} then holds its
  *     resolved union, and {@link RuleSqlBuilder} renders the union as a subquery
+ * @param approaches the {@code approach} conditions (prompt 114), ANDed with {@code conditions}; evaluated in
+ *     Java by the engine and the persist gate, never rendered in SQL
  */
 public record RuleSpec(
         UUID id,
@@ -78,7 +80,22 @@ public record RuleSpec(
         NearAnchor anchor,
         java.util.Map<String, Object> near,
         boolean sensitive,
-        GeofenceRef fenceRef) {
+        GeofenceRef fenceRef,
+        List<ApproachCondition> approaches) {
+
+    /** A rule without {@code approach} conditions (the shape before prompt 114). */
+    public RuleSpec(UUID id, String name, boolean enabled, Set<String> sources, Set<String> kinds, List<String> tags,
+            List<RuleCondition> conditions, MultiPolygon fence, MultiPolygon fenceInner, MultiPolygon fenceOuter,
+            double hysteresisMeters, TriggerMode mode, boolean onlyNew, boolean reappearAsEnter, Duration cooldown,
+            CooldownScope cooldownScope, Severity severity, AutoResolve autoResolve, Integer maxAlertsPerHour,
+            boolean autoDisableOnStorm, Instant activeFrom, Instant activeUntil, ActiveWindow activeWindow,
+            Duration forecastHorizon, String messageTemplate, Instant snoozedUntil, boolean enrich, NearAnchor anchor,
+            java.util.Map<String, Object> near, boolean sensitive, GeofenceRef fenceRef) {
+        this(id, name, enabled, sources, kinds, tags, conditions, fence, fenceInner, fenceOuter, hysteresisMeters, mode,
+                onlyNew, reappearAsEnter, cooldown, cooldownScope, severity, autoResolve, maxAlertsPerHour,
+                autoDisableOnStorm, activeFrom, activeUntil, activeWindow, forecastHorizon, messageTemplate, snoozedUntil,
+                enrich, anchor, near, sensitive, fenceRef, List.of());
+    }
 
     /** A rule without a geofence preset (the shape before prompt 040). */
     public RuleSpec(UUID id, String name, boolean enabled, Set<String> sources, Set<String> kinds, List<String> tags,
@@ -118,6 +135,20 @@ public record RuleSpec(
         cooldownScope = cooldownScope == null ? CooldownScope.RECORD : cooldownScope;
         severity = severity == null ? Severity.WARNING : severity;
         near = near == null ? null : java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<>(near));
+        approaches = approaches == null ? List.of() : List.copyOf(approaches);
+    }
+
+    /** True when the rule has {@code approach} conditions (prompt 114). */
+    public boolean hasApproach() {
+        return !approaches.isEmpty();
+    }
+
+    /** This rule with {@code value} as its approach conditions (tests and tools). */
+    public RuleSpec withApproaches(List<ApproachCondition> value) {
+        return new RuleSpec(id, name, enabled, sources, kinds, tags, conditions, fence, fenceInner, fenceOuter,
+                hysteresisMeters, mode, onlyNew, reappearAsEnter, cooldown, cooldownScope, severity, autoResolve,
+                maxAlertsPerHour, autoDisableOnStorm, activeFrom, activeUntil, activeWindow, forecastHorizon,
+                messageTemplate, snoozedUntil, enrich, anchor, near, sensitive, fenceRef, value);
     }
 
     /** True for a moving-anchor ("near me") rule (prompt 036). */
@@ -130,7 +161,7 @@ public record RuleSpec(
         return new RuleSpec(id, name, enabled, sources, kinds, tags, conditions, fence, fenceInner, fenceOuter,
                 hysteresisMeters, mode, onlyNew, reappearAsEnter, cooldown, cooldownScope, severity, autoResolve,
                 maxAlertsPerHour, autoDisableOnStorm, activeFrom, activeUntil, activeWindow, forecastHorizon,
-                messageTemplate, snoozedUntil, enrich, value, near, sensitive, fenceRef);
+                messageTemplate, snoozedUntil, enrich, value, near, sensitive, fenceRef, approaches);
     }
 
     /** This rule with different conditions (prompt 103 backtest variants). */
@@ -138,7 +169,7 @@ public record RuleSpec(
         return new RuleSpec(id, name, enabled, sources, kinds, tags, value, fence, fenceInner, fenceOuter,
                 hysteresisMeters, mode, onlyNew, reappearAsEnter, cooldown, cooldownScope, severity, autoResolve,
                 maxAlertsPerHour, autoDisableOnStorm, activeFrom, activeUntil, activeWindow, forecastHorizon,
-                messageTemplate, snoozedUntil, enrich, anchor, near, sensitive, fenceRef);
+                messageTemplate, snoozedUntil, enrich, anchor, near, sensitive, fenceRef, approaches);
     }
 
     /** True when the rule has a geofence (a static one; an anchor rule's fence moves). */
@@ -146,9 +177,9 @@ public record RuleSpec(
         return fence != null;
     }
 
-    /** True when the rule's predicate depends on the geometry (a fence or an anchor). */
+    /** True when the rule's predicate depends on the geometry (a fence, an anchor or an approach condition). */
     public boolean spatial() {
-        return fence != null || anchor != null;
+        return fence != null || anchor != null || !approaches.isEmpty();
     }
 
     /**

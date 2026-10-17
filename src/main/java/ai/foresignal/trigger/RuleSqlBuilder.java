@@ -163,6 +163,45 @@ public final class RuleSqlBuilder {
     }
 
     /**
+     * The candidate statement of a rule with {@code approach} conditions (prompt 114; {@link ApproachMatches}):
+     * every non-HEARTBEAT version in {@code (fromSeq, toSeq]} where the rest of the predicate ({@code R}: the
+     * conditions, fence or anchor, never the approach) holds for the version or for a non-tombstone predecessor,
+     * with the columns of {@link MatchRow} ({@code edge = 'match'}), {@code rest_v = R(v)}, {@code rest_p = R(p)}
+     * and the predecessor's {@code p_seq}, {@code p_tombstone}, {@code p_geometry}, {@code p_payload} and
+     * {@code p_observed_at}. {@code onlyNew} and {@code forecastHorizon} filter as in {@link #matches}; the
+     * cooldown is applied afterwards in Java.
+     *
+     * @param rule the rule
+     * @param fromSeq exclusive lower bound
+     * @param toSeq inclusive upper bound
+     * @param evalTime the evaluation time ({@code forecastHorizon})
+     * @param anchor the anchor's current position for an anchored rule, or null
+     */
+    public static RuleSql approachCandidates(RuleSpec rule, long fromSeq, long toSeq, Instant evalTime, Point anchor) {
+        Params b = new Params();
+        b.anchor = anchor;
+        List<String> where = baseWhere(rule, fromSeq, toSeq, b);
+        if (rule.onlyNew()) {
+            where.add("v.version = 1");
+        }
+        if (rule.forecastHorizon() != null) {
+            b.put("evalTime", OffsetDateTime.ofInstant(evalTime, ZoneOffset.UTC));
+            b.put("horizon", (double) rule.forecastHorizon().toSeconds());
+            where.add("(v.valid_from IS NULL OR v.valid_from <= CAST(:evalTime AS timestamptz)"
+                    + " + make_interval(secs => CAST(:horizon AS double precision)))");
+        }
+        String restV = predicate(rule, "v", FenceSide.MAIN, b);
+        String restP = predicate(rule, "p", FenceSide.MAIN, b);
+        where.add("((NOT v.tombstone AND " + restV + ") OR (p.seq IS NOT NULL AND NOT p.tombstone AND " + restP + "))");
+        String sql = "SELECT " + COLUMNS + ", 'match' AS edge, " + restV + " AS rest_v,"
+                + " (p.seq IS NOT NULL AND NOT p.tombstone AND " + restP + ") AS rest_p,"
+                + " p.seq AS p_seq, coalesce(p.tombstone, false) AS p_tombstone, ST_AsGeoJSON(p.geom) AS p_geometry,"
+                + " p.payload::text AS p_payload, p.observed_at AS p_observed_at"
+                + " FROM record_version v" + EDGE_JOIN + " WHERE " + String.join(" AND ", where) + ORDER;
+        return new RuleSql(sql, b.source);
+    }
+
+    /**
      * The auto-resolve statement of {@code rule}: versions where the entity stops satisfying the rule
      * ({@code P(p) AND (v.tombstone OR NOT P(v))}), restricted to tombstones when only
      * {@code onTombstone} is set and to non-tombstones when only {@code onInverseEdge} is. With a

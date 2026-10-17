@@ -82,6 +82,36 @@ public class DigestRenderer {
         return new Rendered(md.toString().strip() + "\n", List.copyOf(citations));
     }
 
+    /**
+     * Renders a sectioned brief without the digest's statistics (prompt 114: the trip briefing): the title, the
+     * period line in {@code zone}, then each section's markdown in order. Section markdown is the caller's and must
+     * already escape untrusted text ({@link #escape}).
+     *
+     * @param title the heading
+     * @param zone the timezone of the period line
+     * @param periodFrom the period start
+     * @param periodTo the period end
+     * @param sections the sections in order
+     */
+    public Rendered renderSections(String title, ZoneId zone, Instant periodFrom, Instant periodTo,
+            List<BriefingSection> sections) {
+        StringBuilder md = new StringBuilder();
+        md.append("# ").append(inline(title)).append("\n\n");
+        md.append('_').append(TIME.format(periodFrom.atZone(zone))).append(" – ").append(TIME.format(periodTo.atZone(zone)))
+                .append(' ').append(inline(zone.getId())).append("_\n\n");
+        for (BriefingSection section : sections) {
+            if (section.markdown() != null && !section.markdown().isBlank()) {
+                md.append(section.markdown().strip()).append("\n\n");
+            }
+        }
+        return new Rendered(md.toString().strip() + "\n", List.of());
+    }
+
+    /** {@code text} escaped as inline markdown with newlines folded (untrusted record text, prompt 114). */
+    public static String escape(String text) {
+        return inline(text);
+    }
+
     private static void alerts(StringBuilder md, DigestStats.Alerts alerts, List<AskCitation> citations) {
         md.append("## Alerts\n\n");
         if (alerts.total() == 0) {

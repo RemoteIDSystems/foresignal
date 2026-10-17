@@ -422,6 +422,14 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/triggers/*.kml", AccessRequirement.READ),
 
                 // ---- Triggers: read to list, agent to change ----
+                // ---- Pattern of life, trips and kinematics (prompt 114) ----
+                // Pattern of life and trips are agent operations, reads included (private subjects need admin,
+                // which the service checks); CPA and ETA are reads.
+                rule(null, "/v1/pol/**", AccessRequirement.AGENT),
+                rule(null, "/v1/trips", AccessRequirement.AGENT),
+                rule(null, "/v1/trips/**", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/kinematics/**", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/kinematics/cpa/batch", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/triggers/**", AccessRequirement.READ),
                 rule(null, "/v1/triggers/**", AccessRequirement.AGENT),
 

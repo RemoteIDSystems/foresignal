@@ -3,6 +3,8 @@ package ai.foresignal.source.adapters.derived;
 import ai.foresignal.derive.DerivedContext;
 import ai.foresignal.derive.LayerStatus;
 import ai.foresignal.derive.Observation;
+import ai.foresignal.kinematics.CpaCalculator;
+import ai.foresignal.kinematics.GeoMath;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.ParamSpec;
@@ -156,32 +158,22 @@ public class CpaGenerator extends LayerGenerator {
 
     /**
      * The CPA distance (km) and time to CPA (hours) of {@code b} relative to {@code a}, or null when
-     * the closing speed is negligible.
+     * the closing speed is negligible. The maths is the shared {@link CpaCalculator#closest} (prompt 114);
+     * only the vessel banding stays here. The time is unclamped: a negative TCPA means the pair diverges.
      */
     static double[] approach(Observation a, Observation b) {
-        double latRad = Math.toRadians((a.latitude() + b.latitude()) / 2);
-        double dx = (b.longitude() - a.longitude()) * 111.32 * Math.cos(latRad);
-        double dy = (b.latitude() - a.latitude()) * 110.57;
+        double[] d = GeoMath.offsetMeters(a.longitude(), a.latitude(), b.longitude(), b.latitude());
         double[] va = velocity(a);
         double[] vb = velocity(b);
-        double ux = vb[0] - va[0];
-        double uy = vb[1] - va[1];
-        double speed2 = ux * ux + uy * uy;
-        if (speed2 < 1e-6) {
-            return null;
-        }
-        double tcpa = -(dx * ux + dy * uy) / speed2;
-        double cx = dx + ux * tcpa;
-        double cy = dy + uy * tcpa;
-        return new double[] {Math.hypot(cx, cy), tcpa};
+        CpaCalculator.Raw raw = CpaCalculator.closest(d[0] / 1000.0, d[1] / 1000.0, vb[0] - va[0], vb[1] - va[1], 1e-6);
+        return raw == null ? null : new double[] {raw.dcpa(), raw.tcpa()};
     }
 
+    /** The vessel's velocity {@code {east, north}} in km/h from SOG (knots) and COG. */
     private static double[] velocity(Observation observation) {
         Double sog = LayerSupport.sog(observation);
         Double cog = LayerSupport.cog(observation);
-        double speed = sog == null ? 0 : sog * 1.852;
-        double bearing = cog == null ? 0 : Math.toRadians(cog);
-        return new double[] {speed * Math.sin(bearing), speed * Math.cos(bearing)};
+        return GeoMath.velocity(sog == null ? 0 : sog * 1.852, cog == null ? 0 : cog);
     }
 
     static String pairKey(String a, String b) {
