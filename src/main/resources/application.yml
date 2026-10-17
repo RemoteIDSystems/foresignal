@@ -121,6 +121,12 @@ foresignal:
   # minutes while a job is open. Off in tests (the ITs call CotBackfillService.tick()).
   backfill:
     scheduled: true
+  # Situations (118): the linker links intelligence events, findings, alerts and anomalies into storylines from its
+  # durable cursor situation.cursor (auto-start); the scheduler writes the daily snapshots at 00:10 UTC, sweeps the
+  # lifecycle every 15 minutes and retries pending briefs. Both off in tests.
+  situations:
+    auto-start: true
+    scheduled: true
   # Root for INBOX_PATH source parameters. Every inbox read is confined to this
   # directory, re-checked per file, so a symlink cannot redirect a read out of it.
   inbox-dir: ${FORESIGNAL_INBOX_DIR:${FORESIGNAL_DATA_DIR:./data}/inbox}

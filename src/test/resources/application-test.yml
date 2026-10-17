@@ -94,6 +94,11 @@ foresignal:
   # The CFTC COT backfill tick does not run on its own in tests; CotBackfillIT calls CotBackfillService.tick() (117).
   backfill:
     scheduled: false
+  # The situation linker and scheduler do not run on their own in tests (118); the ITs call SituationLinker.catchUp(),
+  # SituationSnapshots.snapshot(day), SituationService.sweep(...) and SituationBriefService.generate(...).
+  situations:
+    auto-start: false
+    scheduled: false
   # The enrichment worker does not subscribe on its own in tests (EnrichmentWorkerIT starts it), and
   # the LLM timeout is short so EnrichmentWorkerIT can provoke a timeout quickly.
   enrichment:

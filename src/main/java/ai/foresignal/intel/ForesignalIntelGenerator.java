@@ -63,20 +63,30 @@ public class ForesignalIntelGenerator implements DerivedGenerator {
     /** The start of the previous pass, or null when the next pass must be a full one. */
     private Instant watermark;
 
+    /** The situation records (prompt 118), or null when the situation layer is absent. */
+    private ai.foresignal.situation.SituationRecordPublisher situations;
+
     /** Creates the generator. */
     public ForesignalIntelGenerator(IntelligenceEventRepository events, IntelEventMemberRepository members) {
         this.events = events;
         this.members = members;
     }
 
+    /** Injects the situation record publisher (prompt 118: kind {@code situation} of this source). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setSituations(ai.foresignal.situation.SituationRecordPublisher situations) {
+        this.situations = situations;
+    }
+
     /** The descriptor (analytic retention class {@code intel}: 1825 days, Conventions "Analytic retention"). */
     public static SourceDescriptor buildDescriptor() {
         return SourceDescriptor.builder(ID)
                 .name("Intelligence events (derived)")
-                .description("Typed, located, time-bounded intelligence findings and their members, as ordinary"
-                        + " records so rules, SSE, tiles and search use them unchanged. Private events are not"
-                        + " published as records.")
-                .kind(KIND)
+                .description("Typed, located, time-bounded intelligence findings and their members, and situations"
+                        + " (prompt 118), as ordinary records so rules, SSE, tiles and search use them unchanged."
+                        + " Private events and situations are not published as records.")
+                .kinds(KIND, ai.foresignal.situation.SituationRecordPublisher.KIND)
+                .embedFields("title", "summary")
                 .attribution("Derived by Foresignal from stored versions")
                 .licence("derived")
                 .mode(Mode.DERIVED)
@@ -110,10 +120,16 @@ public class ForesignalIntelGenerator implements DerivedGenerator {
             }
         }
         watermark = null;
+        if (situations != null) {
+            situations.reconcile(ownHeads);
+        }
     }
 
     @Override
     public void onTick(Instant now, DerivedContext ctx) {
+        if (situations != null) {
+            situations.onTick(now, ctx);
+        }
         boolean full = watermark == null;
         Set<String> seen = new HashSet<>();
         int page = 0;

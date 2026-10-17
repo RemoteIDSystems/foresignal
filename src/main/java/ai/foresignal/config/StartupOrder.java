@@ -117,6 +117,12 @@ public final class StartupOrder {
      */
     public static final int INTEL = 31;
 
+    /**
+     * The situation linker (prompt 118): a change-bus subscriber with a durable cursor, after the correlation engine
+     * so the intelligence events it links are already written.
+     */
+    public static final int SITUATIONS = 32;
+
     /** The briefing scheduler (prompt 029), after the collector scheduler. */
     public static final int BRIEFINGS = 35;
 

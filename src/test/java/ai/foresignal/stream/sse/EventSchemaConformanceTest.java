@@ -103,7 +103,52 @@ class EventSchemaConformanceTest {
             entry(ai.foresignal.evidence.EvidenceEvent.MERGED,
                     () -> evidenceEvents(ai.foresignal.evidence.EvidenceEvent.MERGED)),
             entry(ai.foresignal.evidence.EvidenceEvent.FLAGGED,
-                    () -> evidenceEvents(ai.foresignal.evidence.EvidenceEvent.FLAGGED)));
+                    () -> evidenceEvents(ai.foresignal.evidence.EvidenceEvent.FLAGGED)),
+            // 118: SituationsTopic sends SituationEvent.payload() on topic situations.
+            entry(ai.foresignal.situation.SituationEvent.CREATED,
+                    () -> situationEvents(ai.foresignal.situation.SituationEvent.CREATED)),
+            entry(ai.foresignal.situation.SituationEvent.UPDATED,
+                    () -> situationEvents(ai.foresignal.situation.SituationEvent.UPDATED)),
+            entry(ai.foresignal.situation.SituationEvent.ACTIVATED,
+                    () -> situationEvents(ai.foresignal.situation.SituationEvent.ACTIVATED)),
+            entry(ai.foresignal.situation.SituationEvent.ESCALATED,
+                    () -> situationEvents(ai.foresignal.situation.SituationEvent.ESCALATED)),
+            entry(ai.foresignal.situation.SituationEvent.DORMANT,
+                    () -> situationEvents(ai.foresignal.situation.SituationEvent.DORMANT)),
+            entry(ai.foresignal.situation.SituationEvent.CLOSED,
+                    () -> situationEvents(ai.foresignal.situation.SituationEvent.CLOSED)),
+            entry(ai.foresignal.situation.SituationEvent.MERGED,
+                    () -> situationEvents(ai.foresignal.situation.SituationEvent.MERGED)));
+
+    /** {@code situation.*} payloads as {@code SituationEvent.payload()} writes them (prompt 118), located and not. */
+    static List<JsonNode> situationEvents(String type) {
+        java.time.Instant at = java.time.Instant.parse("2026-03-01T12:00:00Z");
+        ai.foresignal.situation.SituationEntity located = new ai.foresignal.situation.SituationEntity(
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3C", "Red Sea shipping disruption", "maritime", at);
+        located.setRegionCodes(List.of("YE", "YE-HD"));
+        located.setGeom(ai.foresignal.situation.SituationGeometry.of(List.of(GEOMETRY.createPoint(
+                new org.locationtech.jts.geom.Coordinate(43.0, 14.0)))));
+        located.setCentroid(ai.foresignal.situation.SituationGeometry.centroid(located.getGeom()));
+        located.setMemberCount(3);
+        located.setSignalFamilies(List.of("ais-behaviour", "gnss-interference"));
+        located.setCorroborationShare(0.5);
+        located.setSummary("3 signals from 2 families across YE since 2026-03-01 12:00 UTC. Last activity just now.");
+        located.setCreatedAt(at);
+        located.setUpdatedAt(at);
+        ai.foresignal.situation.SituationEntity bare = new ai.foresignal.situation.SituationEntity(
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3D", "Unlocated", "mixed", at);
+        bare.setMergedInto("01JA8Q3V7S2K9W4T6Y1B5N0M3C");
+        bare.setCreatedAt(at);
+        bare.setUpdatedAt(at);
+        List<JsonNode> out = new java.util.ArrayList<>();
+        for (ai.foresignal.situation.SituationEntity situation : List.of(located, bare)) {
+            ai.foresignal.situation.SituationEvent event = new ai.foresignal.situation.SituationEvent(7, type,
+                    situation.getId(), situation.getVersion(), ai.foresignal.situation.SituationMapper.summary(situation,
+                    at), "emerging", "info", situation.getMergedInto(), at);
+            out.add(toTree(event.payload()));
+        }
+        return out;
+    }
 
     /** {@code canonical.*} payloads as {@code EvidenceEvent.payload()} writes them (prompt 116). */
     static List<JsonNode> evidenceEvents(String type) {

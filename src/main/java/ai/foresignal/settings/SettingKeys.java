@@ -169,13 +169,49 @@ public final class SettingKeys {
      */
     public static final String ABSENCE_MIN_DETECT = "observability.absenceMinDetect";
 
+    /** The situation linker's durable cursor (prompt 118; the consumer clamp of retention). */
+    public static final String SITUATION_CURSOR = "situation.cursor";
+
+    /** The linker's join threshold (prompt 118, {@code linkThreshold}), a number in [0, 1]; default 0.45. */
+    public static final String SITUATION_LINK_THRESHOLD = "situation.linkThreshold";
+
+    /**
+     * How long a situation stays a linker candidate and active without new core members (prompt 118,
+     * {@code dormancyWindow}), a duration string such as {@code 7d}; default 7 days.
+     */
+    public static final String SITUATION_DORMANCY_WINDOW = "situation.dormancyWindow";
+
+    /** How long a dormant situation can still be reopened (prompt 118, {@code reopenWindow}); default 30 days. */
+    public static final String SITUATION_REOPEN_WINDOW = "situation.reopenWindow";
+
+    /** True to let the optional LLM brief refresh itself (prompt 118); default false. */
+    public static final String SITUATION_BRIEFS_ENABLED = "situation.briefs.enabled";
+
+    /** The most LLM briefs per UTC day across all situations (prompt 118); default 50. */
+    public static final String SITUATION_BRIEFS_MAX_PER_DAY = "situation.briefs.maxPerDay";
+
+    /** The shortest interval between two briefs of one situation (prompt 118, {@code briefMinInterval}); 30 min. */
+    public static final String SITUATION_BRIEF_MIN_INTERVAL = "situation.briefMinInterval";
+
+    /**
+     * Operator rows of the situation theme table (prompt 118), an object shaped like {@code intel/themes.json}
+     * ({@code eventTypes}, {@code findingTypes}, {@code tags}, {@code kinds}, {@code keywords}), merged over it.
+     */
+    public static final String INTEL_THEMES = "intel.themes";
+
+    /** True to classify untyped text records with the optional LLM when no keyword rule matches (118); false. */
+    public static final String INTEL_THEMES_LLM_CLASSIFY = "intel.themes.llmClassify";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
                     STATS, GLANCE, METRICS, VISIBILITY, REGION_CURSOR, REGION_TAGGING, WEATHER, ENTITY_CURSOR,
                     ENTITY, INTEL_CURSOR, ARCHIVE, CAP_SENDER, INSTANCE_NAME, FEDERATION_INSTANCE_NAME,
                     POL_RETENTION, EXERCISE_MAX_WINDOW, EXERCISE_ALERT_RETENTION, EVIDENCE_CURSOR, INTEL_ORIGINATORS,
-                    EVIDENCE_MIN_LINK_CONFIDENCE, ABSENCE_MIN_DETECT, ATTENTION_SEEDED);
+                    EVIDENCE_MIN_LINK_CONFIDENCE, ABSENCE_MIN_DETECT, ATTENTION_SEEDED, SITUATION_CURSOR,
+                    SITUATION_LINK_THRESHOLD, SITUATION_DORMANCY_WINDOW, SITUATION_REOPEN_WINDOW,
+                    SITUATION_BRIEFS_ENABLED, SITUATION_BRIEFS_MAX_PER_DAY, SITUATION_BRIEF_MIN_INTERVAL, INTEL_THEMES,
+                    INTEL_THEMES_LLM_CLASSIFY);
 
     private SettingKeys() {}
 }

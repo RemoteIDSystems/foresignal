@@ -561,6 +561,18 @@ public final class ErrorCodes {
     /** 409: a history backfill of that source is already running (117). */
     public static final String BACKFILL_RUNNING = "BACKFILL_RUNNING";
 
+    /** 404: no situation has that id, or the caller may not see it (118). */
+    public static final String UNKNOWN_SITUATION = "UNKNOWN_SITUATION";
+
+    /** 400: a situation member does not exist, is not pinned by a valid seq, or is not in the situation (118). */
+    public static final String SITUATION_MEMBER_NOT_FOUND = "SITUATION_MEMBER_NOT_FOUND";
+
+    /** 409: a situation change sent a stale {@code version} (118). */
+    public static final String SITUATION_VERSION_CONFLICT = "SITUATION_VERSION_CONFLICT";
+
+    /** 409: a change to a closed situation, which is final (118). */
+    public static final String SITUATION_CLOSED = "SITUATION_CLOSED";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

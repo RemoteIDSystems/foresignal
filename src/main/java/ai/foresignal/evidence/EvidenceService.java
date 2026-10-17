@@ -135,6 +135,25 @@ public class EvidenceService {
         return out;
     }
 
+    /**
+     * The number of independent evidence groups of each canonical event (prompt 118's corroboration roll-up): the
+     * distinct originator roots of its groups, so echoed re-reports of one originator never count twice. Events
+     * without groups, and merged events, are absent from the map.
+     */
+    public Map<String, Integer> independentGroupsOfEvents(Collection<String> canonicalEventIds) {
+        Map<String, Integer> out = new LinkedHashMap<>();
+        if (canonicalEventIds == null || canonicalEventIds.isEmpty()) {
+            return out;
+        }
+        jdbc.query("SELECT g.canonical_event_id, count(DISTINCT g.originator_root) FROM evidence_group g"
+                        + " JOIN canonical_event c ON c.id = g.canonical_event_id AND c.status <> 'merged'"
+                        + " WHERE g.canonical_event_id = ANY(?::text[]) GROUP BY g.canonical_event_id",
+                rs -> {
+                    out.put(rs.getString(1), rs.getInt(2));
+                }, (Object) canonicalEventIds.toArray(String[]::new));
+        return out;
+    }
+
     /** The map key of a record. */
     public static String recordKey(String sourceId, String externalId) {
         return sourceId + "/" + externalId;

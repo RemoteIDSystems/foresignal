@@ -1,16 +1,3 @@
-listSituations 118
-createSituation 118
-getSituation 118
-updateSituation 118
-listSituationMembers 118
-addSituationMember 118
-removeSituationMember 118
-mergeSituation 118
-splitSituation 118
-regenerateSituationBrief 118
-getSituationTimeline 118
-getSituationChanges 118
-testSituationLinker 118
 getAnalyticsSeriesData 119
 listAnalysisSeries 119
 upsertAnalysisSeries 119

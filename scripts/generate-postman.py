@@ -33,7 +33,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              # 116: canonical events, analysis manifests and prompt templates.
              "canonicalEventId": "canonicalEventId", "manifestId": "manifestId", "templateId": "templateId",
              # 117: attention topics.
-             "topicId": "attentionTopicId"}
+             "topicId": "attentionTopicId",
+             # 118: situations and their members.
+             "situationId": "situationId", "memberId": "situationMemberId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -466,6 +468,19 @@ BODIES = {
   # 117: backfill the CFTC Commitments of Traders history down to 2010 (needs cftc-cot enabled; budget-limited and
   # resumable, so it may take several runs).
   "backfillCftcCot": {"from": "2010-01-01"},
+  # 118: a situation created by hand from one pinned record (replace the ref and seq with a record version of
+  # yours), then a member added, a merge into {{otherSituationId}} (the older of the two keeps its id) and a split of
+  # the member in {{situationMemberId}} into a new situation.
+  "createSituation": {"title": "Red Sea shipping disruption", "theme": "maritime", "status": "emerging",
+                      "regionCodes": ["YE", "ER", "DJ"], "topicIds": ["{{attentionTopicId}}"],
+                      "members": [{"memberType": "record", "ref": "{{sourceId}}/{{externalId}}", "seq": 1,
+                                   "role": "core"}]},
+  "updateSituation": {"title": "Red Sea and Bab el-Mandeb shipping disruption", "severityOverride": "warning",
+                      "reason": "Insurers suspended cover", "version": 0},
+  "addSituationMember": {"memberType": "alert", "ref": "{{alertId}}", "role": "core"},
+  "mergeSituation": {"intoId": "{{otherSituationId}}", "reason": "The same storyline seen from two chokepoints"},
+  "splitSituation": {"memberIds": ["{{situationMemberId}}"], "title": "Gulf of Aden piracy", "theme": "maritime"},
+  "testSituationLinker": {"fromSeq": 0, "toSeq": 10000},
   # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
   # one nautical mile in the next hour.
   "cpaBatch": {"subject": "aisstream/244660000", "filter": {"kinds": ["vessel"], "sources": [],
@@ -488,6 +503,9 @@ CAPTURE = {
   "listCanonicalEvents": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('canonicalEventId', j.items[0].id);",
   "listAnomalies": "const j = pm.response.json(); const a = (j.items || []).find(i => i.manifestId); if (a) pm.collectionVariables.set('manifestId', a.manifestId);",
   "replayManifest": "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.jobId);",
+  # 118: the created situation and the added member.
+  "createSituation": "const j = pm.response.json(); pm.collectionVariables.set('situationId', j.id);",
+  "addSituationMember": "const j = pm.response.json(); pm.collectionVariables.set('situationMemberId', j.id);",
   # 117: the created attention topic.
   "createAttentionTopic": "const j = pm.response.json(); pm.collectionVariables.set('attentionTopicId', j.id);",
   "rotatePeerIngestKey": "const j = pm.response.json(); pm.collectionVariables.set('peerIngestKey', j.key); console.log('New peer ingest key (shown once):', j.key);",
@@ -826,6 +844,7 @@ collection = {
       ("exerciseId", ""), ("suggestionId", ""), ("tuningLogId", ""),
       ("canonicalEventId", ""), ("manifestId", ""), ("templateId", "ask-system"), ("jobId", ""),
       ("attentionTopicId", "red-sea-shipping"),
+      ("situationId", ""), ("situationMemberId", ""), ("otherSituationId", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

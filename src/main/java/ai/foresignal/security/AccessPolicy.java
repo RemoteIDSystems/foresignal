@@ -472,6 +472,15 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/manifests/*/replay", AccessRequirement.AGENT),
                 rule(HttpMethod.GET, "/v1/prompt-templates/*", AccessRequirement.READ),
 
+                // ---- Situations (prompt 118): reads are read; changes, the brief and the linker dry run agent. The
+                // brief may spend LLM budget, so it is always authenticated. ----
+                rule(HttpMethod.POST, "/v1/situations/*/brief", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/situations/linker/test", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/situations", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/situations/**", AccessRequirement.READ),
+                rule(null, "/v1/situations", AccessRequirement.AGENT),
+                rule(null, "/v1/situations/**", AccessRequirement.AGENT),
+
                 // ---- Autonomous analyst (prompt 102) ----
                 rule(HttpMethod.POST, "/v1/analyst/profiles/*/run", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/analyst/profiles/**", AccessRequirement.READ),

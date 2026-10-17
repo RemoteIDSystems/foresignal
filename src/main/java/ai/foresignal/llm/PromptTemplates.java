@@ -54,9 +54,13 @@ public final class PromptTemplates {
     /** The version every template shipped at in prompt 116. */
     public static final String V1 = "1.0.0";
 
+    /** The situation brief (prompt 118). */
+    public static final String SITUATION_BRIEF = "situation-brief-system";
+
     /** The LLM role of each template. */
     public static final Map<String, String> ROLES = Map.of(ASK, "ask", ASK_RETRIEVAL, "ask", ENRICHMENT, "enrichment",
-            BRIEFING, "briefing", MAPPING_SUGGEST, "mapping", TUNING_EXPLAINER, "tuning", ANALYST, "analyst");
+            BRIEFING, "briefing", MAPPING_SUGGEST, "mapping", TUNING_EXPLAINER, "tuning", ANALYST, "analyst",
+            SITUATION_BRIEF, "situation-brief");
 
     private static final Pattern FILE = Pattern.compile("([a-z0-9-]+)@([0-9]+\\.[0-9]+\\.[0-9]+)\\.md");
 

@@ -9,10 +9,11 @@ import org.junit.jupiter.api.Test;
 class SpatialIndexInitializerTest {
 
     @Test
-    @DisplayName("the statement list is the v1.2 set plus the 017 alert, 036 place, 040 reference, 042 raster and 093 series statements, in order")
+    @DisplayName("the statement list is the v1.2 set plus the 017, 036, 040, 042, 093, 098, 114 and 118 statements, in order")
     void statementList() {
         // Checkpoint 041: 036 (places, saved views) and 040 (reference geography, record_region) added their
-        // indexes to the initializer without updating this pin.
+        // indexes to the initializer without updating this pin; 098 (entities) and 114 (trips) did too, and 118
+        // (situations) brought it up to date.
         assertThat(SpatialIndexInitializer.STATEMENTS)
                 .containsExactly(
                         "DROP INDEX IF EXISTS record_head_geom_gist",
@@ -38,7 +39,17 @@ class SpatialIndexInitializerTest {
                         "CREATE INDEX IF NOT EXISTS raster_frame_product_valid_idx ON raster_frame (product_id, valid_time DESC)",
                         "CREATE INDEX IF NOT EXISTS raster_frame_footprint_gist ON raster_frame USING GIST (footprint)",
                         "CREATE INDEX IF NOT EXISTS record_head_series_point_idx ON record_head (source_id,"
-                                + " (payload->>'series'), event_time) WHERE kind = 'series-point'");
+                                + " (payload->>'series'), event_time) WHERE kind = 'series-point'",
+                        "CREATE UNIQUE INDEX IF NOT EXISTS entity_key_open_idx ON entity_key (key_type, key_value)"
+                                + " WHERE valid_to IS NULL",
+                        "CREATE UNIQUE INDEX IF NOT EXISTS entity_link_open_idx ON entity_link (source_id, external_id)"
+                                + " WHERE valid_to IS NULL",
+                        "CREATE INDEX IF NOT EXISTS entity_alias_lower_idx ON entity_alias (lower(alias) text_pattern_ops)",
+                        "CREATE INDEX IF NOT EXISTS entity_link_entity_open_idx ON entity_link (entity_id)"
+                                + " WHERE valid_to IS NULL",
+                        "CREATE INDEX IF NOT EXISTS trip_corridor_gist ON trip USING GIST (corridor)",
+                        "CREATE INDEX IF NOT EXISTS situation_geom_gist ON situation USING GIST (geom)",
+                        "CREATE INDEX IF NOT EXISTS situation_region_codes_gin ON situation USING GIN (region_codes)");
     }
 
     @Test

@@ -5864,3 +5864,88 @@ nothing that is already stored (`409 BACKFILL_RUNNING` while one is open).
 **Not built:** ICE's own weekly COT for Brent and gasoil (its website terms forbid automated collection), CME and ICE
 end-of-day prices, UKMTO advisories and Metaculus. An external provider (EDP, prompt 024) can supply any of them
 from your own subscription.
+
+## Situations (prompt 118)
+
+A **situation** is a storyline that lasts days to months ("Red Sea shipping disruption"). It groups intelligence
+events, findings, alerts, anomalies, records and investigations, has a lifecycle (`emerging`, `active`, `dormant`,
+`closed`), a severity, regions, a geometry (the convex hull of its members buffered by 25 km), a deterministic
+summary and an optional LLM brief. `GET /v1/situations` lists them by latest activity; `GET /v1/situations/{id}`
+returns the evidence first (members grouped by signal family, each with its join reason and corroboration status),
+then the inference (status, severity, summary), then the brief labeled as speculation.
+
+**What links, and why.** The linker (`situation-linker 1.0.0`) reads, from its durable cursor `situation.cursor`:
+intelligence events that are `emerging` or `active`, analytic findings of severity notable or higher, alerts whose
+rule carries the tag `situation` or whose severity is critical, and `activity-up` / `activity-down` anomalies. For
+each input it scores the open situations that pass a cheap prefilter (a shared region code, the geometry within the
+distance limit, a shared entity or a matching topic keyword):
+
+| Component | Contribution |
+|---|---|
+| Shared first-level region (`US-TX`) | +0.30 |
+| Shared country, when no first-level region is shared | +0.20 |
+| Distance to the situation geometry | +0.25 × max(0, 1 − d / 300 km); 500 km when the input or the situation is maritime |
+| Shared 098 entity | +0.25 |
+| The input's text matches a keyword of one of the situation's 117 attention topics | +0.15 |
+| Text similarity of the 027 embeddings (input record vs. the situation's record) | +0.20 × max(0, (cos − 0.70) / 0.30) |
+| Incompatible theme (`mixed` is compatible with all) | −0.20 |
+| Recency: the sum, clamped to [0, 1], is multiplied by | 0.5 + 0.5 × exp(−hours since the situation's last activity / 72) |
+
+The best situation joins when its score is at least `linkThreshold` (0.45). Otherwise an `active` intelligence event
+of severity warning or higher, a significant finding or a critical alert seeds a new `emerging` situation titled
+"{type} — {region}"; anything else is not linked. An input already in a situation is never linked again (move it
+with `POST /v1/situations/{id}/members` and `moveFromSituationId`). Every member stores its `joinReason` (score,
+components, linker version), so `POST /v1/situations/linker/test {"fromSeq", "toSeq"}` reproduces the decisions of
+any seq range without storing anything.
+
+**Lifecycle.** `emerging` becomes `active` when the core members come from at least two signal families **and** at
+least two independent evidence groups (116: re-reports of one originator never count twice), or when you set
+`"status": "active"`. A situation without a new core member for `dormancyWindow` (7 days) goes `dormant`; a new core
+member within `reopenWindow` (30 days) makes it `active` again; 90 days dormant closes it. `closed` is final: a new
+situation starts instead. Severity is the highest core-member severity unless you override it
+(`"severityOverride": "critical"`, `null` clears it). Anomalies join as `context` members: they never drive status
+or severity.
+
+**Tuning.** The settings are app settings without their own endpoint (like 116's): `situation.linkThreshold`
+(0.45; lower links more, higher splits storylines), `situation.dormancyWindow` (`7d`) and `situation.reopenWindow`
+(`30d`). Raise the threshold first when unrelated events end up together; give situations topics
+(`PATCH {"topicIds": [...]}`) so news and alerts that name the storyline join it.
+
+**Themes.** Each input gets a theme from `intel/themes.json` (intelligence event types, finding types, alert and
+anomaly rule tags, record kinds, then keyword rules on the text); add rows with the setting `intel.themes` (same
+shape, merged over the file). Untyped text records that no rule matches stay without a theme unless you set
+`intel.themes.llmClassify=true`: then the chat provider picks one theme from the fixed list (effort low, budgeted,
+cached by the text's hash, labeled `themeSource: llm`). Off by default.
+
+**What changed since.** A job at 00:10 UTC writes one snapshot per open situation for the previous day.
+`GET /v1/situations/{id}/changes?since=2026-10-10T00:00:00Z` compares that day's snapshot with now: status and
+severity before and after, new members by family and type, area change, regions added and removed. No LLM is used.
+
+**Briefs and their cost.** With a chat provider and `situation.briefs.enabled=true` (off by default), a brief is
+rewritten when a situation activates, when its severity changes, or when three new core members arrived since the
+last brief, at most once per `situation.briefMinInterval` (`30m`) per situation and at most
+`situation.briefs.maxPerDay` (50) attempts per day across all situations. Each brief is one budgeted tool loop
+(effort low, up to 6 tool calls) whose claims are typed and whose citations must name a member or a tool result; a
+private situation is never sent to a remote provider. A failure or budget refusal keeps the previous brief.
+`POST /v1/situations/{id}/brief` asks for one now (202; 409 `LLM_NOT_CONFIGURED` when briefs are off). The brief never
+changes members, status or severity.
+
+**Shaping situations.** `POST /v1/situations` creates one by hand (members verified by `seq`); `PATCH` renames,
+changes the theme, overrides severity, activates, reopens or closes; `POST .../members` and `DELETE
+.../members/{memberId}` add and remove members; `POST .../merge {"intoId"}` keeps the older situation and closes the
+other; `POST .../split {"memberIds", "title"}` moves members into a new one. Every change is in the situation log
+with the token that made it (`GET .../timeline`). A stale `version` is `409 SITUATION_VERSION_CONFLICT`; changing a
+closed situation is `409 SITUATION_CLOSED`.
+
+**Records, SSE and notifications.** Every public situation is a `foresignal-intel` record of kind `situation`
+(title, theme, status, severity, memberCount, signalFamilies, regionCodes, corroborationShare), so an ordinary rule
+can alert on it, for example `kind=situation` and `severity == critical`. Private situations (any member from a
+private source) are never published as records and are visible only with private access. The `situations` topic of
+`/v1/events/stream` sends `situation.created`, `.updated`, `.activated`, `.escalated`, `.dormant`, `.closed` and
+`.merged`. The notification event types `situation.activated` and `situation.escalated` are off by default; to
+receive them on a channel, read it with `GET /v1/channels/{channelId}`, add them to its `events` and send the whole
+channel back with `PUT /v1/channels/{channelId}` (a `PUT` replaces the channel), for example:
+
+```
+"events": ["alert", "situation.activated", "situation.escalated"]
+```

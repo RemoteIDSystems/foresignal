@@ -16849,6 +16849,18 @@
                   "value": "",
                   "description": "Composite resume cursor, the same value as the Last-Event-ID header, for clients (browser EventSource) that cannot set the header on first connect. The header wins when both are present.",
                   "disabled": true
+                },
+                {
+                  "key": "situations.status",
+                  "value": "emerging",
+                  "description": "situations topic (118): only events of situations in this status",
+                  "disabled": true
+                },
+                {
+                  "key": "situations.theme",
+                  "value": "",
+                  "description": "situations topic (118): only events of situations of this theme",
+                  "disabled": true
                 }
               ]
             },
@@ -26881,7 +26893,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/intel/events/{{eventId}}/members/{{memberId}}",
+              "raw": "{{baseUrl}}/v1/intel/events/{{eventId}}/members/{{situationMemberId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -26891,7 +26903,7 @@
                 "events",
                 "{{eventId}}",
                 "members",
-                "{{memberId}}"
+                "{{situationMemberId}}"
               ],
               "query": []
             },
@@ -42435,7 +42447,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('situationId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -42476,7 +42491,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"title\": \"Red Sea shipping disruption\",\n  \"theme\": \"maritime\",\n  \"status\": \"emerging\",\n  \"regionCodes\": [\n    \"YE\",\n    \"ER\",\n    \"DJ\"\n  ],\n  \"topicIds\": [\n    \"{{attentionTopicId}}\"\n  ],\n  \"members\": [\n    {\n      \"memberType\": \"record\",\n      \"ref\": \"{{sourceId}}/{{externalId}}\",\n      \"seq\": 1,\n      \"role\": \"core\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -42574,7 +42589,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"title\": \"Red Sea and Bab el-Mandeb shipping disruption\",\n  \"severityOverride\": \"warning\",\n  \"reason\": \"Insurers suspended cover\",\n  \"version\": 0\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -42656,7 +42671,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                  "pm.test('status is 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('situationMemberId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -42699,7 +42717,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"memberType\": \"alert\",\n  \"ref\": \"{{alertId}}\",\n  \"role\": \"core\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -42725,7 +42743,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/situations/{{situationId}}/members/{{memberId}}",
+              "raw": "{{baseUrl}}/v1/situations/{{situationId}}/members/{{situationMemberId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -42734,7 +42752,7 @@
                 "situations",
                 "{{situationId}}",
                 "members",
-                "{{memberId}}"
+                "{{situationMemberId}}"
               ],
               "query": []
             },
@@ -42802,7 +42820,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"intoId\": \"{{otherSituationId}}\",\n  \"reason\": \"The same storyline seen from two chokepoints\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -42862,7 +42880,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"memberIds\": [\n    \"{{situationMemberId}}\"\n  ],\n  \"title\": \"Gulf of Aden piracy\",\n  \"theme\": \"maritime\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -43081,7 +43099,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"fromSeq\": 0,\n  \"toSeq\": 10000\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -51432,6 +51450,18 @@
     {
       "key": "attentionTopicId",
       "value": "red-sea-shipping"
+    },
+    {
+      "key": "situationId",
+      "value": ""
+    },
+    {
+      "key": "situationMemberId",
+      "value": ""
+    },
+    {
+      "key": "otherSituationId",
+      "value": ""
     },
     {
       "key": "tileLayer",

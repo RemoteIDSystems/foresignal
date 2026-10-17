@@ -125,7 +125,7 @@ public class AnalystRunner {
 
     private static final Set<String> READ_TOOL_NAMES = Set.of("query_records", "get_record_history", "search",
             "list_intel_events", "get_intel_event", "list_anomalies", "get_window_state", "get_exposure", "get_entity",
-            "source_health", "find_similar_events");
+            "source_health", "find_similar_events", "list_situations", "get_situation", "get_situation_changes");
 
     private final LlmService llm;
     private final LlmSettingsService llmSettings;
@@ -790,7 +790,7 @@ public class AnalystRunner {
      * The read-only caller the tools see: scope {@code read}, the destination's excluded sources, and the
      * private grant only when the destination may receive private records.
      */
-    static McpCaller toolCaller(Set<String> excluded, boolean privateAllowed) {
+    public static McpCaller toolCaller(Set<String> excluded, boolean privateAllowed) {
         AuthenticatedToken token = new AuthenticatedToken(UUID.nameUUIDFromBytes("analyst-system".getBytes()),
                 "analyst", Scope.READ, TokenRestrictions.NONE, null, "analyst", false, privateAllowed);
         return new McpCaller(token, new ReadCaller(Scope.READ, true, false, ReadRestriction.NONE, privateAllowed),
