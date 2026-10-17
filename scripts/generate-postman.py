@@ -43,7 +43,10 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              # 121: reference-history imports and base rates.
              "importId": "referenceImportId", "baseRateId": "baseRateId",
              # 122: forecast questions, forecasters and retrospective evaluations.
-             "questionId": "questionId", "forecasterId": "forecasterId", "evaluationId": "evaluationId"}
+             "questionId": "questionId", "forecasterId": "forecasterId", "evaluationId": "evaluationId",
+             # 125: hypothesis sets, hypotheses, indicators, ACH evidence and key assumptions.
+             "setId": "hypothesisSetId", "hypothesisId": "hypothesisId", "indicatorId": "indicatorId",
+             "evidenceId": "achEvidenceId", "assumptionId": "assumptionId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -571,6 +574,99 @@ BODIES = {
                                                          "from": "2024-01-01T00:00:00Z",
                                                          "to": "2024-01-31T00:00:00Z", "minSeverity": "notable"}],
                                            "notes": "Operator case from the PortWatch record."}},
+  # 125: the outcome set of the worked example (Intelligence-Design §13) with its indicators, assumptions and a
+  # machine-resolved ledger question; an added indicator, hypothesis and evidence row; a review; a draft.
+  "createHypothesisSet": {
+      "question": "Saudi or coalition kinetic response against Houthi targets within 7 days?",
+      "description": "Outcome set of the worked example: after the strike on Riyadh, does a response follow, and"
+                     " when?",
+      "kind": "exclusive", "cadence": "daily", "horizon": "2026-12-31", "regionCodes": ["SA", "YE"],
+      "themes": ["conflict"], "private": False,
+      "hypotheses": [
+          {"label": "within 72 h", "statement": "A Saudi or coalition kinetic response against Houthi targets"
+                                                " follows within 72 hours.",
+           "type": "outcome", "prior": 0.25, "ledgerOutcome": "yes",
+           "priorBasis": {"type": "base-rate", "ref": "{{baseRateId}}",
+                          "rationale": "Responses to comparable strikes from the reference-import base rates."}},
+          {"label": "3-7 days", "statement": "The response follows after 72 hours but within 7 days.",
+           "type": "outcome", "prior": 0.2, "ledgerOutcome": "yes",
+           "priorBasis": {"type": "analogs", "ref": "situation-analogs:{{situationId}}",
+                          "rationale": "The outcome distribution of the situation's historical analogs."}},
+          {"label": "none in 7 days", "statement": "No kinetic response follows within 7 days.",
+           "type": "outcome", "prior": 0.5, "ledgerOutcome": "no",
+           "priorBasis": {"type": "operator", "ref": None,
+                          "rationale": "Restraint has followed most recent strikes during negotiations."}},
+          {"label": "other", "statement": "Other / none of these (for example a response by another party).",
+           "type": "other", "prior": 0.05, "ledgerOutcome": "no",
+           "priorBasis": {"type": "operator", "ref": None,
+                          "rationale": "Residual mass for outcomes the other hypotheses do not describe."}}],
+      "indicators": [
+          {"description": "Airspace restrictions over southern Saudi Arabia",
+           "signal": {"type": "intelEvent", "intelEvent": {"type": "aviation-anomaly", "regionCodes": ["SA"]}},
+           "signalFamily": "aviation-ops", "credibility": "H", "relevance": "H",
+           "expectedBy": "2026-12-03T00:00:00Z",
+           "lr": {"within 72 h": {"class": "high", "direction": "supports",
+                                  "rationale": "Closures usually precede strike packages by hours."},
+                  "3-7 days": {"class": "medium", "direction": "supports"},
+                  "none in 7 days": {"class": "high", "direction": "weakens"}}},
+          {"description": "Maritime disruption near the Bab el-Mandeb",
+           "signal": {"type": "intelEvent", "intelEvent": {"type": "maritime-disruption",
+                                                           "regionCodes": ["YE", "DJ", "ER"]}},
+           "signalFamily": "ais-behaviour", "credibility": "M", "relevance": "H",
+           "lr": {"within 72 h": {"class": "low", "direction": "supports"},
+                  "3-7 days": {"class": "low", "direction": "supports"},
+                  "none in 7 days": {"class": "low", "direction": "weakens"}}},
+          {"description": "Conflict activity rising in Yemen",
+           "signal": {"type": "series", "series": {"ref": "rollup:day/*/conflict/YE", "direction": "up"}},
+           "signalFamily": "conflict", "credibility": "M", "relevance": "M",
+           "lr": {"within 72 h": {"class": "medium", "direction": "supports"},
+                  "none in 7 days": {"class": "medium", "direction": "weakens"}}},
+          {"description": "Military air and tanker activity over the Red Sea (operator-observed)",
+           "signal": {"type": "manual"}, "signalFamily": "aviation-military", "credibility": "M", "relevance": "H",
+           "lr": {"within 72 h": {"class": "high", "direction": "supports"},
+                  "none in 7 days": {"class": "medium", "direction": "weakens"}}}],
+      "assumptions": [
+          {"text": "The coalition retains the capacity to strike Houthi targets at short notice.", "linchpin": True,
+           "rationale": "Air assets remain deployed in the region.",
+           "wouldBeWrongIf": "Assets are withdrawn or grounded.", "status": "solid"},
+          {"text": "Negotiations do not produce a ceasefire this week.", "linchpin": False, "status": "caveated"}],
+      "ledgerQuestion": {"resolver": {"type": "event-exists",
+                                      "params": {"selector": {"referenceFamily": "conflict:battles"},
+                                                 "area": {"regionCodes": ["YE"]},
+                                                 "window": {"start": "2026-11-01T00:00:00Z",
+                                                            "end": "2026-12-31T00:00:00Z"}}},
+                         "resolutionCriteria": "Yes if Foresignal records a battles event in Yemen attributed to a"
+                                               " Saudi or coalition response by the end of the horizon; no"
+                                               " otherwise.",
+                         "category": "conflict"}},
+  "updateHypothesisSet": {"description": "Outcome set of the worked example, reviewed daily.", "cadence": "daily",
+                          "version": 0},
+  "addHypothesis": {"label": "proxy response", "statement": "A response comes from a coalition partner rather than"
+                                                            " Saudi forces.",
+                    "type": "outcome", "prior": 0.05, "ledgerOutcome": "yes",
+                    "priorBasis": {"type": "operator", "ref": None,
+                                   "rationale": "Partners have responded on the coalition's behalf before."}},
+  "updateHypothesis": {"statement": "A Saudi or coalition kinetic response against Houthi targets follows within"
+                                    " 72 hours of the strike."},
+  "createIndicator": {"description": "Situation escalates to critical",
+                      "signal": {"type": "situation", "situation": {"situationId": "01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+                                                                    "minSeverity": "critical"}},
+                      "signalFamily": "conflict", "credibility": "M", "relevance": "M",
+                      "lr": {"{{hypothesisId}}": {"class": "medium", "direction": "supports",
+                                                  "rationale": "Escalation precedes most responses."}}},
+  "updateIndicator": {"credibility": "H", "expectedBy": "2026-12-10T00:00:00Z"},
+  "addAchEvidence": {"source": "record", "ref": "record:{{sourceId}}/{{externalId}}",
+                     "description": "Report of strike preparations at a coalition air base.", "credibility": "M",
+                     "relevance": "H", "citations": []},
+  "createKeyAssumption": {"text": "Houthi forces do not strike again before a response.", "linchpin": False,
+                          "rationale": "A second strike would change the decision calculus.",
+                          "wouldBeWrongIf": "A second strike is reported.", "status": "solid"},
+  "updateKeyAssumption": {"status": "caveated", "rationale": "Reports of a second launch are unconfirmed."},
+  "reviewHypothesisSet": {"cause": "review", "rationale": "Daily review: no new indicators; the airspace closure"
+                                                           " remains unconfirmed and the priors stand.",
+                          "citations": []},
+  "draftHypothesisSet": {"text": "Watch whether the Red Sea situation spreads to Hormuz",
+                         "regionCodes": ["OM", "IR", "AE"]},
   # 098: assert an IMO number (check digit valid) on the entity in {{entityId}}, and merge another entity into it
   # (replace the example ULID with the other entity's id; entity ids are ULIDs, which a {{variable}} cannot match).
   "addEntityKey": {"keyType": "imo", "keyValue": "9074729", "confidence": 1.0,
@@ -674,6 +770,11 @@ CAPTURE = {
   # 123: the benchmark run and the historical case.
   "createBenchmarkRun": "const j = pm.response.json(); pm.collectionVariables.set('benchmarkRunId', j.id);",
   "createBenchmarkCase": "const j = pm.response.json(); pm.collectionVariables.set('benchmarkCaseId', j.id);",
+  # 125: the hypothesis set (its first hypothesis and indicator), an added indicator, evidence row and assumption.
+  "createHypothesisSet": "const j = pm.response.json(); pm.collectionVariables.set('hypothesisSetId', j.id); if (j.hypotheses && j.hypotheses.length) pm.collectionVariables.set('hypothesisId', j.hypotheses[0].id); if (j.indicators && j.indicators.length) pm.collectionVariables.set('indicatorId', j.indicators[0].id); if (j.assumptions && j.assumptions.length) pm.collectionVariables.set('assumptionId', j.assumptions[0].id);",
+  "createIndicator": "const j = pm.response.json(); pm.collectionVariables.set('indicatorId', j.id);",
+  "addAchEvidence": "const j = pm.response.json(); pm.collectionVariables.set('achEvidenceId', j.id);",
+  "createKeyAssumption": "const j = pm.response.json(); pm.collectionVariables.set('assumptionId', j.id);",
   # 117: the created attention topic.
   "createAttentionTopic": "const j = pm.response.json(); pm.collectionVariables.set('attentionTopicId', j.id);",
   "rotatePeerIngestKey": "const j = pm.response.json(); pm.collectionVariables.set('peerIngestKey', j.key); console.log('New peer ingest key (shown once):', j.key);",
@@ -1064,6 +1165,7 @@ collection = {
       ("referenceImportId", ""), ("baseRateId", ""),
       ("questionId", ""), ("forecasterId", "ensemble"), ("evaluationId", ""),
       ("benchmarkRunId", ""), ("benchmarkCaseId", ""),
+      ("hypothesisSetId", ""), ("hypothesisId", ""), ("indicatorId", ""), ("achEvidenceId", ""), ("assumptionId", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

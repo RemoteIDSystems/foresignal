@@ -12,7 +12,8 @@ import org.springframework.stereotype.Component;
 /**
  * The ledger's {@link LedgerHooks} (prompt 122): a new question gets its baseline forecasts on a virtual thread
  * (when background analytics run; tests call {@link BaselineRunner} directly), every non-ensemble forecast refreshes
- * the question's ensemble in the same transaction, and every resolution scores the question.
+ * the question's ensemble in the same transaction, and every resolution scores the question and, once it commits,
+ * tells the {@link QuestionResolutionListener}s (prompt 125: hypothesis sets and question indicators).
  */
 @Component
 public class LedgerCoordinator implements LedgerHooks {
@@ -23,6 +24,7 @@ public class LedgerCoordinator implements LedgerHooks {
     private final ObjectProvider<EnsembleService> ensemble;
     private final ObjectProvider<ScoringService> scoring;
     private final boolean background;
+    private ObjectProvider<QuestionResolutionListener> resolutionListeners;
 
     /** Creates the coordinator. */
     public LedgerCoordinator(ObjectProvider<BaselineRunner> baselines, ObjectProvider<EnsembleService> ensemble,
@@ -32,6 +34,12 @@ public class LedgerCoordinator implements LedgerHooks {
         this.ensemble = ensemble;
         this.scoring = scoring;
         this.background = background;
+    }
+
+    /** Injects the resolution listeners (prompt 125); optional. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void setResolutionListeners(ObjectProvider<QuestionResolutionListener> resolutionListeners) {
+        this.resolutionListeners = resolutionListeners;
     }
 
     @Override
@@ -62,6 +70,18 @@ public class LedgerCoordinator implements LedgerHooks {
         ScoringService service = scoring.getIfAvailable();
         if (service != null) {
             service.scoreQuestion(question);
+        }
+        if (resolutionListeners != null) {
+            String id = question.getId();
+            Object outcome = question.getResolution() == null ? null : question.getResolution().get("outcome");
+            String label = outcome == null ? null : outcome.toString();
+            ForecastEvents.afterCommit(() -> resolutionListeners.orderedStream().forEach(listener -> {
+                try {
+                    listener.questionResolved(id, label);
+                } catch (RuntimeException e) {
+                    log.warn("A resolution listener failed on question {}: {}", id, e.toString());
+                }
+            }));
         }
     }
 }

@@ -183,6 +183,19 @@ class PostmanCollectionContractTest {
             // 123: the benchmark harness's production parsers (pure).
             Map.entry("createBenchmarkRun", ai.foresignal.benchmark.BenchmarkInputs::run),
             Map.entry("createBenchmarkCase", ai.foresignal.benchmark.BenchmarkInputs::caseInput),
+            // 125: the hypothesis layer's production parsers (pure); references to stored sets, findings, questions
+            // and indicators are checked by HypothesisService (HypothesisControllersIT, HypothesisLifecycleIT).
+            Map.entry("createHypothesisSet", ai.foresignal.hypothesis.HypothesisInputs::set),
+            Map.entry("draftHypothesisSet", ai.foresignal.hypothesis.HypothesisDrafter.DraftRequest::parse),
+            Map.entry("updateHypothesisSet", ai.foresignal.hypothesis.HypothesisInputs::setPatch),
+            Map.entry("reviewHypothesisSet", ai.foresignal.hypothesis.HypothesisInputs::review),
+            Map.entry("addHypothesis", ai.foresignal.hypothesis.HypothesisInputs::hypothesis),
+            Map.entry("updateHypothesis", ai.foresignal.hypothesis.HypothesisInputs::hypothesisPatch),
+            Map.entry("createIndicator", ai.foresignal.hypothesis.HypothesisInputs::indicator),
+            Map.entry("updateIndicator", ai.foresignal.hypothesis.HypothesisInputs::indicatorPatch),
+            Map.entry("addAchEvidence", ai.foresignal.hypothesis.HypothesisInputs::evidence),
+            Map.entry("createKeyAssumption", ai.foresignal.hypothesis.HypothesisInputs::assumption),
+            Map.entry("updateKeyAssumption", ai.foresignal.hypothesis.HypothesisInputs::assumptionPatch),
             // 111: the production parsers of bulk export and offline pack specs (pure).
             Map.entry("createExport", ai.foresignal.export.ExportSpec::parse),
             Map.entry("createPack", ai.foresignal.export.PackSpec::parse),

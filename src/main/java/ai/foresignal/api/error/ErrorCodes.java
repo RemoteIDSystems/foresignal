@@ -636,6 +636,30 @@ public final class ErrorCodes {
     /** 409: a benchmark run is already queued or running (123). */
     public static final String BENCHMARK_IN_PROGRESS = "BENCHMARK_IN_PROGRESS";
 
+    /** 404: no hypothesis set has that id, or it is private and the caller has no private access (125). */
+    public static final String UNKNOWN_HYPOTHESIS_SET = "UNKNOWN_HYPOTHESIS_SET";
+
+    /** 404: no hypothesis has that id (125). */
+    public static final String UNKNOWN_HYPOTHESIS = "UNKNOWN_HYPOTHESIS";
+
+    /** 404: no indicator has that id (125). */
+    public static final String UNKNOWN_INDICATOR = "UNKNOWN_INDICATOR";
+
+    /** 400: a hypothesis set, hypothesis or review is not valid (125). */
+    public static final String HYPOTHESIS_SET_INVALID = "HYPOTHESIS_SET_INVALID";
+
+    /** 400: an indicator or its watch rule is not valid (125). */
+    public static final String INDICATOR_INVALID = "INDICATOR_INVALID";
+
+    /** 400: text fails the estimative-language lint (125). */
+    public static final String LINT_FAILED = "LINT_FAILED";
+
+    /** 409: the hypothesis set changed since the version the caller read (125). */
+    public static final String HYPOTHESIS_SET_VERSION_CONFLICT = "HYPOTHESIS_SET_VERSION_CONFLICT";
+
+    /** 409: the hypothesis set is resolved and accepts no more changes (125). */
+    public static final String HYPOTHESIS_SET_RESOLVED = "HYPOTHESIS_SET_RESOLVED";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

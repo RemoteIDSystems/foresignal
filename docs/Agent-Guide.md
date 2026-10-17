@@ -78,8 +78,9 @@ Two Server-Sent Events endpoints push changes as they are committed (typically w
 - `GET /v1/changes/stream` carries the `changes` topic only. Filters: `source`, `kind`,
   `externalId`, `bbox` (a box with `minLon > maxLon` crosses the antimeridian), `near` +
   `radiusKm`, `payload` (default false), `live` (default true) and `touches` (default false).
-- `GET /v1/events/stream` multiplexes topics on one connection: `topics=changes,alerts` today,
-  `notifications` and `system` as later releases add them. Filters take the topic as a prefix
+- `GET /v1/events/stream` multiplexes topics on one connection: `topics=changes,alerts`, and
+  `notifications`, `system`, `inbox`, `intel`, `evidence`, `analyst`, `situations`, `analytics`, `forecasts` and
+  `hypotheses` as their prompts add them. Filters take the topic as a prefix
   (`changes.bbox=…`, `changes.live=false`, `alerts.minSeverity=warning`). The first event is `hello {streamId, topics,
   watermarkSeq, filterVersion}`. The filter can be swapped without reconnecting (below).
 
@@ -673,6 +674,15 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `submit_forecast` | agent | Records an immutable forecast on an open question (`questionId` and one of `probability`, `distribution`, `quantiles`, plus a `rationale`); it supersedes your previous one and is scored at resolution. **Always start from the base rate** (`get_base_rate`), show adjustments as adjustments, and never state a number with a likelihood term that disagrees with it. |
 | `get_benchmark_status` | read | The latest analytic benchmark status (123) of every intelligence component (`change-point`, `anomaly`, `event-study`, `co-occurrence`, `evidence`, `canonical-linking`, `precursor`, `situation-linker` and the `forecaster:*` components): `pass`, `warn`, `fail` or `unknown`, the run, and what it gates (`proposerAutoExecution`, `llmEnsembleWeight`, `findingCaveat`). **When a component you rely on is `fail`, say its output is less trustworthy;** findings of a failing detector carry the caveat `BENCHMARK_FAIL`. |
 | `run_benchmark` | agent | Queues a benchmark run (`suite`: `synthetic`, `historical` or `all`; optional `components` and `seed`) as a 103 job of type `benchmark`. It writes only benchmark results, never findings, events, situations or forecasts. One run at a time (`BENCHMARK_IN_PROGRESS`); read the outcome with `get_benchmark_status`. |
+| `list_hypothesis_sets` | read | Rolling hypothesis sets (125), newest first: `status`, `cadence`, `situationId`, `region`, `limit`. Each set has its key question, `kind`, `cadence`, `confidence` and every hypothesis with its `probability`, ICD 203 `estimativeTerm` and `confidence`. Private sets appear only for callers with private access. |
+| `get_hypothesis_set` | read | One set (`setId`): hypotheses with probability, term, confidence and `change` since the previous revision, the prior and its `priorBasis`, indicators (signal, LRs, state, watch rule, `pDetect`), key assumptions and the linked ledger question with its ensemble. **Never present a speculative-link hypothesis without its `alternatives` and its `coincidenceBaseline`**, and say it is capped (`probabilityCap`). |
+| `get_ach_matrix` | read | The ACH matrix of a set (`setId`): evidence rows rated `CC`, `C`, `N`, `NA`, `I`, `II` per hypothesis with their weights, the inconsistency score per hypothesis, the least inconsistent hypothesis and the non-diagnostic rows. An audit view: quote probabilities from the set, not from the matrix. |
+| `get_information_value` | read | A set's pending indicators ranked by expected information gain (`eig`, `potentialEig` at full detectability, `pDetect`, `pObserved`) and whether each is a `collectionGap`. Use it to say what would most change the judgment. |
+| `list_collection_gaps` | read | Indicators that would matter but cannot currently be observed (`setId`, `limit`), with recommendations (`enable-source`, `add-receiver`, `add-sensor`, `none`). Recommendations are advice; enabling a source is the operator's action. |
+| `create_hypothesis_set` | agent | Creates a set: `question`, `kind` (`exclusive` needs exactly one `other` hypothesis and priors summing to 1), `cadence`, optional `horizon`, `regionCodes`, `hypotheses` (each prior with its `priorBasis`), `indicators` (signal, `signalFamily`, credibility, relevance, `lr` per hypothesis label as `{class, direction, rationale}`), `assumptions` and an optional `ledgerQuestion`. **Call `get_base_rate` and `find_analogs` first** and use them as the priors' basis. |
+| `add_evidence` | agent | Adds ACH evidence to a set (`setId`, `source`, `ref`, `description`, `credibility`, `relevance`, `ratings` per hypothesis id for manual evidence). Re-reports of one evidence group attach to the existing row and add no weight; manual ratings move the probabilities through a recorded `evidence-added` revision. |
+| `review_hypothesis_set` | agent | Records a review revision (`setId`, `rationale`, optional `probabilities`, `lr` and `assumptions` changes, `exceedCap`, `citations`). The rationale must pass the ICD 203 lint (`LINT_FAILED` otherwise): state what changed since the previous revision. |
+| `draft_hypothesis_set` | agent, cost-bearing | Has the LLM draft a set from plain language (`text`, optional `situationId`, `regionCodes`). The draft returns with `warnings` and `valid`; nothing is created until you call `create_hypothesis_set` with it (after the operator agrees). |
 | `list_products` | read | The weather and imagery products you may sample: `id`, `title`, `kind`, `units`, `coverage`, `latest` (newest frame or complete run) and `health` (`ok`, or `unavailable` with the reason); optional `category` (052). |
 | `sample_weather` | read | Product values at `lon`/`lat` or a `place` (needs a token), `time` `latest`, `now`, ISO or an offset (`-PT1H`, `+PT6H`), each with `validTime`, `localTime`, `ageMinutes`, `run`, `coverage` and `status`; plus `hazards`: NWS alerts covering the point (`automated: false`) and ProbSevere objects within 50 km (`automated: true`). A status other than `ok` is unknown, never clear (052). |
 | `weather_forecast` | read | A 3-hourly point forecast to 120 h (`hours`) from the stored GFS and HRRR runs: temperature, wind, gusts, precipitation per step and HRRR smoke, with each provider's `run` and `status` (052). For a place it adds provider `nws` (053): the official NWS gridpoint forecast to 72 h with precipitation probability (`popPct`) and sky cover, `coverage: place`, its `updatedAt`, and `status` `stale` once it is more than 6 hours old. |
@@ -707,9 +717,20 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `create_export` | agent | Submits an asynchronous bulk export of records (GeoParquet, GeoPackage, FlatGeobuf or GPX) and returns the job with its download and manifest URLs; poll it with `get_export`. The export carries a license sidecar and a signed manifest; `FORBIDDEN` and `LOCAL_ONLY` sources are excluded unless `personalUse` is set (111). |
 | `get_export` | agent | The status, progress, row count, license summary and download and manifest URLs of a bulk export, snapshot or offline pack; URLs, never file bytes (111). |
 
-Later prompts add tools to the same registry: entities (098).
-
 **Resources:** `foresignal://sources`, `foresignal://kinds`, `foresignal://places` (036: names, shapes and radii; coordinates only for agent tokens; always needs a token), `foresignal://products` (052) and the template `foresignal://products/{id}/legend` (052: a product's legend in its default style). **Prompt:** `situation-report` (arguments `bbox`, `since`) asks the model to brief on an area from `source_health`, `query_records` and `list_alerts`, citing every fact.
+
+### Hypotheses and estimative language
+
+- **Never present a speculative link without its alternatives and its coincidence baseline.** A hypothesis such as
+  "the positioning reflected advance knowledge" is an association in the data, never an accusation: give the
+  alternatives in the same set (scheduled news or inventory data, contract roll or rebalancing, coincidence at the base
+  rate), the placebo rate it was measured against, and the fact that its probability is capped.
+- **Keep likelihood terms and confidence levels in separate sentences.** Say "A response within 72 hours is likely
+  (62%)." and, in another sentence, "Analytic confidence is moderate: two independent indicators were observed." Never
+  write "very likely with high confidence".
+- Use only the ICD 203 terms (almost no chance, very unlikely, unlikely, roughly even chance, likely, very likely,
+  almost certain), each with the number it stands for. Probabilities move only through revisions: to change one,
+  record a review with your rationale (`review_hypothesis_set`).
 
 ### Vocabulary
 

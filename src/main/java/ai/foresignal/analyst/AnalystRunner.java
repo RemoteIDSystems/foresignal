@@ -128,7 +128,8 @@ public class AnalystRunner {
             "source_health", "find_similar_events", "list_situations", "get_situation", "get_situation_changes",
             "list_findings", "get_finding", "get_series_data", "list_analysis_series", "list_precursors",
             "get_precursor", "get_base_rate", "find_analogs", "list_questions", "get_question", "get_scorecard",
-            "get_benchmark_status");
+            "get_benchmark_status", "list_hypothesis_sets", "get_hypothesis_set", "get_ach_matrix",
+            "get_information_value", "list_collection_gaps");
 
     private final LlmService llm;
     private final LlmSettingsService llmSettings;

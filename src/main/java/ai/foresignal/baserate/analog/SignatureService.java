@@ -44,7 +44,8 @@ import org.springframework.stereotype.Service;
  *       {@value #SIGNATURE_DAYS} days: duration, peak severity, and the families active in their regions within 7 and
  *       30 days of the reference time (day 7, or the end when shorter), read from the 119 region-day rollups and
  *       {@code reference_history}. An outcome is final once the situation is closed and its 30-day window has passed.
- *       Related hypothesis sets arrive with prompt 125; until then {@code hypothesisOutcome} is null.
+ *       {@code hypothesisOutcome} is the newest resolved hypothesis set linked to the situation (prompt 125:
+ *       {@code {setId, outcome}}), or null.
  * </ul>
  */
 @Service
@@ -397,10 +398,31 @@ public class SignatureService {
         o.setReferenceAt(reference);
         o.setFollowOn7d(List.copyOf(familiesActive(s.regionCodes(), reference, 7)));
         o.setFollowOn30d(List.copyOf(familiesActive(s.regionCodes(), reference, 30)));
-        o.setHypothesisOutcome(null);
+        o.setHypothesisOutcome(hypothesisOutcome(id));
         o.setFinalOutcome("closed".equals(s.status()) && now.isAfter(reference.plus(Duration.ofDays(30))));
         o.setComputedAt(now);
         return Optional.of(outcomes.save(o));
+    }
+
+    /**
+     * The newest resolved hypothesis set linked to a situation, as {@code {setId, outcome}} (prompt 125), or null. The
+     * hypothesis tables are read through SQL so this package stays independent of the hypothesis layer.
+     */
+    Map<String, Object> hypothesisOutcome(String situationId) {
+        try {
+            List<Map<String, Object>> rows = jdbc.queryForList("SELECT id, resolved_outcome FROM hypothesis_set WHERE"
+                    + " situation_id = :id AND status = 'resolved' ORDER BY updated_at DESC LIMIT 1",
+                    new MapSqlParameterSource("id", situationId));
+            if (rows.isEmpty()) {
+                return null;
+            }
+            Map<String, Object> out = new java.util.LinkedHashMap<>();
+            out.put("setId", rows.get(0).get("id"));
+            out.put("outcome", rows.get(0).get("resolved_outcome"));
+            return out;
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     /**

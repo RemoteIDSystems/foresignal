@@ -166,7 +166,12 @@ public class NotificationRouter implements AlertListener {
         // A muted rule's alerts are recorded and kept in the inbox, but not routed (prompt 033).
         boolean muted = alert.ruleId() != null
                 && rules.findById(alert.ruleId()).map(r -> r.mutedAt(clock.instant())).orElse(false);
-        NotificationMessage persisted = service.publish(message, muted ? c -> false : null);
+        // Prompt 125: an indicator's watch rule (tag origin-hypothesis) routes to no channel by default; only a
+        // channel that names the rule in its ruleIds receives its alerts. They stay in the inbox and on the streams.
+        boolean indicatorWatch = alert.tags().contains(ai.foresignal.hypothesis.IndicatorWatchService.ORIGIN_TAG);
+        java.util.function.Predicate<ai.foresignal.notify.NotificationChannel> filter = muted ? c -> false
+                : indicatorWatch ? c -> c.ruleIds() != null && c.ruleIds().contains(alert.ruleId()) : null;
+        NotificationMessage persisted = service.publish(message, filter);
         if (!muted && alertMaps != null) {
             // Prompt 055: start the alert's map now, concurrently with the enrichment wait.
             alertMaps.prepare(alert, persisted);

@@ -1356,7 +1356,10 @@ the failure is announced as a `system` event to your *other* channels. `429` ans
 `GET /v1/channels/{id}/deliveries` to see what happened (`kind` is `send`, `update`, `followup` or
 `digest`; `deferredReason` says why one is waiting).
 
-Common fields: `events` (`alert`, `briefing`, `system`; default `["alert"]`), `ruleIds` (null for
+Common fields: `events` (`alert`, `briefing`, `system`, and the opt-in events of later prompts such as
+`situation.activated`, `situation.escalated`, `finding.significant`, `forecast.resolved`,
+`forecast.resolution_needed`, `hypothesis.band_changed`, `indicator.observed` and `assumption.broken`; default
+`["alert"]`), `ruleIds` (null for
 every rule), `minSeverity`, `titleTemplate` and `bodyTemplate` (the trigger placeholders plus
 `{{severity}}`, `{{summary}}`, `{{url}}`, `{{ruleName}}` and `{{message}}`; `{{observedAt|local}}`
 prints `2026-05-01 07:00 CDT` in the channel timezone and `{{observedAt|ago}}` prints `3 min ago`),
@@ -2314,8 +2317,8 @@ Every caller authenticates with `Authorization: Bearer fsr_…`. Scopes, least t
   with `POST /v1/system/admin-token/rotate`.
 - **Errors:** a missing or invalid token is `401`; a token whose scope is too low is
   `403 INSUFFICIENT_SCOPE` with `requiredScope`.
-- **Always authenticated:** ticket minting, the device report and, from their prompts, Ask, search
-  and Web Push need a token even while `openReads` is on, because they cost money or send messages.
+- **Always authenticated:** ticket minting, the device report and, from their prompts, Ask, search,
+  hypothesis drafts and Web Push need a token even while `openReads` is on, because they cost money or send messages.
 
 ### Restricted tokens
 
@@ -2758,7 +2761,7 @@ Web Push protocol (RFC 8030 with RFC 8291 encryption). Foresignal holds its own 
 first start, so no push account is needed.
 
 **The Push channel.** One built-in channel named "Push" (type `webpush`) is created at startup and
-fans out to every verified subscription. Its events (alert, briefing, system), rule filter, minimum
+fans out to every verified subscription. Its events (alert, briefing, system and the opt-in events above), rule filter, minimum
 severity, quiet hours and the global pause apply as for any channel (`PUT /v1/channels/{id}`); it
 cannot be created or tested like the others. Its `config.quietHoursMode` decides what quiet hours do:
 `defer` (default, as for every channel), `downgrade` (sent at once with `Urgency: very-low` and
@@ -3386,8 +3389,8 @@ the app fetches the details over its own authenticated connection.
 Private records are never placed in a prompt for a provider classified as remote. A provider counts
 as local only when it is Ollama or flagged `options.local` **and** its base URL resolves only to
 loopback or private addresses. Even then, private records are included only when
-`PUT /v1/settings/llm {"allowPrivateLocal": true}` (default false). This covers Ask, briefings and
-alert enrichment; enrichment of an alert on a private record is skipped unless both conditions hold.
+`PUT /v1/settings/llm {"allowPrivateLocal": true}` (default false). This covers Ask, briefings,
+alert enrichment, the analyst and hypothesis drafts (prompt 125); enrichment of an alert on a private record is skipped unless both conditions hold.
 
 ### Export and erase one entity
 
@@ -6191,7 +6194,8 @@ the other way round.
   series;
 - `series-value {ref, period | window, aggregate, op?, threshold?}`: binary with a threshold, numeric without;
 - `alert-fired {ruleId, window, area?}`, `situation-status {situationId, status?, minSeverity?}`;
-- `hypothesis-outcome {setId}` (confirmed by the operator once prompt 125 exists) and `manual`.
+- `hypothesis-outcome {setId}` (a hypothesis set's question, resolved by hand with the hypothesis that happened through
+  `POST …/resolve`, like a manual question; see "Rolling hypotheses") and `manual`.
 
 Good questions are specific (a place, a window, a threshold), use a `referenceFamily` selector with `area.regionCodes`
 where they can (so the base-rate forecaster and the detectability check apply), and avoid `manual` unless nothing in
@@ -6213,7 +6217,8 @@ evidence ref. Selectors without an observability family (intel events, situation
 change: `base-rate` (the 121 rate of the question's family, regions and window, scaled to the window; a Poisson count
 for thresholds; conditional when a precursor is linked), `climatology` (numeric: the same season in past years),
 `persistence` (the last value or state carried forward), `precursor` (questions opened from `precursor-active`
-findings, which also open their own questions) and `analog` (121 analogs). When one cannot forecast a question it says
+findings, which also open their own questions) and `analog` (121 analogs); `indicator-bayes` (prompt 125) records
+the probabilities of a linked hypothesis set at every revision and joins the ensemble like any other forecaster. When one cannot forecast a question it says
 why in `baselineNotes`. You are a forecaster too: `POST …/forecasts` with a read token records your forecast as
 `operator:{your handle}`, and so does `/forecast <questionId> <probability>` in an interactive chat (`/questions` lists
 the open ones). Forecasts are never edited: a new one supersedes the old, and `madeAt` and `asOfSeq` are set by the
@@ -6331,3 +6336,143 @@ are `pass` or `warn` (a component never benchmarked counts as neither, so autono
 they degrade: proposals stay pending for you, and LLM forecasts are left out of the ensemble (they are still recorded
 and scored). Detectors keep running, but their new findings carry the caveat `BENCHMARK_FAIL` until a later run passes
 or warns. The gate's dependency lists are the `gating` section of the thresholds file.
+
+## Rolling hypotheses (prompt 125)
+
+A **hypothesis set** frames one key question and its competing answers, and keeps the judgment current as evidence
+arrives. Each answer carries a probability that moves only through recorded **revisions**, a separate analytic
+confidence, and the evidence and assumptions behind it. A set can be linked to a forecast-ledger question; every
+revision is then also a scored forecast. A set marked `private` (and everything in it) is visible only to callers with
+private access.
+
+**Key questions and competing hypotheses.** `POST /v1/hypotheses/sets` (agent) takes a `question` (at most 300
+characters), a `kind`, a review `cadence` (`daily`, `weekly`, `monthly`), an optional `horizon` (the date the question
+resolves by), `regionCodes`, `themes` and a `situationId`. An **exclusive** set lists answers that cannot all be true: its
+priors sum to 1 and it has exactly one hypothesis of type `other` ("other / none of these"), which takes the mass the
+named answers do not explain. An **independent** set judges each hypothesis on its own. A hypothesis has a short
+`label`, a `statement` and a `type` (`outcome`, `explanation`, `speculative-link` or `other`). Add one later with
+`POST /v1/hypotheses/sets/{id}/hypotheses`; an exclusive set is renormalized and the change is a revision.
+
+**Priors from the outside view.** Every prior names its basis in `priorBasis`: a 121 base rate (`type: base-rate` with
+the base-rate id), an analog set (`type: analogs` with its reference), or your judgment (`type: operator` with a
+rationale). Start from `get_base_rate` and `find_analogs`, then adjust. When the base rate behind a prior later moves by
+more than 20% relative (the daily refresh at 02:50 UTC checks), a `base-rate-refresh` revision shifts that hypothesis by
+the change in the prior and keeps every evidence contribution.
+
+**Indicators and LR classes.** An indicator is an observable signal with a **likelihood ratio** per hypothesis it bears
+on: how much more often you would see it if the hypothesis were true than if it were not. Pick a class rather than a
+number: `high` (5.0 when it supports, 0.2 when it weakens), `medium` (2.5 or 0.4), `low` (1.4 or 0.7) or `neutral`
+(1.0). An explicit `value` (0.05 to 20) needs a `rationale`. Each indicator also has a 119 `signalFamily`, a credibility
+and a relevance (H, M, L) and an optional `expectedBy`. Its `signal` says what to watch:
+
+- `rule` (an inline trigger rule), `series` (a threshold on a `series:` value, a count or anomaly rule on a `rollup:`,
+  or `changePoint: true` for 119 change-point findings on the reference), `intelEvent` (an event type, optionally in
+  regions, a place or a box) and `situation` (a status or minimum severity of one situation) **watch for themselves**:
+  Foresignal creates one trigger rule per indicator, tagged `indicator`, `origin-hypothesis` and `ind-{id}`. These
+  rules notify no channel unless a channel names the rule in its `ruleIds`. Editing the indicator replaces the rule;
+  once the indicator is observed, absent or retired the rule is disabled.
+- `precursor` follows 120 `precursor-active` findings, and `question` follows the resolution of another ledger
+  question.
+- `manual` waits for you: `PATCH /v1/indicators/{id}` with `state: observed` (and `observedEvidence`) or `absent`.
+
+An optional `emerging: {rule}` adds a first-stage rule whose alert marks the indicator `emerging` without moving the
+probabilities. When the watch fires, the indicator becomes `observed`, the evidence is recorded, and the updater
+revises the set (`indicator-observed`).
+
+**Absence.** An indicator that has not appeared by `expectedBy` counts against the hypotheses it supports only if
+Foresignal could have seen it. When the 116 detectability check (`canSeeAbsence`) holds for the indicator's family, area and window, it
+becomes `absent` and the updater applies its absence LRs. By default an absence LR is the reciprocal of the observed LR
+moved halfway toward 1 on the log scale, that is the square root of the reciprocal (a high supporting indicator's absence is 1/√5, about 0.45), or set your own in `absenceLr`. It
+is then scaled by the detection probability, `1 + (absenceLr − 1) × pDetect`, so a barely observable indicator barely
+moves the set. Without that coverage the indicator becomes `unknown-coverage` and nothing changes: not seeing something
+you could not have seen is not evidence.
+
+**How the updater moves the numbers** (`indicator-bayes` 1.0.0, deterministic and versioned):
+
+- each driver adds `ln(LR)` to the log-odds of each hypothesis it bears on; an exclusive set is then renormalized;
+- observations in one 116 evidence group are one piece of evidence: an echoed report never updates twice;
+- within one signal family only the strongest |ln LR| per hypothesis per UTC day counts; the others are recorded as
+  suppressed;
+- **damping**: the evidence can move a hypothesis by at most 1.5 logits per UTC day, so a burst of reporting cannot
+  swing the set from 10% to 90% in an afternoon;
+- while the set is active, probabilities stay between 2% and 98%.
+
+Confidence is recomputed with every revision by rule (`ConfidenceAssessor` 1.0.0). It is `high` only with two or more
+credible (M or H) observed indicators from two or more families, sources graded A or B by 109, and no region of thin
+reporting (`LOW_REPORTING_DENSITY`). It is `moderate` with at least one credible observed indicator, and `low`
+otherwise. A broken linchpin assumption lowers it one step. Confidence rates the evidence; it says nothing about which
+answer is right.
+
+**The ACH matrix is an audit trail.** `GET /v1/hypotheses/sets/{id}/matrix` lists the evidence against the hypotheses,
+rated `CC`, `C`, `N`, `NA`, `I` or `II`. Observed indicators add a row automatically, rated from their LRs (4 or more
+`CC`, 1.5 or more `C`, 0.25 or less `II`, 0.67 or less `I`, otherwise `N`; `NA` where the indicator does not bear on
+the hypothesis). Add your own with `POST …/evidence`: a record, finding,
+intel event or alert reference, or `manual` evidence you rate yourself. A re-report of the same evidence group attaches
+to the existing row instead of adding weight. Each hypothesis gets an inconsistency score, `−Σ weight × inconsistency`
+(I counts 1, II counts 2, and the weight is credibility × relevance with L 0.5, M 1, H 2). The least inconsistent
+hypothesis is shown, and rows rated the same for every hypothesis are flagged non-diagnostic: they cannot tell the
+answers apart. The probabilities come from the updater and are scored in the ledger, not from the matrix. Manual
+evidence rated `CC`, `C`, `I` or `II` for some hypothesis also records an `evidence-added` revision (with the LR of
+the high or medium class those ratings stand for), and removing it reverses exactly what
+it applied.
+
+**Key assumptions.** List the assumptions the judgment rests on (`POST …/assumptions`): the text, whether it is a
+**linchpin**, the rationale, what would make it wrong, its status (`solid`, `caveated`, `unsupported`, `broken`) and
+the indicators that would test it. Marking an assumption `broken` emits `assumption.broken`. A broken linchpin flags the
+set for review and lowers its confidence one step.
+
+**Speculative links, and why they are capped.** A `speculative-link` hypothesis, such as "the pre-strike positioning
+reflected advance knowledge", must name at least one 119 finding (`linkedFindingIds`), the coincidence baseline from the
+event study's placebo distribution (`coincidenceBaseline.placeboRate` and its method), and at least two alternatives in
+the same set (for example "scheduled news or inventory data", "contract roll or rebalancing", "coincidence at the base
+rate"). Its probability can never exceed its **cap**: the prior updated by the evidence's own likelihood ratio,
+`(1 − placeboRate) ÷ placeboRate` bounded to 1–20, and never above 98%. An unusual move that happens by chance one time
+in five can support a link only so far, however many reports repeat the story. You can lift the cap in a review or a
+hypothesis patch with `exceedCap: true`; the override is logged on the hypothesis (`capOverride`) and the revision is
+marked `override`. Foresignal words these as associations, never accusations.
+
+**Reading revisions.** `GET /v1/hypotheses/sets/{id}/revisions` lists the record, newest first. Each revision gives its
+`cause` (`created`, `indicator-observed`, `indicator-absent`, `evidence-added`, `evidence-removed`, `base-rate-refresh`,
+`review`, `operator`), the actor, `asOfSeq`, every hypothesis before and after, the drivers with their LRs, the log-odds
+each one applied and why any was suppressed, damped or capped, citations, and the rationale. Automatic revisions explain
+themselves in a deterministic text that names what moved and why, for example "'within 72 h' was unlikely (31%). It is
+now roughly even chance (49%). Drivers: airspace restrictions observed (high diagnosticity)." All generated text passes
+the estimative-language lint, and so must yours: a review rationale with a term that disagrees with its number, or a
+likelihood term and a confidence level in one sentence, is refused (`LINT_FAILED`).
+
+**Reviews.** `nextReviewAt` follows the cadence; prompt 128's analysis cycles will do the routine reviews, and until
+then you or an agent record them.
+`POST /v1/hypotheses/sets/{id}/review` (agent) records your review with a rationale and may change LRs, assumption
+statuses or probabilities directly, always as a revision with cause `review` (a routine reassessment, the default) or `operator` (a deliberate override
+of the updater). A set past its horizon
+without a ledger question is archived by its next review.
+
+**Ledger link and resolution.** Give a set a `horizon` and a `ledgerQuestion` and Foresignal opens the forecast
+question for you: with a `hypothesis-outcome` (or `manual`) resolver an exclusive set gets a multiple-choice question
+over its hypotheses; a machine resolver such as `event-exists` gets a yes/no question, and you map the hypotheses that
+mean "yes" with `ledgerOutcome: yes`. Every revision then records an `indicator-bayes` forecast on it, scored like any
+other forecaster. An independent set gets a yes/no question whatever the resolver. When the question resolves, the hypotheses mapped to the outcome are `confirmed`, the others
+`refuted`, the set `resolved` and its waiting indicators retired. Resolve a `hypothesis-outcome` question with
+`POST /v1/forecasts/questions/{id}/resolve` and the outcome that happened.
+
+**Information value and collection gaps.** `GET /v1/hypotheses/sets/{id}/information-value` ranks the pending
+indicators by **expected information gain**: how much the answer would sharpen if each one appeared or failed to
+appear, counting how likely Foresignal is to detect it. An indicator that would rank in the top three if it were fully
+observable, but whose detection probability is below 0.5 or whose sources are down, is a **collection gap**
+(`GET /v1/collection-gaps`, refreshed hourly). Each gap lists recommendations: enable or repair a cataloged source, add
+a local receiver or sensor (prompts 069, 078, 086), or "no cataloged source observes this". Recommendations never
+change your configuration.
+
+**Drafting with the LLM.** `POST /v1/hypotheses/sets/draft {text, situationId?, regionCodes?}` (agent) asks the configured chat model to draft a set from
+plain language ("watch whether the Red Sea situation spreads to Hormuz"). It must look up base rates and analogs before
+it proposes priors. The draft comes back with warnings (structure, rule specs, the lint, the number of indicators); it
+is never created until you post it to `POST /v1/hypotheses/sets`. A draft spends LLM budget and always needs a token.
+Its tools read under the chat provider's egress rules, so private data reaches only a provider allowed to receive it.
+
+**Notifications and the stream.** `hypothesis.band_changed` tells you when a hypothesis moves into a different ICD 203
+term. Sets with a daily or weekly cadence send it to the inbox, and to channels whose `events` list it, at most once
+per set every 6 hours (a later change waits and the latest state is sent); monthly sets send none. `indicator.observed`
+and `assumption.broken` reach only channels whose `events` list them (`PUT /v1/channels/{id}`). The
+SSE topic `hypotheses` carries `set.created`, `set.revised`, `set.band_changed`, `set.resolved`, `indicator.observed`,
+`indicator.absent` and `assumption.broken`; private sets reach only callers with private access. Public sets are also
+published as `foresignal-intel` records of kind `hypothesis-set`, so ordinary trigger rules can watch them.

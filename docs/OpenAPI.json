@@ -532,6 +532,11 @@
         "version": "1.3.0",
         "date": "2026-10-17",
         "note": "123: createBenchmarkRun, listBenchmarkRuns, getBenchmarkRun, getBenchmarkStatus, listBenchmarkCases, createBenchmarkCase and deleteBenchmarkCase are implemented, with the 103 job type benchmark, the MCP tools get_benchmark_status (read, also in the analyst's read catalog) and run_benchmark (agent), the finding caveat BENCHMARK_FAIL and the setting benchmark.thresholds. Reconciliations (additive): Problem lists UNKNOWN_BENCHMARK_RUN, UNKNOWN_BENCHMARK_CASE (404) and BENCHMARK_IN_PROGRESS (409); BenchmarkComponentResult threshold items also carry warn, scenario and note; BenchmarkRunInput.components and the component strings of BenchmarkRun, BenchmarkComponentResult and BenchmarkStatus list change-point, anomaly, event-study, co-occurrence, evidence, canonical-linking, precursor, situation-linker, forecaster:base-rate, forecaster:analog, forecaster:precursor and forecaster:ensemble."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-17",
+        "note": "125: listHypothesisSets, createHypothesisSet, draftHypothesisSet, getHypothesisSet, updateHypothesisSet, listHypothesisRevisions, getAchMatrix, reviewHypothesisSet, addHypothesis, updateHypothesis, createIndicator, listIndicators, updateIndicator, retireIndicator, addAchEvidence, removeAchEvidence, createKeyAssumption, updateKeyAssumption, getInformationValue and listCollectionGaps are implemented, with the SSE topic hypotheses (set.created, set.revised, set.band_changed, set.resolved, indicator.observed, indicator.absent, assumption.broken; cursor key h), the notification events hypothesis.band_changed (inbox for daily and weekly sets, rate-limited to one per set per 6 h), indicator.observed and assumption.broken (channel opt-in), the foresignal-intel record kind hypothesis-set, the ledger forecaster indicator-bayes, and the MCP tools list_hypothesis_sets, get_hypothesis_set, get_ach_matrix, get_information_value, list_collection_gaps (read, also in the analyst's read catalog), create_hypothesis_set, add_evidence, review_hypothesis_set and draft_hypothesis_set (agent). Reconciliations (additive): watch rules are tagged indicator, origin-hypothesis and ind-{id} because a rule tag cannot hold a colon; HypothesisSet gains reviewFlagged, AchEvidence refs, IndicatorSignal baseRate, and priorBasis value (and refreshedAt on Hypothesis); the hypotheses SSE events carry an id; Problem lists UNKNOWN_HYPOTHESIS_SET, UNKNOWN_HYPOTHESIS, UNKNOWN_INDICATOR (404), HYPOTHESIS_SET_INVALID, INDICATOR_INVALID, LINT_FAILED (400), HYPOTHESIS_SET_VERSION_CONFLICT and HYPOTHESIS_SET_RESOLVED (409)."
       }
     ]
   },
@@ -12752,6 +12757,8 @@
             "schema": {
               "$ref": "#/components/schemas/HypothesisSetEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "hypotheses",
             "prompt": "125"
           },
@@ -12759,6 +12766,8 @@
             "schema": {
               "$ref": "#/components/schemas/HypothesisSetEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "hypotheses",
             "prompt": "125"
           },
@@ -12766,6 +12775,8 @@
             "schema": {
               "$ref": "#/components/schemas/HypothesisSetEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "hypotheses",
             "prompt": "125"
           },
@@ -12773,6 +12784,8 @@
             "schema": {
               "$ref": "#/components/schemas/HypothesisSetEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "hypotheses",
             "prompt": "125"
           },
@@ -12780,6 +12793,8 @@
             "schema": {
               "$ref": "#/components/schemas/IndicatorEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "hypotheses",
             "prompt": "125"
           },
@@ -12787,6 +12802,8 @@
             "schema": {
               "$ref": "#/components/schemas/IndicatorEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "hypotheses",
             "prompt": "125"
           },
@@ -12794,6 +12811,8 @@
             "schema": {
               "$ref": "#/components/schemas/KeyAssumptionEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "hypotheses",
             "prompt": "125"
           },
@@ -60835,7 +60854,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -60904,7 +60923,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -60994,7 +61013,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -61082,7 +61101,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -61192,7 +61211,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -61302,7 +61321,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -61382,7 +61401,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -61484,7 +61503,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -61585,7 +61604,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -61696,7 +61715,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -61711,7 +61730,7 @@
         ],
         "operationId": "createIndicator",
         "summary": "Add an indicator to a set",
-        "description": "Creates the indicator and, for rule, series, intel-event and situation signals, its 017 watch rule tagged `indicator:{id}` and `origin:hypothesis` with no channels.\n\n**Scope:** `agent`.",
+        "description": "Creates the indicator and, for rule, series, intel-event and situation signals, its 017 watch rule tagged `indicator`, `origin-hypothesis` and `ind-{id in lower case}` (a rule tag has no colon), which routes to no channel unless a channel names the rule in `ruleIds`.\n\n**Scope:** `agent`.",
         "parameters": [
           {
             "name": "setId",
@@ -61797,7 +61816,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -61915,7 +61934,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -62030,7 +62049,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -62099,7 +62118,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -62200,7 +62219,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -62286,7 +62305,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -62377,7 +62396,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -62487,7 +62506,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -62566,7 +62585,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -62667,7 +62686,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "125",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -87401,6 +87420,54 @@
             "status": 409,
             "prompt": "123",
             "note": "createBenchmarkRun (and the MCP tool run_benchmark): a benchmark run is already queued or running"
+          },
+          {
+            "code": "UNKNOWN_HYPOTHESIS_SET",
+            "status": 404,
+            "prompt": "125",
+            "note": "getHypothesisSet, updateHypothesisSet, listHypothesisRevisions, getAchMatrix, reviewHypothesisSet, addHypothesis, createIndicator, addAchEvidence, removeAchEvidence, createKeyAssumption, updateKeyAssumption, getInformationValue, listIndicators, listCollectionGaps: no hypothesis set has that id, or it is private and the caller has no private access"
+          },
+          {
+            "code": "UNKNOWN_HYPOTHESIS",
+            "status": 404,
+            "prompt": "125",
+            "note": "updateHypothesis: no hypothesis has that id, or its set is private and the caller has no private access"
+          },
+          {
+            "code": "UNKNOWN_INDICATOR",
+            "status": 404,
+            "prompt": "125",
+            "note": "updateIndicator, retireIndicator: no indicator has that id, or its set is private and the caller has no private access"
+          },
+          {
+            "code": "HYPOTHESIS_SET_INVALID",
+            "status": 400,
+            "prompt": "125",
+            "note": "createHypothesisSet, updateHypothesisSet, reviewHypothesisSet, addHypothesis, updateHypothesis: fewer than 2 hypotheses, an exclusive set without exactly one other hypothesis or with priors not summing to 1, a prior without its basis, a speculative link without linked findings, a coincidence baseline or 2 alternatives, a ledger mapping that does not fit the question, or a reference to a missing situation, question or finding"
+          },
+          {
+            "code": "INDICATOR_INVALID",
+            "status": 400,
+            "prompt": "125",
+            "note": "createHypothesisSet, createIndicator, updateIndicator: a signal of the wrong shape, an unknown signal family, an LR naming no hypothesis of the set, an explicit LR without a rationale or outside [0.05, 20], a watch rule the 017/100 validators refuse, or a manual state change on a watched indicator"
+          },
+          {
+            "code": "LINT_FAILED",
+            "status": 400,
+            "prompt": "125",
+            "note": "createHypothesisSet, reviewHypothesisSet, updateHypothesis: an operator or analyst rationale fails the estimative-language lint (a term that disagrees with its number, mixed ICD rows, or a likelihood term and a confidence level in one sentence)"
+          },
+          {
+            "code": "HYPOTHESIS_SET_VERSION_CONFLICT",
+            "status": 409,
+            "prompt": "125",
+            "note": "updateHypothesisSet, reviewHypothesisSet, updateHypothesis: the version sent is not the current one"
+          },
+          {
+            "code": "HYPOTHESIS_SET_RESOLVED",
+            "status": 409,
+            "prompt": "125",
+            "note": "updateHypothesisSet, reviewHypothesisSet, addHypothesis, updateHypothesis, createIndicator, updateIndicator, addAchEvidence, removeAchEvidence: the set is resolved and accepts no more changes"
           }
         ]
       },
@@ -139499,6 +139566,15 @@
                 "type": "null"
               }
             ]
+          },
+          "baseRate": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0,
+            "exclusiveMaximum": 1,
+            "description": "Base rate of the signal when the hypotheses say nothing about it, used for information value (default 0.5)"
           }
         },
         "required": [
@@ -139560,6 +139636,24 @@
                   "null"
                 ],
                 "maxLength": 2000
+              },
+              "value": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1,
+                "description": "For a base-rate basis: the rate's pAtLeastOne when the prior was set (filled by the server); a later change of more than 20% relative records a base-rate-refresh revision"
+              },
+              "refreshedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time",
+                "readOnly": true,
+                "description": "When a base-rate refresh last moved the prior"
               }
             },
             "required": [
@@ -139842,6 +139936,15 @@
                   "null"
                 ],
                 "maxLength": 2000
+              },
+              "value": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1,
+                "description": "For a base-rate basis: the rate's pAtLeastOne when the prior was set (filled by the server); a later change of more than 20% relative records a base-rate-refresh revision"
               }
             },
             "required": [
@@ -139949,6 +140052,15 @@
                   "null"
                 ],
                 "maxLength": 2000
+              },
+              "value": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1,
+                "description": "For a base-rate basis: the rate's pAtLeastOne when the prior was set (filled by the server); a later change of more than 20% relative records a base-rate-refresh revision"
               }
             },
             "required": [
@@ -140250,7 +140362,7 @@
               "string",
               "null"
             ],
-            "description": "017 trigger rule tagged `indicator:{id}`, `origin:hypothesis`"
+            "description": "017 trigger rule tagged `indicator`, `origin-hypothesis` and `ind-{id in lower case}` (prompt 125 names `indicator:{id}` and `origin:hypothesis`, but a rule tag cannot hold a colon); it routes to no channel unless a channel names it in `ruleIds`; disabled once the indicator is observed, absent or retired"
           },
           "pDetect": {
             "type": [
@@ -140558,6 +140670,14 @@
               "$ref": "#/components/schemas/ProvenanceChainEntry"
             },
             "description": "134: chain used by CircularReportingDetector; circular support carries caveat CIRCULAR_REPORTING and counts as one evidence group"
+          },
+          "refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true,
+            "description": "Every reference attached to the row: the first and the re-reports of the same 116 evidence group, which add no weight"
           }
         },
         "required": [
@@ -141309,6 +141429,11 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "reviewFlagged": {
+            "type": "boolean",
+            "readOnly": true,
+            "description": "A broken linchpin assumption flagged the set for review; a review clears it"
           }
         },
         "required": [

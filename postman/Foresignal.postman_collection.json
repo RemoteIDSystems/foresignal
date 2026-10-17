@@ -22811,7 +22811,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('hypothesisSetId', j.id); if (j.hypotheses && j.hypotheses.length) pm.collectionVariables.set('hypothesisId', j.hypotheses[0].id); if (j.indicators && j.indicators.length) pm.collectionVariables.set('indicatorId', j.indicators[0].id); if (j.assumptions && j.assumptions.length) pm.collectionVariables.set('assumptionId', j.assumptions[0].id);",
+                  "}"
                 ]
               }
             }
@@ -22853,7 +22856,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"question\": \"Saudi or coalition kinetic response against Houthi targets within 7 days?\",\n  \"description\": \"Outcome set of the worked example: after the strike on Riyadh, does a response follow, and when?\",\n  \"kind\": \"exclusive\",\n  \"cadence\": \"daily\",\n  \"horizon\": \"2026-12-31\",\n  \"regionCodes\": [\n    \"SA\",\n    \"YE\"\n  ],\n  \"themes\": [\n    \"conflict\"\n  ],\n  \"private\": false,\n  \"hypotheses\": [\n    {\n      \"label\": \"within 72 h\",\n      \"statement\": \"A Saudi or coalition kinetic response against Houthi targets follows within 72 hours.\",\n      \"type\": \"outcome\",\n      \"prior\": 0.25,\n      \"ledgerOutcome\": \"yes\",\n      \"priorBasis\": {\n        \"type\": \"base-rate\",\n        \"ref\": \"{{baseRateId}}\",\n        \"rationale\": \"Responses to comparable strikes from the reference-import base rates.\"\n      }\n    },\n    {\n      \"label\": \"3-7 days\",\n      \"statement\": \"The response follows after 72 hours but within 7 days.\",\n      \"type\": \"outcome\",\n      \"prior\": 0.2,\n      \"ledgerOutcome\": \"yes\",\n      \"priorBasis\": {\n        \"type\": \"analogs\",\n        \"ref\": \"situation-analogs:{{situationId}}\",\n        \"rationale\": \"The outcome distribution of the situation's historical analogs.\"\n      }\n    },\n    {\n      \"label\": \"none in 7 days\",\n      \"statement\": \"No kinetic response follows within 7 days.\",\n      \"type\": \"outcome\",\n      \"prior\": 0.5,\n      \"ledgerOutcome\": \"no\",\n      \"priorBasis\": {\n        \"type\": \"operator\",\n        \"ref\": null,\n        \"rationale\": \"Restraint has followed most recent strikes during negotiations.\"\n      }\n    },\n    {\n      \"label\": \"other\",\n      \"statement\": \"Other / none of these (for example a response by another party).\",\n      \"type\": \"other\",\n      \"prior\": 0.05,\n      \"ledgerOutcome\": \"no\",\n      \"priorBasis\": {\n        \"type\": \"operator\",\n        \"ref\": null,\n        \"rationale\": \"Residual mass for outcomes the other hypotheses do not describe.\"\n      }\n    }\n  ],\n  \"indicators\": [\n    {\n      \"description\": \"Airspace restrictions over southern Saudi Arabia\",\n      \"signal\": {\n        \"type\": \"intelEvent\",\n        \"intelEvent\": {\n          \"type\": \"aviation-anomaly\",\n          \"regionCodes\": [\n            \"SA\"\n          ]\n        }\n      },\n      \"signalFamily\": \"aviation-ops\",\n      \"credibility\": \"H\",\n      \"relevance\": \"H\",\n      \"expectedBy\": \"2026-12-03T00:00:00Z\",\n      \"lr\": {\n        \"within 72 h\": {\n          \"class\": \"high\",\n          \"direction\": \"supports\",\n          \"rationale\": \"Closures usually precede strike packages by hours.\"\n        },\n        \"3-7 days\": {\n          \"class\": \"medium\",\n          \"direction\": \"supports\"\n        },\n        \"none in 7 days\": {\n          \"class\": \"high\",\n          \"direction\": \"weakens\"\n        }\n      }\n    },\n    {\n      \"description\": \"Maritime disruption near the Bab el-Mandeb\",\n      \"signal\": {\n        \"type\": \"intelEvent\",\n        \"intelEvent\": {\n          \"type\": \"maritime-disruption\",\n          \"regionCodes\": [\n            \"YE\",\n            \"DJ\",\n            \"ER\"\n          ]\n        }\n      },\n      \"signalFamily\": \"ais-behaviour\",\n      \"credibility\": \"M\",\n      \"relevance\": \"H\",\n      \"lr\": {\n        \"within 72 h\": {\n          \"class\": \"low\",\n          \"direction\": \"supports\"\n        },\n        \"3-7 days\": {\n          \"class\": \"low\",\n          \"direction\": \"supports\"\n        },\n        \"none in 7 days\": {\n          \"class\": \"low\",\n          \"direction\": \"weakens\"\n        }\n      }\n    },\n    {\n      \"description\": \"Conflict activity rising in Yemen\",\n      \"signal\": {\n        \"type\": \"series\",\n        \"series\": {\n          \"ref\": \"rollup:day/*/conflict/YE\",\n          \"direction\": \"up\"\n        }\n      },\n      \"signalFamily\": \"conflict\",\n      \"credibility\": \"M\",\n      \"relevance\": \"M\",\n      \"lr\": {\n        \"within 72 h\": {\n          \"class\": \"medium\",\n          \"direction\": \"supports\"\n        },\n        \"none in 7 days\": {\n          \"class\": \"medium\",\n          \"direction\": \"weakens\"\n        }\n      }\n    },\n    {\n      \"description\": \"Military air and tanker activity over the Red Sea (operator-observed)\",\n      \"signal\": {\n        \"type\": \"manual\"\n      },\n      \"signalFamily\": \"aviation-military\",\n      \"credibility\": \"M\",\n      \"relevance\": \"H\",\n      \"lr\": {\n        \"within 72 h\": {\n          \"class\": \"high\",\n          \"direction\": \"supports\"\n        },\n        \"none in 7 days\": {\n          \"class\": \"medium\",\n          \"direction\": \"weakens\"\n        }\n      }\n    }\n  ],\n  \"assumptions\": [\n    {\n      \"text\": \"The coalition retains the capacity to strike Houthi targets at short notice.\",\n      \"linchpin\": true,\n      \"rationale\": \"Air assets remain deployed in the region.\",\n      \"wouldBeWrongIf\": \"Assets are withdrawn or grounded.\",\n      \"status\": \"solid\"\n    },\n    {\n      \"text\": \"Negotiations do not produce a ceasefire this week.\",\n      \"linchpin\": false,\n      \"status\": \"caveated\"\n    }\n  ],\n  \"ledgerQuestion\": {\n    \"resolver\": {\n      \"type\": \"event-exists\",\n      \"params\": {\n        \"selector\": {\n          \"referenceFamily\": \"conflict:battles\"\n        },\n        \"area\": {\n          \"regionCodes\": [\n            \"YE\"\n          ]\n        },\n        \"window\": {\n          \"start\": \"2026-11-01T00:00:00Z\",\n          \"end\": \"2026-12-31T00:00:00Z\"\n        }\n      }\n    },\n    \"resolutionCriteria\": \"Yes if Foresignal records a battles event in Yemen attributed to a Saudi or coalition response by the end of the horizon; no otherwise.\",\n    \"category\": \"conflict\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -22913,7 +22916,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"text\": \"Watch whether the Red Sea situation spreads to Hormuz\",\n  \"regionCodes\": [\n    \"OM\",\n    \"IR\",\n    \"AE\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -22944,7 +22947,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{setId}}",
+              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{hypothesisSetId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -22952,7 +22955,7 @@
                 "v1",
                 "hypotheses",
                 "sets",
-                "{{setId}}"
+                "{{hypothesisSetId}}"
               ],
               "query": []
             },
@@ -22988,7 +22991,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{setId}}",
+              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{hypothesisSetId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -22996,7 +22999,7 @@
                 "v1",
                 "hypotheses",
                 "sets",
-                "{{setId}}"
+                "{{hypothesisSetId}}"
               ],
               "query": []
             },
@@ -23013,7 +23016,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"description\": \"Outcome set of the worked example, reviewed daily.\",\n  \"cadence\": \"daily\",\n  \"version\": 0\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -23044,7 +23047,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{setId}}/revisions",
+              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{hypothesisSetId}}/revisions",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -23052,7 +23055,7 @@
                 "v1",
                 "hypotheses",
                 "sets",
-                "{{setId}}",
+                "{{hypothesisSetId}}",
                 "revisions"
               ],
               "query": [
@@ -23098,7 +23101,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{setId}}/matrix",
+              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{hypothesisSetId}}/matrix",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -23106,7 +23109,7 @@
                 "v1",
                 "hypotheses",
                 "sets",
-                "{{setId}}",
+                "{{hypothesisSetId}}",
                 "matrix"
               ],
               "query": []
@@ -23143,7 +23146,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{setId}}/review",
+              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{hypothesisSetId}}/review",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -23151,7 +23154,7 @@
                 "v1",
                 "hypotheses",
                 "sets",
-                "{{setId}}",
+                "{{hypothesisSetId}}",
                 "review"
               ],
               "query": []
@@ -23169,7 +23172,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"cause\": \"review\",\n  \"rationale\": \"Daily review: no new indicators; the airspace closure remains unconfirmed and the priors stand.\",\n  \"citations\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -23204,7 +23207,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{setId}}/hypotheses",
+              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{hypothesisSetId}}/hypotheses",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -23212,7 +23215,7 @@
                 "v1",
                 "hypotheses",
                 "sets",
-                "{{setId}}",
+                "{{hypothesisSetId}}",
                 "hypotheses"
               ],
               "query": []
@@ -23230,7 +23233,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"label\": \"proxy response\",\n  \"statement\": \"A response comes from a coalition partner rather than Saudi forces.\",\n  \"type\": \"outcome\",\n  \"prior\": 0.05,\n  \"ledgerOutcome\": \"yes\",\n  \"priorBasis\": {\n    \"type\": \"operator\",\n    \"ref\": null,\n    \"rationale\": \"Partners have responded on the coalition's behalf before.\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -23289,7 +23292,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"statement\": \"A Saudi or coalition kinetic response against Houthi targets follows within 72 hours of the strike.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -23306,7 +23309,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('indicatorId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -23324,7 +23330,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{setId}}/indicators",
+              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{hypothesisSetId}}/indicators",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -23332,12 +23338,12 @@
                 "v1",
                 "hypotheses",
                 "sets",
-                "{{setId}}",
+                "{{hypothesisSetId}}",
                 "indicators"
               ],
               "query": []
             },
-            "description": "Creates the indicator and, for rule, series, intel-event and situation signals, its 017 watch rule tagged `indicator:{id}` and `origin:hypothesis` with no channels.\n\n**Scope:** `agent`.\n\noperationId: `createIndicator`",
+            "description": "Creates the indicator and, for rule, series, intel-event and situation signals, its 017 watch rule tagged `indicator`, `origin-hypothesis` and `ind-{id in lower case}` (a rule tag has no colon), which routes to no channel unless a channel names the rule in `ruleIds`.\n\n**Scope:** `agent`.\n\noperationId: `createIndicator`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -23350,7 +23356,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"description\": \"Situation escalates to critical\",\n  \"signal\": {\n    \"type\": \"situation\",\n    \"situation\": {\n      \"situationId\": \"01JA8Q3V7S2K9W4T6Y1B5N0M3C\",\n      \"minSeverity\": \"critical\"\n    }\n  },\n  \"signalFamily\": \"conflict\",\n  \"credibility\": \"M\",\n  \"relevance\": \"M\",\n  \"lr\": {\n    \"{{hypothesisId}}\": {\n      \"class\": \"medium\",\n      \"direction\": \"supports\",\n      \"rationale\": \"Escalation precedes most responses.\"\n    }\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -23472,7 +23478,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"credibility\": \"H\",\n  \"expectedBy\": \"2026-12-10T00:00:00Z\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -23535,7 +23541,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('achEvidenceId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -23553,7 +23562,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{setId}}/evidence",
+              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{hypothesisSetId}}/evidence",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -23561,7 +23570,7 @@
                 "v1",
                 "hypotheses",
                 "sets",
-                "{{setId}}",
+                "{{hypothesisSetId}}",
                 "evidence"
               ],
               "query": []
@@ -23579,7 +23588,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"source\": \"record\",\n  \"ref\": \"record:{{sourceId}}/{{externalId}}\",\n  \"description\": \"Report of strike preparations at a coalition air base.\",\n  \"credibility\": \"M\",\n  \"relevance\": \"H\",\n  \"citations\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -23605,7 +23614,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{setId}}/evidence/{{evidenceId}}",
+              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{hypothesisSetId}}/evidence/{{achEvidenceId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -23613,9 +23622,9 @@
                 "v1",
                 "hypotheses",
                 "sets",
-                "{{setId}}",
+                "{{hypothesisSetId}}",
                 "evidence",
-                "{{evidenceId}}"
+                "{{achEvidenceId}}"
               ],
               "query": []
             },
@@ -23640,7 +23649,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('assumptionId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -23658,7 +23670,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{setId}}/assumptions",
+              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{hypothesisSetId}}/assumptions",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -23666,7 +23678,7 @@
                 "v1",
                 "hypotheses",
                 "sets",
-                "{{setId}}",
+                "{{hypothesisSetId}}",
                 "assumptions"
               ],
               "query": []
@@ -23684,7 +23696,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"text\": \"Houthi forces do not strike again before a response.\",\n  \"linchpin\": false,\n  \"rationale\": \"A second strike would change the decision calculus.\",\n  \"wouldBeWrongIf\": \"A second strike is reported.\",\n  \"status\": \"solid\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -23719,7 +23731,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{setId}}/assumptions/{{assumptionId}}",
+              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{hypothesisSetId}}/assumptions/{{assumptionId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -23727,7 +23739,7 @@
                 "v1",
                 "hypotheses",
                 "sets",
-                "{{setId}}",
+                "{{hypothesisSetId}}",
                 "assumptions",
                 "{{assumptionId}}"
               ],
@@ -23746,7 +23758,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"status\": \"caveated\",\n  \"rationale\": \"Reports of a second launch are unconfirmed.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -23777,7 +23789,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{setId}}/information-value",
+              "raw": "{{baseUrl}}/v1/hypotheses/sets/{{hypothesisSetId}}/information-value",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -23785,7 +23797,7 @@
                 "v1",
                 "hypotheses",
                 "sets",
-                "{{setId}}",
+                "{{hypothesisSetId}}",
                 "information-value"
               ],
               "query": []
@@ -52052,6 +52064,26 @@
     },
     {
       "key": "benchmarkCaseId",
+      "value": ""
+    },
+    {
+      "key": "hypothesisSetId",
+      "value": ""
+    },
+    {
+      "key": "hypothesisId",
+      "value": ""
+    },
+    {
+      "key": "indicatorId",
+      "value": ""
+    },
+    {
+      "key": "achEvidenceId",
+      "value": ""
+    },
+    {
+      "key": "assumptionId",
       "value": ""
     },
     {

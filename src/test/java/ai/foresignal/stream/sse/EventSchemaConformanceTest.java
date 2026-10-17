@@ -150,7 +150,79 @@ class EventSchemaConformanceTest {
                     () -> questionEvents(ai.foresignal.forecast.ForecastEvents.RESOLVED)),
             entry(ai.foresignal.forecast.ForecastEvents.ANNULLED,
                     () -> questionEvents(ai.foresignal.forecast.ForecastEvents.ANNULLED)),
-            entry(ai.foresignal.forecast.ForecastEvents.SUBMITTED, EventSchemaConformanceTest::submittedEvents));
+            entry(ai.foresignal.forecast.ForecastEvents.SUBMITTED, EventSchemaConformanceTest::submittedEvents),
+            // 125: HypothesesTopic sends the hypothesis_log payloads written by HypothesisEvents on topic hypotheses.
+            entry(ai.foresignal.hypothesis.HypothesisEvents.SET_CREATED,
+                    () -> hypothesisSetEvents("created", false)),
+            entry(ai.foresignal.hypothesis.HypothesisEvents.SET_REVISED,
+                    () -> hypothesisSetEvents("indicator-observed", false)),
+            entry(ai.foresignal.hypothesis.HypothesisEvents.SET_BAND_CHANGED,
+                    () -> hypothesisSetEvents("indicator-observed", true)),
+            entry(ai.foresignal.hypothesis.HypothesisEvents.SET_RESOLVED, () -> hypothesisSetEvents(null, false)),
+            entry(ai.foresignal.hypothesis.HypothesisEvents.INDICATOR_OBSERVED,
+                    () -> indicatorEvents(ai.foresignal.hypothesis.HypothesisVocabulary.OBSERVED)),
+            entry(ai.foresignal.hypothesis.HypothesisEvents.INDICATOR_ABSENT,
+                    () -> indicatorEvents(ai.foresignal.hypothesis.HypothesisVocabulary.ABSENT)),
+            entry(ai.foresignal.hypothesis.HypothesisEvents.ASSUMPTION_BROKEN,
+                    EventSchemaConformanceTest::assumptionEvents));
+
+    /** {@code set.*} payloads as {@code HypothesisEvents.setPayload} writes them (prompt 125). */
+    static List<JsonNode> hypothesisSetEvents(String cause, boolean bandChange) {
+        java.time.Instant at = java.time.Instant.parse("2026-03-01T12:00:00Z");
+        ai.foresignal.hypothesis.HypothesisSetEntity set = new ai.foresignal.hypothesis.HypothesisSetEntity(
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3C", at);
+        set.setQuestion("Saudi or coalition kinetic response within 7 days?");
+        set.setKind("exclusive");
+        set.setCadence("daily");
+        set.setOrigin("operator");
+        List<ai.foresignal.hypothesis.HypothesisEntity> hyps = new ArrayList<>();
+        String[] ids = {"01JA8Q3V7S2K9W4T6Y1B5N0M3D", "01JA8Q3V7S2K9W4T6Y1B5N0M3E"};
+        double[] p = {0.49, 0.51};
+        for (int i = 0; i < 2; i++) {
+            ai.foresignal.hypothesis.HypothesisEntity h = new ai.foresignal.hypothesis.HypothesisEntity(ids[i],
+                    set.getId(), at);
+            h.setLabel(i == 0 ? "within 72 h" : "other");
+            h.setProbability(p[i]);
+            h.setConfidence("moderate");
+            hyps.add(h);
+        }
+        List<Map<String, Object>> bands = bandChange ? List.of(Map.of("hypothesisId", ids[0], "label", "within 72 h",
+                "fromTerm", "unlikely", "toTerm", "roughly even chance", "probability", 0.49)) : List.of();
+        List<JsonNode> out = new ArrayList<>();
+        out.add(toTree(ai.foresignal.hypothesis.HypothesisEvents.setPayload(set, hyps,
+                cause == null ? null : "01JA8Q3V7S2K9W4T6Y1B5N0M3F", cause, bands, at)));
+        set.setPrivateSet(true);
+        out.add(toTree(ai.foresignal.hypothesis.HypothesisEvents.setPayload(set, hyps, null, cause, bands, at)));
+        return out;
+    }
+
+    /** {@code indicator.*} payloads as {@code HypothesisEvents.indicatorPayload} writes them (prompt 125). */
+    static List<JsonNode> indicatorEvents(String state) {
+        java.time.Instant at = java.time.Instant.parse("2026-03-01T12:00:00Z");
+        ai.foresignal.hypothesis.IndicatorEntity i = new ai.foresignal.hypothesis.IndicatorEntity(
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3G", "01JA8Q3V7S2K9W4T6Y1B5N0M3C", at);
+        i.setDescription("Airspace restrictions over southern Saudi Arabia");
+        i.setSignalFamily("aviation-ops");
+        i.setState(state, at);
+        if ("observed".equals(state)) {
+            i.setObservedEvidence(Map.of("source", "alert", "alertId", 12, "ref", "record:faa-tfr/abc@42"));
+        }
+        return List.of(toTree(ai.foresignal.hypothesis.HypothesisEvents.indicatorPayload(i, "pending",
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3F", false, at)),
+                toTree(ai.foresignal.hypothesis.HypothesisEvents.indicatorPayload(i, null, null, true, at)));
+    }
+
+    /** {@code assumption.broken} payloads as {@code HypothesisEvents.assumptionPayload} writes them (prompt 125). */
+    static List<JsonNode> assumptionEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-03-01T12:00:00Z");
+        ai.foresignal.hypothesis.KeyAssumptionEntity a = new ai.foresignal.hypothesis.KeyAssumptionEntity(
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3H", "01JA8Q3V7S2K9W4T6Y1B5N0M3C", at);
+        a.setText("The coalition can strike at short notice.");
+        a.setLinchpin(true);
+        a.setStatus("broken");
+        return List.of(toTree(ai.foresignal.hypothesis.HypothesisEvents.assumptionPayload(a, "solid", false, at)),
+                toTree(ai.foresignal.hypothesis.HypothesisEvents.assumptionPayload(a, null, true, at)));
+    }
 
     /** {@code question.*} payloads as {@code ForecastEvents.questionPayload} writes them (prompt 122). */
     static List<JsonNode> questionEvents(String type) {

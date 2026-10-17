@@ -531,6 +531,17 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/forecasts/compare", AccessRequirement.READ),
                 rule(null, "/v1/forecasts/**", AccessRequirement.AGENT),
 
+                // ---- Rolling hypotheses (prompt 125): sets, revisions, the ACH matrix, information value,
+                // indicators and collection gaps are reads; creating and changing sets, hypotheses, indicators,
+                // evidence, assumptions and reviews are agent operations; an LLM draft always needs a token. ----
+                rule(HttpMethod.POST, "/v1/hypotheses/sets/draft", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/hypotheses/sets", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/hypotheses/sets/**", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/indicators", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/collection-gaps", AccessRequirement.READ),
+                rule(null, "/v1/hypotheses/**", AccessRequirement.AGENT),
+                rule(null, "/v1/indicators/**", AccessRequirement.AGENT),
+
                 // ---- Analytic benchmark harness (prompt 123): runs, their results and the status per component are
                 // reads; starting a run and the historical corpus are agent operations. ----
                 rule(HttpMethod.GET, "/v1/benchmarks/runs", AccessRequirement.READ),

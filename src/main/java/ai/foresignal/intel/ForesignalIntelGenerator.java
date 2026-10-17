@@ -66,6 +66,9 @@ public class ForesignalIntelGenerator implements DerivedGenerator {
     /** The situation records (prompt 118), or null when the situation layer is absent. */
     private ai.foresignal.situation.SituationRecordPublisher situations;
 
+    /** The hypothesis-set records (prompt 125), or null when the hypothesis layer is absent. */
+    private ai.foresignal.hypothesis.HypothesisSetRecordPublisher hypothesisSets;
+
     /** Creates the generator. */
     public ForesignalIntelGenerator(IntelligenceEventRepository events, IntelEventMemberRepository members) {
         this.events = events;
@@ -78,14 +81,22 @@ public class ForesignalIntelGenerator implements DerivedGenerator {
         this.situations = situations;
     }
 
+    /** Injects the hypothesis-set record publisher (prompt 125: kind {@code hypothesis-set} of this source). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setHypothesisSets(ai.foresignal.hypothesis.HypothesisSetRecordPublisher hypothesisSets) {
+        this.hypothesisSets = hypothesisSets;
+    }
+
     /** The descriptor (analytic retention class {@code intel}: 1825 days, Conventions "Analytic retention"). */
     public static SourceDescriptor buildDescriptor() {
         return SourceDescriptor.builder(ID)
                 .name("Intelligence events (derived)")
-                .description("Typed, located, time-bounded intelligence findings and their members, and situations"
-                        + " (prompt 118), as ordinary records so rules, SSE, tiles and search use them unchanged."
-                        + " Private events and situations are not published as records.")
-                .kinds(KIND, ai.foresignal.situation.SituationRecordPublisher.KIND)
+                .description("Typed, located, time-bounded intelligence findings and their members, situations"
+                        + " (prompt 118) and hypothesis sets (prompt 125), as ordinary records so rules, SSE, tiles and"
+                        + " search use them unchanged. Private events, situations and sets are not published as"
+                        + " records.")
+                .kinds(KIND, ai.foresignal.situation.SituationRecordPublisher.KIND,
+                        ai.foresignal.hypothesis.HypothesisSetRecordPublisher.KIND)
                 .embedFields("title", "summary")
                 .attribution("Derived by Foresignal from stored versions")
                 .licence("derived")
@@ -123,12 +134,18 @@ public class ForesignalIntelGenerator implements DerivedGenerator {
         if (situations != null) {
             situations.reconcile(ownHeads);
         }
+        if (hypothesisSets != null) {
+            hypothesisSets.reconcile(ownHeads);
+        }
     }
 
     @Override
     public void onTick(Instant now, DerivedContext ctx) {
         if (situations != null) {
             situations.onTick(now, ctx);
+        }
+        if (hypothesisSets != null) {
+            hypothesisSets.onTick(now, ctx);
         }
         boolean full = watermark == null;
         Set<String> seen = new HashSet<>();
