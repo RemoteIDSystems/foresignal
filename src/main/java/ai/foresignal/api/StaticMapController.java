@@ -49,9 +49,13 @@ import org.springframework.web.bind.annotation.RestController;
  *       {@code Retry-After: 1}.
  * </ul>
  * Nothing here fetches anything upstream: no client request ever causes an upstream fetch.
+ *
+ * <p>Left out in edge mode (prompt 113: raster rendering (static maps)).
  */
 @RestController
 @Tag(name = "Maps")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class StaticMapController {
 
     private final StaticMapService maps;

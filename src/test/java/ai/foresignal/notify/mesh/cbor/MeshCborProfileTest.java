@@ -10,7 +10,8 @@ import org.junit.jupiter.api.Test;
 /**
  * The mesh CBOR profile (prompt 084): golden vectors (checked by hand against RFC 8949: definite-length map
  * {@code 0xa0 + n}, unsigned keys 0–9 as single bytes, minimal integers, definite text strings), the size reduction
- * order (title, then source id), the 160-byte cap, and a decoder that skips unknown integer keys.
+ * order (title, then source id), the 160-byte cap, and a decoder that skips unknown integer keys; prompt 113 adds the
+ * extension-key vector (keys 10-12).
  */
 class MeshCborProfileTest {
 
@@ -82,6 +83,17 @@ class MeshCborProfileTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> MeshCborProfile.decode(HEX.parseHex("a10001")))
                 .as("missing type").isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("prompt 113 golden vector: keys 10 (4-byte origin), 11 (8-byte message id) and 12 (expiry) after key 9")
+    void extendedGolden() {
+        MeshCborMessage extended = FULL.withExtensions(new byte[] {1, 2, 3, 4}, new byte[] {1, 2, 3, 4, 5, 6, 7, 8},
+                1440);
+        String hex = "ad" + FULL_HEX.substring(2) + "0a4401020304" + "0b480102030405060708" + "0c1905a0";
+        assertThat(HEX.formatHex(MeshCborProfile.encode(extended))).isEqualTo(hex);
+        assertThat(MeshCborProfile.decode(HEX.parseHex(hex))).isEqualTo(extended);
+        assertThat(MeshCborProfile.decode(HEX.parseHex(FULL_HEX)).extended()).isFalse();
     }
 
     @Test

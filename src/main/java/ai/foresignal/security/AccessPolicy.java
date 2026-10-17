@@ -67,6 +67,11 @@ import org.springframework.util.AntPathMatcher;
  * {@code …/download}) as {@code open} (the {@code fss_} key is the credential) and {@code GET /v1/cap/**} and
  * {@code GET /v1/calendars/**} as {@code read}; the OGC Features operations fall under {@code /v1/ogc/**}.
  *
+ * <p>Prompt 113 adds federation: {@code GET /v1/federation/**} as {@code read} (the controller also requires the
+ * token's {@code federation} capability), the instance-to-instance pushes ({@code POST /v1/federation/ingest/*},
+ * {@code POST /v1/federation/bundle}, and 134's {@code POST /v1/federation/chronicle-sketches}) as
+ * {@link AccessRequirement#PEER} (a peer ingest key, {@code fsp_}), and {@code /v1/peers/**} as {@code admin}.
+ *
  * <p>Prompt 064 adds {@code GET /compat/celestrak/**} (the CelesTrak-compatible GP output) as {@code read}; other
  * methods on it are {@code admin}. It sits outside {@code /v1}, so without the rule it would be open.
  *
@@ -182,6 +187,17 @@ public class AccessPolicy {
                 // scope inside, so agent tools stay closed to read tokens and anonymous callers.
                 rule(null, "/mcp", AccessRequirement.READ),
                 rule(null, "/mcp/**", AccessRequirement.READ),
+
+                // ---- Federation (prompt 113) ----
+                // Instance-to-instance pushes authenticate with a peer ingest key (fsp_), never a token.
+                rule(HttpMethod.POST, "/v1/federation/ingest/*", AccessRequirement.PEER),
+                rule(HttpMethod.POST, "/v1/federation/bundle", AccessRequirement.PEER),
+                rule(HttpMethod.POST, "/v1/federation/chronicle-sketches", AccessRequirement.PEER),
+                // The feed is a read; the controller also requires the token's federation capability.
+                rule(HttpMethod.GET, "/v1/federation/**", AccessRequirement.READ),
+                // Peers are admin.
+                rule(null, "/v1/peers", AccessRequirement.ADMIN),
+                rule(null, "/v1/peers/**", AccessRequirement.ADMIN),
 
                 // ---- Inbound ingest (Architecture §16, prompt 024) ----
                 rule(HttpMethod.GET, "/v1/ingest/formats", AccessRequirement.ADMIN),

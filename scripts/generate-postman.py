@@ -23,7 +23,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              # 036: places, saved views and watchlists.
              "placeId": "placeId", "viewId": "viewId", "watchlistId": "watchlistId",
              # 111: export jobs and holds.
-             "exportId": "exportId", "holdId": "holdId"}
+             "exportId": "exportId", "holdId": "holdId",
+             # 113: federation peers.
+             "peerId": "peerId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -376,12 +378,39 @@ BODIES = {
   # 112: a share link to one record, 7 days by default, at most 50 uses; the plaintext fss_ key is returned once.
   "createShareLink": {"targetType": "record", "targetRef": "usgs-earthquakes/us7000n7tc", "fieldMask": None,
                       "precisionM": None, "expiresAt": None, "maxUses": 50},
+  # 113: a PULL peer replicating earthquakes from a friend's instance (its token needs read + federation=true); the
+  # remote key is pinned on the first verified /info. A RECEIVE peer (an edge) needs no token: rotate its ingest key.
+  "createPeer": {"id": "friend", "name": "Friend's instance", "baseUrl": "https://foresignal.friend.example",
+                 "mode": "PULL", "enabled": True, "token": "fsr_REPLACE_WITH_THE_REMOTE_TOKEN",
+                 "selection": {"sources": ["usgs-earthquakes"], "kinds": ["earthquake"], "bbox": None, "placeId": None,
+                               "maxAge": "7d", "backfill": "none", "live": False, "maxHops": 3, "trackTtl": "10m"},
+                 "sameOperator": False, "reliability": "B"},
+  "updatePeer": {"name": "Friend's instance", "baseUrl": "https://foresignal.friend.example", "enabled": True,
+                 "selection": {"sources": ["usgs-earthquakes"], "kinds": ["earthquake"], "maxAge": "7d", "maxHops": 3},
+                 "sameOperator": False, "reliability": "B"},
+  # An edge's batch: in practice the federation-push sink builds and signs it (Foresignal-Signature over the exact
+  # body); this example shows the shape and is refused with 403 PEER_KEY_MISMATCH without a valid signature.
+  "federationIngest": {"items": [{"seq": 1042, "ref": "urn:foresignal:edge-install-id:local-ais-1:244660000",
+                                  "sourceId": "local-ais-1", "externalId": "244660000", "kind": "vessel", "version": 3,
+                                  "persistReason": "SIGNIFICANT", "historyTier": "TRACK",
+                                  "observedAt": "2026-10-16T08:00:00Z", "eventTime": None, "validUntil": None,
+                                  "tombstone": False, "geometry": {"type": "Point", "coordinates": [4.89, 52.37]},
+                                  "payload": {"name": "EXAMPLE", "sog": 7.2}, "quality": None,
+                                  "licence": "local-only-operator",
+                                  "provenance": {"origin": {"instanceId": "edge-install-id", "sourceId": "local-ais-1",
+                                                            "externalId": "244660000", "seq": 1042,
+                                                            "ingestedAt": "2026-10-16T08:00:01Z"},
+                                                 "chain": [{"instanceId": "edge-install-id", "sourceId": "local-ais-1",
+                                                            "externalId": "244660000", "seq": 1042,
+                                                            "ingestedAt": "2026-10-16T08:00:01Z"}]}}]},
 }
 
 # test scripts: capture ids / assert status
 CAPTURE = {
   "createExport": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
   "createShareLink": "const j = pm.response.json(); pm.collectionVariables.set('shareLinkId', j.id); pm.collectionVariables.set('key', j.key);",
+  "createPeer": "const j = pm.response.json(); pm.collectionVariables.set('peerId', j.id);",
+  "rotatePeerIngestKey": "const j = pm.response.json(); pm.collectionVariables.set('peerIngestKey', j.key); console.log('New peer ingest key (shown once):', j.key);",
   "createSnapshot": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
   "createPack": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
   "createHold": "const j = pm.response.json(); pm.collectionVariables.set('holdId', j.id);",
@@ -579,6 +608,12 @@ def req_item(path, method, op):
         key_var = "{{edpIngestKey}}" if path.startswith("/v1/external/") else "{{ingestKey}}"
         key_header = "X-Gotify-Key" if path.startswith("/compat/gotify") else "X-Foresignal-Ingest-Key"
         request["header"].append({"key": key_header, "value": key_var})
+    elif scope == "peer":
+        # 113: instance-to-instance pushes authenticate with the peer ingest key (fsp_), never a token.
+        request["auth"] = {"type": "bearer", "bearer": [{"key": "token", "value": "{{peerIngestKey}}", "type": "string"}]}
+    elif path.startswith("/v1/federation/") and scope == "read" and op.get("security") == [{"bearerToken": []}]:
+        # 113: the federation feed needs a token with restrictions.federation=true.
+        request["auth"] = {"type": "bearer", "bearer": [{"key": "token", "value": "{{federationToken}}", "type": "string"}]}
     elif opid == "selfRegisterExternalSource":
         request["auth"] = {"type": "noauth"}
         request["header"].append({"key": "Authorization", "value": "Bearer {{registrationToken}}"})
@@ -694,7 +729,7 @@ streams = {"name": "Streams (SSE — run manually)", "description": "Postman dis
 
 collection = {
   "info": {"_postman_id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman")), "name": "Foresignal API",
-           "description": f"{spec['info']['description']}\n\nGenerated from docs/OpenAPI.json (v{spec['info']['version']}). Every operation is included, grouped by tag. Admin operations use Bearer `{{{{adminToken}}}}`, agent operations `{{{{agentToken}}}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{{{readToken}}}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{{{ingestKey}}}}` (EDP pushes `{{{{edpIngestKey}}}}`, Gotify `X-Gotify-Key`), and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor…).",
+           "description": f"{spec['info']['description']}\n\nGenerated from docs/OpenAPI.json (v{spec['info']['version']}). Every operation is included, grouped by tag. Admin operations use Bearer `{{{{adminToken}}}}`, agent operations `{{{{agentToken}}}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{{{readToken}}}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{{{ingestKey}}}}` (EDP pushes `{{{{edpIngestKey}}}}`, Gotify `X-Gotify-Key`), federation pushes Bearer `{{{{peerIngestKey}}}}` and the federation feed Bearer `{{{{federationToken}}}}` (a read token with restrictions.federation=true), and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor…).",
            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
   "item": [quickstart, quickstart2, streams] + folders,
   "variable": [{"key": k, "value": v} for k, v in [
@@ -706,6 +741,7 @@ collection = {
       ("registrationToken", ""), ("registrationTokenId", ""), ("pushProviderId", "ios-apns"), ("pushDeviceId", ""),
       ("notificationId", ""), ("actionToken", ""), ("escalationPolicyId", ""), ("feedKeyId", ""), ("tileKeyId", ""),
       ("placeId", "home"), ("viewId", ""), ("watchlistId", ""), ("exportId", ""), ("holdId", ""),
+      ("peerId", ""), ("peerIngestKey", ""), ("federationToken", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

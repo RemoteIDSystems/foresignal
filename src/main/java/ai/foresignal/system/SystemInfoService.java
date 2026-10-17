@@ -133,6 +133,7 @@ public class SystemInfoService {
         out.put("uptimeSeconds", Math.max(0L, Duration.between(startedAt, now).getSeconds()));
         out.put("status", status(dbUp, writerStatus, catching, sourceHealth, warningList));
         out.put("features", features());
+        out.put("mode", mode());
         out.put("limits", limits());
         if (!full) {
             return out;
@@ -192,11 +193,33 @@ public class SystemInfoService {
         return out;
     }
 
-    /** Every contributor's flags; a key is true when any contributor says so. */
+    /** The environment, for the deployment profile (prompt 113); null in hand-built unit tests (full mode). */
+    private org.springframework.core.env.Environment environment;
+
+    /** Injects the environment that holds {@code foresignal.mode} (prompt 113). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setEnvironment(org.springframework.core.env.Environment environment) {
+        this.environment = environment;
+    }
+
+    /** The deployment profile: {@code full} or {@code edge} (prompt 113). */
+    public String mode() {
+        return ai.foresignal.config.EdgeMode.of(environment);
+    }
+
+    /**
+     * Every contributor's flags; a key is true when any contributor says so. In edge mode (prompt 113) the flags of
+     * {@link ai.foresignal.config.EdgeMode#DISABLED_FEATURES} are reported off.
+     */
     public Map<String, Boolean> features() {
         Map<String, Boolean> out = new TreeMap<>();
         for (FeatureContributor contributor : contributors) {
             contributor.features().forEach((key, value) -> out.merge(key, Boolean.TRUE.equals(value), Boolean::logicalOr));
+        }
+        if (ai.foresignal.config.EdgeMode.edge(environment)) {
+            for (String key : ai.foresignal.config.EdgeMode.DISABLED_FEATURES) {
+                out.put(key, false);
+            }
         }
         return out;
     }

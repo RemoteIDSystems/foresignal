@@ -19,9 +19,13 @@ import tools.jackson.databind.JsonNode;
 /**
  * The cold archive (OpenAPI tag {@code Archive}, prompt 111; admin): the {@code archive} settings
  * (secrets write-only) and the catalog of archived partitions and files.
+ *
+ * <p>Left out in edge mode (prompt 113: exports (archive)).
  */
 @RestController
 @Tag(name = "Archive")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class ArchiveController {
 
     private final ArchiveSettingsService settings;

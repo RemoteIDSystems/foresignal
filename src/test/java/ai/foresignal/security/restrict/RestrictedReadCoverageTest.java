@@ -60,7 +60,9 @@ class RestrictedReadCoverageTest {
             // 052: product lists, model forecasts and area statistics are raster values, never records.
             "list_products", "weather_forecast", "area_weather_stats", "ProductsResource",
             // 112: creating a share link returns the link and its key, never records.
-            "create_share_link");
+            "create_share_link",
+            // 113: federation peers and their replication state, never records.
+            "list_peers", "peer_status");
 
     @Test
     @DisplayName("every record- or alert-returning controller method carries @RestrictedRead")

@@ -33,10 +33,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 
-/** The autonomous analyst API (prompt 102): profiles, runs, notes, proposals and evaluation. */
+/** The autonomous analyst API (prompt 102): profiles, runs, notes, proposals and evaluation. *
+ * <p>Left out in edge mode (prompt 113: LLM features (autonomous analyst)).
+ */
 @RestController
 @Tag(name = "Analyst")
 @RequestMapping("/v1/analyst")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class AnalystController {
 
     private final AnalystService service;

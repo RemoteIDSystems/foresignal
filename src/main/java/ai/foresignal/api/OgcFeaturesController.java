@@ -54,9 +54,13 @@ import org.springframework.web.bind.annotation.RestController;
  * {@code bbox-crs} and {@code filter-crs} accept only CRS84. Private sources are excluded unless the caller may
  * see them, restricted tokens and feed keys apply ({@link RestrictedRead}), and the license policy prunes rows
  * and sets {@code Foresignal-Attribution} and {@code Link rel="license"} (109).
+ *
+ * <p>Left out in edge mode (prompt 113: OGC).
  */
 @RestController
 @Tag(name = "OGC")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class OgcFeaturesController {
 
     static final MediaType GEO_JSON = MediaType.parseMediaType(OgcFeatureDocuments.GEOJSON);

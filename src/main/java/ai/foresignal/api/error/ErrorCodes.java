@@ -507,6 +507,15 @@ public final class ErrorCodes {
     /** 410: a share link is revoked, expired or has used up its uses (112). */
     public static final String SHARE_EXPIRED = "SHARE_EXPIRED";
 
+    /**
+     * 403: a federation batch's detached JWS does not verify against the peer's pinned key, or a peer's
+     * {@code /info} is signed by another key than the pinned one (113).
+     */
+    public static final String PEER_KEY_MISMATCH = "PEER_KEY_MISMATCH";
+
+    /** 409: a peer with this id exists (113). */
+    public static final String PEER_EXISTS = "PEER_EXISTS";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

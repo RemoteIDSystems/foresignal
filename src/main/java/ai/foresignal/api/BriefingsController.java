@@ -48,10 +48,14 @@ import tools.jackson.databind.JsonNode;
  * answer JSON by default and sanitized HTML with {@code Accept: text/html} or {@code ?format=html},
  * with the strict {@link BriefingHtmlRenderer#CONTENT_SECURITY_POLICY} and a per-run ETag. Ids that
  * are not UUIDs are simply not found.
+ *
+ * <p>Left out in edge mode (prompt 113: briefings).
  */
 @RestController
 @Tag(name = "Briefings")
 @RequestMapping("/v1/briefings")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class BriefingsController {
 
     private final BriefingService briefings;

@@ -9,8 +9,12 @@ import org.springframework.stereotype.Component;
  * Registers the embedding worker's durable cursor ({@code app_setting['embedding.cursor']}) with
  * retention's consumer clamp (Core-Data-Model §13), so retention never deletes a version the worker
  * has not embedded, except after the documented release at {@code 2 × window}.
+ *
+ * <p>Left out in edge mode (prompt 113: embeddings).
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class EmbeddingCursorConsumer implements RetentionConsumer {
 
     private final EmbeddingWorker worker;

@@ -22,8 +22,8 @@ import tools.jackson.databind.JsonNode;
  * <p>Only implemented routes are checked: the policy is written ahead for many planned paths, and
  * each prompt that implements an operation (setting its status to {@code implemented}) is then held
  * to it here. Webhooks are excluded: they are requests Foresignal sends, so no inbound scope
- * applies. {@code peer} routes (federation, 113) are excluded until the policy has a peer
- * requirement.
+ * applies. {@code peer} routes (federation, 113) require a peer ingest key
+ * ({@link AccessRequirement#PEER}).
  */
 class AccessPolicySyncTest {
 
@@ -35,7 +35,7 @@ class AccessPolicySyncTest {
         List<String> problems = new ArrayList<>();
         int checked = 0;
         for (SpecOperation op : OpenApiSpec.routes()) {
-            if (!op.implemented() || "peer".equals(op.scope())) {
+            if (!op.implemented()) {
                 continue;
             }
             checked++;
@@ -89,6 +89,7 @@ class AccessPolicySyncTest {
             case "read" -> new AccessRequirement.RequiresScope(Scope.READ, always);
             case "agent" -> new AccessRequirement.RequiresScope(Scope.AGENT, always);
             case "admin" -> new AccessRequirement.RequiresScope(Scope.ADMIN, always);
+            case "peer" -> AccessRequirement.PEER;
             default -> throw new AssertionError(op.label() + ": unknown scope " + op.scope());
         };
     }

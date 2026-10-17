@@ -26,10 +26,15 @@ import java.util.Map;
  * @param maxRequestsPerMinute overrides the {@code read} rate-limit class, or null (035)
  * @param placeIds places whose areas bound what may be read, or null (036); resolved through
  *     {@link ai.foresignal.security.restrict.PlaceAreas} into the area of the effective restriction
+ * @param federation true when the token may call the federation feed endpoints (113: changes, stream, snapshot,
+ *     bundle), together with the read scope; null or false otherwise
+ * @param includeExercise true when the federation feed also serves exercise records (113, 115); null or false
+ *     otherwise
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record TokenRestrictions(List<String> sources, List<String> kinds, List<Double> bbox, List<String> endpoints,
-        Map<String, Object> area, Boolean excludePrivate, Integer maxRequestsPerMinute, List<String> placeIds) {
+        Map<String, Object> area, Boolean excludePrivate, Integer maxRequestsPerMinute, List<String> placeIds,
+        Boolean federation, Boolean includeExercise) {
 
     /** No restriction at all. */
     public static final TokenRestrictions NONE = new TokenRestrictions(null, null, null, null);
@@ -42,6 +47,12 @@ public record TokenRestrictions(List<String> sources, List<String> kinds, List<D
         endpoints = endpoints == null ? null : List.copyOf(endpoints);
         area = area == null ? null : java.util.Collections.unmodifiableMap(new LinkedHashMap<>(area));
         placeIds = placeIds == null ? null : List.copyOf(placeIds);
+    }
+
+    /** The 036 members, without the 113 federation flags. */
+    public TokenRestrictions(List<String> sources, List<String> kinds, List<Double> bbox, List<String> endpoints,
+            Map<String, Object> area, Boolean excludePrivate, Integer maxRequestsPerMinute, List<String> placeIds) {
+        this(sources, kinds, bbox, endpoints, area, excludePrivate, maxRequestsPerMinute, placeIds, null, null);
     }
 
     /** The 035 members, without places. */
@@ -76,7 +87,19 @@ public record TokenRestrictions(List<String> sources, List<String> kinds, List<D
     @JsonIgnore
     public boolean isEmpty() {
         return !hasDataRestrictions() && !hasEndpointRestrictions() && excludePrivate == null
-                && maxRequestsPerMinute == null;
+                && maxRequestsPerMinute == null && federation == null && includeExercise == null;
+    }
+
+    /** True when the token carries the federation capability (113). */
+    @JsonIgnore
+    public boolean federationAllowed() {
+        return Boolean.TRUE.equals(federation);
+    }
+
+    /** True when the federation feed serves this token exercise records too (113). */
+    @JsonIgnore
+    public boolean exerciseIncluded() {
+        return Boolean.TRUE.equals(includeExercise);
     }
 
     /** This value, or null when it restricts nothing (the API form of "no restrictions"). */

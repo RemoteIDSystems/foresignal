@@ -62,6 +62,9 @@ public final class MeshChannels {
     /** The channel index key. */
     public static final String CHANNEL_INDEX = "channelIndex";
 
+    /** The {@code compactEvents} setting (prompt 113): also send queued federation compact messages. */
+    public static final String COMPACT_EVENTS = "compactEvents";
+
     /** The text profile. */
     public static final String PROFILE_TEXT = "text";
     /** The CBOR profile. */
@@ -218,7 +221,10 @@ public final class MeshChannels {
                         + " commands from allowedSenders on this private channel", false),
                 ChannelFieldSpec.optional(ALLOWED_SENDERS, ChannelFieldSpec.MAP, "Sender to role (report or ack):"
                         + " !xxxxxxxx (Meshtastic node), mc:<12 hex> (MeshCore key prefix) or name:<advertised name>"
-                        + " (MeshCore channel messages)", null));
+                        + " (MeshCore channel messages)", null),
+                ChannelFieldSpec.optional(COMPACT_EVENTS, ChannelFieldSpec.BOOLEAN, "Also send the federation"
+                        + " compact messages (alerts and intelligence events, 113) within this channel's airtime"
+                        + " budget", false));
     }
 
     /**

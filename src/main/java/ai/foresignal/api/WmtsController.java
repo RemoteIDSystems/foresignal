@@ -51,9 +51,13 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>When reached through {@code /v1/k/{key}/wmts/…} every generated URL carries that key prefix
  * ({@link PublicUrls#apiRoot()}), so QGIS and Cesium work without headers.
+ *
+ * <p>Left out in edge mode (prompt 113: raster rendering (WMTS)).
  */
 @RestController
 @Tag(name = "Products")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class WmtsController {
 
     static final MediaType XML = MediaType.APPLICATION_XML;

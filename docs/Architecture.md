@@ -1072,3 +1072,37 @@ Off-the-shelf clients use Foresignal with no custom code. Every output is overla
 - **Feeds** (`ai.foresignal.feed`): Atom written with StAX (GeoRSS-Simple point, polygon ≤ 500 vertices, else centroid) and JSON Feed 1.1 written with Jackson (`_foresignal` extension), for alerts (newest by last lifecycle change, `AlertStore.feed`) and briefing runs. Markdown goes through commonmark-java and an OWASP allowlist (`FeedSanitizer`). Conditional GET with ETag and `Last-Modified`. No RSS 2.0 and no WebSub.
 - **KML** (`ai.foresignal.kml`): a NetworkLink document (`onInterval` ≥ 30 s plus `onStop` with the view bbox), records as Placemarks (≤ 5,000, newest first, truncation flagged; antimeridian bboxes split by the shared bbox parser), `gx:Track` per entity from `TrackService` without tolerance (≤ 100 entities, ≤ 5,000 points each), and trigger geofences (≤ 10,000 vertices). `KmlWriter` escapes every string for HTML and XML and never uses CDATA with upstream text; KMZ bundles `doc.kml` with the icons it uses.
 - **Keys and URLs**: generated URLs use `publicBaseUrl` (else the request base, which Tomcat corrects only for 023's trusted proxies). A request that came through `/v1/k/{key}/…` gets follow-up URLs on the same key (`PathKeyFilter.keyBase`), and such documents are always `Cache-Control: private`. Tile keys accept `/v1/map/`; feed keys accept any of these read paths.
+
+## 30. Federation (prompt 113)
+
+Instances share data through the `foresignal-peer` source family (`ai.foresignal.federation`).
+
+- **Refs:** `RecordRef` formats and parses `urn:foresignal:{instanceId}:{sourceId}:{externalId}` (the instance id is
+  the install id; the external id is percent-encoded, RFC 3986 unreserved set) and is the only place that does.
+  It is served as `globalRef` on records, versions and changes. A federated record's local external id is
+  `{originSourceId}/{originExternalId}`, or `sha256:` + hex when that exceeds 256 characters.
+- **Serving:** `FederationFeedService` reads whole versions (`FederationQueries`: `record_version` by seq, and the
+  snapshot from `record_head ⋈ record_live` pinned to a watermark) and decides every row with
+  `EgressPolicy.decide(FEDERATION, …)` and its resolved license (109's `LicenceResolver`, which honors a peer
+  record's `_foresignal.originLicence`) before serialization. `FederationStreamService` replays pages from the
+  cursor and is woken by the ChangeBus; below the purge horizon it sends `reset`.
+- **Chain:** origin first, one hop appended per instance that re-serves (`FederationRules`). A local record is
+  served with `chain:[origin]`, a peer record with its stored chain plus this instance's hop.
+- **Loop and hop rules:** an arriving item whose chain names this instance is dropped (`loop`), and so is one whose
+  chain length is at least `maxHops` (default 3) (`hops`). `FederationIngestor` applies these, the private and
+  license checks and the local re-check of the selection identically for PULL (`PeerSession`, run by the 010
+  supervisor on `peer-{id}`) and RECEIVE (`FederationIngestService`, `POST /v1/federation/ingest/{peerId}`).
+- **Dedup:** `OriginLedger` upserts `federation_origin(origin_ref, owner_source_id, local_external_id, origin_seq)`
+  only when the origin seq is greater than the stored one; an equal seq is a duplicate (idempotent re-sends), a
+  lower one is dropped (`dedup`). The first peer source to claim an origin owns it; later updates from any path
+  are written into the owner's source, and ownership moves at the next arrival once the owner's peer is disabled
+  or deleted.
+- **Trust:** every peer response's detached JWS is verified against the peer's JWKS, fetched from the peer's own
+  base URL; the key is pinned on first use (TOFU) and only an admin re-pins it (`PEER_KEY_MISMATCH` otherwise).
+  An edge's batches are verified against the key pinned from its first batch.
+- **Edge relay:** `foresignal.mode=edge` drops the heavy beans by `@ConditionalOnProperty` (`EdgeMode`), and the
+  edge pushes with the `federation-push` sink (110 SPI, CHANGE_FEED, durable cursor), on the `FEDERATION` egress
+  path with the `sameOperator` exception for the operator's own hub.
+- **Compact messages:** `CompactMessages` builds 084 CBOR messages (keys 10–12 added) from alerts and intelligence
+  events only; `CompactOutbox` orders, expires, deduplicates and budgets them for the mesh channels
+  (`CompactMeshTransport`) and the store-and-forward bundle (`CompactBundles`).

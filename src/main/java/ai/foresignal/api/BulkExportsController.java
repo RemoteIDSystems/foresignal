@@ -35,9 +35,13 @@ import tools.jackson.databind.JsonNode;
  * caller gets {@code 404}. Downloads honor {@code Range} ({@code 206}, {@code 416}) and
  * {@code If-None-Match} against the {@code ETag}, the file's SHA-256 ({@code 304}); Spring MVC serves
  * both from the file resource.
+ *
+ * <p>Left out in edge mode (prompt 113: exports).
  */
 @RestController
 @Tag(name = "Exports")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class BulkExportsController {
 
     private final ExportJobService exports;

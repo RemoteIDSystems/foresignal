@@ -24,13 +24,18 @@ import tools.jackson.dataformat.cbor.CBORMapper;
  *   <tr><td>7</td><td>epoch seconds</td></tr>
  *   <tr><td>8</td><td>title, at most 60 characters</td></tr>
  *   <tr><td>9</td><td>source id, at most 24 characters</td></tr>
+ *   <tr><td>10</td><td>origin instance short id, 4 bytes (byte string; prompt 113)</td></tr>
+ *   <tr><td>11</td><td>message id: the first 8 bytes of the SHA-256 of the origin ref (byte string; prompt 113)</td></tr>
+ *   <tr><td>12</td><td>expiry in minutes after key 7 (prompt 113)</td></tr>
  * </table>
  *
  * <p>Absent members are left out. Keys are written in ascending order, so an encoding is deterministic (the golden
  * vectors depend on it). A message longer than the size cap ({@value #MAX_BYTES} bytes by default) loses key 8, then
- * key 9, until it fits; if it still does not fit it is refused. The decoder ignores integer keys it does not know
- * (forward compatibility for prompt 113's MeshDTN extensions) and refuses anything that is not a map with integer
- * keys.
+ * key 9, until it fits; if it still does not fit it is refused. A message with any of the prompt 113 extension keys
+ * (10–12, which dedup and loop prevention need) loses key 9 first, then key 8, and never 10–12. The decoder ignores
+ * integer keys it does not know (forward compatibility) and refuses anything that is not a map with integer keys.
+ *
+ * <p>Type {@value #TYPE_INTEL_EVENT} (prompt 113) is an intelligence event.
  */
 public final class MeshCborProfile {
 
@@ -48,6 +53,15 @@ public final class MeshCborProfile {
 
     /** A status summary. */
     public static final int TYPE_STATUS = 4;
+
+    /** An intelligence event (prompt 113). */
+    public static final int TYPE_INTEL_EVENT = 5;
+
+    /** The length of the origin short id (key 10). */
+    public static final int ORIGIN_SHORT_ID_BYTES = 4;
+
+    /** The length of the message id (key 11). */
+    public static final int MESSAGE_ID_BYTES = 8;
 
     /** The default size cap: one MeshCore channel datagram ({@code MAX_CHANNEL_DATA_LENGTH} 163) with room. */
     public static final int MAX_BYTES = 160;
@@ -79,13 +93,25 @@ public final class MeshCborProfile {
     public static byte[] encode(MeshCborMessage message, int maxBytes) {
         int cap = Math.min(maxBytes, MAX_BYTES);
         byte[] out = write(message);
-        if (out.length > cap && message.title() != null) {
-            message = message.withoutTitle();
-            out = write(message);
-        }
-        if (out.length > cap && message.sourceId() != null) {
-            message = message.withoutSourceId();
-            out = write(message);
+        if (message.extended()) {
+            // Prompt 113: keys 10-12 carry dedup and loop prevention, so the source id goes first, then the title.
+            if (out.length > cap && message.sourceId() != null) {
+                message = message.withoutSourceId();
+                out = write(message);
+            }
+            if (out.length > cap && message.title() != null) {
+                message = message.withoutTitle();
+                out = write(message);
+            }
+        } else {
+            if (out.length > cap && message.title() != null) {
+                message = message.withoutTitle();
+                out = write(message);
+            }
+            if (out.length > cap && message.sourceId() != null) {
+                message = message.withoutSourceId();
+                out = write(message);
+            }
         }
         if (out.length > cap) {
             throw new IllegalArgumentException("the CBOR message is " + out.length + " bytes, above " + cap);
@@ -122,6 +148,15 @@ public final class MeshCborProfile {
         if (m.sourceId() != null) {
             members.add(new Object[] {9, cut(m.sourceId(), MAX_SOURCE_ID)});
         }
+        if (m.originShortId() != null) {
+            members.add(new Object[] {10, m.originShortId()});
+        }
+        if (m.messageId() != null) {
+            members.add(new Object[] {11, m.messageId()});
+        }
+        if (m.expiryMinutes() != null) {
+            members.add(new Object[] {12, (long) m.expiryMinutes()});
+        }
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (JsonGenerator g = CBOR.createGenerator(bytes)) {
             g.writeStartObject(null, members.size());
@@ -129,6 +164,8 @@ public final class MeshCborProfile {
                 g.writePropertyId((Integer) member[0]);
                 if (member[1] instanceof Long number) {
                     g.writeNumber(number);
+                } else if (member[1] instanceof byte[] binary) {
+                    g.writeBinary(binary);
                 } else {
                     g.writeString((String) member[1]);
                 }
@@ -154,6 +191,9 @@ public final class MeshCborProfile {
         Long epoch = null;
         String title = null;
         String sourceId = null;
+        byte[] origin = null;
+        byte[] messageId = null;
+        Integer expiry = null;
         try (JsonParser p = CBOR.createParser(bytes)) {
             if (p.nextToken() != JsonToken.START_OBJECT) {
                 throw new IllegalArgumentException("a mesh CBOR message is a map");
@@ -178,6 +218,15 @@ public final class MeshCborProfile {
                     case 7 -> epoch = p.getLongValue();
                     case 8 -> title = p.getString();
                     case 9 -> sourceId = p.getString();
+                    case 10 -> origin = binary(p, value);
+                    case 11 -> messageId = binary(p, value);
+                    case 12 -> {
+                        if (value == JsonToken.VALUE_NUMBER_INT) {
+                            expiry = p.getIntValue();
+                        } else {
+                            skip(p, value);
+                        }
+                    }
                     default -> {
                         if (value == JsonToken.START_OBJECT || value == JsonToken.START_ARRAY) {
                             p.skipChildren();
@@ -191,7 +240,24 @@ public final class MeshCborProfile {
         if (version == null || type == null) {
             throw new IllegalArgumentException("a mesh CBOR message needs keys 0 (version) and 1 (type)");
         }
-        return new MeshCborMessage(version, type, code, severity, kind, lat, lon, epoch, title, sourceId);
+        return new MeshCborMessage(version, type, code, severity, kind, lat, lon, epoch, title, sourceId, origin,
+                messageId, expiry);
+    }
+
+    /** A byte-string value (keys 10 and 11), or null for any other value, which is skipped. */
+    private static byte[] binary(JsonParser p, JsonToken value) {
+        if (value == JsonToken.VALUE_EMBEDDED_OBJECT) {
+            return p.getBinaryValue();
+        }
+        skip(p, value);
+        return null;
+    }
+
+    /** Skips a structured value the decoder does not read. */
+    private static void skip(JsonParser p, JsonToken value) {
+        if (value == JsonToken.START_OBJECT || value == JsonToken.START_ARRAY) {
+            p.skipChildren();
+        }
     }
 
     private static String cut(String text, int max) {

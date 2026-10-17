@@ -21,6 +21,20 @@ public interface MeshChannelType extends ChannelType {
      */
     PreparedRequest renderReply(String text, ChannelSettings settings);
 
+    /**
+     * The transmission of a compact federation message (prompt 113) through the channel's {@code profile}, exactly
+     * as 084 sends an alert: the {@code cbor} profile sends the CBOR map ({@code ~E1 } + base64url as Meshtastic text,
+     * a channel datagram on MeshCore), the {@code text} profile the short text line on the private channel. The
+     * default sends the text line as a reply would.
+     *
+     * @param cbor the encoded message (at most 160 bytes)
+     * @param text the short text form
+     * @param severity {@code info}, {@code warning} or {@code critical} (critical jumps the airtime queue)
+     */
+    default PreparedRequest renderCompact(byte[] cbor, String text, String severity, ChannelSettings settings) {
+        return renderReply(text, settings);
+    }
+
     /** The channel's shared settings, parsed (the config validated). */
     MeshChannels.Common common(java.util.Map<String, Object> config);
 }

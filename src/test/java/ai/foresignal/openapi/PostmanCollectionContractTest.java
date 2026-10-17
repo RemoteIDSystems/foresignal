@@ -311,10 +311,15 @@ class PostmanCollectionContractTest {
                 continue;
             }
             boolean always = op.node().path("x-foresignal-always-authenticated").asBoolean(false);
+            boolean federationFeed = op.path().startsWith("/v1/federation/") && "read".equals(op.scope())
+                    && op.node().path("security").size() == 1 && op.node().path("security").get(0).has("bearerToken");
             String expected = switch (op.scope()) {
                 case "admin" -> "bearer {{adminToken}}";
                 case "agent" -> "bearer {{agentToken}}";
-                case "read" -> always ? "bearer {{readToken}}" : "noauth";
+                // 113: the federation feed needs a token with restrictions.federation=true.
+                case "read" -> federationFeed ? "bearer {{federationToken}}" : always ? "bearer {{readToken}}" : "noauth";
+                // 113: instance-to-instance pushes use the peer ingest key (fsp_) as a bearer token.
+                case "peer" -> "bearer {{peerIngestKey}}";
                 default -> "noauth";
             };
             if (acceptsIngestKey(op)) {
@@ -415,7 +420,11 @@ class PostmanCollectionContractTest {
                 "testCustomSourceMapping",
                 // 073: a WebSub notification body is the raw feed (Atom, RSS, XML or JSON), parsed by the
                 // subscription's source, not a typed DTO (WebSubControllerIT covers it).
-                "receiveWebSubNotification");
+                "receiveWebSubNotification",
+                // 113: peers check the base URL against the outbound policy and the id against stored peers and
+                // sources (PeerSourceIT, FederationIngestIT); an edge batch must carry a valid signature over its
+                // exact body by a pinned key (FederationIngestIT); a bundle is CBOR (CompactMessageCodecTest).
+                "createPeer", "updatePeer", "federationIngest", "receiveFederationBundle");
         List<String> uncovered = OpenApiSpec.routes().stream()
                 .filter(SpecOperation::implemented)
                 .filter(op -> op.node().has("requestBody"))

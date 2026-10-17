@@ -58,8 +58,12 @@ import org.springframework.transaction.support.TransactionTemplate;
  * <p><strong>Pauses.</strong> A budget refusal, a provider failure or a database error pauses the
  * worker until the next minute <em>without</em> advancing the cursor; documents already written
  * stay, and the range is retried from the cursor.
+ *
+ * <p>Left out in edge mode (prompt 113: embeddings).
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class EmbeddingWorker implements ChangeListener, IngestStateReset {
 
     private static final Logger log = LoggerFactory.getLogger(EmbeddingWorker.class);

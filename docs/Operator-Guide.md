@@ -5439,3 +5439,97 @@ privacy mask for personal sources (precision capped to 1,000 m, observer, device
 the payload reduced to `title`, `kind` and `observedAt`) is built in, but a private target is refused even for an
 admin token, because Foresignal's egress policy never lets a private record leave on a share link. Views over
 places or watchlists cannot be shared (they reveal your places).
+
+## Federation and edge relay (prompt 113)
+
+Foresignal instances can share data with each other. Every replicated record carries a provenance chain (the
+origin instance, source, external id and seq, then one hop per instance that re-served it) and a globally unique
+reference, `urn:foresignal:{instanceId}:{sourceId}:{externalId}` (`globalRef` on records, versions and changes;
+the instance id is the install id).
+
+### Topologies
+
+- **Home hub ⇄ cabin edge.** A Raspberry Pi at the cabin runs `FORESIGNAL_MODE=edge` with its local receivers
+  (ADS-B, AIS, mesh, decoders). It pushes to the hub whenever the link is up. On the hub, create a `RECEIVE` peer
+  for the cabin and rotate its ingest key; on the edge, create a `federation-push` sink to the hub with that key.
+  Set `sameOperator: true` on both when the hub is yours, so the cabin's `LOCAL_ONLY` receiver data may reach it.
+- **Two friends' instances.** Each creates a read token for the other with `restrictions.federation: true`
+  (optionally narrowed to sources, kinds or a bbox) and a `PULL` peer pointing at the other's base URL with that
+  token. Each replicates the subset the other's token and its own `selection` allow.
+- **A ring** (A → B → C → A) is safe: an item whose chain already names the receiving instance is dropped
+  (`foresignal.federation.dropped{reason="loop"}`), and so is one whose chain has `maxHops` (default 3) or more
+  entries. The same origin arriving over two paths becomes one local record: the first peer source to claim an
+  origin owns it, later updates from either path land in that record, and an update older than the newest one
+  applied is dropped as `dedup`.
+
+### Serving peers
+
+The feed is `GET /v1/federation/changes`, `/stream` (SSE with `change`, optional `live`, `heartbeat` and `reset`)
+and `/snapshot`. Each needs a token with the read scope **and** `restrictions.federation: true`; the token's
+source, kind, bbox and area restrictions still apply, and `includeExercise: true` adds exercise records. Below
+the purge horizon the feed answers `410 RESYNC_REQUIRED` and the stream sends `reset`, and the peer re-snapshots.
+`GET /v1/federation/info` (signed with the instance key, `Foresignal-Signature`) tells a peer who you are.
+
+### What never leaves
+
+Every record passes the one egress policy on the federation path before it is serialized:
+
+- licenses that forbid redistribution: `opensky-states`, `acled`, `aisstream`;
+- `LOCAL_ONLY` sources and licenses: the local receivers (`local-*`), and anything you have not opened;
+- MLAT positions, from any source;
+- private sources (personal location, mesh, ACARS, home sensors), always;
+- exercise records, unless the token asks for them.
+
+Exclusions count in `foresignal.federation.denied{reason}`. The one exception is an edge pushing to its
+operator's own hub (`sameOperator: true` on the `federation-push` sink and on the hub's peer): `LOCAL_ONLY`
+records may then travel, labelled `local-only-operator`, and the hub keeps them `LOCAL_ONLY`, so it never
+re-federates them. Private records and MLAT positions never travel, even then.
+
+### Consuming a peer
+
+`POST /v1/peers` (admin) with `id`, `name`, `baseUrl` (checked by the outbound URL policy: LAN, Tailnet and public
+addresses are allowed), `mode: PULL`, the remote `token` (stored encrypted, never returned) and a `selection`:
+`sources`, `kinds`, `bbox` or `placeId`, `maxAge` (drop older items), `backfill` (`none`, the default: the current
+snapshot only; or a duration of history to page from the remote change feed), `live`, `maxHops`, `trackTtl`.
+The peer registers `peer-{id}` (STANDARD), `peer-{id}-trk` (TRACK, TTL `trackTtl`, sampled like other tracks) and
+`peer-{id}-events` (compact messages). Each record keeps the origin's license in `_foresignal.originLicence`, a
+volatile payload member, so an identical re-send makes no new version and the license follows the record. Peer
+data has reliability `F` (cannot be judged) unless you set `reliability`.
+
+**Key pinning.** On the first successful contact the remote signing key is pinned (trust on first use). If the
+peer later signs with another key, replication stops with the health reason `PEER_KEY_MISMATCH`. Check with the
+peer's operator, then `PUT /v1/peers/{id}` with `pinnedKid: null` to re-pin on the next contact (or the new kid).
+`POST /v1/peers/{id}/test` fetches and verifies `/info` without pinning anything. Other health reasons:
+`PEER_UNREACHABLE` (the stream reconnects from 5 s up to 5 min, and honors `Retry-After`) and `PEER_RESYNC`.
+`POST /v1/peers/{id}/resync` re-snapshots and then tombstones the local records the peer no longer lists. Metrics:
+`foresignal.federation.items{peer,result}` and `foresignal.federation.lag_seq{peer}`; MCP `list_peers` and
+`peer_status` (admin).
+
+### Edge mode
+
+`FORESIGNAL_MODE=edge` keeps collection, the writer, triggers and notification channels, and leaves out
+embeddings, LLM features (ask, briefings, the analyst), raster products and rendering, OGC, exports and the
+federation feed; `GET /v1/system` reports `mode: edge` and those `features` off. Retention defaults to a 6 h track
+window and a 1 d default window (only when you have stored no retention settings). Plan for a JVM heap of about
+256 MB (`JAVA_TOOL_OPTIONS=-Xmx256m`) on a Raspberry Pi 4 or 5 with 2 GB or more.
+
+The edge's `federation-push` sink (`config.url` = the hub's base URL, `config.peerId` = the edge's peer id on the
+hub, `secrets.ingestKey` = the `fsp_` key the hub issued) sends signed, gzip-compressed batches of up to 1,000
+items from a durable cursor. While the link is down the cursor holds and nothing is lost; when it comes back the
+edge catches up in order (the usual sink rules on cursor clamps and resync apply). The hub pins the edge's key on
+the first batch and refuses later batches signed by another key (`403 PEER_KEY_MISMATCH`).
+
+### Compact messages over mesh and DTN
+
+Fired and resolved alerts and intelligence events (never tracks or bulk records) are also queued as compact
+CBOR messages of at most 160 bytes: the 084 mesh profile plus key 10 (this instance's 4-byte short id), key 11
+(a message id) and key 12 (expiry in minutes). The queue sends critical messages first, newest first within a
+severity, drops expired ones, and sends a message again only when its severity changes or it is resolved.
+
+- **Mesh:** set `compactEvents: true` on a Meshtastic or MeshCore channel. Messages go out through the channel's
+  `profile` (`cbor` or `text`) and its airtime governor, within `maxMessagesPerHour × 160` bytes an hour.
+- **Store and forward:** `GET /v1/federation/bundle?since=` (a token with `federation: true`) returns the pending
+  messages as one CBOR array, for sneakernet or DTN tooling such as a BPv7 bundle agent; available on an edge too.
+  `POST /v1/federation/bundle` with a peer's ingest key accepts the same, as `remote-event` records on
+  `peer-{id}-events`. Messages from this instance or already seen are dropped, and received messages are never
+  sent on.

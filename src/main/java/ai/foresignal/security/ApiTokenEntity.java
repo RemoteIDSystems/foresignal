@@ -117,6 +117,14 @@ public class ApiTokenEntity {
     @Column(name = "allowed_place_ids", columnDefinition = "text[]")
     private String[] allowedPlaceIds;
 
+    /** The 113 federation capability: the token may call the federation feed endpoints; null reads as false. */
+    @Column(name = "federation")
+    private Boolean federation;
+
+    /** The 113 exercise flag: the federation feed also serves exercise records; null reads as false. */
+    @Column(name = "include_exercise")
+    private Boolean includeExercise;
+
     /** The 039 private grant: the token or feed key may see private sources; null reads as false. */
     @Column(name = "private_access")
     private Boolean privateAccess;
@@ -281,7 +289,7 @@ public class ApiTokenEntity {
         java.util.Map<String, Object> area = allowedArea == null ? null
                 : new ai.foresignal.source.formats.geojson.GeoJsonWriter().write(allowedArea);
         return new TokenRestrictions(list(allowedSources), list(allowedKinds), bbox, list(allowedEndpoints), area,
-                excludePrivate, maxRequestsPerMinute, list(allowedPlaceIds));
+                excludePrivate, maxRequestsPerMinute, list(allowedPlaceIds), federation, includeExercise);
     }
 
     /** Stores {@code restrictions}; a validated bbox becomes a WGS84 polygon. */
@@ -295,6 +303,8 @@ public class ApiTokenEntity {
         this.excludePrivate = r.excludePrivate();
         this.maxRequestsPerMinute = r.maxRequestsPerMinute();
         this.allowedPlaceIds = array(r.placeIds());
+        this.federation = r.federation();
+        this.includeExercise = r.includeExercise();
     }
 
     /** True when the token or feed key may see private sources (prompt 039 {@code privateAccess}). */

@@ -406,11 +406,30 @@ public class EgressPolicy {
      *     loopback or a private address, or a PUSH target that resolves to a private address (110)
      * @param personalUse the operator exports for personal use (111): {@code LOCAL_ONLY} and {@code FORBIDDEN}
      *     licenses may then leave on {@code EXPORT}
+     * @param sameOperator the federation destination is the operator's own hub (113, see {@link #federation})
      */
-    public record EgressContext(Viewer viewer, boolean includePrivate, boolean localTarget, boolean personalUse) {
+    public record EgressContext(Viewer viewer, boolean includePrivate, boolean localTarget, boolean personalUse,
+            boolean sameOperator) {
 
         /** No viewer, no opt-ins. */
-        public static final EgressContext NONE = new EgressContext(null, false, false, false);
+        public static final EgressContext NONE = new EgressContext(null, false, false, false, false);
+
+        /** A context without the 113 same-operator exception. */
+        public EgressContext(Viewer viewer, boolean includePrivate, boolean localTarget, boolean personalUse) {
+            this(viewer, includePrivate, localTarget, personalUse, false);
+        }
+
+        /**
+         * A federation context (113): records served to a peer, or pushed by an edge relay to its hub.
+         *
+         * @param sameOperator the peer is the operator's own hub ({@code sameOperator=true} on the peer or the
+         *     {@code federation-push} sink): {@code LOCAL_ONLY} sources and licenses may then leave on
+         *     {@code FEDERATION}, the one documented exception; private records, MLAT positions and
+         *     {@code FORBIDDEN} licenses never do
+         */
+        public static EgressContext federation(boolean sameOperator) {
+            return new EgressContext(null, false, false, false, sameOperator);
+        }
 
         /** A viewer with no opt-ins (the source-level and read paths). */
         public static EgressContext of(Viewer viewer) {
@@ -507,6 +526,11 @@ public class EgressPolicy {
      *       which follows {@code derivedFrom}) go through the license table with
      *       {@link EgressContext#personalUse()} and {@link EgressContext#localTarget()}, on every path including
      *       {@code EXPORT} and {@code ARCHIVE} (the table allows {@code ARCHIVE} for every license, 111).
+     *   <li><em>Same-operator federation (113):</em> on {@code FEDERATION} with
+     *       {@link EgressContext#sameOperator()} (an edge relay pushing to its operator's own hub), a
+     *       {@code LOCAL_ONLY} source and a {@code LOCAL_ONLY} or {@code UNKNOWN} license may leave; private
+     *       records, MLAT positions and {@code FORBIDDEN} licenses still never do. This is the one documented
+     *       exception; the hub then treats such records as {@code LOCAL_ONLY} again.
      * </ol>
      *
      * @param recordTerms the record's resolved license ({@code LicenceResolver}: batch license or peer origin),
@@ -524,8 +548,9 @@ public class EgressPolicy {
         if (isPrivate(sourceId) && !privateAllowed(path, sourceId, ctx)) {
             return Decision.deny(REASON_PRIVATE, null);
         }
+        boolean sameOperatorFederation = path == EgressPath.FEDERATION && ctx.sameOperator();
         if (isLocalOnly(sourceId) && !LOCAL_ONLY_PATHS.contains(path)
-                && !(path == EgressPath.SINK_SERVE_LAN && ctx.localTarget())) {
+                && !(path == EgressPath.SINK_SERVE_LAN && ctx.localTarget()) && !sameOperatorFederation) {
             return Decision.deny(REASON_LOCAL_ONLY, null);
         }
         boolean mlat = isMlat(payload);
@@ -538,6 +563,10 @@ public class EgressPolicy {
         LicenceTerms terms = recordTerms != null ? recordTerms : sourceTerms(sourceId);
         if (mlat) {
             terms = terms.downgradedToLocalOnly();
+        }
+        if (sameOperatorFederation && !terms.forbidsRedistribution()) {
+            // The 113 exception: an edge relay pushing to its operator's own hub; the hub keeps them LOCAL_ONLY.
+            return new Decision(true, null, terms);
         }
         if (licenceGuard.allows(path, terms, ctx.personalUse(), ctx.localTarget())) {
             return new Decision(true, null, terms);

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "79671620-982c-5d2e-874b-01ab26ee8e6e",
     "name": "Foresignal API",
-    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...`, `/v1/k/{key}/tiles/...`, `/v1/k/{key}/map/...` and `/v1/k/{key}/changes/stream` for map clients (MapLibre, maplibre_gl, Cesium, `EventSource`), share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. A feed key reaches only `GET`/`HEAD` of `read` operations that are not always-authenticated, under the key's path prefixes, with the key's mandatory read restriction (unknown key 401 INVALID_FEED_KEY, expired or revoked 410 FEED_KEY_GONE, another method 405, a path outside the prefixes 403 RESTRICTED). A tile key reaches the same operations under its prefixes (a subset of `/v1/products/`, `/v1/styles`, `/v1/media/`, `/v1/tiles/`, `/v1/maps/static`, `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream`, `/v1/map/`), with its optional restriction and never private sources (unknown, expired or revoked key 401 INVALID_TILE_KEY, another method 405, a path outside the prefixes 403 INSUFFICIENT_SCOPE). Responses carry `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`; `Cache-Control` defaults to `private`, and a tile-key response takes the canonical path's own rule (`public` only while `openReads` covers it). Logs show only the key's first eight characters; the key is never echoed except by `createFeedKey` and `createTileKey`, and in the follow-up URLs of documents requested through it (058: the MapLibre style's sources and sprite, KML NetworkLink and icon hrefs, a feed's own `rel=\"self\"` / `feed_url`), which are then always `Cache-Control: private`. CORS exposes `Foresignal-Frame-Time`, `Foresignal-Image-Bounds`, `Foresignal-Frame-Expired`, `Retry-After`, `Link` and `ETag`, allows `Authorization`, `If-None-Match` and `Foresignal-Prefetch`, and caches preflights for a day; `?prefetch=1` marks a render prefetch without the preflight the header causes.\n\n**Restrictions and limits (035).** Restricted tokens, feed keys and the anonymous profile (`security.anonymous`, applied to tokenless reads while `openReads` is on) see only records and alerts inside their `ReadRestriction` on every read path (records, history, versions, changes, kinds, tiles, streams, search, alerts, the inbox, the digest, briefings, MCP tools and Ask): request filters are intersected with the restriction, and a single record or alert outside it is 404. Every client is rate-limited per class (`RateLimitSettings`); over a limit, or after repeated failed credentials from one address, the answer is 429 RATE_LIMITED with `Retry-After`. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).\n\nGenerated from docs/OpenAPI.json (v1.3.0). Every operation is included, grouped by tag. Admin operations use Bearer `{{adminToken}}`, agent operations `{{agentToken}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{readToken}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{ingestKey}}` (EDP pushes `{{edpIngestKey}}`, Gotify `X-Gotify-Key`), and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor\u2026).",
+    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...`, `/v1/k/{key}/tiles/...`, `/v1/k/{key}/map/...` and `/v1/k/{key}/changes/stream` for map clients (MapLibre, maplibre_gl, Cesium, `EventSource`), share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. A feed key reaches only `GET`/`HEAD` of `read` operations that are not always-authenticated, under the key's path prefixes, with the key's mandatory read restriction (unknown key 401 INVALID_FEED_KEY, expired or revoked 410 FEED_KEY_GONE, another method 405, a path outside the prefixes 403 RESTRICTED). A tile key reaches the same operations under its prefixes (a subset of `/v1/products/`, `/v1/styles`, `/v1/media/`, `/v1/tiles/`, `/v1/maps/static`, `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream`, `/v1/map/`), with its optional restriction and never private sources (unknown, expired or revoked key 401 INVALID_TILE_KEY, another method 405, a path outside the prefixes 403 INSUFFICIENT_SCOPE). Responses carry `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`; `Cache-Control` defaults to `private`, and a tile-key response takes the canonical path's own rule (`public` only while `openReads` covers it). Logs show only the key's first eight characters; the key is never echoed except by `createFeedKey` and `createTileKey`, and in the follow-up URLs of documents requested through it (058: the MapLibre style's sources and sprite, KML NetworkLink and icon hrefs, a feed's own `rel=\"self\"` / `feed_url`), which are then always `Cache-Control: private`. CORS exposes `Foresignal-Frame-Time`, `Foresignal-Image-Bounds`, `Foresignal-Frame-Expired`, `Retry-After`, `Link` and `ETag`, allows `Authorization`, `If-None-Match` and `Foresignal-Prefetch`, and caches preflights for a day; `?prefetch=1` marks a render prefetch without the preflight the header causes.\n\n**Restrictions and limits (035).** Restricted tokens, feed keys and the anonymous profile (`security.anonymous`, applied to tokenless reads while `openReads` is on) see only records and alerts inside their `ReadRestriction` on every read path (records, history, versions, changes, kinds, tiles, streams, search, alerts, the inbox, the digest, briefings, MCP tools and Ask): request filters are intersected with the restriction, and a single record or alert outside it is 404. Every client is rate-limited per class (`RateLimitSettings`); over a limit, or after repeated failed credentials from one address, the answer is 429 RATE_LIMITED with `Retry-After`. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).\n\nGenerated from docs/OpenAPI.json (v1.3.0). Every operation is included, grouped by tag. Admin operations use Bearer `{{adminToken}}`, agent operations `{{agentToken}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{readToken}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{ingestKey}}` (EDP pushes `{{edpIngestKey}}`, Gotify `X-Gotify-Key`), federation pushes Bearer `{{peerIngestKey}}` and the federation feed Bearer `{{federationToken}}` (a read token with restrictions.federation=true), and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor\u2026).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -13293,7 +13293,14 @@
             },
             "description": "Peers exchange signed sketch packages for `network`-discoverable chronicles. The body is signed with the sender's instance key (109) in `Foresignal-Signature` (detached JWS) and verified against the pinned key. Received sketches expire after 30 days unless refreshed and only ever yield opaque links.\n\n**Scope:** `peer` (federation peer credential, 113).\n\noperationId: `receiveChronicleSketches`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{peerIngestKey}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -17368,7 +17375,14 @@
             },
             "description": "Peer delivery. Verifies the detached JWS against the sender's JWKS (fetched from the peer or pinned), content hashes and that recipient principals exist; enforces TLP locally (RED visible only to named recipients) and imports read-only as `remote:` objects that never enter local evidence or the ledger.\n\n**Scope:** `peer` (federation peer credential, 113).\n\noperationId: `receiveExchangePackage`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{peerIngestKey}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -17416,7 +17430,14 @@
             },
             "description": "A peer reports that a recipient acknowledged a package sent from here; updates the delivery state.\n\n**Scope:** `peer` (federation peer credential, 113).\n\noperationId: `receiveExchangeReceipt`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{peerIngestKey}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -20169,7 +20190,14 @@
             },
             "description": "Full version items with licence and provenance after `after`, in seq order. Per record: FORBIDDEN and LOCAL_ONLY licences (opensky-states, acled, aisstream, local receivers, MLAT positions), private sources and exercise records (unless the token sets includeExercise) are excluded. Restriction columns of the token still apply. Below the purge horizon \u2192 `410 RESYNC_REQUIRED`.\n\n**Scope:** `read` with the `federation` token capability (restricted tokens, 023/035).\n\noperationId: `listFederationChanges`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{federationToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -20235,7 +20263,14 @@
             },
             "description": "SSE with the 015 lanes: `change` (full FederationItem, id = seq), optional `live` with `live=true`, `heartbeat`, `resync`, and `reset` below the purge horizon. Resumes from `Last-Event-ID` or `after`. Per record: FORBIDDEN and LOCAL_ONLY licences (opensky-states, acled, aisstream, local receivers, MLAT positions), private sources and exercise records (unless the token sets includeExercise) are excluded. Restriction columns of the token still apply.\n\n**Scope:** `read` with the `federation` token capability (restricted tokens, 023/035).\n\noperationId: `streamFederation`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{federationToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -20311,7 +20346,14 @@
             },
             "description": "Paged current heads (`record_head \u22c8 record_live`) pinned to the watermark of the first page; pass `atSeq` and `cursor` for later pages, then continue the change feed from `atSeq`. Per record: FORBIDDEN and LOCAL_ONLY licences (opensky-states, acled, aisstream, local receivers, MLAT positions), private sources and exercise records (unless the token sets includeExercise) are excluded. Restriction columns of the token still apply.\n\n**Scope:** `read` with the `federation` token capability (restricted tokens, 023/035).\n\noperationId: `getFederationSnapshot`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{federationToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -20344,6 +20386,12 @@
                 "disabled": true
               },
               {
+                "key": "Foresignal-Key",
+                "value": "",
+                "description": "The edge's Ed25519 public key (raw 32-byte point, base64url). Required on the first batch, when no key is pinned yet (TOFU): its RFC 7638 thumbprint must equal the JWS kid. Later batches must be signed by the pinned key.",
+                "disabled": true
+              },
+              {
                 "key": "Accept",
                 "value": "application/json"
               },
@@ -20367,11 +20415,18 @@
             },
             "description": "Hub endpoint for edge relays (peer row in mode RECEIVE): up to 1,000 version items with provenance, optionally gzip-encoded. The batch body must carry the edge's detached JWS in `Foresignal-Signature`, verified against the pinned key (`403 PEER_KEY_MISMATCH`). Idempotent on (origin_ref, origin_seq); the same loop, hop, dedup, licence and private checks as PULL apply. LOCAL_ONLY records are accepted only from `sameOperator` peers and stay LOCAL_ONLY.\n\n**Scope:** `peer` (peer ingest key `fsp_\u2026` sent as a Bearer token).\n\noperationId: `federationIngest`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{peerIngestKey}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"items\": [\n    {\n      \"seq\": 1042,\n      \"ref\": \"urn:foresignal:edge-install-id:local-ais-1:244660000\",\n      \"sourceId\": \"local-ais-1\",\n      \"externalId\": \"244660000\",\n      \"kind\": \"vessel\",\n      \"version\": 3,\n      \"persistReason\": \"SIGNIFICANT\",\n      \"historyTier\": \"TRACK\",\n      \"observedAt\": \"2026-10-16T08:00:00Z\",\n      \"eventTime\": null,\n      \"validUntil\": null,\n      \"tombstone\": false,\n      \"geometry\": {\n        \"type\": \"Point\",\n        \"coordinates\": [\n          4.89,\n          52.37\n        ]\n      },\n      \"payload\": {\n        \"name\": \"EXAMPLE\",\n        \"sog\": 7.2\n      },\n      \"quality\": null,\n      \"licence\": \"local-only-operator\",\n      \"provenance\": {\n        \"origin\": {\n          \"instanceId\": \"edge-install-id\",\n          \"sourceId\": \"local-ais-1\",\n          \"externalId\": \"244660000\",\n          \"seq\": 1042,\n          \"ingestedAt\": \"2026-10-16T08:00:01Z\"\n        },\n        \"chain\": [\n          {\n            \"instanceId\": \"edge-install-id\",\n            \"sourceId\": \"local-ais-1\",\n            \"externalId\": \"244660000\",\n            \"seq\": 1042,\n            \"ingestedAt\": \"2026-10-16T08:00:01Z\"\n          }\n        ]\n      }\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -20420,9 +20475,16 @@
                 }
               ]
             },
-            "description": "A CBOR array of pending CompactMessages (fired and resolved alerts, intelligence events and their tombstones; never tracks) for store-and-forward gateways (sneakernet, DTN bundle agents).\n\n**Scope:** `read` with the `federation` token capability (restricted tokens, 023/035).\n\noperationId: `getFederationBundle`",
+            "description": "A CBOR array (definite length; each element a CompactMessage exactly as the 084 profile encodes it) of pending CompactMessages (fired and resolved alerts, intelligence events and their tombstones; never tracks) for store-and-forward gateways (sneakernet, DTN bundle agents).\n\n**Scope:** `read` with the `federation` token capability (restricted tokens, 023/035).\n\noperationId: `getFederationBundle`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{federationToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -20465,7 +20527,14 @@
             },
             "description": "Accepts a CBOR array of CompactMessages from a peer and decodes them into `remote-event` records on `peer-{id}-events` (reliability F, quality flag compact). Messages whose origin (keys 10, 11) is this instance or already seen are dropped; received messages are never re-federated.\n\n**Scope:** `peer` (peer ingest key `fsp_\u2026` sent as a Bearer token).\n\noperationId: `receiveFederationBundle`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{peerIngestKey}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -33352,7 +33421,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('peerId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -33393,7 +33465,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"id\": \"friend\",\n  \"name\": \"Friend's instance\",\n  \"baseUrl\": \"https://foresignal.friend.example\",\n  \"mode\": \"PULL\",\n  \"enabled\": true,\n  \"token\": \"fsr_REPLACE_WITH_THE_REMOTE_TOKEN\",\n  \"selection\": {\n    \"sources\": [\n      \"usgs-earthquakes\"\n    ],\n    \"kinds\": [\n      \"earthquake\"\n    ],\n    \"bbox\": null,\n    \"placeId\": null,\n    \"maxAge\": \"7d\",\n    \"backfill\": \"none\",\n    \"live\": false,\n    \"maxHops\": 3,\n    \"trackTtl\": \"10m\"\n  },\n  \"sameOperator\": false,\n  \"reliability\": \"B\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -33498,7 +33570,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Friend's instance\",\n  \"baseUrl\": \"https://foresignal.friend.example\",\n  \"enabled\": true,\n  \"selection\": {\n    \"sources\": [\n      \"usgs-earthquakes\"\n    ],\n    \"kinds\": [\n      \"earthquake\"\n    ],\n    \"maxAge\": \"7d\",\n    \"maxHops\": 3\n  },\n  \"sameOperator\": false,\n  \"reliability\": \"B\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -33650,7 +33722,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('peerIngestKey', j.key); console.log('New peer ingest key (shown once):', j.key);",
+                  "}"
                 ]
               }
             }
@@ -51270,6 +51345,18 @@
     },
     {
       "key": "holdId",
+      "value": ""
+    },
+    {
+      "key": "peerId",
+      "value": ""
+    },
+    {
+      "key": "peerIngestKey",
+      "value": ""
+    },
+    {
+      "key": "federationToken",
       "value": ""
     },
     {

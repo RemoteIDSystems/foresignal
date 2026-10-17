@@ -67,9 +67,13 @@ import tools.jackson.databind.json.JsonMapper;
  * Renders go through the {@link RenderQueue} (503 {@code RENDER_BUSY} after 1.5 s). An ISO-extended
  * time in a path answers 301 to its time key. External products answer 400 ("fetch externalTemplate
  * directly"). Nothing here ever causes an upstream fetch.
+ *
+ * <p>Left out in edge mode (prompt 113: raster products and rendering).
  */
 @RestController
 @Tag(name = "Products")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class RasterTilesController {
 
     static final Pattern TILE_ROW = Pattern.compile("^([0-9]{1,8})(@2x)?$");

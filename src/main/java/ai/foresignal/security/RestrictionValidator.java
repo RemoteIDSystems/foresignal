@@ -25,9 +25,10 @@ import tools.jackson.databind.JsonNode;
  * <p>Prompt 035 accepts the {@code ReadRestriction} members it enforces: {@code area} (a GeoJSON
  * Polygon or MultiPolygon, valid, at most 2,000 vertices), {@code excludePrivate} (boolean) and
  * {@code maxRequestsPerMinute} (integer, at least 1). Prompt 036 accepts {@code placeIds} (existing
- * place ids, resolved to their areas through {@code PlaceAreas}). Members later prompts enforce
- * ({@code federation} and {@code includeExercise} from 113) are rejected rather than stored, so a
- * restriction is never accepted that nothing enforces.
+ * place ids, resolved to their areas through {@code PlaceAreas}). Prompt 113 accepts {@code federation}
+ * and {@code includeExercise} (booleans), enforced by the federation feed. {@link #LATER_MEMBERS} names
+ * members a later prompt enforces; they are rejected rather than stored, so a restriction is never accepted
+ * that nothing enforces.
  *
  * <p>{@link #structural()} validates shape only (no source, kind or endpoint lookups), for settings
  * parsed without the application context.
@@ -38,10 +39,11 @@ public class RestrictionValidator {
     /** {@code METHOD /path}, as the spec's pattern states. */
     static final Pattern ENDPOINT = Pattern.compile("^(\\*|GET|HEAD|POST|PUT|PATCH|DELETE) (/\\S*)$");
 
-    static final Set<String> MEMBERS =
-            Set.of("sources", "kinds", "bbox", "endpoints", "area", "excludePrivate", "maxRequestsPerMinute", "placeIds");
+    static final Set<String> MEMBERS = Set.of("sources", "kinds", "bbox", "endpoints", "area", "excludePrivate",
+            "maxRequestsPerMinute", "placeIds", "federation", "includeExercise");
 
-    static final Set<String> LATER_MEMBERS = Set.of("federation", "includeExercise");
+    /** Members no prompt enforces yet (none since 113). */
+    static final Set<String> LATER_MEMBERS = Set.of();
 
     private static final tools.jackson.databind.json.JsonMapper JSON =
             tools.jackson.databind.json.JsonMapper.builder().build();
@@ -139,7 +141,22 @@ public class RestrictionValidator {
                 errors.add(new FieldError(field + ".placeIds", "unknown place id(s): " + String.join(", ", unknown)));
             }
         }
-        return new TokenRestrictions(sources, kinds, bbox, endpoints, area, excludePrivate, rpm, placeIds);
+        Boolean federation = flag(node.get("federation"), field + ".federation", errors);
+        Boolean includeExercise = flag(node.get("includeExercise"), field + ".includeExercise", errors);
+        return new TokenRestrictions(sources, kinds, bbox, endpoints, area, excludePrivate, rpm, placeIds,
+                federation, includeExercise);
+    }
+
+    /** A boolean member (113), null when absent; anything else is a problem. */
+    private static Boolean flag(JsonNode node, String field, List<FieldError> errors) {
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        if (!node.isBoolean()) {
+            errors.add(new FieldError(field, "must be a boolean"));
+            return null;
+        }
+        return node.asBoolean();
     }
 
     /** A valid GeoJSON Polygon or MultiPolygon of at most 2,000 vertices, as a map; null when absent. */

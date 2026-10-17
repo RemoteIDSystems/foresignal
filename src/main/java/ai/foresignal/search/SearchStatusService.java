@@ -33,14 +33,16 @@ public class SearchStatusService {
     private final SearchIndexStateStore states;
     private final EmbeddingStore store;
     private final EmbeddingEligibility eligibility;
-    private final EmbeddingWorker worker;
+    /** The embedding worker; absent in edge mode (prompt 113). */
+    private final org.springframework.beans.factory.ObjectProvider<EmbeddingWorker> worker;
     private final ReindexService reindex;
     private final JdbcTemplate jdbc;
     private volatile String degradedReason;
 
     /** Creates the service. */
     public SearchStatusService(SemanticCapability capability, LlmSettingsService llmSettings,
-            SearchIndexStateStore states, EmbeddingStore store, EmbeddingEligibility eligibility, EmbeddingWorker worker,
+            SearchIndexStateStore states, EmbeddingStore store, EmbeddingEligibility eligibility,
+            org.springframework.beans.factory.ObjectProvider<EmbeddingWorker> worker,
             ReindexService reindex, JdbcTemplate jdbc) {
         this.capability = capability;
         this.llmSettings = llmSettings;
@@ -128,7 +130,8 @@ public class SearchStatusService {
      * up to {@value #BACKLOG_CAP}; zero while the worker does not run.
      */
     public long backlog() {
-        if (!worker.running()) {
+        EmbeddingWorker running = worker.getIfAvailable();
+        if (running == null || !running.running()) {
             return 0;
         }
         Set<String> sources = eligibility.sources();
@@ -137,7 +140,7 @@ public class SearchStatusService {
         }
         Long n = jdbc.queryForObject("SELECT count(*) FROM (SELECT 1 FROM record_version v WHERE v.seq > ?"
                         + " AND v.source_id = ANY(CAST(? AS text[])) AND v.persist_reason <> ? LIMIT " + BACKLOG_CAP + ") b",
-                Long.class, worker.cursor(), PgArrays.text(sources), PersistReason.HEARTBEAT.code());
+                Long.class, running.cursor(), PgArrays.text(sources), PersistReason.HEARTBEAT.code());
         return n == null ? 0 : n;
     }
 }

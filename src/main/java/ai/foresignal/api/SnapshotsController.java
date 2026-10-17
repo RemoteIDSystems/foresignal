@@ -19,9 +19,13 @@ import tools.jackson.databind.JsonNode;
 /**
  * {@code atSeq} snapshots (OpenAPI tag {@code Exports}, prompt 111; admin). A snapshot is an export
  * job of kind {@code SNAPSHOT}, polled and downloaded through {@code /v1/exports/{id}}.
+ *
+ * <p>Left out in edge mode (prompt 113: exports (snapshots)).
  */
 @RestController
 @Tag(name = "Exports")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class SnapshotsController {
 
     private final SnapshotService snapshots;

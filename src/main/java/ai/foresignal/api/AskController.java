@@ -43,9 +43,13 @@ import tools.jackson.databind.JsonNode;
  * spends LLM budget (invariant SEC-5); deleting a thread and confirming or rejecting an action need
  * {@code agent} ({@code AccessPolicy}). A thread or action of another non-admin token is {@code 404}.
  * Ids that are not UUIDs are simply not found.
+ *
+ * <p>Left out in edge mode (prompt 113: LLM features (ask)).
  */
 @RestController
 @Tag(name = "Ask")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class AskController {
 
     private final AskService ask;

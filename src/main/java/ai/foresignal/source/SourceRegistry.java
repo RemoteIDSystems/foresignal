@@ -175,9 +175,10 @@ public class SourceRegistry {
     /**
      * Registers a runtime-defined source with an optional implementation (prompt 024).
      *
-     * <p>A dynamic source is PUSH or DERIVED with no adapter, or POLLING with a
-     * {@link ai.foresignal.source.spi.PollingAdapter}: an external (EDP) provider that Foresignal
-     * pulls from. The same validation as for compile-time adapters applies.
+     * <p>A dynamic source is PUSH or DERIVED with no adapter, POLLING with a
+     * {@link ai.foresignal.source.spi.PollingAdapter} (an external (EDP) provider that Foresignal
+     * pulls from), or STREAMING with a {@link ai.foresignal.source.spi.StreamingAdapter} (a federation
+     * peer, prompt 113). The same validation as for compile-time adapters applies.
      *
      * @param descriptor the source's description
      * @param adapter the implementation, or null for PUSH and DERIVED sources
@@ -236,10 +237,13 @@ public class SourceRegistry {
         boolean pushOrDerived = descriptor.mode() == Mode.PUSH || descriptor.mode() == Mode.DERIVED;
         boolean pulled = descriptor.mode() == Mode.POLLING
                 && adapter instanceof ai.foresignal.source.spi.PollingAdapter;
-        if (!pushOrDerived && !pulled) {
+        // A federation peer (prompt 113) consumes another instance's SSE feed through a streaming adapter.
+        boolean streamed = descriptor.mode() == Mode.STREAMING
+                && adapter instanceof ai.foresignal.source.spi.StreamingAdapter;
+        if (!pushOrDerived && !pulled && !streamed) {
             throw new ValidationException(
-                    "A dynamic source must be PUSH or DERIVED, or POLLING with a polling adapter, but "
-                            + descriptor.id() + " is " + descriptor.mode());
+                    "A dynamic source must be PUSH or DERIVED, POLLING with a polling adapter, or STREAMING with a"
+                            + " streaming adapter, but " + descriptor.id() + " is " + descriptor.mode());
         }
     }
 

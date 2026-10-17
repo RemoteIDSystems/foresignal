@@ -477,6 +477,11 @@
         "version": "1.3.0",
         "date": "2026-10-16",
         "note": "112: ogcItems, ogcItem, ogcQueryables, capAtom, getCapForAlert, getCapMessage, getCalendar, createShareLink, listShareLinks, revokeShareLink, openShareLink, openShareLinkGeoJson, getShareLinkTile and downloadShareLink are implemented, and ogcLanding, ogcConformance, ogcCollections and ogcCollection serve the feature collections. Reconciliations: ogcItems and ogcItem accept `f` (json or geojson) because some OGC clients append it, every other unknown parameter is 400; ClientLinks gains `share` (placeholder {key}, no default); Problem lists FILTER_INVALID (with `position`), ICAL_FIELDS_MISSING, SHARE_LICENCE_FORBIDDEN, SHARE_EXPIRED and INVALID_SHARE_KEY (401, the documented 'Invalid share key'); getShareLinkTile serves views only (tracks are GeoJSON) and not for masked, precision-capped or allowlisted links. A private share target is refused with 403 even for admin, because EgressPolicy never lets a private record leave on PUBLIC_SHARE (invariant EGR-1)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-16",
+        "note": "113: getFederationInfo, listFederationChanges, streamFederation, getFederationSnapshot, federationIngest, getFederationBundle, receiveFederationBundle, listPeers, createPeer, getPeer, updatePeer, deletePeer, testPeer, resyncPeer and rotatePeerIngestKey are implemented, and globalRef is served on Record, RecordVersion and Change. Reconciliations: FederationItem gains historyTier (STANDARD or TRACK) so a consumer can route TRACK items to peer-{id}-trk; federationIngest accepts an optional Foresignal-Key header (the edge's public key) for the first batch, because a hub cannot fetch the JWKS of an edge behind NAT, and pins its thumbprint (TOFU); FederationIngestResult.dropped gains selection; MeshChannelCommonConfig gains compactEvents; Problem lists PEER_KEY_MISMATCH (403) and PEER_EXISTS (409); SystemInfo.features gains federation and federationServing. The federation endpoints need a token whose restrictions set federation=true (admin tokens included); getFederationBundle stays available in edge mode (store-and-forward from an edge)."
       }
     ]
   },
@@ -49313,7 +49318,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "113",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -49454,7 +49459,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "113",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -49610,7 +49615,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "113",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-sse-events": {
           "change": {
             "schema": {
@@ -49791,7 +49796,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "113",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -49838,6 +49843,15 @@
               "enum": [
                 "gzip"
               ]
+            }
+          },
+          {
+            "name": "Foresignal-Key",
+            "in": "header",
+            "required": false,
+            "description": "The edge's Ed25519 public key (raw 32-byte point, base64url). Required on the first batch, when no key is pinned yet (TOFU): its RFC 7638 thumbprint must equal the JWS kid. Later batches must be signed by the pinned key.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -49915,7 +49929,7 @@
         },
         "x-foresignal-scope": "peer",
         "x-foresignal-prompt": "113",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "peerCredential": []
@@ -49930,7 +49944,7 @@
         ],
         "operationId": "getFederationBundle",
         "summary": "Pending compact messages as a bundle",
-        "description": "A CBOR array of pending CompactMessages (fired and resolved alerts, intelligence events and their tombstones; never tracks) for store-and-forward gateways (sneakernet, DTN bundle agents).\n\n**Scope:** `read` with the `federation` token capability (restricted tokens, 023/035).",
+        "description": "A CBOR array (definite length; each element a CompactMessage exactly as the 084 profile encodes it) of pending CompactMessages (fired and resolved alerts, intelligence events and their tombstones; never tracks) for store-and-forward gateways (sneakernet, DTN bundle agents).\n\n**Scope:** `read` with the `federation` token capability (restricted tokens, 023/035).",
         "parameters": [
           {
             "name": "since",
@@ -49998,7 +50012,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "113",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -50069,7 +50083,7 @@
         },
         "x-foresignal-scope": "peer",
         "x-foresignal-prompt": "113",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "peerCredential": []
@@ -50142,7 +50156,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "113",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -50188,7 +50202,7 @@
             }
           },
           "409": {
-            "description": "A peer with this id exists",
+            "description": "A peer with this id exists (PEER_EXISTS), or one of its source ids is taken (SOURCE_EXISTS)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -50220,7 +50234,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "113",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -50293,7 +50307,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "113",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -50384,7 +50398,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "113",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -50448,7 +50462,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "113",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -50521,7 +50535,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "113",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -50594,7 +50608,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "113",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -50667,7 +50681,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "113",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -87010,6 +87024,16 @@
             "status": 401,
             "prompt": "112",
             "note": "an unknown fss_ key in a share-link URL"
+          },
+          {
+            "code": "PEER_KEY_MISMATCH",
+            "status": 403,
+            "prompt": "113"
+          },
+          {
+            "code": "PEER_EXISTS",
+            "status": 409,
+            "prompt": "113"
           }
         ]
       },
@@ -94358,7 +94382,7 @@
             "additionalProperties": {
               "type": "boolean"
             },
-            "description": "Capability flags from FeatureContributor beans (notifications, retention, later llm, search, push, mcp, weather …)"
+            "description": "Capability flags from FeatureContributor beans (notifications, retention, later llm, search, push, mcp, weather …); 113 adds federation and federationServing, and in edge mode reports embeddings, llm, search, ask, rasters, briefings, ogc, exports and federationServing false"
           },
           "limits": {
             "type": "object",
@@ -114176,6 +114200,12 @@
                 "ack"
               ]
             }
+          },
+          "compactEvents": {
+            "type": "boolean",
+            "default": false,
+            "description": "Also send the federation compact messages (fired and resolved alerts, intelligence events) within this channel's airtime budget, through its profile (113)",
+            "x-foresignal-prompt": "113"
           }
         },
         "required": [
@@ -127015,6 +127045,14 @@
               "SNAPSHOT"
             ]
           },
+          "historyTier": {
+            "type": "string",
+            "enum": [
+              "STANDARD",
+              "TRACK"
+            ],
+            "description": "The version's history tier; a consumer stores TRACK items in its peer-{id}-trk source (113)"
+          },
           "observedAt": {
             "type": "string",
             "format": "date-time"
@@ -127189,6 +127227,10 @@
               },
               "expired": {
                 "type": "integer"
+              },
+              "selection": {
+                "type": "integer",
+                "description": "Outside the selection, malformed, or of a kind the target source does not declare"
               }
             }
           }
@@ -127404,7 +127446,7 @@
           },
           "state": {
             "type": "string",
-            "description": "Runtime state, e.g. connecting, streaming, resyncing, failing, stopped"
+            "description": "Runtime state: connecting, streaming, resyncing, failing or stopped for PULL peers; receiving for RECEIVE peers"
           },
           "healthReason": {
             "type": [

@@ -243,6 +243,24 @@ public class MeshCoreChannel extends AbstractChannelType implements MeshChannelT
                         0, 0, false));
     }
 
+    /**
+     * A compact federation message (prompt 113): with the {@code cbor} profile a channel datagram carrying the CBOR
+     * map, else the short text line within the MeshCore channel cap.
+     */
+    @Override
+    public PreparedRequest renderCompact(byte[] cbor, String text, String severity, ChannelSettings s) {
+        Map<String, Object> config = s.config();
+        MeshChannels.Common c = common(config);
+        if (MeshChannels.PROFILE_CBOR.equals(c.profile())) {
+            int dataType = config.get("dataType") instanceof Number n ? n.intValue() : DEFAULT_DATA_TYPE;
+            return request(s, "datagram", channelData(c.channelIndex(), dataType, cbor), cbor.length, severity, null, 0,
+                    false);
+        }
+        String line = cut(text.replaceAll("[\\p{Cntrl}]+", " ").strip());
+        return request(s, "channel", channelText(c.channelIndex(), s.now().getEpochSecond(), line),
+                MeshRenderings.bytes(line), severity, null, 0, false);
+    }
+
     private static String cut(String text) {
         return ai.foresignal.notify.Truncator.truncate(ai.foresignal.notify.Truncator.truncate(text,
                 MeshShortTextFormatter.Limit.MESHCORE_CHANNEL.maxChars(), ai.foresignal.notify.Truncator.Unit.CHARS,

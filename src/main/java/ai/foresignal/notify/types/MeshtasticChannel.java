@@ -220,6 +220,18 @@ public class MeshtasticChannel extends AbstractChannelType implements MeshChanne
         return transmission(text, s, "info", null, 0, false);
     }
 
+    /**
+     * A compact federation message (prompt 113): with the {@code cbor} profile {@code ~E1 } + base64url of the CBOR
+     * map when it fits one Meshtastic text ({@value MeshRenderings#MESHTASTIC_CBOR_MAX} bytes), else the short text.
+     */
+    @Override
+    public PreparedRequest renderCompact(byte[] cbor, String text, String severity, ChannelSettings s) {
+        MeshChannels.Common c = common(s.config());
+        String line = MeshChannels.PROFILE_CBOR.equals(c.profile()) && cbor.length <= MeshRenderings.MESHTASTIC_CBOR_MAX
+                ? MeshRenderings.cborText(cbor) : text;
+        return transmission(line, s, severity, null, 0, false);
+    }
+
     private PreparedRequest transmission(String text, ChannelSettings s, String severity, String code, int folded,
             boolean delivery) {
         Map<String, Object> config = s.config();

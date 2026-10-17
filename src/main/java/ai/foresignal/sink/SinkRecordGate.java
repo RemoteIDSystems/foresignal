@@ -67,6 +67,17 @@ public class SinkRecordGate {
      * @param localTarget true when a SERVE sink binds loopback/private, or a PUSH target resolves private
      * @param includePrivate the filter's {@code includePrivate}
      */
+    /**
+     * Whether {@code record} may leave through a {@code federation-push} sink (prompt 113): the path is
+     * {@link EgressPath#FEDERATION}, not {@code SINK_PUSH}, with the sink's {@code sameOperator} exception (the
+     * operator's own hub may receive {@code LOCAL_ONLY} records). Private records and MLAT positions never pass.
+     */
+    public Decision allowFederation(boolean sameOperator, SinkRecord record) {
+        EgressPolicy.Decision decision = egress.decide(EgressPath.FEDERATION, record.sourceId(), record.licence(),
+                record.properties(), EgressPolicy.EgressContext.federation(sameOperator));
+        return decision.allowed() ? Decision.ALLOW : new Decision(false, decision.reason());
+    }
+
     public Decision allow(SinkMode mode, boolean localTarget, boolean includePrivate, SinkRecord record) {
         EgressPolicy.Decision decision = egress.decide(path(mode), record.sourceId(), record.licence(),
                 record.properties(), EgressPolicy.EgressContext.sink(includePrivate, localTarget));

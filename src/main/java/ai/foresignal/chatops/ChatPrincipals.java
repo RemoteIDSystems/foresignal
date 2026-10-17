@@ -67,6 +67,7 @@ public class ChatPrincipals {
             case AccessRequirement.Open open -> true;
             case AccessRequirement.RequiresScope required -> principal.scope().includes(required.scope());
             case AccessRequirement.IngestKeyOrAdmin ingest -> false;
+            case AccessRequirement.PeerKey peer -> false;
         };
     }
 }

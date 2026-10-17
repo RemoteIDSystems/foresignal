@@ -41,9 +41,13 @@ import tools.jackson.databind.JsonNode;
  * Raster exports (OpenAPI tag {@code Products}, prompt 108; Weather-Imagery-Design §11): submit an
  * MBTiles/PMTiles/COG export over frames and a box, then poll and download. All async; the files live
  * in {@code ${FORESIGNAL_DATA_DIR}/exports/} for 48 hours.
+ *
+ * <p>Left out in edge mode (prompt 113: exports).
  */
 @RestController
 @Tag(name = "Products")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class ExportsController {
 
     private final ProductRegistry registry;

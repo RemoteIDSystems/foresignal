@@ -89,6 +89,14 @@ server:
 
 foresignal:
   data-dir: ${FORESIGNAL_DATA_DIR:./data}
+  # Deployment profile (113): full (default) or edge, a lightweight relay that collects locally and pushes to a hub;
+  # edge mode leaves out embeddings, LLM features, raster products and rendering, OGC, exports and federation serving.
+  mode: ${FORESIGNAL_MODE:full}
+  # Federation (113): the display name in /v1/federation/info (the federation.instanceName setting wins), and the
+  # most federation SSE streams served at once.
+  federation:
+    instance-name: ${FORESIGNAL_FEDERATION_INSTANCE_NAME:}
+    max-streams: 16
   # Root for INBOX_PATH source parameters. Every inbox read is confined to this
   # directory, re-checked per file, so a symlink cannot redirect a read out of it.
   inbox-dir: ${FORESIGNAL_INBOX_DIR:${FORESIGNAL_DATA_DIR:./data}/inbox}

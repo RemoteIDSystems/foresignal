@@ -48,9 +48,13 @@ import tools.jackson.databind.json.JsonMapper;
  * an {@code ETag} and {@code Foresignal-Frame-Time}. {@code public} only when {@code openReads}
  * covers the path for this caller and the product's source is not private; otherwise
  * {@code private}. No request here ever causes an upstream fetch.
+ *
+ * <p>Left out in edge mode (prompt 113: raster products).
  */
 @RestController
 @Tag(name = "Products")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class ProductsController {
 
     /** The valid time of the frame an alias resolved to. */

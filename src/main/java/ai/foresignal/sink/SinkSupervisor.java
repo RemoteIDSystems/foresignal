@@ -281,6 +281,10 @@ public class SinkSupervisor {
         private volatile SinkInstance instance;
         private volatile SinkMode mode = SinkMode.SERVE;
         private volatile boolean localTarget;
+        /** True for a {@code federation-push} sink (113): records leave on {@code FEDERATION}. */
+        private volatile boolean federationPush;
+        /** The {@code federation-push} sink's {@code sameOperator} (113). */
+        private volatile boolean sameOperator;
         private volatile SinkFilter filter = SinkFilter.ALL;
         private volatile Subscription changeSub;
         private volatile Subscription liveSub;
@@ -398,6 +402,10 @@ public class SinkSupervisor {
             SinkType type = types.get(sink.getType());
             mode = resolveMode(type, sink);
             localTarget = localTarget(sink, mode);
+            // Prompt 113: an edge relay's push to its hub leaves on FEDERATION, with the sameOperator exception.
+            federationPush = ai.foresignal.federation.FederationPushSinkType.ID.equals(sink.getType());
+            sameOperator = federationPush
+                    && ai.foresignal.federation.FederationPushSinkType.sameOperator(sink.getConfig());
             SinkConfig config = config(sink, mode);
             filter = config.filter();
             cursor = cursor(sink.getId());
@@ -741,7 +749,9 @@ public class SinkSupervisor {
         }
 
         private boolean allowed(SinkRecord record) {
-            SinkRecordGate.Decision decision = gate.allow(mode, localTarget, filter.includePrivate(), record);
+            SinkRecordGate.Decision decision = federationPush
+                    ? gate.allowFederation(sameOperator, record)
+                    : gate.allow(mode, localTarget, filter.includePrivate(), record);
             if (!decision.allowed()) {
                 denied(decision.reason(), record.sourceId());
                 return false;

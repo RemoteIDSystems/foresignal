@@ -59,9 +59,13 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>Tiles redirect concrete times to the content-addressed tile URL; EDR position and area answer
  * CoverageJSON matching {@code /v1/sample}.
+ *
+ * <p>Left out in edge mode (prompt 113: OGC).
  */
 @RestController
 @Tag(name = "Products")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class OgcController {
 
     static final MediaType COVERAGE_JSON = MediaType.parseMediaType("application/prs.coverage+json");

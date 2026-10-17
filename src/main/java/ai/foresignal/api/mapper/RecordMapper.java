@@ -71,6 +71,38 @@ public class RecordMapper {
         this.fidelity = fidelity;
     }
 
+    /** The install id for {@code globalRef} (prompt 113); null in hand-built unit tests (then no globalRef). */
+    private ai.foresignal.security.InstallIdService installId;
+
+    /** Injects the install id that {@code globalRef} names (prompt 113). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setInstallId(ai.foresignal.security.InstallIdService installId) {
+        this.installId = installId;
+    }
+
+    /**
+     * The global reference of a record (prompt 113): {@code urn:foresignal:{instanceId}:{sourceId}:{externalId}}
+     * ({@link ai.foresignal.federation.RecordRef}), or null when the install id is not wired.
+     */
+    String globalRef(String sourceId, String externalId) {
+        if (installId == null || sourceId == null || externalId == null) {
+            return null;
+        }
+        try {
+            return ai.foresignal.federation.RecordRef.format(installId.installId(), sourceId, externalId);
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    /** Puts {@code globalRef} when the install id is wired (unit tests without it see no such key). */
+    private void putGlobalRef(Map<String, Object> all, RecordRow row) {
+        String ref = globalRef(row.sourceId(), row.externalId());
+        if (ref != null) {
+            all.put("globalRef", ref);
+        }
+    }
+
     /** What a {@code Record} item carries beyond the base fields. */
     public enum Shape {
         /** Current state (head plus live). */
@@ -93,6 +125,7 @@ public class RecordMapper {
         all.put("id", row.id());
         all.put("source", row.sourceId());
         all.put("externalId", row.externalId());
+        putGlobalRef(all, row);
         all.put("kind", row.kind());
         all.put("title", title(row, shape));
         all.put("version", row.version());
@@ -135,6 +168,7 @@ public class RecordMapper {
         all.put("seq", row.seq());
         all.put("source", row.sourceId());
         all.put("externalId", row.externalId());
+        putGlobalRef(all, row);
         all.put("kind", row.kind());
         all.put("version", row.version());
         all.put("observedAt", row.observedAt());

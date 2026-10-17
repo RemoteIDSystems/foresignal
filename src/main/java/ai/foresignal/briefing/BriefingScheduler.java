@@ -31,8 +31,12 @@ import org.springframework.transaction.support.TransactionTemplate;
  * commits. Each claimed briefing then runs on its own virtual thread. Because the next fire time is
  * computed from now, runs missed while Foresignal was down run once and are never replayed, and two
  * schedulers (two instances, or two ticks) never claim the same briefing.
+ *
+ * <p>Left out in edge mode (prompt 113: briefings).
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class BriefingScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(BriefingScheduler.class);

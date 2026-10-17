@@ -25,10 +25,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 
-/** {@code /v1/packs} (prompts 101 and 111): population packs and PMTiles offline packs. */
+/** {@code /v1/packs} (prompts 101 and 111): population packs and PMTiles offline packs. *
+ * <p>Left out in edge mode (prompt 113: exports (offline packs)).
+ */
 @RestController
 @Tag(name = "Intelligence")
 @RequestMapping("/v1/packs")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = ai.foresignal.config.EdgeMode.PROPERTY,
+        havingValue = ai.foresignal.config.EdgeMode.FULL, matchIfMissing = true)
 public class PacksController {
 
     private final PopulationPackService population;

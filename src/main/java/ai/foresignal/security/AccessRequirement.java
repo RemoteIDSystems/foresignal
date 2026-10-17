@@ -40,6 +40,12 @@ public sealed interface AccessRequirement {
      */
     record IngestKeyOrAdmin() implements AccessRequirement {}
 
+    /**
+     * A federation peer ingest key ({@code fsp_…}, prompt 113) sent as a Bearer token: the instance-to-instance
+     * endpoints ({@code x-foresignal-scope: peer}). No API token satisfies it, not even admin.
+     */
+    record PeerKey() implements AccessRequirement {}
+
     AccessRequirement OPEN = new Open();
     AccessRequirement READ = new RequiresScope(Scope.READ);
     AccessRequirement AGENT = new RequiresScope(Scope.AGENT);
@@ -55,6 +61,9 @@ public sealed interface AccessRequirement {
     AccessRequirement ADMIN_ALWAYS_AUTHENTICATED = new RequiresScope(Scope.ADMIN, true);
 
     AccessRequirement INGEST_KEY_OR_ADMIN = new IngestKeyOrAdmin();
+
+    /** A federation peer ingest key (113). */
+    AccessRequirement PEER = new PeerKey();
 
     /** True when this requirement needs a token even while {@code openReads} is on. */
     default boolean alwaysAuthenticated() {

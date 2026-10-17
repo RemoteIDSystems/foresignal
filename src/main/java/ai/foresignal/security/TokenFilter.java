@@ -202,6 +202,11 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
             return;
         }
 
+        if (requirement instanceof AccessRequirement.PeerKey) {
+            peerByKey(request, response, chain, method, path, bearer);
+            return;
+        }
+
         if (requirement instanceof IngestKeyOrAdmin
                 && (bearer == null || bearer.startsWith(INGEST_KEY_PREFIX)
                         || bearer.startsWith(DEVICE_KEY_PREFIX))) {
@@ -321,6 +326,44 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
                     segments.length > 3 ? segments[3] : null,
                     request.getRemoteAddr(),
                     detail));
+        }
+    }
+
+    /** Resolves federation peer keys (prompt 113); absent in contexts without the federation package. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private PeerKeyAuthenticator peerKeys;
+
+    /**
+     * A federation peer path (prompt 113): only a peer ingest key ({@code fsp_…} as a Bearer token) is accepted;
+     * an API token, even admin, is refused with 401. An accepted request carries {@link PeerCaller}, and its
+     * writes are audited as {@code ingest_key} with {@code via: peer_key}.
+     */
+    private void peerByKey(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
+            HttpMethod method, String path, String bearer) throws IOException, ServletException {
+        if (bearer == null || !bearer.startsWith(PeerKeyAuthenticator.PREFIX) || peerKeys == null) {
+            reject(request, response, method, "This endpoint requires a peer ingest key (fsp_) as a Bearer token.",
+                    bearer != null);
+            return;
+        }
+        Optional<String> peer = peerKeys.authenticate(bearer);
+        if (peer.isEmpty()) {
+            reject(request, response, method, "The presented peer ingest key is not valid.", true);
+            return;
+        }
+        request.setAttribute(PeerCaller.ATTRIBUTE, new PeerCaller(peer.get()));
+        AuthFailureBackoff b = backoff.getIfAvailable();
+        if (b != null) {
+            b.recordSuccess(request.getRemoteAddr());
+        }
+        chain.doFilter(request, response);
+        if (isWrite(method)) {
+            String normalized = AccessPolicy.normalize(path);
+            Map<String, Object> detail = new LinkedHashMap<>();
+            detail.put("via", "peer_key");
+            detail.put("peerId", peer.get());
+            audit.record(new AuditRecord(clock.instant(), AuditRecord.INGEST_KEY, null, "peer:" + peer.get(), null,
+                    null, method.name(), normalized, spec.operationId(method, normalized), response.getStatus(),
+                    "federation", peer.get(), request.getRemoteAddr(), detail));
         }
     }
 
