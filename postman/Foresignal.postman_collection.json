@@ -20957,7 +20957,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));"
+                  "pm.test('status is 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('questionId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -20999,7 +21002,379 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"title\": \"Will battles be recorded in Yemen between 2026-11-01 and 2026-11-29?\",\n  \"type\": \"binary\",\n  \"resolutionCriteria\": \"Yes if Foresignal records at least one conflict:battles event tagged YE between 2026-11-01T00:00Z and 2026-11-29T00:00Z; no otherwise, provided coverage and detectability are adequate (else annulled).\",\n  \"resolver\": {\n    \"type\": \"event-exists\",\n    \"selector\": {\n      \"referenceFamily\": \"conflict:battles\"\n    },\n    \"area\": {\n      \"regionCodes\": [\n        \"YE\"\n      ]\n    },\n    \"window\": {\n      \"start\": \"2026-11-01T00:00:00Z\",\n      \"end\": \"2026-11-29T00:00:00Z\"\n    }\n  },\n  \"closesAt\": \"2026-11-01T00:00:00Z\",\n  \"resolveBy\": \"2026-11-29T00:00:00Z\",\n  \"category\": \"conflict\",\n  \"tags\": [\n    \"yemen\"\n  ],\n  \"dedupKey\": \"postman:ye-battles-2026-11\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Open a forecast question (count-threshold)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('questionId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/forecasts/questions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "forecasts",
+                "questions"
+              ],
+              "query": []
+            },
+            "description": "Opens a question with verbatim resolution criteria and a validated machine resolver (or `manual`); baseline forecasters forecast it automatically. A question with an existing `dedupKey` returns the existing question with 200.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `createForecastQuestion`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Will 5 or more M5+ earthquakes be recorded in Japan in December 2026?\",\n  \"type\": \"binary\",\n  \"resolutionCriteria\": \"Yes if at least 5 seismic:m5 events tagged JP occur in December 2026 (UTC).\",\n  \"resolver\": {\n    \"type\": \"count-threshold\",\n    \"selector\": {\n      \"referenceFamily\": \"seismic:m5\"\n    },\n    \"area\": {\n      \"regionCodes\": [\n        \"JP\"\n      ]\n    },\n    \"window\": {\n      \"start\": \"2026-12-01T00:00:00Z\",\n      \"end\": \"2027-01-01T00:00:00Z\"\n    },\n    \"op\": \"gte\",\n    \"threshold\": 5\n  },\n  \"closesAt\": \"2026-12-01T00:00:00Z\",\n  \"resolveBy\": \"2027-01-01T00:00:00Z\",\n  \"category\": \"seismic\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Open a forecast question (series-value, numeric)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('questionId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/forecasts/questions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "forecasts",
+                "questions"
+              ],
+              "query": []
+            },
+            "description": "Opens a question with verbatim resolution criteria and a validated machine resolver (or `manual`); baseline forecasters forecast it automatically. A question with an existing `dedupKey` returns the existing question with 200.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `createForecastQuestion`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"What will the weekly managed-money net position in crude be in week 2026-W48?\",\n  \"type\": \"numeric\",\n  \"outcomes\": {\n    \"unit\": \"contracts\"\n  },\n  \"resolutionCriteria\": \"The last value of the series for ISO week 2026-W48 as published by the CFTC.\",\n  \"resolver\": {\n    \"type\": \"series-value\",\n    \"ref\": \"series:cftc-cot/067651.disagg.mm_net\",\n    \"period\": \"2026-W48\",\n    \"aggregate\": \"last\"\n  },\n  \"closesAt\": \"2026-11-23T00:00:00Z\",\n  \"resolveBy\": \"2026-11-30T00:00:00Z\",\n  \"category\": \"markets\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Open a forecast question (alert-fired)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('questionId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/forecasts/questions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "forecasts",
+                "questions"
+              ],
+              "query": []
+            },
+            "description": "Opens a question with verbatim resolution criteria and a validated machine resolver (or `manual`); baseline forecasters forecast it automatically. A question with an existing `dedupKey` returns the existing question with 200.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `createForecastQuestion`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Will the Hormuz loitering rule fire before 2026-12-01?\",\n  \"type\": \"binary\",\n  \"resolutionCriteria\": \"Yes if rule 3f2b7c1e-8a4d-4f6b-9c2e-1d5a7b9e0f13 fires at least once before 2026-12-01T00:00Z.\",\n  \"resolver\": {\n    \"type\": \"alert-fired\",\n    \"ruleId\": \"3f2b7c1e-8a4d-4f6b-9c2e-1d5a7b9e0f13\",\n    \"window\": {\n      \"start\": \"2026-11-01T00:00:00Z\",\n      \"end\": \"2026-12-01T00:00:00Z\"\n    }\n  },\n  \"closesAt\": \"2026-11-15T00:00:00Z\",\n  \"resolveBy\": \"2026-12-01T00:00:00Z\",\n  \"category\": \"maritime\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Open a forecast question (situation-status)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('questionId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/forecasts/questions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "forecasts",
+                "questions"
+              ],
+              "query": []
+            },
+            "description": "Opens a question with verbatim resolution criteria and a validated machine resolver (or `manual`); baseline forecasters forecast it automatically. A question with an existing `dedupKey` returns the existing question with 200.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `createForecastQuestion`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Will the Red Sea situation be critical on 2026-12-01?\",\n  \"type\": \"binary\",\n  \"resolutionCriteria\": \"Yes if the situation's severity is critical at 2026-12-01T00:00Z.\",\n  \"resolver\": {\n    \"type\": \"situation-status\",\n    \"situationId\": \"01JA8Q3V7S2K9W4T6Y1B5N0M3C\",\n    \"minSeverity\": \"critical\"\n  },\n  \"closesAt\": \"2026-11-24T00:00:00Z\",\n  \"resolveBy\": \"2026-12-01T00:00:00Z\",\n  \"category\": \"maritime\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Open a forecast question (hypothesis-outcome)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('questionId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/forecasts/questions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "forecasts",
+                "questions"
+              ],
+              "query": []
+            },
+            "description": "Opens a question with verbatim resolution criteria and a validated machine resolver (or `manual`); baseline forecasters forecast it automatically. A question with an existing `dedupKey` returns the existing question with 200.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `createForecastQuestion`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Which hypothesis explains the Hormuz transit drop?\",\n  \"type\": \"multiple\",\n  \"outcomes\": {\n    \"labels\": [\n      \"weather\",\n      \"security incident\",\n      \"market rerouting\",\n      \"other\"\n    ]\n  },\n  \"resolutionCriteria\": \"Resolved by the operator's confirmation of the hypothesis set.\",\n  \"resolver\": {\n    \"type\": \"hypothesis-outcome\",\n    \"setId\": \"01JA8Q3V7S2K9W4T6Y1B5N0M3D\"\n  },\n  \"closesAt\": \"2026-12-01T00:00:00Z\",\n  \"resolveBy\": \"2026-12-15T00:00:00Z\",\n  \"category\": \"maritime\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Open a forecast question (manual, ordered)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/201', () => pm.expect([200, 201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('questionId', j.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/forecasts/questions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "forecasts",
+                "questions"
+              ],
+              "query": []
+            },
+            "description": "Opens a question with verbatim resolution criteria and a validated machine resolver (or `manual`); baseline forecasters forecast it automatically. A question with an existing `dedupKey` returns the existing question with 200.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `createForecastQuestion`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"How severe will the 2026-27 winter grid outages in Ukraine be?\",\n  \"type\": \"ordered\",\n  \"outcomes\": {\n    \"labels\": [\n      \"minor\",\n      \"moderate\",\n      \"severe\"\n    ]\n  },\n  \"resolutionCriteria\": \"Resolved by the operator on 2027-03-31 from the regulator's outage reports.\",\n  \"resolver\": {\n    \"type\": \"manual\"\n  },\n  \"closesAt\": \"2026-12-01T00:00:00Z\",\n  \"resolveBy\": \"2027-03-31T00:00:00Z\",\n  \"category\": \"infrastructure\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -21099,7 +21474,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"title\": \"Will battles be recorded in Yemen in November 2026?\",\n  \"tags\": [\n    \"yemen\",\n    \"monthly\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -21160,7 +21535,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"reason\": \"The question duplicates another one on the board.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -21208,7 +21583,7 @@
               ],
               "query": []
             },
-            "description": "Resolves a manual question (or confirms a `hypothesis-outcome` one) with pinned evidence; scores are computed and `question.resolved` is emitted.\n\n**Scope:** `agent` or `admin`.\n\noperationId: `resolveForecastQuestion`",
+            "description": "Resolves a manual question (or confirms a `hypothesis-outcome` one) with pinned evidence; scores are computed and `question.resolved` is emitted. Questions with machine resolvers resolve automatically and return 409 `QUESTION_CLOSED` here (annul them instead).\n\n**Scope:** `agent` or `admin`.\n\noperationId: `resolveForecastQuestion`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -21221,7 +21596,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"outcome\": \"yes\",\n  \"evidence\": [\n    \"alert:1842\"\n  ],\n  \"note\": \"Confirmed by the operator from the cited alert.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -21323,13 +21698,142 @@
               ],
               "query": []
             },
-            "description": "Records an immutable forecast; `madeAt` and `asOfSeq` are set by the server and earlier forecasts of the same forecaster are superseded, never edited. Read scope submits as `operator:{principal}`; agent scope may name another registered `operator` or `external` forecaster.\n\n**Scope:** `read` (a token is required; the forecast is recorded under the caller's principal).\n\noperationId: `submitForecast`",
+            "description": "Records an immutable forecast; `madeAt` and `asOfSeq` are set by the server and earlier forecasts of the same forecaster are superseded, never edited. Read scope submits as `operator:{handle}` (the token's principal); agent scope may name another registered `operator` or `external` forecaster. A token is required even while `security.openReads` is on.\n\n**Scope:** `read` (always authenticated: the forecast is recorded under the caller's principal).\n\noperationId: `submitForecast`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"probability\": 0.72,\n  \"rationale\": \"Base rate: battles occurred in 0.81 of 28-day windows in Yemen (n = 104); adjusted down for the current lull.\",\n  \"citations\": [\n    {\n      \"ref\": \"situation:01JA8Q3V7S2K9W4T6Y1B5N0M3C\",\n      \"quote\": null,\n      \"claim\": null\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Submit a forecast (multiple)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/forecasts/questions/{{questionId}}/forecasts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "forecasts",
+                "questions",
+                "{{questionId}}",
+                "forecasts"
+              ],
+              "query": []
+            },
+            "description": "Records an immutable forecast; `madeAt` and `asOfSeq` are set by the server and earlier forecasts of the same forecaster are superseded, never edited. Read scope submits as `operator:{handle}` (the token's principal); agent scope may name another registered `operator` or `external` forecaster. A token is required even while `security.openReads` is on.\n\n**Scope:** `read` (always authenticated: the forecast is recorded under the caller's principal).\n\noperationId: `submitForecast`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"distribution\": {\n    \"weather\": 0.2,\n    \"security incident\": 0.5,\n    \"market rerouting\": 0.25,\n    \"other\": 0.05\n  },\n  \"rationale\": \"Security incidents explain most past drops of this size.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Submit a forecast (numeric)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/forecasts/questions/{{questionId}}/forecasts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "forecasts",
+                "questions",
+                "{{questionId}}",
+                "forecasts"
+              ],
+              "query": []
+            },
+            "description": "Records an immutable forecast; `madeAt` and `asOfSeq` are set by the server and earlier forecasts of the same forecaster are superseded, never edited. Read scope submits as `operator:{handle}` (the token's principal); agent scope may name another registered `operator` or `external` forecaster. A token is required even while `security.openReads` is on.\n\n**Scope:** `read` (always authenticated: the forecast is recorded under the caller's principal).\n\noperationId: `submitForecast`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantiles\": {\n    \"p05\": 120000,\n    \"p10\": 135000,\n    \"p25\": 160000,\n    \"p50\": 185000,\n    \"p75\": 205000,\n    \"p90\": 225000,\n    \"p95\": 240000\n  },\n  \"rationale\": \"Seasonal range of the last five years, centered on the latest value.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -21513,7 +22017,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"active\": true,\n  \"config\": {\n    \"maxAgeDays\": 7,\n    \"eta\": 2.0,\n    \"shrink\": 20.0,\n    \"externalMinResolved\": 30\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -21704,7 +22208,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));"
+                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('evaluationId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -21746,7 +22253,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"forecasterId\": \"base-rate\",\n  \"from\": \"2026-01-01T00:00:00Z\",\n  \"to\": \"2026-10-01T00:00:00Z\",\n  \"categories\": [\n    \"conflict\"\n  ],\n  \"maxQuestions\": 500\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -51519,6 +52026,18 @@
     },
     {
       "key": "baseRateId",
+      "value": ""
+    },
+    {
+      "key": "questionId",
+      "value": ""
+    },
+    {
+      "key": "forecasterId",
+      "value": "ensemble"
+    },
+    {
+      "key": "evaluationId",
       "value": ""
     },
     {

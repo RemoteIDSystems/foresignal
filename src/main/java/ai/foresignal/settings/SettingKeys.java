@@ -254,6 +254,12 @@ public final class SettingKeys {
      */
     public static final String BASERATE_FOLD_WEEK = "baserate.fold.lastWeek";
 
+    /**
+     * The ensemble's extremizing state from the last refit (prompt 122): {@code a}, {@code fittedA}, {@code enabled},
+     * {@code nResolutions}, {@code distinctForecasterTypes}, {@code logScoreImprovement} and {@code fittedAt}.
+     */
+    public static final String FORECAST_ENSEMBLE = "forecast.ensemble";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -267,7 +273,7 @@ public final class SettingKeys {
                     ANALYSIS_SERIES_MAX, ANALYSIS_FINDINGS_PUBLISH_INFO, ANALYSIS_LIVE_CURSOR, ANALYSIS_LIVE_RECHECKS,
                     ANALYSIS_PRECURSORS_MAX_TESTS, ANALYSIS_PRECURSORS_LOOKBACK_DAYS,
                     ANALYSIS_PRECURSORS_DISCOVERY_FRACTION, PRECURSOR_CURSOR, PRECURSOR_STREAM_CURSORS,
-                    BASERATE_FOLD_WEEK);
+                    BASERATE_FOLD_WEEK, FORECAST_ENSEMBLE);
 
     private SettingKeys() {}
 }

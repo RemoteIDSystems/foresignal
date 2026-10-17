@@ -6175,3 +6175,88 @@ so a handful of look-alikes never overrides decades of history. `POST /v1/analog
 recent weeks without a situation, against two-week periods of the same continent's countries over the previous ten
 years. Signatures are computed when a situation becomes active and daily for its first 30 days; outcomes once it is
 dormant, closed or a month old.
+
+## Forecast ledger (prompt 122)
+
+The ledger answers "were we right?". It holds **questions** with mechanical resolution, **forecasts** from many
+forecasters, and their **scores**. Probabilities are stored as numbers; the ICD 203 words (`almost no chance`, `very
+unlikely`, `unlikely`, `roughly even chance`, `likely`, `very likely`, `almost certain`) are derived from them and never
+the other way round.
+
+**Writing a resolvable question.** `POST /v1/forecasts/questions` (agent) takes a title, a type (`binary`, `multiple`,
+`ordered`, `numeric`), resolution criteria in plain words (shown verbatim to every forecaster) and a machine resolver:
+
+- `event-exists {selector, area, window}`: yes as soon as the selector finds an occurrence; it resolves early;
+- `count-threshold {selector | ref, area, window, op, threshold}`: the number of occurrences, or the sum of a `rollup:`
+  series;
+- `series-value {ref, period | window, aggregate, op?, threshold?}`: binary with a threshold, numeric without;
+- `alert-fired {ruleId, window, area?}`, `situation-status {situationId, status?, minSeverity?}`;
+- `hypothesis-outcome {setId}` (confirmed by the operator once prompt 125 exists) and `manual`.
+
+Good questions are specific (a place, a window, a threshold), use a `referenceFamily` selector with `area.regionCodes`
+where they can (so the base-rate forecaster and the detectability check apply), and avoid `manual` unless nothing in
+Foresignal could settle them. Criteria and resolver can change until the first forecast; after that only the title,
+tags and closing time can (`QUESTION_IMMUTABLE`). A `dedupKey` stops the same question being opened twice.
+
+**Resolution.** The resolution job runs hourly. It closes questions at `closes_at`, resolves an event question early
+when the event happens, and otherwise waits until `resolve_by` plus the sources' publication lag (7 days for weekly
+reference history, the series' own lag, at most 14 days; past that it resolves with a `LATE_DATA` caveat). A "no"
+answer needs the 116 detectability check over the question's area and window: without it the question is annulled
+`LOW_DETECTABILITY`, because "nothing seen" is not "nothing happened". If the resolver's sources were failing for more
+than 20% of the window, a "no" or numeric answer is annulled `COVERAGE_GAP`. Annulled questions are never scored.
+Manual questions raise `forecast.resolution_needed` in the inbox at `resolve_by` and are listed at
+`GET /v1/forecasts/questions?status=closed&resolver=manual`; resolve them with `POST …/resolve` and at least one
+evidence ref. Selectors without an observability family (intel events, situations, anomalies) can resolve "yes" but a
+"no" is annulled, so prefer reference families, change points or alert rules for questions that may well resolve "no".
+
+**Forecasters.** The baselines forecast every new open question they can, and again at most daily when their inputs
+change: `base-rate` (the 121 rate of the question's family, regions and window, scaled to the window; a Poisson count
+for thresholds; conditional when a precursor is linked), `climatology` (numeric: the same season in past years),
+`persistence` (the last value or state carried forward), `precursor` (questions opened from `precursor-active`
+findings, which also open their own questions) and `analog` (121 analogs). When one cannot forecast a question it says
+why in `baselineNotes`. You are a forecaster too: `POST …/forecasts` with a read token records your forecast as
+`operator:{your handle}`, and so does `/forecast <questionId> <probability>` in an interactive chat (`/questions` lists
+the open ones). Forecasts are never edited: a new one supersedes the old, and `madeAt` and `asOfSeq` are set by the
+server. `GET …/history` gives each forecaster's standing forecast per day for trend lines.
+
+**The ensemble** pools the latest forecasts (older than 7 days are dropped once the question is older than that) by a
+weighted mean of log-odds. Weights follow each forecaster's Brier score relative to the per-question median over the
+last 100 resolved questions in the category, shrunk toward equal weights until it has a record (20 questions carry
+half the weight). LLM forecasts are clamped to [0.03, 0.97] first, because language models hedge and lean toward
+"yes", and once a forecaster has 50 resolved forecasts in a category its probabilities are **Platt-recalibrated**
+(`p' = σ(a · logit p + b)`) before pooling. Extremizing (pushing the pool away from 50%) stays off unless the monthly
+refit (`POST /v1/forecasts/ensemble/refit`) finds at least five forecasters of different types, 100 resolutions and an
+out-of-sample gain.
+
+**Reading the scores** (`GET /v1/forecasts/scorecard`, `/calibration`, `/compare`):
+
+- **Brier**: the mean squared error of the probability (0 perfect; always saying 50% scores 0.25 on yes/no
+  questions; multi-category questions run 0–2). **Time-averaged Brier** scores the standing forecast every day the
+  question was open, so a late correct guess does not count as much as an early one; days before a forecaster's first
+  forecast use the base rate's.
+- **Log score**: `−ln p` of what happened, clipped at 1% and 99%. It punishes confident misses hard.
+- **RPS** (ordered questions) rewards being close on the scale; **CRPS** (numeric) is the error of the whole
+  distribution, from the pinball losses of its quantiles; interval coverage shows how often the outcome fell inside the
+  50% and 90% ranges (they should be about 50% and 90%).
+- **Skill** is `1 − S / S_ref` against the base-rate forecaster (climatology for numeric) on the same questions, with a
+  95% paired bootstrap interval: above 0 beats the outside view, below 0 does worse. An interval that spans 0 means
+  "not shown yet".
+- **Calibration**: the CORP curve (isotonic regression) plots what actually happened against what was forecast; a
+  well-calibrated forecaster sits on the diagonal. Its decomposition splits the score into miscalibration (fixable
+  by recalibration), discrimination (telling events apart) and uncertainty (how hard the questions were). Under 50
+  resolved questions you get a 10-bin table with counts instead. The Murphy decomposition on the scorecard is the
+  binned version.
+- **Bias**: mean forecast minus observed frequency (positive says "yes" too often), the share of forecasts between 40%
+  and 60% (hedging) and the mean forecast on questions that resolved "no".
+- Fewer than 20 resolved questions are labeled `insufficient`: read them as anecdotes.
+
+**Operator versus machine.** `GET /v1/forecasts/compare?a=operator:{you}&b=ensemble` compares two forecasters on the
+questions both answered, with the mean Brier difference and its paired bootstrap interval. A negative difference
+favors `a`.
+
+**Leakage and retrospective evaluation.** `POST /v1/forecasts/evaluations` (agent) replays one forecaster over past
+resolved questions, as of each question's opening time, and scores it: a scorecard marked `retrospective`. The
+baselines read only what was known then, so they are fully valid (analogs cannot be replayed and are skipped). A
+language model may already know how a question ended if it opened before the model's training cutoff, so an LLM
+forecaster needs its provider's `knowledgeCutoff` (`PUT /v1/llm/providers/{id}`); without it the evaluation is refused
+(`KNOWLEDGE_CUTOFF_REQUIRED`), and earlier questions are skipped and counted under `LEAKAGE_RISK`.

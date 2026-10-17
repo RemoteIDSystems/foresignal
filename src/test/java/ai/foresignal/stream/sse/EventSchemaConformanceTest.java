@@ -132,7 +132,61 @@ class EventSchemaConformanceTest {
             entry(ai.foresignal.analytics.finding.FindingEvent.PRECURSOR_STALE,
                     () -> precursorEvents(ai.foresignal.analytics.finding.FindingEvent.PRECURSOR_STALE)),
             entry(ai.foresignal.analytics.finding.FindingEvent.PRECURSOR_RETIRED,
-                    () -> precursorEvents(ai.foresignal.analytics.finding.FindingEvent.PRECURSOR_RETIRED)));
+                    () -> precursorEvents(ai.foresignal.analytics.finding.FindingEvent.PRECURSOR_RETIRED)),
+            // 122: ForecastsTopic sends the forecast_log payloads written by ForecastEvents on topic forecasts.
+            entry(ai.foresignal.forecast.ForecastEvents.OPENED,
+                    () -> questionEvents(ai.foresignal.forecast.ForecastEvents.OPENED)),
+            entry(ai.foresignal.forecast.ForecastEvents.CLOSED,
+                    () -> questionEvents(ai.foresignal.forecast.ForecastEvents.CLOSED)),
+            entry(ai.foresignal.forecast.ForecastEvents.RESOLVED,
+                    () -> questionEvents(ai.foresignal.forecast.ForecastEvents.RESOLVED)),
+            entry(ai.foresignal.forecast.ForecastEvents.ANNULLED,
+                    () -> questionEvents(ai.foresignal.forecast.ForecastEvents.ANNULLED)),
+            entry(ai.foresignal.forecast.ForecastEvents.SUBMITTED, EventSchemaConformanceTest::submittedEvents));
+
+    /** {@code question.*} payloads as {@code ForecastEvents.questionPayload} writes them (prompt 122). */
+    static List<JsonNode> questionEvents(String type) {
+        java.time.Instant at = java.time.Instant.parse("2026-03-01T12:00:00Z");
+        List<JsonNode> out = new java.util.ArrayList<>();
+        for (String questionType : List.of("binary", "numeric")) {
+            ai.foresignal.forecast.ForecastQuestionEntity q = new ai.foresignal.forecast.ForecastQuestionEntity(
+                    "01JA8Q3V7S2K9W4T6Y1B5N0M3C", at);
+            q.setTitle("Will battles be recorded in Yemen in March?");
+            q.setType(questionType);
+            q.setResolutionCriteria("Yes if recorded.");
+            q.setResolver(Map.of("type", "manual", "version", "1.0.0"));
+            q.setOpensAt(at);
+            q.setClosesAt(at.plusSeconds(86_400));
+            q.setResolveBy(at.plusSeconds(86_400 * 30));
+            q.setCategory("conflict");
+            q.setTags(List.of("yemen"));
+            q.setOrigin("agent");
+            q.setSituationId("01JA8Q3V7S2K9W4T6Y1B5N0M3D");
+            if ("binary".equals(questionType)) {
+                q.setEnsembleProbability(0.62);
+                q.setResolution(Map.of("outcome", "yes", "resolvedAt", at.toString(), "resolvedBy", "operator",
+                        "evidence", List.of("alert:1")));
+            } else {
+                q.setResolution(Map.of("value", 12.5, "resolvedAt", at.toString(), "resolvedBy", "operator",
+                        "evidence", List.of("series:a/b")));
+            }
+            out.add(toTree(ai.foresignal.forecast.ForecastEvents.questionPayload(type, q, 3, at)));
+        }
+        return out;
+    }
+
+    /** {@code forecast.submitted} payloads as {@code ForecastEvents.submittedPayload} writes them (prompt 122). */
+    static List<JsonNode> submittedEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-03-01T12:00:00Z");
+        ai.foresignal.forecast.ForecastEntity binary = new ai.foresignal.forecast.ForecastEntity(
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3E", "01JA8Q3V7S2K9W4T6Y1B5N0M3C", "operator:ada", "operator", at, 42);
+        binary.setProbability(0.7);
+        ai.foresignal.forecast.ForecastEntity numeric = new ai.foresignal.forecast.ForecastEntity(
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3F", "01JA8Q3V7S2K9W4T6Y1B5N0M3C", "climatology", "climatology", at, 42);
+        numeric.setQuantiles(Map.of("p05", 1.0, "p25", 2.0, "p50", 3.0, "p75", 4.0, "p95", 5.0));
+        return List.of(toTree(ai.foresignal.forecast.ForecastEvents.submittedPayload(binary, false)),
+                toTree(ai.foresignal.forecast.ForecastEvents.submittedPayload(numeric, true)));
+    }
 
     /** {@code situation.*} payloads as {@code SituationEvent.payload()} writes them (prompt 118), located and not. */
     static List<JsonNode> situationEvents(String type) {

@@ -169,6 +169,17 @@ class PostmanCollectionContractTest {
             Map.entry("createEscalationPolicy", ai.foresignal.notify.escalation.EscalationPolicyInput::parse),
             Map.entry("updateEscalationPolicy", ai.foresignal.notify.escalation.EscalationPolicyInput::parse),
             Map.entry("muteTrigger", body -> ai.foresignal.trigger.Mutes.expiry(body, NOW)),
+            // 122: the ledger's production parsers (pure); a forecast is checked against a question of the shape it
+            // carries, and a resolution against a binary question.
+            Map.entry("createForecastQuestion", body -> ai.foresignal.forecast.ForecastInputs.question(body, NOW)),
+            Map.entry("updateForecastQuestion", body -> ai.foresignal.forecast.ForecastInputs.patch(body, "binary")),
+            Map.entry("annulForecastQuestion", ai.foresignal.forecast.ForecastInputs::annulReason),
+            Map.entry("resolveForecastQuestion", body -> ai.foresignal.forecast.ForecastInputs.resolution(body,
+                    ledgerQuestion(body))),
+            Map.entry("submitForecast", body -> ai.foresignal.forecast.ForecastInputs.forecast(body,
+                    ledgerQuestion(body))),
+            Map.entry("updateForecaster", ai.foresignal.forecast.ForecastInputs::forecasterUpdate),
+            Map.entry("createForecastEvaluation", ai.foresignal.forecast.ForecastInputs::evaluation),
             // 038: metric projections (the production parser over a registry holding the USGS source) and the
             // rollup rebuild range.
             Map.entry("updateMetricSettings", body -> new ai.foresignal.stats.metrics.MetricSettingsService(null,
@@ -473,6 +484,25 @@ class PostmanCollectionContractTest {
             }
         }
         return false;
+    }
+
+    /** A ledger question of the shape a forecast or resolution body carries (prompt 122). */
+    private static ai.foresignal.forecast.ForecastQuestionEntity ledgerQuestion(JsonNode body) {
+        ai.foresignal.forecast.ForecastQuestionEntity q = new ai.foresignal.forecast.ForecastQuestionEntity(
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3C", NOW);
+        if (body.hasNonNull("distribution")) {
+            q.setType("multiple");
+            List<String> labels = new ArrayList<>();
+            for (String label : body.get("distribution").propertyNames()) {
+                labels.add(label);
+            }
+            q.setOutcomes(Map.of("labels", labels));
+        } else if (body.hasNonNull("quantiles") || body.hasNonNull("value")) {
+            q.setType("numeric");
+        } else {
+            q.setType("binary");
+        }
+        return q;
     }
 
     /** A registry holding the USGS source, as the metric-settings entry builds it. */

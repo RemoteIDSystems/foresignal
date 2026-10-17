@@ -606,6 +606,27 @@ public final class ErrorCodes {
     /** 409: an automatic base rate cannot be deleted (121). */
     public static final String BASE_RATE_NOT_CUSTOM = "BASE_RATE_NOT_CUSTOM";
 
+    /** 404: no forecast question has that id, or it is private and the caller has no private access (122). */
+    public static final String UNKNOWN_QUESTION = "UNKNOWN_QUESTION";
+
+    /** 404: no forecaster has that id, or the caller may not submit as it (122). */
+    public static final String UNKNOWN_FORECASTER = "UNKNOWN_FORECASTER";
+
+    /** 409: the question is not open for this change (closed, resolved or annulled) (122). */
+    public static final String QUESTION_CLOSED = "QUESTION_CLOSED";
+
+    /** 409: criteria and resolver cannot change once a forecast exists (122). */
+    public static final String QUESTION_IMMUTABLE = "QUESTION_IMMUTABLE";
+
+    /** 409: LLM retrospective evaluation needs the provider's knowledgeCutoff (122). */
+    public static final String KNOWLEDGE_CUTOFF_REQUIRED = "KNOWLEDGE_CUTOFF_REQUIRED";
+
+    /** 400: a forecast or resolution does not fit its question (122). */
+    public static final String FORECAST_INVALID = "FORECAST_INVALID";
+
+    /** 400: a question's resolver is not valid (122). */
+    public static final String RESOLVER_INVALID = "RESOLVER_INVALID";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

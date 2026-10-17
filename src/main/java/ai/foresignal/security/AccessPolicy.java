@@ -514,6 +514,23 @@ public class AccessPolicy {
                 rule(null, "/v1/reference-imports/**", AccessRequirement.ADMIN),
                 rule(HttpMethod.POST, "/v1/analogs/query", AccessRequirement.READ),
 
+                // ---- Forecast ledger (prompt 122): questions, forecasts, forecasters, scorecards, calibration and
+                // comparisons are reads; a forecast is a read-scope write under the caller's operator forecaster, so it
+                // always needs a token; opening, changing, annulling and resolving questions, evaluations and the
+                // ensemble refit are agent operations; forecaster settings are admin. ----
+                rule(HttpMethod.POST, "/v1/forecasts/questions/*/forecasts",
+                        AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/forecasts/evaluations", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/forecasts/evaluations/*", AccessRequirement.AGENT),
+                rule(HttpMethod.PUT, "/v1/forecasts/forecasters/*", AccessRequirement.ADMIN),
+                rule(HttpMethod.GET, "/v1/forecasts/questions", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/forecasts/questions/**", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/forecasts/forecasters", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/forecasts/scorecard", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/forecasts/calibration", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/forecasts/compare", AccessRequirement.READ),
+                rule(null, "/v1/forecasts/**", AccessRequirement.AGENT),
+
                 // ---- Autonomous analyst (prompt 102) ----
                 rule(HttpMethod.POST, "/v1/analyst/profiles/*/run", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/analyst/profiles/**", AccessRequirement.READ),

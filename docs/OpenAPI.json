@@ -522,6 +522,11 @@
         "version": "1.3.0",
         "date": "2026-10-17",
         "note": "121: createReferenceImport, listReferenceImports, getReferenceImport, deleteReferenceImport, listBaseRates, createBaseRate, queryBaseRate, refreshBaseRates, getBaseRate, deleteBaseRate, getSituationAnalogs and queryAnalogs are implemented, with the 103 job types reference-import and base-rate-refresh, the MCP tools get_base_rate and find_analogs, and the EventSelector form referenceFamily (event studies and precursor mining). Reconciliations (additive): Problem lists UNKNOWN_BASE_RATE (404), UNKNOWN_IMPORT (404), IMPORT_DATASET_UNAVAILABLE (409), BASE_RATE_INVALID (400) and BASE_RATE_NOT_CUSTOM (409); the target-outcome pattern also allows `.` so `seismic:m4.5/P30D` is valid; ReferenceImportRequest.params gains version (ucdp-ged with useApi); BaseRate.unconditional gains nWindows and caveats may include LOCAL_ONLY_WITHHELD; BacktestJob.result may be a ReferenceImport or the new BaseRateRefreshResult."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-17",
+        "note": "122: listForecastQuestions, createForecastQuestion, getForecastQuestion, updateForecastQuestion, annulForecastQuestion, resolveForecastQuestion, getForecastQuestionHistory, submitForecast, listForecasts, listForecasters, updateForecaster, getForecastScorecard, getForecastCalibration, compareForecasters, createForecastEvaluation, getForecastEvaluation and refitForecastEnsemble are implemented, with the SSE topic forecasts (question.opened, question.closed, question.resolved, question.annulled, forecast.submitted), the 103 job type forecast-evaluation, the notification events forecast.resolved and forecast.resolution_needed, the MCP tools list_questions, get_question, get_scorecard, create_question and submit_forecast, and the chat commands /questions and /forecast. Reconciliations (additive): submitForecast is marked x-foresignal-always-authenticated (its description already required a token); resolveForecastQuestion answers 409 QUESTION_CLOSED for machine-resolved questions; ForecastQuestion gains baselineNotes and manifestId; Problem lists UNKNOWN_QUESTION, UNKNOWN_FORECASTER (404), QUESTION_CLOSED, QUESTION_IMMUTABLE, KNOWLEDGE_CUTOFF_REQUIRED (409), FORECAST_INVALID and RESOLVER_INVALID (400)."
       }
     ]
   },
@@ -58511,7 +58516,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -58590,7 +58595,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -58669,7 +58674,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -58769,7 +58774,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -58870,7 +58875,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -58885,7 +58890,7 @@
         ],
         "operationId": "resolveForecastQuestion",
         "summary": "Resolve a question manually",
-        "description": "Resolves a manual question (or confirms a `hypothesis-outcome` one) with pinned evidence; scores are computed and `question.resolved` is emitted.\n\n**Scope:** `agent` or `admin`.",
+        "description": "Resolves a manual question (or confirms a `hypothesis-outcome` one) with pinned evidence; scores are computed and `question.resolved` is emitted. Questions with machine resolvers resolve automatically and return 409 `QUESTION_CLOSED` here (annul them instead).\n\n**Scope:** `agent` or `admin`.",
         "parameters": [
           {
             "name": "questionId",
@@ -58959,7 +58964,7 @@
             }
           },
           "409": {
-            "description": "Already resolved or annulled (QUESTION_CLOSED)",
+            "description": "Already resolved or annulled, or resolved by a machine resolver (QUESTION_CLOSED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -58971,7 +58976,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -59085,7 +59090,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -59101,7 +59106,7 @@
         ],
         "operationId": "submitForecast",
         "summary": "Submit a forecast",
-        "description": "Records an immutable forecast; `madeAt` and `asOfSeq` are set by the server and earlier forecasts of the same forecaster are superseded, never edited. Read scope submits as `operator:{principal}`; agent scope may name another registered `operator` or `external` forecaster.\n\n**Scope:** `read` (a token is required; the forecast is recorded under the caller's principal).",
+        "description": "Records an immutable forecast; `madeAt` and `asOfSeq` are set by the server and earlier forecasts of the same forecaster are superseded, never edited. Read scope submits as `operator:{handle}` (the token's principal); agent scope may name another registered `operator` or `external` forecaster. A token is required even while `security.openReads` is on.\n\n**Scope:** `read` (always authenticated: the forecast is recorded under the caller's principal).",
         "parameters": [
           {
             "name": "questionId",
@@ -59205,12 +59210,13 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-always-authenticated": true
       },
       "get": {
         "tags": [
@@ -59315,7 +59321,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -59432,7 +59438,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -59525,7 +59531,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -59643,7 +59649,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -59742,7 +59748,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -59850,7 +59856,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -59951,7 +59957,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
           {
@@ -60023,7 +60029,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -60073,7 +60079,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "122",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -87282,6 +87288,48 @@
             "status": 409,
             "prompt": "121",
             "note": "deleteBaseRate: automatic rates are replaced at every refresh and cannot be deleted"
+          },
+          {
+            "code": "UNKNOWN_QUESTION",
+            "status": 404,
+            "prompt": "122",
+            "note": "getForecastQuestion, updateForecastQuestion, annulForecastQuestion, resolveForecastQuestion, getForecastQuestionHistory, submitForecast, listForecasts: no forecast question has that id, or it is private and the caller has no private access"
+          },
+          {
+            "code": "UNKNOWN_FORECASTER",
+            "status": 404,
+            "prompt": "122",
+            "note": "updateForecaster, getForecastScorecard, getForecastCalibration, compareForecasters, createForecastEvaluation: no forecaster has that id; submitForecast: the named forecaster is not a registered operator or external forecaster"
+          },
+          {
+            "code": "QUESTION_CLOSED",
+            "status": 409,
+            "prompt": "122",
+            "note": "updateForecastQuestion, annulForecastQuestion, resolveForecastQuestion: the question is resolved or annulled (resolveForecastQuestion also for machine-resolved questions); submitForecast: the question is not open for forecasts"
+          },
+          {
+            "code": "QUESTION_IMMUTABLE",
+            "status": 409,
+            "prompt": "122",
+            "note": "updateForecastQuestion: resolution criteria and resolver cannot change once a forecast exists"
+          },
+          {
+            "code": "KNOWLEDGE_CUTOFF_REQUIRED",
+            "status": 409,
+            "prompt": "122",
+            "note": "createForecastEvaluation: the forecaster is an LLM forecaster and its provider has no knowledgeCutoff"
+          },
+          {
+            "code": "FORECAST_INVALID",
+            "status": 400,
+            "prompt": "122",
+            "note": "submitForecast: not exactly one of probability, distribution or quantiles of the question's type, a probability outside [0, 1], a distribution that is not over the labels or does not sum to 1 ± 1e-6, or quantiles missing p05, p25, p50, p75 or p95 or not non-decreasing; resolveForecastQuestion: the outcome or value does not fit the question"
+          },
+          {
+            "code": "RESOLVER_INVALID",
+            "status": 400,
+            "prompt": "122",
+            "note": "createForecastQuestion, updateForecastQuestion: the resolver type is unknown, a member is missing or not allowed, it does not answer the question's type, the selector is not exactly one resolvable form, or a geometric area is used with a selector whose occurrences have no geometry"
           }
         ]
       },
@@ -137007,6 +137055,24 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "baselineNotes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Why a baseline forecaster that supports this kind of question forecast nothing, by forecaster id (e.g. no reference family, no covered history)"
+          },
+          "manifestId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "116 manifest of the question's opening"
           }
         },
         "required": [

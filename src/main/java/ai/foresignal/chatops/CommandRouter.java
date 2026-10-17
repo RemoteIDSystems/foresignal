@@ -57,6 +57,10 @@ public class CommandRouter {
     /** The counter of messages from chats or users that are not allowlisted. */
     public static final String REJECTED_METRIC = "foresignal.chatops.rejected";
 
+    /** The ledger's commands (prompt 122), or null when the ledger is absent. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ForecastChatCommands forecasts;
+
     private final ChatCommandService commands;
     private final ChatPrincipals principals;
     private final PendingTokens pending;
@@ -225,6 +229,8 @@ public class CommandRouter {
                         : commands.brief(principal, ref, parsed.args());
                 case SOURCES -> commands.sources(principal, ref);
                 case CONFIRM, REJECT -> decideByCode(principal, ref, parsed.args(), command == ChatCommand.CONFIRM);
+                case QUESTIONS -> forecasts == null ? unavailable(ref) : forecasts.questions(principal, ref);
+                case FORECAST -> forecasts == null ? unavailable(ref) : forecasts.forecast(principal, ref, parsed.args());
             };
         } catch (ForesignalException e) {
             return ChatOutcome.of(e.getStatus().value() == 404 ? ChatOutcome.NOT_FOUND : ChatOutcome.UNAVAILABLE,
@@ -234,6 +240,10 @@ public class CommandRouter {
             return ChatOutcome.of(ChatOutcome.ERROR, "Something went wrong; the operator can check the log.",
                     ref.messageId());
         }
+    }
+
+    private static ChatOutcome unavailable(ChatRef ref) {
+        return ChatOutcome.of(ChatOutcome.UNAVAILABLE, "The forecast ledger is not available.", ref.messageId());
     }
 
     private ChatOutcome decideByCode(ChatPrincipal principal, ChatRef ref, List<String> args, boolean confirm) {

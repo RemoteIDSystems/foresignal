@@ -11,7 +11,9 @@ import java.util.Set;
  * The pure output validator (prompt 102). It enforces the binding analytic principles on what the
  * model returned: every claim is typed; an {@code evidence} claim without a valid citation becomes
  * {@code speculation}; unknown citations are dropped; a proposed event needs at least two verified
- * members and a known type; a proposal type must be allowed; and a note over 2,000 words is truncated.
+ * members and a known type; a proposal type must be allowed; and a note over 2,000 words is truncated. Since prompt
+ * 122 the note and every claim are also linted with {@code EstimativeLanguage} (a likelihood term that disagrees with
+ * its number, mixed ICD 203 rows, or a likelihood term beside a confidence level), each violation becoming a warning.
  */
 public final class AnalystOutputValidator {
 
@@ -103,6 +105,16 @@ public final class AnalystOutputValidator {
                 warnings.add("absence claim without a coverage-ok citation: " + firstWords(raw.text()));
             }
             claims.add(new AnalystClaim(raw.text(), basis, kept, wasDowngraded, warning));
+        }
+        for (ai.foresignal.forecast.language.EstimativeLanguage.Violation v
+                : ai.foresignal.forecast.language.EstimativeLanguage.lint(body, List.of())) {
+            warnings.add("estimative language in the note: " + v.message());
+        }
+        for (AnalystClaim claim : claims) {
+            for (ai.foresignal.forecast.language.EstimativeLanguage.Violation v
+                    : ai.foresignal.forecast.language.EstimativeLanguage.lint(claim.text(), List.of())) {
+                warnings.add("estimative language in a claim: " + v.message());
+            }
         }
         int[] words = {0};
         String trimmed = truncate(body, words, warnings);

@@ -274,13 +274,30 @@ public class BaseRateService implements ReferenceImportService.ImportListener {
         BaseRateCalculator.Counts counts = counts(definition.family(), regions);
         BaseRateCalculator.Counts antecedent = definition.condition() == null ? null
                 : counts(definition.condition().family(), regions);
-        return compute(definition, regions, counts, antecedent, coverage, profileMap(), new HashMap<>());
+        return compute(definition, regions, counts, antecedent, coverage, profileMap(), new HashMap<>(), end());
+    }
+
+    /**
+     * Computes a definition as of a past time, without storing or caching it (prompt 122, retrospective evaluation):
+     * only the weeks before the ISO week of {@code asOf} are used, so later history changes nothing.
+     *
+     * @param definition the definition
+     * @param asOf the knowledge cutoff
+     * @return the computed rate
+     */
+    public Computed computeAsOf(BaseRateDefinition definition, Instant asOf) {
+        List<String> regions = regions(definition);
+        Map<String, BaseRateCalculator.Coverage> coverage = coverage();
+        BaseRateCalculator.Counts counts = counts(definition.family(), regions);
+        BaseRateCalculator.Counts antecedent = definition.condition() == null ? null
+                : counts(definition.condition().family(), regions);
+        LocalDate end = ReferenceFamilies.weekStart(LocalDate.ofInstant(asOf, ZoneOffset.UTC));
+        return compute(definition, regions, counts, antecedent, coverage, profileMap(), new HashMap<>(), end);
     }
 
     private Computed compute(BaseRateDefinition definition, List<String> regions, BaseRateCalculator.Counts counts,
             BaseRateCalculator.Counts antecedent, Map<String, BaseRateCalculator.Coverage> coverage,
-            Map<String, RegionProfileEntity> profileMap, Map<String, Boolean> detectabilityCache) {
-        LocalDate end = end();
+            Map<String, RegionProfileEntity> profileMap, Map<String, Boolean> detectabilityCache, LocalDate end) {
         BaseRateCalculator.Result result = BaseRateCalculator.compute(new BaseRateCalculator.Inputs(regions, counts,
                 coverage, ReferenceFamilies.priority(definition.family()), definition.windowWeeks(), end, antecedent,
                 definition.condition() == null ? null : ReferenceFamilies.priority(definition.condition().family()),
@@ -661,6 +678,7 @@ public class BaseRateService implements ReferenceImportService.ImportListener {
         List<String> families = jdbc.queryForList("SELECT DISTINCT family FROM reference_history ORDER BY 1",
                 new MapSqlParameterSource(), String.class);
         Map<String, Boolean> detectability = new HashMap<>();
+        LocalDate end = end();
         int written = 0;
         int skipped = 0;
         Set<String> regionsSeen = new TreeSet<>();
@@ -677,7 +695,7 @@ public class BaseRateService implements ReferenceImportService.ImportListener {
                 for (String window : AUTO_WINDOWS) {
                     BaseRateDefinition definition = new BaseRateDefinition(family, regions, null, window, null);
                     Computed computed = compute(definition, regions, counts, null, coverage, profileMap,
-                            detectability);
+                            detectability, end);
                     if ("P7D".equals(window) && computed.result().nWindows() < MIN_COVERAGE_WEEKS) {
                         enough = false;
                     }

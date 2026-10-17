@@ -347,6 +347,19 @@ public class FindingService {
         return ids.isEmpty() ? Optional.empty() : Optional.of(ids.get(0));
     }
 
+    /**
+     * Links a forecast question to a finding (prompt 122): appends the question id to {@code question_ids} once. The
+     * finding's content, status and version are unchanged.
+     *
+     * @return true when the link was added
+     */
+    @Transactional
+    public boolean linkQuestion(String findingId, String questionId) {
+        return jdbc.update("UPDATE analytic_finding SET question_ids = array_append(coalesce(question_ids,"
+                + " CAST('{}' AS text[])), :q) WHERE id = :id AND NOT (:q = ANY(coalesce(question_ids,"
+                + " CAST('{}' AS text[]))))", new MapSqlParameterSource("id", findingId).addValue("q", questionId)) > 0;
+    }
+
     /** The open findings of a type detected in {@code [from, to]}, oldest first. */
     @Transactional(readOnly = true)
     public List<AnalyticFindingEntity> detectedBetween(String type, Instant from, Instant to) {

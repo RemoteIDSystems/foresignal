@@ -37,7 +37,12 @@ public enum ChatCommand {
     /** Confirms a proposed Ask action by code. */
     CONFIRM("confirm", HttpMethod.POST, "/v1/ask/actions/1/confirm", List.of("code"), "Confirm a proposed action: /confirm <code>"),
     /** Rejects a proposed Ask action by code. */
-    REJECT("reject", HttpMethod.POST, "/v1/ask/actions/1/reject", List.of("code"), "Reject a proposed action: /reject <code>");
+    REJECT("reject", HttpMethod.POST, "/v1/ask/actions/1/reject", List.of("code"), "Reject a proposed action: /reject <code>"),
+    /** Open forecast questions (prompt 122). */
+    QUESTIONS("questions", HttpMethod.GET, "/v1/forecasts/questions", List.of(), "Open forecast questions"),
+    /** Records the operator's binary forecast (prompt 122). */
+    FORECAST("forecast", HttpMethod.POST, "/v1/forecasts/questions/1/forecasts", List.of("questionId", "probability"),
+            "Forecast: /forecast <questionId> <probability>");
 
     /** The rule {@code /brief run} is checked against. */
     public static final String BRIEF_RUN_PATH = "/v1/briefings/1/run";

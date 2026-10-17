@@ -41,7 +41,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              # 120: precursors, mining batches and operator candidates.
              "precursorId": "precursorId", "batchId": "precursorBatchId", "candidateId": "precursorCandidateId",
              # 121: reference-history imports and base rates.
-             "importId": "referenceImportId", "baseRateId": "baseRateId"}
+             "importId": "referenceImportId", "baseRateId": "baseRateId",
+             # 122: forecast questions, forecasters and retrospective evaluations.
+             "questionId": "questionId", "forecasterId": "forecasterId", "evaluationId": "evaluationId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -523,6 +525,32 @@ BODIES = {
                                     "window": "P28D"}},
   "queryAnalogs": {"regionCode": "YE", "from": "2026-10-01T00:00:00Z", "to": "2026-10-15T00:00:00Z", "k": 10,
                    "outcome": "conflict:battles/P30D"},
+  # 122: a binary question resolved from Foresignal's own data (battles in Yemen within four weeks, with region codes
+  # so base rates and detectability apply), a forecast, a manual resolution, an annulment and a retrospective
+  # evaluation of the base-rate baseline. The other resolver types and forecast shapes are VARIANTS below.
+  "createForecastQuestion": {"title": "Will battles be recorded in Yemen between 2026-11-01 and 2026-11-29?",
+                             "type": "binary",
+                             "resolutionCriteria": "Yes if Foresignal records at least one conflict:battles event"
+                                                   " tagged YE between 2026-11-01T00:00Z and 2026-11-29T00:00Z;"
+                                                   " no otherwise, provided coverage and detectability are adequate"
+                                                   " (else annulled).",
+                             "resolver": {"type": "event-exists", "selector": {"referenceFamily": "conflict:battles"},
+                                          "area": {"regionCodes": ["YE"]},
+                                          "window": {"start": "2026-11-01T00:00:00Z", "end": "2026-11-29T00:00:00Z"}},
+                             "closesAt": "2026-11-01T00:00:00Z", "resolveBy": "2026-11-29T00:00:00Z",
+                             "category": "conflict", "tags": ["yemen"], "dedupKey": "postman:ye-battles-2026-11"},
+  "updateForecastQuestion": {"title": "Will battles be recorded in Yemen in November 2026?", "tags": ["yemen", "monthly"]},
+  "annulForecastQuestion": {"reason": "The question duplicates another one on the board."},
+  "resolveForecastQuestion": {"outcome": "yes", "evidence": ["alert:1842"],
+                              "note": "Confirmed by the operator from the cited alert."},
+  "submitForecast": {"probability": 0.72,
+                     "rationale": "Base rate: battles occurred in 0.81 of 28-day windows in Yemen (n = 104); adjusted"
+                                  " down for the current lull.",
+                     "citations": [{"ref": "situation:01JA8Q3V7S2K9W4T6Y1B5N0M3C", "quote": None, "claim": None}]},
+  "updateForecaster": {"active": True, "config": {"maxAgeDays": 7, "eta": 2.0, "shrink": 20.0,
+                                                  "externalMinResolved": 30}},
+  "createForecastEvaluation": {"forecasterId": "base-rate", "from": "2026-01-01T00:00:00Z",
+                               "to": "2026-10-01T00:00:00Z", "categories": ["conflict"], "maxQuestions": 500},
   # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
   # one nautical mile in the next hour.
   "cpaBatch": {"subject": "aisstream/244660000", "filter": {"kinds": ["vessel"], "sources": [],
@@ -561,6 +589,9 @@ CAPTURE = {
   "createReferenceImport": "const j = pm.response.json(); pm.collectionVariables.set('referenceImportId', j.id);",
   "createBaseRate": "const j = pm.response.json(); pm.collectionVariables.set('baseRateId', j.id);",
   "refreshBaseRates": "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
+  # 122: the question and the evaluation.
+  "createForecastQuestion": "const j = pm.response.json(); pm.collectionVariables.set('questionId', j.id);",
+  "createForecastEvaluation": "const j = pm.response.json(); pm.collectionVariables.set('evaluationId', j.id);",
   # 117: the created attention topic.
   "createAttentionTopic": "const j = pm.response.json(); pm.collectionVariables.set('attentionTopicId', j.id);",
   "rotatePeerIngestKey": "const j = pm.response.json(); pm.collectionVariables.set('peerIngestKey', j.key); console.log('New peer ingest key (shown once):', j.key);",
@@ -628,6 +659,50 @@ VARIANTS = {
                       "raw": "\n".join(json.dumps(x) for x in [{"protocol": "foresignal-edp/1.0", "sourceId": "hormuz-transits"}] + EDP_ITEMS[:2]) + "\n"}),
   ],
   # 059: a source created from a device preset; the response's setup holds the device instructions and URL.
+  # 122: one question per resolver type, and forecasts of every shape.
+  "createForecastQuestion": [
+    ("count-threshold", {"title": "Will 5 or more M5+ earthquakes be recorded in Japan in December 2026?", "type": "binary",
+                         "resolutionCriteria": "Yes if at least 5 seismic:m5 events tagged JP occur in December 2026 (UTC).",
+                         "resolver": {"type": "count-threshold", "selector": {"referenceFamily": "seismic:m5"},
+                                      "area": {"regionCodes": ["JP"]}, "window": {"start": "2026-12-01T00:00:00Z",
+                                                                                 "end": "2027-01-01T00:00:00Z"},
+                                      "op": "gte", "threshold": 5},
+                         "closesAt": "2026-12-01T00:00:00Z", "resolveBy": "2027-01-01T00:00:00Z", "category": "seismic"}),
+    ("series-value, numeric", {"title": "What will the weekly managed-money net position in crude be in week 2026-W48?",
+                               "type": "numeric", "outcomes": {"unit": "contracts"},
+                               "resolutionCriteria": "The last value of the series for ISO week 2026-W48 as published by the CFTC.",
+                               "resolver": {"type": "series-value", "ref": "series:cftc-cot/067651.disagg.mm_net",
+                                            "period": "2026-W48", "aggregate": "last"},
+                               "closesAt": "2026-11-23T00:00:00Z", "resolveBy": "2026-11-30T00:00:00Z",
+                               "category": "markets"}),
+    ("alert-fired", {"title": "Will the Hormuz loitering rule fire before 2026-12-01?", "type": "binary",
+                     "resolutionCriteria": "Yes if rule 3f2b7c1e-8a4d-4f6b-9c2e-1d5a7b9e0f13 fires at least once before 2026-12-01T00:00Z.",
+                     "resolver": {"type": "alert-fired", "ruleId": "3f2b7c1e-8a4d-4f6b-9c2e-1d5a7b9e0f13",
+                                  "window": {"start": "2026-11-01T00:00:00Z", "end": "2026-12-01T00:00:00Z"}},
+                     "closesAt": "2026-11-15T00:00:00Z", "resolveBy": "2026-12-01T00:00:00Z", "category": "maritime"}),
+    ("situation-status", {"title": "Will the Red Sea situation be critical on 2026-12-01?", "type": "binary",
+                          "resolutionCriteria": "Yes if the situation's severity is critical at 2026-12-01T00:00Z.",
+                          "resolver": {"type": "situation-status", "situationId": "01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+                                       "minSeverity": "critical"},
+                          "closesAt": "2026-11-24T00:00:00Z", "resolveBy": "2026-12-01T00:00:00Z", "category": "maritime"}),
+    ("hypothesis-outcome", {"title": "Which hypothesis explains the Hormuz transit drop?", "type": "multiple",
+                            "outcomes": {"labels": ["weather", "security incident", "market rerouting", "other"]},
+                            "resolutionCriteria": "Resolved by the operator's confirmation of the hypothesis set.",
+                            "resolver": {"type": "hypothesis-outcome", "setId": "01JA8Q3V7S2K9W4T6Y1B5N0M3D"},
+                            "closesAt": "2026-12-01T00:00:00Z", "resolveBy": "2026-12-15T00:00:00Z", "category": "maritime"}),
+    ("manual, ordered", {"title": "How severe will the 2026-27 winter grid outages in Ukraine be?", "type": "ordered",
+                         "outcomes": {"labels": ["minor", "moderate", "severe"]},
+                         "resolutionCriteria": "Resolved by the operator on 2027-03-31 from the regulator's outage reports.",
+                         "resolver": {"type": "manual"}, "closesAt": "2026-12-01T00:00:00Z",
+                         "resolveBy": "2027-03-31T00:00:00Z", "category": "infrastructure"}),
+  ],
+  "submitForecast": [
+    ("multiple", {"distribution": {"weather": 0.2, "security incident": 0.5, "market rerouting": 0.25, "other": 0.05},
+                  "rationale": "Security incidents explain most past drops of this size."}),
+    ("numeric", {"quantiles": {"p05": 120000, "p10": 135000, "p25": 160000, "p50": 185000, "p75": 205000,
+                               "p90": 225000, "p95": 240000},
+                 "rationale": "Seasonal range of the last five years, centered on the latest value."}),
+  ],
   "createCustomSource": [
     ("from the ecowitt preset", {"id": "custom-backyard-weather", "name": "Backyard weather", "kinds": ["weather-observation"],
                                  "preset": "ecowitt",
@@ -905,6 +980,7 @@ collection = {
       ("findingId", ""), ("seriesRef", "rollup:day/*/earthquake/US"),
       ("precursorId", ""), ("precursorBatchId", ""), ("precursorCandidateId", ""),
       ("referenceImportId", ""), ("baseRateId", ""),
+      ("questionId", ""), ("forecasterId", "ensemble"), ("evaluationId", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",
