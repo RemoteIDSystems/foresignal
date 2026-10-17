@@ -180,6 +180,9 @@ class PostmanCollectionContractTest {
                     ledgerQuestion(body))),
             Map.entry("updateForecaster", ai.foresignal.forecast.ForecastInputs::forecasterUpdate),
             Map.entry("createForecastEvaluation", ai.foresignal.forecast.ForecastInputs::evaluation),
+            // 123: the benchmark harness's production parsers (pure).
+            Map.entry("createBenchmarkRun", ai.foresignal.benchmark.BenchmarkInputs::run),
+            Map.entry("createBenchmarkCase", ai.foresignal.benchmark.BenchmarkInputs::caseInput),
             // 038: metric projections (the production parser over a registry holding the USGS source) and the
             // rollup rebuild range.
             Map.entry("updateMetricSettings", body -> new ai.foresignal.stats.metrics.MetricSettingsService(null,

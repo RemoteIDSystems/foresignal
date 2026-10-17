@@ -55,7 +55,9 @@ PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
                        ("/v1/custom-sources/", {"deviceId": "ingestDeviceId"}),
                        ("/v1/ingest/", {"key": "deviceKey"}),
                        # 114: a learned pattern-of-life place is not a 036 place of {{placeId}}.
-                       ("/v1/pol/places/", {"placeId": "polPlaceId"})]
+                       ("/v1/pol/places/", {"placeId": "polPlaceId"}),
+                       # 123: a benchmark run is not a briefing run of {{runId}}.
+                       ("/v1/benchmarks/", {"runId": "benchmarkRunId", "caseId": "benchmarkCaseId"})]
 
 # The EDP manifest of docs/External-Data-Protocol.md §2 (024).
 EDP_MANIFEST = {
@@ -551,6 +553,19 @@ BODIES = {
                                                   "externalMinResolved": 30}},
   "createForecastEvaluation": {"forecasterId": "base-rate", "from": "2026-01-01T00:00:00Z",
                                "to": "2026-10-01T00:00:00Z", "categories": ["conflict"], "maxQuestions": 500},
+  # 123: the synthetic suite over the detectors and the base-rate forecaster with the fixed seed, and a historical
+  # case: a known disruption the change-point detector should find in a chokepoint's daily transits.
+  "createBenchmarkRun": {"suite": "synthetic", "components": ["change-point", "co-occurrence", "precursor",
+                                                              "forecaster:base-rate"], "seed": 1230001},
+  "createBenchmarkCase": {"name": "Bab el-Mandeb transits fall, early 2024",
+                          "description": "Daily transits through the strait fell sharply as ships rerouted.",
+                          "windowFrom": "2024-01-01T00:00:00Z", "windowTo": "2024-02-15T00:00:00Z",
+                          "regionCodes": ["YE", "DJ", "ER"],
+                          "expectations": {"findings": [{"findingType": "change-point", "present": True,
+                                                         "seriesRef": "series:imf-portwatch-chokepoints/chokepoint4",
+                                                         "from": "2024-01-01T00:00:00Z",
+                                                         "to": "2024-01-31T00:00:00Z", "minSeverity": "notable"}],
+                                           "notes": "Operator case from the PortWatch record."}},
   # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
   # one nautical mile in the next hour.
   "cpaBatch": {"subject": "aisstream/244660000", "filter": {"kinds": ["vessel"], "sources": [],
@@ -592,6 +607,9 @@ CAPTURE = {
   # 122: the question and the evaluation.
   "createForecastQuestion": "const j = pm.response.json(); pm.collectionVariables.set('questionId', j.id);",
   "createForecastEvaluation": "const j = pm.response.json(); pm.collectionVariables.set('evaluationId', j.id);",
+  # 123: the benchmark run and the historical case.
+  "createBenchmarkRun": "const j = pm.response.json(); pm.collectionVariables.set('benchmarkRunId', j.id);",
+  "createBenchmarkCase": "const j = pm.response.json(); pm.collectionVariables.set('benchmarkCaseId', j.id);",
   # 117: the created attention topic.
   "createAttentionTopic": "const j = pm.response.json(); pm.collectionVariables.set('attentionTopicId', j.id);",
   "rotatePeerIngestKey": "const j = pm.response.json(); pm.collectionVariables.set('peerIngestKey', j.key); console.log('New peer ingest key (shown once):', j.key);",
@@ -981,6 +999,7 @@ collection = {
       ("precursorId", ""), ("precursorBatchId", ""), ("precursorCandidateId", ""),
       ("referenceImportId", ""), ("baseRateId", ""),
       ("questionId", ""), ("forecasterId", "ensemble"), ("evaluationId", ""),
+      ("benchmarkRunId", ""), ("benchmarkCaseId", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

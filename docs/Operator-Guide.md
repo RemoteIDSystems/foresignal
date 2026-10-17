@@ -6260,3 +6260,74 @@ baselines read only what was known then, so they are fully valid (analogs cannot
 language model may already know how a question ended if it opened before the model's training cutoff, so an LLM
 forecaster needs its provider's `knowledgeCutoff` (`PUT /v1/llm/providers/{id}`); without it the evaluation is refused
 (`KNOWLEDGE_CUTOFF_REQUIRED`), and earlier questions are skipped and counted under `LEAKAGE_RISK`.
+
+## Benchmarks (prompt 123)
+
+Software tests prove that the code does what it says; they do not prove that the analysis is any good. The benchmark
+harness measures that. It runs every intelligence component in its pure or isolated mode over **deterministic
+synthetic scenarios with planted truth** and over a **historical corpus** of past episodes, and grades each component
+`pass`, `warn` or `fail` against documented thresholds. It never writes findings, events, situations, forecasts or
+hypotheses: only `benchmark_run` and `benchmark_case` rows (plus its 103 job row and a 116 manifest).
+
+**What each scenario tests** (`bench-scenarios` 1.0.0; the same seed always gives the same data and results):
+
+| Scenario | What it plants | What a good system does |
+|---|---|---|
+| `null-seasonal` | seasonal counts with noise, no signal | change points and anomalies at about their configured false-alarm rate; co-occurrence discoveries within q + 0.05; no validated precursor; base-rate forecasts calibrated within ±0.05 per populated bin; no merged situations |
+| `step-change` | a 2 or 3 SD level shift at a known day | the change point found in the right direction, with a short delay |
+| `spike` | a two-day (or three-hour) burst; joint family spikes; five planted storylines | anomalies fire; no change point; co-occurrence finds the joint spikes; the situation linker keeps each storyline together and apart from the others |
+| `coverage-outage` | true events during a source outage or thin reporting | `unknown` / `LOW_DETECTABILITY`, never a downward finding or `activity-down` |
+| `duplicate-echo` | one report re-published ten times by aggregators; multi-source seismic events | one evidence group, unchanged confidence and evidence quality; observations of one event linked into one canonical event, neighbors kept apart |
+| `late-revision` | values revised 30 days after first publication | decisions use only what was known at the time |
+| `common-driver` | two series (and two event streams) sharing a season and trend, no lead–lag | no validated precursor, or one flagged co-movement |
+| `true-precursor` | X followed by Y 48 h later 60% of the time | the precursor validated, lag and hit rate recovered; decoys in the same batch not validated; the precursor forecaster beats the base rate |
+| `base-rate-drift` | each region's event rate doubles or halves halfway | base-rate, analog and ensemble forecasts adapt and keep their skill against naive references |
+| `pre-event-move` | an abnormal market move before six events, plus six placebo events | a `pre-event-signal` before the planted events, none before the placebos, placebo p near 0.5 on placebo events |
+
+Skill is always relative to a naive reference: pooled climatology for the base-rate forecaster, the base-rate forecaster
+for the analog and ensemble forecasters, and the circular-shift base rate for the precursor forecaster.
+
+**Runs.** The synthetic suite runs every Sunday at 03:00 UTC and at startup whenever a component's version differs from
+the version last benchmarked. On the first of each month at 03:30 UTC, 20 null region-weeks are sampled into the
+corpus and the historical suite runs (prompt 128's monthly cycle takes this over). Start one yourself with
+`POST /v1/benchmarks/runs {"suite": "synthetic" | "historical" | "all", "components": [...], "seed": n}` (agent, 202);
+only one run at a time (`BENCHMARK_IN_PROGRESS`). A full synthetic run takes from tens of seconds to a few minutes.
+
+**Reading the report.** `GET /v1/benchmarks/runs/{id}` gives, per component, its version, status, headline metrics,
+every threshold check (`metric`, `comparator`, the pass `threshold`, the `warn` threshold, `observed`, `status`) and
+per-scenario results with the planted truth and notes. A metric that cannot be measured is a warning, not a pass.
+`GET /v1/benchmarks/status` (read) shows the latest status of each component, whether its version changed since, and
+what it gates. Notable metrics: `falseAlarmRatio` (null-data false alarms over the configured rate), `recall`,
+`precision`, `delayMedianHours`, `correctUnknownShare`, `duplicateInflation` (must be 0), `linkingPrecision` and
+`linkingRecall`, `spuriousMerges`, `falseValidationRate`, `lagRecoveredShare`, `rateRecoveredShare`, `brier`,
+`logScore`, `reliabilityMaxDeviation` and `skill`. For event studies, `recall` and `placeboFalseSignalRate` measure the
+live pre-event check exactly as it runs; the `engine*` metrics measure the same engine over all the history known at
+the event.
+
+**Thresholds** live in `intel/benchmark-thresholds.json` (for example: change-point false alarms at most 1.5 times the
+configured rate, co-occurrence FDR at most q + 0.05, duplicate inflation 0, correct `unknown` under outages at least
+95%, precursor false validation on `common-driver` at most 5%, step-change recall at least 80% for effects of 2 SD or
+more, base-rate reliability within ±0.05 per populated bin). Override them with the setting `benchmark.thresholds`
+(same shape, through the settings import): its `suite` values (seed, replicates, minimum bin size) replace the
+defaults, a component it lists replaces that component's checks, and its `gating` lists replace the defaults'.
+
+**Adding historical cases.** `POST /v1/benchmarks/cases` (agent; source `operator` for admin tokens) describes a known
+past episode: a window, region codes and `expectations`:
+
+- `findings`: `{findingType, present, seriesRef?, regionCodes?, from?, to?, minSeverity?}`. `change-point`
+  expectations replay the change-point detector over the `seriesRef` (else the enabled analysis-series rows of the
+  regions) with `asOf` stepping a day at a time from the window start, so later revisions are never seen; other
+  finding types are listed as skipped until they can be replayed.
+- `precursors`: `{precursorId, expected: validated | not-validated}`, compared with the precursor's lifecycle status.
+- `questions`: binary questions with a known `outcome`; one that carries a `baseRate` definition is forecast by the
+  base-rate calculator as of the window start and scored.
+
+Sampled null cases (source `auto`) expect no change point in a region-week without any intel event at warning or above
+and without situation activity. Delete a case with `DELETE /v1/benchmarks/cases/{id}`; past runs keep their copy.
+
+**What gating does.** Autonomy follows the benchmark. 128's proposer may auto-execute only while every component it
+depends on is `pass` or `warn`, and LLM forecasters carry weight in the ensemble only while the forecaster components
+are `pass` or `warn` (a component never benchmarked counts as neither, so autonomy waits for the first run). On `fail`
+they degrade: proposals stay pending for you, and LLM forecasts are left out of the ensemble (they are still recorded
+and scored). Detectors keep running, but their new findings carry the caveat `BENCHMARK_FAIL` until a later run passes
+or warns. The gate's dependency lists are the `gating` section of the thresholds file.

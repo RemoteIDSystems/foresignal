@@ -1,10 +1,3 @@
-createBenchmarkRun 123
-listBenchmarkRuns 123
-getBenchmarkRun 123
-getBenchmarkStatus 123
-listBenchmarkCases 123
-createBenchmarkCase 123
-deleteBenchmarkCase 123
 listHypothesisSets 125
 createHypothesisSet 125
 draftHypothesisSet 125

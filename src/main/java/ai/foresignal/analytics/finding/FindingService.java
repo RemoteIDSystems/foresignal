@@ -82,6 +82,10 @@ public class FindingService {
     @org.springframework.beans.factory.annotation.Autowired
     private ObjectProvider<PrecursorSummaries> precursorSummaries;
 
+    /** The 123 benchmark gate: findings of a component whose latest benchmark failed carry BENCHMARK_FAIL. */
+    @org.springframework.beans.factory.annotation.Autowired
+    private ObjectProvider<ai.foresignal.benchmark.BenchmarkGate> benchmarkGate;
+
     /** Creates the service. */
     public FindingService(AnalyticFindingRepository findings, FindingLogRepository logs, FindingEventBus bus,
             NamedParameterJdbcTemplate jdbc, ObjectProvider<ManifestService> manifests,
@@ -141,7 +145,7 @@ public class FindingService {
         f.setAsOfSeq(draft.asOfSeq());
         f.setStats(draft.stats());
         f.setBaseRate(draft.baseRate());
-        f.setCaveats(draft.caveats());
+        f.setCaveats(withBenchmarkCaveat(draft));
         Map<String, Object> detector = new LinkedHashMap<>();
         detector.put("name", draft.detectorName());
         detector.put("version", draft.detectorVersion());
@@ -415,6 +419,33 @@ public class FindingService {
             return true;
         }
         return !aEnd.isBefore(bStart) && !bEnd.isBefore(aStart);
+    }
+
+    /**
+     * The draft's caveats, plus {@code BENCHMARK_FAIL} while the latest benchmark of the component behind the finding
+     * type failed (prompt 123, BEN-2): the detector keeps running and its findings say so.
+     */
+    List<Map<String, Object>> withBenchmarkCaveat(FindingDraft draft) {
+        ai.foresignal.benchmark.BenchmarkGate gate = benchmarkGate == null ? null : benchmarkGate.getIfAvailable();
+        if (gate == null) {
+            return draft.caveats();
+        }
+        String code = benchmarkCaveatCode(gate, draft.findingType());
+        if (code == null || draft.caveats().stream().anyMatch(c -> code.equals(c.get("code")))) {
+            return draft.caveats();
+        }
+        List<Map<String, Object>> out = new ArrayList<>(draft.caveats());
+        out.add(FindingCaveats.of(code, "The latest analytic benchmark of this detector failed its thresholds; treat"
+                + " the finding with extra caution until a benchmark run passes (GET /v1/benchmarks/status)."));
+        return out;
+    }
+
+    private static String benchmarkCaveatCode(ai.foresignal.benchmark.BenchmarkGate gate, String findingType) {
+        try {
+            return gate.findingCaveat(findingType);
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     static boolean same(AnalyticFindingEntity open, FindingDraft draft) {

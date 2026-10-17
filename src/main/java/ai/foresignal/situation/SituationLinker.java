@@ -273,14 +273,18 @@ public class SituationLinker implements ChangeListener, DisposableBean, IngestSt
         Double cosine(LinkerInput input, String situationId);
     }
 
-    /** Decides (and, through {@code state}, applies) one input. */
+    /** Decides (and, through {@code state}, applies) one input at the configured link threshold. */
     Decision decide(LinkerInput input, State state) {
+        return decide(input, state, situationSettings.linkThreshold());
+    }
+
+    /** Decides (and, through {@code state}, applies) one input at {@code threshold}. */
+    static Decision decide(LinkerInput input, State state, double threshold) {
         Set<String> holders = state.holders(input);
         if (!holders.isEmpty()) {
             return new Decision(input, "already-member", holders.iterator().next(), null, null, null, List.of());
         }
         LinkerWeights weights = LinkerWeights.DEFAULT;
-        double threshold = situationSettings.linkThreshold();
         List<Scored> scored = new ArrayList<>();
         for (SituationScorer.Candidate candidate : state.candidates(input.observedAt())) {
             if (!SituationScorer.prefilter(input, candidate, weights)) {
@@ -370,6 +374,27 @@ public class SituationLinker implements ChangeListener, DisposableBean, IngestSt
      * @param decisions the decisions the caller may see
      */
     public record DryRun(int inputsConsidered, List<Decision> decisions) {}
+
+    /**
+     * Runs the linker procedure over {@code inputs} from an empty state, entirely in memory: no stored situation is
+     * read and nothing is written (prompt 123, the benchmark harness's isolated mode of the dry run). Text similarity
+     * is off (no embeddings exist for synthetic inputs); seeded situations get would-be ids from the inputs' times.
+     *
+     * @param inputs the inputs, in seq order
+     * @param threshold the link threshold
+     * @param dormancy the dormancy window
+     * @param reopen the reopen window
+     * @return one decision per input, in input order
+     */
+    public static List<Decision> simulate(List<LinkerInput> inputs, double threshold, Duration dormancy,
+            Duration reopen) {
+        Isolated state = new Isolated(dormancy, reopen);
+        List<Decision> decisions = new ArrayList<>();
+        for (LinkerInput input : inputs) {
+            decisions.add(decide(input, state, threshold));
+        }
+        return decisions;
+    }
 
     // ------------------------------------------------------------------------- states
 
@@ -558,6 +583,89 @@ public class SituationLinker implements ChangeListener, DisposableBean, IngestSt
                 sim.regions.addAll(situation.getRegionCodes());
             }
             return sim;
+        }
+    }
+
+    /**
+     * The isolated state of {@link #simulate}: simulated situations only, with the same derivations as the
+     * {@link Overlay} (geometry, regions, entities, last activity, dormant to active), and no database.
+     */
+    static final class Isolated implements State {
+
+        private final Map<String, Sim> sims = new LinkedHashMap<>();
+        private final Map<String, Set<String>> heldBy = new HashMap<>();
+        private final Duration dormancy;
+        private final Duration reopen;
+        private int counter;
+
+        Isolated(Duration dormancy, Duration reopen) {
+            this.dormancy = dormancy;
+            this.reopen = reopen;
+        }
+
+        @Override
+        public List<SituationScorer.Candidate> candidates(Instant at) {
+            List<SituationScorer.Candidate> out = new ArrayList<>();
+            for (Sim sim : sims.values()) {
+                if (!SituationLifecycle.OPEN.contains(sim.status)) {
+                    continue;
+                }
+                Duration window = SituationLifecycle.DORMANT.equals(sim.status) ? reopen : dormancy;
+                if (at == null || sim.lastActivity == null || !sim.lastActivity.isBefore(at.minus(window))) {
+                    out.add(sim.candidate());
+                }
+            }
+            out.sort(Comparator.comparing(SituationScorer.Candidate::id));
+            return out;
+        }
+
+        @Override
+        public Set<String> holders(LinkerInput input) {
+            return new LinkedHashSet<>(heldBy.getOrDefault(input.linkKey(), Set.of()));
+        }
+
+        @Override
+        public String seed(LinkerInput input, String title, Map<String, Object> reason) {
+            Sim sim = new Sim();
+            counter++;
+            sim.id = String.format("sim-%06d", counter);
+            sim.theme = input.theme() == null ? SituationThemes.MIXED : input.theme();
+            sim.status = SituationLifecycle.EMERGING;
+            sim.lastActivity = input.observedAt();
+            sim.seeded = true;
+            sims.put(sim.id, sim);
+            apply(sim, input);
+            return sim.id;
+        }
+
+        @Override
+        public void join(String situationId, LinkerInput input, Map<String, Object> reason) {
+            Sim sim = sims.get(situationId);
+            if (sim == null) {
+                return;
+            }
+            if ("core".equals(input.role()) && SituationLifecycle.DORMANT.equals(sim.status)) {
+                sim.status = SituationLifecycle.ACTIVE;
+            }
+            apply(sim, input);
+        }
+
+        @Override
+        public Double cosine(LinkerInput input, String situationId) {
+            return null;
+        }
+
+        private void apply(Sim sim, LinkerInput input) {
+            sim.regions.addAll(input.regionCodes());
+            sim.entities.addAll(input.entityIds());
+            if (input.geom() != null) {
+                sim.geometries.add(input.geom());
+            }
+            if ("core".equals(input.role()) && input.observedAt() != null
+                    && (sim.lastActivity == null || input.observedAt().isAfter(sim.lastActivity))) {
+                sim.lastActivity = input.observedAt();
+            }
+            heldBy.computeIfAbsent(input.linkKey(), k -> new LinkedHashSet<>()).add(sim.id);
         }
     }
 

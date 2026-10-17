@@ -127,7 +127,8 @@ public class AnalystRunner {
             "list_intel_events", "get_intel_event", "list_anomalies", "get_window_state", "get_exposure", "get_entity",
             "source_health", "find_similar_events", "list_situations", "get_situation", "get_situation_changes",
             "list_findings", "get_finding", "get_series_data", "list_analysis_series", "list_precursors",
-            "get_precursor", "get_base_rate", "find_analogs", "list_questions", "get_question", "get_scorecard");
+            "get_precursor", "get_base_rate", "find_analogs", "list_questions", "get_question", "get_scorecard",
+            "get_benchmark_status");
 
     private final LlmService llm;
     private final LlmSettingsService llmSettings;

@@ -135,7 +135,7 @@ public class ChangePointService {
     }
 
     /** The parameters of a frequency: slot period and how recent an alarm must be. */
-    static ChangePointDetector.Params params(SeriesFrequency frequency) {
+    public static ChangePointDetector.Params params(SeriesFrequency frequency) {
         return switch (frequency) {
             case HOUR -> ChangePointDetector.Params.defaults(168, 24);
             case WEEK -> ChangePointDetector.Params.defaults(1, 4);
@@ -143,7 +143,8 @@ public class ChangePointService {
         };
     }
 
-    static int historyBuckets(SeriesFrequency frequency) {
+    /** The buckets of history a run reads per frequency (400 days, 260 weeks, 60 days of hours). */
+    public static int historyBuckets(SeriesFrequency frequency) {
         return switch (frequency) {
             case HOUR -> 24 * 60;
             case WEEK -> 260;
@@ -151,35 +152,73 @@ public class ChangePointService {
         };
     }
 
+    /**
+     * How a detector result is reported (also used by the 123 benchmark harness, so the benchmark judges exactly what
+     * a live run would write).
+     *
+     * @param state {@code confirmed} or {@code unknown}
+     * @param severity the finding severity
+     * @param coverageGap true when a coverage gap made the change unjudgeable
+     * @param failedDecline the detectability check of a downward count change that failed, or null
+     */
+    public record Classification(String state, String severity, boolean coverageGap, AbsenceCheck failedDecline) {
+
+        /** True for a confirmed change. */
+        public boolean confirmed() {
+            return "confirmed".equals(state);
+        }
+    }
+
+    /**
+     * Classifies a detector result: a candidate cut by a coverage gap is {@code unknown} ({@code info}); a confirmed
+     * change is {@code notable}, or {@code significant} with a BOCPD posterior at or above {@code confirmPosterior};
+     * a downward change of counts whose decline the sources could not have seen becomes {@code unknown} too.
+     *
+     * @param r the detector result
+     * @param counts true for a count series
+     * @param bocpd true when the BOCPD confirmation is enabled for the series
+     * @param confirmPosterior the posterior that makes a change significant
+     * @param declineCheck asked only for a confirmed downward change of counts
+     * @return the classification, or null when nothing is reported
+     */
+    public static Classification classify(ChangePointDetector.Result r, boolean counts, boolean bocpd,
+            double confirmPosterior, java.util.function.Supplier<AbsenceCheck> declineCheck) {
+        if (r == null || r.state() == ChangePointDetector.State.NONE) {
+            return null;
+        }
+        if (r.state() == ChangePointDetector.State.UNKNOWN) {
+            return r.changeAt() == null ? null : new Classification("unknown", FindingSeverities.INFO, true, null);
+        }
+        boolean confirmed = bocpd && Double.isFinite(r.bocpdPosterior()) && r.bocpdPosterior() >= confirmPosterior;
+        String severity = confirmed ? FindingSeverities.SIGNIFICANT : FindingSeverities.NOTABLE;
+        if (r.downward() && counts) {
+            AbsenceCheck check = declineCheck.get();
+            if (check != null && !check.ok()) {
+                return new Classification("unknown", FindingSeverities.INFO, false, check);
+            }
+        }
+        return new Classification("confirmed", severity, false, null);
+    }
+
     private FindingDraft draft(AnalysisSeriesEntity row, SeriesData data, SeriesFrequency frequency, Instant now,
             ChangePointDetector.Params params, ChangePointDetector.Result r, boolean bocpd) {
         List<Map<String, Object>> caveats = new ArrayList<>();
         caveats.add(FindingCaveats.notGroundTruth());
-        String severity;
-        String state;
-        if (r.state() == ChangePointDetector.State.UNKNOWN) {
-            if (r.changeAt() == null) {
-                return null;
-            }
-            severity = FindingSeverities.INFO;
-            state = "unknown";
+        Classification classification = classify(r, data.counts(), bocpd, params.confirmPosterior(),
+                () -> support.canSeeDecline(data, r.changeAt(), frequency.next(frequency.floor(now))));
+        if (classification == null) {
+            return null;
+        }
+        String severity = classification.severity();
+        String state = classification.state();
+        if (classification.coverageGap()) {
             caveats.add(FindingCaveats.of(FindingCaveats.COVERAGE_GAPS, "A coverage gap fell between the estimated"
                     + " change and the end of the series; the change cannot be judged."));
-        } else {
-            boolean confirmed = bocpd && Double.isFinite(r.bocpdPosterior())
-                    && r.bocpdPosterior() >= params.confirmPosterior();
-            severity = confirmed ? FindingSeverities.SIGNIFICANT : FindingSeverities.NOTABLE;
-            state = "confirmed";
         }
-        if (r.downward() && data.counts() && !"unknown".equals(state)) {
-            AbsenceCheck check = support.canSeeDecline(data, r.changeAt(), frequency.next(frequency.floor(now)));
-            if (!check.ok()) {
-                severity = FindingSeverities.INFO;
-                state = "unknown";
-                caveats.add(FindingCaveats.of(FindingCaveats.LOW_DETECTABILITY, "The sources could not have seen the"
-                        + " decline reliably (" + check.reason() + "); a fall in reports is not read as a fall in"
-                        + " activity."));
-            }
+        if (classification.failedDecline() != null) {
+            caveats.add(FindingCaveats.of(FindingCaveats.LOW_DETECTABILITY, "The sources could not have seen the"
+                    + " decline reliably (" + classification.failedDecline().reason() + "); a fall in reports is not"
+                    + " read as a fall in activity."));
         }
         if (AnalyticsSupport.market(data)) {
             caveats.add(FindingCaveats.dailyResolutionOnly());

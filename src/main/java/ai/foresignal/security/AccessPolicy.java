@@ -531,6 +531,13 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/forecasts/compare", AccessRequirement.READ),
                 rule(null, "/v1/forecasts/**", AccessRequirement.AGENT),
 
+                // ---- Analytic benchmark harness (prompt 123): runs, their results and the status per component are
+                // reads; starting a run and the historical corpus are agent operations. ----
+                rule(HttpMethod.GET, "/v1/benchmarks/runs", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/benchmarks/runs/*", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/benchmarks/status", AccessRequirement.READ),
+                rule(null, "/v1/benchmarks/**", AccessRequirement.AGENT),
+
                 // ---- Autonomous analyst (prompt 102) ----
                 rule(HttpMethod.POST, "/v1/analyst/profiles/*/run", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/analyst/profiles/**", AccessRequirement.READ),

@@ -527,6 +527,11 @@
         "version": "1.3.0",
         "date": "2026-10-17",
         "note": "122: listForecastQuestions, createForecastQuestion, getForecastQuestion, updateForecastQuestion, annulForecastQuestion, resolveForecastQuestion, getForecastQuestionHistory, submitForecast, listForecasts, listForecasters, updateForecaster, getForecastScorecard, getForecastCalibration, compareForecasters, createForecastEvaluation, getForecastEvaluation and refitForecastEnsemble are implemented, with the SSE topic forecasts (question.opened, question.closed, question.resolved, question.annulled, forecast.submitted), the 103 job type forecast-evaluation, the notification events forecast.resolved and forecast.resolution_needed, the MCP tools list_questions, get_question, get_scorecard, create_question and submit_forecast, and the chat commands /questions and /forecast. Reconciliations (additive): submitForecast is marked x-foresignal-always-authenticated (its description already required a token); resolveForecastQuestion answers 409 QUESTION_CLOSED for machine-resolved questions; ForecastQuestion gains baselineNotes and manifestId; Problem lists UNKNOWN_QUESTION, UNKNOWN_FORECASTER (404), QUESTION_CLOSED, QUESTION_IMMUTABLE, KNOWLEDGE_CUTOFF_REQUIRED (409), FORECAST_INVALID and RESOLVER_INVALID (400)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-17",
+        "note": "123: createBenchmarkRun, listBenchmarkRuns, getBenchmarkRun, getBenchmarkStatus, listBenchmarkCases, createBenchmarkCase and deleteBenchmarkCase are implemented, with the 103 job type benchmark, the MCP tools get_benchmark_status (read, also in the analyst's read catalog) and run_benchmark (agent), the finding caveat BENCHMARK_FAIL and the setting benchmark.thresholds. Reconciliations (additive): Problem lists UNKNOWN_BENCHMARK_RUN, UNKNOWN_BENCHMARK_CASE (404) and BENCHMARK_IN_PROGRESS (409); BenchmarkComponentResult threshold items also carry warn, scenario and note; BenchmarkRunInput.components and the component strings of BenchmarkRun, BenchmarkComponentResult and BenchmarkStatus list change-point, anomaly, event-study, co-occurrence, evidence, canonical-linking, precursor, situation-linker, forecaster:base-rate, forecaster:analog, forecaster:precursor and forecaster:ensemble."
       }
     ]
   },
@@ -60159,7 +60164,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "123",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -60276,7 +60281,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "123",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -60356,7 +60361,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "123",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -60415,7 +60420,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "123",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -60513,7 +60518,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "123",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -60581,7 +60586,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "123",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -60645,7 +60650,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "123",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -87330,6 +87335,24 @@
             "status": 400,
             "prompt": "122",
             "note": "createForecastQuestion, updateForecastQuestion: the resolver type is unknown, a member is missing or not allowed, it does not answer the question's type, the selector is not exactly one resolvable form, or a geometric area is used with a selector whose occurrences have no geometry"
+          },
+          {
+            "code": "UNKNOWN_BENCHMARK_RUN",
+            "status": 404,
+            "prompt": "123",
+            "note": "getBenchmarkRun: no benchmark run has that id"
+          },
+          {
+            "code": "UNKNOWN_BENCHMARK_CASE",
+            "status": 404,
+            "prompt": "123",
+            "note": "deleteBenchmarkCase: no benchmark case has that id"
+          },
+          {
+            "code": "BENCHMARK_IN_PROGRESS",
+            "status": 409,
+            "prompt": "123",
+            "note": "createBenchmarkRun (and the MCP tool run_benchmark): a benchmark run is already queued or running"
           }
         ]
       },
@@ -116955,7 +116978,8 @@
               "forecast-evaluation",
               "reference-import",
               "base-rate-refresh",
-              "manifest-replay"
+              "manifest-replay",
+              "benchmark"
             ]
           },
           "targetId": {
@@ -138210,7 +138234,7 @@
             "type": "array",
             "items": {
               "type": "string",
-              "description": "Benchmarked component, e.g. `change-point`, `event-study`, `co-occurrence`, `anomaly`, `evidence`, `canonical-linking`, `precursor`, `situation-linker`, `forecaster:base-rate`, `forecaster:analog`",
+              "description": "Benchmarked component: `change-point`, `anomaly`, `event-study`, `co-occurrence`, `evidence`, `canonical-linking`, `precursor`, `situation-linker`, `forecaster:base-rate`, `forecaster:analog`, `forecaster:precursor` or `forecaster:ensemble`",
               "example": "change-point"
             },
             "minItems": 1,
@@ -138232,7 +138256,7 @@
         "properties": {
           "component": {
             "type": "string",
-            "description": "Benchmarked component, e.g. `change-point`, `event-study`, `co-occurrence`, `anomaly`, `evidence`, `canonical-linking`, `precursor`, `situation-linker`, `forecaster:base-rate`, `forecaster:analog`",
+            "description": "Benchmarked component: `change-point`, `anomaly`, `event-study`, `co-occurrence`, `evidence`, `canonical-linking`, `precursor`, `situation-linker`, `forecaster:base-rate`, `forecaster:analog`, `forecaster:precursor` or `forecaster:ensemble`",
             "example": "change-point"
           },
           "componentVersion": {
@@ -138294,6 +138318,21 @@
                     "fail"
                   ],
                   "description": "Result against the documented thresholds"
+                },
+                "warn": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "The warn threshold; outside it the check fails (null: outside the pass threshold fails)"
+                },
+                "scenario": {
+                  "type": "string",
+                  "description": "The scenario (or `historical`) the check applies to"
+                },
+                "note": {
+                  "type": "string",
+                  "description": "What the threshold means"
                 }
               },
               "required": [
@@ -138399,6 +138438,21 @@
                           "fail"
                         ],
                         "description": "Result against the documented thresholds"
+                      },
+                      "warn": {
+                        "type": [
+                          "number",
+                          "null"
+                        ],
+                        "description": "The warn threshold; outside it the check fails (null: outside the pass threshold fails)"
+                      },
+                      "scenario": {
+                        "type": "string",
+                        "description": "The scenario (or `historical`) the check applies to"
+                      },
+                      "note": {
+                        "type": "string",
+                        "description": "What the threshold means"
                       }
                     },
                     "required": [
@@ -138473,7 +138527,7 @@
             "type": "array",
             "items": {
               "type": "string",
-              "description": "Benchmarked component, e.g. `change-point`, `event-study`, `co-occurrence`, `anomaly`, `evidence`, `canonical-linking`, `precursor`, `situation-linker`, `forecaster:base-rate`, `forecaster:analog`",
+              "description": "Benchmarked component: `change-point`, `anomaly`, `event-study`, `co-occurrence`, `evidence`, `canonical-linking`, `precursor`, `situation-linker`, `forecaster:base-rate`, `forecaster:analog`, `forecaster:precursor` or `forecaster:ensemble`",
               "example": "change-point"
             }
           },
@@ -138606,7 +138660,7 @@
               "properties": {
                 "component": {
                   "type": "string",
-                  "description": "Benchmarked component, e.g. `change-point`, `event-study`, `co-occurrence`, `anomaly`, `evidence`, `canonical-linking`, `precursor`, `situation-linker`, `forecaster:base-rate`, `forecaster:analog`",
+                  "description": "Benchmarked component: `change-point`, `anomaly`, `event-study`, `co-occurrence`, `evidence`, `canonical-linking`, `precursor`, `situation-linker`, `forecaster:base-rate`, `forecaster:analog`, `forecaster:precursor` or `forecaster:ensemble`",
                   "example": "change-point"
                 },
                 "componentVersion": {

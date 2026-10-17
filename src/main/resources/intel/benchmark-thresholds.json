@@ -1,0 +1,91 @@
+{
+  "version": "1.0.0",
+  "description": "Benchmark thresholds (prompt 123): per component and scenario, the metric, comparator (le, ge, eq, within), the pass threshold and the warn threshold; outside the warn threshold is a failure and a metric that cannot be measured is a warning. The operator setting benchmark.thresholds (same shape) is merged over this file: its suite values replace these, and a component it lists replaces that component's checks. 'gating' names the components each autonomous feature depends on and the component behind each finding type.",
+  "suite": {
+    "seed": 1230001,
+    "replicates": 10,
+    "minBinCount": 100
+  },
+  "components": {
+    "change-point": [
+      {"scenario": "null-seasonal", "metric": "falseAlarmRatio", "comparator": "le", "pass": 1.5, "warn": 3.0, "note": "confirmed change points per bucket on null data over the configured two-sided rate 2/targetArl"},
+      {"scenario": "step-change", "metric": "recall", "comparator": "ge", "pass": 0.8, "warn": 0.6, "note": "planted shifts of 2 and 3 SD found in the right direction"},
+      {"scenario": "step-change", "metric": "delayMedianHours", "comparator": "le", "pass": 168, "warn": 336, "note": "median hours from the planted change to the alarm"},
+      {"scenario": "spike", "metric": "spuriousChangeShare", "comparator": "le", "pass": 0.1, "warn": 0.25, "note": "a two-day burst is not a change point"},
+      {"scenario": "coverage-outage", "metric": "correctUnknownShare", "comparator": "ge", "pass": 0.95, "warn": 0.85, "note": "no confirmed downward change during an outage or low detectability"},
+      {"scenario": "late-revision", "metric": "lookAheadViolations", "comparator": "eq", "pass": 0, "note": "decisions never use a value published after the decision time"},
+      {"scenario": "historical", "metric": "missedExpectations", "comparator": "le", "pass": 0, "warn": 1, "note": "expected change points of a corpus case that the replay did not find"},
+      {"scenario": "historical", "metric": "unexpectedFindings", "comparator": "le", "pass": 0, "warn": 1, "note": "change points found where the case expects none (auto null cases)"},
+      {"scenario": "historical", "metric": "lookAheadViolations", "comparator": "eq", "pass": 0, "note": "the replay never used a value known after the step"}
+    ],
+    "anomaly": [
+      {"scenario": "null-seasonal", "metric": "falseAlarmRatio", "comparator": "le", "pass": 1.5, "warn": 3.0, "note": "alerts per bucket on null data over the sensitivity's alpha"},
+      {"scenario": "spike", "metric": "recall", "comparator": "ge", "pass": 0.8, "warn": 0.6, "note": "planted three-hour bursts that fired"},
+      {"scenario": "spike", "metric": "delayMedianHours", "comparator": "le", "pass": 1, "warn": 2, "note": "hours from the burst's start to the first alert"},
+      {"scenario": "coverage-outage", "metric": "correctUnknownShare", "comparator": "ge", "pass": 0.95, "warn": 0.85, "note": "outage buckets never classified activity-down"}
+    ],
+    "event-study": [
+      {"scenario": "pre-event-move", "metric": "recall", "comparator": "ge", "pass": 0.8, "warn": 0.6, "note": "planted pre-event moves found as pre-event signals"},
+      {"scenario": "pre-event-move", "metric": "placeboFalseSignalRate", "comparator": "le", "pass": 0.05, "warn": 0.1, "note": "placebo events with a signal"},
+      {"scenario": "pre-event-move", "metric": "engineMeanPlaceboPOnPlacebo", "comparator": "ge", "pass": 0.3, "warn": 0.2, "note": "the engine's placebo p of events without a move is consistent with no signal (about 0.5)"}
+    ],
+    "co-occurrence": [
+      {"scenario": "null-seasonal", "metric": "fdr", "comparator": "le", "pass": 0.1, "warn": 0.2, "note": "false-discovery rate on null data at most q + 0.05"},
+      {"scenario": "spike", "metric": "recall", "comparator": "ge", "pass": 0.75, "warn": 0.5, "note": "planted joint spikes found"},
+      {"scenario": "spike", "metric": "fdr", "comparator": "le", "pass": 0.1, "warn": 0.2, "note": "false-discovery rate at most q + 0.05"}
+    ],
+    "evidence": [
+      {"scenario": "duplicate-echo", "metric": "duplicateInflation", "comparator": "eq", "pass": 0, "note": "echoes add no independent group, confidence or evidence quality"},
+      {"scenario": "duplicate-echo", "metric": "wrongGroupCountShare", "comparator": "le", "pass": 0, "warn": 0.1, "note": "events whose independent group count with echoes differs from the planted originators"}
+    ],
+    "canonical-linking": [
+      {"scenario": "duplicate-echo", "metric": "linkingPrecision", "comparator": "ge", "pass": 0.95, "warn": 0.9, "note": "pairs linked into one canonical event that are one planted event"},
+      {"scenario": "duplicate-echo", "metric": "linkingRecall", "comparator": "ge", "pass": 0.9, "warn": 0.8, "note": "pairs of one planted event linked together"},
+      {"scenario": "duplicate-echo", "metric": "spuriousMerges", "comparator": "le", "pass": 0, "warn": 1, "note": "canonical events mixing planted events"}
+    ],
+    "precursor": [
+      {"scenario": "null-seasonal", "metric": "falseValidationRate", "comparator": "le", "pass": 0.05, "warn": 0.1, "note": "independent streams and series validated as precursors"},
+      {"scenario": "common-driver", "metric": "falseValidationRate", "comparator": "le", "pass": 0.05, "warn": 0.1, "note": "shared-driver pairs validated without a co-movement flag"},
+      {"scenario": "true-precursor", "metric": "recall", "comparator": "ge", "pass": 0.8, "warn": 0.6, "note": "the planted precursor validated"},
+      {"scenario": "true-precursor", "metric": "lagRecoveredShare", "comparator": "ge", "pass": 0.8, "warn": 0.6, "note": "median lag within 12 h of the planted 48 h"},
+      {"scenario": "true-precursor", "metric": "rateRecoveredShare", "comparator": "ge", "pass": 0.8, "warn": 0.6, "note": "the planted hit rate inside the hit-rate interval"},
+      {"scenario": "true-precursor", "metric": "falseValidationRate", "comparator": "le", "pass": 0.05, "warn": 0.1, "note": "decoy streams in the same batch validated"},
+      {"scenario": "historical", "metric": "precursorMismatches", "comparator": "le", "pass": 0, "warn": 1, "note": "named precursors whose lifecycle disagrees with the case"}
+    ],
+    "situation-linker": [
+      {"scenario": "spike", "metric": "linkingPrecision", "comparator": "ge", "pass": 0.9, "warn": 0.8, "note": "pairs in one situation that are one planted storyline"},
+      {"scenario": "spike", "metric": "linkingRecall", "comparator": "ge", "pass": 0.8, "warn": 0.6, "note": "pairs of one storyline in one situation"},
+      {"scenario": "spike", "metric": "spuriousMerges", "comparator": "le", "pass": 0, "warn": 1, "note": "situations mixing storylines or background"},
+      {"scenario": "null-seasonal", "metric": "spuriousMerges", "comparator": "le", "pass": 0, "warn": 1, "note": "unrelated inputs merged"}
+    ],
+    "forecaster:base-rate": [
+      {"scenario": "null-seasonal", "metric": "reliabilityMaxDeviation", "comparator": "within", "pass": 0.05, "warn": 0.1, "note": "per populated bin, mean forecast within 0.05 of the observed frequency"},
+      {"scenario": "base-rate-drift", "metric": "skill", "comparator": "ge", "pass": 0.0, "warn": -0.05, "note": "Brier skill against pooled climatology after a rate change"},
+      {"scenario": "base-rate-drift", "metric": "reliabilityMaxDeviation", "comparator": "within", "pass": 0.1, "warn": 0.2, "note": "calibration degrades gracefully after a rate change"}
+    ],
+    "forecaster:analog": [
+      {"scenario": "null-seasonal", "metric": "skill", "comparator": "ge", "pass": -0.02, "warn": -0.05, "note": "Brier skill against the base-rate forecaster"},
+      {"scenario": "null-seasonal", "metric": "reliabilityMaxDeviation", "comparator": "within", "pass": 0.1, "warn": 0.15, "note": "per populated bin"},
+      {"scenario": "base-rate-drift", "metric": "skill", "comparator": "ge", "pass": -0.02, "warn": -0.05, "note": "Brier skill against the base-rate forecaster"}
+    ],
+    "forecaster:precursor": [
+      {"scenario": "true-precursor", "metric": "skill", "comparator": "ge", "pass": 0.05, "warn": 0.0, "note": "Brier skill against the consequent's base rate"},
+      {"scenario": "true-precursor", "metric": "reliabilityMaxDeviation", "comparator": "within", "pass": 0.1, "warn": 0.2, "note": "per populated bin"}
+    ],
+    "forecaster:ensemble": [
+      {"scenario": "null-seasonal", "metric": "skill", "comparator": "ge", "pass": -0.02, "warn": -0.05, "note": "Brier skill against the base-rate forecaster"},
+      {"scenario": "base-rate-drift", "metric": "skill", "comparator": "ge", "pass": -0.02, "warn": -0.05, "note": "Brier skill against the base-rate forecaster"}
+    ]
+  },
+  "gating": {
+    "proposerAutoExecution": ["change-point", "event-study", "co-occurrence", "anomaly", "evidence", "canonical-linking", "precursor", "situation-linker"],
+    "llmEnsembleWeight": ["forecaster:base-rate", "forecaster:ensemble"],
+    "findingTypes": {
+      "change-point": "change-point",
+      "pre-event-signal": "event-study",
+      "unexplained-move": "event-study",
+      "co-occurrence": "co-occurrence",
+      "precursor-active": "precursor"
+    }
+  }
+}

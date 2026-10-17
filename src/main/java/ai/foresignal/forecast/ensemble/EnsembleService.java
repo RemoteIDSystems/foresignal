@@ -39,7 +39,8 @@ import org.springframework.transaction.annotation.Transactional;
  * <ul>
  *   <li><b>Members</b>: the latest forecast of every active forecaster except the ensemble, leaving out forecasts older
  *       than {@code maxAgeDays} (default 7) unless the question itself is younger, and {@code external} forecasters
- *       with fewer than {@code externalMinResolved} (30) resolved questions (EXT-3).</li>
+ *       with fewer than {@code externalMinResolved} (30) resolved questions (EXT-3), and {@code llm} forecasters while
+ *       the 123 benchmark gate degrades their weight (BEN-2).</li>
  *   <li><b>Inputs</b>: an {@code llm} forecaster's probability is clamped to [0.03, 0.97], then a forecaster with a
  *       Platt fit in the question's category (≥ 50 resolved) is recalibrated; raw, capped and recalibrated values
  *       are all stored in the ensemble forecast's {@code inputs}.</li>
@@ -83,6 +84,10 @@ public class EnsembleService {
     private final ScoringService scoring;
     private final AppSettingService settings;
     private final Clock clock;
+
+    /** The 123 benchmark gate: LLM forecasters carry no ensemble weight while their dependencies fail (BEN-2). */
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.beans.factory.ObjectProvider<ai.foresignal.benchmark.BenchmarkGate> benchmarkGate;
 
     /** Creates the service. */
     public EnsembleService(ForecastService ledger, ForecasterRegistry forecasters,
@@ -223,6 +228,7 @@ public class EnsembleService {
         inputs.put("weights", weightMap(members, w));
         inputs.put("extremizing", Map.of("a", a, "enabled", ext.enabled()));
         inputs.put("maxAgeDays", ensemble.configNumber("maxAgeDays", 7));
+        inputs.put("llmEnsembleWeight", llmWeightAllowed() ? "allowed" : "degraded");
         ForecastEntity previous = latest.get(ForecasterRegistry.ENSEMBLE);
         if (previous != null && !changed(previous, value, memberViews)) {
             return null;
@@ -240,6 +246,7 @@ public class EnsembleService {
         Duration maxAge = Duration.ofSeconds((long) (ensemble.configNumber("maxAgeDays", 7) * 86_400));
         boolean youngQuestion = q.getOpensAt().isAfter(now.minus(maxAge));
         int externalMin = (int) ensemble.configNumber("externalMinResolved", 30);
+        boolean llmAllowed = llmWeightAllowed();
         List<Member> out = new ArrayList<>();
         Map<String, Integer> resolved = null;
         for (ForecastEntity f : latest.values()) {
@@ -251,6 +258,9 @@ public class EnsembleService {
                 continue;
             }
             if (!youngQuestion && f.getMadeAt().isBefore(now.minus(maxAge))) {
+                continue;
+            }
+            if ("llm".equals(forecaster.getType()) && !llmAllowed) {
                 continue;
             }
             if ("external".equals(forecaster.getType())) {
@@ -273,6 +283,24 @@ public class EnsembleService {
         }
         out.sort(Comparator.comparing(m -> m.forecaster().getId()));
         return out;
+    }
+
+    /**
+     * True when the 123 benchmark gate lets LLM forecasters carry ensemble weight: every component they depend on
+     * passed or warned in its latest benchmark (true when the gate is absent).
+     */
+    boolean llmWeightAllowed() {
+        ai.foresignal.benchmark.BenchmarkGate gate = benchmarkGate == null ? null : benchmarkGate.getIfAvailable();
+        if (gate == null) {
+            return true;
+        }
+        try {
+            return gate.llmEnsembleWeightAllowed();
+        } catch (RuntimeException e) {
+            log.warn("The benchmark gate could not be read; LLM forecasters keep no ensemble weight: {}",
+                    e.toString());
+            return false;
+        }
     }
 
     private Map<String, Integer> resolvedCounts() {

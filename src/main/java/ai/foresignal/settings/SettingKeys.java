@@ -260,6 +260,12 @@ public final class SettingKeys {
      */
     public static final String FORECAST_ENSEMBLE = "forecast.ensemble";
 
+    /**
+     * Operator overrides of the benchmark thresholds (prompt 123), an object shaped like
+     * {@code intel/benchmark-thresholds.json} ({@code suite}, {@code components}, {@code gating}) merged over it.
+     */
+    public static final String BENCHMARK_THRESHOLDS = "benchmark.thresholds";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -273,7 +279,7 @@ public final class SettingKeys {
                     ANALYSIS_SERIES_MAX, ANALYSIS_FINDINGS_PUBLISH_INFO, ANALYSIS_LIVE_CURSOR, ANALYSIS_LIVE_RECHECKS,
                     ANALYSIS_PRECURSORS_MAX_TESTS, ANALYSIS_PRECURSORS_LOOKBACK_DAYS,
                     ANALYSIS_PRECURSORS_DISCOVERY_FRACTION, PRECURSOR_CURSOR, PRECURSOR_STREAM_CURSORS,
-                    BASERATE_FOLD_WEEK, FORECAST_ENSEMBLE);
+                    BASERATE_FOLD_WEEK, FORECAST_ENSEMBLE, BENCHMARK_THRESHOLDS);
 
     private SettingKeys() {}
 }

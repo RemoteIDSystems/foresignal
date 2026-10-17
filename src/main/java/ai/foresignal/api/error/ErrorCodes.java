@@ -627,6 +627,15 @@ public final class ErrorCodes {
     /** 400: a question's resolver is not valid (122). */
     public static final String RESOLVER_INVALID = "RESOLVER_INVALID";
 
+    /** 404: no benchmark run has that id (123). */
+    public static final String UNKNOWN_BENCHMARK_RUN = "UNKNOWN_BENCHMARK_RUN";
+
+    /** 404: no benchmark case has that id (123). */
+    public static final String UNKNOWN_BENCHMARK_CASE = "UNKNOWN_BENCHMARK_CASE";
+
+    /** 409: a benchmark run is already queued or running (123). */
+    public static final String BENCHMARK_IN_PROGRESS = "BENCHMARK_IN_PROGRESS";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}
