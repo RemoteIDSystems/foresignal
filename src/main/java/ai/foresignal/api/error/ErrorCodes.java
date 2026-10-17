@@ -675,6 +675,21 @@ public final class ErrorCodes {
     /** 409: no forecast method has been selected for the series yet, or an index's inputs are not ready (126). */
     public static final String FORECAST_MODEL_NOT_READY = "FORECAST_MODEL_NOT_READY";
 
+    /** 404: no analysis cycle has that id (128). */
+    public static final String UNKNOWN_CYCLE = "UNKNOWN_CYCLE";
+
+    /** 404: no cycle run has that id (128). */
+    public static final String UNKNOWN_CYCLE_RUN = "UNKNOWN_CYCLE_RUN";
+
+    /** 404: no assessment has that id, none exists yet, or the caller may not see it (128). */
+    public static final String UNKNOWN_ASSESSMENT = "UNKNOWN_ASSESSMENT";
+
+    /** 409: the analysis cycle (or the situation's on-demand assessment) already has a run in progress (128). */
+    public static final String CYCLE_RUN_IN_PROGRESS = "CYCLE_RUN_IN_PROGRESS";
+
+    /** 409: monthly maintenance is already running (128). */
+    public static final String MAINTENANCE_IN_PROGRESS = "MAINTENANCE_IN_PROGRESS";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

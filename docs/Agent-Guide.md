@@ -689,6 +689,9 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `fit_index` | agent | Starts a weight fit of an index (`indexId`) as a 103 job of type `index-fit`: a regularized NB regression of the next four weeks' target count on the components, with rolling-origin validation, the out-of-sample skill against the seasonal-naive outlook and per-component significance. The weights are only **proposed** (`index.weights_proposed`); applying them is `POST /v1/indices/{id}/weights` unless the index sets `autoApplyFittedWeights`. 409 `FORECAST_MODEL_NOT_READY` while the component series do not exist. |
 | `list_projected_impacts` | read | Projected impacts of hazard forecasts (127), highest probability first within each hazard: `hazardType`, `region`, `since`, `minProbability`, `limit`, `cursor`; with `findingId`, one projection in full. Each has `pHazard` (the producer's published probability), `pConditional` (the historical rate, with `n`), `pImpact` and its `interval`, the exposed assets, the dependency paths with their weakest-edge labels, the skipped pairs and the ledger question. **Every projection is modelled; heuristic links may be wrong; it is not an official warning: say so, and quote the interval and n with the number.** |
 | `get_impact_rate` | read | The conditional rate of a built-in pair (127): `hazardClass`, `impactFamily`, optional `regionClass` (default: every continent class). `status: insufficient` (n < 20) means no rate: never assume one. |
+| `get_assessment` | read | One analysis assessment (128) by `assessmentId`, or the latest (of a `cadence`: `daily`, `weekly`, `monthly`, `on-demand`): the bottom line of typed, cited key judgments (each probability a number with its derived ICD 203 term, confidence in a separate statement), what changed since the previous one, and its sections and markdown. **Read the latest assessment before answering questions about situations, and cite it as `assessment:ID`.** Judgments with `textOrigin: llm` were written by a model and validated; speculation is in its own section. |
+| `list_assessments` | read | Assessments newest first (128): `cadence`, `situationId`, `since`, `limit`; id, period, status and headline. |
+| `get_intel_board` | read | The ≤ 8 KB intel board (128): top situations, band changes and observed indicators of the last 24 h, forecasts due in 7 days, the latest assessment per cadence, the ensemble's 90-day calibration next to the operator's, and benchmark status. Read it first for "what is going on" questions. |
 | `list_products` | read | The weather and imagery products you may sample: `id`, `title`, `kind`, `units`, `coverage`, `latest` (newest frame or complete run) and `health` (`ok`, or `unavailable` with the reason); optional `category` (052). |
 | `sample_weather` | read | Product values at `lon`/`lat` or a `place` (needs a token), `time` `latest`, `now`, ISO or an offset (`-PT1H`, `+PT6H`), each with `validTime`, `localTime`, `ageMinutes`, `run`, `coverage` and `status`; plus `hazards`: NWS alerts covering the point (`automated: false`) and ProbSevere objects within 50 km (`automated: true`). A status other than `ok` is unknown, never clear (052). |
 | `weather_forecast` | read | A 3-hourly point forecast to 120 h (`hours`) from the stored GFS and HRRR runs: temperature, wind, gusts, precipitation per step and HRRR smoke, with each provider's `run` and `status` (052). For a place it adds provider `nws` (053): the official NWS gridpoint forecast to 72 h with precipitation probability (`popPct`) and sky cover, `coverage: place`, its `updatedAt`, and `status` `stale` once it is more than 6 hours old. |
@@ -711,6 +714,7 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `confirm_analyst_proposal` | agent, cost-bearing | Confirms and executes a pending analyst proposal. The analyst never deletes or disables anything (102). |
 | `reject_analyst_proposal` | agent | Rejects a pending analyst proposal so it is never executed; a proposal already decided is a conflict (`PROPOSAL_NOT_PENDING`) (102). |
 | `run_analyst` | agent, cost-bearing | Triggers an analyst profile run now and returns the queued run; it spends the configured LLM budget (102). |
+| `run_cycle` | agent, cost-bearing | Runs an analysis cycle now (128) and returns the queued run; it spends the configured LLM budget. Without an LLM it publishes a digest-only assessment; with roles and no provider it is refused (`LLM_NOT_CONFIGURED`). |
 | `run_backtest` | agent | Submits a backtest job over retained history; read it with `get_backtest`. Every result carries its caveats; report them first (103). |
 | `get_backtest` | agent | A backtest job (also event-study, precursor-mining, benchmark and index-fit jobs): status, progress, caveats and result. Quote the caveats when reporting (103). |
 | `test_precursor` | agent | Runs a precursor test over retained history: does X tend to precede Y within T? An association in stored data, not causation; quote the caveats (103). |
@@ -752,6 +756,19 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
   warning" with every projection, give `pImpact` with its interval and the `n` behind the conditional rate, and point to
   the agency's own warning for action. A forecast cone or a categorical risk is never a probability: do not turn one
   into a percentage.
+
+### Assessments and the intel board
+
+- **Start from what Foresignal already concluded.** Before answering a question about a situation, a region or "what
+  is going on", read the intel board (`get_intel_board`) and the latest assessment of the relevant cadence
+  (`get_assessment`), then check anything newer with the other tools.
+- **Cite assessments by id**, as `assessment:ID`, and say which cadence and period they cover. Quote a key judgment
+  with its number and term ("likely, 62%") and keep its confidence statement as a separate sentence.
+- **Keep the assessment's labels.** LLM-written judgments (`textOrigin: llm`) are validated but remain model output;
+  the speculation section is speculation; a `digest-only` assessment has no model judgments at all. Say so when it
+  matters.
+- **LLM forecasts are just forecasts.** The cycle's `llm:*` and `llm-redteam:*` forecasters are scored in the ledger
+  like every other forecaster; quote their scorecard, not their confidence.
 
 ### Vocabulary
 

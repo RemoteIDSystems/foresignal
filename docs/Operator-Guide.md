@@ -1358,8 +1358,8 @@ the failure is announced as a `system` event to your *other* channels. `429` ans
 
 Common fields: `events` (`alert`, `briefing`, `system`, and the opt-in events of later prompts such as
 `situation.activated`, `situation.escalated`, `finding.significant`, `forecast.resolved`,
-`forecast.resolution_needed`, `hypothesis.band_changed`, `indicator.observed` and `assumption.broken`; default
-`["alert"]`), `ruleIds` (null for
+`forecast.resolution_needed`, `hypothesis.band_changed`, `indicator.observed`, `assumption.broken` and
+`assessment.published`; default `["alert"]`), `ruleIds` (null for
 every rule), `minSeverity`, `titleTemplate` and `bodyTemplate` (the trigger placeholders plus
 `{{severity}}`, `{{summary}}`, `{{url}}`, `{{ruleName}}` and `{{message}}`; `{{observedAt|local}}`
 prints `2026-05-01 07:00 CDT` in the channel timezone and `{{observedAt|ago}}` prints `3 min ago`),
@@ -6089,7 +6089,7 @@ detectability); otherwise it is left out and counted under `LOW_DETECTABILITY`. 
 consequent precede the antecedent?) is always tested; when it is as strong, the precursor says "co-occurrence, not
 precedence". Mining uses non-private data only, so precursors are never private.
 
-**The monthly re-test.** `POST /v1/precursors/retest` (and, from prompt 128, the monthly analysis cycle) tests every
+**The monthly re-test.** `POST /v1/precursors/retest` (and the monthly maintenance, see "Analysis cycles") tests every
 validated and stale precursor on the newest third of its range. A validated precursor whose lift falls below 1.2, or
 whose hit-rate interval now includes the chance rate, becomes `stale`; stale twice in a row, it is `retired`; a stale
 precursor that validates again returns to `validated`. Each change is announced on the `analytics` topic of
@@ -6169,8 +6169,8 @@ country, its weekly count of text-reported conflict events over the last ten yea
 of similar population (`regionProfiles` on each rate). The bottom decile gets `LOW_REPORTING_DENSITY`.
 
 **Automatic and custom rates.** Automatic rates exist for every family and region with at least 52 weeks of coverage,
-for 7- and 28-day windows. They are recomputed on the first of each month at 03:30 UTC, after each finished import, and
-on `POST /v1/base-rates/refresh` (one refresh at a time). Agents and operators can store their own definitions (`POST
+for 7- and 28-day windows. They are recomputed by the monthly maintenance (see "Analysis cycles"), after each finished
+import, and on `POST /v1/base-rates/refresh` (one refresh at a time). Agents and operators can store their own definitions (`POST
 /v1/base-rates`) and delete them; automatic rates cannot be deleted. Ad-hoc queries are computed on the spot and cached
 for 24 hours.
 
@@ -6305,8 +6305,8 @@ Skill is always relative to a naive reference: pooled climatology for the base-r
 for the analog and ensemble forecasters, and the circular-shift base rate for the precursor forecaster.
 
 **Runs.** The synthetic suite runs every Sunday at 03:00 UTC and at startup whenever a component's version differs from
-the version last benchmarked. On the first of each month at 03:30 UTC, 20 null region-weeks are sampled into the
-corpus and the historical suite runs (prompt 128's monthly cycle takes this over). Start one yourself with
+the version last benchmarked. Each month the maintenance (see "Analysis cycles") samples 20 null region-weeks into
+the corpus and runs the historical suite. Start one yourself with
 `POST /v1/benchmarks/runs {"suite": "synthetic" | "historical" | "all", "components": [...], "seed": n}` (agent, 202);
 only one run at a time (`BENCHMARK_IN_PROGRESS`). A full synthetic run takes from tens of seconds to a few minutes.
 
@@ -6452,8 +6452,8 @@ now roughly even chance (49%). Drivers: airspace restrictions observed (high dia
 the estimative-language lint, and so must yours: a review rationale with a term that disagrees with its number, or a
 likelihood term and a confidence level in one sentence, is refused (`LINT_FAILED`).
 
-**Reviews.** `nextReviewAt` follows the cadence; prompt 128's analysis cycles will do the routine reviews, and until
-then you or an agent record them.
+**Reviews.** `nextReviewAt` follows the cadence; enabled analysis cycles record the routine reviews of the sets in
+their scope (see "Analysis cycles"), and you or an agent can record one at any time.
 `POST /v1/hypotheses/sets/{id}/review` (agent) records your review with a rationale and may change LRs, assumption
 statuses or probabilities directly, always as a revision with cause `review` (a routine reassessment, the default) or `operator` (a deliberate override
 of the updater). A set past its horizon
@@ -6615,7 +6615,7 @@ grid-frequency excursions, NWS warnings; target `outage`). Enable one, or define
 two years of Mondays so the index can be fitted. A move of 5 points or more emits `index.changed`.
 
 **Why the weights are fitted, and only proposed.** Hand-set weights encode someone's guess about what matters.
-`POST /v1/indices/{id}/fit` (agent; a 103 job, also monthly on the 1st at 04:30 UTC) asks the data instead: a
+`POST /v1/indices/{id}/fit` (agent; a 103 job, also run by the monthly maintenance) asks the data instead: a
 regularized negative-binomial regression of the next four weeks' target count on the components, across all regions,
 with the penalty chosen by rolling-origin validation and the last part of the history held out. The result reports
 the **out-of-sample skill** of the index's implied count forecast against the seasonal-naive outlook (pinball loss and
@@ -6766,3 +6766,194 @@ One question is opened per advisory, impact family and region; the next advisory
 - MCP: `list_projected_impacts` and `get_impact_rate` (read).
 
 Settings: `impact.minProbability` (0.05), `impact.questionMinProbability` (0.10) and `impact.assetBufferKm` (5).
+
+## Analysis cycles (prompt 128)
+
+Analysis cycles give Foresignal a rhythm. A cycle runs on a schedule (daily, weekly or monthly), looks at what
+changed in its scope since its previous run, and publishes an **assessment**: a structured report that builds on the
+previous assessment of the same cycle and says what moved and why. Without an LLM the assessment is built from the
+deterministic packet alone (`digest-only`); with one, four budgeted roles add key judgments, a red-team challenge,
+scored forecasts and proposals.
+
+### Enabling the defaults
+
+The first start creates three cycles, all **disabled**, in the timezone of the `server` setting (UTC when unset):
+
+| Cycle | Cadence | Schedule | Notification priority |
+|---|---|---|---|
+| Daily brief | daily | 06:00 every day | normal |
+| Weekly assessment | weekly | Monday 07:00 | high |
+| Monthly outlook | monthly | the 1st, 08:00 | high |
+
+`GET /v1/analysis/cycles` lists them. To turn one on, replace it with `PUT /v1/analysis/cycles/{id}` (agent) with
+`"enabled": true` and the rest of its definition; the next run time (`nextRunAt`) is recomputed from now. A cycle you
+create with `POST /v1/analysis/cycles` (agent) takes:
+
+- `name`, `cadence` (`daily`, `weekly`, `monthly`) and `schedule` (`{cron, timezone}`: a 5-field cron and an IANA
+  timezone, the same rules as briefings);
+- `scope`: `regionCodes` (ISO 3166-1 alpha-2 or ISO 3166-2), `themes`, `situationIds`, `hypothesisSetIds` (a list, or
+  `"cadence-match"` for every set whose review cadence matches the cycle's), `sourceIds` and question `categories`.
+  An empty scope covers everything. A filter applies where an object has a value for it (a finding without regions
+  passes the region filter);
+- `analystProfileId`: the 102 analyst profile that supplies the model, the effort cap, the per-loop limits, the
+  instructions, `allowActions` and the owner. Without a profile the roles use the assigned chat provider with the 102
+  default limits, and the proposer does not run (proposals belong to a profile);
+- `roles` (any of `analyst`, `red-team`, `forecaster`, `proposer`; empty for a digest-only cycle),
+  `forecasterProviders` (provider ids; default the profile's provider), `samples` (forecaster samples per question,
+  1–7, default 3), `maxQuestions` (default 15 daily, 40 weekly, 60 monthly) and `maxTokensPerCycle` (default 300,000
+  daily, 1.2 million weekly, 2 million monthly);
+- `channelIds` (empty: every channel subscribed to `assessment.published`) and `notifyMinPriority`.
+
+Scheduling follows the briefing and analyst pattern: a 30-second poll claims due cycles, at most one run per cycle and
+two in total run at a time, and a run that was missed while the server was down runs once (trigger `missed`), never
+once per missed slot. `POST /v1/analysis/cycles/{id}/run` (agent, always authenticated, 202) runs a cycle now; it is
+refused with 409 `CYCLE_RUN_IN_PROGRESS` while the cycle runs, and with 409 `LLM_NOT_CONFIGURED` when the cycle has
+roles and no chat provider is configured (a cycle without roles never needs one; a scheduled run without a provider
+publishes a digest-only assessment instead). `GET /v1/analysis/cycles/{id}/runs` and `GET /v1/analysis/runs/{runId}`
+(agent) show each run with its packet, the outcome and token use of every role, and its warnings. Deleting a cycle
+keeps its runs and assessments.
+
+### What a run does
+
+1. **The period.** From the end of the previous successful run of the same cycle; the first run looks back over the
+   cadence's natural window (1 day, 7 days or 30 days).
+2. **The packet** (`cycle-packet` 1.0.0), always and without an LLM: situations that were new, activated, escalated,
+   went dormant or closed (with before and after); hypothesis revisions with their drivers, band changes, indicators
+   observed, absent or of unknown coverage, assumptions broken or questioned, and sets due for review; findings with
+   their base rates and caveats; ledger questions opened, due within the horizon (7 days daily, 30 weekly, 90 monthly)
+   and resolved with every forecaster's score, and scorecard changes; regional index moves of 5 points or more and
+   outlook windows that resolved outside their p10–p90 range; failing and degraded sources and regions of low
+   reporting density; and the 125 collection gaps. Each section is ranked. The stored packet is complete; the LLM sees
+   the 30 best-ranked items per section and is told how many were cut (`truncatedForLlm`). Private items reach the
+   model only when the provider's egress allows private data.
+3. **Routine reviews.** Every in-scope set due for review whose cadence the cycle covers (a daily cycle reviews daily
+   sets, a weekly one daily and weekly sets, a monthly one all) gets a review revision that changes no probability and
+   moves its next review date; a set past its horizon without a ledger question is archived by it.
+4. **The LLM roles**, in order, each a tool loop over the read catalog with the packet as untrusted input:
+   - **Analyst**: 3 to 7 key judgments, each cited. A judgment with a probability must name the ledger question or
+     hypothesis set it is about; the ICD 203 term is derived from the number, and confidence is a separate sentence.
+   - **Red team**: for up to three active sets (those that moved most, then those linked to the most severe
+     situations), the strongest case for the runner-up hypothesis, disconfirming evidence it searched for, the
+     assumptions most likely to be wrong and a premortem ("assume the leading hypothesis proved wrong; why?"). Where a
+     set has a ledger question, its probability is recorded as forecaster `llm-redteam:{profile}`.
+   - **Forecaster**: the open questions in scope with the highest value of information (the linked situation's stakes,
+     critical 3, warning 2, otherwise 1, times the ensemble's uncertainty `4·p·(1−p)`), up to `maxQuestions`. For each
+     question and sample it first takes the outside view (resolution criteria quoted verbatim, `get_base_rate`,
+     `find_analogs`, the reference class and its rate), then the inside view (cited adjustments). The samples are
+     combined by the median of their log-odds and recorded as forecaster `llm:{profile}:{provider}`, one forecaster per
+     configured provider.
+   - **Proposer**: hypothesis sets for situations without one, indicators, watches, ledger questions and situation
+     merges, as 102 proposals. They stay pending unless the profile allows actions, the type is in its
+     `allowedActions`, and the benchmark gate (123) passes.
+5. **The assessment**, always (see below), then delivery: the SSE topic `assessments`, the notification event
+   `assessment.published` (in the inbox; to channels when the cadence's priority, `normal` daily and `high` weekly and
+   monthly, reaches the cycle's `notifyMinPriority`), and the embedding index for semantic search.
+6. **Monthly maintenance** after a monthly cycle's assessment (see below).
+
+A role that hits the cycle's token budget, the provider's 026 budget or a refusal is recorded `skipped` with the
+reason, a role that errors is `failed`, and the assessment is still written. The run's status, and the assessment's,
+is `ok` when every configured role succeeded, `partial` when some did, `digest-only` when none did (or none were
+configured) and `failed` when the run itself failed (it then emits `cycle.run_failed`).
+
+### Choosing models, effort and cost
+
+The effort is `medium` for daily cycles and `high` for weekly and monthly ones, capped by the profile's `effort` when
+that is lower. The system prompts are the versioned templates `cycle-analyst-system`, `cycle-red-team-system`,
+`cycle-forecaster-system` and `cycle-proposer-system` (`GET /v1/prompt-templates/{id}`), sent unchanged with the tools
+in a fixed order so the provider can cache them.
+
+**Estimating cost.** Each run records its tokens per role (`inputTokens`, `outputTokens`, `cachedTokens`) and in
+total (`tokensUsed`). The forecaster dominates: it makes two tool loops per question and sample, for each provider, so
+its cost grows as `maxQuestions × samples × providers`. A first estimate is the run's `tokensUsed` multiplied by your
+provider's price per token (cached input is cheaper with providers that discount it); `maxTokensPerCycle` is the hard
+ceiling across all roles, and the provider's 026 daily budget applies on top. Start with the analyst and red team, add
+the forecaster with one provider, and raise `samples` or add providers only once the ledger shows the forecasts earn
+their place.
+
+### Reading an assessment
+
+`GET /v1/assessments/latest?cadence=weekly`, `GET /v1/assessments/{id}` (`format=md` or `format=html` for the rendered
+page, JSON by default) and `GET /v1/assessments?cadence&since` (read). A cycle assessment has these sections:
+
+1. **Bottom line up front**: the key judgments, or, without an LLM, the period's top deterministic changes.
+2. **What changed** since the previous assessment of this cycle (linked): judgments added, dropped or re-estimated,
+   hypothesis probabilities that moved (with band changes) and situations that appeared, closed or changed.
+3. **Situations**: status, severity and what happened to each this period.
+4. **Hypotheses**: every set with each hypothesis's probability, term, change since the last assessment and top
+   drivers, followed by the red team's notes.
+5. **Indicators to watch**: pending indicators expected in the next period, plus this run's proposals.
+6. **Forecasts**: questions opened, due and resolved (with scores); weekly and monthly add the 90-day scorecard per
+   forecaster, operator next to machine.
+7. **Speculation**, kept apart: speculative-link hypotheses with their alternatives and coincidence baselines, and any
+   judgment that lost its citations.
+8. **Sources, coverage and caveats**: failing and degraded sources, low-density regions, finding caveats, what the
+   LLM did not see, and the outcome of every role.
+
+"What we cannot see" lists the collection gaps, with the analyst's comment when there is one. Every text says where it
+came from (`textOrigin`: `deterministic`, `llm` or `mixed`), every probability is a number with its derived term, and
+the footer reads: "Automated analysis. Probabilities use ICD 203 terms; evidence is cited; speculation is labelled.
+Verify before acting." `lintWarnings` lists the wording problems found and how they were handled: failing text is
+regenerated once, then repaired (terms derived from the numbers, confidence moved out of the sentence) or dropped.
+Each assessment names its model, effort, prompt templates and manifest, so a client can show "view prompt".
+`GET /v1/assessments/{id}/bundle` exports the cited findings, base rates, questions with their forecasts and scores,
+forecasts and hypothesis sets with their recent revisions, with provenance and manifests; `format=geoparquet` returns
+a ZIP of GeoParquet files. `POST /v1/assessments/{id}/feedback` records `useful`, `not_useful` or `wrong`.
+
+**On-demand situation assessments.** `POST /v1/situations/{id}/assessment` (agent, always authenticated, 202) runs the
+same machinery focused on one situation (its members' findings, linked hypothesis sets and questions, coverage), by
+default with the analyst and red team (`{"roles": [...], "effort": "low" | "medium" | "high"}`). The assessment has
+the sections bottom line, key insights, what changed since the previous assessment of the situation, outlook, risks,
+speculation and sources; `GET /v1/situations/{id}/assessments` lists them.
+
+### How the ledger keeps the LLM honest
+
+LLM forecasts are just forecasts. They are written to the 122 ledger under their own forecaster ids, clamped to
+[0.03, 0.97], Platt-recalibrated once they have a record, scored on every resolved question exactly like the baselines,
+and weighted in the ensemble by their earned skill (and only while the forecaster benchmarks pass). They never change
+a hypothesis probability or another forecaster's number. Each forecast stores its rationale as typed claims and its
+inputs: the samples, the model, the effort and a prompt hash. The scorecard and `GET /v1/forecasts/compare` show
+whether the model beats the base rate and you; with the provider's `knowledgeCutoff` set, the monthly maintenance
+also replays the LLM forecasters over the past month's resolved questions (questions opened before the cutoff are
+skipped as `LEAKAGE_RISK`; a retrospective forecast is made without tools, because the read tools cannot be wound back
+to a past date).
+
+### Monthly maintenance
+
+The monthly cycle, after its assessment, runs these steps in order, recording each one's job id, result or error on a
+maintenance run; a failing step never stops the later ones:
+
+1. observability re-estimation (116);
+2. null-case sampling and the historical benchmark suite (123);
+3. the base-rate refresh (121);
+4. the precursor re-test (120);
+5. the Platt refits, relative-Brier weights and extremizing gate of the ensemble refit (122);
+6. an ensemble refresh with the new weights (122);
+7. the extremizing check (122);
+8. index weight fits, as proposals, and regional outlook refits (126);
+9. series-method re-selection (126);
+10. archival proposals: active hypothesis sets past their horizon are flagged for review, and their next review
+    archives them;
+11. with the profile's provider `knowledgeCutoff` set, the retrospective evaluation of every `llm` forecaster over the
+    past month (skipped otherwise).
+
+Because the defaults are disabled, the maintenance also runs on the first of each month at 03:30 UTC whenever no
+monthly cycle is enabled, so base rates, precursors, ensemble weights, index weights and series methods stay current.
+`POST /v1/analysis/maintenance/run` (agent, always authenticated, 202) runs it now; one maintenance runs at a time
+(`MAINTENANCE_IN_PROGRESS`). The cycle run's `maintenance` field shows the steps.
+
+### The intel board
+
+`GET /v1/intel/board` (read; at most 8 KB; ETag and `Cache-Control: max-age=60`) is the small summary for widgets and
+dashboards: the top five situations by severity and recency, hypothesis band changes and observed indicators of the
+last 24 hours, questions due in the next 7 days with the ensemble probability and its term, the latest assessment of
+each cadence with its headline, the ensemble's 90-day Brier skill and calibration next to yours (once you have 20
+resolved forecasts), and the latest benchmark status per component. Private objects appear only for callers allowed
+private data; the board carries no raw series values. When the content would exceed 8 KB it shortens texts first,
+then drops the oldest observed indicators, band changes, due questions and lower-ranked situations, and lists what it
+cut in `truncated`.
+
+### Records, the stream and MCP
+
+The SSE topic `assessments` carries `assessment.published` and `cycle.run_failed` (cursor key `m`; a reconnecting
+client replays what it missed). MCP: `get_assessment`, `list_assessments` and `get_intel_board` (read, also in the
+analyst's and the cycles' read catalog) and `run_cycle` (agent, cost-bearing).

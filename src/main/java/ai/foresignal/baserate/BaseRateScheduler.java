@@ -9,9 +9,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * The base-rate schedule (prompt 121), UTC: the own-history fold nightly at 02:15, and the automatic-rate refresh on
- * the first of each month at 03:30 (until prompt 128's monthly cycle calls {@link BaseRateService#submitRefresh}
- * itself). {@code foresignal.analytics.scheduled=false} turns both off (tests call the services directly).
+ * The base-rate schedule (prompt 121), UTC: the own-history fold nightly at 02:15. The monthly automatic-rate refresh
+ * is a step of prompt 128's monthly maintenance, which calls {@link BaseRateService#submitRefresh}.
+ * {@code foresignal.analytics.scheduled=false} turns the fold off (tests call the services directly).
  */
 @Component
 public class BaseRateScheduler {
@@ -34,18 +34,6 @@ public class BaseRateScheduler {
     @Scheduled(cron = "0 15 2 * * *", zone = "UTC")
     public void fold() {
         run("own-history fold", fold::fold);
-    }
-
-    /** The monthly refresh. */
-    @Scheduled(cron = "0 30 3 1 * *", zone = "UTC")
-    public void monthly() {
-        run("monthly base-rate refresh", () -> {
-            try {
-                log.info("Base-rate refresh queued as job {}", service.submitRefresh("schedule", null).getId());
-            } catch (ConflictException e) {
-                log.info("Base-rate refresh skipped: {}", e.getMessage());
-            }
-        });
     }
 
     private void run(String what, Runnable task) {

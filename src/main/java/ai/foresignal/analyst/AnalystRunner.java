@@ -130,7 +130,15 @@ public class AnalystRunner {
             "get_precursor", "get_base_rate", "find_analogs", "list_questions", "get_question", "get_scorecard",
             "get_benchmark_status", "list_hypothesis_sets", "get_hypothesis_set", "get_ach_matrix",
             "get_information_value", "list_collection_gaps", "get_series_forecast", "get_outlook", "get_index",
-            "list_projected_impacts", "get_impact_rate");
+            "list_projected_impacts", "get_impact_rate", "get_assessment", "list_assessments", "get_intel_board");
+
+    /**
+     * The read catalog the analyst and the analysis-cycle roles (prompt 128) may use: the 028 read tools and the
+     * intelligence tools of prompts 118–128.
+     */
+    public static Set<String> readToolNames() {
+        return READ_TOOL_NAMES;
+    }
 
     private final LlmService llm;
     private final LlmSettingsService llmSettings;

@@ -14,9 +14,9 @@ import org.springframework.stereotype.Component;
 /**
  * The schedule of prompt 126, all UTC: series forecasts (with method re-selection after 30 days and the exceedance
  * checks) nightly at 03:30, after the 03:00 change-point run; regional index values at 03:45; regional outlooks on
- * Mondays at 06:00 (families refitted first when their fits are older than 30 days); index weight fits on the 1st of
- * each month at 04:30 (prompt 128's monthly cycle is not built yet). {@code foresignal.analytics.scheduled=false}
- * turns all of it off (tests call the services directly).
+ * Mondays at 06:00 (families without a fit are fitted first). Index weight fits, outlook refits and series-method
+ * re-selection are steps of prompt 128's monthly maintenance ({@code ai.foresignal.cycle.MonthlyMaintenance}).
+ * {@code foresignal.analytics.scheduled=false} turns all of it off (tests call the services directly).
  */
 @Component
 public class OutlookScheduler {
@@ -58,12 +58,6 @@ public class OutlookScheduler {
     @Scheduled(cron = "0 0 6 * * MON", zone = "UTC")
     public void weeklyOutlooks() {
         run("regional outlooks", () -> log.info("Regional outlooks: {}", outlooks.publishAll(clock.instant())));
-    }
-
-    /** Monthly index fits on the 1st at 04:30 UTC. */
-    @Scheduled(cron = "0 30 4 1 * *", zone = "UTC")
-    public void monthlyFits() {
-        run("index fits", () -> log.info("Index fits submitted: {}", fits.submitMonthly().size()));
     }
 
     private void run(String what, Runnable task) {

@@ -238,15 +238,26 @@ public class RegionalOutlookService implements QuestionResolutionListener {
 
     // ------------------------------------------------------------------------- fitting
 
-    /** Refits every family whose fits are older than {@value #REFIT_DAYS} days (or missing). */
+    /**
+     * Refits every family that has no fit yet (before the first outlooks). Refits of existing fits are a step of the
+     * monthly maintenance of prompt 128 ({@link #refitAll}), which replaced the 30-day age rule.
+     */
     public RunResult refitDue(Instant now) {
+        return refit(now, false);
+    }
+
+    /** Refits every family at {@code now} (the monthly maintenance, prompt 128). */
+    public RunResult refitAll(Instant now) {
+        return refit(now, true);
+    }
+
+    private RunResult refit(Instant now, boolean all) {
         int fams = 0;
         int regions = 0;
         int errors = 0;
         for (OutlookFamilies.Family f : families.all()) {
             List<RegionalOutlookModelEntity> rows = models.findByFamily(f.id());
-            boolean due = rows.isEmpty() || rows.stream().anyMatch(r -> r.getFittedAt()
-                    .isBefore(now.minus(Duration.ofDays(REFIT_DAYS))));
+            boolean due = all || rows.isEmpty();
             if (!due) {
                 continue;
             }

@@ -47,8 +47,9 @@ import org.springframework.stereotype.Service;
  *   <li><b>Eligible series</b>: enabled analysis-series rows whose {@code detectors} include {@code forecast}, of
  *       daily, weekly or hourly frequency (hourly series are summed or averaged to days).
  *   <li><b>Selection</b> ({@link #select}): the rolling-origin backtest of {@link MethodSelector} over the history
- *       known at the selection time; stored in {@code series_forecast_model} with a 116 manifest and re-selected
- *       when older than {@value #RESELECT_DAYS} days.
+ *       known at the selection time; stored in {@code series_forecast_model} with a 116 manifest. A series without
+ *       a model is selected on its first nightly run; re-selection is a step of the monthly maintenance of prompt 128
+ *       ({@link #reselectAll}), which replaced the 30-day age rule.
  *   <li><b>Forecasts</b> ({@link #forecast}, nightly after the change-point run): horizons 1, 7 and 28 days, the
  *       nine quantiles from the selected method (monotone), stored in {@code series_forecast} with the seq read up
  *       to and a manifest.
@@ -80,7 +81,7 @@ public class SeriesForecastService {
     /** The ledger forecaster of Foresignal's statistical forecasts. */
     public static final String FORECASTER = "statistical";
 
-    /** Days after which a method is re-selected. */
+    /** The method age, in days, the monthly re-selection keeps (prompt 128 re-selects every eligible series monthly). */
     public static final int RESELECT_DAYS = 30;
 
     /** Days a 1-step target may stay unobserved before its exceedance check is given up. */
@@ -185,7 +186,7 @@ public class SeriesForecastService {
             series++;
             try {
                 SeriesForecastModelEntity model = models.findById(row.getRef()).orElse(null);
-                if (model == null || model.getSelectedAt().isBefore(now.minus(Duration.ofDays(RESELECT_DAYS)))) {
+                if (model == null) {
                     model = select(row.getRef(), now);
                     selected++;
                 }
@@ -204,6 +205,37 @@ public class SeriesForecastService {
     }
 
     // ------------------------------------------------------------------------- selection
+
+    /**
+     * Re-selects the method of every eligible series at {@code now} (the monthly maintenance step
+     * {@code series-method-reselection}, prompt 128).
+     *
+     * @return {@code selected}, {@code notReady} and {@code errors} counts
+     */
+    public Map<String, Object> reselectAll(Instant now) {
+        int selected = 0;
+        int notReady = 0;
+        int errors = 0;
+        for (AnalysisSeriesEntity row : registry.findByEnabledTrueOrderByRefAsc()) {
+            if (!eligible(row)) {
+                continue;
+            }
+            try {
+                select(row.getRef(), now);
+                selected++;
+            } catch (ConflictException e) {
+                notReady++;
+            } catch (RuntimeException e) {
+                errors++;
+                log.warn("Method re-selection of {} failed: {}", row.getRef(), e.toString());
+            }
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("selected", selected);
+        out.put("notReady", notReady);
+        out.put("errors", errors);
+        return out;
+    }
 
     /**
      * Selects the method of a series by rolling-origin backtest at {@code now} and stores it.

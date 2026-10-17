@@ -176,7 +176,40 @@ class EventSchemaConformanceTest {
             entry(ai.foresignal.hypothesis.HypothesisEvents.INDICATOR_ABSENT,
                     () -> indicatorEvents(ai.foresignal.hypothesis.HypothesisVocabulary.ABSENT)),
             entry(ai.foresignal.hypothesis.HypothesisEvents.ASSUMPTION_BROKEN,
-                    EventSchemaConformanceTest::assumptionEvents));
+                    EventSchemaConformanceTest::assumptionEvents),
+            // 128: AssessmentsTopic sends the assessment_log payloads written by AssessmentEvents on topic assessments.
+            entry(ai.foresignal.cycle.AssessmentEvents.PUBLISHED, EventSchemaConformanceTest::assessmentPublishedEvents),
+            entry(ai.foresignal.cycle.AssessmentEvents.RUN_FAILED, EventSchemaConformanceTest::cycleRunFailedEvents));
+
+    /** {@code assessment.published} payloads as {@code AssessmentEvents.publishedPayload} writes them (prompt 128). */
+    static List<JsonNode> assessmentPublishedEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        List<JsonNode> out = new ArrayList<>();
+        ai.foresignal.cycle.AssessmentEntity a = new ai.foresignal.cycle.AssessmentEntity("01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+                "weekly", at.minusSeconds(604_800), at, at);
+        a.setCycleId("01JA8Q3V7S2K9W4T6Y1B5N0M3D");
+        a.setStatus("ok");
+        a.setHeadline("A coalition response within 72 hours is likely.");
+        out.add(toTree(ai.foresignal.cycle.AssessmentEvents.publishedPayload(a, at)));
+        ai.foresignal.cycle.AssessmentEntity onDemand = new ai.foresignal.cycle.AssessmentEntity(
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3E", "on-demand", at.minusSeconds(3600), at, at);
+        onDemand.setSituationId("01JA8Q3V7S2K9W4T6Y1B5N0M3F");
+        onDemand.setPrivateAssessment(true);
+        out.add(toTree(ai.foresignal.cycle.AssessmentEvents.publishedPayload(onDemand, at)));
+        return out;
+    }
+
+    /** {@code cycle.run_failed} payloads as {@code AssessmentEvents.failedPayload} writes them (prompt 128). */
+    static List<JsonNode> cycleRunFailedEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        ai.foresignal.cycle.CycleRunEntity run = new ai.foresignal.cycle.CycleRunEntity("01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3D", null, "daily", "schedule", at.minusSeconds(86_400), at, at);
+        ai.foresignal.cycle.CycleRunEntity situation = new ai.foresignal.cycle.CycleRunEntity(
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3E", null, "01JA8Q3V7S2K9W4T6Y1B5N0M3F", "on-demand", "situation",
+                at.minusSeconds(3600), at, at);
+        return List.of(toTree(ai.foresignal.cycle.AssessmentEvents.failedPayload(run, "the cycle was deleted", at)),
+                toTree(ai.foresignal.cycle.AssessmentEvents.failedPayload(situation, null, at)));
+    }
 
     /** {@code set.*} payloads as {@code HypothesisEvents.setPayload} writes them (prompt 125). */
     static List<JsonNode> hypothesisSetEvents(String cause, boolean bandChange) {

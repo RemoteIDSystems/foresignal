@@ -57,10 +57,25 @@ public final class PromptTemplates {
     /** The situation brief (prompt 118). */
     public static final String SITUATION_BRIEF = "situation-brief-system";
 
+    /** The analysis-cycle analyst role (prompt 128). */
+    public static final String CYCLE_ANALYST = "cycle-analyst-system";
+
+    /** The analysis-cycle red team (prompt 128). */
+    public static final String CYCLE_RED_TEAM = "cycle-red-team-system";
+
+    /** The analysis-cycle forecaster (prompt 128). */
+    public static final String CYCLE_FORECASTER = "cycle-forecaster-system";
+
+    /** The analysis-cycle proposer (prompt 128). */
+    public static final String CYCLE_PROPOSER = "cycle-proposer-system";
+
     /** The LLM role of each template. */
-    public static final Map<String, String> ROLES = Map.of(ASK, "ask", ASK_RETRIEVAL, "ask", ENRICHMENT, "enrichment",
-            BRIEFING, "briefing", MAPPING_SUGGEST, "mapping", TUNING_EXPLAINER, "tuning", ANALYST, "analyst",
-            SITUATION_BRIEF, "situation-brief");
+    public static final Map<String, String> ROLES = Map.ofEntries(Map.entry(ASK, "ask"),
+            Map.entry(ASK_RETRIEVAL, "ask"), Map.entry(ENRICHMENT, "enrichment"), Map.entry(BRIEFING, "briefing"),
+            Map.entry(MAPPING_SUGGEST, "mapping"), Map.entry(TUNING_EXPLAINER, "tuning"),
+            Map.entry(ANALYST, "analyst"), Map.entry(SITUATION_BRIEF, "situation-brief"),
+            Map.entry(CYCLE_ANALYST, "cycle-analyst"), Map.entry(CYCLE_RED_TEAM, "cycle-red-team"),
+            Map.entry(CYCLE_FORECASTER, "cycle-forecaster"), Map.entry(CYCLE_PROPOSER, "cycle-proposer"));
 
     private static final Pattern FILE = Pattern.compile("([a-z0-9-]+)@([0-9]+\\.[0-9]+\\.[0-9]+)\\.md");
 

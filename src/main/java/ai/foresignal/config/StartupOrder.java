@@ -126,6 +126,12 @@ public final class StartupOrder {
     /** The impact projector (prompt 127): a change-bus subscriber with a durable cursor, after the situation linker. */
     public static final int IMPACT = 33;
 
+    /**
+     * The analysis cycles (prompt 128): the disabled defaults are created and the cycle scheduler starts, after the
+     * impact projector and before the briefing scheduler.
+     */
+    public static final int CYCLES = 34;
+
     /** The briefing scheduler (prompt 029), after the collector scheduler. */
     public static final int BRIEFINGS = 35;
 

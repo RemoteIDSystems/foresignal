@@ -38,7 +38,9 @@ import tools.jackson.databind.json.JsonMapper;
  * created enabled and tagged {@code analyst} and {@code origin-analyst}, events with
  * {@code origin=analyst} (status {@code emerging}, members' identities only, the score computed by
  * {@code EventScorer}), investigation items only into open investigations, and {@code annotate_event}
- * only appends labeled speculation.
+ * only appends labeled speculation. The analysis-cycle proposer (prompt 128) adds hypothesis sets (validated as 125
+ * drafts), indicators on existing sets, ledger questions (validated by 122) and situation merges, all with origin
+ * {@code analyst}.
  *
  * <p>Each proposal executes in <strong>its own transaction</strong> ({@code REQUIRES_NEW}): a failing
  * proposal rolls back only its own effects and is marked {@code failed}; the others and the caller's
@@ -238,6 +240,10 @@ public class AnalystExecutionService {
                 case AnalystActions.PROPOSE_INTEL_EVENT -> createEvent(proposal, privateAccess);
                 case AnalystActions.PROPOSE_INVESTIGATION_ITEM -> addInvestigationItem(proposal, privateAccess);
                 case AnalystActions.ANNOTATE_EVENT -> annotate(proposal, privateAccess);
+                case AnalystActions.PROPOSE_HYPOTHESIS_SET -> createHypothesisSet(proposal, actor);
+                case AnalystActions.PROPOSE_INDICATOR -> createIndicator(proposal, privateAccess);
+                case AnalystActions.PROPOSE_QUESTION -> openQuestion(proposal, actor);
+                case AnalystActions.PROPOSE_SITUATION_MERGE -> mergeSituations(proposal, actor, privateAccess);
                 default -> throw new IllegalStateException("unknown proposal type " + proposal.getType());
             });
             proposal.setStatus("executed");
@@ -349,6 +355,64 @@ public class AnalystExecutionService {
         event.setNarrative(existing + "[speculation] " + note);
         events.save(event);
         return eventId;
+    }
+
+    /** The 125 hypothesis service (prompt 128 proposals), optional in slices without it. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ObjectProvider<ai.foresignal.hypothesis.HypothesisService> hypotheses;
+
+    /** The 122 ledger (prompt 128 proposals), optional in slices without it. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ObjectProvider<ai.foresignal.forecast.ForecastService> ledger;
+
+    /** The 118 situation service (prompt 128 proposals), optional in slices without it. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ObjectProvider<ai.foresignal.situation.SituationService> situations;
+
+    private static <T> T require(ObjectProvider<T> provider, String what) {
+        T bean = provider == null ? null : provider.getIfAvailable();
+        if (bean == null) {
+            throw new IllegalStateException(what + " is not available");
+        }
+        return bean;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> child(Map<String, Object> payload, String key) {
+        Object value = payload.get(key);
+        if (value instanceof Map<?, ?> map) {
+            return new LinkedHashMap<>((Map<String, Object>) map);
+        }
+        throw new IllegalStateException("the proposal has no " + key);
+    }
+
+    /** A hypothesis set from the proposal's 125 draft ({@code set}), origin {@code analyst}. */
+    private String createHypothesisSet(AnalystProposalEntity proposal, String actor) {
+        var draft = ai.foresignal.hypothesis.HypothesisInputs.set(child(proposal.getPayload(), "set"));
+        return require(hypotheses, "the hypothesis service").create(draft, "analyst", actor).getId();
+    }
+
+    /** An indicator on an existing set ({@code setId}, {@code indicator}), origin {@code analyst}. */
+    private String createIndicator(AnalystProposalEntity proposal, boolean privateAccess) {
+        String setId = String.valueOf(proposal.getPayload().get("setId"));
+        var draft = ai.foresignal.hypothesis.HypothesisInputs.indicator(child(proposal.getPayload(), "indicator"), "");
+        return require(hypotheses, "the hypothesis service").createIndicator(setId, draft, "analyst", privateAccess)
+                .getId();
+    }
+
+    /** A ledger question from the proposal's {@code question} (122 validation), origin {@code analyst}. */
+    private String openQuestion(AnalystProposalEntity proposal, String actor) {
+        var draft = ai.foresignal.forecast.ForecastInputs.question(json.valueToTree(child(proposal.getPayload(),
+                "question")), clock.instant());
+        return require(ledger, "the forecast ledger").openQuestion(draft, "analyst", actor).question().getId();
+    }
+
+    /** Merges {@code situationId} into {@code intoId}; nothing is deleted (the merged situation points at the survivor). */
+    private String mergeSituations(AnalystProposalEntity proposal, String actor, boolean privateAccess) {
+        Map<String, Object> payload = proposal.getPayload();
+        String reason = payload.get("reason") == null ? "analysis-cycle proposal" : String.valueOf(payload.get("reason"));
+        return require(situations, "the situation service").merge(String.valueOf(payload.get("situationId")),
+                String.valueOf(payload.get("intoId")), null, reason, actor, privateAccess).getId();
     }
 
     /** Expires pending proposals past their deadline. */

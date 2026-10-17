@@ -21,10 +21,11 @@ public record ChannelTypeSpec(
         List<ChannelFieldSpec> secretFields,
         List<String> events) {
 
-    /** Every event a channel can subscribe to (prompt 018, extended by later prompts up to 125). */
+    /** Every event a channel can subscribe to (prompt 018, extended by later prompts up to 128). */
     public static final List<String> ALL_EVENTS = List.of("alert", "briefing", "system", "analyst.note",
             "situation.activated", "situation.escalated", "finding.significant", "forecast.resolved",
-            "forecast.resolution_needed", "hypothesis.band_changed", "indicator.observed", "assumption.broken");
+            "forecast.resolution_needed", "hypothesis.band_changed", "indicator.observed", "assumption.broken",
+            "assessment.published");
 
     /** Copies the lists. */
     public ChannelTypeSpec {

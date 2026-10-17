@@ -52,7 +52,7 @@ public class InboxService {
     /** The inbox events. */
     public static final List<String> EVENTS = List.of("alert", "briefing", "system", "analyst.note",
             "situation.activated", "situation.escalated", "finding.significant", "forecast.resolution_needed",
-            "hypothesis.band_changed");
+            "hypothesis.band_changed", "assessment.published");
 
     /** The most sparse reads kept per device. */
     public static final int MAX_SPARSE = 500;
@@ -277,7 +277,7 @@ public class InboxService {
         Long head = jdbc.getJdbcTemplate().queryForObject(
                 "select coalesce(max(id), 0) from notification where event in ('alert', 'briefing', 'system',"
                         + " 'analyst.note', 'situation.activated', 'situation.escalated', 'finding.significant',"
-                        + " 'forecast.resolution_needed', 'hypothesis.band_changed')",
+                        + " 'forecast.resolution_needed', 'hypothesis.band_changed', 'assessment.published')",
                 Long.class);
         return head == null ? 0 : head;
     }
@@ -455,7 +455,7 @@ public class InboxService {
         List<String> where = new ArrayList<>();
         where.add("n.event in ('alert', 'briefing', 'system', 'analyst.note', 'situation.activated',"
                 + " 'situation.escalated', 'finding.significant', 'forecast.resolution_needed',"
-                + " 'hypothesis.band_changed')");
+                + " 'hypothesis.band_changed', 'assessment.published')");
         where.add("n.created_at >= :horizon");
         p.addValue("horizon", Timestamp.from(clock.instant().minus(retention.settings().inbox())));
         return where;

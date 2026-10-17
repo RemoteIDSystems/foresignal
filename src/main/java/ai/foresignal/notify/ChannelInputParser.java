@@ -181,8 +181,8 @@ public class ChannelInputParser {
                     if (event == null || !ChannelTypeSpec.ALL_EVENTS.contains(event)) {
                         errors.add(new FieldError("events", "supported events are alert, briefing, system, analyst.note,"
                                 + " situation.activated, situation.escalated, finding.significant, forecast.resolved,"
-                                + " forecast.resolution_needed, hypothesis.band_changed, indicator.observed and"
-                                + " assumption.broken"));
+                                + " forecast.resolution_needed, hypothesis.band_changed, indicator.observed,"
+                                + " assumption.broken and assessment.published"));
                     } else if (!events.contains(event)) {
                         events.add(event);
                     }

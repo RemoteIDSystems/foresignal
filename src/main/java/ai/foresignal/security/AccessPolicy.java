@@ -475,6 +475,8 @@ public class AccessPolicy {
                 // ---- Situations (prompt 118): reads are read; changes, the brief and the linker dry run agent. The
                 // brief may spend LLM budget, so it is always authenticated. ----
                 rule(HttpMethod.POST, "/v1/situations/*/brief", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
+                // An on-demand situation assessment (prompt 128) runs the cycle roles and may spend LLM budget.
+                rule(HttpMethod.POST, "/v1/situations/*/assessment", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.POST, "/v1/situations/linker/test", AccessRequirement.AGENT),
                 rule(HttpMethod.GET, "/v1/situations", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/situations/**", AccessRequirement.READ),
@@ -564,6 +566,20 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/benchmarks/runs/*", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/benchmarks/status", AccessRequirement.READ),
                 rule(null, "/v1/benchmarks/**", AccessRequirement.AGENT),
+
+                // ---- Analysis cycles and assessments (prompt 128): cycle definitions and assessments are reads;
+                // changing cycles and reading runs are agent operations; running a cycle and the monthly maintenance may
+                // spend LLM budget or start jobs, so they are always authenticated; feedback is a read-scope write, like
+                // the 102 note feedback. The intel board is a read under /v1/intel/**. ----
+                rule(HttpMethod.POST, "/v1/analysis/cycles/*/run", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/analysis/maintenance/run", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/analysis/cycles", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/analysis/cycles/*/runs", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/analysis/cycles/*", AccessRequirement.READ),
+                rule(null, "/v1/analysis/**", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/assessments/*/feedback", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/assessments", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/assessments/**", AccessRequirement.READ),
 
                 // ---- Autonomous analyst (prompt 102) ----
                 rule(HttpMethod.POST, "/v1/analyst/profiles/*/run", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),

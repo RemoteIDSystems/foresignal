@@ -13,8 +13,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * The benchmark schedule (prompt 123), UTC: the synthetic suite every Sunday at 03:00 and at startup when a component's
- * version differs from the version last benchmarked; on the first of each month at 03:30 the null region-weeks are
- * sampled and the historical suite runs (until prompt 128's monthly cycle triggers it).
+ * version differs from the version last benchmarked. The monthly null-case sampling and historical suite are a step of
+ * prompt 128's monthly maintenance.
  * {@code foresignal.analytics.scheduled=false} turns all of it off (tests call the services directly).
  */
 @Component
@@ -44,20 +44,6 @@ public class BenchmarkScheduler {
         if (scheduled) {
             submit("synthetic", "schedule");
         }
-    }
-
-    /** The monthly null-case sampling and historical suite. */
-    @Scheduled(cron = "0 30 3 1 * *", zone = "UTC")
-    public void monthly() {
-        if (!scheduled) {
-            return;
-        }
-        try {
-            historical.sampleNullCases(clock.instant());
-        } catch (RuntimeException e) {
-            log.warn("Sampling null benchmark cases failed: {}", e.toString());
-        }
-        submit("historical", "schedule");
     }
 
     /** At startup, a synthetic run when a component's version changed since it was last benchmarked. */

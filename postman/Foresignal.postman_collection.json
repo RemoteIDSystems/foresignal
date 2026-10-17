@@ -7433,7 +7433,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('cycleId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -7475,7 +7478,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Red Sea weekly assessment\",\n  \"cadence\": \"weekly\",\n  \"schedule\": {\n    \"cron\": \"0 7 * * 1\",\n    \"timezone\": \"Europe/London\"\n  },\n  \"scope\": {\n    \"regionCodes\": [\n      \"YE\",\n      \"SA\",\n      \"ER\",\n      \"DJ\"\n    ],\n    \"themes\": [\n      \"maritime\"\n    ],\n    \"hypothesisSetIds\": \"cadence-match\"\n  },\n  \"roles\": [\n    \"analyst\",\n    \"red-team\",\n    \"forecaster\",\n    \"proposer\"\n  ],\n  \"samples\": 3,\n  \"maxQuestions\": 40,\n  \"maxTokensPerCycle\": 1200000,\n  \"channelIds\": [],\n  \"notifyMinPriority\": \"high\",\n  \"enabled\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -7575,7 +7578,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Red Sea weekly assessment\",\n  \"cadence\": \"weekly\",\n  \"schedule\": {\n    \"cron\": \"0 7 * * 1\",\n    \"timezone\": \"Europe/London\"\n  },\n  \"scope\": {\n    \"regionCodes\": [\n      \"YE\",\n      \"SA\"\n    ],\n    \"hypothesisSetIds\": \"cadence-match\"\n  },\n  \"roles\": [\n    \"analyst\",\n    \"red-team\"\n  ],\n  \"enabled\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -7634,7 +7637,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));"
+                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('cycleRunId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -7757,7 +7763,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/analysis/runs/{{runId}}",
+              "raw": "{{baseUrl}}/v1/analysis/runs/{{cycleRunId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -7765,7 +7771,7 @@
                 "v1",
                 "analysis",
                 "runs",
-                "{{runId}}"
+                "{{cycleRunId}}"
               ],
               "query": []
             },
@@ -7837,7 +7843,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('assessmentId', j.items[0].id);",
+                  "}"
                 ]
               }
             }
@@ -8075,7 +8084,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"rating\": \"useful\",\n  \"comment\": \"The red-team premortem changed our watch list.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -8135,7 +8144,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"roles\": [\n    \"analyst\"\n  ],\n  \"effort\": \"medium\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -52059,6 +52068,18 @@
     },
     {
       "key": "evaluationId",
+      "value": ""
+    },
+    {
+      "key": "cycleId",
+      "value": ""
+    },
+    {
+      "key": "cycleRunId",
+      "value": ""
+    },
+    {
+      "key": "assessmentId",
       "value": ""
     },
     {

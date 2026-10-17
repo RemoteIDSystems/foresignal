@@ -14,8 +14,8 @@ import org.springframework.stereotype.Component;
 /**
  * The ledger's schedule (prompt 122), UTC: precursor questions every 5 minutes, baseline re-forecasts every 30
  * minutes (each baseline at most daily per question), resolution hourly at :07, the ensemble's staleness refresh daily
- * at 04:20, a re-score of rows from an older scorer version daily at 04:40, and the ensemble refit on the first of
- * each month at 04:00 (until prompt 128's monthly cycle calls {@link EnsembleService#refit} itself).
+ * at 04:20 and a re-score of rows from an older scorer version daily at 04:40. The monthly ensemble refit is a step of
+ * prompt 128's monthly maintenance, which calls {@link EnsembleService#refit}.
  * {@code foresignal.analytics.scheduled=false} turns all of it off (tests call the services directly).
  */
 @Component
@@ -70,12 +70,6 @@ public class LedgerScheduler {
     @Scheduled(cron = "0 40 4 * * *", zone = "UTC")
     public void rescore() {
         run("forecast re-score", scoring::rescoreOutdated);
-    }
-
-    /** The monthly ensemble refit. */
-    @Scheduled(cron = "0 0 4 1 * *", zone = "UTC")
-    public void refit() {
-        run("ensemble refit", ensemble::refit);
     }
 
     private void run(String what, java.util.function.Supplier<?> task) {

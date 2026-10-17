@@ -48,7 +48,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              "setId": "hypothesisSetId", "hypothesisId": "hypothesisId", "indicatorId": "indicatorId",
              "evidenceId": "achEvidenceId", "assumptionId": "assumptionId",
              # 126: regional indices.
-             "indexId": "indexId"}
+             "indexId": "indexId",
+             # 128: analysis cycles and assessments.
+             "cycleId": "cycleId", "assessmentId": "assessmentId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -64,7 +66,9 @@ PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
                        # 123: a benchmark run is not a briefing run of {{runId}}.
                        ("/v1/benchmarks/", {"runId": "benchmarkRunId", "caseId": "benchmarkCaseId"}),
                        # 126: the region and family of a regional outlook.
-                       ("/v1/outlooks/", {"region": "outlookRegion", "family": "outlookFamily"})]
+                       ("/v1/outlooks/", {"region": "outlookRegion", "family": "outlookFamily"}),
+                       # 128: a cycle run is not a briefing run of {{runId}}.
+                       ("/v1/analysis/", {"runId": "cycleRunId"})]
 
 # The EDP manifest of docs/External-Data-Protocol.md §2 (024).
 EDP_MANIFEST = {
@@ -748,6 +752,22 @@ BODIES = {
   # 111: archive the USGS source to the local cold archive, keeping the local copy.
   "updateArchiveSettings": {"enabled": True, "sources": ["usgs-earthquakes"], "target": "local", "s3": None,
                             "keepLocal": True},
+  # 128: a weekly assessment on Mondays at 07:00 in London over the Red Sea region, with all four roles, three
+  # forecaster samples per question and the weekly caps; the replacement narrows it to the analyst and red team;
+  # feedback on an assessment; an on-demand assessment of a situation with the analyst only.
+  "createAnalysisCycle": {"name": "Red Sea weekly assessment", "cadence": "weekly",
+                          "schedule": {"cron": "0 7 * * 1", "timezone": "Europe/London"},
+                          "scope": {"regionCodes": ["YE", "SA", "ER", "DJ"], "themes": ["maritime"],
+                                    "hypothesisSetIds": "cadence-match"},
+                          "roles": ["analyst", "red-team", "forecaster", "proposer"], "samples": 3,
+                          "maxQuestions": 40, "maxTokensPerCycle": 1200000, "channelIds": [],
+                          "notifyMinPriority": "high", "enabled": True},
+  "updateAnalysisCycle": {"name": "Red Sea weekly assessment", "cadence": "weekly",
+                          "schedule": {"cron": "0 7 * * 1", "timezone": "Europe/London"},
+                          "scope": {"regionCodes": ["YE", "SA"], "hypothesisSetIds": "cadence-match"},
+                          "roles": ["analyst", "red-team"], "enabled": True},
+  "submitAssessmentFeedback": {"rating": "useful", "comment": "The red-team premortem changed our watch list."},
+  "createSituationAssessment": {"roles": ["analyst"], "effort": "medium"},
   # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
   # one nautical mile in the next hour.
   "cpaBatch": {"subject": "aisstream/244660000", "filter": {"kinds": ["vessel"], "sources": [],
@@ -797,6 +817,10 @@ CAPTURE = {
   "createIndicator": "const j = pm.response.json(); pm.collectionVariables.set('indicatorId', j.id);",
   "addAchEvidence": "const j = pm.response.json(); pm.collectionVariables.set('achEvidenceId', j.id);",
   "createKeyAssumption": "const j = pm.response.json(); pm.collectionVariables.set('assumptionId', j.id);",
+  # 128: the created cycle, its queued run and the newest assessment.
+  "createAnalysisCycle": "const j = pm.response.json(); pm.collectionVariables.set('cycleId', j.id);",
+  "runAnalysisCycle": "const j = pm.response.json(); pm.collectionVariables.set('cycleRunId', j.id);",
+  "listAssessments": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('assessmentId', j.items[0].id);",
   # 126: the queued index fit (a 103 job: read it with getBacktest).
   "fitRegionalIndex": "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
   # 117: the created attention topic.
@@ -1188,6 +1212,7 @@ collection = {
       ("precursorId", ""), ("precursorBatchId", ""), ("precursorCandidateId", ""),
       ("referenceImportId", ""), ("baseRateId", ""),
       ("questionId", ""), ("forecasterId", "ensemble"), ("evaluationId", ""),
+      ("cycleId", ""), ("cycleRunId", ""), ("assessmentId", ""),
       ("benchmarkRunId", ""), ("benchmarkCaseId", ""),
       ("hypothesisSetId", ""), ("hypothesisId", ""), ("indicatorId", ""), ("achEvidenceId", ""), ("assumptionId", ""),
       ("indexId", "instability"), ("outlookRegion", "YE"), ("outlookFamily", "conflict:battles"),
