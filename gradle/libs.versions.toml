@@ -55,6 +55,14 @@ owaspHtmlSanitizer = "20261011.1"
 h3 = "4.5.0"
 # Bzip2 decompression of the RIPE Atlas probe dump (092): Apache Commons Compress, Apache-2.0.
 commonsCompress = "1.27.1"
+# Discovery statistics (119, Intelligence-Design §12): Apache Commons Statistics (distributions, inference),
+# Commons Numbers (regularized gamma and beta) and Commons RNG (deterministic seeded sampling), all Apache-2.0.
+# Verified on Maven Central 2026-10-17: commons-statistics-distribution and -inference 1.3 (released 2026-05),
+# commons-numbers-gamma 1.3 (2026-04; the version Statistics 1.3 is built against), commons-rng-simple and
+# -sampling 1.7 (2026-04; Statistics 1.3 is built against 1.6, a compatible minor release). Java 8 bytecode.
+commonsStatistics = "1.3"
+commonsNumbers = "1.3"
+commonsRng = "1.7"
 # GRIB2 and NetCDF4/HDF5 decoding (046, Weather-Imagery-Design §0.1 and §3): NetCDF-Java, BSD-3-Clause.
 # NOT on Maven Central: resolved only from https://artifacts.unidata.ucar.edu/all/ under Gradle
 # exclusiveContent (build.gradle.kts), the one explicit exception to the Maven-Central rule
@@ -185,6 +193,12 @@ owasp-java-html-sanitizer = { module = "com.googlecode.owasp-java-html-sanitizer
 h3 = { module = "com.uber:h3", version.ref = "h3" }
 # RIPE Atlas probe dump decompression (092).
 commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commonsCompress" }
+# Discovery statistics (119): distributions, inference, regularized beta/gamma, seeded random sources.
+commons-statistics-distribution = { module = "org.apache.commons:commons-statistics-distribution", version.ref = "commonsStatistics" }
+commons-statistics-inference = { module = "org.apache.commons:commons-statistics-inference", version.ref = "commonsStatistics" }
+commons-numbers-gamma = { module = "org.apache.commons:commons-numbers-gamma", version.ref = "commonsNumbers" }
+commons-rng-simple = { module = "org.apache.commons:commons-rng-simple", version.ref = "commonsRng" }
+commons-rng-sampling = { module = "org.apache.commons:commons-rng-sampling", version.ref = "commonsRng" }
 # GRIB2 and NetCDF4 decoders (046); from the Unidata repository only (see the versions block).
 netcdf-java-bom = { module = "edu.ucar:netcdf-java-bom", version.ref = "netcdfJava" }
 netcdf-cdm-core = { module = "edu.ucar:cdm-core" }

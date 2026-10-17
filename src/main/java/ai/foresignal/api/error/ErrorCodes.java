@@ -573,6 +573,18 @@ public final class ErrorCodes {
     /** 409: a change to a closed situation, which is final (118). */
     public static final String SITUATION_CLOSED = "SITUATION_CLOSED";
 
+    /** 404: no analytic finding has that id, or the caller may not see it (119). */
+    public static final String UNKNOWN_FINDING = "UNKNOWN_FINDING";
+
+    /** 400: a series reference does not parse ({@code series:}, {@code rollup:} or {@code rule:}) (119). */
+    public static final String SERIES_REF_INVALID = "SERIES_REF_INVALID";
+
+    /** 404: the series a reference names does not exist, the caller may not see it, or it is not registered (093, 119). */
+    public static final String SERIES_NOT_FOUND = "SERIES_NOT_FOUND";
+
+    /** 400: an event study's selector, target or range failed validation (119). */
+    public static final String EVENT_STUDY_INVALID = "EVENT_STUDY_INVALID";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

@@ -3,9 +3,11 @@ package ai.foresignal.intel;
 import java.util.Set;
 
 /**
- * The signal families a member contributes (prompt 101). Prompt 119's {@code
- * intel/signal-families.json} becomes the shared registry and reconciles these strings; the recipe
- * JSON uses these names today.
+ * The signal families a member contributes (prompt 101). Since prompt 119 the shared registry is
+ * {@code intel/signal-families.json} ({@link ai.foresignal.analytics.family.SignalFamilyRegistry}); these stored
+ * names resolve through it: {@code aviation-behaviour} and {@code aviation-restriction} are aliases of
+ * {@code aviation-ops}, {@code weather-hazard} of {@code weather-severe} and {@code grid-frequency} of {@code outage};
+ * the rest are registry families themselves. Stored rows and the recipe JSON keep these names.
  */
 public final class SignalFamilies {
 

@@ -118,7 +118,14 @@ class EventSchemaConformanceTest {
             entry(ai.foresignal.situation.SituationEvent.CLOSED,
                     () -> situationEvents(ai.foresignal.situation.SituationEvent.CLOSED)),
             entry(ai.foresignal.situation.SituationEvent.MERGED,
-                    () -> situationEvents(ai.foresignal.situation.SituationEvent.MERGED)));
+                    () -> situationEvents(ai.foresignal.situation.SituationEvent.MERGED)),
+            // 119: AnalyticsTopic sends FindingEvent.payload() on topic analytics.
+            entry(ai.foresignal.analytics.finding.FindingEvent.CREATED,
+                    () -> findingEvents(ai.foresignal.analytics.finding.FindingEvent.CREATED)),
+            entry(ai.foresignal.analytics.finding.FindingEvent.UPDATED,
+                    () -> findingEvents(ai.foresignal.analytics.finding.FindingEvent.UPDATED)),
+            entry(ai.foresignal.analytics.finding.FindingEvent.DISMISSED,
+                    () -> findingEvents(ai.foresignal.analytics.finding.FindingEvent.DISMISSED)));
 
     /** {@code situation.*} payloads as {@code SituationEvent.payload()} writes them (prompt 118), located and not. */
     static List<JsonNode> situationEvents(String type) {
@@ -146,6 +153,21 @@ class EventSchemaConformanceTest {
                     situation.getId(), situation.getVersion(), ai.foresignal.situation.SituationMapper.summary(situation,
                     at), "emerging", "info", situation.getMergedInto(), at);
             out.add(toTree(event.payload()));
+        }
+        return out;
+    }
+
+    /** {@code finding.*} payloads as {@code FindingEvent.payload()} writes them (prompt 119), linked and not. */
+    static List<JsonNode> findingEvents(String type) {
+        java.time.Instant at = java.time.Instant.parse("2026-03-01T12:00:00Z");
+        ai.foresignal.analytics.finding.AnalyticFindingEntity f = new ai.foresignal.analytics.finding
+                .AnalyticFindingEntity("01JA8Q3V7S2K9W4T6Y1B5N0M3C", "change-point", "Change point: transits down",
+                        "significant", at, at);
+        f.setRegionCodes(List.of("YE"));
+        List<JsonNode> out = new java.util.ArrayList<>();
+        for (String situation : java.util.Arrays.asList("01JA8Q3V7S2K9W4T6Y1B5N0M3D", null)) {
+            out.add(toTree(new ai.foresignal.analytics.finding.FindingEvent(5, type, f.getId(),
+                    ai.foresignal.analytics.finding.FindingViews.summary(f, situation), at).payload()));
         }
         return out;
     }

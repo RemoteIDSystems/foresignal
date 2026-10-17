@@ -23,7 +23,7 @@ public record ChannelTypeSpec(
 
     /** Every event a channel can subscribe to in prompt 018. */
     public static final List<String> ALL_EVENTS = List.of("alert", "briefing", "system", "analyst.note",
-            "situation.activated", "situation.escalated");
+            "situation.activated", "situation.escalated", "finding.significant");
 
     /** Copies the lists. */
     public ChannelTypeSpec {

@@ -226,6 +226,21 @@ section lists dependencies a prompt asked to record here.
 - **License:** Apache License, Version 2.0 (<https://www.apache.org/licenses/LICENSE-2.0>).
 - **Project:** <https://commons.apache.org/proper/commons-compress/>, Copyright The Apache Software Foundation.
 
+### Apache Commons Statistics, Numbers and RNG (prompt 119)
+
+- **Artifacts (Maven Central, used unmodified):** `org.apache.commons:commons-statistics-distribution` and
+  `commons-statistics-inference` 1.3 (with `commons-statistics-descriptive` and `commons-statistics-ranking` 1.3);
+  `commons-numbers-gamma` 1.3 (with `commons-numbers-core`, `-arrays`, `-combinatorics`, `-fraction` and
+  `-rootfinder` 1.3); `commons-rng-simple` and `commons-rng-sampling` 1.7 (with `commons-rng-client-api` and
+  `commons-rng-core` 1.7).
+- **Use:** the discovery statistics package `ai.foresignal.analytics.math` (prompt 119): chi-squared, normal and
+  Poisson distributions, the regularized beta for negative-binomial tails, and seeded random sources for the CUSUM
+  alarm-threshold simulation and the placebo date sampler.
+- **License:** Apache License, Version 2.0 (<https://www.apache.org/licenses/LICENSE-2.0>).
+- **Project:** <https://commons.apache.org/proper/commons-statistics/>,
+  <https://commons.apache.org/proper/commons-numbers/>, <https://commons.apache.org/proper/commons-rng/>, Copyright
+  The Apache Software Foundation.
+
 ### Caffeine
 
 - **Artifact:** `com.github.ben-manes.caffeine:caffeine` 3.2.4 (Maven Central; the version the Spring Boot 4.1.1 BOM

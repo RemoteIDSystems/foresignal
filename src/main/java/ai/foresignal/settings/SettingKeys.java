@@ -202,6 +202,34 @@ public final class SettingKeys {
     /** True to classify untyped text records with the optional LLM when no keyword rule matches (118); false. */
     public static final String INTEL_THEMES_LLM_CLASSIFY = "intel.themes.llmClassify";
 
+
+    /**
+     * Operator rows of the signal-family registry (prompt 119), an object shaped like {@code intel/signal-families.json}
+     * ({@code families}, {@code rules}); its rules are tried before the bundled ones.
+     */
+    public static final String INTEL_SIGNAL_FAMILIES = "intel.signalFamilies";
+
+    /** The region rollup job's durable cursor (prompt 119; the consumer clamp of retention). */
+    public static final String STATS_REGION_CURSOR = "stats.region.cursor";
+
+    /**
+     * Per-source region level of the region rollups (prompt 119, {@code statsRegionLevel}): an object
+     * {@code {sourceId: "admin1"}}; sources not named roll up by country.
+     */
+    public static final String STATS_REGION_LEVEL = "stats.regionLevel";
+
+    /** The most auto-registered analysis series (prompt 119, {@code analysis.series.max}); default 2000. */
+    public static final String ANALYSIS_SERIES_MAX = "analysis.series.max";
+
+    /** True to publish {@code info} findings as {@code foresignal-analytics} records too (prompt 119); false. */
+    public static final String ANALYSIS_FINDINGS_PUBLISH_INFO = "analysis.findings.publishInfo";
+
+    /** The durable seq cursor of the live event-study scan (prompt 119; the consumer clamp of retention). */
+    public static final String ANALYSIS_LIVE_CURSOR = "analysis.live.cursor";
+
+    /** Pending pre-event re-checks of lagged weekly series (prompt 119), a list of objects. */
+    public static final String ANALYSIS_LIVE_RECHECKS = "analysis.live.rechecks";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -211,7 +239,8 @@ public final class SettingKeys {
                     EVIDENCE_MIN_LINK_CONFIDENCE, ABSENCE_MIN_DETECT, ATTENTION_SEEDED, SITUATION_CURSOR,
                     SITUATION_LINK_THRESHOLD, SITUATION_DORMANCY_WINDOW, SITUATION_REOPEN_WINDOW,
                     SITUATION_BRIEFS_ENABLED, SITUATION_BRIEFS_MAX_PER_DAY, SITUATION_BRIEF_MIN_INTERVAL, INTEL_THEMES,
-                    INTEL_THEMES_LLM_CLASSIFY);
+                    INTEL_THEMES_LLM_CLASSIFY, INTEL_SIGNAL_FAMILIES, STATS_REGION_CURSOR, STATS_REGION_LEVEL,
+                    ANALYSIS_SERIES_MAX, ANALYSIS_FINDINGS_PUBLISH_INFO, ANALYSIS_LIVE_CURSOR, ANALYSIS_LIVE_RECHECKS);
 
     private SettingKeys() {}
 }

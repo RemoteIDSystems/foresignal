@@ -14,7 +14,8 @@ import org.springframework.stereotype.Component;
 /**
  * Deletes {@code activity_rollup} rows older than their resolution's window (prompt 038):
  * {@code RetentionSettings.stats.hourly} (35 d) for hours and {@code stats.daily} (1825 d) for days,
- * by {@code bucket_start}. Prompt 119 adds its region resolutions to {@link #windows}.
+ * by {@code bucket_start}. Prompt 119 adds its region resolutions ({@link #regionWindows}): region-hour rows after
+ * {@code stats.regionHourly} (1095 d) and region-day rows after {@code stats.regionDaily} (3650 d).
  */
 @Component
 public class StatsRollupRetentionStep implements RetentionStep {
@@ -43,6 +44,23 @@ public class StatsRollupRetentionStep implements RetentionStep {
                                     ZoneOffset.UTC)));
             run.deleted(TABLE, deleted);
         }
+        for (Map.Entry<RegionRollupResolution, Duration> window : regionWindows(run.settings().stats()).entrySet()) {
+            int deleted = run.jdbc().update(
+                    "DELETE FROM activity_rollup WHERE resolution = :resolution AND bucket_start < :cutoff",
+                    new MapSqlParameterSource()
+                            .addValue("resolution", window.getKey().code())
+                            .addValue("cutoff", OffsetDateTime.ofInstant(run.now().minus(window.getValue()),
+                                    ZoneOffset.UTC)));
+            run.deleted(TABLE, deleted);
+        }
+    }
+
+    /** The window of each region resolution (prompt 119). */
+    static Map<RegionRollupResolution, Duration> regionWindows(RetentionSettings.Stats stats) {
+        Map<RegionRollupResolution, Duration> out = new LinkedHashMap<>();
+        out.put(RegionRollupResolution.HOUR, stats.regionHourly());
+        out.put(RegionRollupResolution.DAY, stats.regionDaily());
+        return out;
     }
 
     /** The window of each resolution. */

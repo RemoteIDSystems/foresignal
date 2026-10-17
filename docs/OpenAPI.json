@@ -507,6 +507,11 @@
         "version": "1.3.0",
         "date": "2026-10-17",
         "note": "118: listSituations, createSituation, getSituation, updateSituation, listSituationMembers, addSituationMember, removeSituationMember, mergeSituation, splitSituation, regenerateSituationBrief, getSituationTimeline, getSituationChanges and testSituationLinker are implemented, with the situations topic of /v1/events/stream (cursor key u; situation.created, updated, activated, escalated, dormant, closed, merged), the MCP tools list_situations, get_situation, get_situation_changes, create_situation, link_to_situation and merge_situations, the notification event types situation.activated and situation.escalated, and foresignal-intel records of kind situation. Reconciliations (additive): streamEvents gains the optional situations.status and situations.theme filters; Problem lists UNKNOWN_SITUATION (404), SITUATION_MEMBER_NOT_FOUND (400), SITUATION_VERSION_CONFLICT (409) and SITUATION_CLOSED (409); the foresignal-intel situation record payload also carries summary (the deterministic summary without its aging last sentence) and private: false."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-17",
+        "note": "119: getAnalyticsSeriesData, listAnalysisSeries, upsertAnalysisSeries, deleteAnalysisSeries, listFindings, getFinding, updateFinding and createEventStudy are implemented, with region rollups (activity_rollup resolutions 2 and 3; getStatsTimeseries groupBy=region and region=, getStatsTop by=region and region= are served from them), the analytics topic of /v1/events/stream (cursor key f; finding.created, finding.updated, finding.dismissed), the MCP tools list_findings, get_finding, get_series_data, list_analysis_series, run_event_study and upsert_analysis_series, the notification event type finding.significant, the 103 job type event-study and foresignal-analytics records of kind analytic-finding. Reconciliations (additive): Problem lists UNKNOWN_FINDING (404), SERIES_REF_INVALID (400), SERIES_NOT_FOUND (404) and EVENT_STUDY_INVALID (400); BacktestJob.result may be an EventStudyResult; a rollup reference's sourceId may be * (the cross-source event count, canonical events counted once); series:imf-portwatch-chokepoints/{portId} reads the PortWatch daily transit total; RetentionSettings.stats.regionHourly and regionDaily are stored."
       }
     ]
   },
@@ -55806,7 +55811,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "119",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -55934,7 +55939,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "119",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -56023,7 +56028,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "119",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -56095,7 +56100,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "119",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -56284,7 +56289,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "119",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -56367,7 +56372,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "119",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -56457,7 +56462,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "119",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -56547,7 +56552,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "119",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -87201,6 +87206,30 @@
             "status": 409,
             "prompt": "118",
             "note": "updateSituation, addSituationMember, removeSituationMember, mergeSituation, splitSituation: the situation is closed, which is final"
+          },
+          {
+            "code": "UNKNOWN_FINDING",
+            "status": 404,
+            "prompt": "119",
+            "note": "getFinding, updateFinding: no analytic finding has that id, or it is private and the caller has no private access"
+          },
+          {
+            "code": "SERIES_REF_INVALID",
+            "status": 400,
+            "prompt": "119",
+            "note": "getAnalyticsSeriesData, upsertAnalysisSeries, deleteAnalysisSeries, listFindings, createEventStudy: the series reference is not series:{sourceId}/{seriesId}, rollup:{hour|day}/{sourceId|*}/{kind}/{region|cell:h3} or rule:{ruleId}/{groupKey}"
+          },
+          {
+            "code": "SERIES_NOT_FOUND",
+            "status": 404,
+            "prompt": "119",
+            "note": "getAnalyticsSeriesData, upsertAnalysisSeries, createEventStudy: the series does not exist or the caller may not read it (a hidden source, or a spatially restricted caller: series carry no geometry); deleteAnalysisSeries: the reference is not registered. 093's getSeries keeps NOT_FOUND"
+          },
+          {
+            "code": "EVENT_STUDY_INVALID",
+            "status": 400,
+            "prompt": "119",
+            "note": "createEventStudy: the selector does not name exactly one supported form (the inline rule form and referenceFamily before 121 are refused), a family is unknown, the range is empty or longer than 10 years, asOf is in the future, or the target is not a daily, weekly or hourly series"
           }
         ]
       },
@@ -98412,7 +98441,7 @@
       "SeriesRef": {
         "type": "string",
         "pattern": "^(series|rollup|rule|social):.+$",
-        "description": "Series reference (Intelligence-Design §4.3)",
+        "description": "Series reference (Intelligence-Design §4.3): `series:{sourceId}/{seriesId}` (093/117 series; `series:imf-portwatch-chokepoints/{portId}` for PortWatch daily transits), `rollup:{hour|day}/{sourceId|*}/{kind}/{region|cell:h3}` (activity rollups; `*` is the cross-source event count with canonical events counted once) or `rule:{ruleId}/{groupKey}` (100 anomaly rule samples); `social:` arrives with 135",
         "example": "series:cftc-cot/067651.disagg.mm_net"
       },
       "TimeRange": {
@@ -116926,6 +116955,9 @@
               },
               {
                 "$ref": "#/components/schemas/ReplayResult"
+              },
+              {
+                "$ref": "#/components/schemas/EventStudyResult"
               },
               {
                 "type": "null"

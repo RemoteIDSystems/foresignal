@@ -42,7 +42,8 @@ public class SpatialIndexInitializer implements ApplicationRunner {
      * indexes {@code (iso2)} and {@code (iso2, admin1)}. Prompt 042 adds {@code raster_frame}'s
      * {@code (product_id, valid_time DESC)} index and the GiST index on its {@code footprint}. Prompt 114 adds the GiST
      * index on {@code trip.corridor}. Prompt 118 adds the GiST index on {@code situation.geom} and the GIN index on
-     * {@code situation.region_codes}.
+     * {@code situation.region_codes}. Prompt 119 adds the GiST index on {@code analytic_finding.geom} and the GIN index
+     * on {@code analytic_finding.region_codes}.
      */
     static final List<String> STATEMENTS = List.of(
             "DROP INDEX IF EXISTS record_head_geom_gist",
@@ -87,7 +88,10 @@ public class SpatialIndexInitializer implements ApplicationRunner {
             "CREATE INDEX IF NOT EXISTS trip_corridor_gist ON trip USING GIST (corridor)",
             // Situations (prompt 118): the list's bbox filter and the region filter.
             "CREATE INDEX IF NOT EXISTS situation_geom_gist ON situation USING GIST (geom)",
-            "CREATE INDEX IF NOT EXISTS situation_region_codes_gin ON situation USING GIN (region_codes)");
+            "CREATE INDEX IF NOT EXISTS situation_region_codes_gin ON situation USING GIN (region_codes)",
+            // Analytic findings (prompt 119): placement for the linker and maps, and the region filter.
+            "CREATE INDEX IF NOT EXISTS analytic_finding_geom_gist ON analytic_finding USING GIST (geom)",
+            "CREATE INDEX IF NOT EXISTS analytic_finding_region_codes_gin ON analytic_finding USING GIN (region_codes)");
 
     private final DataSource dataSource;
 

@@ -76,7 +76,8 @@ class StatsControllerIT extends StatsItSupport {
     }
 
     @Test
-    @DisplayName("040 region filters are validated and the 119 ones refused; hidden sources are 404; bad parameters are 400")
+    @DisplayName("040 region filters are validated; 119 region reads come from region rollups; hidden sources are 404;"
+            + " bad parameters are 400")
     void refusals() throws Exception {
         // Prompt 040: country, admin1 and county are implemented (served from raw rows); unknown codes are 400.
         mvc.perform(get("/v1/stats/timeseries").param("country", "US").param("from", T0.toString())
@@ -85,12 +86,22 @@ class StatsControllerIT extends StatsItSupport {
         mvc.perform(get("/v1/stats/timeseries").param("country", "ZZ").param("from", T0.toString())
                 .param("to", H1.toString())).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("UNKNOWN_REGION"));
+        // Prompt 119: region=, groupBy=region and by=region are served from the region rollups.
         mvc.perform(get("/v1/stats/timeseries").param("region", "US").param("from", T0.toString())
-                .param("to", H1.toString())).andExpect(status().isBadRequest());
+                .param("to", H1.toString())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.backend").value("rollup"));
         mvc.perform(get("/v1/stats/timeseries").param("groupBy", "region").param("from", T0.toString())
-                .param("to", H1.toString())).andExpect(status().isBadRequest());
+                .param("to", H1.toString())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.groupBy").value("region"));
         mvc.perform(get("/v1/stats/top").param("by", "region").param("from", T0.toString())
+                .param("to", H1.toString())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.by").value("region"));
+        mvc.perform(get("/v1/stats/timeseries").param("region", "usa").param("from", T0.toString())
                 .param("to", H1.toString())).andExpect(status().isBadRequest());
+        mvc.perform(get("/v1/stats/timeseries").param("region", "US").param("country", "US")
+                .param("from", T0.toString()).param("to", H1.toString())).andExpect(status().isBadRequest());
+        mvc.perform(get("/v1/stats/timeseries").param("region", "US").param("measure", "alerts")
+                .param("from", T0.toString()).param("to", H1.toString())).andExpect(status().isBadRequest());
         mvc.perform(get("/v1/stats/timeseries").param("source", SECRET).param("from", T0.toString())
                 .param("to", H1.toString())).andExpect(status().isNotFound());
         mvc.perform(get("/v1/stats/timeseries").param("measure", "bogus").param("from", T0.toString())

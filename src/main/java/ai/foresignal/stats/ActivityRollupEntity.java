@@ -28,12 +28,16 @@ import jakarta.persistence.Table;
  * {@code cell_lat} are the cell centre (null for the two special cells), used for bbox and area
  * filters at cell resolution.
  *
- * <p>Written only through SQL by the rollup job; the entity exists so Hibernate owns the table.
+ * <p>Prompt 119 adds region rows: resolution 2 (region-hour) and 3 (region-day) carry a {@code region_code} and
+ * {@code cell = stableHash64(region_code)} ({@link RegionRollupComputer#regionCell}); see {@link RegionRollupJob}.
+ *
+ * <p>Written only through SQL by the rollup jobs; the entity exists so Hibernate owns the table.
  */
 @Entity
 @Table(name = "activity_rollup", indexes = {
     @Index(name = "activity_rollup_resolution_bucket_idx", columnList = "resolution, bucket_start"),
-    @Index(name = "activity_rollup_source_resolution_bucket_idx", columnList = "source_id, resolution, bucket_start")
+    @Index(name = "activity_rollup_source_resolution_bucket_idx", columnList = "source_id, resolution, bucket_start"),
+    @Index(name = "activity_rollup_region_idx", columnList = "resolution, region_code, kind, bucket_start")
 })
 public class ActivityRollupEntity {
 
@@ -42,6 +46,10 @@ public class ActivityRollupEntity {
 
     @Column(name = "cell_lon")
     private Double cellLon;
+
+    /** The 040 region code of a region row (resolutions 2 and 3, prompt 119); null on H3 rows. */
+    @Column(name = "region_code", length = 16)
+    private String regionCode;
 
     @Column(name = "cell_lat")
     private Double cellLat;
@@ -76,6 +84,11 @@ public class ActivityRollupEntity {
     /** The cell centre longitude, or null. */
     public Double getCellLon() {
         return cellLon;
+    }
+
+    /** The region code of a region row (prompt 119), or null on H3 rows. */
+    public String getRegionCode() {
+        return regionCode;
     }
 
     /** The cell centre latitude, or null. */

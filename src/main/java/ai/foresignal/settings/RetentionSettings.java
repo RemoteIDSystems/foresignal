@@ -162,20 +162,33 @@ public record RetentionSettings(
      * @param daily how long daily rows (resolution 1) are kept
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Stats(Duration hourly, Duration daily) {
+    public record Stats(Duration hourly, Duration daily, Duration regionHourly, Duration regionDaily) {
 
         public static final Duration DEFAULT_HOURLY = Duration.ofDays(35);
         public static final Duration DEFAULT_DAILY = Duration.ofDays(1825);
+
+        /** The default window of region-hour rollups (prompt 119). */
+        public static final Duration DEFAULT_REGION_HOURLY = Duration.ofDays(1095);
+
+        /** The default window of region-day rollups (prompt 119). */
+        public static final Duration DEFAULT_REGION_DAILY = Duration.ofDays(3650);
 
         /** Fills missing windows with their defaults. */
         public Stats {
             hourly = hourly == null ? DEFAULT_HOURLY : hourly;
             daily = daily == null ? DEFAULT_DAILY : daily;
+            regionHourly = regionHourly == null ? DEFAULT_REGION_HOURLY : regionHourly;
+            regionDaily = regionDaily == null ? DEFAULT_REGION_DAILY : regionDaily;
+        }
+
+        /** The prompt 038 shape: the H3 windows, region windows at their defaults. */
+        public Stats(Duration hourly, Duration daily) {
+            this(hourly, daily, null, null);
         }
 
         /** The shipped defaults. */
         public static Stats defaults() {
-            return new Stats(null, null);
+            return new Stats(null, null, null, null);
         }
     }
 

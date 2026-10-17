@@ -9,6 +9,7 @@ import ai.foresignal.api.support.ReadCallerResolver;
 import ai.foresignal.api.support.TimeField;
 import ai.foresignal.security.restrict.RestrictedRead;
 import ai.foresignal.source.SourceRegistry;
+import ai.foresignal.stats.RegionStatsService;
 import ai.foresignal.stats.RollupJob;
 import ai.foresignal.stats.StatsMeasure;
 import ai.foresignal.stats.StatsService;
@@ -40,9 +41,11 @@ import tools.jackson.databind.JsonNode;
  * caller's restriction and the {@code place=}/{@code view=}/{@code inWatchlist=} filters (prompts 035,
  * 036) and never count private sources for callers that fail the private gate. The region filters
  * {@code country}, {@code admin1} and {@code county} (prompt 040) match through {@code record_region}
- * (versions) and the alert region snapshot (alerts), and are always answered from raw rows, because the
- * rollup has no regions until prompt 119; {@code region}, {@code groupBy=region} and {@code by=region}
- * belong to prompt 119 and are refused until then. The rebuild is {@code admin}.
+ * (versions) and the alert region snapshot (alerts), and are answered from raw rows. {@code region=},
+ * {@code groupBy=region} and {@code by=region} (prompt 119) are answered from the region rollups by
+ * {@link RegionStatsService}; they combine with source, kind, measure (not alerts) and bucket, and not with
+ * {@code bbox}, {@code place}, {@code country}, {@code admin1}, {@code county} or another time axis. The rebuild is
+ * {@code admin}.
  */
 @RestController
 @Tag(name = "Stats")
@@ -51,8 +54,11 @@ public class StatsController {
     /** The GeoJSON media type of grids. */
     static final MediaType GEO_JSON = MediaType.parseMediaType("application/geo+json");
 
-    /** The parameters of prompt 119, refused until then. */
+    /** The region rollup filter of prompt 119 (refused on the grid). */
     static final List<String> REGION_PARAMS = List.of("region");
+
+    /** The parameters a region-rollup read cannot honor. */
+    static final List<String> NOT_WITH_REGIONS = List.of("bbox", "place", "country", "admin1", "county");
 
     private final StatsService stats;
     private final RollupJob rollup;
@@ -62,6 +68,10 @@ public class StatsController {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.reference.RegionCodes regionCodes;
     private final SourceRegistry registry;
+
+    /** The region rollup reads (prompt 119); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private RegionStatsService regionStats;
 
     /** Creates the controller. */
     public StatsController(StatsService stats, RollupJob rollup, ReadCallerResolver callers, SourceRegistry registry) {
@@ -85,13 +95,18 @@ public class StatsController {
             @RequestParam(required = false) String measure,
             @RequestParam(required = false) String groupBy,
             @RequestParam(required = false) String timeField,
+            @RequestParam(required = false) List<String> region,
             HttpServletRequest request) {
-        refuseRegions(request);
         ReadCaller caller = callers.resolveScoped(request);
         List<String> sources = known(QueryParams.multi("source", source), callers.hiddenSources(caller));
         String group = groupBy == null || groupBy.isBlank() ? "none" : groupBy.strip();
-        if ("region".equals(group)) {
-            throw ValidationException.forField("groupBy", "groupBy=region arrives with the region rollups (prompt 119)");
+        List<String> regions = RegionStatsService.validRegions(QueryParams.multi("region", region));
+        if (regionStats != null && ("region".equals(group) || !regions.isEmpty())) {
+            regionOnly(request, measure, timeField);
+            group = QueryParams.oneOf("groupBy", group, RegionStatsService.GROUP_BY_VALUES, "none");
+            return json(regionStats.timeseries(sources, QueryParams.multi("kind", kind), regions,
+                    required("from", from), required("to", to), bucket, StatsMeasure.parse(measure), group,
+                    callers.excludedSources(caller), caller.restriction()).toMap(), caller);
         }
         group = QueryParams.oneOf("groupBy", group, StatsService.GROUP_BY_VALUES, "none");
         return json(stats.timeseries(sources, QueryParams.multi("kind", kind), BboxParser.parse(bbox),
@@ -143,15 +158,21 @@ public class StatsController {
             @RequestParam(required = false) String limit,
             @RequestParam(required = false) List<String> source,
             @RequestParam(required = false) List<String> kind,
+            @RequestParam(required = false) List<String> region,
             HttpServletRequest request) {
-        refuseRegions(request);
-        if (by != null && "region".equals(by.strip())) {
-            throw ValidationException.forField("by", "by=region arrives with the region rollups (prompt 119)");
-        }
-        String byValue = QueryParams.oneOf("by", by, List.of("source", "kind", "cell", "entity"), "source");
         ReadCaller caller = callers.resolveScoped(request);
         List<String> sources = known(QueryParams.multi("source", source), callers.hiddenSources(caller));
         int size = QueryParams.intInRange("limit", limit, 1, StatsService.MAX_TOP, 10);
+        List<String> regions = RegionStatsService.validRegions(QueryParams.multi("region", region));
+        String requestedBy = by == null ? null : by.strip();
+        if (regionStats != null && ("region".equals(requestedBy) || !regions.isEmpty())) {
+            regionOnly(request, measure, null);
+            String regionBy = QueryParams.oneOf("by", requestedBy, List.of("source", "kind", "region"), "region");
+            return json(regionStats.top(regionBy, StatsMeasure.parse(measure), required("from", from),
+                    required("to", to), size, sources, QueryParams.multi("kind", kind), regions,
+                    callers.excludedSources(caller), caller.restriction()).toMap(), caller);
+        }
+        String byValue = QueryParams.oneOf("by", by, List.of("source", "kind", "cell", "entity"), "source");
         return json(stats.top(byValue, StatsMeasure.parse(measure), required("from", from), required("to", to), size,
                 sources, QueryParams.multi("kind", kind), callers.excludedSources(caller),
                 restriction(request, caller)).toMap(), caller);
@@ -189,14 +210,31 @@ public class StatsController {
                 .body(body);
     }
 
-    /** 400 for the region rollup filter of prompt 119. */
+    /** 400 for the region rollup filter on the grid, which is keyed by H3 cell only. */
     static void refuseRegions(HttpServletRequest request) {
         for (String name : REGION_PARAMS) {
             String value = request.getParameter(name);
             if (value != null && !value.isBlank()) {
-                throw ValidationException.forField(name, "the region filter arrives with the region rollups"
-                        + " (prompt 119); use country, admin1 or county");
+                throw ValidationException.forField(name, "the grid is keyed by H3 cell; use country, admin1 or county,"
+                        + " or /v1/stats/timeseries with region");
             }
+        }
+    }
+
+    /** 400 for parameters a region-rollup read cannot honor (prompt 119). */
+    static void regionOnly(HttpServletRequest request, String measure, String timeField) {
+        for (String name : NOT_WITH_REGIONS) {
+            String value = request.getParameter(name);
+            if (value != null && !value.isBlank()) {
+                throw ValidationException.forField(name, "cannot be combined with region rollups (region, groupBy=region"
+                        + " or by=region)");
+            }
+        }
+        if (measure != null && "alerts".equalsIgnoreCase(measure.strip())) {
+            throw ValidationException.forField("measure", "alerts are not rolled up by region");
+        }
+        if (timeField != null && !timeField.isBlank() && !"ingested".equalsIgnoreCase(timeField.strip())) {
+            throw ValidationException.forField("timeField", "region rollups are on the ingested axis only");
         }
     }
 

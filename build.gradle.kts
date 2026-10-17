@@ -70,6 +70,12 @@ dependencies {
     implementation(libs.owasp.java.html.sanitizer)
     implementation(libs.h3)
     implementation(libs.commons.compress)
+    // Discovery statistics (119): Apache Commons Statistics, Numbers and RNG (Apache-2.0); no GPL statistics library.
+    implementation(libs.commons.statistics.distribution)
+    implementation(libs.commons.statistics.inference)
+    implementation(libs.commons.numbers.gamma)
+    implementation(libs.commons.rng.simple)
+    implementation(libs.commons.rng.sampling)
     implementation(libs.caffeine)
     // GRIB2 and NetCDF4 decoding (046): cdm-core and grib, versions from the NetCDF-Java BOM; cdm-radial for
     // the NIDS (NEXRAD Level III) reader of nexrad-l3 (106).

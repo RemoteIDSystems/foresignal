@@ -180,7 +180,7 @@ public class ChannelInputParser {
                     String event = item.isString() ? item.asString() : null;
                     if (event == null || !ChannelTypeSpec.ALL_EVENTS.contains(event)) {
                         errors.add(new FieldError("events", "supported events are alert, briefing, system, analyst.note,"
-                                + " situation.activated and situation.escalated"));
+                                + " situation.activated, situation.escalated and finding.significant"));
                     } else if (!events.contains(event)) {
                         events.add(event);
                     }

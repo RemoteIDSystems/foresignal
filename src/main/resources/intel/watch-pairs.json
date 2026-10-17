@@ -1,0 +1,78 @@
+{
+  "version": "1.0.0",
+  "description": "Default event-study watch pairs (prompt 119, Intelligence-Design \u00a75.3): qualifying events of a signal family checked against these series live for pre-event signals. Applied each night to the registry rows of the series that exist (refs, every series of the listed attention topics, every series of the listed sources); rows an operator edited keep their own pairs. Missing series are skipped with a warning.",
+  "entries": [
+    {
+      "name": "Middle East and Gulf conflict vs oil positioning, prices and attention",
+      "refs": [
+        "series:cftc-cot/cot.067651.disaggregated.mm_net",
+        "series:fred-series/fred.DCOILWTICO",
+        "series:eia-petroleum/eia:RWTC",
+        "series:eia-petroleum/eia:RBRTE"
+      ],
+      "topics": [
+        "gulf-energy-infrastructure",
+        "red-sea-shipping",
+        "strait-of-hormuz"
+      ],
+      "watchPairs": [
+        {
+          "eventFamily": "conflict",
+          "regionCodes": [
+            "IR",
+            "IQ",
+            "SA",
+            "AE",
+            "QA",
+            "KW",
+            "BH",
+            "OM",
+            "YE",
+            "IL",
+            "PS",
+            "LB",
+            "SY",
+            "JO",
+            "EG"
+          ],
+          "minEffect": 2.0
+        }
+      ]
+    },
+    {
+      "name": "Maritime disruption vs chokepoint transits and oil positioning",
+      "refs": [
+        "series:cftc-cot/cot.067651.disaggregated.mm_net"
+      ],
+      "sources": [
+        "imf-portwatch-chokepoints"
+      ],
+      "watchPairs": [
+        {
+          "eventFamily": "ais-behaviour",
+          "regionCodes": [],
+          "minEffect": 2.0
+        },
+        {
+          "eventFamily": "nav-warning",
+          "regionCodes": [],
+          "minEffect": 2.0
+        }
+      ]
+    },
+    {
+      "name": "Outages vs the region's news volume",
+      "gdeltVolumeByTopicRegion": true,
+      "watchPairs": [
+        {
+          "eventFamily": "outage",
+          "minEffect": 2.0
+        },
+        {
+          "eventFamily": "internet-measurement",
+          "minEffect": 2.0
+        }
+      ]
+    }
+  ]
+}

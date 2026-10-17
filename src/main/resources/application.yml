@@ -127,6 +127,10 @@ foresignal:
   situations:
     auto-start: true
     scheduled: true
+  # Discovery (119): analysis-series auto-registration (02:00 UTC), change points (03:00 and :20), unexplained moves
+  # (04:00), co-occurrence (05:00) and the live event-study poll (every minute). Off in tests.
+  analytics:
+    scheduled: true
   # Root for INBOX_PATH source parameters. Every inbox read is confined to this
   # directory, re-checked per file, so a symlink cannot redirect a read out of it.
   inbox-dir: ${FORESIGNAL_INBOX_DIR:${FORESIGNAL_DATA_DIR:./data}/inbox}

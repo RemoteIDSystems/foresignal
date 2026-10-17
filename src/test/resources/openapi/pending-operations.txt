@@ -1,11 +1,3 @@
-getAnalyticsSeriesData 119
-listAnalysisSeries 119
-upsertAnalysisSeries 119
-deleteAnalysisSeries 119
-listFindings 119
-getFinding 119
-updateFinding 119
-createEventStudy 119
 listPrecursors 120
 getPrecursor 120
 updatePrecursor 120

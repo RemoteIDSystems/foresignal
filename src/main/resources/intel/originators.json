@@ -859,6 +859,7 @@
     "wri-power-plants": "reference-catalogs",
     "gpsjam-daily": "gpsjam",
     "foresignal-intel": "foresignal",
+    "foresignal-analytics": "foresignal",
     "system-canary": "foresignal",
     "derived-aircraft": "adsb-community",
     "amtraker": "transit-agencies",

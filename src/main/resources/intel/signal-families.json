@@ -1,0 +1,910 @@
+{
+  "version": "1.0.0",
+  "description": "Signal families (prompt 119, Intelligence-Design \u00a75.4): the one registry that maps a source, record kind, intelligence event type, finding type or alert/anomaly rule tag to a signal family. Rules are tried in order and the first whose every match key equals the input wins; operator rows from the setting intel.signalFamilies (same shape) are tried first. Aliases are names earlier prompts stored (101's intel_event_member.signal_family); they resolve to the canonical family and are never rewritten in stored rows.",
+  "families": [
+    {
+      "id": "ais-behaviour",
+      "label": "Vessel behavior (AIS gaps, loitering, rendezvous, chokepoint activity)",
+      "aliases": []
+    },
+    {
+      "id": "aviation-military",
+      "label": "Military aviation activity",
+      "aliases": []
+    },
+    {
+      "id": "aviation-ops",
+      "label": "Civil aviation operations and restrictions (delays, ground stops, NOTAMs, emergency squawks)",
+      "aliases": [
+        "aviation-behaviour",
+        "aviation-restriction"
+      ]
+    },
+    {
+      "id": "conflict",
+      "label": "Armed conflict and unrest events",
+      "aliases": []
+    },
+    {
+      "id": "outage",
+      "label": "Power and service outages",
+      "aliases": [
+        "grid-frequency"
+      ]
+    },
+    {
+      "id": "internet-measurement",
+      "label": "Internet measurement (outages, BGP)",
+      "aliases": []
+    },
+    {
+      "id": "gnss-interference",
+      "label": "GNSS jamming and spoofing",
+      "aliases": []
+    },
+    {
+      "id": "nav-warning",
+      "label": "Navigational and maritime warnings",
+      "aliases": []
+    },
+    {
+      "id": "attention",
+      "label": "Public attention and coverage (pageviews, article volume and tone)",
+      "aliases": []
+    },
+    {
+      "id": "seismic",
+      "label": "Earthquakes and tsunamis",
+      "aliases": []
+    },
+    {
+      "id": "fire",
+      "label": "Fires and fire detections",
+      "aliases": []
+    },
+    {
+      "id": "weather-severe",
+      "label": "Severe weather, storms and floods",
+      "aliases": [
+        "weather-hazard"
+      ]
+    },
+    {
+      "id": "cyber",
+      "label": "Cyber threats and vulnerabilities",
+      "aliases": []
+    },
+    {
+      "id": "markets",
+      "label": "Market prices, volumes and positioning",
+      "aliases": []
+    },
+    {
+      "id": "sanctions",
+      "label": "Sanctions and filings",
+      "aliases": []
+    },
+    {
+      "id": "health",
+      "label": "Disease outbreaks and public health",
+      "aliases": []
+    },
+    {
+      "id": "space",
+      "label": "Space weather, launches and reentries",
+      "aliases": []
+    }
+  ],
+  "rules": [
+    {
+      "match": {
+        "findingType": "pre-event-signal"
+      },
+      "family": "markets"
+    },
+    {
+      "match": {
+        "findingType": "unexplained-move"
+      },
+      "family": "markets"
+    },
+    {
+      "match": {
+        "intelEventType": "maritime-disruption"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "intelEventType": "aviation-anomaly"
+      },
+      "family": "aviation-ops"
+    },
+    {
+      "match": {
+        "intelEventType": "infrastructure-disruption"
+      },
+      "family": "outage"
+    },
+    {
+      "match": {
+        "intelEventType": "weather-impact"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "intelEventType": "seismic"
+      },
+      "family": "seismic"
+    },
+    {
+      "match": {
+        "ruleTag": "maritime"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "ruleTag": "ais"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "ruleTag": "military"
+      },
+      "family": "aviation-military"
+    },
+    {
+      "match": {
+        "ruleTag": "conflict"
+      },
+      "family": "conflict"
+    },
+    {
+      "match": {
+        "ruleTag": "outage"
+      },
+      "family": "outage"
+    },
+    {
+      "match": {
+        "ruleTag": "power"
+      },
+      "family": "outage"
+    },
+    {
+      "match": {
+        "ruleTag": "grid"
+      },
+      "family": "outage"
+    },
+    {
+      "match": {
+        "ruleTag": "internet"
+      },
+      "family": "internet-measurement"
+    },
+    {
+      "match": {
+        "ruleTag": "gnss"
+      },
+      "family": "gnss-interference"
+    },
+    {
+      "match": {
+        "ruleTag": "jamming"
+      },
+      "family": "gnss-interference"
+    },
+    {
+      "match": {
+        "ruleTag": "seismic"
+      },
+      "family": "seismic"
+    },
+    {
+      "match": {
+        "ruleTag": "earthquake"
+      },
+      "family": "seismic"
+    },
+    {
+      "match": {
+        "ruleTag": "fire"
+      },
+      "family": "fire"
+    },
+    {
+      "match": {
+        "ruleTag": "weather"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "ruleTag": "storm"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "ruleTag": "flood"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "ruleTag": "cyber"
+      },
+      "family": "cyber"
+    },
+    {
+      "match": {
+        "ruleTag": "malware"
+      },
+      "family": "cyber"
+    },
+    {
+      "match": {
+        "ruleTag": "markets"
+      },
+      "family": "markets"
+    },
+    {
+      "match": {
+        "ruleTag": "sanctions"
+      },
+      "family": "sanctions"
+    },
+    {
+      "match": {
+        "ruleTag": "health"
+      },
+      "family": "health"
+    },
+    {
+      "match": {
+        "ruleTag": "disease"
+      },
+      "family": "health"
+    },
+    {
+      "match": {
+        "ruleTag": "space"
+      },
+      "family": "space"
+    },
+    {
+      "match": {
+        "ruleTag": "space-weather"
+      },
+      "family": "space"
+    },
+    {
+      "match": {
+        "ruleTag": "aviation"
+      },
+      "family": "aviation-ops"
+    },
+    {
+      "match": {
+        "ruleTag": "attention"
+      },
+      "family": "attention"
+    },
+    {
+      "match": {
+        "sourceId": "gdelt-timelines"
+      },
+      "family": "attention"
+    },
+    {
+      "match": {
+        "sourceId": "wikimedia-pageviews"
+      },
+      "family": "attention"
+    },
+    {
+      "match": {
+        "sourceId": "cftc-cot"
+      },
+      "family": "markets"
+    },
+    {
+      "match": {
+        "sourceId": "fred-series"
+      },
+      "family": "markets"
+    },
+    {
+      "match": {
+        "sourceId": "eia-petroleum"
+      },
+      "family": "markets"
+    },
+    {
+      "match": {
+        "sourceId": "imf-portwatch-chokepoints"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "sourceId": "imf-portwatch-ports"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "kind": "ais-gap"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "kind": "loiter"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "kind": "loitering-event"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "kind": "rendezvous"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "kind": "vessel-encounter"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "kind": "chokepoint-uturn"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "kind": "chokepoint-activity"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "kind": "chokepoint-transit"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "kind": "dark-vessel-candidate"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "kind": "fishing-event"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "kind": "port-activity"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "kind": "port-call"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "kind": "port-visit"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "kind": "mil-naval-cooccurrence"
+      },
+      "family": "ais-behaviour"
+    },
+    {
+      "match": {
+        "kind": "emergency-squawk"
+      },
+      "family": "aviation-ops"
+    },
+    {
+      "match": {
+        "kind": "holding-pattern"
+      },
+      "family": "aviation-ops"
+    },
+    {
+      "match": {
+        "kind": "airport-delay"
+      },
+      "family": "aviation-ops"
+    },
+    {
+      "match": {
+        "kind": "airspace-restriction"
+      },
+      "family": "aviation-ops"
+    },
+    {
+      "match": {
+        "kind": "aviation-hazard"
+      },
+      "family": "aviation-ops"
+    },
+    {
+      "match": {
+        "kind": "pirep"
+      },
+      "family": "aviation-ops"
+    },
+    {
+      "match": {
+        "kind": "uas-facility-cell"
+      },
+      "family": "aviation-ops"
+    },
+    {
+      "match": {
+        "kind": "conflict-event"
+      },
+      "family": "conflict"
+    },
+    {
+      "match": {
+        "kind": "air-raid-alert"
+      },
+      "family": "conflict"
+    },
+    {
+      "match": {
+        "kind": "frontline"
+      },
+      "family": "conflict"
+    },
+    {
+      "match": {
+        "kind": "displacement"
+      },
+      "family": "conflict"
+    },
+    {
+      "match": {
+        "kind": "outage"
+      },
+      "family": "outage"
+    },
+    {
+      "match": {
+        "kind": "grid-frequency"
+      },
+      "family": "outage"
+    },
+    {
+      "match": {
+        "kind": "frequency-excursion"
+      },
+      "family": "outage"
+    },
+    {
+      "match": {
+        "kind": "service-incident"
+      },
+      "family": "outage"
+    },
+    {
+      "match": {
+        "kind": "service-status"
+      },
+      "family": "outage"
+    },
+    {
+      "match": {
+        "kind": "cable-proximity-risk"
+      },
+      "family": "outage"
+    },
+    {
+      "match": {
+        "kind": "internet-outage"
+      },
+      "family": "internet-measurement"
+    },
+    {
+      "match": {
+        "kind": "bgp-prefix-state"
+      },
+      "family": "internet-measurement"
+    },
+    {
+      "match": {
+        "kind": "bgp-hijack"
+      },
+      "family": "internet-measurement"
+    },
+    {
+      "match": {
+        "kind": "bgp-leak"
+      },
+      "family": "internet-measurement"
+    },
+    {
+      "match": {
+        "kind": "probe-status"
+      },
+      "family": "internet-measurement"
+    },
+    {
+      "match": {
+        "kind": "jamming-cell"
+      },
+      "family": "gnss-interference"
+    },
+    {
+      "match": {
+        "kind": "gnss-integrity"
+      },
+      "family": "gnss-interference"
+    },
+    {
+      "match": {
+        "kind": "deception"
+      },
+      "family": "gnss-interference"
+    },
+    {
+      "match": {
+        "kind": "maritime-warning"
+      },
+      "family": "nav-warning"
+    },
+    {
+      "match": {
+        "kind": "nav-warning"
+      },
+      "family": "nav-warning"
+    },
+    {
+      "match": {
+        "kind": "attention-top"
+      },
+      "family": "attention"
+    },
+    {
+      "match": {
+        "kind": "wiki-edit-surge"
+      },
+      "family": "attention"
+    },
+    {
+      "match": {
+        "kind": "earthquake"
+      },
+      "family": "seismic"
+    },
+    {
+      "match": {
+        "kind": "shakemap-mmi"
+      },
+      "family": "seismic"
+    },
+    {
+      "match": {
+        "kind": "earthquake-impact"
+      },
+      "family": "seismic"
+    },
+    {
+      "match": {
+        "kind": "felt-report-estimate"
+      },
+      "family": "seismic"
+    },
+    {
+      "match": {
+        "kind": "tsunami-warning"
+      },
+      "family": "seismic"
+    },
+    {
+      "match": {
+        "kind": "volcano"
+      },
+      "family": "seismic"
+    },
+    {
+      "match": {
+        "kind": "volcano-alert"
+      },
+      "family": "seismic"
+    },
+    {
+      "match": {
+        "kind": "fire-detection"
+      },
+      "family": "fire"
+    },
+    {
+      "match": {
+        "kind": "fire-cluster"
+      },
+      "family": "fire"
+    },
+    {
+      "match": {
+        "kind": "fire-incident"
+      },
+      "family": "fire"
+    },
+    {
+      "match": {
+        "kind": "fire-perimeter"
+      },
+      "family": "fire"
+    },
+    {
+      "match": {
+        "kind": "smoke-polygon"
+      },
+      "family": "fire"
+    },
+    {
+      "match": {
+        "kind": "holdover-fire-risk"
+      },
+      "family": "fire"
+    },
+    {
+      "match": {
+        "kind": "cap-alert"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "nws-alert"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "emwin-warning"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "cyclone"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "cyclone-warning"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "cyclone-track"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "flood-warning"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "storm-report"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "storm-track"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "storm-swath"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "radar-cell"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "probsevere-object"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "lightning-cluster"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "spc-outlook"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "disaster"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "natural-event"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "drought-area"
+      },
+      "family": "weather-severe"
+    },
+    {
+      "match": {
+        "kind": "malware-url"
+      },
+      "family": "cyber"
+    },
+    {
+      "match": {
+        "kind": "malware-c2"
+      },
+      "family": "cyber"
+    },
+    {
+      "match": {
+        "kind": "vulnerability"
+      },
+      "family": "cyber"
+    },
+    {
+      "match": {
+        "kind": "cve-epss"
+      },
+      "family": "cyber"
+    },
+    {
+      "match": {
+        "kind": "threat-alert"
+      },
+      "family": "cyber"
+    },
+    {
+      "match": {
+        "kind": "certificate-issuance"
+      },
+      "family": "cyber"
+    },
+    {
+      "match": {
+        "kind": "sanction"
+      },
+      "family": "sanctions"
+    },
+    {
+      "match": {
+        "kind": "filing"
+      },
+      "family": "sanctions"
+    },
+    {
+      "match": {
+        "kind": "disease-outbreak"
+      },
+      "family": "health"
+    },
+    {
+      "match": {
+        "kind": "wastewater-detection"
+      },
+      "family": "health"
+    },
+    {
+      "match": {
+        "kind": "wastewater-level"
+      },
+      "family": "health"
+    },
+    {
+      "match": {
+        "kind": "radiation"
+      },
+      "family": "health"
+    },
+    {
+      "match": {
+        "kind": "launch"
+      },
+      "family": "space"
+    },
+    {
+      "match": {
+        "kind": "reentry-prediction"
+      },
+      "family": "space"
+    },
+    {
+      "match": {
+        "kind": "solar-flare"
+      },
+      "family": "space"
+    },
+    {
+      "match": {
+        "kind": "space-weather-alert"
+      },
+      "family": "space"
+    },
+    {
+      "match": {
+        "kind": "space-weather-event"
+      },
+      "family": "space"
+    },
+    {
+      "match": {
+        "kind": "space-weather-notice"
+      },
+      "family": "space"
+    },
+    {
+      "match": {
+        "kind": "geomagnetic-index"
+      },
+      "family": "space"
+    },
+    {
+      "match": {
+        "kind": "conjunction"
+      },
+      "family": "space"
+    },
+    {
+      "match": {
+        "kind": "close-approach"
+      },
+      "family": "space"
+    },
+    {
+      "match": {
+        "kind": "fireball"
+      },
+      "family": "space"
+    }
+  ]
+}

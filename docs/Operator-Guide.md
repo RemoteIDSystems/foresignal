@@ -5949,3 +5949,82 @@ channel back with `PUT /v1/channels/{channelId}` (a `PUT` replaces the channel),
 ```
 "events": ["alert", "situation.activated", "situation.escalated"]
 ```
+
+## Discovery (prompt 119)
+
+Discovery finds patterns nobody wrote a rule for and says how often each would turn up by chance. Three detectors run
+on their own schedule, deterministically and without an LLM; what they find is an **analytic finding**
+(`GET /v1/analytics/findings`), also published as a record of the DERIVED source `foresignal-analytics` (kind
+`analytic-finding`), so ordinary rules can alert on findings (`kind=analytic-finding`, `severity == significant`) and
+the situation linker (118) attaches them to storylines.
+
+**What feeds it.** Every detector reads series through one series reader, by reference:
+`series:{sourceId}/{seriesId}` (the market, energy and attention series of 093 and 117, and
+`series:imf-portwatch-chokepoints/{portId}` for PortWatch daily transits), `rollup:{hour|day}/{sourceId}/{kind}/{region}`
+(activity counts by 040 region) and `rule:{ruleId}/{groupKey}` (an anomaly rule's samples). `GET
+/v1/analytics/series/data?ref=…` shows exactly what a detector sees: each point with `knownAt` (when Foresignal knew it)
+and `coverageOk`, and the gaps, which are unknown periods, never zero.
+
+**Region rollups.** The activity rollup now also counts by region: region-hour rows (kept 1095 days,
+`RetentionSettings.stats.regionHourly`) and region-day rows (3650 days, `stats.regionDaily`). A record's region is its
+040 country, or its first-level region (`US-TX`) for sources you list in the app setting `stats.regionLevel`
+(`{"acled": "admin1"}`); untagged records count in `ZZ`. Source `*` in a rollup reference is every public source
+together with re-reports of one event counted once (116 canonical events), which is what the detectors use.
+`/v1/stats/timeseries?groupBy=region` and `region=` and `/v1/stats/top?by=region` read these rows.
+
+**The registry.** `GET /v1/analytics/series` lists the series the detectors run on. Every night at 02:00 UTC
+Foresignal registers busy region-day rollups (30 non-zero days in the last 90), every daily, weekly or hourly market
+and attention series, the PortWatch chokepoints and anomaly rule groups with eight weeks of samples, keeping at most
+`analysis.series.max` (2,000) automatic rows, busiest first. `PUT /v1/analytics/series` adds or changes a row as yours;
+automatic registration never removes your rows.
+
+**Change points** (03:00 UTC on daily and weekly series; hourly series you register run at :20). A CUSUM detector
+watches each series against its own recent baseline (the same weekday over the previous eight weeks for counts) and
+flags a sustained shift of at least 50%; its alarm threshold is set by simulation so that it would false-alarm about
+once a year on a steady series. The shift must persist for three covered buckets. A second, Bayesian detector (BOCPD)
+confirms it: posterior 0.8 or more makes the finding `significant`, otherwise it is `notable`. A gap in coverage after
+the change makes it `unknown`, and a fall in counts is reported only when 116 observability says the sources could have
+seen it (`LOW_DETECTABILITY` otherwise).
+
+**Event studies.** `POST /v1/analytics/event-studies` asks "did this series move unusually around these events?" as a
+103 job (read it with `GET /v1/backtests/{id}`): an event selector (an intelligence event type, an alert rule or tag,
+an anomaly rule, situations turning active, change points by family, or explicit times), a target series and a range.
+The answer is the cumulative abnormal movement (CAR, in standard deviations) before (`[−5, −1]` days or `[−2, −1]`
+weeks) and at each event, averaged across events (CAAR), with a standardized test, a rank test and a placebo test.
+
+**Live pre-event signals and unexplained moves.** When an intelligence event of warning or higher becomes active, a
+situation turns active or a significant change point appears, Foresignal checks the **watch pairs** of the registry:
+series paired with that signal family (and regions). Only data known before the event counts. A move of at least
+`minEffect` (2 SD) that happens before fewer than 1% of comparable windows without an event becomes a
+`pre-event-signal`. Weekly series published with a delay are re-checked after `releaseLagDays` and say
+`LAGGED_PUBLICATION`. Every day at 04:00 UTC price, volume, positioning, attention and tone series are scanned for moves
+of 3 SD or more with no qualifying event in their regions or topic within two days (`unexplained-move`); an event within
+the next seven days is linked to the move. The defaults (`intel/watch-pairs.json`) pair Middle East and Gulf conflict
+with WTI positioning (COT managed money), FRED and EIA oil prices and the Gulf, Red Sea and Hormuz topics' news volume,
+tone and pageviews; maritime behavior with chokepoint transits and WTI positioning; and outages with each topic
+region's news volume. Missing series are skipped. Edit a series' pairs with `PUT /v1/analytics/series`.
+
+**Co-occurrence** (05:00 UTC). For every region and pair of signal families, Foresignal asks whether both ran above
+their own day-of-week baselines on the same day, combines the two p-values (Fisher) and controls the false-discovery
+rate across all of the day's tests (Benjamini–Hochberg, 5%). Survivors are `co-occurrence` findings; `significant`
+needs an adjusted p of 0.001 or less and a lift of 3 or more over what independence would predict.
+
+**Reading a finding.** `inference.baseRate` says how often a finding this strong happens by chance: for change points
+the alarms the same settings raised on this series' own history per year; for pre-event signals the placebo share
+("moves this large occur before about 0.6% of comparable windows with no event"); for co-occurrences the joint days a
+year independence predicts. A placebo p-value of 0.01 means one comparable window in a hundred with no event moved as
+much. `caveats` list what the finding cannot say. **`DAILY_RESOLUTION_ONLY`** on every market finding means Foresignal's
+market data is daily or weekly: moves that happen within a trading day, as in licensed minute data, are invisible.
+A pre-event signal is unusual movement before an event, never evidence of wrongdoing. `PATCH
+/v1/analytics/findings/{id}` with `{"status": "dismissed", "reason": "…"}` dismisses one (its record is tombstoned).
+Findings over `LOCAL_ONLY` series (FRED, LSEG-sourced EIA prices) keep their raw levels from callers the egress policy
+refuses and never put them on records.
+
+**Notifications and streams.** Add `finding.significant` to a channel's `events` to be told about significant
+findings (off by default; private findings send none). The `analytics` topic of `/v1/events/stream` carries
+`finding.created`, `finding.updated` and `finding.dismissed`.
+
+**Tuning and cost.** Everything is deterministic database work, no LLM. The nightly runs read up to 400 days per daily
+series; the series cap (`analysis.series.max`) bounds the work. `analysis.findings.publishInfo=true` also publishes
+`info` findings as records (off: they are stored and listed only). Operator rows of the signal-family registry go in
+the app setting `intel.signalFamilies` (the shape of `intel/signal-families.json`).

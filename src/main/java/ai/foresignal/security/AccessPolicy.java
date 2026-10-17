@@ -481,6 +481,17 @@ public class AccessPolicy {
                 rule(null, "/v1/situations", AccessRequirement.AGENT),
                 rule(null, "/v1/situations/**", AccessRequirement.AGENT),
 
+                // ---- Discovery (prompt 119): series data, the registry and findings are reads; registry changes,
+                // dismissals and batch event studies are agent operations (no LLM is used). ----
+                rule(HttpMethod.GET, "/v1/analytics/series/data", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/analytics/series", AccessRequirement.READ),
+                rule(HttpMethod.PUT, "/v1/analytics/series", AccessRequirement.AGENT),
+                rule(HttpMethod.DELETE, "/v1/analytics/series", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/analytics/findings", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/analytics/findings/*", AccessRequirement.READ),
+                rule(HttpMethod.PATCH, "/v1/analytics/findings/*", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/analytics/event-studies", AccessRequirement.AGENT),
+
                 // ---- Autonomous analyst (prompt 102) ----
                 rule(HttpMethod.POST, "/v1/analyst/profiles/*/run", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/analyst/profiles/**", AccessRequirement.READ),

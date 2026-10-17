@@ -35,7 +35,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              # 117: attention topics.
              "topicId": "attentionTopicId",
              # 118: situations and their members.
-             "situationId": "situationId", "memberId": "situationMemberId"}
+             "situationId": "situationId", "memberId": "situationMemberId",
+             # 119: analytic findings.
+             "findingId": "findingId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -481,6 +483,19 @@ BODIES = {
   "mergeSituation": {"intoId": "{{otherSituationId}}", "reason": "The same storyline seen from two chokepoints"},
   "splitSituation": {"memberIds": ["{{situationMemberId}}"], "title": "Gulf of Aden piracy", "theme": "maritime"},
   "testSituationLinker": {"fromSeq": 0, "toSeq": 10000},
+  # 119: register the CFTC WTI managed-money net position as an operator analysis series with a watch pair (Gulf
+  # conflict events checked against it live), run a batch event study of maritime disruptions in Yemen against the
+  # FRED WTI spot price (needs fred-series), and dismiss the finding in {{findingId}}.
+  "upsertAnalysisSeries": {"ref": "series:cftc-cot/cot.067651.disaggregated.mm_net", "enabled": True,
+                           "detectors": ["changepoint-cusum", "changepoint-bocpd"], "frequency": "week",
+                           "family": "markets",
+                           "watchPairs": [{"eventFamily": "conflict", "regionCodes": ["IR", "SA", "YE", "AE"],
+                                           "minEffect": 2.0, "releaseLagDays": 3}]},
+  "createEventStudy": {"name": "WTI around Yemen maritime disruptions",
+                       "selector": {"intelEventType": "maritime-disruption", "regionCodes": ["YE"]},
+                       "target": "series:fred-series/fred.DCOILWTICO", "from": "2025-01-01T00:00:00Z",
+                       "to": "2026-10-01T00:00:00Z"},
+  "updateFinding": {"status": "dismissed", "reason": "A known holiday effect, not a change in activity"},
   # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
   # one nautical mile in the next hour.
   "cpaBatch": {"subject": "aisstream/244660000", "filter": {"kinds": ["vessel"], "sources": [],
@@ -506,6 +521,9 @@ CAPTURE = {
   # 118: the created situation and the added member.
   "createSituation": "const j = pm.response.json(); pm.collectionVariables.set('situationId', j.id);",
   "addSituationMember": "const j = pm.response.json(); pm.collectionVariables.set('situationMemberId', j.id);",
+  # 119: the newest finding and the event-study job.
+  "listFindings": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('findingId', j.items[0].id);",
+  "createEventStudy": "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
   # 117: the created attention topic.
   "createAttentionTopic": "const j = pm.response.json(); pm.collectionVariables.set('attentionTopicId', j.id);",
   "rotatePeerIngestKey": "const j = pm.response.json(); pm.collectionVariables.set('peerIngestKey', j.key); console.log('New peer ingest key (shown once):', j.key);",
@@ -657,7 +675,9 @@ VARIANTS = {
   ],
 }
 
-QUERY_DEFAULTS = {"after": "{{lastSeq}}", "cursor": "{{cursor}}", "source": "{{sourceId}}", "ruleId": "{{ruleId}}"}
+QUERY_DEFAULTS = {"after": "{{lastSeq}}", "cursor": "{{cursor}}", "source": "{{sourceId}}", "ruleId": "{{ruleId}}",
+                  # 119: every query parameter named ref is a series reference.
+                  "ref": "{{seriesRef}}"}
 
 def example_for(schema):
     t = schema.get("type"); t = t[0] if isinstance(t, list) else t
@@ -845,6 +865,7 @@ collection = {
       ("canonicalEventId", ""), ("manifestId", ""), ("templateId", "ask-system"), ("jobId", ""),
       ("attentionTopicId", "red-sea-shipping"),
       ("situationId", ""), ("situationMemberId", ""), ("otherSituationId", ""),
+      ("findingId", ""), ("seriesRef", "rollup:day/*/earthquake/US"),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

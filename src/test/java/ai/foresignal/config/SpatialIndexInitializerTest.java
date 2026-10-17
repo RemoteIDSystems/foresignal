@@ -9,7 +9,8 @@ import org.junit.jupiter.api.Test;
 class SpatialIndexInitializerTest {
 
     @Test
-    @DisplayName("the statement list is the v1.2 set plus the 017, 036, 040, 042, 093, 098, 114 and 118 statements, in order")
+    @DisplayName("the statement list is the v1.2 set plus the 017, 036, 040, 042, 093, 098, 114, 118 and 119 statements,"
+            + " in order")
     void statementList() {
         // Checkpoint 041: 036 (places, saved views) and 040 (reference geography, record_region) added their
         // indexes to the initializer without updating this pin; 098 (entities) and 114 (trips) did too, and 118
@@ -49,7 +50,10 @@ class SpatialIndexInitializerTest {
                                 + " WHERE valid_to IS NULL",
                         "CREATE INDEX IF NOT EXISTS trip_corridor_gist ON trip USING GIST (corridor)",
                         "CREATE INDEX IF NOT EXISTS situation_geom_gist ON situation USING GIST (geom)",
-                        "CREATE INDEX IF NOT EXISTS situation_region_codes_gin ON situation USING GIN (region_codes)");
+                        "CREATE INDEX IF NOT EXISTS situation_region_codes_gin ON situation USING GIN (region_codes)",
+                        "CREATE INDEX IF NOT EXISTS analytic_finding_geom_gist ON analytic_finding USING GIST (geom)",
+                        "CREATE INDEX IF NOT EXISTS analytic_finding_region_codes_gin ON analytic_finding USING GIN"
+                                + " (region_codes)");
     }
 
     @Test

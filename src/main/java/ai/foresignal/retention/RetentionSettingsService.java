@@ -40,8 +40,8 @@ import tools.jackson.databind.JsonNode;
  * a GET reads them back.
  *
  * <p>{@code audit} (prompt 023), {@code inbox} (prompt 033) and {@code stats.hourly}/{@code stats.daily}
- * (prompt 038) are stored with the rest. Members owned by later prompts ({@code stats.regionHourly} and
- * {@code stats.regionDaily} 119, {@code social} 135) are accepted and not stored until those prompts.
+ * (prompt 038) are stored with the rest, and so are {@code stats.regionHourly} and {@code stats.regionDaily}
+ * (prompt 119). Members owned by later prompts ({@code social} 135) are accepted and not stored until then.
  *
  * <p><strong>Downsampling (prompt 044).</strong> {@code trackRawWindow} (default 24 h; {@code null}
  * disables downsampling) must be shorter than {@code trackWindow}, and {@code trackDownsampleInterval}
@@ -63,11 +63,11 @@ public class RetentionSettingsService {
     /** The shortest {@code trackDownsampleInterval} accepted (prompt 044). */
     public static final Duration MIN_DOWNSAMPLE_INTERVAL = Duration.ofSeconds(30);
 
-    /** {@code stats} members stored now (prompt 038). */
-    static final Set<String> STATS_FIELDS = Set.of("hourly", "daily");
+    /** {@code stats} members stored now (prompt 038; region windows since prompt 119). */
+    static final Set<String> STATS_FIELDS = Set.of("hourly", "daily", "regionHourly", "regionDaily");
 
-    /** {@code stats} members of prompt 119, accepted and not stored until then. */
-    static final Set<String> LATER_STATS_FIELDS = Set.of("regionHourly", "regionDaily");
+    /** {@code stats} members of later prompts, accepted and not stored until then (none since prompt 119). */
+    static final Set<String> LATER_STATS_FIELDS = Set.of();
 
     private final AppSettingService settings;
     private final RetentionResolver resolver;
@@ -326,7 +326,8 @@ public class RetentionSettingsService {
                 errors.add(new FieldError("stats." + field, "is not a RetentionSettings.stats member"));
             }
         }
-        return new RetentionSettings.Stats(values.get("hourly"), values.get("daily"));
+        return new RetentionSettings.Stats(values.get("hourly"), values.get("daily"), values.get("regionHourly"),
+                values.get("regionDaily"));
     }
 
     private static Duration window(JsonNode node, String field, List<FieldError> errors) {

@@ -99,6 +99,10 @@ foresignal:
   situations:
     auto-start: false
     scheduled: false
+  # The discovery schedule does not run in tests (119); the ITs call AnalysisSeriesRegistrar.run, ChangePointService,
+  # LiveEventStudyService.poll/scanMoves and CoOccurrenceService.run.
+  analytics:
+    scheduled: false
   # The enrichment worker does not subscribe on its own in tests (EnrichmentWorkerIT starts it), and
   # the LLM timeout is short so EnrichmentWorkerIT can provoke a timeout quickly.
   enrichment:

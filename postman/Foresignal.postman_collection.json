@@ -5257,7 +5257,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/analytics/series/data?ref=",
+              "raw": "{{baseUrl}}/v1/analytics/series/data?ref={{seriesRef}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -5270,7 +5270,7 @@
               "query": [
                 {
                   "key": "ref",
-                  "value": "",
+                  "value": "{{seriesRef}}",
                   "description": "Series reference",
                   "disabled": false
                 },
@@ -5420,7 +5420,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"ref\": \"series:cftc-cot/cot.067651.disaggregated.mm_net\",\n  \"enabled\": true,\n  \"detectors\": [\n    \"changepoint-cusum\",\n    \"changepoint-bocpd\"\n  ],\n  \"frequency\": \"week\",\n  \"family\": \"markets\",\n  \"watchPairs\": [\n    {\n      \"eventFamily\": \"conflict\",\n      \"regionCodes\": [\n        \"IR\",\n        \"SA\",\n        \"YE\",\n        \"AE\"\n      ],\n      \"minEffect\": 2.0,\n      \"releaseLagDays\": 3\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5446,7 +5446,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/analytics/series?ref=",
+              "raw": "{{baseUrl}}/v1/analytics/series?ref={{seriesRef}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -5458,7 +5458,7 @@
               "query": [
                 {
                   "key": "ref",
-                  "value": "",
+                  "value": "{{seriesRef}}",
                   "description": "Series reference",
                   "disabled": false
                 }
@@ -5485,7 +5485,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('findingId', j.items[0].id);",
+                  "}"
                 ]
               }
             }
@@ -5535,7 +5538,7 @@
                 },
                 {
                   "key": "ref",
-                  "value": "",
+                  "value": "{{seriesRef}}",
                   "description": "Findings over this series",
                   "disabled": true
                 },
@@ -5662,7 +5665,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"status\": \"dismissed\",\n  \"reason\": \"A known holiday effect, not a change in activity\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5679,7 +5682,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));"
+                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -5721,7 +5727,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"WTI around Yemen maritime disruptions\",\n  \"selector\": {\n    \"intelEventType\": \"maritime-disruption\",\n    \"regionCodes\": [\n      \"YE\"\n    ]\n  },\n  \"target\": \"series:fred-series/fred.DCOILWTICO\",\n  \"from\": \"2025-01-01T00:00:00Z\",\n  \"to\": \"2026-10-01T00:00:00Z\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -12512,7 +12518,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/chronicles/{{chronicleId}}/series?ref=",
+              "raw": "{{baseUrl}}/v1/chronicles/{{chronicleId}}/series?ref={{seriesRef}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -12525,7 +12531,7 @@
               "query": [
                 {
                   "key": "ref",
-                  "value": "",
+                  "value": "{{seriesRef}}",
                   "description": "Series ref",
                   "disabled": false
                 },
@@ -32892,7 +32898,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/analytics/series/forecast?ref=",
+              "raw": "{{baseUrl}}/v1/analytics/series/forecast?ref={{seriesRef}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -32905,7 +32911,7 @@
               "query": [
                 {
                   "key": "ref",
-                  "value": "",
+                  "value": "{{seriesRef}}",
                   "description": "Series reference",
                   "disabled": false
                 },
@@ -32945,7 +32951,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/analytics/series/forecast/model?ref=",
+              "raw": "{{baseUrl}}/v1/analytics/series/forecast/model?ref={{seriesRef}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -32959,7 +32965,7 @@
               "query": [
                 {
                   "key": "ref",
-                  "value": "",
+                  "value": "{{seriesRef}}",
                   "description": "Series reference",
                   "disabled": false
                 }
@@ -51462,6 +51468,14 @@
     {
       "key": "otherSituationId",
       "value": ""
+    },
+    {
+      "key": "findingId",
+      "value": ""
+    },
+    {
+      "key": "seriesRef",
+      "value": "rollup:day/*/earthquake/US"
     },
     {
       "key": "tileLayer",
