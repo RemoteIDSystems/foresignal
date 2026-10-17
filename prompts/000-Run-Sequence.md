@@ -20,7 +20,7 @@
    - compile (`./gradlew compileJava compileTestJava`)
    - commit the implementation as `NNN: <Title>` (for example `005: Upstream Client And Budgets`)
    - write the Completion Report `completion-reports/NNN-CR-<Name>.md` in the same format as the earlier reports, with the 40-character implementation commit hash, commit it as `NNN: completion report`, and push to `origin main`
-   - feature prompts never run tests; checkpoint prompts (012, 022, 041, 057, 097, 124, 139, 142) and the final prompts 143–144 run them as instructed, and 007–009 each run their own sanctioned test classes once
+   - **DO NOT RUN ANY TESTS — for any prompt, ever, including checkpoints (124, 139, 142) and 143–144 (owner directive, 2026-10-17). Compile only.** A checkpoint or test prompt is now **compile-and-report only**: implement any code it specifies, run only `./gradlew compileJava compileTestJava`, write a brief report noting tests were NOT run (deferred to the owner at code-complete), commit, push, continue.
 5. **Check before moving on:**
    - `git status` is clean
    - `git log origin/main -1` matches local `HEAD`
@@ -33,10 +33,8 @@
 
 Stop and write `completion-reports/RUN-STATUS.md`, then commit it as `Run status: <short reason>` and push, if any of these happen:
 - **Compile:** compilation fails and you can't fix it within the prompt's scope after a reasonable effort.
-- **Checkpoint tests:** a checkpoint's tests still fail after you've fixed everything you can determine to be a defect. List the failures and your analysis.
-- **Docker unavailable:** a checkpoint or a sanctioned test run (007–009) needs Testcontainers and Docker isn't running.
-- **Performance gate:** 022's performance smoke misses NFR-2 throughput or the SSE memory budget, or 143's capacity and soak results exceed the storage projection or memory limits, after the fixes you can make. Record the numbers and stop; the owner decides whether to continue.
-- **Needs the bench server:** Foresignal's production host is the owner's Linux amd64 bench server; the development machine is a Mac. Prompt 143 (Runtime Verification) measures and soaks a real deployment, so it must run on that server. Before starting 143, check `uname -sm`; unless it prints `Linux x86_64`, stop and ask the owner to run 143 on the bench server. Every other prompt runs on either machine, and nothing may assume macOS-only tools or paths.
+- *(Removed 2026-10-17 — no tests are run, so there are no checkpoint-test failures, Testcontainers/Docker requirements, or performance-gate stops. All test, performance, and runtime verification is deferred to the owner at code-complete.)*
+- **Runtime verification deferred:** Prompt 143 (Runtime Verification) is NOT run — the owner performs all runtime/soak/capacity verification after code-complete. Nothing may assume macOS-only tools or paths.
 - **Push:** `git push` is rejected and can't be resolved as below (auth failure, or incoming changes outside planner paths). Don't force-push, ever. (In this case the status file can't be pushed; leave it committed locally.)
   - **Planner changes arrived meanwhile:** the owner may push planner commits while a prompt runs. If the push is rejected as non-fast-forward, run `git fetch origin` and check `git diff --name-only HEAD...origin/main`. When every incoming path is under `docs/`, `prompts/`, `postman/`, `scripts/` or `client screen ideas/`, merge them with `git pull --no-rebase --no-edit origin main` (a merge, never a rebase, so the implementation hash in the Completion Report stays valid), re-run `./gradlew compileJava compileTestJava`, and push again. If a merge conflict appears, or any incoming path is elsewhere, stop.
 - **Destructive operation needed:** the prompt would require deleting user data outside the repo, dropping a non-test database, or changing system settings.
@@ -58,6 +56,7 @@ Stop and write `completion-reports/RUN-STATUS.md`, then commit it as `Run status
 
 ## Rules that always apply
 
+- **⚠ ABSOLUTE — DO NOT RUN ANY TESTS until the owner declares the project 100% code complete (owner directive, 2026-10-17).** Never run `./gradlew test`, `build`, `check`, `integrationTest`, `jacocoTestReport`, a soak, a benchmark, a performance smoke, or any test/coverage execution — for ANY prompt, no exceptions, checkpoints included. The ONLY Gradle you may run is `./gradlew compileJava compileTestJava`. Write tests as specified, but never execute them. This overrides any instruction in any prompt file to run tests.
 - Use only the repository's own Gradle wrapper and tools; install nothing system-wide.
 - Never commit secrets, API keys or tokens. Never print the admin token outside its first-start banner.
 - Never copy code from AGPL/GPL reference repos (ShadowBroker, Velocity, World Monitor, SatDump). God's Eye View (MIT) may be ported with attribution.
