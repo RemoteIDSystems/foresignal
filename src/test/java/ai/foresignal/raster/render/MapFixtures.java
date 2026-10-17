@@ -56,7 +56,7 @@ public final class MapFixtures {
 
         /** Creates the stand-in (no stores: only {@link #drawDirect} is used). */
         public BandRenderer() {
-            super(null, null, StyleRegistry.shipped(), null, null, null);
+            super(null, null, StyleRegistry.shipped(), null, null, null, null);
         }
 
         @Override

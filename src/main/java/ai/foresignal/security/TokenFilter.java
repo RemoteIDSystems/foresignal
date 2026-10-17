@@ -552,6 +552,11 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
             // Every MCP message is a POST; the MCP server audits each tool call itself (prompt 025).
             return;
         }
+        if (status >= 200 && status < 300 && isShareLinkWrite(normalized)) {
+            // ShareLinkService audits a created or revoked link itself, with the link id (prompt 112); a second
+            // row here would duplicate it (checkpoint 124). Failed attempts are still audited below.
+            return;
+        }
         String[] segments = normalized.split("/");
         Map<String, Object> detail = new LinkedHashMap<>();
         Object code = request.getAttribute(REJECTION_ATTRIBUTE);
@@ -576,6 +581,11 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
                 segments.length > 3 ? segments[3] : null,
                 request.getRemoteAddr(),
                 detail));
+    }
+
+    /** True for the share-link writes, which {@code ShareLinkService} audits itself (prompt 112). */
+    static boolean isShareLinkWrite(String normalizedPath) {
+        return normalizedPath.equals("/v1/share-links") || normalizedPath.startsWith("/v1/share-links/");
     }
 
     /** True for the MCP server's paths, whose tool calls are audited per call (prompt 025). */

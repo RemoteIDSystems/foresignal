@@ -1,5 +1,7 @@
 package ai.foresignal.forecast.baseline;
 
+import org.springframework.context.annotation.Import;
+import ai.foresignal.testsupport.ingest.TestIngestSources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.any;
@@ -54,6 +56,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * the runner's at-most-daily rule and the automatic ensemble.
  */
 @IntegrationTest
+@Import(TestIngestSources.class)
 class BaselineForecastersIT {
 
     static final Instant NOW = Instant.parse("2026-10-17T12:00:00Z");
@@ -84,7 +87,7 @@ class BaselineForecastersIT {
         LocalDate start = ReferenceFamilies.yearChunk(2023)[0];
         for (LocalDate w = start; w.isBefore(ReferenceFamilies.yearChunk(2024)[1]); w = w.plusWeeks(2)) {
             jdbc.update("INSERT INTO reference_history (family, region_code, week_start, source, count, fatalities,"
-                    + " license, egress, import_id) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)", ReferenceFamilies.BATTLES,
+                    + " licence, egress, import_id) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)", ReferenceFamilies.BATTLES,
                     "YE", Date.valueOf(w), ReferenceFamilies.UCDP, 2, "CC-BY-4.0", "OPEN", ucdp.getId());
         }
     }
@@ -198,7 +201,7 @@ class BaselineForecastersIT {
         for (LocalDate w = ReferenceFamilies.yearChunk(2023)[0]; w.isBefore(ReferenceFamilies.yearChunk(2024)[1]);
                 w = w.plusWeeks(4)) {
             jdbc.update("INSERT INTO reference_history (family, region_code, week_start, source, count, fatalities,"
-                    + " license, egress, import_id) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)",
+                    + " licence, egress, import_id) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)",
                     ReferenceFamilies.EXPLOSIONS, "YE", Date.valueOf(w.minusWeeks(1)), ReferenceFamilies.UCDP, 1,
                     "CC-BY-4.0", "OPEN", ucdp);
         }

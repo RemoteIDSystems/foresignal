@@ -167,10 +167,17 @@ public class SituationLinker implements ChangeListener, DisposableBean, IngestSt
         return cursor;
     }
 
-    /** Drops the cached cursor so it is read again from {@code app_setting}. */
+    /**
+     * Restarts the cursor at 0 after the record history and {@code record_seq} were reset. Synchronized with
+     * {@link #catchUp()}: a pass in flight during the reset finishes first, and the cursor it stored for the old
+     * history is removed.
+     */
     @Override
-    public void resetState() {
-        cursor = -1;
+    public synchronized void resetState() {
+        cursor = 0;
+        // A missing cursor already means 0, so the reset removes it rather than writing 0 back: the cleaner leaves
+        // app_setting empty apart from the cursors whose absence means "start at the head" (trigger, region).
+        settings.remove(SettingKeys.SITUATION_CURSOR);
     }
 
     /** Moves the durable cursor back to {@code seq} (tests, and a restart simulated in place). */
@@ -197,12 +204,20 @@ public class SituationLinker implements ChangeListener, DisposableBean, IngestSt
 
     /** Links every input between the cursor and the watermark (never past the trigger engine's cursor). */
     public synchronized void catchUp() {
-        long watermark = changeBus.lastPublishedSeq();
+        long published = changeBus.lastPublishedSeq();
+        long watermark = published;
         TriggerEngine engine = triggers.getIfAvailable();
         if (engine != null && engine.running()) {
             watermark = Math.min(watermark, engine.cursor());
         }
         long from = cursor();
+        if (from > published) {
+            // Only possible after the record history and record_seq were reset (a restore, or the test cleaner racing
+            // a pass that stored its old cursor): the stored cursor describes a history that no longer exists, so the pass
+            // starts again from the beginning (membership stays exactly-once).
+            from = 0;
+            storeCursor(from);
+        }
         Live state = new Live();
         while (from < watermark) {
             long to = Math.min(from + CHUNK, watermark);

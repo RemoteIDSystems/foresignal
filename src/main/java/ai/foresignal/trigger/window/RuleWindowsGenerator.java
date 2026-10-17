@@ -20,6 +20,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 /**
@@ -47,7 +48,7 @@ public class RuleWindowsGenerator implements DerivedGenerator {
     private final Set<UUID> knownRules = new LinkedHashSet<>();
 
     /** Creates the generator. */
-    public RuleWindowsGenerator(WindowEngine engine) {
+    public RuleWindowsGenerator(@Lazy WindowEngine engine) {
         this.engine = engine;
     }
 

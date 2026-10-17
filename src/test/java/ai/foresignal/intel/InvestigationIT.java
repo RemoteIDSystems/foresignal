@@ -35,7 +35,7 @@ class InvestigationIT {
         clock.setInstant(Instant.parse("2026-03-01T12:00:00Z"));
         Instant now = clock.instant();
         records.ingestAt(TestIngestSources.STANDARD, now,
-                NormalizedRecord.builder("e1", "thing").observedAt(now).point(-95.0, 32.0).put("name", "x").build());
+                NormalizedRecord.builder("e1", "test-record").observedAt(now).point(-95.0, 32.0).put("name", "x").build());
         Long seq = jdbc.queryForObject(
                 "select max(seq) from record_version where source_id = ? and external_id = ?", Long.class,
                 TestIngestSources.STANDARD, "e1");
@@ -58,7 +58,7 @@ class InvestigationIT {
         clock.setInstant(Instant.parse("2026-03-01T12:00:00Z"));
         Instant now = clock.instant();
         records.ingestAt(TestIngestSources.STANDARD, now,
-                NormalizedRecord.builder("p1", "thing").observedAt(now).point(-95.0, 32.0).put("name", "x").build());
+                NormalizedRecord.builder("p1", "test-record").observedAt(now).point(-95.0, 32.0).put("name", "x").build());
         Long seq = jdbc.queryForObject(
                 "select max(seq) from record_version where source_id = ? and external_id = ?", Long.class,
                 TestIngestSources.STANDARD, "p1");
@@ -79,8 +79,18 @@ class InvestigationIT {
     void snapshotCapped() {
         clock.setInstant(Instant.parse("2026-03-01T12:00:00Z"));
         Instant now = clock.instant();
-        records.ingestAt(TestIngestSources.STANDARD, now, NormalizedRecord.builder("big", "thing").observedAt(now)
-                .point(-95.0, 32.0).put("blob", "x".repeat(80 * 1024)).build());
+        // The ingest limits (64 KB payload, 8 KB per string, 10,000 vertices) reject one 80 KB string, so the
+        // record stays within them: six 8,000-byte strings plus a 2,000-vertex line make a snapshot over 64 KB.
+        org.locationtech.jts.geom.Coordinate[] line = new org.locationtech.jts.geom.Coordinate[2000];
+        for (int i = 0; i < line.length; i++) {
+            line[i] = new org.locationtech.jts.geom.Coordinate(-95.0 + i * 0.000123457, 32.0 + i * 0.000098765);
+        }
+        NormalizedRecord.Builder big = NormalizedRecord.builder("big", "test-record").observedAt(now)
+                .geometry(ai.foresignal.source.spi.Geo.factory().createLineString(line));
+        for (int i = 0; i < 6; i++) {
+            big.put("blob" + i, "x".repeat(8000));
+        }
+        records.ingestAt(TestIngestSources.STANDARD, now, big.build());
         Long seq = jdbc.queryForObject(
                 "select max(seq) from record_version where source_id = ? and external_id = ?", Long.class,
                 TestIngestSources.STANDARD, "big");

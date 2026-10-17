@@ -168,6 +168,12 @@ tasks.test {
     // each context now also holds the full source registry (40+ adapters and their descriptors), so the
     // 2 GB that sufficed at 041 is exceeded; the test JVM gets 4 GB. Production keeps its own budget.
     maxHeapSize = "4g"
+    // Checkpoint 124: the intelligence prompts (098-123) brought the suite to Spring's default cache of 32 contexts,
+    // and 32 cached contexts exhausted the 4 GB heap (run 2: OutOfMemoryError in a raster test). Capping the cache
+    // evicts the least recently used context instead; a context evicted and needed again is rebuilt.
+    systemProperty("spring.test.context.cache.maxSize", "12")
+    // Run 3 still ran out of memory with the cap: closed contexts stayed reachable through their event-bus delivery
+    // threads, fixed in production (@PreDestroy on the buses, CompactOutboxService and EntityLinker).
     val runtimeClasspath = configurations.runtimeClasspath
     jvmArgumentProviders.add(CommandLineArgumentProvider {
         listOf("-Dforesignal.test.runtime-classpath=" + runtimeClasspath.get().asPath)
@@ -292,6 +298,14 @@ val pinnedFixtures = listOf(
             "MRMS_MultiSensor_QPE_24H_Pass2_00.00_20261013-030000.grib2.gz",
         "349bb80cd2e485ff9a8771f3462987398c8c05e82a149ad0f898cdbe4c5ccebb",
         4_725_486L,
+    ),
+    // Checkpoint 124: every RTMA-RU message is 5.6-7.5 MB (simple packing), over the commit limit.
+    PinnedFixture(
+        "rtma-ru/rtma-ru-t1100z-gust.grib2",
+        "https://noaa-rtma-pds.s3.amazonaws.com/rtma2p5_ru.20261017/rtma2p5_ru.t1100z.2dvaranl_ndfd.grb2",
+        "1906f27d0c8b8a1fe6c948e6336f3f5e996ccd69bedab8d352f6242b54458b54",
+        5_617_636L,
+        "bytes=57580533-63198168",
     ),
 )
 tasks.register("downloadTestFixtures") {

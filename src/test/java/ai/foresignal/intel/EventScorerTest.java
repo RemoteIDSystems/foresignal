@@ -28,8 +28,10 @@ class EventScorerTest {
         assertThat(two.label()).isEqualTo("moderate");
         assertThat(two.evidenceQuality()).isEqualTo("moderate");
 
-        EventScorer.Score strong = EventScorer.score(List.of(member("ais-behaviour", "a", 0.5, true),
-                member("nav-warning", "b", 0.5, true), member("gnss-interference", "b", 0.5, true)), 0);
+        // 1 − (1 − 0.6·0.6)^3 = 0.737856 (weights of 0.5 give 0.657, which is moderate, not high).
+        EventScorer.Score strong = EventScorer.score(List.of(member("ais-behaviour", "a", 0.6, true),
+                member("nav-warning", "b", 0.6, true), member("gnss-interference", "b", 0.6, true)), 0);
+        assertThat(strong.confidence()).isCloseTo(0.737856, org.assertj.core.data.Offset.offset(1e-9));
         assertThat(strong.evidenceQuality()).isEqualTo("strong");
         assertThat(strong.label()).isEqualTo("high");
     }

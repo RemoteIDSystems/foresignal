@@ -95,6 +95,7 @@ class RecordLifecycleIT {
     @Autowired RetentionJob retentionJob;
     @Autowired TriggerEngine engine;
     @Autowired ai.foresignal.reference.RegionTagWorker regionWorker;
+    @Autowired ai.foresignal.intel.CorrelationEngine intel;
     @Autowired ChangeBus changeBus;
     @Autowired IngestWriter writer;
     @Autowired SseHub hub;
@@ -443,6 +444,8 @@ class RecordLifecycleIT {
         // The region tag worker's cursor joins the clamp too (prompt 040).
         await().atMost(Duration.ofSeconds(30)).until(() -> !regionWorker.running()
                 || regionWorker.cursor() >= changeBus.lastPublishedSeq());
+        // So does the correlation engine's intel.cursor (prompt 101), which polls every 5 s.
+        ai.foresignal.testsupport.retention.RetentionItSupport.awaitCorrelationCursor(intel, jdbc, changeBus);
         clock.setInstant(now);
         return retentionJob.run();
     }

@@ -12536,6 +12536,8 @@
             "schema": {
               "$ref": "#/components/schemas/IntelEventStreamEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "intel",
             "prompt": "101"
           },
@@ -12543,6 +12545,8 @@
             "schema": {
               "$ref": "#/components/schemas/IntelEventStreamEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "intel",
             "prompt": "101"
           },
@@ -12550,6 +12554,8 @@
             "schema": {
               "$ref": "#/components/schemas/IntelEventStreamEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "intel",
             "prompt": "101"
           },
@@ -12557,6 +12563,8 @@
             "schema": {
               "$ref": "#/components/schemas/IntelEventStreamEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "intel",
             "prompt": "101"
           },
@@ -12564,6 +12572,8 @@
             "schema": {
               "$ref": "#/components/schemas/AnalystNoteEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "analyst",
             "prompt": "102"
           },
@@ -12571,6 +12581,8 @@
             "schema": {
               "$ref": "#/components/schemas/AnalystProposalEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "analyst",
             "prompt": "102"
           },
@@ -12578,6 +12590,8 @@
             "schema": {
               "$ref": "#/components/schemas/SituationEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "situations",
             "prompt": "118"
           },
@@ -12585,6 +12599,8 @@
             "schema": {
               "$ref": "#/components/schemas/SituationEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "situations",
             "prompt": "118"
           },
@@ -12592,6 +12608,8 @@
             "schema": {
               "$ref": "#/components/schemas/SituationEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "situations",
             "prompt": "118"
           },
@@ -12599,6 +12617,8 @@
             "schema": {
               "$ref": "#/components/schemas/SituationEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "situations",
             "prompt": "118"
           },
@@ -12606,6 +12626,8 @@
             "schema": {
               "$ref": "#/components/schemas/SituationEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "situations",
             "prompt": "118"
           },
@@ -12613,6 +12635,8 @@
             "schema": {
               "$ref": "#/components/schemas/SituationEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "situations",
             "prompt": "118"
           },
@@ -12620,6 +12644,8 @@
             "schema": {
               "$ref": "#/components/schemas/SituationEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "situations",
             "prompt": "118"
           },
@@ -12627,6 +12653,8 @@
             "schema": {
               "$ref": "#/components/schemas/FindingEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "analytics",
             "prompt": "119"
           },
@@ -12634,6 +12662,8 @@
             "schema": {
               "$ref": "#/components/schemas/FindingEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "analytics",
             "prompt": "119"
           },
@@ -12641,6 +12671,8 @@
             "schema": {
               "$ref": "#/components/schemas/FindingEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "analytics",
             "prompt": "119"
           },
@@ -12648,6 +12680,8 @@
             "schema": {
               "$ref": "#/components/schemas/PrecursorEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "analytics",
             "prompt": "120"
           },
@@ -12655,6 +12689,8 @@
             "schema": {
               "$ref": "#/components/schemas/PrecursorEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "analytics",
             "prompt": "120"
           },
@@ -12662,6 +12698,8 @@
             "schema": {
               "$ref": "#/components/schemas/PrecursorEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "analytics",
             "prompt": "120"
           },
@@ -12669,6 +12707,8 @@
             "schema": {
               "$ref": "#/components/schemas/ForecastQuestionEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "forecasts",
             "prompt": "122"
           },
@@ -12676,6 +12716,8 @@
             "schema": {
               "$ref": "#/components/schemas/ForecastQuestionEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "forecasts",
             "prompt": "122"
           },
@@ -12683,6 +12725,8 @@
             "schema": {
               "$ref": "#/components/schemas/ForecastQuestionEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "forecasts",
             "prompt": "122"
           },
@@ -12690,6 +12734,8 @@
             "schema": {
               "$ref": "#/components/schemas/ForecastQuestionEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "forecasts",
             "prompt": "122"
           },
@@ -12697,6 +12743,8 @@
             "schema": {
               "$ref": "#/components/schemas/ForecastSubmittedEvent"
             },
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7",
             "topic": "forecasts",
             "prompt": "122"
           },
@@ -94069,6 +94117,11 @@
             "type": "string",
             "description": "One sample per entity per interval in downsampled leaves (30s ≤ interval ≤ trackRawWindow). ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
             "example": "5m"
+          },
+          "entityLinks": {
+            "type": "string",
+            "description": "How long closed entity links are kept (098; default 365d). ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)",
+            "example": "365d"
           },
           "social": {
             "type": "object",

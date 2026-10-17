@@ -64,6 +64,32 @@ public final class BaseRateCalculator {
             return new Coverage(ranges, Map.of());
         }
 
+        /**
+         * This coverage cut off at {@code end}: ranges ending later end there and ranges starting at or after it are
+         * dropped, so coverage known only for later weeks changes neither the source order nor any choice before
+         * {@code end} (INT-2, rates as of a past time).
+         */
+        public Coverage clippedAt(LocalDate end) {
+            Map<String, List<LocalDate[]>> countries = new HashMap<>();
+            countryRanges.forEach((country, list) -> {
+                List<LocalDate[]> kept = clip(list, end);
+                if (!kept.isEmpty()) {
+                    countries.put(country, kept);
+                }
+            });
+            return new Coverage(clip(ranges, end), countries);
+        }
+
+        private static List<LocalDate[]> clip(List<LocalDate[]> list, LocalDate end) {
+            List<LocalDate[]> out = new ArrayList<>();
+            for (LocalDate[] r : list) {
+                if (r[0].isBefore(end)) {
+                    out.add(new LocalDate[] {r[0], r[1].isAfter(end) ? end : r[1]});
+                }
+            }
+            return out;
+        }
+
         /** True when the source covers {@code region} in the week starting {@code week}. */
         public boolean covers(String region, LocalDate week) {
             if (within(ranges, week)) {

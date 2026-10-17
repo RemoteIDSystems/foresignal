@@ -25,6 +25,7 @@ import tools.jackson.databind.json.JsonMapper;
  * kinds and, optionally, a group and an area. The reply states the warm-up period, because the
  * baseline learns over weeks before it can alert.
  */
+@ai.foresignal.security.restrict.RestrictedRead("creates an anomaly watch; returns the rule, no record content")
 @Component
 public class WatchForUnusualActivityTool implements ForesignalMcpTool {
 

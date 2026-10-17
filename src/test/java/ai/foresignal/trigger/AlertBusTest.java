@@ -4,15 +4,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import ai.foresignal.stream.Subscription;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 /** {@link AlertBus}: ordered async delivery, overflow and gaps (prompt 017). */
 class AlertBusTest {
@@ -77,5 +80,24 @@ class AlertBusTest {
         bus.publish(event(11));
         await().atMost(Duration.ofSeconds(5)).until(() -> seen.contains(11L));
         assertThat(seen.size()).isLessThan(11);
+    }
+
+    @Test
+    @DisplayName("closing the application context closes every listener and ends its delivery thread (checkpoint 124)")
+    void contextCloseEndsDeliveryThreads() {
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+        context.registerBean(MeterRegistry.class, SimpleMeterRegistry::new);
+        context.registerBean(AlertBus.class);
+        context.refresh();
+        AlertBus bus = context.getBean(AlertBus.class);
+        AtomicReference<Thread> delivery = new AtomicReference<>();
+        bus.subscribe("left-open", e -> delivery.set(Thread.currentThread()), 16);
+        bus.publish(event(1));
+        await().atMost(Duration.ofSeconds(5)).until(() -> delivery.get() != null);
+
+        context.close();
+
+        assertThat(bus.listenerCount()).isZero();
+        await().atMost(Duration.ofSeconds(5)).until(() -> !delivery.get().isAlive());
     }
 }

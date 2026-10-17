@@ -1,5 +1,7 @@
 package ai.foresignal.api;
 
+import org.springframework.context.annotation.Import;
+import ai.foresignal.testsupport.ingest.TestIngestSources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -60,6 +62,7 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code forecasts} topic and the tool shapes.
  */
 @IntegrationTest
+@Import(TestIngestSources.class)
 class ForecastControllersIT {
 
     static final Instant NOW = Instant.parse("2026-10-17T12:00:00Z");

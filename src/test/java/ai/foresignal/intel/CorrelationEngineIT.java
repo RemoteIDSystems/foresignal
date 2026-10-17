@@ -4,6 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
 import ai.foresignal.security.visibility.SourceVisibility;
+import ai.foresignal.source.SourceRegistry;
+import ai.foresignal.source.spi.Budget;
+import ai.foresignal.source.spi.Mode;
+import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.test.MutableClock;
 import ai.foresignal.test.WebIntegrationTest;
@@ -15,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +41,12 @@ class CorrelationEngineIT {
     private static final String STANDARD = TestIngestSources.STANDARD;
     private static final Instant T0 = Instant.parse("2026-03-01T12:00:00Z");
 
+    /**
+     * A second source declaring the join and contradiction kinds: ingest rejects a kind its source does not declare
+     * ({@code UNKNOWN_KIND}), and {@value #STANDARD} declares only {@code test-record}.
+     */
+    private static final String SECONDARY = "it-correlation-secondary";
+
     @Autowired CorrelationEngine engine;
     @Autowired CorrelationRecipeRepository recipes;
     @Autowired IntelligenceEventRepository events;
@@ -44,17 +55,30 @@ class CorrelationEngineIT {
     @Autowired TestRecords records;
     @Autowired MutableClock clock;
     @Autowired SourceVisibility sources;
+    @Autowired SourceRegistry registry;
+
+    @BeforeEach
+    void registerSecondary() {
+        if (registry.contains(SECONDARY)) {
+            registry.unregisterDynamic(SECONDARY);
+        }
+        registry.registerDynamic(SourceDescriptor.builder(SECONDARY).name("Correlation test secondary")
+                .kinds("other", "jam").mode(Mode.PUSH).defaultBudget(Budget.of(60, 10_000)).build());
+    }
 
     @AfterEach
     void restore() {
         sources.setOperatorPrivate(STANDARD, false);
         sources.refresh();
+        if (registry.contains(SECONDARY)) {
+            registry.unregisterDynamic(SECONDARY);
+        }
     }
 
     private Map<String, Object> base() {
         Map<String, Object> definition = new LinkedHashMap<>();
         definition.put("type", "custom");
-        definition.put("seed", Map.of("kinds", List.of("thing")));
+        definition.put("seed", Map.of("kinds", List.of("test-record")));
         definition.put("joins", List.of());
         definition.put("minMembers", 1);
         definition.put("minSignalFamilies", 1);
@@ -72,7 +96,8 @@ class CorrelationEngineIT {
 
     private void ingest(String externalId, String kind, Instant at, double lon, double lat) {
         clock.setInstant(at);
-        records.ingestAt(STANDARD, at, NormalizedRecord.builder(externalId, kind).observedAt(at).point(lon, lat)
+        String source = TestIngestSources.STANDARD_KIND.equals(kind) ? STANDARD : SECONDARY;
+        records.ingestAt(source, at, NormalizedRecord.builder(externalId, kind).observedAt(at).point(lon, lat)
                 .put("name", externalId).build());
     }
 
@@ -86,8 +111,8 @@ class CorrelationEngineIT {
     @DisplayName("a recipe forms an event with pinned members and a detector")
     void forms() {
         save(base());
-        ingest("t1", "thing", T0, -95.0, 32.0);
-        ingest("t2", "thing", T0.plusSeconds(60), -95.01, 32.01);
+        ingest("t1", "test-record", T0, -95.0, 32.0);
+        ingest("t2", "test-record", T0.plusSeconds(60), -95.01, 32.01);
         engine.catchUp();
 
         IntelligenceEventEntity event = only();
@@ -108,7 +133,7 @@ class CorrelationEngineIT {
         definition.put("quietPeriod", "PT48H");
         save(definition);
 
-        ingest("t1", "thing", T0, -95.0, 32.0);
+        ingest("t1", "test-record", T0, -95.0, 32.0);
         engine.catchUp();
         assertThat(only().getStatus()).isEqualTo("emerging");
 
@@ -131,12 +156,12 @@ class CorrelationEngineIT {
     @DisplayName("a seed is never counted again as a join, so one seed cannot satisfy two families")
     void noDoubleCounting() {
         Map<String, Object> definition = base();
-        definition.put("joins", List.of(Map.of("kinds", List.of("thing"), "withinKm", 50, "role", "supporting",
+        definition.put("joins", List.of(Map.of("kinds", List.of("test-record"), "withinKm", 50, "role", "supporting",
                 "signalFamily", SignalFamilies.NAV_WARNING, "weight", 0.6)));
         definition.put("minSignalFamilies", 2);
         save(definition);
 
-        ingest("t1", "thing", T0, -95.0, 32.0);
+        ingest("t1", "test-record", T0, -95.0, 32.0);
         engine.catchUp();
 
         assertThat(events.findAll()).isEmpty();
@@ -150,7 +175,7 @@ class CorrelationEngineIT {
                 "alternative", "GNSS interference")));
         save(definition);
 
-        ingest("t1", "thing", T0, -95.0, 32.0);
+        ingest("t1", "test-record", T0, -95.0, 32.0);
         ingest("j1", "jam", T0.plusSeconds(300), -95.02, 32.01);
         engine.catchUp();
 
@@ -172,7 +197,7 @@ class CorrelationEngineIT {
                 "alternative", "AIS receiver coverage gap")));
         save(definition);
 
-        ingest("t1", "thing", T0, -95.0, 32.0);
+        ingest("t1", "test-record", T0, -95.0, 32.0);
         engine.catchUp();
 
         IntelligenceEventEntity event = only();
@@ -192,7 +217,7 @@ class CorrelationEngineIT {
         definition.put("reopenWindow", "PT72H");
         save(definition);
 
-        ingest("t1", "thing", T0, -95.0, 32.0);
+        ingest("t1", "test-record", T0, -95.0, 32.0);
         engine.catchUp();
         String id = only().getId();
 
@@ -200,7 +225,7 @@ class CorrelationEngineIT {
         engine.catchUp();
         assertThat(only().getStatus()).isEqualTo("resolved");
 
-        ingest("t2", "thing", T0.plus(Duration.ofHours(2)), -95.01, 32.01);
+        ingest("t2", "test-record", T0.plus(Duration.ofHours(2)), -95.01, 32.01);
         engine.catchUp();
         IntelligenceEventEntity event = only();
         assertThat(event.getId()).isEqualTo(id);
@@ -214,8 +239,8 @@ class CorrelationEngineIT {
     @DisplayName("restarting from an earlier cursor keeps membership exactly-once")
     void cursorRestart() {
         save(base());
-        ingest("t1", "thing", T0, -95.0, 32.0);
-        ingest("t2", "thing", T0.plusSeconds(60), -95.01, 32.01);
+        ingest("t1", "test-record", T0, -95.0, 32.0);
+        ingest("t2", "test-record", T0.plusSeconds(60), -95.01, 32.01);
         engine.catchUp();
         IntelligenceEventEntity before = only();
         int version = before.getVersion();
@@ -235,7 +260,7 @@ class CorrelationEngineIT {
         sources.setOperatorPrivate(STANDARD, true);
         sources.refresh();
         save(base());
-        ingest("t1", "thing", T0, -95.0, 32.0);
+        ingest("t1", "test-record", T0, -95.0, 32.0);
         engine.catchUp();
 
         assertThat(only().isPrivateEvent()).isTrue();

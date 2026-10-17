@@ -175,6 +175,9 @@ public final class GeoParquetWriter implements ExportWriter {
         if (blockRows == 0) {
             return;
         }
+        // The record writer caches the nulls of absent optional fields; they reach the column writers only on
+        // flush, and a column flushed without them has no values ("writing empty page").
+        consumer.flush();
         columnStore.flush();
         fileWriter.startBlock(blockRows);
         pageStore.flushToFileWriter(fileWriter);

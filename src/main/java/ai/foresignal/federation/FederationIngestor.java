@@ -111,8 +111,15 @@ public class FederationIngestor {
      * @param sourceId the local source to write into (the origin's owner)
      * @param record the record
      * @param remoteSeq the item's seq on the peer it came from
+     * @param release what undoes the item's {@link OriginLedger} claim if the write fails, or null
      */
-    public record Mapped(String sourceId, NormalizedRecord record, long remoteSeq) {}
+    public record Mapped(String sourceId, NormalizedRecord record, long remoteSeq, OriginLedger.Release release) {
+
+        /** An applied item without a claim to undo. */
+        public Mapped(String sourceId, NormalizedRecord record, long remoteSeq) {
+            this(sourceId, record, remoteSeq, null);
+        }
+    }
 
     /**
      * What a batch did.
@@ -185,6 +192,16 @@ public class FederationIngestor {
             }
         }
         return new Result(out, accepted, duplicates, dropped, lastSeq);
+    }
+
+    /**
+     * Undoes the ledger claims of {@code mapped} after their write failed, so a re-send of the same versions is
+     * applied rather than counted as duplicates (checkpoint 124).
+     */
+    public void release(Collection<Mapped> mapped) {
+        for (Mapped m : mapped) {
+            ledger.release(m.release());
+        }
     }
 
     /** The outcome of one item: a record, a duplicate or a drop reason. */
@@ -295,7 +312,7 @@ public class FederationIngestor {
                     .put(FederationRules.MEMBER, member);
             record = builder.build();
         }
-        return new Outcome(new Mapped(owner, record, seq), false, null);
+        return new Outcome(new Mapped(owner, record, seq, claim.release()), false, null);
     }
 
     /** The local source for an item: the TRACK source for a TRACK item when the peer has one. */

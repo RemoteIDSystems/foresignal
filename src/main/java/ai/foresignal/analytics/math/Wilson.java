@@ -27,6 +27,10 @@ public final class Wilson {
         double denom = 1 + z2 / total;
         double center = (p + z2 / (2 * total)) / denom;
         double margin = Z95 * Math.sqrt((p * (1 - p) + z2 / (4 * total)) / total) / denom;
-        return new double[] {Math.max(0, center - margin), Math.min(1, center + margin)};
+        // At 0 successes the lower bound, and at total successes the upper bound, are exactly 0 and 1 algebraically;
+        // pin them so floating-point cancellation cannot report 0.9999999999999999.
+        double lower = successes <= 0 ? 0 : Math.max(0, center - margin);
+        double upper = successes >= total ? 1 : Math.min(1, center + margin);
+        return new double[] {lower, upper};
     }
 }

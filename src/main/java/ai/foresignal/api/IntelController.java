@@ -15,6 +15,7 @@ import ai.foresignal.intel.RecipeRegistry;
 import ai.foresignal.security.CurrentToken;
 import ai.foresignal.security.restrict.RestrictedRead;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,6 +35,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 
@@ -109,6 +112,7 @@ public class IntelController {
     /** {@code createIntelEvent}. */
     @PostMapping("/events")
     @Operation(operationId = "createIntelEvent", tags = "Intelligence")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createIntelEvent(@RequestBody JsonNode body,
             HttpServletRequest request) {
         String origin = "agent".equals(body.path("origin").asString(null)) ? "agent" : "operator";
@@ -126,9 +130,10 @@ public class IntelController {
         return mapper.full(event, events.members(id), events.log(id));
     }
 
-    /** {@code addIntelEventMember}. */
+    /** {@code addIntelEventMember}: 201 with the event. */
     @PostMapping("/events/{id}/members")
     @Operation(operationId = "addIntelEventMember", tags = "Intelligence")
+    @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> addIntelEventMember(@PathVariable String id, @RequestBody JsonNode body,
             HttpServletRequest request) {
         IntelligenceEventEntity event = events.addMember(id, body, actor(request), visibility.seesPrivate(request));
@@ -138,6 +143,7 @@ public class IntelController {
     /** {@code removeIntelEventMember}. */
     @DeleteMapping("/events/{id}/members/{memberId}")
     @Operation(operationId = "removeIntelEventMember", tags = "Intelligence")
+    @ApiResponse(responseCode = "204", description = "Removed")
     public ResponseEntity<Void> removeIntelEventMember(@PathVariable String id, @PathVariable long memberId,
             HttpServletRequest request) {
         events.removeMember(id, memberId, actor(request), visibility.seesPrivate(request));

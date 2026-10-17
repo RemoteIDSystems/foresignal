@@ -67,10 +67,20 @@ public final class AnalystChangeDetector {
         counts.put("alerts", 0);
         AnalystCursor next = cursor;
         for (Input input : fresh) {
-            counts.merge(input.kind(), 1, Integer::sum);
+            counts.merge(countKey(input.kind()), 1, Integer::sum);
             next = advance(next, input);
         }
         return new Packet(new ArrayList<>(capped), counts, next);
+    }
+
+    /** The {@code input_counts} key for an input kind: the plural form ({@code alert} → {@code alerts}). */
+    static String countKey(String kind) {
+        return switch (kind) {
+            case "event" -> "events";
+            case "anomaly" -> "anomalies";
+            case "alert" -> "alerts";
+            default -> kind;
+        };
     }
 
     /** True when the input is new or updated relative to the cursor. */

@@ -12,6 +12,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -124,6 +125,30 @@ class ChangeBusTest {
         await().atMost(WAIT).untilAsserted(() -> assertThat(recorder.toSeqs).containsExactly(101L, 102L, 103L, 106L));
         assertThat(recorder.gaps).containsExactly(103L);
         assertThat(bus.lastPublishedSeq()).isEqualTo(106L);
+    }
+
+    @Test
+    @DisplayName("closeAll closes every subscription and ends its delivery thread (checkpoint 124)")
+    void closeAllEndsDeliveryThreads() {
+        AtomicReference<Thread> delivery = new AtomicReference<>();
+        subscriptions.add(bus.subscribe("left-open", new ChangeListener() {
+            @Override
+            public void onBatch(ChangeBatch batch) {
+                delivery.set(Thread.currentThread());
+            }
+
+            @Override
+            public void onGap(long lastDeliveredSeq) {
+            }
+        }, 10));
+        subscribe("second", 10, null);
+        bus.publish(batch(101, 101));
+        await().atMost(WAIT).until(() -> delivery.get() != null);
+
+        bus.closeAll();
+
+        assertThat(bus.subscriberCount()).isZero();
+        await().atMost(WAIT).until(() -> !delivery.get().isAlive());
     }
 
     @Test

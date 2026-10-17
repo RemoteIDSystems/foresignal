@@ -2,9 +2,6 @@ package ai.foresignal.raster.geotiff;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import javax.imageio.ImageIO;
 
 /**
  * A categorical GeoTIFF's raw band-0 values (prompt 106, {@code wpc-heatrisk}): the palette index of
@@ -29,16 +26,8 @@ public final class GeoTiffValues {
     /** Reads the band-0 values, refusing anything {@link GeoTiffReader#inspect} refuses. */
     public static Values read(byte[] bytes) throws GeoTiffException {
         GeoTiffReader.Header header = GeoTiffReader.inspect(bytes);
-        BufferedImage image;
-        try {
-            image = ImageIO.read(new ByteArrayInputStream(bytes));
-        } catch (IOException e) {
-            throw new GeoTiffException(GeoTiffException.Kind.MALFORMED,
-                    "Could not decode the GeoTIFF: " + e.getMessage());
-        }
-        if (image == null) {
-            throw new GeoTiffException(GeoTiffException.Kind.MALFORMED, "The GeoTIFF has no readable image");
-        }
+        // the TIFF reader runs only after inspect has applied the image guard's pixel and side limits
+        BufferedImage image = GeoTiffReader.decode(bytes);
         Raster raster = image.getRaster();
         int width = image.getWidth();
         int height = image.getHeight();

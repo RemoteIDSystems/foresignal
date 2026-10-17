@@ -65,6 +65,9 @@ public final class EstimativeLanguage {
     /** The band bounds between consecutive terms. */
     static final double[] BOUNDS = {0.05, 0.20, 0.45, 0.55, 0.80, 0.95};
 
+    /** How close to a band bound a probability counts as on it, absorbing floating-point rounding. */
+    static final double BOUND_TOLERANCE = 1e-12;
+
     private static final Pattern CONFIDENCE = Pattern.compile("\\b(low|moderate|high)[ -]confidence\\b",
             Pattern.CASE_INSENSITIVE);
 
@@ -133,13 +136,28 @@ public final class EstimativeLanguage {
         if (Double.isNaN(p) || p < 0 || p > 1) {
             throw new IllegalArgumentException("not a probability: " + p);
         }
+        double snapped = snapToBound(p);
         for (int i = 0; i < TERMS.size(); i++) {
             Band band = bandAt(i);
-            if (band.contains(p)) {
+            if (band.contains(snapped)) {
                 return band;
             }
         }
         throw new IllegalStateException("no band for " + p);
+    }
+
+    /**
+     * Returns the band bound {@code p} lies within {@value #BOUND_TOLERANCE} of, or {@code p} itself. In binary floating
+     * point {@code 1 − 0.55} is {@code 0.44999999999999996}, so without this the mirror of a probability on a bound
+     * would land in the neighboring band.
+     */
+    private static double snapToBound(double p) {
+        for (double bound : BOUNDS) {
+            if (Math.abs(p - bound) < BOUND_TOLERANCE) {
+                return bound;
+            }
+        }
+        return p;
     }
 
     /** The band at {@code index} (0–6). */

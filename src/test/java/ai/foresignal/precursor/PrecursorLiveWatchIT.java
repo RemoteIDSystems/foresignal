@@ -142,7 +142,10 @@ class PrecursorLiveWatchIT extends AnalyticsItSupport {
         assertThat(again.occurrences()).isEqualTo(1);
         assertThat(again.findings()).as("the identical finding is left unchanged").isZero();
         assertThat(active()).hasSize(1);
-        assertThat(watch.cursors().findings()).isEqualTo(first.cursors().findings());
+        // The re-poll also reads the precursor-active row the first poll wrote (skipped as an antecedent), so the
+        // finding cursor ends at the log head, where an ordinary next poll would also be.
+        assertThat(watch.cursors().findings()).isEqualTo(
+                jdbc.queryForObject("SELECT max(id) FROM analytic_finding_log", Long.class));
 
         assertThat(watch.poll().occurrences()).as("its own precursor-active finding is no antecedent").isZero();
     }

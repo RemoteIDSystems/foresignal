@@ -42,9 +42,10 @@ class AnomalyBacktestIT {
     @Test
     @DisplayName("a spike at the end of the range does not change any earlier verdict")
     void noLookAhead() {
-        Instant from = T0.plus(Duration.ofDays(10));
-        Instant to = T0.plus(Duration.ofDays(14));
-        List<AnomalyReplay.Sample> base = steady(14);
+        // hour-of-day baselines start after 14 days (prompt 100), so the range begins on day 14.
+        Instant from = T0.plus(Duration.ofDays(14));
+        Instant to = T0.plus(Duration.ofDays(18));
+        List<AnomalyReplay.Sample> base = steady(18);
         List<AnomalyReplay.Sample> spiked = new ArrayList<>(base);
         AnomalyReplay.Sample last = spiked.removeLast();
         spiked.add(new AnomalyReplay.Sample("g", last.bucketStart(), 500, 1.0, true, false));
@@ -78,13 +79,14 @@ class AnomalyBacktestIT {
     @DisplayName("the warm-up consumed is reported while the baseline learns")
     @SuppressWarnings("unchecked")
     void warmUp() {
-        AnomalyReplay.Outcome outcome = AnomalyReplay.replay(steady(10), spec("medium"), T0, T0.plus(Duration.ofDays(10)));
-        // hour-of-day needs 7 samples per slot for one week: the first 7 days of every hour learn.
-        assertThat(outcome.learningBuckets()).isEqualTo(7 * 24);
-        assertThat(outcome.byClassification()).containsEntry("learning", 7 * 24);
+        AnomalyReplay.Outcome outcome = AnomalyReplay.replay(steady(20), spec("medium"), T0,
+                T0.plus(Duration.ofDays(20)));
+        // hour-of-day may start after 14 days (prompt 100): the first 14 days of every hour learn.
+        assertThat(outcome.learningBuckets()).isEqualTo(14 * 24);
+        assertThat(outcome.byClassification()).containsEntry("learning", 14 * 24);
         Map<String, Object> result = outcome.toMap(Duration.ofHours(1), RULE, Map.of());
         assertThat(result).containsEntry("ruleType", "anomaly");
-        assertThat((Map<String, Object>) result.get("anomaly")).containsEntry("warmupConsumed", "PT168H")
+        assertThat((Map<String, Object>) result.get("anomaly")).containsEntry("warmupConsumed", "PT336H")
                 .containsEntry("coverageDrops", 0L).containsKey("byClassification");
     }
 
@@ -102,9 +104,9 @@ class AnomalyBacktestIT {
     @DisplayName("samples and topEntities carry the RuleBacktestResult fields, with the stored watermark as seq")
     @SuppressWarnings("unchecked")
     void specShapes() {
-        Instant from = T0.plus(Duration.ofDays(10));
-        Instant to = T0.plus(Duration.ofDays(14));
-        List<AnomalyReplay.Sample> spiked = new ArrayList<>(steady(14));
+        Instant from = T0.plus(Duration.ofDays(14));
+        Instant to = T0.plus(Duration.ofDays(18));
+        List<AnomalyReplay.Sample> spiked = new ArrayList<>(steady(18));
         AnomalyReplay.Sample last = spiked.removeLast();
         spiked.add(new AnomalyReplay.Sample("g", last.bucketStart(), 500, 1.0, true, false));
         AnomalyReplay.Outcome outcome = AnomalyReplay.replay(spiked, spec("medium"), from, to);

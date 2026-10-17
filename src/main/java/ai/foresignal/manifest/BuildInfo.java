@@ -1,6 +1,7 @@
 package ai.foresignal.manifest;
 
 import ai.foresignal.config.ForesignalVersion;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.info.GitProperties;
@@ -24,6 +25,7 @@ public class BuildInfo {
     private final String gitCommit;
 
     /** Resolves the build once. */
+    @Autowired
     public BuildInfo(ForesignalVersion version, ObjectProvider<GitProperties> git,
             ObjectProvider<BuildProperties> build) {
         this.version = version.version();

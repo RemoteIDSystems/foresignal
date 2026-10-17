@@ -398,7 +398,8 @@ public class OgcController {
 
     /** The CoverageJSON of one point value (one {@code t,y,x} cell; {@code null} when there is no value). */
     static Map<String, Object> coveragePoint(ProductSpec spec, double[] point, SampleValue value) {
-        Map<String, Object> t = Map.of("values", List.of(value.validTime() == null ? null
+        // a point with no value has no valid time either: the t axis still holds its one (null) value
+        Map<String, Object> t = Map.of("values", java.util.Collections.singletonList(value.validTime() == null ? null
                 : value.validTime().toString()));
         Map<String, Object> domain = new LinkedHashMap<>();
         domain.put("type", "Domain");

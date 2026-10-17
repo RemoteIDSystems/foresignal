@@ -85,6 +85,8 @@ class PolarOverlayIT {
     @BeforeEach
     void setUp() throws Exception {
         clock.setInstant(Instant.parse("2026-10-12T18:20:00Z"));
+        // the shared remote-upload area may hold bundles for this test's pass (see SatDumpFixtures.clearUploads)
+        SatDumpFixtures.clearUploads(rasterPaths.root(), "itest");
         inboxPath = "satdump/itest-" + UUID.randomUUID();
         station = Files.createDirectories(properties.inboxDir().resolve(inboxPath));
     }

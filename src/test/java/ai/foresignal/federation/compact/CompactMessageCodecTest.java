@@ -59,7 +59,7 @@ class CompactMessageCodecTest {
         MeshCborMessage message = full("Quakes", ORIGIN, ID, 1440);
         byte[] encoded = MeshCborProfile.encode(message);
         assertThat(HEX.formatHex(encoded)).isEqualTo(EXTENDED_HEX);
-        assertThat(encoded).hasSize(87);
+        assertThat(encoded).hasSize(89);
         MeshCborMessage decoded = MeshCborProfile.decode(encoded);
         assertThat(decoded).isEqualTo(message);
         assertThat(decoded.originShortId()).containsExactly(ORIGIN);
@@ -90,10 +90,10 @@ class CompactMessageCodecTest {
     @Test
     @DisplayName("at most 160 bytes: key 9 is dropped first, then key 8, never 10-12")
     void dropOrder() {
-        // A 40-character title of two-byte characters: 162 bytes whole, 144 without the source id.
+        // A 40-character title of two-byte characters: 164 bytes whole, 146 without the source id.
         MeshCborMessage forty = full("é".repeat(40), ORIGIN, ID, 1440);
         byte[] fit = MeshCborProfile.encode(forty);
-        assertThat(fit).hasSize(144);
+        assertThat(fit).hasSize(146);
         MeshCborMessage kept = MeshCborProfile.decode(fit);
         assertThat(kept.sourceId()).isNull();
         assertThat(kept.title()).isEqualTo("é".repeat(40));
@@ -101,10 +101,10 @@ class CompactMessageCodecTest {
         assertThat(kept.messageId()).containsExactly(ID);
         assertThat(kept.expiryMinutes()).isEqualTo(1440);
 
-        // A 60-character title: 202 bytes whole, 184 without the source id, 61 without the title too.
+        // A 60-character title: 204 bytes whole, 186 without the source id, 63 without the title too.
         MeshCborMessage sixty = full("é".repeat(60), ORIGIN, ID, 1440);
         byte[] both = MeshCborProfile.encode(sixty);
-        assertThat(both).hasSize(61);
+        assertThat(both).hasSize(63);
         MeshCborMessage reduced = MeshCborProfile.decode(both);
         assertThat(reduced.sourceId()).isNull();
         assertThat(reduced.title()).isNull();

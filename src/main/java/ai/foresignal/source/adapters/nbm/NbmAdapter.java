@@ -39,8 +39,13 @@ import org.springframework.stereotype.Component;
  *
  * <p><strong>Verified 2026-10-15</strong>: the {@code .idx} of
  * {@code blend.20261015/12/core/blend.t12z.core.f012.co.grib2} lists {@code TMP:2 m above ground},
- * {@code WIND:10 m above ground}, {@code GUST:10 m above ground}, {@code TCDC:entire atmosphere} and
- * both deterministic and probability ({@code prob >0.254}) {@code APCP:surface} 6-hour buckets.
+ * {@code WIND:10 m above ground}, {@code GUST:10 m above ground} and both deterministic and probability
+ * ({@code prob >0.254}) {@code APCP:surface} 6-hour buckets.
+ *
+ * <p><strong>Rechecked 2026-10-17</strong> ({@code fixtures/nbm/README.md}): total cloud cover is
+ * {@code TCDC:surface} (level type 1) in both the 01z and the 12z files; there is no
+ * {@code TCDC:entire atmosphere} line. The {@code 6-12 hour acc} buckets are in the 12z f012 file but
+ * not in the 01z or 13z f012 files, which list only the 1-hour {@code 11-12 hour acc} buckets.
  */
 @Component
 public class NbmAdapter implements PollingAdapter, DecoderDependent {
@@ -114,8 +119,10 @@ public class NbmAdapter implements PollingAdapter, DecoderDependent {
                     new ModelDefinition.Product(POP6, List.of(ModelDefinition.Component.bucket("APCP", "surface", 6,
                             true, DecodeRequest.grib2(POP6, "APCP", 0, 1, 8, 1, null, "surface")
                                     .withProbability(true))), false, 100.0, step -> step >= 6),
-                    new ModelDefinition.Product(SKY, List.of(new ModelDefinition.Component("TCDC", "entire atmosphere",
-                            false, DecodeRequest.grib2(SKY, "TCDC", 0, 6, 1, 200, 0.0, "entire atmosphere"))), false, 1.0,
+                    // NBM writes total cloud cover at level type 1 ("TCDC:surface" in the .idx), not 200
+                    // (verified 2026-10-17 on the 01z and 12z core files; see fixtures/nbm/README.md).
+                    new ModelDefinition.Product(SKY, List.of(new ModelDefinition.Component("TCDC", "surface",
+                            false, DecodeRequest.grib2(SKY, "TCDC", 0, 6, 1, 1, null, "surface"))), false, 1.0,
                             null)),
             T2M, CYCLE_OFFSET);
 

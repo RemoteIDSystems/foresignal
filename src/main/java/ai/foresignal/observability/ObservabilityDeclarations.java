@@ -14,6 +14,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
@@ -39,6 +40,7 @@ public class ObservabilityDeclarations {
     private final Map<String, String> trackKinds;
 
     /** Loads the bundled declarations. */
+    @Autowired
     public ObservabilityDeclarations(JsonMapper json, CanonicalRules rules, ObjectProvider<SourceRegistry> sources) {
         this(read(json), rules, sources);
     }

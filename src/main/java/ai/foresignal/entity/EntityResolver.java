@@ -200,7 +200,9 @@ public class EntityResolver {
             }
             for (EntityKeyEntity existing : superseded) {
                 existing.setValidTo(at);
-                keys.save(existing);
+                // Flushed now: the new key's INSERT runs at once (identity id), before a pending UPDATE, and the
+                // open-key unique index would see two open rows.
+                keys.saveAndFlush(existing);
             }
             String reassignedFrom = null;
             if (holder.isPresent()) {
@@ -220,7 +222,7 @@ public class EntityResolver {
                 // Re-assignment: close the key on the anchored holder and open it on the target.
                 EntityKeyEntity row = holder.get();
                 row.setValidTo(at);
-                keys.save(row);
+                keys.saveAndFlush(row);
                 reassignedFrom = other.getId();
                 meters.counter("foresignal.entity.reassigned", "type", weak.keyType()).increment();
             }

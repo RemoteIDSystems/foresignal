@@ -1,5 +1,7 @@
 package ai.foresignal.benchmark;
 
+import org.springframework.context.annotation.Import;
+import ai.foresignal.testsupport.ingest.TestIngestSources;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ai.foresignal.settings.AppSettingService;
@@ -21,6 +23,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * {@code benchmark_*} rows (plus its job row and its 116 manifest); every production analytic table is unchanged.
  */
 @IntegrationTest
+@Import(TestIngestSources.class)
 class BenchmarkIsolationIT {
 
     static final Instant NOW = Instant.parse("2026-10-17T12:00:00Z");

@@ -52,8 +52,14 @@ public final class ReportingDensity {
                 .add(code));
         withPopulation.sort(Comparator.comparingLong((String c) -> inputs.get(c).population()).thenComparing(c -> c));
         Map<String, Integer> group = new LinkedHashMap<>();
+        // Countries with the same population share a group: a tie takes the quintile of the first rank in its run.
+        int runStart = 0;
         for (int i = 0; i < withPopulation.size(); i++) {
-            group.put(withPopulation.get(i), Math.min(4, i * 5 / withPopulation.size()));
+            if (i > 0 && !inputs.get(withPopulation.get(i)).population()
+                    .equals(inputs.get(withPopulation.get(i - 1)).population())) {
+                runStart = i;
+            }
+            group.put(withPopulation.get(i), Math.min(4, runStart * 5 / withPopulation.size()));
         }
         for (String c : without) {
             group.put(c, -1);

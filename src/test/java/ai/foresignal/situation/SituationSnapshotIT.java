@@ -40,7 +40,7 @@ class SituationSnapshotIT {
 
     long record(String id, double lon, double lat, String severity) {
         Instant now = clock.instant();
-        records.ingestAt(STANDARD, now, NormalizedRecord.builder(id, "thing").observedAt(now).point(lon, lat)
+        records.ingestAt(STANDARD, now, NormalizedRecord.builder(id, "test-record").observedAt(now).point(lon, lat)
                 .put("title", "Thing " + id).put("severity", severity).build());
         return jdbc.queryForObject("select max(seq) from record_version where source_id = ? and external_id = ?",
                 Long.class, STANDARD, id);

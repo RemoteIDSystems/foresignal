@@ -267,7 +267,7 @@ public class AnalystService {
     /** Sets a note's read status. */
     @Transactional
     public AnalystNoteEntity updateNoteStatus(String id, String status, boolean privateAccess) {
-        if (!List.of("new", "read", "dismissed").contains(status)) {
+        if (status == null || !List.of("new", "read", "dismissed").contains(status)) {
             throw ValidationException.forField("status", "must be new, read or dismissed");
         }
         AnalystNoteEntity note = visibleNote(id, privateAccess);
@@ -313,8 +313,20 @@ public class AnalystService {
         return saveFeedback("proposal", id, rating, comment, actor);
     }
 
+    /**
+     * Records feedback on a proposal the caller may see: a private proposal is {@code 404 UNKNOWN_PROPOSAL} to a
+     * caller without private access (EGR-1, checkpoint 124).
+     */
+    public AnalystFeedbackEntity proposalFeedback(String id, String rating, String comment, String actor,
+            boolean privateAccess) {
+        if (getProposal(id).isPrivateProposal() && !privateAccess) {
+            throw new NotFoundException(ErrorCodes.UNKNOWN_PROPOSAL, "No such proposal: " + id);
+        }
+        return saveFeedback("proposal", id, rating, comment, actor);
+    }
+
     private AnalystFeedbackEntity saveFeedback(String target, String id, String rating, String comment, String actor) {
-        if (!List.of("useful", "not_useful", "wrong").contains(rating)) {
+        if (rating == null || !List.of("useful", "not_useful", "wrong").contains(rating)) {
             throw ValidationException.forField("rating", "must be useful, not_useful or wrong");
         }
         AnalystFeedbackEntity entity = new AnalystFeedbackEntity(Ulids.next(clock.instant()), target, id, rating,

@@ -193,6 +193,12 @@ public class AwcTafsAdapter implements PollingAdapter {
                 .kindDisplay(KIND, new KindDisplay("TAF {stationId}", "forecast", "#1971C2", null));
         AwcSupport.text(b, "stationId", "Station", "ICAO station identifier");
         AwcSupport.text(b, "raw", "Forecast", "The raw TAF (upstream text, untrusted)");
+        AwcSupport.text(b, "rawText", "Raw text", "The raw TAF again, under the name the TAF product uses");
+        AwcSupport.timestamp(b, "issueTime", "Issued", "When the TAF was issued");
+        AwcSupport.timestamp(b, "validFrom", "Valid from", "Start of the forecast validity period");
+        AwcSupport.timestamp(b, "validTo", "Valid to", "End of the forecast validity period");
+        AwcSupport.array(b, "forecast", "Forecast groups",
+                "Best-effort change groups: changeIndicator, wind, visibility, wx, clouds, from, to");
         AwcSupport.number(b, "elevationM", "m", "Elevation", "Station elevation");
         AwcSupport.text(b, "name", "Name", "Station name (TAF API only)");
         return b.build();

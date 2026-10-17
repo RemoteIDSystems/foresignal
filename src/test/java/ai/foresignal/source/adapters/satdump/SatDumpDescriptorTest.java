@@ -31,7 +31,9 @@ class SatDumpDescriptorTest {
         SourceDescriptor d = SatDumpDescriptor.build("home");
         assertThat(d.id()).isEqualTo("satdump-home");
         assertThat(d.mode()).isEqualTo(Mode.STREAMING);
-        assertThat(d.kinds()).containsExactlyInAnyOrder("ground-station", "satellite-pass", "raster-frame");
+        // prompt 107 adds the DCP and EMWIN kinds
+        assertThat(d.kinds()).containsExactlyInAnyOrder("ground-station", "satellite-pass", "raster-frame",
+                "dcp-observation", "emwin-product", "emwin-warning");
         assertThat(d.kindRetention()).containsEntry("ground-station", Duration.ofDays(30))
                 .containsEntry("satellite-pass", Duration.ofDays(365)).containsEntry("raster-frame", Duration.ofDays(7));
         assertThat(d.historyTier()).isEqualTo(HistoryTier.STANDARD);

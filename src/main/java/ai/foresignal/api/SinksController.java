@@ -13,6 +13,7 @@ import ai.foresignal.sink.SinkTestResult;
 import ai.foresignal.sink.SinkType;
 import ai.foresignal.sink.SinkTypeRegistry;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -85,6 +86,7 @@ public class SinksController {
     /** {@code createSink}. */
     @PostMapping("/v1/sinks")
     @Operation(operationId = "createSink", tags = "Sinks")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createSink(@RequestBody JsonNode body) {
         SinkService.View view = sinks.create(body);
         return ResponseEntity.created(URI.create("/v1/sinks/" + view.sink().getId())).body(sinkMap(view));
@@ -107,6 +109,7 @@ public class SinksController {
     /** {@code deleteSink}. */
     @DeleteMapping("/v1/sinks/{sinkId}")
     @Operation(operationId = "deleteSink", tags = "Sinks")
+    @ApiResponse(responseCode = "204", description = "Deleted")
     public ResponseEntity<Void> deleteSink(@PathVariable String sinkId) {
         sinks.delete(sinkId);
         return ResponseEntity.noContent().build();
@@ -157,6 +160,7 @@ public class SinksController {
     /** {@code resyncSink}. */
     @PostMapping("/v1/sinks/{sinkId}/resync")
     @Operation(operationId = "resyncSink", tags = "Sinks")
+    @ApiResponse(responseCode = "202", description = "Resync started")
     public ResponseEntity<Map<String, Object>> resyncSink(@PathVariable String sinkId) {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(statusMap(sinks.resync(sinkId)));
     }

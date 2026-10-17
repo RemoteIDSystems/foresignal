@@ -21,6 +21,7 @@ import ai.foresignal.security.CurrentToken;
 import ai.foresignal.security.EgressPath;
 import ai.foresignal.security.restrict.RestrictedRead;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -110,6 +111,8 @@ public class AnalyticsController {
     /** {@code upsertAnalysisSeries}: 201 when created, 200 when replaced. */
     @PutMapping("/v1/analytics/series")
     @Operation(operationId = "upsertAnalysisSeries", tags = "Analytics")
+    @ApiResponse(responseCode = "200", description = "Updated")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> upsertAnalysisSeries(@RequestBody JsonNode body) {
         AnalysisSeriesService.Upsert upsert = registry.upsert(body);
         return ResponseEntity.status(upsert.created() ? HttpStatus.CREATED : HttpStatus.OK)
@@ -119,6 +122,7 @@ public class AnalyticsController {
     /** {@code deleteAnalysisSeries}: 204; existing findings are kept. */
     @DeleteMapping("/v1/analytics/series")
     @Operation(operationId = "deleteAnalysisSeries", tags = "Analytics")
+    @ApiResponse(responseCode = "204", description = "Removed")
     public ResponseEntity<Void> deleteAnalysisSeries(@RequestParam(required = false) String ref) {
         registry.delete(ref);
         return ResponseEntity.noContent().build();
@@ -186,6 +190,7 @@ public class AnalyticsController {
     /** {@code createEventStudy}: 202 with the 103 job. */
     @PostMapping("/v1/analytics/event-studies")
     @Operation(operationId = "createEventStudy", tags = "Analytics")
+    @ApiResponse(responseCode = "202", description = "Job accepted")
     public ResponseEntity<Map<String, Object>> createEventStudy(@RequestBody JsonNode body,
             HttpServletRequest request) {
         String tokenId = CurrentToken.of(request).map(t -> t.id().toString()).orElse(null);

@@ -12,7 +12,9 @@
       "aliases": [
         "CC0 1.0",
         "CC0",
-        "Public domain (CC0)"
+        "Public domain (CC0)",
+        "CC0 (\"All datasets offered by Feodo Tracker can be used for both, commercial and non-commercial purpose without any limitations\", feodotracker.abuse.ch/blocklist)",
+        "CC0 1.0 (\"The KEV database is distributed under the Creative Commons 0 1.0 License\", github.com/cisagov/kev-data)"
       ]
     },
     {
@@ -28,7 +30,10 @@
         "CC BY 4.0",
         "CC-BY-4.0",
         "CC BY 4.0 (attribution)",
-        "EMSC data (CC BY 4.0)"
+        "EMSC data (CC BY 4.0)",
+        "GFZ/GEOFON open data (CC BY 4.0)",
+        "INGV open data (CC BY 4.0)",
+        "CC BY 4.0 (most indicators; the source organization is recorded per indicator)"
       ]
     },
     {
@@ -43,7 +48,23 @@
       "aliases": [
         "CC BY-SA 4.0",
         "CC-BY-SA-4.0",
-        "Wikimedia metadata (titles CC BY-SA 4.0)"
+        "Wikimedia metadata (titles CC BY-SA 4.0)",
+        "CC BY-SA 4.0 (network.satnogs.org/api: \"all data are distributed freely under the Creative Commons Attribution-Share Alike license\")"
+      ]
+    },
+    {
+      "id": "CC-BY-SA-2.0",
+      "name": "Creative Commons Attribution-ShareAlike 2.0",
+      "commercialUse": "ALLOWED",
+      "shareAlike": true,
+      "attributionRequired": true,
+      "redistribution": "ALLOWED",
+      "attributionText": "Licensed under CC BY-SA 2.0; attribution and share-alike required.",
+      "termsUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+      "aliases": [
+        "CC BY-SA 2.0",
+        "CC-BY-SA-2.0",
+        "CC BY-SA 2.0 (\"Radiosonde and Amateur balloon telemetry data captured in the SondeHub database is licensed under Creative Commons BY-SA v2.0\")"
       ]
     },
     {
@@ -130,7 +151,9 @@
       "termsUrl": "https://data.norge.no/nlod/en/2.0",
       "aliases": [
         "NLOD-2.0",
-        "NLOD 2.0"
+        "NLOD 2.0",
+        "NLOD 2.0 and CC BY 4.0",
+        "Norwegian Licence for Open Government Data (NLOD)"
       ]
     },
     {
@@ -169,7 +192,9 @@
         "US Government work",
         "US public domain (NIFC Open Data)",
         "US Government work (public domain); OpenFEMA terms apply",
-        "NASA open data (cite NASA LANCE FIRMS)"
+        "NASA open data (cite NASA LANCE FIRMS)",
+        "Public domain (US government work)",
+        "US-PD (USGS Landsat)"
       ]
     },
     {
@@ -280,7 +305,8 @@
       "attributionText": "GDELT Project data; unrestricted use and redistribution with citation and a link.",
       "termsUrl": "https://www.gdeltproject.org/about.html#termsofuse",
       "aliases": [
-        "GDELT: unrestricted use and redistribution with citation and a link"
+        "GDELT: unrestricted use and redistribution with citation and a link",
+        "GDELT open terms: free use with citation and a link to the GDELT Project"
       ]
     },
     {
@@ -294,7 +320,21 @@
       "termsUrl": null,
       "aliases": [
         "MeteoAlarm / EUMETNET free re-use with attribution",
-        "Reproduction permitted with the required attribution (USDM permission page)"
+        "Reproduction permitted with the required attribution (USDM permission page)",
+        "public domain (Commonwealth of Australia, CC BY 3.0 AU where applicable)",
+        "public domain (Brazilian Government open data)",
+        "public domain (DWD open data)",
+        "HKO intellectual property notice (re-use with attribution)",
+        "public domain (Government of India)",
+        "public domain (Government of Kenya)",
+        "public domain (Korea Open Government License, attribution)",
+        "public domain (WMO CAP Composer pilot)",
+        "public domain (Government of Singapore)",
+        "Open Government Licence – City of Calgary",
+        "Open Government Licence – British Columbia",
+        "Powered by TfL Open Data (OGL v2 based)",
+        "ECDC reuse policy (reuse with attribution)",
+        "NVD: US Government public domain; EPSS: free to use with attribution to FIRST.org (first.org/epss)"
       ]
     },
     {
@@ -307,7 +347,9 @@
       "attributionText": "Any use including commercial permitted with the provider's mandatory credit.",
       "termsUrl": null,
       "aliases": [
-        "GIE AGSI data usage rules (any use incl. commercial, mandatory credit)"
+        "GIE AGSI data usage rules (any use incl. commercial, mandatory credit)",
+        "Free and open: \"You may use it in free and non free software. You may install it on your own server and mirror all its data.\" (api.radio-browser.info)",
+        "Copernicus Sentinel data terms (free, full and open)"
       ]
     },
     {
@@ -333,7 +375,15 @@
         "UN terms of use (public information)",
         "various (OpenAQ providers)",
         "per-record CC licence (iNaturalist; see licenseCode)",
-        "Copernicus EMS (attribution)"
+        "Copernicus EMS (attribution)",
+        "Caltrans conditions of use",
+        "operator terms",
+        "Ontario 511 terms of use",
+        "MassDOT Developers License Agreement",
+        "Public Metro Transit vehicle position data",
+        "Free to use per the OVapi README (best effort, no SLA; terms otherwise unverified)",
+        "CC BY 4.0 (unverified)",
+        "CapMetro Developer Tools license"
       ]
     },
     {
@@ -352,7 +402,9 @@
         "airplanes.live API terms: non-commercial use, no SLA, attribution required",
         "adsb.fi open data terms: personal, non-commercial use only; attribution with a link to adsb.fi required",
         "RIPE NCC RIS terms (attribution; commercial use by permission)",
-        "RIPE Atlas Service Terms v3.5 (attribution; commercial use by permission)"
+        "RIPE Atlas Service Terms v3.5 (attribution; commercial use by permission)",
+        "abuse.ch Terms of Use: free under the fair use principles; \"Use of the API by companies, networks, or individuals with commercial or for-profit needs may require a paid subscription\" (Spamhaus)",
+        "WHO terms of use (attribution, non-commercial reuse)"
       ]
     },
     {
@@ -365,7 +417,9 @@
       "attributionText": "Personal use only; do not redistribute.",
       "termsUrl": null,
       "aliases": [
-        "unspecified — personal use, do not redistribute (gpsjam.org)"
+        "unspecified — personal use, do not redistribute (gpsjam.org)",
+        "SSLMate API terms (unauthenticated queries for personal or evaluation use; production use needs an account and API key)",
+        "FRED API terms of use; third-party series keep their owners' copyright (personal use)"
       ]
     },
     {

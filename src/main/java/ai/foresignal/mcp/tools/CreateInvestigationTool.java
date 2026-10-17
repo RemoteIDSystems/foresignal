@@ -16,6 +16,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** {@code create_investigation} (agent, prompt 101): opens an operator case file. */
+@ai.foresignal.security.restrict.RestrictedRead("returns the new investigation id and title, no record content")
 @Component
 public class CreateInvestigationTool implements ForesignalMcpTool {
 

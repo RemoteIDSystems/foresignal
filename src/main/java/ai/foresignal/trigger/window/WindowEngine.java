@@ -735,7 +735,13 @@ public class WindowEngine {
                     log.warn("windowed rule {} group {}: no rule-windows version after {}; alert references the"
                             + " evaluation watermark", rule.spec().id(), state.getGroupKey(), PENDING_GRACE);
                 }
-                String message = rule.spec().template() != null ? rule.spec().template()
+                // The rule's own template wins, rendered; RuleSpec.template() is never null (it falls back to the
+                // per-record default), so only an explicit messageTemplate may override the pending message.
+                String explicit = rule.spec().messageTemplate();
+                String message = explicit != null && !explicit.isBlank()
+                        ? ai.foresignal.trigger.MessageTemplate.render(explicit, new ai.foresignal.trigger.MessageTemplate
+                                .Context(rule.spec().name(), SOURCE_ID, externalId, STATE_KIND, null,
+                                        rule.spec().severity().wire(), observedAt, null, null, null))
                         : state.getPendingMessage() != null ? state.getPendingMessage()
                         : "Windowed rule '" + rule.spec().name() + "' is active for group " + state.getGroupKey();
                 MatchRow row = new MatchRow(seq, null, SOURCE_ID, externalId, STATE_KIND, versionNo,

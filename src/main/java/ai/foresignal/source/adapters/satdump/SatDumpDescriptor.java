@@ -143,16 +143,21 @@ public final class SatDumpDescriptor {
                 .kindRetention(SatDumpExtras.DCP_KIND, Duration.ofDays(3))
                 .kindRetention(SatDumpExtras.EMWIN_PRODUCT_KIND, Duration.ofDays(3))
                 .kindRetention(SatDumpExtras.EMWIN_WARNING_KIND, Duration.ofDays(3))
-                // dcp-observation (prompt 107): the address, the data and the failure code are significant.
+                // dcp-observation (prompt 107): the address, the data and the failure code are significant
+                // and the signal fields are volatile. significantFields is descriptor-wide, so it also names
+                // what versions the other kinds: station state and pass status, the searched and tiled
+                // fields, and the EMWIN text and warning action (checkpoint 124).
                 .significantFields("address", "dataAscii", "dataHex", "failureCode")
+                .significantFields("title", "state", "status", "satellite", "currentTarget", "satdumpMode")
+                .significantFields("text", "action", "headline", "issuedAt", "duplicateOf")
                 .volatileFields("signalDbm", "freqOffsetHz")
                 .embedFields("text")
                 .kindDisplay(SatDumpExtras.DCP_KIND, new ai.foresignal.source.spi.KindDisplay("DCP {address}", "water",
                         "#1098AD", null, null, null, null))
                 .kindDisplay(SatDumpExtras.EMWIN_PRODUCT_KIND, new ai.foresignal.source.spi.KindDisplay("{awipsId}",
-                        "satellite-dish", "#0C8599", null, null, null, null))
+                        "antenna", "#0C8599", null, null, null, null))
                 .kindDisplay(SatDumpExtras.EMWIN_WARNING_KIND, new ai.foresignal.source.spi.KindDisplay("{phenomena}",
-                        "triangle-exclamation", "#E8590C", null, null, null, null))
+                        "caution", "#E8590C", null, null, null, null))
                 .tileProperties("state", "status", "satellite")
                 .searchFields("title", "satellite", "currentTarget")
                 .param(ParamSpec.optional(API_URL, ParamType.LAN_URL,

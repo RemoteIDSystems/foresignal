@@ -5,6 +5,7 @@ import ai.foresignal.export.ExportJobEntity;
 import ai.foresignal.export.SnapshotService;
 import ai.foresignal.raster.ProductUrls;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -42,6 +43,7 @@ public class SnapshotsController {
     /** {@code createSnapshot}: the state at a seq, 202 with the {@code Snapshot} job. */
     @PostMapping("/v1/snapshots")
     @Operation(operationId = "createSnapshot", tags = "Exports")
+    @ApiResponse(responseCode = "202", description = "Queued")
     public ResponseEntity<Map<String, Object>> createSnapshot(@RequestBody JsonNode body, HttpServletRequest request) {
         ExportJobEntity job = snapshots.create(body, ExportCallers.of(request, callers));
         return ResponseEntity.status(HttpStatus.ACCEPTED)

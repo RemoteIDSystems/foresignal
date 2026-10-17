@@ -145,7 +145,10 @@ public class IntelTopic implements EventTopic<IntelFilter>, IntelListener {
         while (true) {
             List<IntelEventLogEntity> page = logs.findByIdGreaterThanOrderByIdAsc(cursor, Limit.of(REPLAY_PAGE));
             for (IntelEventLogEntity log : page) {
-                if (!sink.emit(frame(of(log)))) {
+                // The live path's filter applies to a replay too: a private event never reaches a caller without
+                // the grant (EGR-1), and the type and status filters hold on resume.
+                IntelEvent event = of(log);
+                if (filter.matches(event) && !sink.emit(frame(event))) {
                     return new ReplayOutcome.CapReached();
                 }
                 cursor = log.getId();
@@ -167,13 +170,18 @@ public class IntelTopic implements EventTopic<IntelFilter>, IntelListener {
 
     /** The frame of an event. */
     FifoEvent frame(IntelEvent event) {
+        return new FifoEvent(NAME, event.cursor(), event.sseEvent(), payload(event), null);
+    }
+
+    /** The {@code IntelEventStreamEvent} payload of an event (also used by the SSE schema conformance test). */
+    public static Map<String, Object> payload(IntelEvent event) {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("eventId", event.eventId());
         data.put("change", event.change());
         data.put("version", event.version());
         data.put("mergedInto", event.mergedInto());
         data.put("summary", event.summary());
-        return new FifoEvent(NAME, event.cursor(), event.sseEvent(), data, null);
+        return data;
     }
 
     // ------------------------------------------------------------------------- live

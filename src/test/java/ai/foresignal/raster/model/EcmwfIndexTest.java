@@ -36,7 +36,7 @@ class EcmwfIndexTest {
     @DisplayName("finds a field by param, levtype and levelist, the first match winning")
     void finds() {
         EcmwfIndex index = EcmwfIndex.parse(BODY);
-        assertThat(index.find("10u", "sfc", null)).get().extracting(EcmwfIndex.Entry::offset).isEqualTo(9967974);
+        assertThat(index.find("10u", "sfc", null)).get().extracting(EcmwfIndex.Entry::offset).isEqualTo(9967974L);
         assertThat(index.find("t", "pl", "500")).isPresent();
         assertThat(index.find("t", "pl", "850")).isEmpty();
         assertThat(index.find("nope", "sfc", null)).isEmpty();

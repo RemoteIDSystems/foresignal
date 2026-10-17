@@ -19,6 +19,12 @@ import org.springframework.stereotype.Component;
  * that origin is written into the owner's source under the same local external id, so the same origin over two
  * peers yields one local record. Ownership moves to the arriving source at the next arrival once the owner is no
  * longer alive (its peer was disabled or deleted).
+ *
+ * <p><strong>Failed writes:</strong> the claim is atomic, so two paths cannot both apply the same origin seq, but the
+ * write that follows happens on the ingest writer's thread. A caller whose write fails hands the claim's
+ * {@link Release} back to {@link #release(Release)}, which restores the previous entry when nothing newer was claimed
+ * since; without it a re-send of the same version would count as a duplicate and the version would be lost
+ * (checkpoint 124).
  */
 @Component
 public class OriginLedger {
@@ -49,7 +55,17 @@ public class OriginLedger {
      * @param ownerSourceId the source to write into when applied (the arriving source, or the live owner)
      * @param localExternalId the local external id of the record
      */
-    public record Claim(Verdict verdict, String ownerSourceId, String localExternalId) {}
+    public record Claim(Verdict verdict, String ownerSourceId, String localExternalId, Release release) {}
+
+    /**
+     * What undoes an applied claim when its write fails.
+     *
+     * @param originRef the origin ref
+     * @param claimedSeq the origin seq this claim stored
+     * @param previousSeq the origin seq stored before, or null when the claim created the entry
+     * @param previousOwner the owner stored before, or null when the claim created the entry
+     */
+    public record Release(String originRef, long claimedSeq, Long previousSeq, String previousOwner) {}
 
     /**
      * Claims {@code originRef} at {@code originSeq} for {@code arrivingSourceId}.
@@ -60,7 +76,10 @@ public class OriginLedger {
             Collection<String> aliveSources) {
         String[] alive = aliveSources.toArray(String[]::new);
         Timestamp now = Timestamp.from(clock.instant());
-        List<String[]> applied = jdbc.query("""
+        List<Claim> applied = jdbc.query("""
+                WITH prev AS (
+                    SELECT origin_seq, owner_source_id FROM federation_origin WHERE origin_ref = ?
+                )
                 INSERT INTO federation_origin (origin_ref, owner_source_id, local_external_id, origin_seq, updated_at)
                 VALUES (?, ?, ?, ?, ?)
                 ON CONFLICT (origin_ref) DO UPDATE SET
@@ -69,22 +88,56 @@ public class OriginLedger {
                     owner_source_id = CASE WHEN federation_origin.owner_source_id = ANY(?)
                         THEN federation_origin.owner_source_id ELSE EXCLUDED.owner_source_id END
                 WHERE federation_origin.origin_seq < EXCLUDED.origin_seq
-                RETURNING owner_source_id, local_external_id
+                RETURNING owner_source_id, local_external_id, (SELECT origin_seq FROM prev),
+                    (SELECT owner_source_id FROM prev)
                 """, ps -> {
                     ps.setString(1, originRef);
-                    ps.setString(2, arrivingSourceId);
-                    ps.setString(3, localExternalId);
-                    ps.setLong(4, originSeq);
-                    ps.setTimestamp(5, now);
-                    ps.setArray(6, ps.getConnection().createArrayOf("text", alive));
-                }, (rs, n) -> new String[] {rs.getString(1), rs.getString(2)});
+                    ps.setString(2, originRef);
+                    ps.setString(3, arrivingSourceId);
+                    ps.setString(4, localExternalId);
+                    ps.setLong(5, originSeq);
+                    ps.setTimestamp(6, now);
+                    ps.setArray(7, ps.getConnection().createArrayOf("text", alive));
+                }, (rs, n) -> {
+                    long previous = rs.getLong(3);
+                    Long previousSeq = rs.wasNull() ? null : previous;
+                    return new Claim(Verdict.APPLY, rs.getString(1), rs.getString(2),
+                            new Release(originRef, originSeq, previousSeq, rs.getString(4)));
+                });
         if (!applied.isEmpty()) {
-            return new Claim(Verdict.APPLY, applied.getFirst()[0], applied.getFirst()[1]);
+            return applied.getFirst();
         }
         List<Long> stored = jdbc.queryForList("SELECT origin_seq FROM federation_origin WHERE origin_ref = ?",
                 Long.class, originRef);
         boolean same = !stored.isEmpty() && stored.getFirst() == originSeq;
-        return new Claim(same ? Verdict.DUPLICATE : Verdict.STALE, null, localExternalId);
+        return new Claim(same ? Verdict.DUPLICATE : Verdict.STALE, null, localExternalId, null);
+    }
+
+    /**
+     * Undoes an applied claim whose write failed: restores the previous seq and owner (or removes an entry the
+     * claim created), but only while the entry still holds the claimed seq, so a newer arrival is never undone.
+     *
+     * @param release the claim's release, or null (nothing to undo)
+     */
+    public void release(Release release) {
+        if (release == null) {
+            return;
+        }
+        if (release.previousSeq() == null) {
+            jdbc.update("DELETE FROM federation_origin WHERE origin_ref = ? AND origin_seq = ?",
+                    release.originRef(), release.claimedSeq());
+        } else {
+            jdbc.update("UPDATE federation_origin SET origin_seq = ?, owner_source_id = ?, updated_at = ?"
+                    + " WHERE origin_ref = ? AND origin_seq = ?", release.previousSeq(), release.previousOwner(),
+                    Timestamp.from(clock.instant()), release.originRef(), release.claimedSeq());
+        }
+    }
+
+    /** Undoes every applied claim of {@code releases} (see {@link #release(Release)}). */
+    public void releaseAll(Collection<Release> releases) {
+        for (Release release : releases) {
+            release(release);
+        }
     }
 
     /** The stored origin seq of {@code originRef}, or -1 when none. */

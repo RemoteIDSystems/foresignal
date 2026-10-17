@@ -27,7 +27,9 @@ class DescriptorValidatorTest {
         return SourceDescriptor.builder("test-push")
                 .kinds("quake", "alert")
                 .mode(Mode.PUSH)
-                .defaultBudget(60, 10_000);
+                .defaultBudget(60, 10_000)
+                // A licence, so the prompt 109 "no licence or licenceTerms" warning stays out of these tests.
+                .licence("CC0-1.0");
     }
 
     private static List<String> problems(SourceDescriptor.Builder builder) {
@@ -216,6 +218,15 @@ class DescriptorValidatorTest {
         assertThat(DescriptorValidator.problems(descriptor, null)).isEmpty();
         assertThat(DescriptorValidator.warnings(descriptor)).singleElement().asString().contains("private");
         assertThat(DescriptorValidator.warnings(valid().embedFields("note").build())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("a source with neither licence nor licenceTerms gets a warning, not a problem (prompt 109)")
+    void missingLicenceWarning() {
+        SourceDescriptor descriptor = valid().licence(null).build();
+        assertThat(DescriptorValidator.problems(descriptor, null)).isEmpty();
+        assertThat(DescriptorValidator.warnings(descriptor)).singleElement().asString()
+                .contains("no licence or licenceTerms");
     }
 
     @Test

@@ -10,6 +10,7 @@ import ai.foresignal.ingest.FetchLogEntry;
 import ai.foresignal.ingest.IngestOutcome;
 import ai.foresignal.ingest.IngestQueue;
 import ai.foresignal.raster.ProductRegistry;
+import ai.foresignal.raster.RasterPaths;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.SourceService;
 import ai.foresignal.source.SourceSettingsUpdate;
@@ -60,6 +61,7 @@ class SatDumpIngestIT {
     @Autowired MeterRegistry meters;
     @Autowired MutableClock clock;
     @Autowired JdbcTemplate jdbc;
+    @Autowired RasterPaths rasterPaths;
     @Autowired ProductRegistry products;
     @Autowired TriggerRuleService rules;
     @Autowired TriggerEngine engine;
@@ -70,6 +72,8 @@ class SatDumpIngestIT {
     @BeforeEach
     void setUp() throws Exception {
         clock.setInstant(AOS.minusSeconds(10));
+        // the shared remote-upload area may hold bundles for this test's pass (see SatDumpFixtures.clearUploads)
+        SatDumpFixtures.clearUploads(rasterPaths.root(), RasterTestSources.SATDUMP_STATION);
         inboxPath = "satdump/itest-" + UUID.randomUUID();
         station = Files.createDirectories(properties.inboxDir().resolve(inboxPath));
         sources.update(SOURCE, new SourceSettingsUpdate(false, null, Map.of(SatDumpDescriptor.INBOX_PATH, inboxPath,

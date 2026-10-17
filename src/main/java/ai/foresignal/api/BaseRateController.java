@@ -15,6 +15,7 @@ import ai.foresignal.security.EgressPath;
 import ai.foresignal.security.Scope;
 import ai.foresignal.security.restrict.RestrictedRead;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.LinkedHashMap;
@@ -64,6 +65,7 @@ public class BaseRateController {
     /** {@code createReferenceImport}: 202 with the import. */
     @PostMapping("/v1/reference-imports")
     @Operation(operationId = "createReferenceImport", tags = "Analysis")
+    @ApiResponse(responseCode = "202", description = "Accepted")
     public ResponseEntity<Map<String, Object>> createReferenceImport(@RequestBody JsonNode body,
             HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(ReferenceImportViews.view(imports.create(body,
@@ -96,6 +98,7 @@ public class BaseRateController {
     /** {@code deleteReferenceImport}: 204; its rows are removed. */
     @DeleteMapping("/v1/reference-imports/{importId}")
     @Operation(operationId = "deleteReferenceImport", tags = "Analysis")
+    @ApiResponse(responseCode = "204", description = "Deleted")
     public ResponseEntity<Void> deleteReferenceImport(@PathVariable String importId) {
         imports.delete(importId);
         return ResponseEntity.noContent().build();
@@ -126,6 +129,7 @@ public class BaseRateController {
     /** {@code createBaseRate}: 201; origin {@code operator} for admin tokens, else {@code agent}. */
     @PostMapping("/v1/base-rates")
     @Operation(operationId = "createBaseRate", tags = "Analysis")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createBaseRate(@RequestBody JsonNode body, HttpServletRequest request) {
         if (body == null || !body.isObject()) {
             throw new ValidationException("The request body must be a BaseRateInput object.");
@@ -153,6 +157,7 @@ public class BaseRateController {
     /** {@code refreshBaseRates}: 202 with the 103 job. */
     @PostMapping("/v1/base-rates/refresh")
     @Operation(operationId = "refreshBaseRates", tags = "Analysis")
+    @ApiResponse(responseCode = "202", description = "Job accepted")
     public ResponseEntity<Map<String, Object>> refreshBaseRates(HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(BacktestViews.job(baseRates.submitRefresh("manual",
                 tokenId(request))));
@@ -169,6 +174,7 @@ public class BaseRateController {
     /** {@code deleteBaseRate}: 204; automatic rates are refused with 409. */
     @DeleteMapping("/v1/base-rates/{baseRateId}")
     @Operation(operationId = "deleteBaseRate", tags = "Analysis")
+    @ApiResponse(responseCode = "204", description = "Deleted")
     public ResponseEntity<Void> deleteBaseRate(@PathVariable String baseRateId) {
         baseRates.delete(baseRateId);
         return ResponseEntity.noContent().build();

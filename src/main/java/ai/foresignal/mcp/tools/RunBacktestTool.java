@@ -22,6 +22,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** {@code run_backtest} (agent, prompt 103). */
+@ai.foresignal.security.restrict.RestrictedRead("queues a job under the caller token; returns the job id, no record content")
 @Component
 public class RunBacktestTool implements ForesignalMcpTool {
 

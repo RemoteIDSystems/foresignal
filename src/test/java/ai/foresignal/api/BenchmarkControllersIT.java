@@ -1,5 +1,7 @@
 package ai.foresignal.api;
 
+import org.springframework.context.annotation.Import;
+import ai.foresignal.testsupport.ingest.TestIngestSources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -51,6 +53,7 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code run_benchmark}.
  */
 @IntegrationTest
+@Import(TestIngestSources.class)
 class BenchmarkControllersIT {
 
     static final Instant NOW = Instant.parse("2026-10-17T12:00:00Z");

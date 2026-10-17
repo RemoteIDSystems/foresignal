@@ -14,6 +14,7 @@ import ai.foresignal.manifest.ManifestService;
 import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.settings.SettingKeys;
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -40,9 +41,9 @@ import org.springframework.stereotype.Service;
  * <ul>
  *   <li><strong>Situation analogs</strong> ({@link #forSituation}): the target's signature at its current day (stored,
  *       or computed now) against each past situation's signature at the same day (or its last), searched by
- *       {@link AnalogSearch}. Situations overlapping the target in time and the target's own merges are excluded;
- *       private situations only reach callers with private access. Each analog carries its outcomes (computed when
- *       missing).
+ *       {@link AnalogSearch}. Situations overlapping the target in time, the target's own merges and situations that
+ *       began after the decision time (now) are excluded; private situations only reach callers with private access.
+ *       Each analog carries its outcomes (computed when missing).
  *   <li><strong>Region-period analogs</strong> ({@link #forRegion}): a signature over a region's weeks in
  *       {@code [from, to]} of {@code reference_history} (one source per family and week: the largest count, so
  *       sources are not added together) plus Foresignal's not-yet-folded canonical events, searched against two-week
@@ -51,7 +52,8 @@ import org.springframework.stereotype.Service;
  *   <li><strong>Outcome distribution</strong> for {@code critical} or {@code {family}/P{n}D}: the frequency among the
  *       analogs, shrunk toward the base rate by k ÷ (k + 10), with the analog count and a Jeffreys interval. The base
  *       rate of a family outcome is the {@code pAtLeastOne} of the matching base rate for the target's countries; of
- *       {@code critical}, the share of past situations that reached critical.
+ *       {@code critical}, the share of past situations (begun, with their outcome recorded, by now) that reached
+ *       critical.
  * </ul>
  */
 @Service
@@ -169,10 +171,11 @@ public class AnalogService {
         String targetGroup = group(target);
         List<AnalogSearch.Candidate> candidates = new ArrayList<>();
         Map<String, SignatureService.SituationFacts> factsById = new HashMap<>();
+        // A situation that began after the decision time is not a past case (INT-2, no look-ahead).
         List<String> ids = jdbc.queryForList("SELECT DISTINCT g.situation_id FROM situation_signature g JOIN situation s"
-                + " ON s.id = g.situation_id WHERE s.id <> :id AND s.merged_into IS NULL"
-                + (privateAccess ? "" : " AND s.private = false"), new MapSqlParameterSource("id", situationId),
-                String.class);
+                + " ON s.id = g.situation_id WHERE s.id <> :id AND s.merged_into IS NULL AND s.started_at <= :now"
+                + (privateAccess ? "" : " AND s.private = false"), new MapSqlParameterSource("id", situationId)
+                        .addValue("now", Timestamp.from(now)), String.class);
         for (String id : ids) {
             SignatureService.SituationFacts facts = signatures.facts(id).orElse(null);
             if (facts == null) {
@@ -581,9 +584,11 @@ public class AnalogService {
 
     private BaseRate baseRate(Outcome outcome, List<String> countries) {
         if (outcome.critical()) {
+            // Only situations that began, and outcomes recorded, by the decision time (INT-2).
             List<Map<String, Object>> rows = jdbc.queryForList("SELECT count(*) FILTER (WHERE o.peak_severity ="
                     + " 'critical') AS hits, count(*) AS n FROM situation_outcome o JOIN situation s ON s.id ="
-                    + " o.situation_id WHERE s.private = false", new MapSqlParameterSource());
+                    + " o.situation_id WHERE s.private = false AND s.started_at <= :now AND o.computed_at <= :now",
+                    new MapSqlParameterSource("now", Timestamp.from(clock.instant())));
             long n = rows.isEmpty() ? 0 : ((Number) rows.get(0).get("n")).longValue();
             long h = rows.isEmpty() ? 0 : ((Number) rows.get(0).get("hits")).longValue();
             return new BaseRate(n == 0 ? null : (double) h / n, null);

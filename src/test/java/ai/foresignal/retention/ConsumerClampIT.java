@@ -4,6 +4,7 @@ import static ai.foresignal.testsupport.ingest.TestIngestSources.STANDARD;
 import static ai.foresignal.testsupport.ingest.TestIngestSources.STANDARD_KIND;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ai.foresignal.settings.SettingKeys;
 import ai.foresignal.test.IntegrationTest;
 import ai.foresignal.testsupport.retention.RetentionItSupport;
 import ai.foresignal.testsupport.retention.RetentionTestSources;
@@ -38,6 +39,7 @@ class ConsumerClampIT extends RetentionItSupport {
         ingestAt(STANDARD, m2, record("n", STANDARD_KIND, m2, 1));
         long xSeq = jdbc.queryForObject("SELECT seq FROM record_version WHERE source_id = ? AND external_id = 'x'",
                 Long.class, STANDARD);
+        awaitOtherConsumers(m2);
         consumer.set(xSeq);
 
         RetentionRunResult held = runAt(T0.plus(Duration.ofDays(7)).plus(Duration.ofMinutes(5)));
@@ -63,9 +65,43 @@ class ConsumerClampIT extends RetentionItSupport {
                 .isEqualTo(1);
     }
 
+    /**
+     * Waits until every real consumer that reports a cursor (the 101 intel cursor among them) has passed the versions
+     * ingested up to {@code at}, so the test consumer is the only one that lags.
+     */
+    private void awaitOtherConsumers(Instant at) {
+        long head = jdbc.queryForObject("SELECT max(seq) FROM record_version", Long.class);
+        long deadline = System.currentTimeMillis() + 20_000;
+        while (System.currentTimeMillis() < deadline) {
+            boolean caughtUp = job.consumers().stream().filter(c -> !TestConsumer.NAME.equals(c.name()))
+                    .allMatch(c -> c.cursorSeq().isEmpty() || c.cursorSeq().getAsLong() >= head);
+            if (caughtUp) {
+                return;
+            }
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+        throw new AssertionError("the consumers did not catch up with the versions ingested up to " + at);
+    }
+
     @Test
     @DisplayName("the trigger engine's cursor is a registered consumer")
     void triggerCursorRegistered() {
         assertThat(job.consumers()).extracting(RetentionConsumer::name).contains("trigger.cursor", TestConsumer.NAME);
+    }
+
+    @Test
+    @DisplayName("the intelligence cursors of 116–120 join the clamp: evidence, situation, region rollup and precursor")
+    void intelligenceCursorsRegistered() {
+        // Checkpoint 124, focus area 8. Each subscriber's restart is covered by its own suite:
+        // EvidenceResolverIT.cursorRestartExactlyOnce, SituationLinkerIT (a rewound cursor gives exactly-once
+        // membership), RegionRollupJobIT.cursorExactlyOnce and PrecursorLiveWatchIT.restartExactlyOnce.
+        assertThat(job.consumers()).extracting(RetentionConsumer::name).contains(SettingKeys.EVIDENCE_CURSOR,
+                SettingKeys.SITUATION_CURSOR, SettingKeys.STATS_REGION_CURSOR, SettingKeys.PRECURSOR_CURSOR);
+        assertThat(job.consumers()).extracting(RetentionConsumer::name).doesNotHaveDuplicates();
     }
 }

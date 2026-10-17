@@ -17,6 +17,7 @@ import tools.jackson.databind.JsonNode;
  * {@code get_export} (agent; prompt 111): an export, snapshot or pack job's status, license summary and
  * URLs, never the file bytes. A job is visible to the token that created it and to admin.
  */
+@ai.foresignal.security.restrict.RestrictedRead("a job is visible to the token that created it and to admin; returns status and URLs")
 @Component
 public class GetExportTool implements ForesignalMcpTool {
 

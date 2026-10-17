@@ -71,7 +71,7 @@ class InvestigationsControllerIT {
 
     private long seed(String externalId) {
         Instant now = clock.instant();
-        records.ingestAt(STANDARD, now, NormalizedRecord.builder(externalId, "thing").observedAt(now)
+        records.ingestAt(STANDARD, now, NormalizedRecord.builder(externalId, "test-record").observedAt(now)
                 .point(-95.0, 32.0).put("name", externalId).build());
         return jdbc.queryForObject("select max(seq) from record_version where source_id = ? and external_id = ?",
                 Long.class, STANDARD, externalId);
@@ -101,7 +101,7 @@ class InvestigationsControllerIT {
         MockHttpServletResponse response = send(bearer, post("/v1/investigations/" + investigation + "/items"),
                 "{\"itemType\":\"record\",\"ref\":\"" + STANDARD + "/" + externalId + "\",\"seq\":" + seq + "}");
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(expected);
-        return expected == 200 ? body(response).get("id").asLong() : -1;
+        return expected == 201 ? body(response).get("id").asLong() : -1;
     }
 
     @Test
@@ -116,7 +116,7 @@ class InvestigationsControllerIT {
         assertThat(send(agent, patch("/v1/investigations/" + id), "{\"status\":\"closed\"}").getStatus())
                 .isEqualTo(200);
         long seq = seed("c1");
-        addRecord(agent, id, "c1", seq, 200);
+        addRecord(agent, id, "c1", seq, 201);
 
         String md = call(read, get("/v1/investigations/" + id + "/export?format=md"))
                 .getContentAsString(StandardCharsets.UTF_8);
@@ -136,7 +136,7 @@ class InvestigationsControllerIT {
         String first = create("First");
         String second = create("Second");
         long seq = seed("x1");
-        long item = addRecord(agent, first, "x1", seq, 200);
+        long item = addRecord(agent, first, "x1", seq, 201);
 
         assertThat(call(agent, delete("/v1/investigations/" + second + "/items/" + item)).getStatus())
                 .isEqualTo(404);
@@ -162,7 +162,7 @@ class InvestigationsControllerIT {
         long seq = seed("s1");
 
         addRecord(agent, id, "s1", seq, 400);
-        addRecord(admin, id, "s1", seq, 200);
+        addRecord(admin, id, "s1", seq, 201);
 
         assertThat(body(call(admin, get("/v1/investigations/" + id))).get("items")).hasSize(1);
         assertThat(body(call(read, get("/v1/investigations/" + id))).get("items")).isEmpty();

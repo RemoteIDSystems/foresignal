@@ -19,6 +19,7 @@ import tools.jackson.databind.json.JsonMapper;
  * The resource template {@code foresignal://products/{id}/legend} (prompt 052; Weather-Imagery-Design §6.9):
  * a product's JSON legend in its default style and metric units, as {@code getProductLegend} returns it.
  */
+@ai.foresignal.security.restrict.RestrictedRead("products of excluded sources are hidden; a legend holds no record content")
 @Component
 public class ProductLegendResource implements ForesignalMcpResourceTemplate {
 

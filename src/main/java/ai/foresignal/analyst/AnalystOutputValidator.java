@@ -118,10 +118,12 @@ public final class AnalystOutputValidator {
         }
         int[] words = {0};
         String trimmed = truncate(body, words, warnings);
-        String normalizedPriority = List.of("low", "normal", "high").contains(priority) ? priority : "normal";
+        // List.of(...).contains(null) throws, and a model may omit the priority.
+        String normalizedPriority = priority != null && List.of("low", "normal", "high").contains(priority) ? priority
+                : "normal";
         List<AnalystProposalSpec> proposals = new ArrayList<>();
         for (RawProposal original : rawProposals) {
-            if (!allowedActions.contains(original.type())) {
+            if (original.type() == null || !allowedActions.contains(original.type())) {
                 warnings.add("dropped proposal " + original.type() + ": not in allowed_actions");
                 continue;
             }

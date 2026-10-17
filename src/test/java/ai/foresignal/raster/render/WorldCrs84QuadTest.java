@@ -20,8 +20,9 @@ class WorldCrs84QuadTest {
     @Test
     @DisplayName("the two z0 tiles split the globe at the prime meridian")
     void bounds() {
-        assertThat(WorldCrs84Quad.INSTANCE.tileBounds(0, 0, 0)).containsExactly(-180.0, 0.0, 0.0, 90.0);
-        assertThat(WorldCrs84Quad.INSTANCE.tileBounds(0, 1, 0)).containsExactly(0.0, 0.0, 180.0, 90.0);
+        // each z0 tile is 180 degrees square: the full latitude span, half the longitude span
+        assertThat(WorldCrs84Quad.INSTANCE.tileBounds(0, 0, 0)).containsExactly(-180.0, -90.0, 0.0, 90.0);
+        assertThat(WorldCrs84Quad.INSTANCE.tileBounds(0, 1, 0)).containsExactly(0.0, -90.0, 180.0, 90.0);
         assertThat(WorldCrs84Quad.tileWidth(2)).isEqualTo(45.0);
         assertThat(WorldCrs84Quad.INSTANCE.tileBounds(1, 0, 1)).containsExactly(-180.0, -90.0, -90.0, 0.0);
     }
@@ -39,6 +40,7 @@ class WorldCrs84QuadTest {
         double[] out = new double[2];
         WorldCrs84Quad.INSTANCE.locator(0, 0, 0, 256).locate(0, 0, out);
         assertThat(out[0]).isCloseTo(-180.0 + (180.0 / 256) / 2, org.assertj.core.data.Offset.offset(1e-9));
-        assertThat(out[1]).isCloseTo(90.0 - (90.0 / 256) / 2, org.assertj.core.data.Offset.offset(1e-9));
+        // pixels are square: a z0 tile spans 180 degrees of latitude as well as longitude
+        assertThat(out[1]).isCloseTo(90.0 - (180.0 / 256) / 2, org.assertj.core.data.Offset.offset(1e-9));
     }
 }

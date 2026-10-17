@@ -13,7 +13,6 @@ import ai.foresignal.source.spi.ObservedAtMode;
 import ai.foresignal.source.spi.PollingAdapter;
 import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.TtlAnchor;
-import ai.foresignal.source.spi.UpstreamFormatException;
 import ai.foresignal.source.spi.UpstreamResponse;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -116,8 +115,9 @@ public final class FdsnEventAdapter implements PollingAdapter {
                 records.addAll(FdsnTextParser.parse(response.body()));
                 rows = FdsnTextParser.rows(response.body());
             } else {
-                throw new UpstreamFormatException("The FDSN service " + service.id() + " answered HTTP "
-                        + response.status(), "");
+                // An unexpected status is a failed request, not an unparsable body (the @throws contract above).
+                throw new AdapterException("The FDSN service " + service.id() + " answered HTTP "
+                        + response.status());
             }
             if (rows < LIMIT) {
                 if (service.supportsUpdatedAfter()) {

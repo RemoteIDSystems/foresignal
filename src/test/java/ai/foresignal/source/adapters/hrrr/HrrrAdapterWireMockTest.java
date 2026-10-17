@@ -157,7 +157,8 @@ class HrrrAdapterWireMockTest extends WireMockSupport {
         stubRange(0, 424_136, REFC);
         stubRange(3_314_894, 4_566_989, gust);
         stubRange(51_042_719, 56_790_309, coalesced);
-        RecordingSink sink = new RecordingSink().decoding();
+        // hrrr-smoke-column (prompt 106) reads COLMD, which this capture does not include
+        RecordingSink sink = new RecordingSink().decoding().disable(HrrrAdapter.SMOKE_COLUMN);
         adapter.fetch(context(sink));
 
         assertThat(rangeRequests()).isEqualTo(3);
@@ -204,7 +205,8 @@ class HrrrAdapterWireMockTest extends WireMockSupport {
     void disabledProducts() throws Exception {
         stubIdx(IDX);
         stubRange(0, 424_136, REFC);
-        RecordingSink sink = new RecordingSink().decoding().disable(HrrrAdapter.WIND, HrrrAdapter.GUST, HrrrAdapter.SMOKE);
+        RecordingSink sink = new RecordingSink().decoding().disable(HrrrAdapter.WIND, HrrrAdapter.GUST, HrrrAdapter.SMOKE,
+                HrrrAdapter.SMOKE_COLUMN);
         adapter.fetch(context(sink));
         assertThat(rangeRequests()).isEqualTo(1);
         assertThat(sink.committed()).extracting(c -> c.frame().productId()).containsExactly(HrrrAdapter.REFC);
@@ -247,18 +249,20 @@ class HrrrAdapterWireMockTest extends WireMockSupport {
     }
 
     @Test
-    @DisplayName("descriptor: four CONUS forecast products on the native grid, budgets and the 10-minute check")
+    @DisplayName("descriptor: five CONUS forecast products on the native grid (106 adds column smoke), budgets and the"
+            + " 10-minute check")
     void descriptor() {
         SourceDescriptor d = adapter.descriptor();
         assertThat(d.defaultBudget()).isEqualTo(Budget.of(60, 4_000, 2_000));
         assertThat(d.defaultInterval()).isEqualTo(Duration.ofMinutes(10));
-        assertThat(d.products()).extracting(p -> p.id()).containsExactly("hrrr", "hrrr-refc", "hrrr-gust", "hrrr-smoke");
+        assertThat(d.products()).extracting(p -> p.id()).containsExactly("hrrr", "hrrr-refc", "hrrr-gust", "hrrr-smoke",
+                "hrrr-smoke-column");
         assertThat(d.products()).allSatisfy(p -> {
             assertThat(p.isForecast()).isTrue();
             assertThat(p.spatial().nativeMaxZoom()).isEqualTo(8);
         });
         assertThat(d.products().get(1).defaultStyle()).isEqualTo("nws-reflectivity@1");
         assertThat(d.products().get(3).units()).isEqualTo("ug/m3");
-        assertThat(adapter.decoderRequirements()).hasSize(4);
+        assertThat(adapter.decoderRequirements()).hasSize(5);
     }
 }

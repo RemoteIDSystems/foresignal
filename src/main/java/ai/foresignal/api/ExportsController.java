@@ -17,6 +17,7 @@ import ai.foresignal.raster.render.TileMatrixSets;
 import ai.foresignal.security.restrict.RequestPrincipal;
 import ai.foresignal.source.spi.ProductSpec;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -74,6 +75,7 @@ public class ExportsController {
     /** {@code createProductExport}: submit an export, 202 with the job. */
     @PostMapping("/v1/products/{productId}/exports")
     @Operation(operationId = "createProductExport", tags = "Products")
+    @ApiResponse(responseCode = "202", description = "Job accepted")
     public ResponseEntity<java.util.Map<String, Object>> createProductExport(@PathVariable String productId,
             @RequestBody JsonNode body, HttpServletRequest request) {
         ReadCaller caller = callers.resolve(request);

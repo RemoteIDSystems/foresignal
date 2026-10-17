@@ -40,7 +40,7 @@ public class EntityKeyExpansion implements IngestStateReset {
     @EventListener(ApplicationReadyEvent.class)
     public synchronized void loadAll() {
         Map<String, Set<String>> fresh = new HashMap<>();
-        jdbc.query("SELECT entity_id, key_value FROM entity_key WHERE valid_to IS NULL AND key_type = ANY(?)",
+        jdbc.query("SELECT entity_id, key_value FROM entity_key WHERE valid_to IS NULL AND key_type = ANY(CAST(? AS text[]))",
                 rs -> {
                     String entityId = rs.getString("entity_id");
                     fresh.computeIfAbsent(entityId, id -> new HashSet<>()).add(rs.getString("key_value"));
@@ -55,7 +55,7 @@ public class EntityKeyExpansion implements IngestStateReset {
     @EventListener
     public void onEntityKeysChanged(EntityKeysChangedEvent event) {
         Set<String> values = new HashSet<>(jdbc.queryForList(
-                "SELECT key_value FROM entity_key WHERE entity_id = ? AND valid_to IS NULL AND key_type = ANY(?)",
+                "SELECT key_value FROM entity_key WHERE entity_id = ? AND valid_to IS NULL AND key_type = ANY(CAST(? AS text[]))",
                 String.class, event.entityId(), typesArray()));
         if (values.isEmpty()) {
             byEntity.remove(event.entityId());

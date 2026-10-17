@@ -1,5 +1,6 @@
 package ai.foresignal.pol;
 
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,7 +16,7 @@ public class PolPrivateGenerator extends PolGenerator {
     public static final String ID = "pattern-of-life-private";
 
     /** Creates the private generator. */
-    public PolPrivateGenerator(PolEngine engine, PolSubjectRepository subjects, PolPlaceRepository places) {
+    public PolPrivateGenerator(@Lazy PolEngine engine, PolSubjectRepository subjects, PolPlaceRepository places) {
         super(engine, subjects, places, buildDescriptor(ID, true));
     }
 

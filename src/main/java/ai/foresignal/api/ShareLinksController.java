@@ -30,6 +30,7 @@ import ai.foresignal.store.tiles.TileQueryService;
 import ai.foresignal.store.tiles.TileResult;
 import ai.foresignal.view.SavedViewEntity;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -103,6 +104,7 @@ public class ShareLinksController {
     /** {@code createShareLink}: creates a link; the plaintext key is in this response only. */
     @PostMapping("/v1/share-links")
     @Operation(operationId = "createShareLink", tags = "ShareLinks")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createShareLink(@RequestBody JsonNode body, HttpServletRequest request) {
         ShareLinkService.Create create = parseCreate(body);
         ShareLinkService.Created created = links.create(create, caller(request, callers));
@@ -132,6 +134,7 @@ public class ShareLinksController {
     /** {@code revokeShareLink}: revokes a link. */
     @DeleteMapping("/v1/share-links/{shareLinkId}")
     @Operation(operationId = "revokeShareLink", tags = "ShareLinks")
+    @ApiResponse(responseCode = "204", description = "Revoked")
     public ResponseEntity<Void> revokeShareLink(@PathVariable String shareLinkId, HttpServletRequest request) {
         links.revoke(shareLinkId, caller(request, callers));
         return ResponseEntity.noContent().build();
@@ -219,6 +222,8 @@ public class ShareLinksController {
     /** {@code downloadShareLink}: the shared export's file, with {@code Range} support. */
     @GetMapping("/v1/k/{key}/download")
     @Operation(operationId = "downloadShareLink", tags = "ShareLinks")
+    @ApiResponse(responseCode = "200", description = "File")
+    @ApiResponse(responseCode = "206", description = "Partial content")
     public ResponseEntity<FileSystemResource> downloadShareLink(@PathVariable String key, HttpServletRequest request) {
         ShareLinkEntity link = links.use(key, request.getRemoteAddr());
         if (!"export".equals(link.getTargetType())) {

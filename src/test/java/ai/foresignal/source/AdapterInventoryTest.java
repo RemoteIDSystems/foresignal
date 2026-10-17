@@ -105,8 +105,13 @@ class AdapterInventoryTest {
                     || (!system && descriptor.licence() == null)) {
                 descriptors.add(String.valueOf(descriptor.id()));
             }
-            registration.adapterIfPresent().map(SourceAdapter::getClass).map(Class::getPackageName)
-                    .ifPresent(packages::add);
+            // Checkpoint 124: DERIVED generators (099 onward) read Foresignal's own records, not an upstream format,
+            // so like the fixture check below the parser/contract check does not apply to them; their behavior is
+            // covered by their own tests (for example AisGapCoverageTest, FindingServiceIT, PolServiceIT).
+            if (descriptor.mode() != Mode.DERIVED) {
+                registration.adapterIfPresent().map(SourceAdapter::getClass).map(Class::getPackageName)
+                        .ifPresent(packages::add);
+            }
             if (descriptor.mode() == Mode.DERIVED || descriptor.mode() == Mode.PUSH) {
                 continue;
             }

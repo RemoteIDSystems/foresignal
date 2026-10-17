@@ -431,8 +431,7 @@ public class OgcFeatureService {
             timeBounds(where, "v.observed_at", q.datetime(), p);
         }
         if (q.filter() != null) {
-            String titleField = sharedTitleField(c.sources());
-            String title = "(v.payload ->> " + p.text(titleField == null ? "title" : titleField) + ")";
+            String title = versionTitle(allowedSources(q), p);
             where.add(Cql2SqlTranslator.translate(q.filter(), queryables(c.kind(), c.sources()),
                     new Cql2SqlTranslator.Columns("v.source_id", title, "v.observed_at", "v.event_time", "v.version",
                             "v.payload", "v.geom"), p));
@@ -458,6 +457,25 @@ public class OgcFeatureService {
         if (dt.to() != null) {
             where.add(column + " <= " + p.instant(dt.to()));
         }
+    }
+
+    /**
+     * The SQL title of a history version: each source's own title field (versions have no title column),
+     * {@code payload.title} for a source without one. One shared field is a plain expression, several a
+     * {@code CASE} on the source.
+     */
+    private String versionTitle(List<String> sources, SqlParams p) {
+        String shared = sharedTitleField(sources);
+        if (shared != null || sources.size() <= 1) {
+            return "(v.payload ->> " + p.text(shared == null ? "title" : shared) + ")";
+        }
+        StringBuilder sql = new StringBuilder("(CASE");
+        for (String s : sources) {
+            String field = registry.descriptor(s).titleField();
+            sql.append(" WHEN v.source_id = ").append(p.text(s)).append(" THEN v.payload ->> ")
+                    .append(p.text(field == null ? "title" : field));
+        }
+        return sql.append(" ELSE v.payload ->> ").append(p.text("title")).append(" END)").toString();
     }
 
     private String sharedTitleField(List<String> sources) {

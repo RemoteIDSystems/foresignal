@@ -23,9 +23,9 @@ class DataTileEncoderTest {
                 DataTileEncoder.CUSTOM);
         BufferedImage image = decode(result.png());
         assertThat(image.getRGB(0, 0)).isEqualTo(0xFF000000);
-        assertThat(image.getRGB(1, 0)).isEqualTo(0xFF000001);
+        assertThat(image.getRGB(1, 0)).isEqualTo(0xFF000100);
         assertThat(image.getRGB(2, 0)).isEqualTo(0xFF010000);
-        assertThat(image.getRGB(3, 0)).isEqualTo(0xFFFFFFFF);
+        assertThat(image.getRGB(3, 0)).isEqualTo(0xFFFFFF00);
         assertThat(image.getRGB(4, 0) >>> 24).isZero();
         assertThat(result.encoding()).containsEntry("encoding", "custom");
         assertThat(result.encoding()).containsEntry("redFactor", 256.0);
@@ -40,16 +40,16 @@ class DataTileEncoderTest {
         int[] codes = {-1, -32768, 32767};
         DataTileEncoder.Result result = DataTileEncoder.encode(codes, 3, 1, 1.0, 0.0, true, DataTileEncoder.CUSTOM);
         BufferedImage image = decode(result.png());
-        assertThat(image.getRGB(0, 0)).isEqualTo(0xFF7FFFFF);
+        assertThat(image.getRGB(0, 0)).isEqualTo(0xFF7FFF00);
         assertThat(image.getRGB(1, 0)).isEqualTo(0xFF000000);
-        assertThat(image.getRGB(2, 0)).isEqualTo(0xFFFFFFFF);
+        assertThat(image.getRGB(2, 0)).isEqualTo(0xFFFFFF00);
         assertThat(result.encoding()).containsEntry("baseShift", -32768.0);
     }
 
     @Test
     @DisplayName("terrarium: v = (R·256 + G + B/256) − 32768 round trips within 1/256")
     void terrarium() throws Exception {
-        int[] codes = {0, 10000, 50000};
+        int[] codes = {0, 10000, -20000};
         DataTileEncoder.Result result = DataTileEncoder.encode(codes, 3, 1, 1.0, 0.0, false,
                 DataTileEncoder.TERRARIUM);
         BufferedImage image = decode(result.png());

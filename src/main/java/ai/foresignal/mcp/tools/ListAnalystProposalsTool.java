@@ -23,6 +23,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /** {@code list_analyst_proposals} (agent, prompt 102). */
+@ai.foresignal.security.restrict.RestrictedRead("private proposals are listed only for callers with private access (IntelVisibility)")
 @Component
 public class ListAnalystProposalsTool implements ForesignalMcpTool {
 

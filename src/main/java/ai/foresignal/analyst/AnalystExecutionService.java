@@ -35,7 +35,7 @@ import tools.jackson.databind.json.JsonMapper;
  * Confirms, rejects and executes analyst proposals (prompt 102). Auto-execution runs only when the
  * profile allows actions, the type is allowed, the owner token is still an active agent-scope token
  * and the daily cap is not reached. The analyst never deletes or disables anything; watches are
- * created enabled and tagged {@code analyst} and {@code origin:analyst}, events with
+ * created enabled and tagged {@code analyst} and {@code origin-analyst}, events with
  * {@code origin=analyst} (status {@code emerging}, members' identities only, the score computed by
  * {@code EventScorer}), investigation items only into open investigations, and {@code annotate_event}
  * only appends labeled speculation.
@@ -54,8 +54,13 @@ public class AnalystExecutionService {
     /** The audit {@code targetType} of a proposal execution. */
     public static final String AUDIT_TARGET = "analyst_proposal";
 
-    /** The tags every analyst-created watch carries (prompt 102 §2.5 and §4). */
-    public static final List<String> WATCH_TAGS = List.of("analyst", "origin:analyst");
+    /**
+     * The tags every analyst-created watch carries (prompt 102 §2.5 and §4). Prompt 102 names the origin tag
+     * {@code origin:analyst}, but a rule tag must match {@code ^[a-z0-9][a-z0-9_-]{0,31}$} (017, docs/OpenAPI.json
+     * {@code TriggerRuleInput.tags}), which has no colon, so the rule validator refused every analyst watch; the
+     * origin tag is {@code origin-analyst} (checkpoint 124).
+     */
+    public static final List<String> WATCH_TAGS = List.of("analyst", "origin-analyst");
 
     private final AnalystProposalRepository proposals;
     private final AnalystProfileRepository profiles;
@@ -68,6 +73,7 @@ public class AnalystExecutionService {
     private final ObjectProvider<AuditService> audit;
     private final JsonMapper json;
     private final Clock clock;
+    private ObjectProvider<AnalystProposalEvents> proposalEvents;
 
     /** Creates the service. */
     public AnalystExecutionService(AnalystProposalRepository proposals, AnalystProfileRepository profiles,
@@ -88,10 +94,50 @@ public class AnalystExecutionService {
         this.clock = clock;
     }
 
+    /** Injects the {@code analyst.proposal} publisher (checkpoint 124); optional in slices without notifications. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void setProposalEvents(ObjectProvider<AnalystProposalEvents> proposalEvents) {
+        this.proposalEvents = proposalEvents;
+    }
+
+    /** Announces a proposal change on the {@code analyst} topic when the publisher is present. */
+    private void announce(AnalystProposalEntity proposal, String change) {
+        AnalystProposalEvents events = proposalEvents == null ? null : proposalEvents.getIfAvailable();
+        if (events != null) {
+            events.publish(proposal, change);
+        }
+    }
+
     /** A proposal, or 404. */
     public AnalystProposalEntity get(String id) {
         return proposals.findById(id).orElseThrow(() -> new NotFoundException(ErrorCodes.UNKNOWN_PROPOSAL,
                 "No such proposal: " + id));
+    }
+
+    /**
+     * The proposal {@code id} as a caller sees it: a private proposal (one from a run that saw private data) is
+     * {@code 404 UNKNOWN_PROPOSAL} to a caller without private access, as on the list (EGR-1, checkpoint 124).
+     */
+    public AnalystProposalEntity visible(String id, boolean privateAccess) {
+        AnalystProposalEntity proposal = get(id);
+        if (proposal.isPrivateProposal() && !privateAccess) {
+            throw new NotFoundException(ErrorCodes.UNKNOWN_PROPOSAL, "No such proposal: " + id);
+        }
+        return proposal;
+    }
+
+    /** Confirms a proposal the caller may see (see {@link #visible}); otherwise as {@link #confirm(String, String)}. */
+    @Transactional
+    public AnalystProposalEntity confirm(String id, String actor, boolean privateAccess) {
+        visible(id, privateAccess);
+        return confirm(id, actor);
+    }
+
+    /** Rejects a proposal the caller may see (see {@link #visible}); otherwise as {@link #reject(String, String)}. */
+    @Transactional
+    public AnalystProposalEntity reject(String id, String actor, boolean privateAccess) {
+        visible(id, privateAccess);
+        return reject(id, actor);
     }
 
     /** Confirms and executes a pending proposal (the execution runs in its own transaction). */
@@ -120,7 +166,9 @@ public class AnalystExecutionService {
         proposal.setStatus("rejected");
         proposal.setDecidedBy(actor);
         proposal.setDecidedAt(clock.instant());
-        return proposals.save(proposal);
+        AnalystProposalEntity saved = proposals.save(proposal);
+        announce(saved, AnalystProposalEvents.REJECTED);
+        return saved;
     }
 
     /**
@@ -200,11 +248,27 @@ public class AnalystExecutionService {
         } catch (RuntimeException e) {
             log.warn("Proposal {} failed: {}", proposal.getId(), e.toString());
             proposal.setStatus("failed");
-            proposal.setReason(e.getMessage());
+            proposal.setReason(failureReason(e));
             proposal.setDecidedBy(actor);
             proposal.setDecidedAt(clock.instant());
         }
         audit(proposal, profile, auto, actor);
+        announce(proposal, "executed".equals(proposal.getStatus()) ? AnalystProposalEvents.EXECUTED
+                : AnalystProposalEvents.FAILED);
+    }
+
+    /** The failure reason: the message, with each field error of a validation failure (so the reviewer sees why). */
+    static String failureReason(RuntimeException e) {
+        String reason = e.getMessage();
+        if (e instanceof ai.foresignal.api.error.ValidationException validation && validation.getErrors() != null
+                && !validation.getErrors().isEmpty()) {
+            List<String> fields = new ArrayList<>();
+            for (ai.foresignal.api.error.FieldError error : validation.getErrors()) {
+                fields.add(error.field() + ": " + error.message());
+            }
+            reason = reason + " (" + String.join("; ", fields) + ")";
+        }
+        return reason;
     }
 
     private void audit(AnalystProposalEntity proposal, AnalystProfileEntity profile, boolean auto, String actor) {
@@ -297,6 +361,9 @@ public class AnalystExecutionService {
             proposal.setReason("expired after 7 days");
         }
         proposals.saveAll(stale);
+        for (AnalystProposalEntity proposal : stale) {
+            announce(proposal, AnalystProposalEvents.EXPIRED);
+        }
         return stale.size();
     }
 }

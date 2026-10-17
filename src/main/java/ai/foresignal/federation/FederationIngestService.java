@@ -103,6 +103,7 @@ public class FederationIngestService {
             try {
                 writer.submit(FederationWriter.group(result.records()), FetchTrigger.PUSH, "peer:" + peerId, false);
             } catch (RuntimeException e) {
+                ingestor.release(result.records());
                 states.update(peerId, PeerService.STATE_FAILING, null, null, null, e.getMessage());
                 throw new ForesignalException(HttpStatus.SERVICE_UNAVAILABLE, ErrorCodes.INGEST_BUSY,
                         "The ingest queue is busy; retry shortly.").withHeader("Retry-After", "30");

@@ -34,8 +34,16 @@ class CoOccurrenceMinerTest {
     void planted() {
         Random random = new Random(119);
         Map<String, Map<String, CoOccurrenceMiner.Daily>> counts = new TreeMap<>();
-        counts.put("YE", Map.of("conflict", daily(random, 400, 4, 30.0), "ais-behaviour", daily(random, 400, 3, 25.0),
-                "outage", daily(random, 400, 2, null)));
+        CoOccurrenceMiner.Daily conflict = daily(random, 400, 4, 30.0);
+        CoOccurrenceMiner.Daily ais = daily(random, 400, 3, 25.0);
+        // The lift is observed over expected joint days over the history, so a single joint day against ~4% exceedance
+        // rates caps it near 2; the association is planted on three earlier days too (weekdays other than the mined
+        // day's, so they stay out of its baseline).
+        for (int day : new int[] {150, 220, 300}) {
+            conflict.values()[day] = 30;
+            ais.values()[day] = 25;
+        }
+        counts.put("YE", Map.of("conflict", conflict, "ais-behaviour", ais, "outage", daily(random, 400, 2, null)));
         for (int r = 0; r < 20; r++) {
             counts.put("R" + (char) ('A' + r), Map.of("conflict", daily(random, 400, 4, null), "fire",
                     daily(random, 400, 5, null)));

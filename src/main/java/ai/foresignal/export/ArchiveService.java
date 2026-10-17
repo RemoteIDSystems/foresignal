@@ -281,9 +281,17 @@ public class ArchiveService {
         watermarks.save(watermark);
     }
 
-    /** {@code record_version/tier={tier}/source_id={id}/date={date}}. */
+    /** {@code record_version/tier={std|trk}/source_id={id}/date={date}}. */
     public static String partitionPath(HistoryTier tier, String sourceId, LocalDate date) {
-        return "record_version/tier=" + tier.wireValue() + "/source_id=" + sourceId + "/date=" + date;
+        return "record_version/tier=" + tierSegment(tier) + "/source_id=" + sourceId + "/date=" + date;
+    }
+
+    /**
+     * The hive {@code tier} value of {@code tier}: {@code std} or {@code trk} (prompt 111, {@code ArchivePartition.tier}),
+     * not the {@link HistoryTier#wireValue()} {@code standard}/{@code track} (checkpoint 124).
+     */
+    public static String tierSegment(HistoryTier tier) {
+        return tier == HistoryTier.TRACK ? "trk" : "std";
     }
 
     /** The archive root of {@code settings}: an absolute path, a path under the data directory, or the default. */

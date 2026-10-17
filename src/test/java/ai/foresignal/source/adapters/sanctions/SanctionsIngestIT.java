@@ -88,7 +88,11 @@ class SanctionsIngestIT extends WeatherIngestSupport {
     /** Serves {@code body} as the blob with {@code etag}, answering 304 to a matching If-None-Match. */
     private void serve(String etag, String body) {
         redirect();
-        // fixed stub ids, so a new publication replaces the previous one's 200 and 304 instead of adding to them
+        // fixed stub ids, so a new publication replaces the previous one's 200 and 304 instead of adding to them;
+        // WireMock 3 refuses a stub whose id is taken, so the previous publication's stubs are removed first
+        UPSTREAM.getStubMappings().stream()
+                .filter(m -> BLOB_STUB.equals(m.getId()) || NOT_MODIFIED_STUB.equals(m.getId()))
+                .toList().forEach(UPSTREAM::removeStub);
         UPSTREAM.stubFor(get(urlPathEqualTo(BLOB_PATH)).withId(BLOB_STUB).atPriority(5).willReturn(aResponse().withStatus(200)
                 .withHeader("Content-Type", "text/xml").withHeader("ETag", etag).withBody(body)));
         UPSTREAM.stubFor(get(urlPathEqualTo(BLOB_PATH)).withId(NOT_MODIFIED_STUB).atPriority(1).withHeader("If-None-Match", equalTo(etag))

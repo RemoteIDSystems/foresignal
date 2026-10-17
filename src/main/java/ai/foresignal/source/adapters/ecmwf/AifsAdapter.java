@@ -103,8 +103,11 @@ public class AifsAdapter implements PollingAdapter, DecoderDependent {
                     new EcmwfDefinition.Product(MSLP, List.of(new EcmwfDefinition.Component("msl", "sfc", null,
                             DecodeRequest.grib2(MSLP, "msl", 0, 3, 0, 101, null, "mean sea level"))), false, 1.0, 0,
                             null),
+                    // AIFS writes tp as (0,1,52) in kg m-2, which is already mm: unlike the IFS (0,1,193) tp
+                    // in meters it takes no ×1000 (fixtures/aifs/README.md: 0 … 205.02 at f024 on
+                    // 2026-10-17 00z, where the IFS tp of the same run peaks at 0.291 m).
                     new EcmwfDefinition.Product(TP, List.of(new EcmwfDefinition.Component("tp", "sfc", null,
-                            DecodeRequest.grib2(TP, "tp", 0, 1, 52, 1, null, "surface"))), false, 1000.0, 0, null)),
+                            DecodeRequest.grib2(TP, "tp", 0, 1, 52, 1, null, "surface"))), false, 1.0, 0, null)),
             WIND);
 
     private static final SourceDescriptor DESCRIPTOR = buildDescriptor();

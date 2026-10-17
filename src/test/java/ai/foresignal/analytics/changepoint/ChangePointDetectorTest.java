@@ -69,13 +69,22 @@ class ChangePointDetectorTest {
     }
 
     @Test
-    @DisplayName("a stationary seasonal series raises no recent alarm (fixed seed)")
+    @DisplayName("stationary seasonal series rarely raise a recent alarm (fixed seeds)")
     void stationary() {
+        // With an in-control run length of 365 per direction, a recent alarm in the last 7 buckets is expected in
+        // about 2 × 7 / 365 ≈ 3.8% of stationary series, so one seed cannot be asserted alarm-free; the rate over
+        // 200 fixed seeds is asserted instead (8 of 200 when this test was written).
         int n = 400;
-        double[] x = counts(23, n, Integer.MAX_VALUE, 1);
-        ChangePointDetector.Result r = ChangePointDetector.detect(days(n), x, new boolean[n], true,
-                ChangePointDetector.Params.defaults(7, 7), thresholds);
-        assertThat(r.state()).isEqualTo(ChangePointDetector.State.NONE);
+        int alarms = 0;
+        for (long seed = 0; seed < 200; seed++) {
+            double[] x = counts(seed, n, Integer.MAX_VALUE, 1);
+            ChangePointDetector.Result r = ChangePointDetector.detect(days(n), x, new boolean[n], true,
+                    ChangePointDetector.Params.defaults(7, 7), thresholds);
+            if (r.state() != ChangePointDetector.State.NONE) {
+                alarms++;
+            }
+        }
+        assertThat(alarms).isLessThanOrEqualTo(20);
     }
 
     @Test

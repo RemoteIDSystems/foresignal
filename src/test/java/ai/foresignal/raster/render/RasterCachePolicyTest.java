@@ -114,7 +114,7 @@ class RasterCachePolicyTest {
                 JsonMapper.builder().build(), Clock.fixed(T, ZoneOffset.UTC),
                 mock(ai.foresignal.raster.render.WebpSupport.class));
         String etag = RasterCachePolicy.etag(spec.id(), frame.frameKey(), null, frame.status(), "nws-reflectivity@1",
-                "5/7/12@1");
+                "WebMercatorQuad/5/7/12/256/png");
         MockHttpServletRequest request = new MockHttpServletRequest("GET",
                 "/v1/products/" + spec.id() + "/tiles/" + frame.frameKey() + "/5/7/12.png");
         request.addHeader("If-None-Match", etag);

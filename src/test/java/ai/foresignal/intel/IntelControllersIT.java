@@ -78,7 +78,7 @@ class IntelControllersIT {
 
     private long seed(String externalId) {
         Instant now = clock.instant();
-        records.ingestAt(STANDARD, now, NormalizedRecord.builder(externalId, "thing").observedAt(now)
+        records.ingestAt(STANDARD, now, NormalizedRecord.builder(externalId, "test-record").observedAt(now)
                 .point(-95.0, 32.0).put("name", externalId).build());
         return jdbc.queryForObject("select max(seq) from record_version where source_id = ? and external_id = ?",
                 Long.class, STANDARD, externalId);
@@ -178,7 +178,7 @@ class IntelControllersIT {
                 + ",\"weight\":1.0,\"signalFamily\":\"seismic\"}]}");
         JsonNode members = body(call(read, get("/v1/intel/events/" + id))).get("evidence").get("members");
         assertThat(members.get(0).get("weight").asDouble()).isEqualTo(EventScorer.DEFAULT_RELIABILITY);
-        assertThat(members.get(0).get("signalFamily").asString()).isEqualTo(SignalFamilies.forKind("thing"));
+        assertThat(members.get(0).get("signalFamily").asString()).isEqualTo(SignalFamilies.forKind("test-record"));
     }
 
     @Test
@@ -268,7 +268,7 @@ class IntelControllersIT {
     void recipeTest() throws Exception {
         java.util.Map<String, Object> definition = new java.util.LinkedHashMap<>();
         definition.put("type", "custom");
-        definition.put("seed", java.util.Map.of("kinds", List.of("thing")));
+        definition.put("seed", java.util.Map.of("kinds", List.of("test-record")));
         definition.put("joins", List.of());
         definition.put("minMembers", 1);
         definition.put("minSignalFamilies", 1);

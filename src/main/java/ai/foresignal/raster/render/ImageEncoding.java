@@ -108,6 +108,11 @@ public final class ImageEncoding {
             ImageWriteParam param = writer.getDefaultWriteParam();
             if (param.canWriteCompressed()) {
                 param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                // webp-imageio refuses a quality until a compression type ("Lossy" or "Lossless") is set
+                String type = compressionType(param.getCompressionTypes(), quality >= 1.0f);
+                if (type != null) {
+                    param.setCompressionType(type);
+                }
                 param.setCompressionQuality(quality);
             }
             writer.write(null, new IIOImage(image, null, null), param);
@@ -117,6 +122,23 @@ public final class ImageEncoding {
             writer.dispose();
         }
         return out.toByteArray();
+    }
+
+    /**
+     * The writer's compression type for a WebP encode: its lossless type when {@code lossless} and one
+     * exists, otherwise its lossy type, otherwise its first type; null when it offers none.
+     */
+    static String compressionType(String[] types, boolean lossless) {
+        if (types == null || types.length == 0) {
+            return null;
+        }
+        String wanted = lossless ? "lossless" : "lossy";
+        for (String type : types) {
+            if (type != null && type.equalsIgnoreCase(wanted)) {
+                return type;
+            }
+        }
+        return types[0];
     }
 
     /** A palette image as a BufferedImage (for WebP). */

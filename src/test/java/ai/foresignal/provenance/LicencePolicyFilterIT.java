@@ -208,8 +208,11 @@ class LicencePolicyFilterIT {
     @DisplayName("tiles and the SSE change stream prune excluded sources and say so in Foresignal-Licence-Filtered")
     void tilesAndStreams() throws Exception {
         ai.foresignal.store.tiles.TileCoordinates tile = ai.foresignal.testsupport.tiles.TileMath.tileFor(-79.38, 43.65, 10);
-        String url = "/v1/tiles/" + NC + "/" + tile.z() + "/" + tile.x() + "/" + tile.y() + ".mvt";
+        // The kind layer merges the three sources, so the policy prunes NC from it; a layer naming NC alone is
+        // excluded whole (404, like any excluded source).
+        String url = "/v1/tiles/" + KIND + "/" + tile.z() + "/" + tile.x() + "/" + tile.y() + ".mvt";
         mvc.perform(get(url).param("licencePolicy", "no-nc"))
+                .andExpect(status().isOk())
                 .andExpect(header().exists(LicencePolicyService.FILTERED_HEADER))
                 .andExpect(header().string(HttpHeaders.VARY,
                         org.hamcrest.Matchers.containsString("Foresignal-Licence-Policy")));

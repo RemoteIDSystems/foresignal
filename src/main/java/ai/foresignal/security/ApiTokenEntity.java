@@ -136,7 +136,8 @@ public class ApiTokenEntity {
 
     /** The token's licence policy flags (never null). */
     public java.util.List<String> getLicencePolicy() {
-        return list(licencePolicy);
+        // A row written before prompt 109 (or a token created without flags) has a null column.
+        return licencePolicy == null ? java.util.List.of() : list(licencePolicy);
     }
 
     /** Stores the token's licence policy flags. */

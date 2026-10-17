@@ -9,10 +9,11 @@ import org.junit.jupiter.api.Test;
 class PoissonTailTest {
 
     @Test
-    @DisplayName("P(X ≥ k) and P(X ≤ k) match R's ppois for lambda = 1")
+    @DisplayName("P(X ≥ k) and P(X ≤ k) match the closed form for lambda = 1")
     void lambdaOne() {
-        assertThat(PoissonTail.atMost(4, 1.0)).isCloseTo(0.9963401168, org.assertj.core.data.Offset.offset(1e-9));
-        assertThat(PoissonTail.atLeast(5, 1.0)).isCloseTo(0.0036598475, org.assertj.core.data.Offset.offset(1e-9));
+        // Closed form: P(X ≤ 4) = e^-1 (1 + 1 + 1/2 + 1/6 + 1/24) = 65 / (24e) = 0.99634015317.
+        assertThat(PoissonTail.atMost(4, 1.0)).isCloseTo(0.9963401532, org.assertj.core.data.Offset.offset(1e-9));
+        assertThat(PoissonTail.atLeast(5, 1.0)).isCloseTo(0.0036598468, org.assertj.core.data.Offset.offset(1e-9));
         assertThat(PoissonTail.atLeast(1, 1.0)).isCloseTo(0.6321205588, org.assertj.core.data.Offset.offset(1e-9));
         assertThat(PoissonTail.atMost(0, 1.0)).isCloseTo(0.3678794412, org.assertj.core.data.Offset.offset(1e-9));
     }

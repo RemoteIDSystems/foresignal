@@ -20,6 +20,7 @@ import ai.foresignal.security.CurrentToken;
 import ai.foresignal.security.Scope;
 import ai.foresignal.security.restrict.RestrictedRead;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Clock;
@@ -97,6 +98,8 @@ public class ForecastController {
     /** {@code createForecastQuestion}: 201, or 200 with the existing question of the same {@code dedupKey}. */
     @PostMapping("/v1/forecasts/questions")
     @Operation(operationId = "createForecastQuestion", tags = "Forecasts")
+    @ApiResponse(responseCode = "200", description = "Existing question with the same dedupKey")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createForecastQuestion(@RequestBody JsonNode body,
             HttpServletRequest request) {
         ForecastInputs.QuestionDraft draft = ForecastInputs.question(body, clock.instant());
@@ -162,6 +165,7 @@ public class ForecastController {
     /** {@code submitForecast}: 201; recorded under the caller's operator forecaster unless an agent names another. */
     @PostMapping("/v1/forecasts/questions/{questionId}/forecasts")
     @Operation(operationId = "submitForecast", tags = "Forecasts")
+    @ApiResponse(responseCode = "201", description = "Recorded")
     public ResponseEntity<Map<String, Object>> submitForecast(@PathVariable String questionId,
             @RequestBody JsonNode body, HttpServletRequest request) {
         AuthenticatedToken token = CurrentToken.of(request).map(CurrentToken::token).orElseThrow(() ->
@@ -267,6 +271,7 @@ public class ForecastController {
     /** {@code createForecastEvaluation}: 202 with the evaluation. */
     @PostMapping("/v1/forecasts/evaluations")
     @Operation(operationId = "createForecastEvaluation", tags = "Forecasts")
+    @ApiResponse(responseCode = "202", description = "Accepted")
     public ResponseEntity<Map<String, Object>> createForecastEvaluation(@RequestBody JsonNode body,
             HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(EvaluationService.view(evaluations.submit(

@@ -12,6 +12,7 @@ import ai.foresignal.stream.ChangeListener;
 import ai.foresignal.stream.ChangeSummary;
 import ai.foresignal.stream.Subscription;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PreDestroy;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -43,7 +44,7 @@ import tools.jackson.databind.json.JsonMapper;
  * starts from the durable cursor and catches up.
  */
 @Component
-public class EntityLinker {
+public class EntityLinker implements ai.foresignal.ingest.IngestStateReset {
 
     private static final Logger log = LoggerFactory.getLogger(EntityLinker.class);
 
@@ -154,12 +155,22 @@ public class EntityLinker {
         }
     }
 
-    /** Stops the linker (tests). */
+    /** Stops the linker: closes its change-bus subscription (context close, and tests). */
+    @PreDestroy
     public synchronized void stop() {
         if (subscription != null) {
             subscription.close();
             subscription = null;
         }
+    }
+
+    /**
+     * Drops the cached cursor (after the record history and {@code record_seq} are reset, a cached cursor would
+     * skip every new batch as already processed). The next batch is processed and advances it again.
+     */
+    @Override
+    public void resetState() {
+        cursor = -1;
     }
 
     /** The last seq fully processed, or -1 when none. */
@@ -172,6 +183,11 @@ public class EntityLinker {
         @Override
         public void onBatch(ChangeBatch batch) {
             awaitStartup();
+            if (cursor > changeBus.lastPublishedSeq()) {
+                // The record history was reset after this cursor was stored (the test cleaner racing a batch in
+                // flight): it describes seqs that no longer exist.
+                cursor = -1;
+            }
             if (batch.toSeq() <= cursor) {
                 return;
             }
@@ -346,8 +362,8 @@ public class EntityLinker {
     }
 
     private void backfillSource(SourceDescriptor descriptor) {
-        String sql = "SELECT external_id, payload::text, observed_at FROM record_head WHERE source_id = ?"
-                + " AND tombstone = false ORDER BY external_id LIMIT ? OFFSET ?";
+        String sql = "SELECT external_id, payload::text, persisted_observed_at AS observed_at FROM record_head"
+                + " WHERE source_id = ? AND tombstone = false ORDER BY external_id LIMIT ? OFFSET ?";
         int offset = 0;
         int chunk = 2000;
         while (true) {

@@ -200,6 +200,17 @@ public final class PrecursorTester {
             Duration maxLag, Spatial spatial, Duration dedupWindow, Instant rangeStart, Instant rangeEnd,
             double coverageGapFraction, String seedText) {}
 
+    /** The occurrences of {@code list} inside {@code [rangeStart, rangeEnd)} of the request. */
+    static List<Occurrence> inRange(List<Occurrence> list, Request request) {
+        List<Occurrence> out = new ArrayList<>(list.size());
+        for (Occurrence o : list) {
+            if (!o.time().isBefore(request.rangeStart()) && o.time().isBefore(request.rangeEnd())) {
+                out.add(o);
+            }
+        }
+        return out;
+    }
+
     /** Runs the precursor test in both directions with {@link #SHIFTS} shifted copies. Never recursive. */
     public static Result test(Request request) {
         return test(request, SHIFTS);
@@ -216,9 +227,13 @@ public final class PrecursorTester {
     public static Result test(Request request, int shifts) {
         int n = Math.max(1, shifts);
         long seed = seed(request.seedText());
-        Direction forward = direction(request.antecedents(), request.consequents(), request, seed, n);
-        Direction reverse = direction(request.consequents(), request.antecedents(), request,
-                seed(request.seedText() + ":reverse"), n);
+        // Only occurrences inside [rangeStart, rangeEnd) take part (checkpoint 124, INT-2): the circular shift is
+        // defined over that span, and an occurrence after the range end must never reach a decision about it. The
+        // 103 service and the 120 miner already pass windowed lists, so this changes nothing for them.
+        List<Occurrence> antecedents = inRange(request.antecedents(), request);
+        List<Occurrence> consequents = inRange(request.consequents(), request);
+        Direction forward = direction(antecedents, consequents, request, seed, n);
+        Direction reverse = direction(consequents, antecedents, request, seed(request.seedText() + ":reverse"), n);
         boolean insufficient = forward.nAntecedent() < MIN_ANTECEDENTS
                 || request.coverageGapFraction() > COVERAGE_GAP_LIMIT;
         boolean coOccurrence = !insufficient && forward.strong() && reverse.strong();

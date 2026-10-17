@@ -12,6 +12,7 @@ import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.support.QueryParams;
 import ai.foresignal.security.CurrentToken;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -67,6 +68,7 @@ public class AnalystController {
     /** {@code createAnalystProfile}. */
     @PostMapping("/profiles")
     @Operation(operationId = "createAnalystProfile", tags = "Analyst")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createAnalystProfile(@RequestBody JsonNode body,
             HttpServletRequest request) {
         AnalystProfileEntity profile = service.create(body, owner(request));
@@ -92,6 +94,7 @@ public class AnalystController {
     /** {@code deleteAnalystProfile}. */
     @DeleteMapping("/profiles/{profileId}")
     @Operation(operationId = "deleteAnalystProfile", tags = "Analyst")
+    @ApiResponse(responseCode = "204", description = "Deleted")
     public ResponseEntity<Void> deleteAnalystProfile(@PathVariable String profileId) {
         service.delete(profileId);
         return ResponseEntity.noContent().build();
@@ -150,9 +153,13 @@ public class AnalystController {
                 visibility.seesPrivate(request)));
     }
 
-    /** {@code analystNoteFeedback}; a private note is 404 to a caller without private access. */
+    /**
+     * {@code analystNoteFeedback}: 201 with the recorded feedback; a private note is 404 to a caller without private
+     * access.
+     */
     @PostMapping("/notes/{noteId}/feedback")
     @Operation(operationId = "analystNoteFeedback", tags = "Analyst")
+    @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> analystNoteFeedback(@PathVariable String noteId, @RequestBody JsonNode body,
             HttpServletRequest request) {
         return AnalystViews.feedback(service.noteFeedback(noteId, body.path("rating").asString(),
@@ -174,23 +181,27 @@ public class AnalystController {
     @PostMapping("/proposals/{proposalId}/confirm")
     @Operation(operationId = "confirmAnalystProposal", tags = "Analyst")
     public Map<String, Object> confirmAnalystProposal(@PathVariable String proposalId, HttpServletRequest request) {
-        return AnalystViews.proposal(execution.confirm(proposalId, actor(request)));
+        return AnalystViews.proposal(execution.confirm(proposalId, actor(request),
+                visibility.seesPrivate(request)));
     }
 
     /** {@code rejectAnalystProposal}. */
     @PostMapping("/proposals/{proposalId}/reject")
     @Operation(operationId = "rejectAnalystProposal", tags = "Analyst")
     public Map<String, Object> rejectAnalystProposal(@PathVariable String proposalId, HttpServletRequest request) {
-        return AnalystViews.proposal(execution.reject(proposalId, actor(request)));
+        return AnalystViews.proposal(execution.reject(proposalId, actor(request),
+                visibility.seesPrivate(request)));
     }
 
-    /** {@code analystProposalFeedback}. */
+    /** {@code analystProposalFeedback}: 201 with the recorded feedback. */
     @PostMapping("/proposals/{proposalId}/feedback")
     @Operation(operationId = "analystProposalFeedback", tags = "Analyst")
+    @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> analystProposalFeedback(@PathVariable String proposalId, @RequestBody JsonNode body,
             HttpServletRequest request) {
         return AnalystViews.feedback(service.proposalFeedback(proposalId, body.path("rating").asString(),
-                body.path("comment").isString() ? body.get("comment").asString() : null, actor(request)));
+                body.path("comment").isString() ? body.get("comment").asString() : null, actor(request),
+                visibility.seesPrivate(request)));
     }
 
     /** {@code getAnalystEvaluation}. */

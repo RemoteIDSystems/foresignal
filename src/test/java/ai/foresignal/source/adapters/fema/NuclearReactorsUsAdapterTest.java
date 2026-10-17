@@ -68,8 +68,9 @@ class NuclearReactorsUsAdapterTest extends WireMockSupport {
                         urlPathEqualTo(URI.create(adapter.queryUri().toString()).getPath()))
                 .withQueryParam("outSR", WireMock.equalTo("4326"))
                 .withQueryParam("f", WireMock.equalTo("geojson")));
-        // ReferenceSupport fixes every reference source to the weekly cadence (ReferenceDescriptorsTest).
-        assertThat(adapter.descriptor().defaultInterval()).isEqualTo(Duration.ofDays(7));
+        // FEMA republishes the NRC status daily, so this source overrides the weekly reference cadence with 24 h
+        // (prompt 094, ReferenceDescriptorsTest).
+        assertThat(adapter.descriptor().defaultInterval()).isEqualTo(Duration.ofHours(24));
         assertThat(DescriptorValidator.problems(adapter.descriptor(), adapter)).isEmpty();
     }
 }

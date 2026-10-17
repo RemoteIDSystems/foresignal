@@ -134,7 +134,7 @@ public class TripHazards {
                    AND (l.valid_until IS NULL OR l.valid_until > :departAt)
                    AND l.geom && ST_GeomFromWKB(CAST(:near AS bytea), 4326)
                    AND ST_Intersects(l.geom, ST_GeomFromWKB(CAST(:near AS bytea), 4326))
-                 LIMIT """ + MAX_HAZARDS;
+                 LIMIT\s""" + MAX_HAZARDS; // \s: a text block strips the trailing space
         RouteMeasure measure = new RouteMeasure(RouteMeasure.splitAntimeridian(
                 (org.locationtech.jts.geom.LineString) trip.getRoute()));
         int minRank = trip.getMinSeverity() == null ? -1 : rank(trip.getMinSeverity());

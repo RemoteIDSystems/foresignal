@@ -30,7 +30,7 @@ import java.util.TreeMap;
  *   <li>{@code forecaster:base-rate}: the 121 {@link BaseRateCalculator} over the region's weekly counts before the
  *       question, four-week windows ({@code P28D}, the question's horizon); reference: pooled climatology (the share
  *       of four-week windows with an event over every region before the question).</li>
- *   <li>{@code forecaster:analog}: past four-week windows of the region whose preceding four weeks had the same count
+ *   <li>{@code forecaster:analog}: past non-overlapping four-week windows of the region whose preceding four weeks had the same count
  *       (capped at 3) are the analogs (the 20 most recent), their outcome frequency shrunk toward the base rate by the
  *       121 {@link AnalogSearch#distribution}; reference: the base-rate forecaster.</li>
  *   <li>{@code forecaster:ensemble}: the 122 log-odds pool ({@link EnsembleMath#combineBinary}) of the base-rate and
@@ -228,7 +228,9 @@ public class ForecasterBenchmark implements ComponentBenchmark {
         long signature = Math.min(3, sum(counts, openWeek - h, openWeek));
         int analogs = 0;
         int hits = 0;
-        for (int t = openWeek - h; t >= h && analogs < 20; t--) {
+        // Non-overlapping windows (checkpoint 124): windows one week apart shared three of their four weeks, so 20 of
+        // them were a handful of independent analogs weighted as 20, and the shrinkage was overconfident.
+        for (int t = openWeek - h; t >= h && analogs < 20; t -= h) {
             if (Math.min(3, sum(counts, t - h, t)) != signature) {
                 continue;
             }

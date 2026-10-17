@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 
 /** MCP {@code find_entity} (prompt 098): prefix search over aliases and display names, or a key. */
+@ai.foresignal.security.restrict.RestrictedRead("entities seen only on excluded sources are left out")
 @Component
 public class FindEntityTool implements ForesignalMcpTool {
 

@@ -419,7 +419,7 @@
       "id": "fintraffic",
       "class": "agency",
       "independenceGroup": "fintraffic",
-      "notes": "Fintraffic Digitraffic (AIS and rail)"
+      "notes": "Fintraffic Digitraffic (AIS, rail and road)"
     },
     {
       "id": "gfw",
@@ -589,6 +589,16 @@
       "notes": "USGS Water Data"
     },
     {
+      "id": "eccc",
+      "class": "agency",
+      "independenceGroup": "eccc",
+      "domains": [
+        "weather.gc.ca",
+        "wateroffice.ec.gc.ca"
+      ],
+      "notes": "Environment and Climate Change Canada (real-time hydrometric stations)"
+    },
+    {
       "id": "usda-nrcs",
       "class": "agency",
       "independenceGroup": "usda",
@@ -631,6 +641,18 @@
       "class": "agency",
       "independenceGroup": "grid-operators",
       "notes": "Grid operators and electricity data (Fingrid, NESO, ERCOT, Ember, GIE, Carbon Intensity)"
+    },
+    {
+      "id": "eia",
+      "class": "agency",
+      "independenceGroup": "eia",
+      "aggregates": [
+        "grid-operators"
+      ],
+      "domains": [
+        "eia.gov"
+      ],
+      "notes": "US Energy Information Administration; EIA-930 compiles balancing-authority submissions (ERCOT among them), and its petroleum spot prices are sourced from Refinitiv"
     },
     {
       "id": "wikidata",
@@ -801,6 +823,7 @@
     "ais-kystverket": "kystverket",
     "ais-digitraffic": "fintraffic",
     "digitraffic-rail": "fintraffic",
+    "digitraffic-road": "fintraffic",
     "gfw-events": "gfw",
     "nga-msi-warnings": "nga-msi",
     "imf-portwatch-chokepoints": "imf-portwatch",
@@ -829,6 +852,7 @@
     "cdc-nwss-detections": "cdc",
     "cdc-nwss-wval": "cdc",
     "usgs-water": "usgs-water",
+    "eccc-hydrometric": "eccc",
     "snotel": "usda-nrcs",
     "ebird-notable": "ebird",
     "inat-observations": "inaturalist",
@@ -848,6 +872,8 @@
     "ember-electricity": "grid-operators",
     "gie-agsi": "grid-operators",
     "gb-carbon-intensity": "grid-operators",
+    "eia-930": "eia",
+    "eia-petroleum": "eia",
     "nuclear-plants-wikidata": "wikidata",
     "wiki-edit-surge": "wikidata",
     "osm-infrastructure": "openstreetmap",

@@ -176,15 +176,28 @@ public class BaseRateService implements ReferenceImportService.ImportListener {
 
     /** The regions of a definition: its codes, its class's countries, or every country with rows of the family. */
     List<String> regions(BaseRateDefinition definition) {
+        return regions(definition, null);
+    }
+
+    /**
+     * The regions of a definition as of a week: without codes or a class, every country with rows of the family in
+     * the weeks before {@code before} (every week when null), so a country first seen later changes nothing.
+     */
+    List<String> regions(BaseRateDefinition definition, LocalDate before) {
         if (!definition.regionCodes().isEmpty()) {
             return definition.regionCodes();
         }
         if (definition.regionClass() != null) {
             return regionClasses.members(definition.regionClass());
         }
+        MapSqlParameterSource p = new MapSqlParameterSource("family", definition.family());
+        String bound = "";
+        if (before != null) {
+            bound = " AND week_start < :before";
+            p.addValue("before", Date.valueOf(before));
+        }
         return jdbc.queryForList("SELECT DISTINCT region_code FROM reference_history WHERE family = :family AND"
-                + " length(region_code) = 2 ORDER BY 1", new MapSqlParameterSource("family", definition.family()),
-                String.class);
+                + " length(region_code) = 2" + bound + " ORDER BY 1", p, String.class);
     }
 
     /** The weekly counts of a family in some regions (all regions when null). */
@@ -274,30 +287,35 @@ public class BaseRateService implements ReferenceImportService.ImportListener {
         BaseRateCalculator.Counts counts = counts(definition.family(), regions);
         BaseRateCalculator.Counts antecedent = definition.condition() == null ? null
                 : counts(definition.condition().family(), regions);
-        return compute(definition, regions, counts, antecedent, coverage, profileMap(), new HashMap<>(), end());
+        return compute(definition, regions, counts, antecedent, coverage, profileMap(), new HashMap<>(), end(),
+                clock.instant());
     }
 
     /**
      * Computes a definition as of a past time, without storing or caching it (prompt 122, retrospective evaluation):
-     * only the weeks before the ISO week of {@code asOf} are used, so later history changes nothing.
+     * only the weeks before the ISO week of {@code asOf} are used, so later history changes nothing: the regions of a
+     * definition without codes are those with earlier rows, coverage is cut off at that week (so a later import
+     * cannot reorder the sources), and detectability is estimated at {@code asOf} (OBS-2).
      *
      * @param definition the definition
      * @param asOf the knowledge cutoff
      * @return the computed rate
      */
     public Computed computeAsOf(BaseRateDefinition definition, Instant asOf) {
-        List<String> regions = regions(definition);
-        Map<String, BaseRateCalculator.Coverage> coverage = coverage();
+        LocalDate end = ReferenceFamilies.weekStart(LocalDate.ofInstant(asOf, ZoneOffset.UTC));
+        List<String> regions = regions(definition, end);
+        Map<String, BaseRateCalculator.Coverage> coverage = new TreeMap<>();
+        coverage().forEach((source, c) -> coverage.put(source, c.clippedAt(end)));
         BaseRateCalculator.Counts counts = counts(definition.family(), regions);
         BaseRateCalculator.Counts antecedent = definition.condition() == null ? null
                 : counts(definition.condition().family(), regions);
-        LocalDate end = ReferenceFamilies.weekStart(LocalDate.ofInstant(asOf, ZoneOffset.UTC));
-        return compute(definition, regions, counts, antecedent, coverage, profileMap(), new HashMap<>(), end);
+        return compute(definition, regions, counts, antecedent, coverage, profileMap(), new HashMap<>(), end, asOf);
     }
 
     private Computed compute(BaseRateDefinition definition, List<String> regions, BaseRateCalculator.Counts counts,
             BaseRateCalculator.Counts antecedent, Map<String, BaseRateCalculator.Coverage> coverage,
-            Map<String, RegionProfileEntity> profileMap, Map<String, Boolean> detectabilityCache, LocalDate end) {
+            Map<String, RegionProfileEntity> profileMap, Map<String, Boolean> detectabilityCache, LocalDate end,
+            Instant at) {
         BaseRateCalculator.Result result = BaseRateCalculator.compute(new BaseRateCalculator.Inputs(regions, counts,
                 coverage, ReferenceFamilies.priority(definition.family()), definition.windowWeeks(), end, antecedent,
                 definition.condition() == null ? null : ReferenceFamilies.priority(definition.condition().family()),
@@ -322,7 +340,8 @@ public class BaseRateService implements ReferenceImportService.ImportListener {
                 regionProfiles.add(p);
             }
         }
-        List<Map<String, Object>> caveats = caveats(definition, result, regions, regionProfiles, detectabilityCache);
+        List<Map<String, Object>> caveats = caveats(definition, result, regions, regionProfiles, detectabilityCache,
+                at);
         Map<String, Object> unconditional = null;
         if (result.unconditional() != null) {
             unconditional = new LinkedHashMap<>();
@@ -343,9 +362,10 @@ public class BaseRateService implements ReferenceImportService.ImportListener {
     }
 
     private List<Map<String, Object>> caveats(BaseRateDefinition definition, BaseRateCalculator.Result result,
-            List<String> regions, List<RegionProfileEntity> regionProfiles, Map<String, Boolean> detectabilityCache) {
+            List<String> regions, List<RegionProfileEntity> regionProfiles, Map<String, Boolean> detectabilityCache,
+            Instant at) {
         List<String> undetectable = result.sourcesUsed().contains(ReferenceFamilies.FORESIGNAL)
-                ? lowDetectability(ReferenceFamilies.root(definition.family()), regions, detectabilityCache)
+                ? lowDetectability(ReferenceFamilies.root(definition.family()), regions, detectabilityCache, at)
                 : List.of();
         return BaseRateCaveats.of(definition, result, regionProfiles, undetectable, minDetect());
     }
@@ -355,14 +375,14 @@ public class BaseRateService implements ReferenceImportService.ImportListener {
         return o == null ? ObservabilityService.DEFAULT_ABSENCE_MIN_DETECT : o.absenceMinDetect();
     }
 
-    private List<String> lowDetectability(String family, List<String> regions, Map<String, Boolean> cache) {
+    private List<String> lowDetectability(String family, List<String> regions, Map<String, Boolean> cache,
+            Instant now) {
         ObservabilityService o = observability.getIfAvailable();
         List<String> out = new ArrayList<>();
         if (o == null) {
             return out;
         }
         double min = o.absenceMinDetect();
-        Instant now = clock.instant();
         int checked = 0;
         for (String region : regions) {
             if (checked++ >= MAX_DETECTABILITY_CHECKS) {
@@ -654,12 +674,27 @@ public class BaseRateService implements ReferenceImportService.ImportListener {
         }
         Map<String, ReportingDensity.Profile> computed = ReportingDensity.compute(inputs);
         Instant now = clock.instant();
-        profiles.deleteAllInBatch();
-        List<RegionProfileEntity> rows = new ArrayList<>();
-        computed.forEach((code, profile) -> rows.add(new RegionProfileEntity(code, profile.density(),
-                profile.decile(), now)));
-        profiles.saveAll(rows);
-        return rows.size();
+        // An upsert per region, then the removal of regions no longer computed: two passes running at once (the
+        // refresh job and a direct call, or two jobs) both converge on the same rows instead of one inserting a
+        // region the other just inserted (a delete-all-then-insert races on the primary key), and readers never
+        // see an empty table between the delete and the insert.
+        java.sql.Timestamp at = java.sql.Timestamp.from(now);
+        MapSqlParameterSource[] rows = computed.entrySet().stream()
+                .map(e -> new MapSqlParameterSource().addValue("code", e.getKey())
+                        .addValue("density", e.getValue().density()).addValue("decile", e.getValue().decile())
+                        .addValue("at", at))
+                .toArray(MapSqlParameterSource[]::new);
+        jdbc.batchUpdate("INSERT INTO region_profile (region_code, reporting_density, density_decile, computed_at)"
+                + " VALUES (:code, :density, :decile, :at) ON CONFLICT (region_code) DO UPDATE SET"
+                + " reporting_density = EXCLUDED.reporting_density, density_decile = EXCLUDED.density_decile,"
+                + " computed_at = EXCLUDED.computed_at", rows);
+        if (computed.isEmpty()) {
+            jdbc.update("DELETE FROM region_profile", new MapSqlParameterSource());
+        } else {
+            jdbc.update("DELETE FROM region_profile WHERE region_code NOT IN (:codes)",
+                    new MapSqlParameterSource("codes", computed.keySet()));
+        }
+        return rows.length;
     }
 
     /**
@@ -695,7 +730,7 @@ public class BaseRateService implements ReferenceImportService.ImportListener {
                 for (String window : AUTO_WINDOWS) {
                     BaseRateDefinition definition = new BaseRateDefinition(family, regions, null, window, null);
                     Computed computed = compute(definition, regions, counts, null, coverage, profileMap,
-                            detectability, end);
+                            detectability, end, clock.instant());
                     if ("P7D".equals(window) && computed.result().nWindows() < MIN_COVERAGE_WEEKS) {
                         enough = false;
                     }

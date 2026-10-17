@@ -559,7 +559,19 @@ class FamilyDefaultsTest {
             Map.entry("SpaceTrackTipAdapter", new Entry(
                     new ai.foresignal.source.adapters.spacetrack.SpaceTrackTipAdapter("").descriptor(), "event")),
             Map.entry("SatellitePassesGenerator", new Entry(
-                    new ai.foresignal.source.adapters.passes.SatellitePassesGenerator().descriptor(), "derived")));
+                    new ai.foresignal.source.adapters.passes.SatellitePassesGenerator().descriptor(), "derived")),
+            // Checkpoint 124: adapters of prompts 098, 104 and 106 that were never classified here.
+            // 098: the FAA aircraft registry, reference data kept 1825 d.
+            Map.entry("FaaRegistryAdapter", new Entry(
+                    new ai.foresignal.source.adapters.faaregistry.FaaRegistryAdapter("").descriptor(), "reference")),
+            // 104: OSM infrastructure features, reference data kept 365 d.
+            Map.entry("OsmInfrastructureAdapter", new Entry(
+                    new ai.foresignal.source.adapters.osm.OsmInfrastructureAdapter().descriptor(), "reference")),
+            // 106: the NBM forecast and the RTMA rapid-update analysis, raster product sources.
+            Map.entry("NbmAdapter", new Entry(new ai.foresignal.source.adapters.nbm.NbmAdapter(
+                    new ai.foresignal.raster.model.ModelRunIngest(null, null), "", "small").descriptor(), "raster")),
+            Map.entry("RtmaAdapter", new Entry(new ai.foresignal.source.adapters.rtma.RtmaAdapter(null, null, "",
+                    "small").descriptor(), "raster")));
 
     /**
      * The {@code privacy} class (prompt 086): private sources whose prompt sets a short raw window on purpose, because
@@ -617,8 +629,10 @@ class FamilyDefaultsTest {
     /** Tables retention may delete from: versions and operational rows, never intelligence tables. */
     // Checkpoint 057: history_downsample is 044's bookkeeping of downsampled ranges (HistoryDownsampler), an
     // operational table that retention maintains alongside record_version.
+    // Checkpoint 124: cap_message (112) is the CAP rendition of an alert's state changes; its rows "follow alert
+    // retention" (prompt 112), so OperationalTablesStep deletes those whose alert is gone.
     static final Set<String> RETENTION_TABLES = Set.of("record_version", "fetch_log", "seq_clock", "alert",
-            "source_usage", "notification", "history_downsample");
+            "source_usage", "notification", "history_downsample", "cap_message");
 
     @Test
     @DisplayName("every built-in adapter is classified, and its retention is its class's default or longer")
@@ -715,7 +729,10 @@ class FamilyDefaultsTest {
     }
 
     private static Set<String> adapterClassNames() throws IOException {
-        Pattern adapter = Pattern.compile("class\\s+(\\w+)\\s+implements\\s+(?:PollingAdapter|StreamingAdapter|PushAdapter|DerivedAdapter|DerivedGenerator)\\b");
+        // Checkpoint 124: a concrete subclass that repeats the interface (GoesWestAbiAdapter extends GoesAbiAdapter
+        // implements PollingAdapter) is an adapter too; an abstract base (LayerGenerator) is not.
+        Pattern adapter = Pattern.compile("(?<!abstract\\s)class\\s+(\\w+)\\s+(?:extends\\s+[\\w.]+\\s+)?implements\\s+"
+                + "(?:PollingAdapter|StreamingAdapter|PushAdapter|DerivedAdapter|DerivedGenerator)\\b");
         Set<String> names = new TreeSet<>();
         try (Stream<Path> files = Files.walk(ADAPTERS)) {
             for (Path file : files.filter(f -> f.toString().endsWith(".java")).toList()) {

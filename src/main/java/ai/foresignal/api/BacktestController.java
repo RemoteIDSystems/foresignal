@@ -6,6 +6,7 @@ import ai.foresignal.backtest.BacktestViews;
 import ai.foresignal.api.support.QueryParams;
 import ai.foresignal.security.CurrentToken;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -100,6 +101,7 @@ public class BacktestController {
     /** {@code cancelJob}. */
     @DeleteMapping("/jobs/{jobId}")
     @Operation(operationId = "cancelJob", tags = "Analysis")
+    @ApiResponse(responseCode = "204", description = "Canceled")
     public ResponseEntity<Void> cancelJob(@PathVariable String jobId) {
         jobs.cancel(jobId);
         return ResponseEntity.noContent().build();

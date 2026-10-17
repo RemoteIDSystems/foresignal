@@ -110,8 +110,16 @@ class UpstreamClientIsTheOnlyHttpClientTest {
     private static final List<String> SOCKETS = List.of("new Socket(", "DatagramChannel.open", "SocketChannel.open",
             "new DatagramSocket(", "new ServerSocket(", "ServerSocketChannel.open");
 
+    /**
+     * The one inbound TCP listener: prompt 110's SERVE sinks, which 069 deferred to ("inbound TCP serving is
+     * prompt 110's SERVE sinks"). It binds only an address {@code sink/ServeGuard} validated (loopback or LAN) and
+     * accepts only peers the guard allows; it may open a server socket and nothing else (checkpoint 124).
+     */
+    private static final Path SERVE_LISTENER = MAIN.resolve(Path.of("ai", "foresignal", "sink", "SinkTcpServer.java"));
+
     @Test
-    @DisplayName("only collect/socket/DefaultSocketTransport opens a socket, and nothing opens a server socket (069)")
+    @DisplayName("only collect/socket/DefaultSocketTransport opens a socket, and only the 110 SERVE listener a server"
+            + " socket (069)")
     void onlyTheSocketTransportOpensSockets() throws IOException {
         Path transport = COLLECT.resolve(Path.of("socket", "DefaultSocketTransport.java"));
         Map<String, List<String>> offenders = new LinkedHashMap<>();
@@ -119,15 +127,21 @@ class UpstreamClientIsTheOnlyHttpClientTest {
             String source = Files.readString(file);
             List<String> found = SOCKETS.stream().filter(source::contains).toList();
             boolean server = found.stream().anyMatch(c -> c.contains("ServerSocket"));
-            if (!found.isEmpty() && (!file.equals(transport) || server)) {
+            boolean allowed = file.equals(SERVE_LISTENER)
+                    ? found.stream().allMatch("new ServerSocket("::equals)
+                    : file.equals(transport) && !server;
+            if (!found.isEmpty() && !allowed) {
                 offenders.put(file.toString(), found);
             }
         }
         assertThat(offenders)
                 .as("Sockets are opened only by the budgeted, LAN-only socket transport (StreamContext.sockets());"
-                        + " inbound TCP serving is prompt 110's SERVE sinks")
+                        + " inbound TCP serving is prompt 110's SERVE sinks (sink/SinkTcpServer)")
                 .isEmpty();
         assertThat(Files.readString(transport)).contains("new Socket(", "DatagramChannel.open");
+        assertThat(Files.readString(SERVE_LISTENER))
+                .as("the sanctioned SERVE listener must still open the server socket, or it leaves the guard")
+                .contains("new ServerSocket(");
     }
 
     private static List<Path> javaSources() throws IOException {

@@ -62,14 +62,12 @@ public final class PngUvEncoder {
                 vMax = Math.max(vMax, vk);
             }
         }
-        if (!(uMax >= uMin)) {
-            uMin = 0;
-            uMax = 1;
-        }
-        if (!(vMax >= vMin)) {
-            vMin = 0;
-            vMax = 1;
-        }
+        double[] uBounds = saneBounds(uMin, uMax);
+        double[] vBounds = saneBounds(vMin, vMax);
+        uMin = uBounds[0];
+        uMax = uBounds[1];
+        vMin = vBounds[0];
+        vMax = vBounds[1];
         BufferedImage image = new BufferedImage(nx, ny, BufferedImage.TYPE_INT_RGB);
         for (int row = 0; row < ny; row++) {
             for (int col = 0; col < nx; col++) {
@@ -86,6 +84,21 @@ public final class PngUvEncoder {
         } catch (IOException e) {
             throw new UncheckedIOException("Could not encode the png-uv field: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Scale bounds a decoder can use: {@code [0, 1]} when a channel has no finite sample, and a unit-wide
+     * range centered on the value when the channel is flat, so the value encodes to the middle channel
+     * and decodes back to itself.
+     */
+    static double[] saneBounds(double min, double max) {
+        if (!(max >= min)) {
+            return new double[] {0, 1};
+        }
+        if (max == min) {
+            return new double[] {min - 0.5, min + 0.5};
+        }
+        return new double[] {min, max};
     }
 
     /** One channel value, 0..255. */

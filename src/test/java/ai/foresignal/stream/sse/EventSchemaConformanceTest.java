@@ -97,6 +97,14 @@ class EventSchemaConformanceTest {
             // 033: InboxTopic sends the device's badge as an id-less control event (checkpoint 041).
             entry("badge", () -> List.of(toTree(new ai.foresignal.notify.inbox.InboxService.Badge(3, 1, 42L).toMap()),
                     toTree(new ai.foresignal.notify.inbox.InboxService.Badge(0, 0, null).toMap()))),
+            // 101: IntelTopic sends IntelTopic.payload(IntelEvent) on topic intel (checkpoint 124).
+            entry("intel.event.created", () -> intelEvents(ai.foresignal.intel.IntelEvent.CREATED)),
+            entry("intel.event.updated", () -> intelEvents(ai.foresignal.intel.IntelEvent.UPDATED)),
+            entry("intel.event.resolved", () -> intelEvents(ai.foresignal.intel.IntelEvent.RESOLVED)),
+            entry("intel.event.merged", () -> intelEvents(ai.foresignal.intel.IntelEvent.MERGED)),
+            // 102: AnalystTopic sends {note} and {change, proposal} on topic analyst (checkpoint 124).
+            entry(AnalystTopic.NOTE, EventSchemaConformanceTest::analystNotes),
+            entry(AnalystTopic.PROPOSAL, EventSchemaConformanceTest::analystProposals),
             // 116: EvidenceTopic sends EvidenceEvent.payload() on topic evidence.
             entry(ai.foresignal.evidence.EvidenceEvent.CREATED,
                     () -> evidenceEvents(ai.foresignal.evidence.EvidenceEvent.CREATED)),
@@ -246,6 +254,74 @@ class EventSchemaConformanceTest {
             p.setLift(lift);
             out.add(toTree(new ai.foresignal.analytics.finding.FindingEvent(9, type, p.getId(),
                     ai.foresignal.precursor.PrecursorViews.summary(p), at).payload()));
+        }
+        return out;
+    }
+
+    /** {@code intel.event.*} payloads as {@code IntelTopic.payload} writes them (prompt 101, checkpoint 124). */
+    static List<JsonNode> intelEvents(String change) {
+        ai.foresignal.intel.IntelligenceEventEntity e = new ai.foresignal.intel.IntelligenceEventEntity(
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3C", "seismic", "M5.1 near Austin", Instant.parse("2026-03-01T12:00:00Z"));
+        e.setSeverity("warning");
+        e.setStatus(ai.foresignal.intel.IntelEvent.RESOLVED.equals(change) ? "resolved" : "active");
+        e.setConfidence(0.62);
+        e.setConfidenceLabel("moderate");
+        e.setEvidenceQuality("moderate");
+        e.setMemberCount(3);
+        e.setUpdatedAt(Instant.parse("2026-03-01T12:05:00Z"));
+        String mergedInto = ai.foresignal.intel.IntelEvent.MERGED.equals(change) ? "01JA8Q3V7S2K9W4T6Y1B5N0M3D" : null;
+        return List.of(toTree(ai.foresignal.intel.IntelTopic.payload(new ai.foresignal.intel.IntelEvent(7, e.getId(),
+                change, 2, ai.foresignal.intel.IntelEventMapper.summary(e), mergedInto))));
+    }
+
+    /** The analyst topic over one stored note and one stored proposal (mocked repositories). */
+    private static AnalystTopic analystTopic() {
+        Instant at = Instant.parse("2026-03-01T12:00:00Z");
+        ai.foresignal.analyst.AnalystNoteEntity note = new ai.foresignal.analyst.AnalystNoteEntity(
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3C", "01JA8Q3V7S2K9W4T6Y1B5N0M3D", "01JA8Q3V7S2K9W4T6Y1B5N0M3E",
+                "Port congestion", at);
+        note.setBody("Two ports report delays.");
+        note.setClaims(List.of(Map.of("text", "Delays at two ports", "basis", "evidence", "citations",
+                List.of("ais-hub:1@42"))));
+        note.setCitations(List.of("ais-hub:1@42"));
+        note.setModel("test-model");
+        ai.foresignal.analyst.AnalystProposalEntity proposal = new ai.foresignal.analyst.AnalystProposalEntity(
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3F", "01JA8Q3V7S2K9W4T6Y1B5N0M3E", "01JA8Q3V7S2K9W4T6Y1B5N0M3D",
+                "propose_watch", at, at.plus(Duration.ofDays(7)));
+        proposal.setPayload(Map.of("name", "Port watch"));
+        proposal.setRationale("Delays may grow.");
+        proposal.setCitations(List.of("ais-hub:1@42"));
+        ai.foresignal.analyst.AnalystNoteRepository notes = mock(ai.foresignal.analyst.AnalystNoteRepository.class);
+        when(notes.findById(note.getId())).thenReturn(java.util.Optional.of(note));
+        ai.foresignal.analyst.AnalystProposalRepository proposals =
+                mock(ai.foresignal.analyst.AnalystProposalRepository.class);
+        when(proposals.findById(proposal.getId())).thenReturn(java.util.Optional.of(proposal));
+        return new AnalystTopic(mock(ai.foresignal.notify.NotificationBus.class), mock(SourceRegistry.class),
+                mock(ai.foresignal.store.NotificationRepository.class), provider(notes), provider(proposals));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> org.springframework.beans.factory.ObjectProvider<T> provider(T value) {
+        org.springframework.beans.factory.ObjectProvider<T> p = mock(org.springframework.beans.factory.ObjectProvider.class);
+        when(p.getIfAvailable()).thenReturn(value);
+        return p;
+    }
+
+    /** {@code analyst.note} payloads as {@code AnalystTopic.payload} writes them (prompt 102, checkpoint 124). */
+    static List<JsonNode> analystNotes() {
+        NotificationMessage message = NotificationMessage.builder(AnalystTopic.NOTE, AnalystTopic.NOTE,
+                "Port congestion", "info").data(Map.of("noteId", "01JA8Q3V7S2K9W4T6Y1B5N0M3C")).build();
+        return List.of(toTree(analystTopic().payload(message)));
+    }
+
+    /** {@code analyst.proposal} payloads as {@code AnalystTopic.payload} writes them (prompt 102, checkpoint 124). */
+    static List<JsonNode> analystProposals() {
+        List<JsonNode> out = new ArrayList<>();
+        for (String change : List.of("created", "executed", "rejected")) {
+            NotificationMessage message = NotificationMessage.builder(AnalystTopic.PROPOSAL, AnalystTopic.PROPOSAL,
+                    "Analyst proposal", "info").data(Map.of("proposalId", "01JA8Q3V7S2K9W4T6Y1B5N0M3F", "change",
+                    change)).build();
+            out.add(toTree(analystTopic().payload(message)));
         }
         return out;
     }

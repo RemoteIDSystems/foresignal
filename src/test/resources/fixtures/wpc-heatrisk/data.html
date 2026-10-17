@@ -1,0 +1,195 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				
+		<title>NWS HeatRisk - Data/KML</title>
+		
+		<!----------------------------- 
+			CSS
+		------------------------------>
+
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.2/font/bootstrap-icons.css">
+        <link href='https://code.jquery.com/ui/1.13.1/themes/smoothness/jquery-ui.css' rel='stylesheet' />
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+		<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js" integrity="sha256-lSjKY0/srUM9BE3dPm+c4fBo1dky2v27Gdjm2uoZaL0=" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+		<link href="css/style.css" rel="stylesheet" type="text/css" />
+		<script src="js/date.format.js"></script>
+		<script src="data/FileTimes.js"></script>
+		
+		<style>.lb-container .lb-nav { position: relative; }</style>
+
+		
+	</head>
+	<body>
+		<!-- MAIN CONTAINER -->
+		<div id="main-container" class="container-fluid " style="min-height:100%;padding-left:0 !important;padding-right:0 !important;">
+		
+			<!-- HEADER CONTAINER -->
+			<div id="header-container" class="container-fluid hidden-xs" style="padding:0px;">							
+				<table style="width:100%;padding:0px;">
+					<tr>
+						<td style='width:105px;padding-left:5px;'><a href="http://www.weather.gov" target="_blank"><img src="images/logo.png"></a></td>
+                        <!-- <td style='width:86px;padding-left:5px;'><a href="http://www.cdc.gov/heatrisk" target="_blank"><img src="images/CDC-logo-RGB-blue-sm.png"></a></td> -->
+                        <td>
+                            <table style='margin-bottom:0px;padding:0px;'>
+                                <tr>
+                                    <td><div style="display:inline-block;margin-top:0px;color:black;font-size:1.5em;font-weight:bold;">National Weather Service</div></td>
+                                </tr>
+                                <tr>
+                                    <td><div style="color: #aeaeae;font-size:0.8em;letter-spacing: 2.5px;margin-top:-2px;">National Oceanic and Atmospheric Administration</div></td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td style="text-align:right;">
+                           &nbsp;
+                        </td>
+                        <td><a href="http://www.commerce.gov" ><img src="images/header_doc.png" style='float:right;'></td>
+					</tr>
+				</table>
+			</div>
+			<div class="container-fluid" style="padding:0px;">
+				<div class="header-shadow-content"></div>
+			</div>
+			
+			<div class="container-fluid hidden-xs" style="padding:0px 15px 3px 15px;margin-top:-5px;">
+				<div class="row">
+					<div class="col-sm-6" style="height:40px !important;">
+						<span class="lead" style="white-space:nowrap;float:left;margin-top:5px;"><span class='text-primary'>NWS</span><font style='color:darkorange;'> Experimental HeatRisk Data</font></span>
+					</div>
+					<div class="col-sm-6" style="height:40px !important;">						
+						<span class="lead" style="white-space:nowrap;float:right;padding-top:5px;color:darkorange;">
+							<span class="text-primary">Click on desired forecast period to download KML or GeoTiff</span>
+						</span>
+					</div>
+				</div>		
+			</div>
+			<!-- END HEADER CONTAINER -->
+			
+			<!-- MAP AND MENU CONTAINER -->
+	        <div class="container-fluid">
+	        	<table class="table">
+	        		<tr>
+	        			<th>KML for entire forecast period </th>
+						<td colspan="7"><a href="/heatrisk/data/HeatRisk_Entire_Fcst.kml">7 Day Forecast (<div id='div-kml-all' style="display:inline-block"></div>)</a></td>
+	        		</tr>
+	        		<tr>
+	        			<th>KML for individual days</th>
+	        			<td><a href="data/HeatRisk_Day1_Fcst.kml">Day 1 (<div id='div-kml-1' style="display:inline-block"></div>)</a></td>
+	        			<td><a href="data/HeatRisk_Day2_Fcst.kml">Day 2 (<div id='div-kml-2' style="display:inline-block"></div>)</a></td>
+	        			<td><a href="data/HeatRisk_Day3_Fcst.kml">Day 3 (<div id='div-kml-3' style="display:inline-block"></div>)</a></td>
+	        			<td><a href="data/HeatRisk_Day4_Fcst.kml">Day 4 (<div id='div-kml-4' style="display:inline-block"></div>)</a></td>
+	        			<td><a href="data/HeatRisk_Day5_Fcst.kml">Day 5 (<div id='div-kml-5' style="display:inline-block"></div>)</a></td>
+	        			<td><a href="data/HeatRisk_Day6_Fcst.kml">Day 6 (<div id='div-kml-6' style="display:inline-block"></div>)</a></td>
+	        			<td><a href="data/HeatRisk_Day7_Fcst.kml">Day 7 (<div id='div-kml-7' style="display:inline-block"></div>)</a></td>
+	        		</tr>
+	        		<tr>
+	        			<th>GeoTiff</th>
+	        			<td><a href="data/HeatRisk_1_Mercator.tif">Day 1 (<div id='div-tif-1' style="display:inline-block"></div>)</a></td>
+	        			<td><a href="data/HeatRisk_2_Mercator.tif">Day 2 (<div id='div-tif-2' style="display:inline-block"></div>)</a></td>
+	        			<td><a href="data/HeatRisk_3_Mercator.tif">Day 3 (<div id='div-tif-3' style="display:inline-block"></div>)</a></td>
+	        			<td><a href="data/HeatRisk_4_Mercator.tif">Day 4 (<div id='div-tif-4' style="display:inline-block"></div>)</a></td>
+	        			<td><a href="data/HeatRisk_5_Mercator.tif">Day 5 (<div id='div-tif-5' style="display:inline-block"></div>)</a></td>
+	        			<td><a href="data/HeatRisk_6_Mercator.tif">Day 6 (<div id='div-tif-6' style="display:inline-block"></div>)</a></td>
+	        			<td><a href="data/HeatRisk_7_Mercator.tif">Day 7 (<div id='div-tif-7' style="display:inline-block"></div>)</a></td>
+	        		</tr> 
+					<tr>
+						<th><a href='https://www.weather.gov/gis/cloudgiswebservices' target="_blank">NWS GIS Web Services (HeatRisk under Experimental Products)</a></th>
+						<td><a href='https://mapservices.weather.noaa.gov/experimental/rest/services/NWS_HeatRisk/ImageServer' target="_blank">RESTs</a></td>
+						<td><a href='https://mapservices.weather.noaa.gov/experimental/services/NWS_HeatRisk/ImageServer/WMSServer?request=GetCapabilities&service=WMS' target="_blank">WMS/WMTS</a></td>
+						<td><a href='https://mapservices.weather.noaa.gov/experimental/services/NWS_HeatRisk/ImageServer/WCSServer?request=GetCapabilities&service=WCS' target="_blank">WFS/WCS</a></td>
+						<td colspan="4">&nbsp;</td>
+					</tr>
+	        	</table>
+	        </div>
+	        <!-- END MAP AND MENU CONTAINER -->
+
+			<div class="container">
+				<div style="width:100%;text-align:center;"> 
+					The above KML and GeoTiff files will link to the <b>latest forecast</b>.  
+					To retrieve a KML or GeoTiff file for a specific date, please go to our <a href="/heatrisk/data/archive/"><b>archive page</b></a>.
+				</div>
+			</div>
+
+			<div class="container" style='margin-top:20px;padding:0 40px;'>
+				<div style="width:100%;text-align:center;">
+					<b>Note: </b>Please click <a href='HeatRisk_Style.zip' target='_blank'><b>here</b></a> to download the <b>ESRI symbology layer</b> to apply the official HeatRisk colors and category labels to the GeoTiffs.  The symbology layer is designed to be used within ArcGIS Pro.
+					For more information about how to apply the symbology layer to the HeatRisk GeoTiffs, please click <a href='https://pro.arcgis.com/en/pro-app/latest/help/mapping/layer-properties/import-symbology-from-another-layer.htm' target='_blank'><b>here</b></a>.
+				</div>
+			</div>
+
+			<div class="container-fluid hidden-xs" style="padding:30px 15px 3px 15px;margin-top:-5px;">
+				<div class="row">
+					<div class="col-sm-6" style="height:40px !important;">
+						<span class="lead" style="white-space:nowrap;float:left;margin-top:5px;"><span class='text-primary'>REQUEST</span><font style='color:darkorange;'> NWS Historical HeatRisk Data</font></span>
+					</div>
+					<div class="col-sm-6" style="height:40px !important;">						
+						<span class="lead" style="white-space:nowrap;float:right;padding-top:5px;color:darkorange;">
+							<span class="text-primary">&nbsp;</span>
+						</span>
+					</div>
+				</div>		
+			</div>
+
+			<div class="container-fluid" style='padding:0 15px;'>
+				<div style="width:100%;text-align:left;">
+					<!-- <b>Historical Data: </b>If you would like to request historical HeatRisk data at NCEI station locations, please complete this <a href="https://docs.google.com/forms/d/e/1FAIpQLSemGIYP7Vzhrzy69gAKS6DhOUzEdx9WKRl_OVsBedQtz1Qozw/viewform?usp=sf_link" target="_blank">data request form</a>. -->
+					Historical HeatRisk Data can be requested for available NCEI station locations.  Please complete this <a href="https://docs.google.com/forms/d/e/1FAIpQLSemGIYP7Vzhrzy69gAKS6DhOUzEdx9WKRl_OVsBedQtz1Qozw/viewform?usp=sf_link" target="_blank">form</a> and you will be notified when your data request has been completed.
+				</div>
+			</div>
+
+
+			<div class='container-fluid' style="padding-top:30px;">
+				<table style='margin-bottom:0px;padding:0px;width:100%;'>
+					<tr>
+						<td align="right" style="width:53%;"><a href="http://www.weather.gov" target="_blank"><img src="images/logo.png"></a></td>
+						<td align="left" style="width:47%;"><a href="http://www.cdc.gov" target="_blank"><img src="images/CDC-logo-RGB-blue-sm.png"></a></td>
+					</tr>
+				</table>
+			</div>
+	        
+		</div>
+		<!-- END MAIN CONTAINER -->
+
+		<!-- Google tag (gtag.js) -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-XS4XRRNHSQ"></script>	
+				
+		<!-----------------------------
+			JavaScript
+		------------------------------>
+		
+		<script>
+
+			window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+                
+            gtag('config', 'G-XS4XRRNHSQ');
+
+			var dates = []
+
+			for(var i in file_times) {
+				var dt = Date.parse(file_times[i]);
+				dates.push(dateFormat(dt,"mmm dS"))
+				$("#div-kml-" + i).html(dates[i-1]);
+				$("#div-tif-" + i).html(dates[i-1]);
+			};
+
+			$("#div-kml-all").html((dates[0] + " - " + dates[dates.length-1]).trim());
+
+		</script>
+		
+
+	</body>
+</html>

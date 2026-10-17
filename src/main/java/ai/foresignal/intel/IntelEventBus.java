@@ -3,6 +3,7 @@ package ai.foresignal.intel;
 import ai.foresignal.stream.Subscription;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PreDestroy;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -56,6 +57,18 @@ public class IntelEventBus {
     /** The number of current listeners. */
     public int listenerCount() {
         return listeners.size();
+    }
+
+    /**
+     * Closes every remaining listener and stops its delivery thread when the application context closes. A
+     * delivery thread holds its listener, and through it the listener's beans, so one left running would keep a closed
+     * context reachable (checkpoint 124: evicted test contexts accumulated until the heap was exhausted).
+     */
+    @PreDestroy
+    public void closeAll() {
+        for (Listener listener : listeners) {
+            listener.close();
+        }
     }
 
     private final class Listener implements Subscription {

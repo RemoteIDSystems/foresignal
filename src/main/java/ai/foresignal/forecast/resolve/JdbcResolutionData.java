@@ -244,6 +244,22 @@ public class JdbcResolutionData implements ResolutionData {
                         ? String.valueOf(rows.get(0).get("severity")) : severity.toString());
             }
         }
+        // No change logged by then: the state before the first later change, never the current one (INT-2).
+        List<String> later = jdbc.queryForList("SELECT CAST(before AS text) FROM situation_log WHERE situation_id = :id"
+                + " AND at > :at AND before ->> 'status' IS NOT NULL ORDER BY at, id LIMIT 1",
+                new MapSqlParameterSource("id", situationId).addValue("at", Timestamp.from(at)), String.class);
+        if (!later.isEmpty() && later.get(0) != null) {
+            Map<String, Object> state = JsonValues.map(json.readTree(later.get(0)));
+            Object severity = state.get("severity");
+            if (severity == null) {
+                List<String> severityLater = jdbc.queryForList("SELECT before ->> 'severity' FROM situation_log WHERE"
+                        + " situation_id = :id AND at > :at AND before ->> 'severity' IS NOT NULL ORDER BY at, id"
+                        + " LIMIT 1", new MapSqlParameterSource("id", situationId).addValue("at", Timestamp.from(at)),
+                        String.class);
+                severity = severityLater.isEmpty() ? rows.get(0).get("severity") : severityLater.get(0);
+            }
+            return new SituationState(state.get("status").toString(), String.valueOf(severity));
+        }
         return new SituationState(String.valueOf(rows.get(0).get("status")), String.valueOf(rows.get(0)
                 .get("severity")));
     }

@@ -136,9 +136,10 @@ public class RtmaAdapter implements PollingAdapter, DecoderDependent {
     private static final String STATE_KEY = "lastCycle";
 
     /** One product field. */
-    private record Field(String productId, String variable, String level, DecodeRequest request) {}
+    record Field(String productId, String variable, String level, DecodeRequest request) {}
 
-    private static final List<Field> FIELDS = List.of(
+    /** The fields read from each analysis (package-visible for the capture contract test). */
+    static final List<Field> FIELDS = List.of(
             new Field(T2M, "TMP", "2 m above ground",
                     DecodeRequest.grib2(T2M, "TMP", 0, 0, 0, 103, 2.0, "2 m above ground")),
             new Field(DPT, "DPT", "2 m above ground",
@@ -406,7 +407,7 @@ public class RtmaAdapter implements PollingAdapter, DecoderDependent {
                 Duration.ofHours(48), null);
         String meaning = "2.5 km CONUS analysis; an observation, transparent outside the domain";
         ProductSpec wind = ProductSpec.builder(WIND)
-                .title("RTMA 10 m wind").kind(ProductSpec.KIND_FIELD).category("analysis").units("m/s")
+                .title("RTMA 10 m wind").kind(ProductSpec.KIND_FIELD).category("model").units("m/s")
                 .dtype(RasterDtype.I16).scaleOffset(0.01, 0.0).nodata(-32768.0).bands("u", "v")
                 .defaultStyle("wind-speed@1").temporal(temporal).spatial(spatial).retention(ladder)
                 .attribution(attribution).coverageMeaning(meaning).legendSummary("10 m wind, m/s")
@@ -451,7 +452,7 @@ public class RtmaAdapter implements PollingAdapter, DecoderDependent {
     private static ProductSpec scalar(String id, String title, String units, double scale, double offset, String style,
             ProductSpec.Temporal temporal, ProductSpec.Spatial spatial, ProductSpec.RetentionLadder ladder,
             ProductSpec.Attribution attribution, String meaning, String legend) {
-        return ProductSpec.builder(id).title(title).kind(ProductSpec.KIND_RASTER).category("analysis").units(units)
+        return ProductSpec.builder(id).title(title).kind(ProductSpec.KIND_RASTER).category("model").units(units)
                 .dtype(RasterDtype.I16).scaleOffset(scale, offset).nodata(-32768.0).defaultStyle(style)
                 .temporal(temporal).spatial(spatial).retention(ladder).attribution(attribution).coverageMeaning(meaning)
                 .legendSummary(legend).resample(ProductSpec.RESAMPLE_BILINEAR).build();

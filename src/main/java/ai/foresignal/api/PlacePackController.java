@@ -9,6 +9,7 @@ import ai.foresignal.raster.export.ExportJobService;
 import ai.foresignal.raster.export.PlacePackService;
 import ai.foresignal.security.restrict.RequestPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
@@ -50,6 +51,7 @@ public class PlacePackController {
     /** {@code createPlacePack}: submit the pack, 202 with the job. */
     @PostMapping("/v1/places/{placeId}/pack")
     @Operation(operationId = "createPlacePack", tags = "Places")
+    @ApiResponse(responseCode = "202", description = "Job accepted")
     public ResponseEntity<Map<String, Object>> createPlacePack(@PathVariable String placeId,
             @RequestBody(required = false) JsonNode body, HttpServletRequest request) {
         places.get(placeId);

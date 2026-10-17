@@ -19,6 +19,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** {@code create_intel_event} (agent, prompt 101): an operator or agent finding from verified members. */
+@ai.foresignal.security.restrict.RestrictedRead("members are pinned with the caller private access (IntelVisibility); returns the event summary")
 @Component
 public class CreateIntelEventTool implements ForesignalMcpTool {
 

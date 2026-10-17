@@ -70,7 +70,7 @@
     ],
     "forecaster:precursor": [
       {"scenario": "true-precursor", "metric": "skill", "comparator": "ge", "pass": 0.05, "warn": 0.0, "note": "Brier skill against the consequent's base rate"},
-      {"scenario": "true-precursor", "metric": "reliabilityMaxDeviation", "comparator": "within", "pass": 0.1, "warn": 0.2, "note": "per populated bin"}
+      {"scenario": "true-precursor", "metric": "reliabilityMaxDeviation", "comparator": "within", "pass": 0.1, "warn": 0.3, "note": "per populated bin; checkpoint 124: the 120 probability is shrunk toward the base rate by n/(n + 20), so with about 20 discovery antecedents it sits about half-way between the base rate and the hit rate by design, and a deviation near 0.25 is that shrinkage (a warning), not a defect"}
     ],
     "forecaster:ensemble": [
       {"scenario": "null-seasonal", "metric": "skill", "comparator": "ge", "pass": -0.02, "warn": -0.05, "note": "Brier skill against the base-rate forecaster"},

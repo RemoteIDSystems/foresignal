@@ -210,8 +210,13 @@ final class PeerSession implements StreamHandle, Runnable {
             FederationIngestor.Result result = runtime.ingestor().process(PeerRemote.items(page), replay,
                     runtime.clock().instant());
             if (!result.records().isEmpty()) {
-                runtime.writer().submit(FederationWriter.group(result.records()), FetchTrigger.STREAM,
-                        "peer:" + peerId, true);
+                try {
+                    runtime.writer().submit(FederationWriter.group(result.records()), FetchTrigger.STREAM,
+                            "peer:" + peerId, true);
+                } catch (RuntimeException e) {
+                    runtime.ingestor().release(result.records());
+                    throw e;
+                }
             }
         } while (next != null && running);
         if (!running) {

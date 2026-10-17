@@ -195,7 +195,8 @@ class UsgsIngestIT extends WireMockSupport {
         assertThat(row.get("trigger")).isEqualTo("SCHEDULED");
         assertThat(row.get("versions_written")).isEqualTo(FEATURES);
         assertThat(row.get("records_seen")).isEqualTo(FEATURES);
-        assertThat(row.get("licence")).isEqualTo("US-PD");
+        // Prompt 109: the fetch row snapshots the resolved catalog id; the descriptor's "US-PD" is its alias.
+        assertThat(row.get("licence")).isEqualTo("us-gov-public-domain");
         assertThat(row.get("http_status")).isEqualTo(200);
 
         assertThat(health.health(ID).status()).isEqualTo(HealthStatus.HEALTHY);

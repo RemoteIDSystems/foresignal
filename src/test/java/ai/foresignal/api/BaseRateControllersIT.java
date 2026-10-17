@@ -1,5 +1,7 @@
 package ai.foresignal.api;
 
+import org.springframework.context.annotation.Import;
+import ai.foresignal.testsupport.ingest.TestIngestSources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -54,6 +56,7 @@ import tools.jackson.databind.json.JsonMapper;
  * as LOCAL_ONLY derived statistics.
  */
 @IntegrationTest
+@Import(TestIngestSources.class)
 class BaseRateControllersIT {
 
     static final Instant NOW = Instant.parse("2026-10-17T12:00:00Z");
@@ -112,7 +115,7 @@ class BaseRateControllersIT {
 
     void insert(String family, String region, LocalDate week, String source, long count, String importId) {
         jdbc.update("INSERT INTO reference_history (family, region_code, week_start, source, count, fatalities,"
-                + " license, egress, import_id) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)", family, region,
+                + " licence, egress, import_id) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)", family, region,
                 Date.valueOf(week), source, count, ReferenceFamilies.LICENSES.get(source),
                 ReferenceFamilies.EGRESS.get(source), importId);
     }

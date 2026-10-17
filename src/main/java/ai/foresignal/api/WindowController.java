@@ -15,6 +15,7 @@ import ai.foresignal.trigger.window.WindowStateEntity;
 import ai.foresignal.store.TriggerRuleEntity;
 import ai.foresignal.store.TriggerRuleRepository;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Clock;
 import java.time.Instant;
@@ -152,6 +153,7 @@ public class WindowController {
      */
     @PostMapping("/triggers/{ruleId}/baseline/rebuild")
     @Operation(operationId = "rebuildBaseline", tags = "Triggers")
+    @ApiResponse(responseCode = "202", description = "Rebuild accepted")
     public ResponseEntity<Map<String, Object>> rebuildBaseline(@PathVariable String ruleId) {
         TriggerRuleEntity rule = load(ruleId);
         if (RuleType.fromWire(rule.getType()) != RuleType.ANOMALY) {

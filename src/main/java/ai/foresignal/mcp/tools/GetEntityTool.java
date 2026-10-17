@@ -26,6 +26,7 @@ import tools.jackson.databind.JsonNode;
  * MCP {@code get_entity} (prompt 098): one canonical entity by id or key, with its open records
  * capped at 20.
  */
+@ai.foresignal.security.restrict.RestrictedRead("excluded sources and the caller restriction (RestrictionClamp) through EntityService")
 @Component
 public class GetEntityTool implements ForesignalMcpTool {
 

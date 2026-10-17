@@ -4,6 +4,7 @@ import ai.foresignal.api.support.QueryParams;
 import ai.foresignal.federation.PeerEntity;
 import ai.foresignal.federation.PeerService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.net.URI;
 import java.util.ArrayList;
@@ -65,6 +66,7 @@ public class PeersController {
     /** {@code createPeer}. */
     @PostMapping("/v1/peers")
     @Operation(operationId = "createPeer", tags = "Peers")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createPeer(@RequestBody JsonNode body) {
         PeerEntity peer = peers.create(body);
         return ResponseEntity.created(URI.create("/v1/peers/" + peer.getId())).body(peers.view(peer));
@@ -87,6 +89,7 @@ public class PeersController {
     /** {@code deletePeer}. */
     @DeleteMapping("/v1/peers/{peerId}")
     @Operation(operationId = "deletePeer", tags = "Peers")
+    @ApiResponse(responseCode = "204", description = "Deleted")
     public ResponseEntity<Void> deletePeer(@PathVariable String peerId) {
         peers.delete(peerId);
         return ResponseEntity.noContent().build();
@@ -102,6 +105,7 @@ public class PeersController {
     /** {@code resyncPeer}. */
     @PostMapping("/v1/peers/{peerId}/resync")
     @Operation(operationId = "resyncPeer", tags = "Peers")
+    @ApiResponse(responseCode = "202", description = "Resync started")
     public ResponseEntity<Map<String, Object>> resyncPeer(@PathVariable String peerId) {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(peers.view(peers.resync(peerId)));
     }

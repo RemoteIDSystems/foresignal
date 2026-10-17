@@ -19,7 +19,8 @@ public class BacktestJobEntity {
     @Column(name = "id", length = 26, nullable = false)
     private String id;
 
-    @Column(name = "type", length = 16, nullable = false)
+    // 32: runner job types such as forecast-evaluation (19 characters) outgrew the original 16.
+    @Column(name = "type", length = 32, nullable = false)
     private String type;
 
     @Column(name = "target_id", length = 64)

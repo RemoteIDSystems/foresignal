@@ -190,12 +190,13 @@ class ProductTilesIT extends RasterApiSupport {
     void stylesAndLegends() throws Exception {
         JsonNode styles = body(get("/v1/styles"));
         assertThat(SCHEMAS.validateComponent("StylePage", styles)).isEmpty();
-        // 045 shipped nine styles; 053 added ffg-ratio, qpe and rotation (src/main/resources/raster/styles).
-        assertThat(styles.get("items").size()).isEqualTo(12);
+        // 045 shipped nine styles; 053 added ffg-ratio, qpe and rotation; 106 and later added thirteen more
+        // (src/main/resources/raster/styles), ordered by ref.
+        assertThat(styles.get("items").size()).isEqualTo(25);
         JsonNode first = body(get("/v1/styles?limit=2"));
         assertThat(first.get("items").size()).isEqualTo(2);
         JsonNode second = body(get("/v1/styles?limit=2&cursor=" + first.get("nextCursor").asString()));
-        assertThat(second.get("items").get(0).get("ref").asString()).isEqualTo("ir-gray@1");
+        assertThat(second.get("items").get(0).get("ref").asString()).isEqualTo("ffg-ratio@1");
         JsonNode style = body(get("/v1/styles/nws-reflectivity"));
         assertThat(SCHEMAS.validateComponent("Style", style)).isEmpty();
         assertThat(style.get("ref").asString()).isEqualTo("nws-reflectivity@1");

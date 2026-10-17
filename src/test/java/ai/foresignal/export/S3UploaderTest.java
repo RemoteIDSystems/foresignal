@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ai.foresignal.net.OutboundUrlPolicy;
+import ai.foresignal.testsupport.net.TestOutbound;
 import ai.foresignal.test.WireMockSupport;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
@@ -77,7 +78,7 @@ class S3UploaderTest extends WireMockSupport {
         Path file = Files.write(dir.resolve("part.parquet"), body);
         stubFor(put(urlPathEqualTo("/bucket/pre/record_version/part-1-2.parquet"))
                 .willReturn(aResponse().withStatus(200).withHeader("ETag", "\"" + md5(body) + "\"")));
-        S3Uploader.Result result = new S3Uploader(policy(), CLOCK).upload(s3(), SECRETS,
+        S3Uploader.Result result = new S3Uploader(policy(), TestOutbound.pinnedHttp(), CLOCK).upload(s3(), SECRETS,
                 "record_version/part-1-2.parquet", file);
         assertThat(result.verified()).isTrue();
         assertThat(result.parts()).isEqualTo(1);
@@ -98,7 +99,8 @@ class S3UploaderTest extends WireMockSupport {
         Path file = Files.writeString(dir.resolve("x.parquet"), "abc");
         stubFor(put(urlPathEqualTo("/bucket/pre/x.parquet"))
                 .willReturn(aResponse().withStatus(200).withHeader("ETag", "\"deadbeef\"")));
-        assertThat(new S3Uploader(policy(), CLOCK).upload(s3(), SECRETS, "x.parquet", file).verified()).isFalse();
+        assertThat(new S3Uploader(policy(), TestOutbound.pinnedHttp(), CLOCK).upload(s3(), SECRETS, "x.parquet", file)
+                .verified()).isFalse();
     }
 
     @Test
@@ -124,7 +126,8 @@ class S3UploaderTest extends WireMockSupport {
         stubFor(post(urlPathEqualTo(path)).withQueryParam("uploadId", equalTo("U1"))
                 .willReturn(aResponse().withStatus(200).withBody("<CompleteMultipartUploadResult><ETag>&quot;" + expected
                         + "&quot;</ETag></CompleteMultipartUploadResult>")));
-        S3Uploader.Result result = new S3Uploader(policy(), CLOCK, 10, 10).upload(s3(), SECRETS, "big.parquet", file);
+        S3Uploader.Result result = new S3Uploader(policy(), TestOutbound.pinnedHttp(), CLOCK, 10, 10).upload(s3(), SECRETS,
+                "big.parquet", file);
         assertThat(result.parts()).isEqualTo(3);
         assertThat(result.etag()).isEqualTo(expected);
         assertThat(result.verified()).isTrue();
@@ -142,7 +145,8 @@ class S3UploaderTest extends WireMockSupport {
                 .willReturn(aResponse().withStatus(200).withHeader("ETag", "\"0000\"")));
         stubFor(delete(urlPathEqualTo(path)).withQueryParam("uploadId", equalTo("U2"))
                 .willReturn(aResponse().withStatus(204)));
-        assertThatThrownBy(() -> new S3Uploader(policy(), CLOCK, 10, 10).upload(s3(), SECRETS, "big.parquet", file))
+        assertThatThrownBy(() -> new S3Uploader(policy(), TestOutbound.pinnedHttp(), CLOCK, 10, 10)
+                .upload(s3(), SECRETS, "big.parquet", file))
                 .isInstanceOf(java.io.UncheckedIOException.class);
         verify(deleteRequestedFor(urlPathEqualTo(path)).withQueryParam("uploadId", equalTo("U2")));
     }
@@ -152,7 +156,7 @@ class S3UploaderTest extends WireMockSupport {
     void refusals() throws Exception {
         Path file = Files.writeString(dir.resolve("y.parquet"), "abc");
         stubFor(put(urlPathEqualTo("/bucket/pre/y.parquet")).willReturn(aResponse().withStatus(403).withBody("denied")));
-        S3Uploader uploader = new S3Uploader(policy(), CLOCK);
+        S3Uploader uploader = new S3Uploader(policy(), TestOutbound.pinnedHttp(), CLOCK);
         assertThatThrownBy(() -> uploader.upload(s3(), SECRETS, "y.parquet", file))
                 .isInstanceOf(java.io.UncheckedIOException.class).hasMessageContaining("upload");
         assertThatThrownBy(() -> uploader.upload(s3(), Map.of(), "y.parquet", file))
@@ -161,10 +165,13 @@ class S3UploaderTest extends WireMockSupport {
         assertThatThrownBy(() -> uploader.upload(metadata, SECRETS, "y.parquet", file))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("not allowed");
         S3Uploader loopback = new S3Uploader(OutboundUrlPolicy.withoutOverrides(
-                host -> new InetAddress[] {InetAddress.getLoopbackAddress()}), CLOCK);
-        S3Uploader.Target hosted = loopback.target(new ArchiveSettings.S3("http://127.0.0.1:9", "bkt", "/p/", null,
+                host -> new InetAddress[] {InetAddress.getLoopbackAddress()}),
+                TestOutbound.pinnedHttp(), CLOCK);
+        // Virtual-hosted style needs a DNS name: "bkt.127.0.0.1" is not a valid host, so the endpoint here is a name
+        // the stub resolver maps to loopback.
+        S3Uploader.Target hosted = loopback.target(new ArchiveSettings.S3("http://minio.test:9", "bkt", "/p/", null,
                 false), "k");
-        assertThat(hosted.host()).isEqualTo("bkt.127.0.0.1:9");
+        assertThat(hosted.host()).isEqualTo("bkt.minio.test:9");
         assertThat(hosted.path()).isEqualTo("/p/k");
     }
 }

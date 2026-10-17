@@ -183,6 +183,17 @@ class PostmanCollectionContractTest {
             // 123: the benchmark harness's production parsers (pure).
             Map.entry("createBenchmarkRun", ai.foresignal.benchmark.BenchmarkInputs::run),
             Map.entry("createBenchmarkCase", ai.foresignal.benchmark.BenchmarkInputs::caseInput),
+            // 111: the production parsers of bulk export and offline pack specs (pure).
+            Map.entry("createExport", ai.foresignal.export.ExportSpec::parse),
+            Map.entry("createPack", ai.foresignal.export.PackSpec::parse),
+            // 117: the typed topic body (Jackson binding); AttentionTopicService.validate is package-private and
+            // AttentionTopicServiceIT covers it.
+            Map.entry("createAttentionTopic", body -> bean(body, ai.foresignal.attention.AttentionTopicInput.class)),
+            Map.entry("updateAttentionTopic", body -> bean(body, ai.foresignal.attention.AttentionTopicInput.class)),
+            // 121: the production base-rate definition parser (pure), over the map the controller hands the service.
+            Map.entry("createBaseRate", body -> ai.foresignal.baserate.BaseRateDefinition.parse(
+                    jsonMap(body.get("definition")))),
+            Map.entry("queryBaseRate", body -> ai.foresignal.baserate.BaseRateDefinition.parse(jsonMap(body))),
             // 038: metric projections (the production parser over a registry holding the USGS source) and the
             // rollup rebuild range.
             Map.entry("updateMetricSettings", body -> new ai.foresignal.stats.metrics.MetricSettingsService(null,
@@ -454,7 +465,62 @@ class PostmanCollectionContractTest {
                 "createPeer", "updatePeer", "federationIngest", "receiveFederationBundle",
                 // 115: an exercise resolves its rules, channels and window against the database (seq_clock,
                 // retention floors), so ExerciseIsolationIT and ReplayRunIT cover its parser.
-                "createExercise");
+                "createExercise",
+                // 098: entity keys and merges are read inline by EntitiesController (private helpers) and resolved
+                // against stored entities (EntityControllerIT).
+                "addEntityKey", "mergeEntities",
+                // 101: intelligence events, recipes, investigations and exposure are parsed by instance methods of
+                // database-backed services or inline in the controllers (IntelControllersIT,
+                // InvestigationsControllerIT, ExposureServiceIT); importPopulationPack reads a file named by the
+                // body (no IT exercises the endpoint; PopulationPackServiceTest covers the service).
+                "createIntelEvent", "updateIntelEvent", "addIntelEventMember", "mergeIntelEvent", "updateRecipe",
+                "testRecipe", "createInvestigation", "updateInvestigation", "addInvestigationItem", "computeExposure",
+                "importPopulationPack",
+                // 102: analyst profiles are parsed by a private method of AnalystService that checks the owner token
+                // and the chat provider (AnalystControllersIT, AnalystRunnerIT); note and proposal bodies are single
+                // fields read inline and checked against stored rows (no IT exercises those endpoints).
+                // rejectAnalystProposal's controller takes no body at all.
+                "createAnalystProfile", "updateAnalystProfile", "updateAnalystNote", "analystNoteFeedback",
+                "rejectAnalystProposal", "analystProposalFeedback",
+                // 103: backtests and precursor tests are validated by instance methods of BacktestJobService and
+                // PrecursorTestService against stored targets (BacktestControllersIT).
+                "createBacktest", "createPrecursorTest", "updatePrecursorTest", "testPrecursorTest",
+                // 104: the impact seed resolves events and places from the database, and the rules override is
+                // stored as given (InfraControllersIT).
+                "computeAffectedInfrastructure", "updateInfraRules",
+                // 106: sampleTrack parses inline in SampleController (private helpers) and resolves a record's track
+                // from the database (no IT exercises the endpoint).
+                "sampleTrack",
+                // 108: a product export is parsed by a private instance method against the product's spec, and a place
+                // pack inline against the stored place (no IT exercises either endpoint; RasterExportRulesTest and
+                // ExportJobServiceTest cover the services).
+                "createProductExport", "createPlacePack",
+                // 110: sinks are parsed by instance methods of SinkService against stored sinks and their secrets, and a
+                // sink test opens the stored sink (SinkApiIT).
+                "createSink", "updateSink", "testSink",
+                // 111: snapshots, holds and archive settings are parsed by instance methods of database-backed
+                // services (SnapshotIT, HoldCopyStepIT, ArchiveStepIT).
+                "createSnapshot", "createHold", "updateArchiveSettings",
+                // 112: ShareLinksController.parseCreate is package-private (ShareLinkIT).
+                "createShareLink",
+                // 117: the backfill's from is parsed by CotBackfillService against the stored history (CotBackfillIT).
+                "backfillCftcCot",
+                // 118: situations are parsed by SituationService against stored situations and records, and the linker
+                // test inline (SituationControllersIT).
+                "createSituation", "updateSituation", "addSituationMember", "mergeSituation", "splitSituation",
+                "testSituationLinker",
+                // 119: a series upsert checks the series exists, a finding patch is read inline and an event study is
+                // validated by a package-private method of EventStudyService (AnalyticsControllersIT).
+                "upsertAnalysisSeries", "updateFinding", "createEventStudy",
+                // 120: precursor candidates and patches are parsed by instance methods of PrecursorService
+                // (PrecursorControllersIT).
+                "updatePrecursor", "createPrecursorCandidate",
+                // 109: TokenService.licencePolicy is package-private and updateLicencePolicy loads the stored token
+                // (LicencePolicyFilterIT).
+                "updateToken",
+                // 121: reference imports and analog queries are parsed by instance methods of database-backed
+                // services (BaseRateControllersIT).
+                "createReferenceImport", "queryAnalogs");
         List<String> uncovered = OpenApiSpec.routes().stream()
                 .filter(SpecOperation::implemented)
                 .filter(op -> op.node().has("requestBody"))
@@ -506,6 +572,17 @@ class PostmanCollectionContractTest {
             q.setType("binary");
         }
         return q;
+    }
+
+    /**
+     * {@code node} as the map BaseRateController hands its service (prompt 121), or null for a missing or null node.
+     */
+    private static Map<String, Object> jsonMap(JsonNode node) {
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        return OpenApiSpec.JSON.readValue(node.toString(),
+                new tools.jackson.core.type.TypeReference<java.util.LinkedHashMap<String, Object>>() {});
     }
 
     /** A registry holding the USGS source, as the metric-settings entry builds it. */

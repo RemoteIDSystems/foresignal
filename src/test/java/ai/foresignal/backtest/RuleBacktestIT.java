@@ -49,11 +49,16 @@ class RuleBacktestIT {
     private UUID seed(int count) {
         clock.setInstant(Instant.parse("2026-03-01T12:00:00Z"));
         Instant now = clock.instant();
-        UUID ruleId = rules.create(json.readTree("{\"name\":\"big things\",\"sources\":[\"test-standard\"],"
-                + "\"kinds\":[\"thing\"],\"mode\":\"match\",\"conditions\":[{\"path\":\"size\",\"op\":\">=\","
+        // Disabled, so the live trigger engine never fires on the seeded records: a backtest replays the rule
+        // whether or not it is enabled, and the actual block (its real alerts) is then deterministically empty
+        // instead of depending on the live engine's timing.
+        UUID ruleId = rules.create(json.readTree("{\"name\":\"big things\",\"enabled\":false,"
+                + "\"sources\":[\"test-standard\"],"
+                + "\"kinds\":[\"test-record\"],\"mode\":\"match\",\"conditions\":[{\"path\":\"size\",\"op\":\">=\","
                 + "\"value\":5}]}")).rule().getId();
         for (int i = 0; i < count; i++) {
-            records.ingestAt(TestIngestSources.STANDARD, now, NormalizedRecord.builder("r" + i, "thing").observedAt(now)
+            records.ingestAt(TestIngestSources.STANDARD, now, NormalizedRecord.builder("r" + i,
+                    TestIngestSources.STANDARD_KIND).observedAt(now)
                     .point(-95, 32).put("name", "r" + i).put("size", i).build());
         }
         return ruleId;

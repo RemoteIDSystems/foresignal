@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.type.TypeReference;
@@ -39,6 +40,7 @@ public class CanonicalRules {
     private final String version;
 
     /** Loads the bundled rules. */
+    @Autowired
     public CanonicalRules(JsonMapper json) {
         this(read(json));
     }

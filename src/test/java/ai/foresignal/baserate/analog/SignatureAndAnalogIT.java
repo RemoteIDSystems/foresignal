@@ -1,5 +1,7 @@
 package ai.foresignal.baserate.analog;
 
+import org.springframework.context.annotation.Import;
+import ai.foresignal.testsupport.ingest.TestIngestSources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.offset;
 
@@ -29,6 +31,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * when embeddings exist.
  */
 @IntegrationTest
+@Import(TestIngestSources.class)
 class SignatureAndAnalogIT {
 
     static final Instant T0 = Instant.parse("2026-06-01T12:00:00Z");

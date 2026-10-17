@@ -16,11 +16,13 @@ import ai.foresignal.mcp.ToolContext;
 import ai.foresignal.mcp.ToolResult;
 import ai.foresignal.security.Scope;
 import java.util.Map;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** {@code run_analyst} (agent, prompt 102): triggers a run now. */
+@ai.foresignal.security.restrict.RestrictedRead("starts a run; returns its id and status, no record content")
 @Component
 public class RunAnalystTool implements ForesignalMcpTool {
 
@@ -32,7 +34,7 @@ public class RunAnalystTool implements ForesignalMcpTool {
     private final JsonMapper json;
 
     /** Creates the tool. */
-    public RunAnalystTool(AnalystService analyst, AnalystScheduler scheduler, JsonMapper json) {
+    public RunAnalystTool(AnalystService analyst, @Lazy AnalystScheduler scheduler, JsonMapper json) {
         this.analyst = analyst;
         this.scheduler = scheduler;
         this.json = json;

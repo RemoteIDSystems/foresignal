@@ -85,7 +85,7 @@ class WmtsControllerTest {
                 "image/png", "WebMercatorQuad", "5", "12", "7", null, null, request);
         assertThat(response.getStatusCode().value()).isEqualTo(301);
         assertThat(response.getHeaders().getLocation().toString())
-                .endsWith("/tiles/20261016T120000Z/WebMercatorQuad/5/7/12.png");
+                .endsWith("/tiles/20261016T120000Z~1a2b3c4d/WebMercatorQuad/5/7/12.png");
     }
 
     @Test

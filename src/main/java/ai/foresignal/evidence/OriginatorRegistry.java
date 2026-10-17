@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -73,6 +74,7 @@ public class OriginatorRegistry {
     private volatile Model merged;
 
     /** Creates the registry and loads the bundled file. */
+    @Autowired
     public OriginatorRegistry(JsonMapper json, AppSettingService settings, ObjectProvider<SourceRegistry> sources) {
         this.json = json;
         this.settings = settings;

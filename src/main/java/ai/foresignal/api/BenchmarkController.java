@@ -9,6 +9,7 @@ import ai.foresignal.benchmark.BenchmarkViews;
 import ai.foresignal.security.CurrentToken;
 import ai.foresignal.security.Scope;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
@@ -45,6 +46,7 @@ public class BenchmarkController {
     /** {@code createBenchmarkRun}: 202 with the queued run; 409 {@code BENCHMARK_IN_PROGRESS}. */
     @PostMapping("/v1/benchmarks/runs")
     @Operation(operationId = "createBenchmarkRun", tags = "Analysis")
+    @ApiResponse(responseCode = "202", description = "Run accepted")
     public ResponseEntity<Map<String, Object>> createBenchmarkRun(@RequestBody(required = false) JsonNode body,
             HttpServletRequest request) {
         BenchmarkInputs.RunRequest input = BenchmarkInputs.run(body);
@@ -105,6 +107,7 @@ public class BenchmarkController {
     /** {@code createBenchmarkCase}: 201; source {@code operator} for admin tokens, else {@code agent}. */
     @PostMapping("/v1/benchmarks/cases")
     @Operation(operationId = "createBenchmarkCase", tags = "Analysis")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createBenchmarkCase(@RequestBody(required = false) JsonNode body,
             HttpServletRequest request) {
         BenchmarkInputs.CaseInput input = BenchmarkInputs.caseInput(body);
@@ -116,6 +119,7 @@ public class BenchmarkController {
     /** {@code deleteBenchmarkCase}: 204; 404 {@code UNKNOWN_BENCHMARK_CASE}. */
     @DeleteMapping("/v1/benchmarks/cases/{caseId}")
     @Operation(operationId = "deleteBenchmarkCase", tags = "Analysis")
+    @ApiResponse(responseCode = "204", description = "Deleted")
     public ResponseEntity<Void> deleteBenchmarkCase(@PathVariable String caseId) {
         benchmarks.deleteCase(caseId);
         return ResponseEntity.noContent().build();

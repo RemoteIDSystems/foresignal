@@ -28,6 +28,7 @@ import tools.jackson.databind.node.ObjectNode;
  * {@code list_anomalies} (read, prompt 100): the evaluated anomaly buckets, newest first. The
  * p-value assumes the stated count model; it is not the probability that something is happening.
  */
+@ai.foresignal.security.restrict.RestrictedRead("anomaly statistics per rule group: group keys and counts, no record payloads")
 @Component
 public class ListAnomaliesTool implements ForesignalMcpTool {
 

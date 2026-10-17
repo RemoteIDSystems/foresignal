@@ -101,4 +101,22 @@ final class SatDumpFixtures {
             throw new UncheckedIOException(e);
         }
     }
+
+    /**
+     * Empties the remote-upload area of {@code station} under {@code rasterRoot}
+     * ({@code satdump/{station}/incoming}). It is shared, on-disk state: RemoteIngestIT lands bundles for
+     * the same Meteor pass there, and a new station scans them as uploads and joins them to the pass a
+     * test is building.
+     */
+    static void clearUploads(Path rasterRoot, String station) throws IOException {
+        Path incoming = rasterRoot.resolve("satdump").resolve(station).resolve(SatDumpStation.UPLOADS_DIRECTORY);
+        if (!Files.exists(incoming)) {
+            return;
+        }
+        try (java.util.stream.Stream<Path> walk = Files.walk(incoming)) {
+            for (Path p : walk.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                Files.deleteIfExists(p);
+            }
+        }
+    }
 }

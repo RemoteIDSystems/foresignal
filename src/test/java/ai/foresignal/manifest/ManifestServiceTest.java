@@ -85,12 +85,13 @@ class ManifestServiceTest {
     void registriesAndBuild() {
         ManifestService service = service(mock(JdbcTemplate.class));
         Map<String, Object> content = service.content(ManifestRequest.of("x", "1").registries("originators.json",
-                "canonical-rules.json", "signal-families.json"));
+                "canonical-rules.json", "no-such-registry.json"));
         @SuppressWarnings("unchecked")
         Map<String, Object> registries = (Map<String, Object>) content.get("registries");
         assertThat((String) registries.get("originators.json")).hasSize(64);
         assertThat((String) registries.get("canonical-rules.json")).hasSize(64);
-        assertThat(registries.get("signal-families.json")).isEqualTo(RegistryHashes.MISSING);
+        // signal-families.json exists since prompt 119, so the missing case names a registry that does not.
+        assertThat(registries.get("no-such-registry.json")).isEqualTo(RegistryHashes.MISSING);
         assertThat(content.get("build")).isEqualTo(Map.of("version", "1.0.0-test", "gitCommit", "abc123"));
         assertThat(content.get("asOfSeq")).isNull();
         assertThat(content.get("model")).isNull();

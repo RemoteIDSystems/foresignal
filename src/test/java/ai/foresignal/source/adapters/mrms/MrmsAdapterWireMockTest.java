@@ -407,7 +407,7 @@ class MrmsAdapterWireMockTest extends WireMockSupport {
     void descriptor() {
         SourceDescriptor d = adapter.descriptor();
         assertThat(d.id()).isEqualTo("mrms");
-        assertThat(d.defaultBudget()).isEqualTo(Budget.of(30, 12_000, 4_000));
+        assertThat(d.defaultBudget()).isEqualTo(Budget.of(30, 12_000, 4_500)); // raised by 106 for the extended products
         assertThat(d.defaultInterval()).isEqualTo(Duration.ofMinutes(2));
         assertThat(d.minInterval()).isEqualTo(Duration.ofMinutes(2));
         assertThat(d.maxResponseBytes()).isEqualTo(8 * 1024 * 1024);
@@ -417,7 +417,9 @@ class MrmsAdapterWireMockTest extends WireMockSupport {
         assertThat(d.licence()).isEqualTo("US-PD");
         assertThat(d.products()).extracting(ProductSpec::id)
                 .containsExactly(MrmsAdapter.REFLECTIVITY, MrmsAdapter.PRECIP_RATE, MrmsAdapter.MESH, MrmsAdapter.ROTATION,
-                        MrmsAdapter.QPE_1H, MrmsAdapter.QPE_24H, MrmsAdapter.FFG_RATIO);
+                        MrmsAdapter.QPE_1H, MrmsAdapter.QPE_24H, MrmsAdapter.FFG_RATIO,
+                        // prompt 106 adds three more
+                        "mrms-lightning-prob", "mrms-vil", "mrms-echo-top-50");
         ProductSpec reflectivity = d.products().get(0);
         assertThat(reflectivity.codes()).containsEntry(0, "noCoverage").containsEntry(1, "noEcho");
         assertThat(reflectivity.physical(166)).isEqualTo(50.0);

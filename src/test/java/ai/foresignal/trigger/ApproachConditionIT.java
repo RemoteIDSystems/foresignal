@@ -109,7 +109,9 @@ class ApproachConditionIT {
     @DisplayName("the persist gate persists the approach flip as TRIGGER_EDGE")
     void gateFlip() {
         approachRule("{'point':" + TARGET + "}", "");
-        position("ship", 0.0, 90);
+        // Not 0.0: (0,0) is the null island, whose geometry the normalizer drops (QA flag), so the next position
+        // would add a geometry and persist SIGNIFICANT (checkpoint 124).
+        position("ship", 0.001, 90);
         position("ship", 0.005, 90);
         position("ship", 0.01, 90);
         assertThat(versions("ship")).as("a SAMPLED source persists only the first version while nothing flips")

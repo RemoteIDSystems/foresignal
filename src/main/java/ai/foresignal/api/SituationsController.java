@@ -16,6 +16,7 @@ import ai.foresignal.situation.SituationSnapshots;
 import ai.foresignal.situation.SituationThemes;
 import ai.foresignal.situation.SituationViews;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -159,6 +160,7 @@ public class SituationsController {
     /** {@code createSituation}. */
     @PostMapping
     @Operation(operationId = "createSituation", tags = "Situations")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createSituation(@RequestBody JsonNode body, HttpServletRequest request) {
         SituationEntity situation = situations.create(body, actor(request), origin(request),
                 visibility.seesPrivate(request));
@@ -176,6 +178,8 @@ public class SituationsController {
     /** {@code addSituationMember}: 201 when added, 200 when already a member. */
     @PostMapping("/{situationId}/members")
     @Operation(operationId = "addSituationMember", tags = "Situations")
+    @ApiResponse(responseCode = "200", description = "Already a member")
+    @ApiResponse(responseCode = "201", description = "Added")
     public ResponseEntity<Map<String, Object>> addSituationMember(@PathVariable String situationId,
             @RequestBody JsonNode body, HttpServletRequest request) {
         SituationService.AddResult result = situations.addMember(situationId, body, actor(request), origin(request),
@@ -187,6 +191,7 @@ public class SituationsController {
     /** {@code removeSituationMember}. */
     @DeleteMapping("/{situationId}/members/{memberId}")
     @Operation(operationId = "removeSituationMember", tags = "Situations")
+    @ApiResponse(responseCode = "204", description = "Removed")
     public ResponseEntity<Void> removeSituationMember(@PathVariable String situationId, @PathVariable String memberId,
             HttpServletRequest request) {
         situations.removeMember(situationId, memberId, actor(request), visibility.seesPrivate(request));
@@ -208,6 +213,7 @@ public class SituationsController {
     /** {@code splitSituation}: 201 with the new situation. */
     @PostMapping("/{situationId}/split")
     @Operation(operationId = "splitSituation", tags = "Situations")
+    @ApiResponse(responseCode = "201", description = "New situation")
     public ResponseEntity<Map<String, Object>> splitSituation(@PathVariable String situationId,
             @RequestBody JsonNode body, HttpServletRequest request) {
         if (body == null || !body.isObject()) {
@@ -232,6 +238,7 @@ public class SituationsController {
     /** {@code regenerateSituationBrief}: 202; the brief is written on a background thread. */
     @PostMapping("/{situationId}/brief")
     @Operation(operationId = "regenerateSituationBrief", tags = "Situations")
+    @ApiResponse(responseCode = "202", description = "Accepted")
     public ResponseEntity<Map<String, Object>> regenerateSituationBrief(@PathVariable String situationId,
             HttpServletRequest request) {
         return ResponseEntity.accepted().body(briefs.request(situationId, visibility.seesPrivate(request)));

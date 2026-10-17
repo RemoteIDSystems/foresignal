@@ -290,9 +290,8 @@ public class SwpcAuroraAdapter implements PollingAdapter {
                         .defaultStyle("aurora@1")
                         .temporal(ProductSpec.Temporal.observation(Duration.ofMinutes(30), Duration.ofHours(1)))
                         .spatial(new ProductSpec.Spatial("global", 2, 0, 2, null))
-                        .retention(new ProductSpec.RetentionLadder(
-                                List.of(new ProductSpec.RetentionLadder.Rung(Duration.ofHours(24), Duration.ofMinutes(30))),
-                                Duration.ofHours(24), null))
+                        // 24 hours unthinned: a rung at 24 h with maxAge 24 h was refused by the registry (124).
+                        .retention(ProductSpec.RetentionLadder.maxAge(Duration.ofHours(24)))
                         .attribution(new ProductSpec.Attribution("NOAA Space Weather Prediction Center (OVATION)"
                                         + " aurora nowcast", null,
                                 "https://www.swpc.noaa.gov/products/aurora-30-minute-forecast", "US-PD", null, false))

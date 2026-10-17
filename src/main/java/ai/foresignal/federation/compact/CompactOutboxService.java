@@ -15,6 +15,7 @@ import ai.foresignal.trigger.AlertBus;
 import ai.foresignal.trigger.AlertEvent;
 import ai.foresignal.trigger.AlertListener;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PreDestroy;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -74,6 +75,19 @@ public class CompactOutboxService implements AlertListener, IntelListener, Inges
         }
         if (intelSub == null) {
             intelSub = intel.subscribe("federation-compact", this, IntelEventBus.DEFAULT_QUEUE);
+        }
+    }
+
+    /** Closes both bus subscriptions when the context closes, which stops their delivery threads. */
+    @PreDestroy
+    public synchronized void stop() {
+        if (alertSub != null) {
+            alertSub.close();
+            alertSub = null;
+        }
+        if (intelSub != null) {
+            intelSub.close();
+            intelSub = null;
         }
     }
 

@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import ai.foresignal.notify.ChannelRateLimiter;
 import ai.foresignal.notify.ChannelService;
 import ai.foresignal.notify.NotificationAction;
+import ai.foresignal.security.ratelimit.AuthFailureBackoff;
 import ai.foresignal.store.NotificationDeliveryRepository;
 import ai.foresignal.store.TriggerRuleRepository;
 import ai.foresignal.test.IntegrationTest;
@@ -48,6 +49,7 @@ class ActionEndpointIT {
     @Autowired MockMvc mvc;
     @Autowired ActionService actions;
     @Autowired ActionRateLimiter limiter;
+    @Autowired AuthFailureBackoff backoff;
     @Autowired AlertStore alerts;
     @Autowired ChannelService channels;
     @Autowired ChannelRateLimiter channelLimiter;
@@ -63,6 +65,7 @@ class ActionEndpointIT {
     void setUp() {
         clock.setInstant(T);
         limiter.reset();
+        backoff.reset();
         fixture = new ActionFixture(jdbc, rules);
         channel = new NotifyFixture(channels, deliveries, channelLimiter).channel(
                 "{'name':'Ops','type':'ntfy','config':{'serverUrl':'https://ntfy.example.invalid','topic':'t'}}");
@@ -169,6 +172,9 @@ class ActionEndpointIT {
     void rateLimit() throws Exception {
         String unknown = "eac_" + "A".repeat(22) + "." + "A".repeat(11);
         for (int i = 0; i < ActionRateLimiter.PER_IP_PER_MINUTE; i++) {
+            // Each unknown link is also a failed credential (035, ActionBackoffIT); clearing that backoff keeps
+            // this test on the 30-per-minute limiter alone.
+            backoff.reset();
             mvc.perform(from(get("/v1/actions/" + unknown), "198.51.100.7")).andExpect(status().isGone());
         }
         mvc.perform(from(post("/v1/actions/" + unknown), "198.51.100.7").accept(MediaType.APPLICATION_JSON))
@@ -176,6 +182,7 @@ class ActionEndpointIT {
                 .andExpect(header().exists(HttpHeaders.RETRY_AFTER));
         mvc.perform(from(get("/v1/actions/" + unknown), "198.51.100.8")).andExpect(status().isGone());
         clock.advance(java.time.Duration.ofMinutes(1));
+        backoff.reset();
         mvc.perform(from(get("/v1/actions/" + unknown), "198.51.100.7")).andExpect(status().isGone());
     }
 

@@ -26,6 +26,7 @@ import tools.jackson.databind.JsonNode;
  * {@code create_export} (agent; prompt 111): submits a bulk export with the caller's rights and
  * returns the job with its download and manifest URLs, never file bytes.
  */
+@ai.foresignal.security.restrict.RestrictedRead("the export runs with the caller egress viewer and restriction (ExportJobService.Caller)")
 @Component
 public class CreateExportTool implements ForesignalMcpTool {
 

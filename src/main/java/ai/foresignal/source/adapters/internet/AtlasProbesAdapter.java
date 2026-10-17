@@ -36,6 +36,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.JsonParser;
 import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -97,6 +98,15 @@ public final class AtlasProbesAdapter implements PollingAdapter {
             + "prefix_v4,prefix_v6,country_code,is_anchor,is_public,tags";
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
+
+    /**
+     * Reads the dump one probe tree at a time. Jackson 3 enables {@code FAIL_ON_TRAILING_TOKENS} by default, which
+     * refuses a tree read that leaves the next probe behind it; streaming needs it off (as in
+     * {@code source.support.ReferenceStreams}).
+     */
+    private static final JsonMapper STREAM = JsonMapper.builder()
+            .disable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+            .build();
 
     private final URI baseUrl;
     private final URI apiBaseUrl;
@@ -264,7 +274,7 @@ public final class AtlasProbesAdapter implements PollingAdapter {
      */
     public List<NormalizedRecord> parse(InputStream json, Set<Integer> statuses) throws IOException {
         List<NormalizedRecord> out = new ArrayList<>();
-        try (JsonParser parser = JSON.createParser(json)) {
+        try (JsonParser parser = STREAM.createParser(json)) {
             if (parser.nextToken() != JsonToken.START_OBJECT) {
                 throw new UpstreamFormatException("The RIPE Atlas dump is not a JSON object", "");
             }
@@ -276,7 +286,7 @@ public final class AtlasProbesAdapter implements PollingAdapter {
                     continue;
                 }
                 while (parser.nextToken() == JsonToken.START_OBJECT) {
-                    JsonNode probe = JSON.readTree(parser);
+                    JsonNode probe = STREAM.readTree(parser);
                     NormalizedRecord record = map(probe, statuses);
                     if (record != null) {
                         out.add(record);

@@ -1,7 +1,6 @@
 package ai.foresignal.ogc;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ai.foresignal.ogc.cql2.Cql2Queryables;
@@ -22,6 +21,7 @@ import ai.foresignal.test.IntegrationTest;
 import ai.foresignal.testsupport.export.ExportItSupport;
 import ai.foresignal.testsupport.retention.RetentionTestSources;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -38,6 +38,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -122,8 +124,18 @@ class OgcFeaturesIT extends ExportItSupport {
         return out;
     }
 
+    /** Percent-encodes a query value; a space is {@code %20}, since a servlet query string keeps {@code +}. */
     static String enc(String s) {
-        return URLEncoder.encode(s, StandardCharsets.UTF_8);
+        return URLEncoder.encode(s, StandardCharsets.UTF_8).replace("+", "%20");
+    }
+
+    /**
+     * A GET of an already-encoded URL. {@code MockMvcRequestBuilders.get(String)} treats its argument as a
+     * URI template and encodes it again ({@code %3A} becomes {@code %253A}, {@code {} a variable), so the
+     * URL is passed as a {@link URI}.
+     */
+    static MockHttpServletRequestBuilder get(String url) {
+        return MockMvcRequestBuilders.get(URI.create(url));
     }
 
     @Test
@@ -314,7 +326,9 @@ class OgcFeaturesIT extends ExportItSupport {
     @DisplayName("with openReads off, a feed key reads features through its path; no credential is 401")
     void feedKey() throws Exception {
         settings.put(SettingKeys.SECURITY, new SecuritySettings(false));
+        // a feed key must carry restrictions (prompt 035): this one is limited to the quake source
         FeedKeyService.CreatedKey key = feedKeys.create(JSON.readTree("{\"name\":\"qgis\",\"prefixes\":[\"/v1/ogc\"],"
+                + "\"restrictions\":{\"sources\":[\"" + QUAKES + "\"]},"
                 + "\"expiresAt\":\"" + T0.plus(Duration.ofDays(30)) + "\"}"));
         mvc.perform(get("/v1/ogc/collections/" + KIND + "/items")).andExpect(status().isUnauthorized());
         MvcResult result = mvc.perform(get("/v1/k/" + key.key() + "/ogc/collections/" + KIND + "/items?source=" + QUAKES))

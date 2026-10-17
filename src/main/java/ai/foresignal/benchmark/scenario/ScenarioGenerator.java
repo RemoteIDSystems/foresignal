@@ -52,8 +52,15 @@ public final class ScenarioGenerator {
     /** The evaluated hours of the anomaly scenarios (two weeks). */
     public static final int HOURLY_EVAL = 2 * 168;
 
-    /** The days of a market scenario. */
-    public static final int MARKET_DAYS = 600;
+    /**
+     * The days of a market scenario. The first event sits at day {@value #MARKET_FIRST_EVENT}: a 250-day estimation
+     * window plus room for the 500 placebo dates the live check needs before it (checkpoint 124; with 600 days and
+     * events from day 300, at most about 34 placebo dates were eligible, so no placebo p could reach 0.01).
+     */
+    public static final int MARKET_DAYS = 1200;
+
+    /** The day of the first event slot of a market scenario. */
+    public static final int MARKET_FIRST_EVENT = 900;
 
     /** The daily return standard deviation of a market scenario. */
     public static final double MARKET_SIGMA = 0.01;
@@ -68,7 +75,17 @@ public final class ScenarioGenerator {
     public static final Duration PLANTED_LAG = Duration.ofHours(48);
 
     /** The planted hit rate of the true precursor. */
-    public static final double PLANTED_HIT_RATE = 0.6;
+    public static final double PLANTED_HIT_RATE = 0.7;
+
+    /** The antecedents a day of the true precursor. */
+    public static final double PRECURSOR_ANTECEDENTS_PER_DAY = 0.15;
+
+    /**
+     * The background consequents a day of the true precursor. Checkpoint 124: with 0.2 antecedents a day, a 0.6 hit
+     * rate and 0.1 background consequents a day, the planted lag's window (72 h) had a chance hit rate near 0.47, so
+     * the observed lift could not exceed about 1.5 and the miner's notable rule (lift ≥ 2) could never validate it.
+     */
+    public static final double PRECURSOR_BACKGROUND_PER_DAY = 0.02;
 
     /** The echoes of a duplicate-echo scenario. */
     public static final int ECHOES = 10;
@@ -306,7 +323,7 @@ public final class ScenarioGenerator {
                 SeriesFrequency.DAY, EPOCH, MARKET_DAYS, "price");
         List<Integer> slots = new ArrayList<>();
         for (int k = 0; k < 12; k++) {
-            slots.add(300 + 25 * k);
+            slots.add(MARKET_FIRST_EVENT + 25 * k);
         }
         List<Integer> trueIdx = new ArrayList<>();
         List<Integer> placeboIdx = new ArrayList<>();
@@ -437,9 +454,10 @@ public final class ScenarioGenerator {
             Instant rangeStart, Instant rangeEnd, Map<String, Object> truth) {}
 
     /**
-     * Event streams over {@value #PRECURSOR_DAYS} days: {@code true-precursor} (antecedents at 0.2 a day, each
-     * followed with probability {@value #PLANTED_HIT_RATE} by a consequent 48 h ± 6 h later, plus background
-     * consequents at 0.1 a day), {@code common-driver} (both streams driven by one annual season, no lag) or
+     * Event streams over {@value #PRECURSOR_DAYS} days: {@code true-precursor} (antecedents at
+     * {@value #PRECURSOR_ANTECEDENTS_PER_DAY} a day, each followed with probability {@value #PLANTED_HIT_RATE} by a
+     * consequent 48 h ± 6 h later, plus background consequents at {@value #PRECURSOR_BACKGROUND_PER_DAY} a day; other
+     * streams at 0.2 a day), {@code common-driver} (both streams driven by one annual season, no lag) or
      * {@code null-seasonal} (independent streams). Four independent decoy antecedent streams join the batch.
      *
      * @param type the scenario
@@ -458,7 +476,8 @@ public final class ScenarioGenerator {
             double season = type == ScenarioType.COMMON_DRIVER
                     ? 1 + 0.9 * Math.sin(2 * Math.PI * hour / (365.25 * 24)) : 1;
             Instant t = EPOCH.plus(Duration.ofHours(hour)).plus(Duration.ofMinutes(rng.nextInt(60)));
-            if (rng.bernoulli(0.2 / 24 * season)) {
+            double antecedentRate = type == ScenarioType.TRUE_PRECURSOR ? PRECURSOR_ANTECEDENTS_PER_DAY : 0.2;
+            if (rng.bernoulli(antecedentRate / 24 * season)) {
                 ant.add(occurrence(t));
                 if (type == ScenarioType.TRUE_PRECURSOR && rng.bernoulli(PLANTED_HIT_RATE)) {
                     Instant c = t.plus(PLANTED_LAG).plus(Duration.ofMinutes(rng.nextInt(721) - 360));
@@ -468,7 +487,7 @@ public final class ScenarioGenerator {
                     }
                 }
             }
-            double background = type == ScenarioType.TRUE_PRECURSOR ? 0.1 : 0.2;
+            double background = type == ScenarioType.TRUE_PRECURSOR ? PRECURSOR_BACKGROUND_PER_DAY : 0.2;
             if (rng.bernoulli(background / 24 * season)) {
                 con.add(occurrence(EPOCH.plus(Duration.ofHours(hour)).plus(Duration.ofMinutes(rng.nextInt(60)))));
             }
@@ -493,7 +512,8 @@ public final class ScenarioGenerator {
                 truth.put("lagJitterHours", 6);
                 truth.put("plantedHitRate", PLANTED_HIT_RATE);
                 truth.put("plantedFollowers", planted);
-                truth.put("backgroundPerDay", 0.1);
+                truth.put("antecedentsPerDay", PRECURSOR_ANTECEDENTS_PER_DAY);
+                truth.put("backgroundPerDay", PRECURSOR_BACKGROUND_PER_DAY);
             }
             case COMMON_DRIVER -> {
                 truth.put("driver", "annual season, amplitude 90%");

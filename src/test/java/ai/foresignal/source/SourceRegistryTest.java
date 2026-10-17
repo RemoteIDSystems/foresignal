@@ -456,7 +456,8 @@ class SourceRegistryTest {
         @Test
         @DisplayName("no warnings when significantFields is empty, since everything is significant")
         void noWarningsWithoutSignificantFields() {
-            assertThat(DescriptorValidator.warnings(valid("x").searchFields("anything").build()))
+            // Checkpoint 124: the fixture names a licence, since 109 warns about a source without one.
+            assertThat(DescriptorValidator.warnings(valid("x").licence("CC-BY-4.0").searchFields("anything").build()))
                     .isEmpty();
         }
     }

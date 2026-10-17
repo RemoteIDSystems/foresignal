@@ -197,8 +197,10 @@ class CalendarFeedIT extends ExportItSupport {
         mvc.perform(get("/v1/calendars/launches.ics").header(HttpHeaders.IF_NONE_MATCH, etag))
                 .andExpect(status().isNotModified());
         settings.put(SettingKeys.SECURITY, new SecuritySettings(false));
+        // A feed key needs a data restriction (035): this one reads the launch source only.
         FeedKeyService.CreatedKey key = feedKeys.create(JSON.readTree("{\"name\":\"calendar\",\"prefixes\":"
-                + "[\"/v1/calendars\"],\"expiresAt\":\"" + T0.plus(Duration.ofDays(30)) + "\"}"));
+                + "[\"/v1/calendars\"],\"restrictions\":{\"sources\":[\"launch-library\"]},\"expiresAt\":\""
+                + T0.plus(Duration.ofDays(30)) + "\"}"));
         mvc.perform(get("/v1/calendars/launches.ics")).andExpect(status().isUnauthorized());
         String keyed = mvc.perform(get("/v1/k/" + key.key() + "/calendars/launches.ics")).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);

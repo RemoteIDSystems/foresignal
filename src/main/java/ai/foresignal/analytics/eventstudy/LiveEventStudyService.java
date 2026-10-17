@@ -95,6 +95,21 @@ public class LiveEventStudyService implements IngestStateReset {
     /** The placebo p a pre-event signal needs. */
     public static final double PLACEBO_P = 0.01;
 
+    /**
+     * The first bucket the live pre-event check reads, as an offset from the event's bucket (negative). Placebo dates
+     * must have a full estimation window before them and stay {@code span + 10} buckets away from the event, so
+     * reading only {@code estFrom − 2} buckets left no eligible placebo date and the placebo p was always {@code NaN}
+     * (checkpoint 124). This reads enough history for {@link PlaceboSampler#DEFAULT_COUNT} placebo dates in addition
+     * to the estimation window; buckets before the series starts are gaps.
+     *
+     * @param w the windows of the series' frequency
+     * @return the read offset in buckets
+     */
+    public static int preEventReadOffset(EventStudyEngine.Windows w) {
+        int radius = (w.evTo() - w.preFrom()) + 10;
+        return w.estFrom() - PlaceboSampler.DEFAULT_COUNT - radius - 2;
+    }
+
     /** The 117 families scanned for unexplained moves. */
     public static final Set<String> MOVE_FAMILIES = Set.of("price", "volume", "open-interest", "position",
             "attention", "tone");
@@ -350,7 +365,7 @@ public class LiveEventStudyService implements IngestStateReset {
                 : SeriesFrequency.DAY;
         EventStudyEngine.Windows w = EventStudyEngine.Windows.of(frequency);
         Instant t0 = frequency.floor(event.at());
-        Instant from = frequency.plus(t0, w.estFrom() - 2);
+        Instant from = frequency.plus(t0, preEventReadOffset(w));
         Instant to = frequency.next(t0);
         SeriesData data = reader.read(ref, from, to, asOf);
         if (data.frequency() != frequency) {

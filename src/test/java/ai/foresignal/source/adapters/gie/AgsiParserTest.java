@@ -47,14 +47,14 @@ class AgsiParserTest {
     }
 
     @Test
-    @DisplayName("descriptor: key required, 3 h interval, 40/day, AGSI licence")
+    @DisplayName("descriptor: key required, 3 h interval, 60/day, AGSI licence")
     void descriptor() {
         AgsiAdapter adapter = new AgsiAdapter("");
         SourceDescriptor d = adapter.descriptor();
         assertThat(DescriptorValidator.problems(d, adapter)).isEmpty();
         assertThat(d.requiredCredentialFields()).extracting(c -> c.name()).containsExactly("apiKey");
         assertThat(d.defaultInterval()).isEqualTo(java.time.Duration.ofHours(3));
-        assertThat(d.defaultBudget().perDay()).isEqualTo(40);
+        assertThat(d.defaultBudget().perDay()).isEqualTo(60);
         assertThat(d.licence()).startsWith("GIE AGSI data usage rules");
     }
 }

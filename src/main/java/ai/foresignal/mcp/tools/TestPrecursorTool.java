@@ -21,6 +21,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** {@code test_precursor} (agent, prompt 103). */
+@ai.foresignal.security.restrict.RestrictedRead("queues a job under the caller token; returns the job id, no record content")
 @Component
 public class TestPrecursorTool implements ForesignalMcpTool {
 

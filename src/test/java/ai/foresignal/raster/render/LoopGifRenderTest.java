@@ -22,7 +22,9 @@ class LoopGifRenderTest {
         final List<RenderQueue.Priority> priorities = new ArrayList<>();
 
         RecordingRenderer(TileCache cache) {
-            super(null, null, StyleRegistry.shipped(), null, cache, null);
+            super(null, null, StyleRegistry.shipped(), null, cache, null,
+                    new ai.foresignal.media.GuardedImages(new ai.foresignal.media.ImageGuard(25L * 1024 * 1024,
+                            new io.micrometer.core.instrument.simple.SimpleMeterRegistry())));
         }
 
         @Override

@@ -265,7 +265,7 @@ class SpaceAdaptersTest extends WireMockSupport {
         String ovation = SWPC + "/json/ovation_aurora_latest.json";
         serveConditional(ovation, AdapterFixtures.bytes("swpc-aurora", "ovation_aurora_latest.json"), "\"o1\"");
 
-        FetchResult none = aurora.fetch(harness.context(aurora, Map.of()));
+        FetchResult none = aurora.fetch(auroraContext(Map.of()));
         assertThat(none.records()).isEmpty();
         assertThat(none.complete()).isTrue();
         WIREMOCK.verify(0, anyRequestedFor(anyUrl()));
@@ -274,18 +274,21 @@ class SpaceAdaptersTest extends WireMockSupport {
 
         places.add(new PlacePoints.Summary("tromso", "Tromso", 18.96, 69.65, List.of(), 1));
         places.add(new PlacePoints.Summary("yellowknife", "Yellowknife", -114.37, 62.45, List.of(), 1));
-        FetchResult sampled = aurora.fetch(harness.context(aurora, Map.of()));
+        FetchResult sampled = aurora.fetch(auroraContext(Map.of()));
         assertThat(sampled.complete()).isTrue();
         assertThat(sampled.records()).extracting(NormalizedRecord::externalId).containsExactly("tromso", "yellowknife");
         assertThat(sampled.records().getFirst().geometry().getCoordinate().x).isEqualTo(18.96);
         assertThat(sampled.records().getFirst().payload()).containsEntry("placeName", "Tromso")
                 .containsKeys("probability", "maxWithin300Km", "forecastTime");
         assertThat(state.get(AdapterStateStore.DEGRADED_REASON_KEY)).isEmpty();
-        assertThat(aurora.fetch(harness.context(aurora, Map.of())).notModified()).isTrue();
+        // Prompt 106: the same grid is committed once as the global aurora-probability raster frame.
+        assertThat(auroraFrames).extracting(ai.foresignal.source.spi.FrameInput::productId)
+                .containsExactly(SwpcAuroraAdapter.PRODUCT);
+        assertThat(aurora.fetch(auroraContext(Map.of())).notModified()).isTrue();
 
         // A place is removed: tombstoned, and the grid read last time is sampled without a second request.
         places.removeIf(p -> p.id().equals("yellowknife"));
-        FetchResult after = aurora.fetch(harness.context(aurora, Map.of()));
+        FetchResult after = aurora.fetch(auroraContext(Map.of()));
         assertThat(after.records()).extracting(NormalizedRecord::externalId, NormalizedRecord::tombstone)
                 .containsExactly(org.assertj.core.groups.Tuple.tuple("yellowknife", true),
                         org.assertj.core.groups.Tuple.tuple("tromso", false));
@@ -293,11 +296,45 @@ class SpaceAdaptersTest extends WireMockSupport {
 
         // maxPlaces 1 keeps the first place by id and degrades.
         places.add(new PlacePoints.Summary("abisko", "Abisko", 18.83, 68.35, List.of(), 1));
-        FetchResult capped = aurora.fetch(harness.context(aurora, Map.of("maxPlaces", 1)));
+        FetchResult capped = aurora.fetch(auroraContext(Map.of("maxPlaces", 1)));
         assertThat(capped.records()).filteredOn(r -> !r.tombstone()).extracting(NormalizedRecord::externalId)
                 .containsExactly("abisko");
         assertThat(state.get(AdapterStateStore.DEGRADED_REASON_KEY)).hasValueSatisfying(v ->
                 assertThat(v).contains("maxPlaces"));
+    }
+
+
+    /** Raster frames the aurora adapter committed through {@link #auroraContext}. */
+    private final List<ai.foresignal.source.spi.FrameInput> auroraFrames = new java.util.ArrayList<>();
+
+    /**
+     * An aurora fetch context with a raster pipeline: since prompt 106 the adapter commits the OVATION grid as the
+     * {@code aurora-probability} frame, and a context without a pipeline refuses {@code rasters()}. The sink records
+     * the frame and returns no record (as a partial frame does), so the results hold only the place records.
+     */
+    private ai.foresignal.collect.DefaultFetchContext auroraContext(Map<String, Object> params) {
+        ai.foresignal.collect.DefaultFetchContext ctx = harness.context(aurora, params);
+        ctx.rasterSink(() -> new ai.foresignal.source.spi.RasterSink() {
+            @Override
+            public NormalizedRecord commit(ai.foresignal.source.spi.FrameInput frame) {
+                auroraFrames.add(frame);
+                return null;
+            }
+
+            @Override
+            public List<NormalizedRecord> completeRun(String productId, java.time.Instant referenceTime) {
+                return List.of();
+            }
+
+            @Override
+            public void reportFormatChange(String productId, String reason) {}
+
+            @Override
+            public boolean probing() {
+                return false;
+            }
+        });
+        return ctx;
     }
 
     @Test

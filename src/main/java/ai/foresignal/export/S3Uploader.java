@@ -1,9 +1,11 @@
 package ai.foresignal.export;
 
 import ai.foresignal.net.OutboundUrlPolicy;
+import ai.foresignal.net.PinnedHttp;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -50,6 +52,8 @@ import org.springframework.stereotype.Component;
  *   <li>The endpoint is checked by the outbound URL policy (prompt 035) under the {@code LAN_ALLOWED}
  *       profile: public endpoints plus loopback, RFC 1918, unique-local and shared addresses, over
  *       https or http, so a MinIO on the LAN works and link-local or metadata addresses are refused.
+ *       Every request connects to the address that check resolved, through {@link PinnedHttp} (checkpoint
+ *       124), so a DNS answer that changes after the check cannot redirect an upload.
  * </ul>
  */
 @Component
@@ -66,25 +70,27 @@ public class S3Uploader {
     private static final DateTimeFormatter DATE_ONLY = DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneOffset.UTC);
     private static final Pattern UPLOAD_ID = Pattern.compile("<UploadId>([^<]+)</UploadId>");
     private static final Pattern ETAG = Pattern.compile("<ETag>([^<]+)</ETag>");
+    // HTTP/1.1: over HTTP/2 the JDK takes :authority from the pinned literal URI, not the signed Host.
+    private static final PinnedHttp.ClientSpec CLIENT =
+            new PinnedHttp.ClientSpec(Duration.ofSeconds(20), HttpClient.Version.HTTP_1_1);
 
     private final OutboundUrlPolicy policy;
     private final Clock clock;
-    private final HttpClient client;
+    private final PinnedHttp pinned;
     private final long multipartThreshold;
     private final long partSize;
 
     /** Creates the uploader with the production thresholds. */
     @org.springframework.beans.factory.annotation.Autowired
-    public S3Uploader(OutboundUrlPolicy policy, Clock clock) {
-        this(policy, clock, MULTIPART_THRESHOLD, PART_SIZE);
+    public S3Uploader(OutboundUrlPolicy policy, PinnedHttp pinned, Clock clock) {
+        this(policy, pinned, clock, MULTIPART_THRESHOLD, PART_SIZE);
     }
 
     /** Creates the uploader with explicit thresholds (tests use small parts). */
-    S3Uploader(OutboundUrlPolicy policy, Clock clock, long multipartThreshold, long partSize) {
+    S3Uploader(OutboundUrlPolicy policy, PinnedHttp pinned, Clock clock, long multipartThreshold, long partSize) {
         this.policy = policy;
+        this.pinned = pinned;
         this.clock = clock;
-        this.client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20))
-                .followRedirects(HttpClient.Redirect.NEVER).build();
         this.multipartThreshold = multipartThreshold;
         this.partSize = partSize;
     }
@@ -124,8 +130,16 @@ public class S3Uploader {
         }
     }
 
-    /** The resolved object URL and key. */
-    record Target(String endpoint, String host, String path, String key) {}
+    /**
+     * The resolved object URL and key.
+     *
+     * @param endpoint the scheme and host (with the bucket for virtual-hosted style) of every request
+     * @param host the signed {@code Host}
+     * @param path the object path
+     * @param key the object key, the prefix included
+     * @param address the address the policy checked, which every request connects to
+     */
+    record Target(String endpoint, String host, String path, String key, InetAddress address) {}
 
     /** Checks the endpoint and builds the object URL (path-style or virtual-hosted). */
     Target target(ArchiveSettings.S3 s3, String key) {
@@ -149,7 +163,7 @@ public class S3Uploader {
             throw new IllegalStateException("The archive endpoint is not allowed: "
                     + ((OutboundUrlPolicy.Denied) result).reason());
         }
-        return new Target(origin, host, path, objectKey);
+        return new Target(origin, host, path, objectKey, ((OutboundUrlPolicy.Allowed) result).pinned());
     }
 
     private Result single(Target target, ArchiveSettings.S3 s3, Map<String, String> secrets, Path file, long size)
@@ -157,7 +171,7 @@ public class S3Uploader {
         byte[][] digests = digests(file, 0, size);
         HttpRequest request = signed(target, s3, secrets, "PUT", Map.of(), digests[0], digests[1],
                 HttpRequest.BodyPublishers.ofFile(file));
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = send(target, request, HttpResponse.BodyHandlers.ofString());
         requireSuccess("PutObject", response);
         String etag = unquote(response.headers().firstValue("ETag").orElse(""));
         boolean verified = etag.equalsIgnoreCase(HexFormat.of().formatHex(digests[1]));
@@ -169,7 +183,7 @@ public class S3Uploader {
         byte[] empty = sha256(new byte[0]);
         HttpRequest create = signed(target, s3, secrets, "POST", Map.of("uploads", ""), empty, null,
                 HttpRequest.BodyPublishers.noBody());
-        HttpResponse<String> created = client.send(create, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> created = send(target, create, HttpResponse.BodyHandlers.ofString());
         requireSuccess("CreateMultipartUpload", created);
         Matcher id = UPLOAD_ID.matcher(created.body());
         if (!id.find()) {
@@ -189,7 +203,7 @@ public class S3Uploader {
                         Map.of("partNumber", Integer.toString(part), "uploadId", uploadId), digests[0], digests[1],
                         HttpRequest.BodyPublishers.fromPublisher(
                                 HttpRequest.BodyPublishers.ofInputStream(() -> region(file, partOffset, length)), length));
-                HttpResponse<String> uploaded = client.send(upload, HttpResponse.BodyHandlers.ofString());
+                HttpResponse<String> uploaded = send(target, upload, HttpResponse.BodyHandlers.ofString());
                 requireSuccess("UploadPart " + part, uploaded);
                 String etag = unquote(uploaded.headers().firstValue("ETag").orElse(""));
                 if (!etag.equalsIgnoreCase(HexFormat.of().formatHex(digests[1]))) {
@@ -206,7 +220,7 @@ public class S3Uploader {
             byte[] body = xml.toString().getBytes(StandardCharsets.UTF_8);
             HttpRequest complete = signed(target, s3, secrets, "POST", Map.of("uploadId", uploadId), sha256(body),
                     md5(body), HttpRequest.BodyPublishers.ofByteArray(body));
-            HttpResponse<String> completed = client.send(complete, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> completed = send(target, complete, HttpResponse.BodyHandlers.ofString());
             requireSuccess("CompleteMultipartUpload", completed);
             if (completed.body() != null && completed.body().contains("<Error>")) {
                 throw new IOException("CompleteMultipartUpload failed: " + completed.body());
@@ -225,12 +239,19 @@ public class S3Uploader {
         try {
             HttpRequest abort = signed(target, s3, secrets, "DELETE", Map.of("uploadId", uploadId),
                     sha256(new byte[0]), null, HttpRequest.BodyPublishers.noBody());
-            client.send(abort, HttpResponse.BodyHandlers.discarding());
+            send(target, abort, HttpResponse.BodyHandlers.discarding());
         } catch (IOException | RuntimeException e) {
             // The bucket's lifecycle rules remove an abandoned upload; the original failure is reported.
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    /** Sends {@code request} to the address the policy checked, with the signed {@code Host}. */
+    private <T> HttpResponse<T> send(Target target, HttpRequest request, HttpResponse.BodyHandler<T> handler)
+            throws IOException, InterruptedException {
+        return pinned.client(URI.create(target.endpoint()), CLIENT)
+                .send(PinnedHttp.pin(request, target.address()), handler);
     }
 
     /** A SigV4-signed request. */

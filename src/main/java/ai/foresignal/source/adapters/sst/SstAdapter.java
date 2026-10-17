@@ -139,7 +139,12 @@ public class SstAdapter implements PollingAdapter, DecoderDependent {
             float[] values = reader.floats(VARIABLE);
             float[] lat = reader.floats("latitude");
             float[] lon = reader.floats("longitude");
-            Instant time = reader.globalTime("time");
+            // ERDDAP names the analysis time in time_coverage_start; there is no global "time"
+            // attribute (verified on the 2026-10-17 capture, fixtures/sst-geopolar/README.md).
+            Instant time = reader.globalTime("time_coverage_start");
+            if (time == null) {
+                time = reader.globalTime("time");
+            }
             String last = ctx.state().get(STATE_KEY).orElse(null);
             if (time != null && time.toString().equals(last)) {
                 return FetchResult.unchanged();
@@ -194,9 +199,14 @@ public class SstAdapter implements PollingAdapter, DecoderDependent {
         return new double[] {-100, 15, -75, 40};
     }
 
-    private String subsetUrl(double[] box) {
-        return baseUrl + DATASET + ".nc?" + VARIABLE + "[(last)][" + box[1] + ":1:" + box[3] + "][" + box[0] + ":1:"
-                + box[2] + "]";
+    /**
+     * The griddap subset of {@code box} ({@code west, south, east, north}) at the latest time. The
+     * bounds are coordinate values, so each sits in parentheses: griddap reads a bare number as an
+     * array index, and {@code [15.0:1:40.0]} is answered 400 (verified 2026-10-17).
+     */
+    String subsetUrl(double[] box) {
+        return baseUrl + DATASET + ".nc?" + VARIABLE + "[(last)][(" + box[1] + "):1:(" + box[3] + ")][(" + box[0]
+                + "):1:(" + box[2] + ")]";
     }
 
     private static GridDefinition latLonGrid(float[] lon, float[] lat, int nx, int ny, boolean northToSouth) {
@@ -205,7 +215,7 @@ public class SstAdapter implements PollingAdapter, DecoderDependent {
         double lo1 = lon[0];
         double la1 = northToSouth ? lat[0] : lat[ny - 1];
         double west = Math.max(-180, lo1 - dx / 2);
-        double east = Math.min(180, lo1 + nx * dx);
+        double east = Math.min(180, lo1 - dx / 2 + nx * dx);
         double north = Math.min(90, la1 + dy / 2);
         double south = Math.max(-90, la1 - ny * dy + dy / 2);
         Map<String, Object> params = new LinkedHashMap<>();

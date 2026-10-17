@@ -24,9 +24,12 @@ class StyleRegistryTest {
     @DisplayName("ships the nine prompt 045 styles plus qpe@1 (051) and ffg-ratio@1, rotation@1 (053), each compiling to"
             + " at most 256 colors with entry 0 transparent")
     void shippedStyles() {
-        assertThat(styles.all()).extracting(StyleDefinition::ref).containsExactly("ffg-ratio@1", "ir-enhanced@1",
-                "ir-gray@1", "mesh@1", "nws-reflectivity@1", "precip-rate@1", "qpe@1", "rgb@1", "rotation@1", "smoke@1",
-                "temperature@1", "wind-speed@1");
+        // later prompts (106 and on) add styles; the list is the full shipped set in ref order
+        assertThat(styles.all()).extracting(StyleDefinition::ref).containsExactly("aurora@1", "echotop@1",
+                "ffg-ratio@1", "heatrisk@1", "ir-enhanced@1", "ir-gray@1", "ltg-prob@1", "mesh@1",
+                "nws-reflectivity@1", "precip-rate@1", "pressure@1", "qpe@1", "rgb@1", "rotation@1", "smoke@1",
+                "smoke@2", "sst@1", "temperature@1", "velocity@1", "vil@1", "vis-gray@1", "wave@1", "wind-speed@1",
+                "wv-enhanced@1", "wv-gray@1");
         ProductSpec u8 = ProductSpec.builder("p").dtype(RasterDtype.U8).build();
         ProductSpec u16 = ProductSpec.builder("q").dtype(RasterDtype.U16).build();
         ProductSpec f32 = ProductSpec.builder("r").dtype(RasterDtype.F32).build();
@@ -37,7 +40,10 @@ class StyleRegistryTest {
                 assertThat(compiled.color(0)).isZero();
                 assertThat(compiled.colorModel().getMapSize()).isLessThanOrEqualTo(256);
             }
-            assertThat(styles.isCurrent(style)).isTrue();
+            // a style is current unless a newer version of the same id ships (smoke@2 supersedes smoke@1)
+            boolean superseded = styles.all().stream().anyMatch(o -> o.id().equals(style.id())
+                    && o.version() > style.version());
+            assertThat(styles.isCurrent(style)).isEqualTo(!superseded);
             assertThat(style.toMap(true)).containsKeys("id", "version", "ref", "current", "type", "stops", "notice");
         }
         assertThat(styles.compiled(styles.resolve("precip-rate").style(), u16).table()).hasSize(65_536);

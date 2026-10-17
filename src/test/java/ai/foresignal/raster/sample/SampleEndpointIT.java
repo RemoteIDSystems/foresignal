@@ -148,14 +148,18 @@ class SampleEndpointIT extends RasterApiSupport {
     }
 
     @Test
-    @DisplayName("unknown product 404, bad coordinates and record= 400")
+    @DisplayName("unknown product 404, bad coordinates 400, a malformed record= 400 and an unknown one 404")
     void errors() throws Exception {
         HttpResponse<String> unknown = get("/v1/sample?lon=-97.75&lat=31.0&products=nope");
         assertThat(unknown.statusCode()).isEqualTo(404);
         assertThat(code(unknown)).isEqualTo("UNKNOWN_PRODUCT");
         assertThat(get("/v1/sample?lon=-197&lat=31.0&products=" + OBS).statusCode()).isEqualTo(400);
         assertThat(get("/v1/sample?products=" + OBS).statusCode()).isEqualTo(400);
-        assertThat(get("/v1/sample?lon=-97.75&lat=31.0&products=" + OBS + "&record=a/b").statusCode()).isEqualTo(400);
+        // prompt 106 made record= a supported parameter: a malformed ref is 400, an unknown record 404
+        assertThat(get("/v1/sample?lon=-97.75&lat=31.0&products=" + OBS + "&record=ab").statusCode()).isEqualTo(400);
+        HttpResponse<String> noRecord = get("/v1/sample?lon=-97.75&lat=31.0&products=" + OBS + "&record=a/b");
+        assertThat(noRecord.statusCode()).isEqualTo(404);
+        assertThat(code(noRecord)).isEqualTo("UNKNOWN_RECORD");
         assertThat(get("/v1/sample?lon=-97.75&lat=31.0&products=" + OBS + "&time=yesterday").statusCode()).isEqualTo(400);
     }
 

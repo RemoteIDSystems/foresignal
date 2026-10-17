@@ -104,7 +104,7 @@ class SituationControllersIT {
 
     long seed(String externalId, double lon) {
         Instant now = clock.instant();
-        records.ingestAt(STANDARD, now, NormalizedRecord.builder(externalId, "thing").observedAt(now)
+        records.ingestAt(STANDARD, now, NormalizedRecord.builder(externalId, "test-record").observedAt(now)
                 .point(lon, 32.0).put("title", "Thing " + externalId).build());
         return jdbc.queryForObject("select max(seq) from record_version where source_id = ? and external_id = ?",
                 Long.class, STANDARD, externalId);

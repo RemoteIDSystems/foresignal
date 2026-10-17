@@ -149,6 +149,7 @@ public class AnalystRunner {
     private final ToolOutputFilter outputFilter;
     private final List<CitableExtractor> extractors;
     private final IntelVisibility visibility;
+    private ObjectProvider<AnalystProposalEvents> proposalEvents;
     private final TriggerRuleRepository rules;
     private final PlaceService places;
     private final JsonMapper json;
@@ -188,6 +189,12 @@ public class AnalystRunner {
         this.clock = clock;
     }
 
+    /** Injects the {@code analyst.proposal} publisher (checkpoint 124); optional in slices without notifications. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void setProposalEvents(ObjectProvider<AnalystProposalEvents> proposalEvents) {
+        this.proposalEvents = proposalEvents;
+    }
+
     /** Runs one profile synchronously, creating and finishing its run row. */
     public AnalystRunEntity run(AnalystProfileEntity profile) {
         AnalystRunEntity run = queued(profile);
@@ -210,7 +217,7 @@ public class AnalystRunner {
         AnalystRunEntity run = runs.findById(runId).orElse(null);
         if (run == null || !"queued".equals(run.getStatus())) {
             profile.setRunningSince(null);
-            profiles.save(profile);
+            saveIfPresent(profile);
             return;
         }
         Instant started = clock.instant();
@@ -226,7 +233,7 @@ public class AnalystRunner {
         } catch (RuntimeException e) {
             run.setStatus("failed");
             run.setReason(e.getMessage());
-            log.warn("Analyst profile {} run failed: {}", profile.getId(), e.toString());
+            log.warn("Analyst profile {} run failed: {}", profile.getId(), e.toString(), e);
         } finally {
             run.setFinishedAt(clock.instant());
             run.setDurationMs((System.nanoTime() - began) / 1_000_000);
@@ -234,7 +241,7 @@ public class AnalystRunner {
             runs.save(run);
             profile.setLastRunAt(started);
             profile.setRunningSince(null);
-            profiles.save(profile);
+            saveIfPresent(profile);
         }
     }
 
@@ -383,6 +390,10 @@ public class AnalystRunner {
         AnalystNoteEntity saved = persistNote(profile, run, validated, last == null ? null : last.model(), seen);
         run.setNotes(saved == null ? 0 : 1);
         List<AnalystProposalEntity> savedProposals = persistProposals(profile, run, validated, seen.seen());
+        AnalystProposalEvents events = proposalEvents == null ? null : proposalEvents.getIfAvailable();
+        if (events != null) {
+            savedProposals.forEach(p -> events.publish(p, AnalystProposalEvents.CREATED));
+        }
         execution.autoExecute(profile, run, savedProposals, null);
         advance(profile, packet.nextCursor());
         run.setCursorTo(packet.nextCursor().toMap());
@@ -679,9 +690,19 @@ public class AnalystRunner {
         return null;
     }
 
+    /**
+     * Saves the profile unless it was deleted while the run was in flight: a save of the detached entity would
+     * otherwise insert it again, resurrecting a deleted profile (with its schedule) after the run.
+     */
+    private void saveIfPresent(AnalystProfileEntity profile) {
+        if (profiles.existsById(profile.getId())) {
+            profiles.save(profile);
+        }
+    }
+
     private void advance(AnalystProfileEntity profile, AnalystCursor cursor) {
         profile.setCursor(cursor.toMap());
-        profiles.save(profile);
+        saveIfPresent(profile);
     }
 
     private void finishBudget(AnalystProfileEntity profile, AnalystRunEntity run,
@@ -692,7 +713,7 @@ public class AnalystRunner {
         if (profile.getLastBudgetEventOn() == null
                 || !profile.getLastBudgetEventOn().equals(now.atZone(ZoneOffset.UTC).toLocalDate())) {
             profile.setLastBudgetEventOn(now.atZone(ZoneOffset.UTC).toLocalDate());
-            profiles.save(profile);
+            saveIfPresent(profile);
             events.publishEvent(new SystemEvent("system.analyst_budget_exceeded", "warning",
                     "Analyst profile budget exhausted",
                     "Profile '" + profile.getName() + "' could not run: the LLM budget for provider "

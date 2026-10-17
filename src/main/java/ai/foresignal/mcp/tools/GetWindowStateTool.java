@@ -28,6 +28,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /** {@code get_window_state} (read, prompt 100): per-group state, value and reason of a windowed rule. */
+@ai.foresignal.security.restrict.RestrictedRead("window counts and states per rule group: group keys and counts, no record payloads")
 @Component
 public class GetWindowStateTool implements ForesignalMcpTool {
 

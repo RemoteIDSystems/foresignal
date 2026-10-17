@@ -80,7 +80,7 @@ class RasterExportRulesTest {
                 "0".repeat(64), "u8", 1, Map.of(), null, RasterFrameRow.COMPLETE, false, false, T, null);
         String xml = RasterExportService.gdalMetadata(ecmwf, frame);
         assertThat(xml).startsWith("<GDALMetadata>").contains("<Item name=\"LICENSE\">CC-BY-4.0</Item>")
-                .contains("<Item name=\"FRAME_KEY\">20261016T120000Z</Item>").contains("ATTRIBUTION");
+                .contains("<Item name=\"FRAME_KEY\">20261016T120000Z~00000000</Item>").contains("ATTRIBUTION");
     }
 
     @Test

@@ -134,7 +134,7 @@ class EcmwfAdapterTest extends WireMockSupport {
     }
 
     private static void stubStep(int step, String index) {
-        WIREMOCK.stubFor(get(urlPathEqualTo("/" + BUCKET + "/" + key(step) + ".index"))
+        WIREMOCK.stubFor(get(urlPathEqualTo("/" + BUCKET + "/" + EcmwfRunIngest.indexKey(key(step))))
                 .willReturn(aResponse().withHeader("Content-Type", "application/json").withBody(index)));
         WIREMOCK.stubFor(get(urlPathEqualTo("/" + BUCKET + "/" + key(step)))
                 .withHeader("Range", equalTo("bytes=0-" + (LSM.length - 1)))
@@ -191,16 +191,16 @@ class EcmwfAdapterTest extends WireMockSupport {
         }
         assertThat(state.asMap()).containsEntry("done:" + CYCLE, "0").doesNotContainKey("tries:" + CYCLE)
                 .doesNotContainKey("complete:t-lsm");
-        int before = WIREMOCK.findAll(getRequestedFor(urlPathEqualTo("/" + BUCKET + "/" + key(0) + ".index"))).size();
+        int before = WIREMOCK.findAll(getRequestedFor(urlPathEqualTo("/" + BUCKET + "/" + EcmwfRunIngest.indexKey(key(0))))).size();
         ingest.fetch(context(new RecordingSink(), "0"), MODEL, EcmwfAdapterTest::objectUri);
-        assertThat(WIREMOCK.findAll(getRequestedFor(urlPathEqualTo("/" + BUCKET + "/" + key(0) + ".index"))))
+        assertThat(WIREMOCK.findAll(getRequestedFor(urlPathEqualTo("/" + BUCKET + "/" + EcmwfRunIngest.indexKey(key(0))))))
                 .as("a step given up on is not fetched again").hasSize(before);
     }
 
     @Test
     @DisplayName("a 503 on the index fails the fetch and marks no step done")
     void serviceUnavailable() {
-        WIREMOCK.stubFor(get(urlPathEqualTo("/" + BUCKET + "/" + key(0) + ".index"))
+        WIREMOCK.stubFor(get(urlPathEqualTo("/" + BUCKET + "/" + EcmwfRunIngest.indexKey(key(0))))
                 .willReturn(aResponse().withStatus(503).withHeader("Retry-After", "120")));
         RecordingSink sink = new RecordingSink();
         assertThatThrownBy(() -> ingest.fetch(context("ecmwf-ifs-503-test", sink, "0"), MODEL,

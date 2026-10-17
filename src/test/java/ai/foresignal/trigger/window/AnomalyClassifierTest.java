@@ -52,9 +52,18 @@ class AnomalyClassifierTest {
     @Test
     @DisplayName("a baseline winsorizes at p99 and switches to the negative binomial when overdispersed")
     void baseline() {
-        List<Integer> counts = List.of(10, 10, 11, 10, 12, 9, 10, 11, 10, 500);
+        // A nearest-rank p99 only falls below the maximum from 100 samples up (ceil(0.99 n) - 1 < n - 1), so the
+        // outlier is planted among 100 samples; with 10 the p99 is the maximum itself and nothing is capped.
+        List<Integer> counts = new java.util.ArrayList<>();
+        int[] typical = {10, 10, 11, 10, 12, 9, 10, 11, 10};
+        for (int i = 0; i < 99; i++) {
+            counts.add(typical[i % typical.length]);
+        }
+        counts.add(500);
+        assertThat(Baseline.winsorize(counts)).doesNotContain(500);
         Baseline poisson = Baseline.of(counts, List.of(1.0), "hour-of-week", Duration.ofHours(1));
         assertThat(poisson.mean()).isLessThan(20);
+        assertThat(Baseline.winsorize(List.of(10, 10, 11, 10, 12, 9, 10, 11, 10, 500))).contains(500);
         Baseline overdispersed = Baseline.of(List.of(1, 1, 1, 1, 60, 1, 1, 1), List.of(1.0), "hour-of-week",
                 Duration.ofHours(1));
         assertThat(overdispersed.model()).isEqualTo("nb");

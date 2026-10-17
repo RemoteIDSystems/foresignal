@@ -64,7 +64,8 @@ class BacktestControllersIT {
         UUID ruleId = rules.create(json.readTree("{\"name\":\"" + name + "\",\"sources\":[\"test-standard\"]}"))
                 .rule().getId();
         records.ingestAt(TestIngestSources.STANDARD, now,
-                NormalizedRecord.builder(name, "thing").observedAt(now).point(-95, 32).put("name", name).build());
+                NormalizedRecord.builder(name, TestIngestSources.STANDARD_KIND).observedAt(now).point(-95, 32)
+                        .put("name", name).build());
         return ruleId;
     }
 
@@ -115,11 +116,13 @@ class BacktestControllersIT {
         AuthenticatedToken token = token(Scope.AGENT);
         UUID ruleId = seededRule("busy");
         Map<String, Object> first = backtests.createBacktest(json.readTree("{\"type\":\"quality\"}"), request(token));
-        // Hold the job in "running" so the conflict does not depend on the worker's timing.
-        jobsRepository.findById(String.valueOf(first.get("id"))).ifPresent(job -> {
-            job.setStatus("running");
-            jobsRepository.save(job);
-        });
+        // Hold the job in "running" so the conflict does not depend on the worker's timing: let the worker finish
+        // first (await claims and runs it if the pool has not), so nothing can move it out of "running" afterwards.
+        String firstId = String.valueOf(first.get("id"));
+        RuleBacktestIT.await(jobs, firstId);
+        BacktestJobEntity held = jobsRepository.findById(firstId).orElseThrow();
+        held.setStatus("running");
+        jobsRepository.save(held);
         assertThatThrownBy(() -> backtests.createBacktest(json.readTree("{\"type\":\"quality\"}"), request(token)))
                 .isInstanceOf(ConflictException.class);
         assertThatThrownBy(() -> runBacktest.call(context(token), json.readTree("{\"type\":\"rule\",\"targetId\":\""
@@ -131,6 +134,7 @@ class BacktestControllersIT {
                 .isInstanceOf(ConflictException.class);
         assertThatThrownBy(() -> testPrecursor.call(context(token), json.readTree("{\"id\":\"" + precursorId + "\"}")))
                 .isInstanceOf(ConflictException.class);
+        jobs.cancel(firstId);
     }
 
     @Autowired BacktestJobRepository jobsRepository;

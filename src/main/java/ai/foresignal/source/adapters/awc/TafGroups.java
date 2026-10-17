@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
  */
 public final class TafGroups {
 
-    private static final Pattern CHANGE = Pattern.compile("^(FM\\d{4}|TEMPO|BECMG|INTER|PROB\\d{2}(?: TEMPO)?)$");
+    private static final Pattern CHANGE = Pattern.compile("^(FM\\d{6}|FM\\d{4}|TEMPO|BECMG|INTER|PROB\\d{2}(?: TEMPO)?)$");
     private static final Pattern WIND = Pattern.compile("^(\\d{3}|VRB)(\\d{2,3})(?:G(\\d{2,3}))?(KT|MPS)$");
     private static final Pattern VISIBILITY = Pattern.compile("^(P)?(\\d{1,2})(SM|)(?:/(\\d{1,2})SM)?$");
     private static final Pattern CLOUDS = Pattern.compile("^(FEW|SCT|BKN|OVC|VV)(\\d{3})(CB|TCU)?$");

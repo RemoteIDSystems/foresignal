@@ -468,7 +468,9 @@ BODIES = {
                            "wikiArticles": [{"project": "en.wikipedia", "article": "Bab-el-Mandeb"}],
                            "keywords": ["Bab el-Mandeb", "Red Sea", "Houthi"], "regionCodes": ["YE", "DJ", "ER"],
                            "themes": ["shipping"], "enabled": True},
-  "updateAttentionTopic": {"id": "{{attentionTopicId}}", "name": "Red Sea shipping",
+  # The body id must equal the path's topic id and match ^[a-z0-9-]{3,48}$, which a {{variable}} cannot, so it is the
+  # literal default of {{attentionTopicId}} (the shipped red-sea-shipping example); change both together.
+  "updateAttentionTopic": {"id": "red-sea-shipping", "name": "Red Sea shipping",
                            "description": "Shipping disruption in the Red Sea and the Bab el-Mandeb strait.",
                            "gdeltQuery": "(\"Red Sea\" OR \"Bab el-Mandeb\") (shipping OR tanker OR vessel OR Houthi)",
                            "wikiArticles": [{"project": "en.wikipedia", "article": "Bab-el-Mandeb"},
@@ -488,8 +490,11 @@ BODIES = {
   "updateSituation": {"title": "Red Sea and Bab el-Mandeb shipping disruption", "severityOverride": "warning",
                       "reason": "Insurers suspended cover", "version": 0},
   "addSituationMember": {"memberType": "alert", "ref": "{{alertId}}", "role": "core"},
-  "mergeSituation": {"intoId": "{{otherSituationId}}", "reason": "The same storyline seen from two chokepoints"},
-  "splitSituation": {"memberIds": ["{{situationMemberId}}"], "title": "Gulf of Aden piracy", "theme": "maritime"},
+  # Situation and member ids are ULIDs (^[0-9A-HJKMNP-TV-Z]{26}$), which a {{variable}} cannot match: replace the
+  # example ULID with the id in {{otherSituationId}} (merge) or {{situationMemberId}} (split).
+  "mergeSituation": {"intoId": "01JA8Q3V7S2K9W4T6Y1B5N0M3C", "reason": "The same storyline seen from two chokepoints"},
+  "splitSituation": {"memberIds": ["01JA8Q3V7S2K9W4T6Y1B5N0M3C"], "title": "Gulf of Aden piracy",
+                     "theme": "maritime"},
   "testSituationLinker": {"fromSeq": 0, "toSeq": 10000},
   # 119: register the CFTC WTI managed-money net position as an operator analysis series with a watch pair (Gulf
   # conflict events checked against it live), run a batch event study of maritime disruptions in Yemen against the
@@ -566,6 +571,65 @@ BODIES = {
                                                          "from": "2024-01-01T00:00:00Z",
                                                          "to": "2024-01-31T00:00:00Z", "minSeverity": "notable"}],
                                            "notes": "Operator case from the PortWatch record."}},
+  # 098: assert an IMO number (check digit valid) on the entity in {{entityId}}, and merge another entity into it
+  # (replace the example ULID with the other entity's id; entity ids are ULIDs, which a {{variable}} cannot match).
+  "addEntityKey": {"keyType": "imo", "keyValue": "9074729", "confidence": 1.0,
+                   "validFrom": "2026-01-01T00:00:00Z", "validTo": None, "force": False},
+  "mergeEntities": {"otherId": "01JA8Q3V7S2K9W4T6Y1B5N0M3C"},
+  # 101: an operator intelligence event built from one pinned record version (replace the seq with the seq of the
+  # version of {{sourceId}}/{{externalId}} you mean; sourceId and externalId must match that version), a second
+  # member, a merge into another event (replace the example ULID with its id), a recipe dry run over the first
+  # 10000 seqs, an investigation with an alert in it, and the GHSL population pack import.
+  "createIntelEvent": {"type": "maritime-disruption", "title": "Tanker diverted around the Bab el-Mandeb",
+                       "severity": "warning", "origin": "operator", "startTime": "2026-10-15T06:00:00Z",
+                       "notes": "Diversion reported after a nearby strike.",
+                       "members": [{"memberType": "record", "role": "supporting", "sourceId": "{{sourceId}}",
+                                    "externalId": "{{externalId}}", "seq": 1}]},
+  "addIntelEventMember": {"memberType": "record", "role": "context", "sourceId": "{{sourceId}}",
+                          "externalId": "{{externalId}}", "seq": 2},
+  "mergeIntelEvent": {"intoId": "01JA8Q3V7S2K9W4T6Y1B5N0M3C"},
+  "testRecipe": {"fromSeq": 0, "toSeq": 10000},
+  "createInvestigation": {"title": "Red Sea shipping disruption, October 2026",
+                          "summary": "Diversions and strikes around the Bab el-Mandeb.", "tags": ["red-sea", "shipping"]},
+  "addInvestigationItem": {"itemType": "alert", "ref": "{{alertId}}", "note": "The first strike alert."},
+  "importPopulationPack": {"path": "packs/ghsl/GHS_POP_E2025_GLOBE_R2023A_4326_30ss"},
+  # 102: an analyst profile that reviews maritime and infrastructure events every 30 minutes over the last week, a
+  # note marked read, and feedback on a note and a proposal.
+  "createAnalystProfile": {"name": "Red Sea watch", "enabled": True, "schedule": {"every": "30m"},
+                           "scope": {"eventTypes": ["maritime-disruption", "infrastructure-disruption"],
+                                     "minSeverity": "warning"},
+                           "lookback": "7d", "instructions": "Focus on shipping through the Bab el-Mandeb.",
+                           "effort": "low", "maxRunsPerDay": 48, "allowActions": False,
+                           "notifyMinPriority": "normal"},
+  "updateAnalystProfile": {"name": "Red Sea watch", "enabled": True,
+                           "schedule": {"cron": "0 */2 * * *", "timezone": "America/Chicago"},
+                           "scope": {"eventTypes": ["maritime-disruption"], "minSeverity": "warning"},
+                           "lookback": "3d", "effort": "medium", "maxRunsPerDay": 12, "allowActions": False,
+                           "notifyMinPriority": "high"},
+  "updateAnalystNote": {"status": "read"},
+  "analystNoteFeedback": {"rating": "useful", "comment": "Caught the diversion before the news did."},
+  "analystProposalFeedback": {"rating": "not_useful", "comment": "Already covered by an existing watch."},
+  # 103: a rule backtest of the rule in {{ruleId}} over the first half of October, and a precursor test: alerts of
+  # that rule followed by maritime disruption events within six hours and 100 km (lags are ISO-8601 durations).
+  "createBacktest": {"type": "rule", "targetId": "{{ruleId}}", "from": "2026-10-01T00:00:00Z",
+                     "to": "2026-10-15T00:00:00Z"},
+  "createPrecursorTest": {"name": "GNSS jamming before maritime disruption",
+                          "statement": "GPS jamming precedes maritime disruption within 6 h within 100 km",
+                          "antecedent": {"alertRuleId": "{{ruleId}}"},
+                          "consequent": {"intelEventType": "maritime-disruption"},
+                          "minLag": "PT0S", "maxLag": "PT6H", "spatial": {"withinKm": 100}},
+  "updatePrecursorTest": {"name": "GNSS jamming before maritime disruption",
+                          "statement": "GPS jamming precedes maritime disruption within 12 h in the same country",
+                          "antecedent": {"alertRuleId": "{{ruleId}}"},
+                          "consequent": {"intelEventType": "maritime-disruption"},
+                          "minLag": "PT0S", "maxLag": "PT12H", "spatial": {"sameRegion": "country"},
+                          "dedupWindow": "PT12H"},
+  # 104: tighten plant-to-substation proximity to 3 km and switch off the critical-load rule.
+  "updateInfraRules": {"rules": [{"id": "plant-substation", "enabled": True, "params": {"maxKm": 3}},
+                                 {"id": "substation-critical-load", "enabled": False}]},
+  # 111: archive the USGS source to the local cold archive, keeping the local copy.
+  "updateArchiveSettings": {"enabled": True, "sources": ["usgs-earthquakes"], "target": "local", "s3": None,
+                            "keepLocal": True},
   # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
   # one nautical mile in the next hour.
   "cpaBatch": {"subject": "aisstream/244660000", "filter": {"kinds": ["vessel"], "sources": [],

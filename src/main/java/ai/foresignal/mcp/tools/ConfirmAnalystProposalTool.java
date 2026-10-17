@@ -13,11 +13,13 @@ import ai.foresignal.mcp.ToolContext;
 import ai.foresignal.mcp.ToolResult;
 import ai.foresignal.security.Scope;
 import java.util.Map;
+import ai.foresignal.security.restrict.RestrictedRead;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** {@code confirm_analyst_proposal} (agent, prompt 102). */
+@RestrictedRead("a private proposal is not found for a caller without private access; no record content")
 @Component
 public class ConfirmAnalystProposalTool implements ForesignalMcpTool {
 
@@ -25,9 +27,12 @@ public class ConfirmAnalystProposalTool implements ForesignalMcpTool {
 
     private final AnalystExecutionService execution;
     private final JsonMapper json;
+    private final ai.foresignal.intel.IntelVisibility visibility;
 
     /** Creates the tool. */
-    public ConfirmAnalystProposalTool(AnalystExecutionService execution, JsonMapper json) {
+    public ConfirmAnalystProposalTool(AnalystExecutionService execution, JsonMapper json,
+            ai.foresignal.intel.IntelVisibility visibility) {
+        this.visibility = visibility;
         this.execution = execution;
         this.json = json;
     }
@@ -76,7 +81,8 @@ public class ConfirmAnalystProposalTool implements ForesignalMcpTool {
     public ToolResult call(ToolContext context, JsonNode args) {
         try {
             return ToolResult.json(json.valueToTree(
-                    AnalystViews.proposal(execution.confirm(McpArgs.requiredText(args, "id"), context.actor()))));
+                    AnalystViews.proposal(execution.confirm(McpArgs.requiredText(args, "id"), context.actor(),
+                            visibility.seesPrivate(context.caller())))));
         } catch (RuntimeException e) {
             throw new McpToolException(e.getMessage());
         }

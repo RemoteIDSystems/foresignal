@@ -4,6 +4,7 @@ import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.export.HoldEntity;
 import ai.foresignal.export.HoldService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -48,6 +49,7 @@ public class HoldsController {
     /** {@code createHold}: create a hold, 201. */
     @PostMapping("/v1/holds")
     @Operation(operationId = "createHold", tags = "Archive")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createHold(@RequestBody JsonNode body, HttpServletRequest request) {
         HoldEntity hold = holds.create(body, ExportCallers.tokenId(request));
         return ResponseEntity.created(URI.create("/v1/holds/" + hold.getId())).body(holds.view(hold));
@@ -56,6 +58,7 @@ public class HoldsController {
     /** {@code deleteHold}: delete a hold and its copies, 204. */
     @DeleteMapping("/v1/holds/{holdId}")
     @Operation(operationId = "deleteHold", tags = "Archive")
+    @ApiResponse(responseCode = "204", description = "Deleted")
     public ResponseEntity<Void> deleteHold(@PathVariable String holdId) {
         holds.delete(holdId);
         return ResponseEntity.noContent().build();

@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.locationtech.jts.geom.Point;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -63,7 +65,8 @@ public class PolGenerator implements DerivedGenerator {
     private final Set<String> known = new LinkedHashSet<>();
 
     /** Creates the public generator. */
-    public PolGenerator(PolEngine engine, PolSubjectRepository subjects, PolPlaceRepository places) {
+    @Autowired
+    public PolGenerator(@Lazy PolEngine engine, PolSubjectRepository subjects, PolPlaceRepository places) {
         this(engine, subjects, places, buildDescriptor(ID, false));
     }
 

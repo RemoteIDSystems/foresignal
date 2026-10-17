@@ -51,12 +51,16 @@ class TokenFilterIT {
     @Autowired private AppSettingService settings;
     @Autowired private MutableClock clock;
     @Autowired private JsonMapper json;
+    @Autowired private ai.foresignal.security.ratelimit.AuthFailureBackoff backoff;
 
     private final Map<String, String> bearers = new HashMap<>();
 
     @BeforeEach
     void tokens() {
         settings.invalidateCache();
+        // Failed credentials of earlier cases (and other tests in this context) share 127.0.0.1; the 035 backoff
+        // would turn this matrix's 401s into 429s (AuthFailureBackoffTest covers the backoff).
+        backoff.reset();
         bearers.clear();
         bearers.put("admin", adminTokens.rotate());
         bearers.put("read", TestTokens.create(tokens, "reader", Scope.READ).plaintext());

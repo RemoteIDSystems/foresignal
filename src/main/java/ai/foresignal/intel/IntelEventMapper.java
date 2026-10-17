@@ -21,6 +21,7 @@ public class IntelEventMapper {
         out.put("confidence", event.getConfidence());
         out.put("confidenceLabel", event.getConfidenceLabel());
         out.put("evidenceQuality", event.getEvidenceQuality());
+        out.put("memberCount", event.getMemberCount() == null ? 0 : event.getMemberCount());
         out.put("startTime", event.getStartTime());
         out.put("endTime", event.getEndTime());
         out.put("lastEvidenceAt", event.getLastEvidenceAt());

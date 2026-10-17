@@ -59,8 +59,9 @@ class JacksonDurationIT {
                                 + "\"sources\":{\"usgs-earthquakes\":\"3650d\"},\"trackWindow\":\"3d\","
                                 + "\"provenance\":\"30d\",\"notifications\":\"90d\",\"briefings\":\"180d\","
                                 + "\"ask\":\"90d\",\"kinds\":{},\"audit\":\"90d\",\"inbox\":\"30d\","
-                                + "\"stats\":{\"hourly\":\"35d\",\"daily\":\"1825d\"},"
-                                + "\"trackRawWindow\":\"1d\",\"trackDownsampleInterval\":\"5m\"}");
+                                + "\"stats\":{\"hourly\":\"35d\",\"daily\":\"1825d\",\"regionHourly\":\"1095d\","
+                                + "\"regionDaily\":\"3650d\"},"
+                                + "\"trackRawWindow\":\"1d\",\"trackDownsampleInterval\":\"5m\",\"entityLinks\":\"365d\"}");
     }
 
     @Test

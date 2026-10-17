@@ -17,6 +17,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** {@code get_backtest} (agent, prompt 103). */
+@ai.foresignal.security.restrict.RestrictedRead("backtest results are counts, statistics and record identities, no record content")
 @Component
 public class GetBacktestTool implements ForesignalMcpTool {
 

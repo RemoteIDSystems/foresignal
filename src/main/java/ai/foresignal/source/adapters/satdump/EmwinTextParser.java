@@ -248,11 +248,12 @@ public final class EmwinTextParser {
         return null;
     }
 
-    static Instant vtecTime(String ddmmyy, String hhmm) {
+    static Instant vtecTime(String yymmdd, String hhmm) {
         try {
-            int day = Integer.parseInt(ddmmyy.substring(0, 2));
-            int month = Integer.parseInt(ddmmyy.substring(2, 4));
-            int year = 2000 + Integer.parseInt(ddmmyy.substring(4, 6));
+            // P-VTEC writes its times as yymmddThhnnZ (NWS Directive 10-1703)
+            int year = 2000 + Integer.parseInt(yymmdd.substring(0, 2));
+            int month = Integer.parseInt(yymmdd.substring(2, 4));
+            int day = Integer.parseInt(yymmdd.substring(4, 6));
             int hour = Integer.parseInt(hhmm.substring(0, 2));
             int minute = Integer.parseInt(hhmm.substring(2, 4));
             return java.time.LocalDateTime.of(year, month, day, hour, minute).toInstant(java.time.ZoneOffset.UTC);

@@ -20,6 +20,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** {@code update_intel_event_status} (agent, prompt 101): title, status, severity or notes. */
+@ai.foresignal.security.restrict.RestrictedRead("a private event is not found for a caller without private access (IntelVisibility)")
 @Component
 public class UpdateIntelEventStatusTool implements ForesignalMcpTool {
 

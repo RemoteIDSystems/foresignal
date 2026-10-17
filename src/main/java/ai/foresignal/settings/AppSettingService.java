@@ -81,20 +81,31 @@ public class AppSettingService {
     @Transactional
     public void put(String key, Object value) {
         String json = serialize(key, value);
-        AppSettingEntity entity =
-                repository
-                        .findById(key)
-                        .map(
-                                existing -> {
-                                    existing.setValue(json);
-                                    existing.setUpdatedAt(clock.instant());
-                                    return existing;
-                                })
-                        .orElseGet(() -> new AppSettingEntity(key, json, clock.instant()));
-        repository.save(entity);
+        Optional<AppSettingEntity> existing = repository.findById(key);
+        if (existing.isPresent()) {
+            existing.get().setValue(json);
+            existing.get().setUpdatedAt(clock.instant());
+            repository.save(existing.get());
+        } else {
+            // An upsert, not an insert: two first writers of one key (a cursor stored by two workers at
+            // once) must not fail on the primary key. No entity of this key is managed here, so nothing
+            // in the persistence context goes stale.
+            repository.upsert(key, json, clock.instant());
+        }
 
         // Drop the cache entry now so a read later in this same transaction does not serve the
         // stale value, and publish only once the write is durable.
+        cache.remove(key);
+        publishAfterCommit(key);
+    }
+
+    /**
+     * Deletes the stored value for {@code key}, if any, so reads fall back to their defaults again, and
+     * announces the change once the delete commits.
+     */
+    @Transactional
+    public void remove(String key) {
+        repository.deleteKey(key);
         cache.remove(key);
         publishAfterCommit(key);
     }

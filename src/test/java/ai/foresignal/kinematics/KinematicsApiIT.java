@@ -78,7 +78,9 @@ class KinematicsApiIT {
                 .build());
         read = TestTokens.bearer(TestTokens.create(tokens, "kin-read-" + System.nanoTime(), Scope.READ));
         records.ingestAt(SRC, T,
-                plane("a", 0.0, 0.0, 200, 90, 3000),
+                // Checkpoint 124: an exact (0,0) is removed by the normalizer (QaFlags.NULL_ISLAND), so "a" starts
+                // 0.1 m east of it; every distance in the scenario is unchanged at this precision.
+                plane("a", 0.000001, 0.0, 200, 90, 3000),
                 plane("b", 0.5, 0.0, 200, 270, 3300),
                 plane("c", 0.2, 0.05, 150, 270, 3000),
                 plane("far", 6.0, 0.0, 200, 270, 3000),

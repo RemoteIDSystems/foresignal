@@ -2660,7 +2660,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"type\": \"rule\",\n  \"targetId\": \"{{ruleId}}\",\n  \"from\": \"2026-10-01T00:00:00Z\",\n  \"to\": \"2026-10-15T00:00:00Z\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2931,7 +2931,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"GNSS jamming before maritime disruption\",\n  \"statement\": \"GPS jamming precedes maritime disruption within 6 h within 100 km\",\n  \"antecedent\": {\n    \"alertRuleId\": \"{{ruleId}}\"\n  },\n  \"consequent\": {\n    \"intelEventType\": \"maritime-disruption\"\n  },\n  \"minLag\": \"PT0S\",\n  \"maxLag\": \"PT6H\",\n  \"spatial\": {\n    \"withinKm\": 100\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3029,7 +3029,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"GNSS jamming before maritime disruption\",\n  \"statement\": \"GPS jamming precedes maritime disruption within 12 h in the same country\",\n  \"antecedent\": {\n    \"alertRuleId\": \"{{ruleId}}\"\n  },\n  \"consequent\": {\n    \"intelEventType\": \"maritime-disruption\"\n  },\n  \"minLag\": \"PT0S\",\n  \"maxLag\": \"PT12H\",\n  \"spatial\": {\n    \"sameRegion\": \"country\"\n  },\n  \"dedupWindow\": \"PT12H\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4444,7 +4444,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Red Sea watch\",\n  \"enabled\": true,\n  \"schedule\": {\n    \"every\": \"30m\"\n  },\n  \"scope\": {\n    \"eventTypes\": [\n      \"maritime-disruption\",\n      \"infrastructure-disruption\"\n    ],\n    \"minSeverity\": \"warning\"\n  },\n  \"lookback\": \"7d\",\n  \"instructions\": \"Focus on shipping through the Bab el-Mandeb.\",\n  \"effort\": \"low\",\n  \"maxRunsPerDay\": 48,\n  \"allowActions\": false,\n  \"notifyMinPriority\": \"normal\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4544,7 +4544,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Red Sea watch\",\n  \"enabled\": true,\n  \"schedule\": {\n    \"cron\": \"0 */2 * * *\",\n    \"timezone\": \"America/Chicago\"\n  },\n  \"scope\": {\n    \"eventTypes\": [\n      \"maritime-disruption\"\n    ],\n    \"minSeverity\": \"warning\"\n  },\n  \"lookback\": \"3d\",\n  \"effort\": \"medium\",\n  \"maxRunsPerDay\": 12,\n  \"allowActions\": false,\n  \"notifyMinPriority\": \"high\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4881,7 +4881,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"status\": \"read\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4935,7 +4935,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"rating\": \"useful\",\n  \"comment\": \"Caught the diversion before the news did.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5176,7 +5176,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"rating\": \"not_useful\",\n  \"comment\": \"Already covered by an existing watch.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6895,7 +6895,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"enabled\": true,\n  \"sources\": [\n    \"usgs-earthquakes\"\n  ],\n  \"target\": \"local\",\n  \"s3\": null,\n  \"keepLocal\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -8459,7 +8459,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id\": \"{{attentionTopicId}}\",\n  \"name\": \"Red Sea shipping\",\n  \"description\": \"Shipping disruption in the Red Sea and the Bab el-Mandeb strait.\",\n  \"gdeltQuery\": \"(\\\"Red Sea\\\" OR \\\"Bab el-Mandeb\\\") (shipping OR tanker OR vessel OR Houthi)\",\n  \"wikiArticles\": [\n    {\n      \"project\": \"en.wikipedia\",\n      \"article\": \"Bab-el-Mandeb\"\n    },\n    {\n      \"project\": \"en.wikipedia\",\n      \"article\": \"Red_Sea\"\n    }\n  ],\n  \"keywords\": [\n    \"Red Sea\",\n    \"Bab el-Mandeb\",\n    \"Houthi\"\n  ],\n  \"regionCodes\": [\n    \"YE\",\n    \"ER\",\n    \"DJ\"\n  ],\n  \"themes\": [\n    \"shipping\",\n    \"maritime-security\"\n  ],\n  \"enabled\": true\n}",
+              "raw": "{\n  \"id\": \"red-sea-shipping\",\n  \"name\": \"Red Sea shipping\",\n  \"description\": \"Shipping disruption in the Red Sea and the Bab el-Mandeb strait.\",\n  \"gdeltQuery\": \"(\\\"Red Sea\\\" OR \\\"Bab el-Mandeb\\\") (shipping OR tanker OR vessel OR Houthi)\",\n  \"wikiArticles\": [\n    {\n      \"project\": \"en.wikipedia\",\n      \"article\": \"Bab-el-Mandeb\"\n    },\n    {\n      \"project\": \"en.wikipedia\",\n      \"article\": \"Red_Sea\"\n    }\n  ],\n  \"keywords\": [\n    \"Red Sea\",\n    \"Bab el-Mandeb\",\n    \"Houthi\"\n  ],\n  \"regionCodes\": [\n    \"YE\",\n    \"ER\",\n    \"DJ\"\n  ],\n  \"themes\": [\n    \"shipping\",\n    \"maritime-security\"\n  ],\n  \"enabled\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -16275,7 +16275,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"keyType\": \"imo\",\n  \"keyValue\": \"9074729\",\n  \"confidence\": 1.0,\n  \"validFrom\": \"2026-01-01T00:00:00Z\",\n  \"validTo\": null,\n  \"force\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -16383,7 +16383,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"otherId\": \"01JA8Q3V7S2K9W4T6Y1B5N0M3C\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -27243,7 +27243,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"type\": \"maritime-disruption\",\n  \"title\": \"Tanker diverted around the Bab el-Mandeb\",\n  \"severity\": \"warning\",\n  \"origin\": \"operator\",\n  \"startTime\": \"2026-10-15T06:00:00Z\",\n  \"notes\": \"Diversion reported after a nearby strike.\",\n  \"members\": [\n    {\n      \"memberType\": \"record\",\n      \"role\": \"supporting\",\n      \"sourceId\": \"{{sourceId}}\",\n      \"externalId\": \"{{externalId}}\",\n      \"seq\": 1\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -27410,7 +27410,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"memberType\": \"record\",\n  \"role\": \"context\",\n  \"sourceId\": \"{{sourceId}}\",\n  \"externalId\": \"{{externalId}}\",\n  \"seq\": 2\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -27515,7 +27515,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"intoId\": \"01JA8Q3V7S2K9W4T6Y1B5N0M3C\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -27675,7 +27675,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"fromSeq\": 0,\n  \"toSeq\": 10000\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -27796,7 +27796,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"title\": \"Red Sea shipping disruption, October 2026\",\n  \"summary\": \"Diversions and strikes around the Bab el-Mandeb.\",\n  \"tags\": [\n    \"red-sea\",\n    \"shipping\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -27995,7 +27995,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"itemType\": \"alert\",\n  \"ref\": \"{{alertId}}\",\n  \"note\": \"The first strike alert.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -28196,7 +28196,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"path\": \"packs/ghsl/GHS_POP_E2025_GLOBE_R2023A_4326_30ss\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -41861,7 +41861,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"rules\": [\n    {\n      \"id\": \"plant-substation\",\n      \"enabled\": true,\n      \"params\": {\n        \"maxKm\": 3\n      }\n    },\n    {\n      \"id\": \"substation-critical-load\",\n      \"enabled\": false\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -43363,7 +43363,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"intoId\": \"{{otherSituationId}}\",\n  \"reason\": \"The same storyline seen from two chokepoints\"\n}",
+              "raw": "{\n  \"intoId\": \"01JA8Q3V7S2K9W4T6Y1B5N0M3C\",\n  \"reason\": \"The same storyline seen from two chokepoints\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -43423,7 +43423,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"memberIds\": [\n    \"{{situationMemberId}}\"\n  ],\n  \"title\": \"Gulf of Aden piracy\",\n  \"theme\": \"maritime\"\n}",
+              "raw": "{\n  \"memberIds\": [\n    \"01JA8Q3V7S2K9W4T6Y1B5N0M3C\"\n  ],\n  \"title\": \"Gulf of Aden piracy\",\n  \"theme\": \"maritime\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

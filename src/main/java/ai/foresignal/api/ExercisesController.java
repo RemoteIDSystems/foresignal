@@ -7,6 +7,7 @@ import ai.foresignal.exercise.ExerciseService;
 import ai.foresignal.exercise.ExerciseViews;
 import ai.foresignal.security.CurrentToken;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -46,6 +47,8 @@ public class ExercisesController {
     /** {@code createExercise}: 201 with the started run, or 200 with a dry-run projection. */
     @PostMapping
     @Operation(operationId = "createExercise", tags = "Exercises")
+    @ApiResponse(responseCode = "201", description = "Run started")
+    @ApiResponse(responseCode = "200", description = "Dry run projection (not persisted)")
     public ResponseEntity<Map<String, Object>> createExercise(@RequestBody JsonNode body, HttpServletRequest request) {
         ExerciseRunEntity run = exercises.create(body, actor(request));
         boolean dryRun = body != null && body.path("dryRun").asBoolean(false);
@@ -90,6 +93,7 @@ public class ExercisesController {
     /** {@code purgeExerciseAlerts}: 204. */
     @DeleteMapping("/{exerciseId}/alerts")
     @Operation(operationId = "purgeExerciseAlerts", tags = "Exercises")
+    @ApiResponse(responseCode = "204", description = "Purged")
     public ResponseEntity<Void> purgeExerciseAlerts(@PathVariable String exerciseId, HttpServletRequest request) {
         exercises.purge(exerciseId, actor(request));
         return ResponseEntity.noContent().build();

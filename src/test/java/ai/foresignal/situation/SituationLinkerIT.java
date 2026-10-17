@@ -2,22 +2,29 @@ package ai.foresignal.situation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ai.foresignal.source.SourceRegistry;
+import ai.foresignal.source.spi.Budget;
+import ai.foresignal.source.spi.Mode;
 import ai.foresignal.source.spi.NormalizedRecord;
+import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.stream.ChangeBus;
 import ai.foresignal.test.IntegrationTest;
 import ai.foresignal.test.MutableClock;
 import ai.foresignal.testsupport.ingest.TestIngestSources;
 import ai.foresignal.testsupport.ingest.TestRecords;
+import ai.foresignal.testsupport.reference.ReferenceFixtures;
 import ai.foresignal.trigger.TriggerEngine;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -28,14 +35,16 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * rewound cursor keeps membership exactly-once; and the dry run equals the live result over the same seq range.
  *
  * <p>The intelligence events are records of kind {@code intelligence-event} in two test sources, which are distinct
- * originators (116), so the two events are two independent evidence groups.
+ * originators (116), so the two events are two independent evidence groups. The two sources are registered per test
+ * because ingest rejects a kind its source does not declare ({@code UNKNOWN_KIND}); the reference fixtures are loaded
+ * per test so inputs carry region codes.
  */
 @IntegrationTest
 @Import(TestIngestSources.class)
 class SituationLinkerIT {
 
-    static final String STANDARD = TestIngestSources.STANDARD;
-    static final String OTHER = TestIngestSources.TTL;
+    static final String STANDARD = "it-situation-a";
+    static final String OTHER = "it-situation-b";
     static final Instant T0 = Instant.parse("2026-03-01T12:00:00Z");
 
     /** Dallas, Texas. */
@@ -56,10 +65,31 @@ class SituationLinkerIT {
     @Autowired JdbcTemplate jdbc;
     @Autowired ChangeBus changeBus;
     @Autowired TriggerEngine triggers;
+    @Autowired SourceRegistry registry;
+    @Autowired ApplicationContext context;
 
     @BeforeEach
     void setUp() {
         clock.setInstant(T0);
+        // The region term needs region tags: the synthetic reference fixtures put Dallas in US-TX and Denver in the
+        // US, and Brasília in no region (the cleaner truncates the reference tables before every test).
+        ReferenceFixtures.loadAll(context);
+        for (String id : List.of(STANDARD, OTHER)) {
+            if (registry.contains(id)) {
+                registry.unregisterDynamic(id);
+            }
+            registry.registerDynamic(SourceDescriptor.builder(id).name("Situation linker test " + id)
+                    .kind(LinkerInputReader.INTEL_KIND).mode(Mode.PUSH).defaultBudget(Budget.of(60, 10_000)).build());
+        }
+    }
+
+    @AfterEach
+    void unregister() {
+        for (String id : List.of(STANDARD, OTHER)) {
+            if (registry.contains(id)) {
+                registry.unregisterDynamic(id);
+            }
+        }
     }
 
     /** Ingests one intelligence-event record. */
@@ -154,7 +184,9 @@ class SituationLinkerIT {
         link(STANDARD, "e4");
         event(STANDARD, "e1", "active", "critical", ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOUR, DALLAS, T0);
         link();
-        event(STANDARD, "e4", "emerging", "info", "nav-warning", DENVER, T0.plusSeconds(600));
+        // Shared country 0.20 + shared entity 0.25 is exactly the 0.45 threshold, so e4 is observed at the situation's
+        // last activity: any later time multiplies the score by a recency factor below 1 and it no longer joins.
+        event(STANDARD, "e4", "emerging", "info", "nav-warning", DENVER, T0);
         link();
         SituationEntity situation = holderOf("e4");
         assertThat(situation.getId()).isEqualTo(holderOf("e1").getId());
@@ -199,8 +231,10 @@ class SituationLinkerIT {
         link(STANDARD, "e4");
         event(STANDARD, "e1", "active", "critical", ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOUR, DALLAS, T0);
         event(OTHER, "e2", "active", "warning", "gnss-interference", NEAR_DALLAS, T0.plusSeconds(60));
-        event(OTHER, "e3", "active", "warning", "gnss-interference", BRASILIA, T0.plusSeconds(120));
-        event(STANDARD, "e4", "emerging", "info", "nav-warning", DENVER, T0.plusSeconds(180));
+        // e3 and e4 at e2's time, the situation's last activity: country 0.20 + entity 0.25 = 0.45 joins only with no
+        // recency decay (and the test clock never moves backward between ingests).
+        event(OTHER, "e3", "active", "warning", "gnss-interference", BRASILIA, T0.plusSeconds(60));
+        event(STANDARD, "e4", "emerging", "info", "nav-warning", DENVER, T0.plusSeconds(60));
         event(OTHER, "e5", "emerging", "info", "conflict", BRASILIA, T0.plus(Duration.ofDays(20)));
         long to = maxSeq();
 

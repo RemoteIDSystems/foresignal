@@ -355,7 +355,9 @@ public class AnalysisSeriesRegistrar {
     private Map<String, String> topicOfSeries() {
         Map<String, String> out = new HashMap<>();
         jdbc.query("SELECT source_id, payload->>'series' AS series, payload->>'topicId' AS topic FROM record_head WHERE"
-                + " kind = 'series-latest' AND tombstone = false AND payload ? 'topicId'", new MapSqlParameterSource(),
+                // jsonb_exists, not the ? operator, which the driver would read as a bind placeholder.
+                + " kind = 'series-latest' AND tombstone = false AND jsonb_exists(payload, 'topicId')",
+                new MapSqlParameterSource(),
                 rs -> {
                     if (rs.getString("series") != null && rs.getString("topic") != null) {
                         out.put(SeriesRef.series(rs.getString("source_id"), rs.getString("series")).format(),

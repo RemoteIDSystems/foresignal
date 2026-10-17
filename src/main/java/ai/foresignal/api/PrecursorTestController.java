@@ -43,9 +43,10 @@ public class PrecursorTestController {
         return BacktestViews.page(tests.list().stream().map(BacktestViews::precursorTest).toList());
     }
 
-    /** {@code createPrecursorTest}. */
+    /** {@code createPrecursorTest}: 201. */
     @PostMapping
     @Operation(operationId = "createPrecursorTest", tags = "Analysis")
+    @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> createPrecursorTest(@RequestBody JsonNode body, HttpServletRequest request) {
         return BacktestViews.precursorTest(tests.create(body, tokenId(request)));
     }

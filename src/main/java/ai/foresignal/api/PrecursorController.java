@@ -9,6 +9,7 @@ import ai.foresignal.precursor.PrecursorViews;
 import ai.foresignal.security.CurrentToken;
 import ai.foresignal.security.restrict.RestrictedRead;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -94,6 +95,7 @@ public class PrecursorController {
     /** {@code createPrecursorCandidate}: 201. */
     @PostMapping("/v1/precursors/candidates")
     @Operation(operationId = "createPrecursorCandidate", tags = "Analytics")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createPrecursorCandidate(@RequestBody JsonNode body,
             HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(PrecursorViews.candidate(service.createCandidate(body,
@@ -103,6 +105,7 @@ public class PrecursorController {
     /** {@code deletePrecursorCandidate}: 204; library precursors are kept. */
     @DeleteMapping("/v1/precursors/candidates/{candidateId}")
     @Operation(operationId = "deletePrecursorCandidate", tags = "Analytics")
+    @ApiResponse(responseCode = "204", description = "Deleted")
     public ResponseEntity<Void> deletePrecursorCandidate(@PathVariable String candidateId) {
         service.deleteCandidate(candidateId);
         return ResponseEntity.noContent().build();
@@ -111,6 +114,7 @@ public class PrecursorController {
     /** {@code minePrecursors}: 202 with the 103 job. */
     @PostMapping("/v1/precursors/mine")
     @Operation(operationId = "minePrecursors", tags = "Analytics")
+    @ApiResponse(responseCode = "202", description = "Job accepted")
     public ResponseEntity<Map<String, Object>> minePrecursors(HttpServletRequest request) {
         BacktestJobEntity job = service.submit("mine", "manual", tokenId(request));
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(BacktestViews.job(job));
@@ -119,6 +123,7 @@ public class PrecursorController {
     /** {@code retestPrecursors}: 202 with the 103 job. */
     @PostMapping("/v1/precursors/retest")
     @Operation(operationId = "retestPrecursors", tags = "Analytics")
+    @ApiResponse(responseCode = "202", description = "Job accepted")
     public ResponseEntity<Map<String, Object>> retestPrecursors(HttpServletRequest request) {
         BacktestJobEntity job = service.submit("retest", "manual", tokenId(request));
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(BacktestViews.job(job));

@@ -11,6 +11,7 @@ import ai.foresignal.export.PackService;
 import ai.foresignal.export.PackSpec;
 import ai.foresignal.intel.PopulationPackService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -74,6 +75,7 @@ public class PacksController {
      */
     @PostMapping
     @Operation(operationId = "createPack", tags = "Exports")
+    @ApiResponse(responseCode = "202", description = "Queued")
     public ResponseEntity<Map<String, Object>> createPack(@RequestBody JsonNode body, HttpServletRequest request) {
         PackSpec spec = PackSpec.parse(body);
         ReadCaller caller = callers.resolve(request);

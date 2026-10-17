@@ -82,7 +82,10 @@ class ImageEndpointIT extends RasterApiSupport {
         assertThat(header(jpeg, "Content-Type")).isEqualTo("image/jpeg");
         assertThat(image(jpeg.body()).getWidth()).isEqualTo(300);
         assertThat(header(jpeg, "Cache-Control")).isEqualTo("public, max-age=60");
-        assertThat(code(get(path("latest", "webp", "bbox=-100,28,-94,34")))).isEqualTo("VALIDATION_FAILED");
+        // prompt 108: .webp is accepted wherever .png is, /image included
+        HttpResponse<byte[]> webp = getBytes(path("latest", "webp", "bbox=-100,28,-94,34"));
+        assertThat(webp.statusCode()).isEqualTo(200);
+        assertThat(header(webp, "Content-Type")).isEqualTo("image/webp");
         assertThat(code(get(path("latest", "png", "width=10")))).isEqualTo("VALIDATION_FAILED");
         assertThat(code(get(path("latest", "png", "bbox=-100,34,-94,28")))).isEqualTo("VALIDATION_FAILED");
         assertThat(code(get(path("latest", "png", "bbox=-100,28,-94,34&crs=EPSG:27700")))).isEqualTo(

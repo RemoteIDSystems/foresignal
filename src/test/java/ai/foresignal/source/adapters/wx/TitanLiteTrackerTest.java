@@ -115,7 +115,8 @@ class TitanLiteTrackerTest {
         Geometry a = square(0, 0, 2, 2);
         Geometry b = square(1, 0, 3, 2);
         double value = TitanLiteTracker.iou(a, b);
-        assertThat(value).isCloseTo(0.5, org.assertj.core.data.Offset.offset(1e-9));
+        // intersection 1x2 = 2, union 3x2 = 6
+        assertThat(value).isCloseTo(1.0 / 3, org.assertj.core.data.Offset.offset(1e-9));
         assertThat(TitanLiteTracker.iou(a, null)).isZero();
     }
 

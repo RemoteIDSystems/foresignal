@@ -77,7 +77,7 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code reopenWindow} of a resolved event reopens it (logged {@code reopened}).
  */
 @Component
-public class CorrelationEngine implements ChangeListener, DisposableBean {
+public class CorrelationEngine implements ChangeListener, DisposableBean, ai.foresignal.ingest.IngestStateReset {
 
     private static final Logger log = LoggerFactory.getLogger(CorrelationEngine.class);
 
@@ -225,10 +225,24 @@ public class CorrelationEngine implements ChangeListener, DisposableBean {
     }
 
     /**
-     * Moves the durable cursor back to {@code seq} (tests, and a restart simulated in place): the next
-     * pass re-reads from there. Membership stays exactly-once because existing members are never added again.
+     * Restarts the cursor at 0 after the record history and {@code record_seq} were reset (a cached or stored cursor
+     * would point past every new record and nothing would correlate). Synchronized with {@link #catchUp()}: a pass in
+     * flight during the reset finishes first, and the cursor it stored for the old history is removed.
      */
-    synchronized void rewind(long seq) {
+    @Override
+    public synchronized void resetState() {
+        cursor = 0;
+        // A missing cursor already means 0, so the reset removes it rather than writing 0 back: the cleaner leaves
+        // app_setting empty apart from the cursors whose absence means "start at the head" (trigger, region).
+        settings.remove(SettingKeys.INTEL_CURSOR);
+    }
+
+    /**
+     * Moves the durable cursor to {@code seq} (tests, and a restart simulated in place): the next
+     * pass re-reads from there. Membership stays exactly-once because existing members are never added again.
+     * Public for the retention test support, which moves it past a {@code record_seq} jump (checkpoint 124).
+     */
+    public synchronized void rewind(long seq) {
         storeCursor(seq);
     }
 
@@ -257,6 +271,13 @@ public class CorrelationEngine implements ChangeListener, DisposableBean {
     public synchronized void catchUp() {
         long watermark = changeBus.lastPublishedSeq();
         long from = cursor();
+        if (from > watermark) {
+            // Only possible after the record history and record_seq were reset (a restore, or the test cleaner racing
+            // a pass that stored its old cursor): the stored cursor describes a history that no longer exists, so the pass
+            // starts again from the beginning (membership stays exactly-once).
+            from = 0;
+            storeCursor(from);
+        }
         List<RecipeDefinition> enabled = recipes.enabledDefinitions();
         while (from < watermark && running) {
             long to = Math.min(from + CHUNK, watermark);
@@ -806,6 +827,8 @@ public class CorrelationEngine implements ChangeListener, DisposableBean {
         event.setTitle(titleOf(all));
         event.setExplanation(explanationOf(all, event.getStartTime(), event.getLastEvidenceAt()));
         applyAnnotators(event, now);
+        // Annotators may add context members after the rescore (checkpoint 124: memberCount).
+        event.setMemberCount((int) members.countByEventId(event.getId()));
         events.save(event);
         String action = created ? "created" : reopened ? "reopened" : "member_added";
         IntelEventLogEntity logRow = new IntelEventLogEntity(event.getId(), now, "recipe:" + recipe.id(), action);

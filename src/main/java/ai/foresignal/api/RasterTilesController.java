@@ -33,6 +33,7 @@ import ai.foresignal.security.visibility.SourceVisibility;
 import ai.foresignal.source.spi.ProductSpec;
 import ai.foresignal.source.spi.RasterDtype;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -131,6 +132,8 @@ public class RasterTilesController {
     /** {@code getProductTileWebp}: the same tile as WebP (prompt 108). */
     @GetMapping("/v1/products/{productId}/tiles/{frameKey}/{z}/{x}/{y}.webp")
     @Operation(operationId = "getProductTileWebp", tags = "Products")
+    @ApiResponse(responseCode = "200", description = "Tile")
+    @ApiResponse(responseCode = "204", description = "Empty tile (empty=204)")
     public ResponseEntity<byte[]> getProductTileWebp(
             @PathVariable String productId, @PathVariable String frameKey, @PathVariable int z, @PathVariable int x,
             @PathVariable String y, @RequestParam(required = false) String style,
@@ -145,6 +148,8 @@ public class RasterTilesController {
     /** {@code getProductTileTms}: a tile in a named tile matrix set, PNG or WebP (prompt 108). */
     @GetMapping("/v1/products/{productId}/tiles/{frameKey}/{tileMatrixSetId}/{z}/{x}/{y}.{format}")
     @Operation(operationId = "getProductTileTms", tags = "Products")
+    @ApiResponse(responseCode = "200", description = "Tile")
+    @ApiResponse(responseCode = "204", description = "Empty tile (empty=204)")
     public ResponseEntity<byte[]> getProductTileTms(
             @PathVariable String productId, @PathVariable String frameKey, @PathVariable String tileMatrixSetId,
             @PathVariable int z, @PathVariable int x, @PathVariable String y,
@@ -457,7 +462,7 @@ public class RasterTilesController {
                 size[0], size[1], mercator, "jpg".equals(fmt));
         boolean contentAddressed = found.contentAddressed() && versioned(style, resolvedStyle);
         String etag = RasterCachePolicy.etag(spec.id(), frame.frameKey(), runOf(frame), frame.status(),
-                resolvedStyle.ref(), RasterRenderService.imageKey(spec, frame, resolvedStyle, image).region());
+                resolvedStyle.ref(), RasterRenderService.imageKey(spec, frame, resolvedStyle, image, fmt).region());
         HttpHeaders headers = RasterCachePolicy.headers(
                 RasterCachePolicy.decide(contentAddressed, publicFor(caller, product), spec), etag, frame.validTime());
         headers.set(RasterCachePolicy.IMAGE_BOUNDS_HEADER, image.boundsHeader());

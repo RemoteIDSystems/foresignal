@@ -22,9 +22,10 @@ import java.util.Map;
  *
  * <p><b>Detection.</b> Upward and downward CUSUMs with {@code minRelShift} (0.5) and an alarm threshold simulated for a
  * target in-control run length of {@code targetArl} (365) buckets. The most recent alarm in the last
- * {@code recentBuckets} becomes a candidate; it is confirmed when at least {@code minPersistence} (3) covered buckets
- * from the estimated change on show a level shifted by at least half of {@code minRelShift} (half a standard deviation
- * for continuous series); until then it is not reported. A coverage gap between the change and the end makes it
+ * {@code recentBuckets} becomes a candidate; it is confirmed when the level from the estimated change through the
+ * alarm is shifted by at least half of {@code minRelShift} (half a standard deviation for continuous series) and at
+ * least {@code minPersistence} (3) covered buckets after the alarm, and at least two thirds of them, each show that
+ * shift; until then it is not reported. A coverage gap between the change and the end makes it
  * {@code unknown}, never a drop.
  *
  * <p><b>Confirmation and base rate.</b> BOCPD (hazard 1/250, run lengths ≤ 300) gives the posterior probability of a
@@ -205,6 +206,8 @@ public final class ChangePointDetector {
             }
             return Result.none(model.name(), Math.max(hUp, hDown));
         }
+        // Recency and direction are judged on the latest alarm; the change is where its shift began.
+        alarm = chainStart(direction > 0 ? runUp.alarms() : runDown.alarms(), alarm);
         int change = alarm.changeIndex();
         boolean gapAfter = false;
         for (int t = change; t < n; t++) {
@@ -232,7 +235,26 @@ public final class ChangePointDetector {
             }
         }
         double needed = counts ? p.minRelShift() / 2 : 0.5;
-        boolean persisted = covered >= p.minPersistence() && Double.isFinite(effect) && direction * effect >= needed;
+        // Persistence (checkpoint 124): at least minPersistence covered buckets after the alarm, and at least two
+        // thirds of them, must each show the shift, not only the average from the change through the alarm. Averaging the span let a two-bucket burst plus one normal bucket pass as a
+        // level shift (the 123 benchmark's spike scenario confirmed a change point in every replicate).
+        // Each bucket is judged against its own in-control baseline (same slot for counts), so a seasonal high is not
+        // mistaken for the shift; the level before the change stands in where no baseline exists.
+        int shifted = 0;
+        int judged = 0;
+        for (int t = alarm.alarmIndex() + 1; t < n; t++) {
+            if (gap[t] || !Double.isFinite(x[t])) {
+                continue;
+            }
+            judged++;
+            double base = Double.isFinite(mu0[t]) ? mu0[t] : before;
+            double scale = counts ? base : sigma[t];
+            if (scale > 0 && Double.isFinite(scale) && direction * (x[t] - base) / scale >= needed) {
+                shifted++;
+            }
+        }
+        boolean persisted = covered >= p.minPersistence() && shifted >= p.minPersistence()
+                && 3 * shifted >= 2 * judged && Double.isFinite(effect) && direction * effect >= needed;
         int historical = 0;
         for (Cusum.Alarm a : runUp.alarms()) {
             if (a.alarmIndex() < change) {
@@ -262,6 +284,20 @@ public final class ChangePointDetector {
 
     private static Cusum.Alarm latest(List<Cusum.Alarm> alarms) {
         return alarms.isEmpty() ? null : alarms.get(alarms.size() - 1);
+    }
+
+    /**
+     * The first alarm of the shift {@code alarm} belongs to. After an alarm the CUSUM restarts from zero, so a
+     * sustained shift re-alarms every few buckets; an alarm whose estimated change is the bucket right after the
+     * previous alarm (the statistic never returned to zero in between) continues that shift. Reporting the chain's
+     * first alarm gives the change and delay of the shift rather than of its latest re-alarm.
+     */
+    private static Cusum.Alarm chainStart(List<Cusum.Alarm> alarms, Cusum.Alarm alarm) {
+        int i = alarms.indexOf(alarm);
+        while (i > 0 && alarms.get(i).changeIndex() == alarms.get(i - 1).alarmIndex() + 1) {
+            i--;
+        }
+        return alarms.get(i);
     }
 
     private static boolean canceledRecently(Cusum.Run run, int from) {

@@ -219,14 +219,14 @@ public class EcmwfRunIngest implements ForecastRunCadence {
                 break;
             }
             String key = ModelCycleSelector.objectKey(settings.template(), cycle, step);
-            Optional<EcmwfIndex> index = readIndex(ctx, def, objectUri.apply(key + ".index"));
+            Optional<EcmwfIndex> index = readIndex(ctx, def, objectUri.apply(indexKey(key)));
             if (index.isEmpty()) {
                 if (newest && step == settings.steps().get(0)) {
                     Instant expected = cycle.plus(settings.availabilityLag()).plus(MISSING_IDX_GRACE);
                     if (ctx.now().isAfter(expected)) {
                         state.degrade(def.label() + ": no .index for run " + cycleKey + " f" + step + " "
                                 + Duration.between(cycle.plus(settings.availabilityLag()), ctx.now()).toMinutes()
-                                + " min after its expected availability (" + key + ".index)");
+                                + " min after its expected availability (" + indexKey(key) + ")");
                     }
                 }
                 break;
@@ -328,6 +328,21 @@ public class EcmwfRunIngest implements ForecastRunCadence {
                 .collect(Collectors.joining(",")));
     }
 
+    /**
+     * The key of the JSON inventory that describes the step file {@code key}: ECMWF publishes
+     * {@code …-24h-oper-fc.index} beside {@code …-24h-oper-fc.grib2} (the {@code .grib2} suffix is
+     * replaced, not extended; {@code …fc.grib2.index} answers 404 on both the S3 mirror and
+     * {@code data.ecmwf.int}, verified 2026-10-17). A key without the suffix gets {@code .index}
+     * appended.
+     *
+     * @param key the step file's object key
+     * @return the inventory's object key
+     */
+    public static String indexKey(String key) {
+        String stem = key.endsWith(".grib2") ? key.substring(0, key.length() - ".grib2".length()) : key;
+        return stem + ".index";
+    }
+
     /** The {@code .index} at {@code uri}, or empty when it is not published (403/404). */
     Optional<EcmwfIndex> readIndex(FetchContext ctx, EcmwfDefinition def, URI uri) throws AdapterException {
         UpstreamResponse response;
@@ -396,6 +411,7 @@ public class EcmwfRunIngest implements ForecastRunCadence {
         }
         Map<EcmwfIndex.Entry, Path> current = new LinkedHashMap<>();
         Map<EcmwfDefinition.Product, Path> referenceFiles = new LinkedHashMap<>();
+        List<Path> copies = new ArrayList<>();
         List<NormalizedRecord> out = new ArrayList<>();
         try {
             List<EcmwfIndex.Entry> all = wanted.values().stream().flatMap(List::stream).distinct().toList();
@@ -415,6 +431,13 @@ public class EcmwfRunIngest implements ForecastRunCadence {
                 }
                 List<Path> files = new ArrayList<>();
                 e.getValue().forEach(entry -> files.add(current.get(entry)));
+                if (sharedWithAnother(wanted, product, e.getValue().get(0))) {
+                    // The sink deletes a frame's first file once it is committed; a message that another
+                    // product also reads (a field and its difference product) is committed from a copy.
+                    Path copy = copyOf(files.get(0));
+                    copies.add(copy);
+                    files.set(0, copy);
+                }
                 Path ref = referenceFiles.get(product);
                 if (ref != null) {
                     files.add(ref);
@@ -442,8 +465,31 @@ public class EcmwfRunIngest implements ForecastRunCadence {
         } finally {
             current.values().forEach(GzipInputs::deleteQuietly);
             referenceFiles.values().forEach(GzipInputs::deleteQuietly);
+            copies.forEach(GzipInputs::deleteQuietly);
         }
         return out;
+    }
+
+    /** True when a product other than {@code product} in {@code wanted} also reads {@code entry}. */
+    static boolean sharedWithAnother(Map<EcmwfDefinition.Product, List<EcmwfIndex.Entry>> wanted,
+            EcmwfDefinition.Product product, EcmwfIndex.Entry entry) {
+        for (Map.Entry<EcmwfDefinition.Product, List<EcmwfIndex.Entry>> e : wanted.entrySet()) {
+            if (e.getKey() != product && e.getValue().contains(entry)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** A copy of a downloaded message beside it, for a commit that consumes its file. */
+    private static Path copyOf(Path file) throws AdapterException {
+        try {
+            Path copy = Files.createTempFile(file.getParent(), "copy-", "-" + file.getFileName());
+            Files.copy(file, copy, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            return copy;
+        } catch (IOException e) {
+            throw new AdapterException("Could not copy " + file.getFileName() + ": " + e.getMessage(), e);
+        }
     }
 
     /** Reads the coalesced ranges that hold {@code entries} of the step file into {@code files}. */
@@ -480,7 +526,7 @@ public class EcmwfRunIngest implements ForecastRunCadence {
             Instant cycle, Reference ref, String cycleKey, int step) throws AdapterException {
         EcmwfDefinition.Component c = ref.component();
         String refKey = ModelCycleSelector.objectKey(settings.template(), cycle, ref.step());
-        Optional<EcmwfIndex> refIndex = readIndex(ctx, def, objectUri.apply(refKey + ".index"));
+        Optional<EcmwfIndex> refIndex = readIndex(ctx, def, objectUri.apply(indexKey(refKey)));
         if (refIndex.isEmpty()) {
             return null;
         }
@@ -602,7 +648,7 @@ public class EcmwfRunIngest implements ForecastRunCadence {
         for (Instant cycle : ModelCycleSelector.candidates(ctx.now(), settings.runEvery(), settings.availabilityLag(),
                 CANDIDATES + 1)) {
             String key = ModelCycleSelector.objectKey(template, cycle, step);
-            Optional<EcmwfIndex> index = readIndex(ctx, def, objectUri.apply(key + ".index"));
+            Optional<EcmwfIndex> index = readIndex(ctx, def, objectUri.apply(indexKey(key)));
             if (index.isEmpty()) {
                 continue;
             }
@@ -699,6 +745,10 @@ public class EcmwfRunIngest implements ForecastRunCadence {
     private static void writeSteps(AdapterStateStore state, String key, Set<Integer> steps) {
         String value = new LinkedHashSet<>(new TreeSet<>(steps)).stream().map(String::valueOf)
                 .collect(Collectors.joining(","));
+        if (value.isEmpty() && state.get(key).isEmpty()) {
+            // nothing done yet: leave the key absent rather than storing an empty set
+            return;
+        }
         if (!value.equals(state.get(key).orElse(null))) {
             state.put(key, value);
         }

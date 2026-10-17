@@ -113,6 +113,9 @@ public class BacktestJobService {
 
     private static final Logger log = LoggerFactory.getLogger(BacktestJobService.class);
 
+    /** The first key of the two-key advisory lock that serializes one token's submissions ("BKTJ"). */
+    private static final int TOKEN_LOCK_NAMESPACE = 0x424B544A;
+
     private final BacktestJobRepository jobs;
     private final RuleBacktest ruleBacktest;
     private final RecipeBacktest recipeBacktest;
@@ -209,13 +212,7 @@ public class BacktestJobService {
             definitionMap.put("variants", new ArrayList<>(
                     variants.subList(0, Math.min(variants.size(), RuleBacktest.MAX_VARIANTS))));
         }
-        if (tokenId != null) {
-            List<BacktestJobEntity> inFlight = jobs.findByCreatedByAndStatusIn(tokenId, List.of("queued", "running"));
-            if (!inFlight.isEmpty()) {
-                throw new ConflictException(ErrorCodes.BACKTEST_IN_PROGRESS,
-                        "You already have a queued or running job (" + inFlight.get(0).getId() + ").");
-            }
-        }
+        requireNoJobInFlight(tokenId);
         ResolvedRange resolved = resolveRange(normalized, range, sources);
         Instant now = clock.instant();
         BacktestJobEntity job = new BacktestJobEntity(Ulids.next(now), normalized, now);
@@ -237,6 +234,27 @@ public class BacktestJobService {
         String id = job.getId();
         afterCommit(() -> executor.submit(() -> runQuietly(id)));
         return job;
+    }
+
+    /**
+     * Enforces one queued or running job per token. A transaction-scoped advisory lock keyed by the token
+     * serializes concurrent submissions of the same token, so the check and the insert that follows are
+     * atomic: a second submission waits for the first transaction to commit and then sees its job.
+     *
+     * @param tokenId the submitting token's id, or null for system jobs (no limit)
+     * @throws ConflictException 409 {@code BACKTEST_IN_PROGRESS}
+     */
+    private void requireNoJobInFlight(String tokenId) {
+        if (tokenId == null) {
+            return;
+        }
+        jdbc.queryForObject("SELECT count(*) FROM (SELECT pg_advisory_xact_lock(?, hashtext(?))) AS held", Long.class,
+                TOKEN_LOCK_NAMESPACE, tokenId);
+        List<BacktestJobEntity> inFlight = jobs.findByCreatedByAndStatusIn(tokenId, List.of("queued", "running"));
+        if (!inFlight.isEmpty()) {
+            throw new ConflictException(ErrorCodes.BACKTEST_IN_PROGRESS,
+                    "You already have a queued or running job (" + inFlight.get(0).getId() + ").");
+        }
     }
 
     /**
@@ -272,13 +290,7 @@ public class BacktestJobService {
     @Transactional
     public BacktestJobEntity submitRunnerJob(String type, String targetId, Map<String, Object> definition,
             String tokenId) {
-        if (tokenId != null) {
-            List<BacktestJobEntity> inFlight = jobs.findByCreatedByAndStatusIn(tokenId, List.of("queued", "running"));
-            if (!inFlight.isEmpty()) {
-                throw new ConflictException(ErrorCodes.BACKTEST_IN_PROGRESS,
-                        "You already have a queued or running job (" + inFlight.get(0).getId() + ").");
-            }
-        }
+        requireNoJobInFlight(tokenId);
         Instant now = clock.instant();
         BacktestJobEntity job = new BacktestJobEntity(Ulids.next(now), type, now);
         job.setTargetId(targetId);

@@ -141,7 +141,8 @@ public final class GeoTiffReader {
         }
     }
 
-    private static BufferedImage decode(byte[] bytes) throws GeoTiffException {
+    /** Decodes the first TIFF image; callers run {@link #inspect} first so the guard's limits apply. */
+    static BufferedImage decode(byte[] bytes) throws GeoTiffException {
         Iterator<ImageReader> readers = ImageIO.getImageReadersByFormatName("tiff");
         if (!readers.hasNext()) {
             throw new GeoTiffException(GeoTiffException.Kind.MALFORMED, "No TIFF reader is available");

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import ai.foresignal.net.OutboundUrlPolicy;
+import ai.foresignal.testsupport.net.TestOutbound;
 import ai.foresignal.source.spi.HistoryTier;
 import java.net.InetAddress;
 import java.net.URI;
@@ -85,8 +86,8 @@ class S3UploadIT {
     void put() throws Exception {
         byte[] body = "a small archive part".getBytes(StandardCharsets.UTF_8);
         Path file = Files.write(dir.resolve("small.parquet"), body);
-        S3Uploader.Result result = new S3Uploader(policy(), Clock.systemUTC()).upload(s3(), SECRETS, "p/small.parquet",
-                file);
+        S3Uploader.Result result = new S3Uploader(policy(), TestOutbound.pinnedHttp(), Clock.systemUTC())
+                .upload(s3(), SECRETS, "p/small.parquet", file);
         assertThat(result.verified()).isTrue();
         assertThat(result.parts()).isEqualTo(1);
         assertThat(get("it/p/small.parquet")).isEqualTo(body);
@@ -99,8 +100,8 @@ class S3UploadIT {
         new Random(7).nextBytes(body);
         Path file = Files.write(dir.resolve("big.parquet"), body);
         long fiveMiB = 5L * 1024 * 1024;
-        S3Uploader.Result result = new S3Uploader(policy(), Clock.systemUTC(), fiveMiB, fiveMiB).upload(s3(), SECRETS,
-                "p/big.parquet", file);
+        S3Uploader.Result result = new S3Uploader(policy(), TestOutbound.pinnedHttp(), Clock.systemUTC(), fiveMiB, fiveMiB)
+                .upload(s3(), SECRETS, "p/big.parquet", file);
         assertThat(result.parts()).isEqualTo(3);
         assertThat(result.verified()).isTrue();
         assertThat(get("it/p/big.parquet")).isEqualTo(body);
@@ -111,7 +112,8 @@ class S3UploadIT {
     void keepLocalFalseCleanup() throws Exception {
         ArchiveService archive = new ArchiveService(mock(ai.foresignal.store.query.ReadQueryRunner.class),
                 mock(ExportStore.class), mock(ArchiveSettingsService.class), mock(ArchiveWatermarkRepository.class),
-                new S3Uploader(policy(), Clock.systemUTC()), ExportProperties.defaults(), JSON, Clock.systemUTC());
+                new S3Uploader(policy(), TestOutbound.pinnedHttp(), Clock.systemUTC()), ExportProperties.defaults(), JSON,
+                Clock.systemUTC());
         String partition = ArchiveService.partitionPath(HistoryTier.STANDARD, "src", LocalDate.parse("2026-03-01"));
         Path partitionDir = Files.createDirectories(dir.resolve(partition));
         Path file = Files.write(partitionDir.resolve("part-1-2.parquet"), "parquet".getBytes(StandardCharsets.UTF_8));

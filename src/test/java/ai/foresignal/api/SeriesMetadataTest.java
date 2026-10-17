@@ -41,7 +41,9 @@ class SeriesMetadataTest {
         EgressPolicy egress = mock(EgressPolicy.class);
         when(egress.isLocalOnly(anyString())).thenAnswer(i -> localOnly.getOrDefault(i.getArgument(0), false));
         SourceRegistry registry = mock(SourceRegistry.class);
-        when(registry.contains(anyString())).thenReturn(true);
+        // Only the stubbed sources are registered: a real registry never contains an id without a descriptor.
+        when(registry.contains(anyString())).thenAnswer(i -> java.util.Set.of(FredSeriesAdapter.ID, CftcCotAdapter.ID,
+                "eia-petroleum", "gie-agsi", "eia-930").contains(i.<String>getArgument(0)));
         when(registry.descriptor(FredSeriesAdapter.ID)).thenReturn(new FredSeriesAdapter("").descriptor());
         when(registry.descriptor(CftcCotAdapter.ID)).thenReturn(new CftcCotAdapter("").descriptor());
         when(registry.descriptor("eia-petroleum")).thenReturn(

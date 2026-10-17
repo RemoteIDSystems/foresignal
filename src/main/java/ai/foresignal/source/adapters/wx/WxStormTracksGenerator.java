@@ -178,7 +178,14 @@ public class WxStormTracksGenerator implements DerivedGenerator {
             add(time, lon, lat);
         }
 
+        /**
+         * Appends a position; one at the same time as the newest replaces it, so a new track (whose
+         * constructor already added its first position) is not given a duplicate by its first update.
+         */
         void add(Instant time, double lon, double lat) {
+            if (!positions.isEmpty() && positions.getLast()[0] == time.toEpochMilli()) {
+                positions.removeLast();
+            }
             positions.addLast(new double[] {time.toEpochMilli(), lon, lat});
             while (positions.size() > HISTORY) {
                 positions.removeFirst();

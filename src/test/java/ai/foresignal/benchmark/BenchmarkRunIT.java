@@ -1,5 +1,7 @@
 package ai.foresignal.benchmark;
 
+import org.springframework.context.annotation.Import;
+import ai.foresignal.testsupport.ingest.TestIngestSources;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ai.foresignal.analytics.changepoint.ChangePointDetector;
@@ -40,6 +42,7 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code BENCHMARK_FAIL} to new findings while a dependency fails, and lifts all of it after a passing run.
  */
 @IntegrationTest
+@Import(TestIngestSources.class)
 class BenchmarkRunIT {
 
     static final Instant NOW = Instant.parse("2026-10-17T12:00:00Z");

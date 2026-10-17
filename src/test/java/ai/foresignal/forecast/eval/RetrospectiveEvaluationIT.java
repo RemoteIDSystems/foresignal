@@ -1,5 +1,7 @@
 package ai.foresignal.forecast.eval;
 
+import org.springframework.context.annotation.Import;
+import ai.foresignal.testsupport.ingest.TestIngestSources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
@@ -48,6 +50,7 @@ import tools.jackson.databind.json.JsonMapper;
  * with 409 {@code KNOWLEDGE_CUTOFF_REQUIRED}.
  */
 @IntegrationTest
+@Import(TestIngestSources.class)
 class RetrospectiveEvaluationIT {
 
     static final Instant NOW = Instant.parse("2026-10-17T12:00:00Z");
@@ -90,7 +93,7 @@ class RetrospectiveEvaluationIT {
 
     void history(LocalDate week, long count, String importId) {
         jdbc.update("INSERT INTO reference_history (family, region_code, week_start, source, count, fatalities,"
-                + " license, egress, import_id) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)", ReferenceFamilies.BATTLES, "YE",
+                + " licence, egress, import_id) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)", ReferenceFamilies.BATTLES, "YE",
                 Date.valueOf(week), ReferenceFamilies.UCDP, count, "CC-BY-4.0", "OPEN", importId);
     }
 

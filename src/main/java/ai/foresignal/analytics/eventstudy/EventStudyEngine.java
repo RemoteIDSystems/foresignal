@@ -308,7 +308,8 @@ public final class EventStudyEngine {
         int radius = w.span() + 10;
         List<Integer> eligible = new ArrayList<>();
         int last = in.needEventWindow() ? w.evTo() : w.preTo();
-        for (int p = -w.estFrom(); p + last < n; p++) {
+        // A placebo position is a bucket of the series even when its last needed offset is negative (live checks).
+        for (int p = -w.estFrom(); p < n && p + last < n; p++) {
             boolean near = false;
             for (int e : excludedIndexes) {
                 if (Math.abs(p - e) <= radius) {

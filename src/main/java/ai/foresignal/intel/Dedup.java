@@ -38,13 +38,12 @@ public final class Dedup {
         if (!buffered.intersects(b)) {
             return false;
         }
-        Instant aFrom = aStart;
-        Instant aTo = aEnd == null ? Instant.MAX : aEnd;
-        Instant bFrom = bStart;
-        Instant bTo = bEnd == null ? Instant.MAX : bEnd;
-        Instant windowStart = bFrom.minus(window);
-        Instant windowEnd = bTo.plus(window);
-        return !aTo.isBefore(windowStart) && !aFrom.isAfter(windowEnd);
+        // An open-ended interval (null end) extends forever; it is compared without arithmetic on Instant.MAX,
+        // which would overflow.
+        Instant windowStart = bStart.minus(window);
+        boolean aEndsAfterWindowStart = aEnd == null || !aEnd.isBefore(windowStart);
+        boolean aStartsBeforeWindowEnd = bEnd == null || !aStart.isAfter(bEnd.plus(window));
+        return aEndsAfterWindowStart && aStartsBeforeWindowEnd;
     }
 
     /** True when a candidate of {@code type} merges into an open event. */

@@ -13,8 +13,16 @@ class NidsDecoderTest {
 
     private static byte[] nids(int productCode, double lat, double lon) {
         byte[] text = "SDUS54 KFWD 152300\r\r\nN0BFWS\r\r\n".getBytes(StandardCharsets.US_ASCII);
-        ByteBuffer b = ByteBuffer.allocate(text.length + 66).order(ByteOrder.BIG_ENDIAN);
+        ByteBuffer b = ByteBuffer.allocate(text.length + 18 + 66).order(ByteOrder.BIG_ENDIAN);
         b.put(text);
+        // the 18-byte message header block precedes the product description block
+        b.putShort((short) productCode);
+        b.putShort((short) 20742);
+        b.putInt(82842);
+        b.putInt(18 + 66);
+        b.putShort((short) 776);
+        b.putShort((short) 0);
+        b.putShort((short) 3);
         b.putShort((short) -1);
         b.putInt((int) Math.round(lat * 1000));
         b.putInt((int) Math.round(lon * 1000));

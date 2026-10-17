@@ -135,6 +135,10 @@ public class IntelligenceEventEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /** Denormalized member count for summaries (IntelEventSummary.memberCount, checkpoint 124). */
+    @Column(name = "member_count")
+    private Integer memberCount;
+
     /** JPA. */
     protected IntelligenceEventEntity() {}
 
@@ -386,6 +390,15 @@ public class IntelligenceEventEntity {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    /** The number of member rows, kept by {@code IntelEventService.rescore} (checkpoint 124), or null before. */
+    public Integer getMemberCount() {
+        return memberCount;
+    }
+
+    public void setMemberCount(Integer memberCount) {
+        this.memberCount = memberCount;
     }
 
     public Instant getUpdatedAt() {

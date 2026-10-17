@@ -19,6 +19,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** {@code add_to_investigation} (agent, prompt 101): pins an item, taking its snapshot now. */
+@ai.foresignal.security.restrict.RestrictedRead("items are added with the caller private access (IntelVisibility)")
 @Component
 public class AddToInvestigationTool implements ForesignalMcpTool {
 

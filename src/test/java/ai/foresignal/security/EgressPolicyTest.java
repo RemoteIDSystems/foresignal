@@ -194,9 +194,11 @@ class EgressPolicyTest {
         for (EgressPath path : EgressPath.values()) {
             assertThat(policy.allows(path, "quakes", anonymous)).as(path.name()).isTrue();
             assertThat(policy.allows(path, "gone", admin)).as(path.name()).isFalse();
-            assertThat(policy.allows(path, "family", anonymous)).as(path.name()).isFalse();
-            assertThat(policy.allows(path, "family", read)).as(path.name()).isFalse();
-            assertThat(policy.allows(path, "family", agent)).as(path.name()).isFalse();
+            // ARCHIVE is operator-owned storage with no viewer: a private record is archived whoever asks (109).
+            boolean archive = path == EgressPath.ARCHIVE;
+            assertThat(policy.allows(path, "family", anonymous)).as(path.name()).isEqualTo(archive);
+            assertThat(policy.allows(path, "family", read)).as(path.name()).isEqualTo(archive);
+            assertThat(policy.allows(path, "family", agent)).as(path.name()).isEqualTo(archive);
             boolean viewerPath = EgressPolicy.PRIVATE_VIEWER_PATHS.contains(path) || path == EgressPath.ARCHIVE;
             assertThat(policy.allows(path, "family", readGrant)).as(path.name()).isEqualTo(viewerPath);
             assertThat(policy.allows(path, "family", admin)).as(path.name()).isEqualTo(viewerPath);
@@ -484,6 +486,9 @@ class EgressPolicyTest {
             assertThat(decide(EgressPath.SINK_PUSH, "local-adsb-1", null, EgressPolicy.EgressContext.sink(false, false))
                     .allowed()).isFalse();
             override.set(ai.foresignal.source.spi.Egress.OPEN);
+            // The effective egress is cached until the source's settings change (069), as the override does.
+            licensed.onSourceSettingsChanged(
+                    new ai.foresignal.source.SourceSettingsChangedEvent("local-adsb-1", null, null));
             assertThat(decide(EgressPath.SINK_PUSH, "local-adsb-1", Map.of("posSource", "adsb"),
                     EgressPolicy.EgressContext.sink(false, false)).allowed()).isTrue();
             assertThat(decide(EgressPath.SINK_PUSH, "local-adsb-1", Map.of("posSource", "mlat"),

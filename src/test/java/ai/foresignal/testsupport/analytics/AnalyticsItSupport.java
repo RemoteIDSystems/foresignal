@@ -60,8 +60,8 @@ public abstract class AnalyticsItSupport extends StatsItSupport {
     /** Writes (or replaces) the 040 tag of a record, after the tag worker has caught up. */
     protected void tag(String sourceId, String externalId, String iso2, String admin1) {
         awaitTriggerCursor();
-        jdbc.update("INSERT INTO record_region (source_id, external_id, iso2, admin1, tagged_lon, tagged_lat)"
-                + " VALUES (?, ?, ?, ?, 0, 0) ON CONFLICT (source_id, external_id) DO UPDATE SET iso2 = EXCLUDED.iso2,"
+        jdbc.update("INSERT INTO record_region (source_id, external_id, iso2, admin1, tagged_lon, tagged_lat, tagged_at)"
+                + " VALUES (?, ?, ?, ?, 0, 0, now()) ON CONFLICT (source_id, external_id) DO UPDATE SET iso2 = EXCLUDED.iso2,"
                 + " admin1 = EXCLUDED.admin1", sourceId, externalId, iso2, admin1);
     }
 

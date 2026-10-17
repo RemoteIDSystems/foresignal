@@ -35,6 +35,9 @@ public class SystemCanaryAdapter implements PushAdapter {
                     + " to end. Nothing else writes here.")
             .kind(KIND)
             .attribution("Foresignal")
+            // Foresignal's own synthetic data: the operator-owned terms (local only), so it resolves to catalog
+            // terms instead of the restrictive unknown ones (prompt 109, checkpoint 124).
+            .licence("operator-owned")
             .mode(Mode.PUSH)
             .defaultBudget(Budget.of(60, 10_000))
             .historyTier(HistoryTier.STANDARD)

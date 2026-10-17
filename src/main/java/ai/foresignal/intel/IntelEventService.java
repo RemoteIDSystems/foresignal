@@ -313,6 +313,7 @@ public class IntelEventService {
         int moved = moveMembers(id, intoId);
         Instant now = clock.instant();
         merged.setMergedInto(intoId);
+        merged.setMemberCount((int) members.countByEventId(id));
         merged.setStatus("resolved");
         merged.setEndTime(merged.getEndTime() == null ? now : merged.getEndTime());
         merged.setUpdatedAt(now);
@@ -432,6 +433,7 @@ public class IntelEventService {
     public void rescore(IntelligenceEventEntity event) {
         List<EventScorer.MemberView> views = new ArrayList<>();
         List<IntelEventMemberEntity> all = members.findByEventIdOrderByIdAsc(event.getId());
+        event.setMemberCount(all.size());
         int contradictions = contradictions(all, event.getAlternatives());
         Map<String, ai.foresignal.evidence.EvidenceService.GroupKey> keys = evidenceKeys(all);
         List<String> refs = new ArrayList<>();

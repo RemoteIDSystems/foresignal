@@ -99,6 +99,7 @@ public class CompactBundleReceiver {
         int accepted = 0;
         int duplicates = 0;
         List<NormalizedRecord> records = new ArrayList<>();
+        List<OriginLedger.Release> releases = new ArrayList<>();
         Instant now = clock.instant();
         for (MeshCborMessage message : messages) {
             if (message.originShortId() != null && Arrays.equals(message.originShortId(), self)) {
@@ -129,10 +130,16 @@ public class CompactBundleReceiver {
                 continue;
             }
             records.add(record(message, externalId, origin, id, expires, now));
+            releases.add(claim.release());
             accepted++;
         }
         if (!records.isEmpty()) {
-            writer.submit(Map.of(sourceId, records), FetchTrigger.PUSH, "peer:" + peerId, false);
+            try {
+                writer.submit(Map.of(sourceId, records), FetchTrigger.PUSH, "peer:" + peerId, false);
+            } catch (RuntimeException e) {
+                ledger.releaseAll(releases);
+                throw e;
+            }
         }
         Map<String, Object> drops = new LinkedHashMap<>();
         for (String reason : List.of(FederationRules.DROP_LOOP, FederationRules.DROP_HOPS, FederationRules.DROP_DEDUP,

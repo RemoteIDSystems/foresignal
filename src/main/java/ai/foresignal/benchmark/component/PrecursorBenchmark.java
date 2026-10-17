@@ -177,12 +177,17 @@ public class PrecursorBenchmark implements ComponentBenchmark {
                 + " common-driver."));
     }
 
-    /** The expected observed hit rate at lag window {@code lag}: planted hits plus background chance hits. */
+    /**
+     * The expected observed hit rate at lag window {@code lag}: planted hits plus chance hits from every consequent
+     * (background and other antecedents' planted followers).
+     */
     static double effectiveHitRate(Duration lag) {
         double days = lag.toHours() / 24.0;
         double h = ScenarioGenerator.PLANTED_HIT_RATE;
         double reach = lag.compareTo(ScenarioGenerator.PLANTED_LAG.plusHours(6)) >= 0 ? h : 0;
-        return reach + (1 - reach) * (1 - Math.exp(-0.1 * days));
+        double perDay = ScenarioGenerator.PRECURSOR_BACKGROUND_PER_DAY
+                + ScenarioGenerator.PRECURSOR_ANTECEDENTS_PER_DAY * h;
+        return reach + (1 - reach) * (1 - Math.exp(-perDay * days));
     }
 
     /** Tests and validates every event stream (the scenario's antecedents first, then the decoys). */

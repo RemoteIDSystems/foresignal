@@ -92,7 +92,8 @@ public class EventStudyBenchmark implements ComponentBenchmark {
         }
         List<String> notes = new ArrayList<>();
         notes.add("recall, placeboFalseSignalRate and meanPlaceboP*: the live pre-event check exactly as"
-                + " LiveEventStudyService runs it (252 days read as of the event time).");
+                + " LiveEventStudyService runs it (the estimation window plus room for 500 placebo dates, read as of"
+                + " the event time).");
         notes.add("engine*: the same engine and decision rule over all history known by the event time, as an"
                 + " on-demand event study reads it.");
         return new ScenarioMetrics(scenario.wire(), null, params.seed(), m, truth, notes);
@@ -131,14 +132,16 @@ public class EventStudyBenchmark implements ComponentBenchmark {
     /**
      * The pre-event check of one event.
      *
-     * @param liveRange true to read what the live check reads ({@code estFrom − 2} days before the event), false to
+     * @param liveRange true to read what the live check reads ({@link LiveEventStudyService#preEventReadOffset} buckets
+     *     before the event), false to
      *     read all history known by the event time
      */
     static Signal check(InMemorySeries series, Instant event, List<Instant> allEvents, int replicate,
             boolean liveRange) {
         EventStudyEngine.Windows w = EventStudyEngine.Windows.of(SeriesFrequency.DAY);
         int t0 = series.indexOf(event);
-        SeriesData data = series.read(liveRange ? t0 + w.estFrom() - 2 : 0, t0 + 1, event);
+        SeriesData data = series.read(liveRange ? t0 + LiveEventStudyService.preEventReadOffset(w) : 0, t0 + 1,
+                event);
         SeriesData.Grid grid = data.grid();
         List<Instant> others = new ArrayList<>();
         for (Instant e : allEvents) {

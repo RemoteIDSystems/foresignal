@@ -8,11 +8,13 @@ import ai.foresignal.security.CurrentToken;
 import jakarta.servlet.http.HttpServletRequest;
 import ai.foresignal.security.restrict.RestrictedRead;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 
@@ -73,6 +76,7 @@ public class InvestigationsController {
     /** {@code createInvestigation}. */
     @PostMapping
     @Operation(operationId = "createInvestigation", tags = "Intelligence")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createInvestigation(@RequestBody JsonNode body,
             HttpServletRequest request) {
         InvestigationEntity entity = investigations.create(body, actor(request));
@@ -89,14 +93,16 @@ public class InvestigationsController {
     /** {@code deleteInvestigation}. */
     @DeleteMapping("/{id}")
     @Operation(operationId = "deleteInvestigation", tags = "Intelligence")
+    @ApiResponse(responseCode = "204", description = "Deleted")
     public ResponseEntity<Void> deleteInvestigation(@PathVariable String id) {
         investigations.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    /** {@code addInvestigationItem}. */
+    /** {@code addInvestigationItem}: 201 with the item. */
     @PostMapping("/{id}/items")
     @Operation(operationId = "addInvestigationItem", tags = "Intelligence")
+    @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> addInvestigationItem(@PathVariable String id, @RequestBody JsonNode body,
             HttpServletRequest request) {
         return item(investigations.addItem(id, body, actor(request), visibility.seesPrivate(request)));
@@ -105,6 +111,7 @@ public class InvestigationsController {
     /** {@code removeInvestigationItem}. */
     @DeleteMapping("/{id}/items/{itemId}")
     @Operation(operationId = "removeInvestigationItem", tags = "Intelligence")
+    @ApiResponse(responseCode = "204", description = "Removed")
     public ResponseEntity<Void> removeInvestigationItem(@PathVariable String id, @PathVariable long itemId,
             HttpServletRequest request) {
         investigations.removeItem(id, itemId, visibility.seesPrivate(request));

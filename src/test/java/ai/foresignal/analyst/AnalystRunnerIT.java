@@ -205,7 +205,7 @@ class AnalystRunnerIT extends AskItSupport {
     }
 
     @Test
-    @DisplayName("with allowActions and an agent owner, a watch is created enabled and tagged origin:analyst")
+    @DisplayName("with allowActions and an agent owner, a watch is created enabled and tagged origin-analyst")
     void autoExecuted() {
         anomaly();
         chat().then(toolUse(call("c1", "propose_watch", watchCall()))).then(text("done"));
@@ -217,7 +217,7 @@ class AnalystRunnerIT extends AskItSupport {
         assertThat(proposal.isAutoExecuted()).isTrue();
         assertThat(run.getAutoExecuted()).isEqualTo(1);
         var rule = ruleRepository.findById(UUID.fromString(proposal.getExecutedRef())).orElseThrow();
-        assertThat(rule.getTags()).contains("origin:analyst", "analyst");
+        assertThat(rule.getTags()).contains("origin-analyst", "analyst");
         assertThat(rule.isEnabled()).isTrue();
     }
 

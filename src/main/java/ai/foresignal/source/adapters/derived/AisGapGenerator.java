@@ -124,8 +124,11 @@ public class AisGapGenerator extends LayerGenerator {
     public void onTick(Instant now, DerivedContext ctx) {
         LayerStatus coverage = status(ctx, now.minus(GAP));
         int cap = maxEntities(ctx.params());
+        // One vessel past the state cap is read, so a full state sees (and counts) a gap it cannot hold;
+        // reading exactly the cap could never present more candidates than the state has room for.
+        int readLimit = cap == Integer.MAX_VALUE ? cap : cap + 1;
         List<Observation> observations = ctx.observations()
-                .recent(inputSources(), Set.of(DerivedSources.VESSEL), now.minus(FORGET), cap);
+                .recent(inputSources(), Set.of(DerivedSources.VESSEL), now.minus(FORGET), readLimit);
         List<ReferenceData.Port> ports = reference.ports();
         Set<String> seen = new HashSet<>();
         for (Observation observation : observations) {

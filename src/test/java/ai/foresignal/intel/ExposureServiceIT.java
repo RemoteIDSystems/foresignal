@@ -36,7 +36,7 @@ class ExposureServiceIT {
     void exposure() {
         clock.setInstant(Instant.parse("2026-03-01T12:00:00Z"));
         Instant now = clock.instant();
-        var place = places.create(json.readTree("{\"name\":\"Home\",\"shape\":\"point\","
+        var place = places.create(json.readTree("{\"id\":\"exposure-home\",\"name\":\"Home\",\"shape\":\"point\","
                 + "\"geometry\":{\"type\":\"Point\",\"coordinates\":[-95.0,32.0]},\"radiusKm\":20}"));
         records.ingestAt("wri-power-plants", now,
                 NormalizedRecord.builder("pp1", "power-plant").observedAt(now).point(-95.01, 32.01)

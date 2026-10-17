@@ -169,16 +169,26 @@ public class PeerRuntime {
         RecordSink trackSink = trackSinks.get(peerId);
         List<FederationIngestor.Mapped> direct = new ArrayList<>();
         for (FederationIngestor.Mapped m : mapped) {
-            if (m.sourceId().equals(ownSource)) {
-                sink.accept(m.record());
-            } else if (m.sourceId().equals(trk) && trackSink != null) {
-                trackSink.accept(m.record());
-            } else {
-                direct.add(m);
+            try {
+                if (m.sourceId().equals(ownSource)) {
+                    sink.accept(m.record());
+                } else if (m.sourceId().equals(trk) && trackSink != null) {
+                    trackSink.accept(m.record());
+                } else {
+                    direct.add(m);
+                }
+            } catch (RuntimeException e) {
+                ingestor.release(List.of(m));
+                throw e;
             }
         }
         if (!direct.isEmpty()) {
-            writer.submit(FederationWriter.group(direct), FetchTrigger.STREAM, "peer:" + peerId, false);
+            try {
+                writer.submit(FederationWriter.group(direct), FetchTrigger.STREAM, "peer:" + peerId, false);
+            } catch (RuntimeException e) {
+                ingestor.release(direct);
+                throw e;
+            }
         }
     }
 

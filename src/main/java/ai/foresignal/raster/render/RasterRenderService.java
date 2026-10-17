@@ -3,6 +3,7 @@ package ai.foresignal.raster.render;
 import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.api.error.ValidationException;
+import ai.foresignal.media.GuardedImages;
 import ai.foresignal.raster.ElgCodec;
 import ai.foresignal.raster.FrameStore;
 import ai.foresignal.raster.GridDef;
@@ -41,17 +42,19 @@ public class RasterRenderService {
     private final IndexMapCache indexMaps;
     private final TileCache tiles;
     private final RenderQueue queue;
+    private final GuardedImages images;
     private final Map<String, GridDef> projections = new ConcurrentHashMap<>();
 
-    /** Creates the service. */
+    /** Creates the service; {@code images} decodes rendered loop frames through the image guard. */
     public RasterRenderService(FrameStore store, GridStore grids, StyleRegistry styles, IndexMapCache indexMaps,
-            TileCache tiles, RenderQueue queue) {
+            TileCache tiles, RenderQueue queue, GuardedImages images) {
         this.store = store;
         this.grids = grids;
         this.styles = styles;
         this.indexMaps = indexMaps;
         this.tiles = tiles;
         this.queue = queue;
+        this.images = images;
     }
 
     /**
@@ -294,7 +297,13 @@ public class RasterRenderService {
     /** The image's cache key. */
     public static TileCache.Key imageKey(ProductSpec spec, RasterFrameRow frame, StyleRegistry.Resolved style,
             ImageRequest request) {
-        return new TileCache.Key(spec.id(), frame.frameKey(), style.ref(), request.region());
+        return imageKey(spec, frame, style, request, request.jpeg() ? "jpg" : "png");
+    }
+
+    /** The cache key of an image in {@code format}: the key {@link #image} stores it under. */
+    public static TileCache.Key imageKey(ProductSpec spec, RasterFrameRow frame, StyleRegistry.Resolved style,
+            ImageRequest request, String format) {
+        return new TileCache.Key(spec.id(), frame.frameKey(), style.ref(), request.region() + ":" + format);
     }
 
     /** The cached bytes of an image or tile, or null (the loop reports sizes already known). */
@@ -316,7 +325,7 @@ public class RasterRenderService {
     /** An image over a box in {@code format} ({@code png}, {@code jpg} or {@code webp}), prompt 108. */
     public byte[] image(ProductSpec spec, RasterFrameRow frame, StyleRegistry.Resolved style, ImageRequest request,
             String format, RenderQueue.Priority priority, String client) {
-        TileCache.Key key = new TileCache.Key(spec.id(), frame.frameKey(), style.ref(), request.region() + ":" + format);
+        TileCache.Key key = imageKey(spec, frame, style, request, format);
         byte[] cached = tiles.get(key);
         if (cached != null) {
             return cached;
@@ -388,19 +397,15 @@ public class RasterRenderService {
         return gif;
     }
 
-    /** Decodes a rendered PNG (palette images stay indexed); a transparent image when it is empty. */
-    private static java.awt.image.BufferedImage decode(byte[] png, int width, int height) {
+    /**
+     * Decodes a rendered PNG through {@link GuardedImages} (palette images stay indexed); a transparent
+     * image when it is empty.
+     */
+    private java.awt.image.BufferedImage decode(byte[] png, int width, int height) {
         if (png == null || png.length == 0) {
             return new java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_ARGB);
         }
-        try {
-            java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(png));
-            return image == null
-                    ? new java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_ARGB)
-                    : image;
-        } catch (java.io.IOException e) {
-            throw new java.io.UncheckedIOException("Could not decode a rendered loop frame", e);
-        }
+        return images.decode(png, "image/png");
     }
 
     /**

@@ -74,11 +74,11 @@ public class EvidenceQueries {
             args.add(Timestamp.from(since));
         }
         if (!flags.isEmpty()) {
-            sql.append(" AND quality_flags @> ?");
+            sql.append(" AND quality_flags @> CAST(? AS text[])");
             args.add(flags.toArray(String[]::new));
         }
         if (!excluded.isEmpty()) {
-            sql.append(" AND NOT (source_ids <@ ?)");
+            sql.append(" AND NOT (source_ids <@ CAST(? AS text[]))");
             args.add(excluded.toArray(String[]::new));
         }
         if (cursor != null) {

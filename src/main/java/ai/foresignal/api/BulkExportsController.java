@@ -7,6 +7,7 @@ import ai.foresignal.export.ExportJobService;
 import ai.foresignal.export.ExportSpec;
 import ai.foresignal.raster.ProductUrls;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
@@ -58,6 +59,7 @@ public class BulkExportsController {
     /** {@code createExport}: submit a bulk export, 202 with the job. */
     @PostMapping("/v1/exports")
     @Operation(operationId = "createExport", tags = "Exports")
+    @ApiResponse(responseCode = "202", description = "Queued")
     public ResponseEntity<Map<String, Object>> createExport(@RequestBody JsonNode body, HttpServletRequest request) {
         ExportSpec spec = ExportSpec.parse(body);
         ExportJobEntity job = exports.submit(spec, ExportCallers.of(request, callers));
@@ -92,6 +94,8 @@ public class BulkExportsController {
     /** {@code downloadExport}: a data file, a named file, or {@code ?bundle=zip}. */
     @GetMapping("/v1/exports/{exportId}/download")
     @Operation(operationId = "downloadExport", tags = "Exports")
+    @ApiResponse(responseCode = "200", description = "File")
+    @ApiResponse(responseCode = "206", description = "Partial content")
     public ResponseEntity<FileSystemResource> downloadExport(@PathVariable String exportId,
             @RequestParam(name = "bundle", required = false) String bundle,
             @RequestParam(name = "file", required = false) String file, HttpServletRequest request) {
@@ -123,6 +127,7 @@ public class BulkExportsController {
     /** {@code deleteExport}: cancel a queued or running job, or delete a finished one. */
     @DeleteMapping("/v1/exports/{exportId}")
     @Operation(operationId = "deleteExport", tags = "Exports")
+    @ApiResponse(responseCode = "204", description = "Canceled or deleted")
     public ResponseEntity<Void> deleteExport(@PathVariable String exportId, HttpServletRequest request) {
         exports.delete(owned(exportId, request).getId());
         return ResponseEntity.noContent().build();

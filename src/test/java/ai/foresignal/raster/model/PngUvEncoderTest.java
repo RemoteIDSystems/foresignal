@@ -27,12 +27,12 @@ class PngUvEncoderTest {
 
         BufferedImage image = ImageIO.read(new ByteArrayInputStream(result.png()));
         assertThat(image.getWidth()).isEqualTo(2);
-        // u = -10 -> R 0; u = 10 -> R 255.
-        assertThat(red(image, 0, 0)).isEqualTo(0);
+        // u = -10 (pixel 1,1) -> R 0; u = 10 (pixel 1,0) -> R 255.
+        assertThat(red(image, 1, 1)).isEqualTo(0);
         assertThat(red(image, 1, 0)).isEqualTo(255);
-        // v = -10 -> G 0; v = 10 -> G 255.
+        // v = -10 (pixel 1,1) -> G 0; v = 10 (pixel 0,1) -> G 255.
         assertThat(green(image, 0, 1)).isEqualTo(255);
-        assertThat(green(image, 0, 0)).isEqualTo(0);
+        assertThat(green(image, 1, 1)).isEqualTo(0);
         // B is always 0.
         assertThat(image.getRGB(0, 0) & 0xFF).isZero();
     }
@@ -43,8 +43,11 @@ class PngUvEncoderTest {
         float[] u = {3, 3, 3, 3};
         float[] v = {1, 1, 1, 1};
         PngUvEncoder.Result result = PngUvEncoder.encode(FieldStore.planar(u, v), 2, 2);
-        assertThat(result.uMin()).isEqualTo(0);
-        assertThat(result.uMax()).isEqualTo(1);
+        // a unit-wide range centered on the flat value, so the value sits in the middle channel
+        assertThat(result.uMax() - result.uMin()).isEqualTo(1.0);
+        assertThat(result.uMin()).isEqualTo(2.5);
+        assertThat(PngUvEncoder.channel(3, result.uMin(), result.uMax())).isEqualTo(128);
+        assertThat(result.vMin()).isEqualTo(0.5);
     }
 
     @Test

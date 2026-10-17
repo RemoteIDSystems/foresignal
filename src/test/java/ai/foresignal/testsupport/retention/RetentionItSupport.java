@@ -45,6 +45,7 @@ public abstract class RetentionItSupport {
     @Autowired protected RetentionTestSources.TestConsumer consumer;
     @Autowired protected RetentionTestSources.BlockingStep blocking;
     @Autowired protected ai.foresignal.reference.RegionTagWorker regionWorker;
+    @Autowired protected ai.foresignal.intel.CorrelationEngine intel;
 
     /** Starts every scenario at {@link #T0} with no clamp and the default settings. */
     @BeforeEach
@@ -75,12 +76,40 @@ public abstract class RetentionItSupport {
 
     /**
      * Waits until the trigger engine (and, from prompt 040, the region tag worker) has processed everything
-     * published, so neither clamps.
+     * published, so neither clamps. The correlation engine (prompt 101, consumer {@code intel.cursor}) polls every
+     * 5 s, so it is caught up here directly instead (checkpoint 124).
      */
     protected void awaitTriggerCursor() {
         await().atMost(Duration.ofSeconds(30)).until(() -> engine.cursor() >= changeBus.lastPublishedSeq());
         await().atMost(Duration.ofSeconds(30)).until(() -> !regionWorker.running()
                 || regionWorker.cursor() >= changeBus.lastPublishedSeq());
+        awaitCorrelationCursor(intel, jdbc, changeBus);
+    }
+
+    /**
+     * Catches the correlation engine (consumer {@code intel.cursor}, prompt 101) up to everything published, so it
+     * does not clamp retention. It polls every 5 s, so a test that runs retention right after ingesting catches it up
+     * directly instead of waiting for the poll. Shared with retention tests that do not extend this class.
+     *
+     * @param intel the correlation engine
+     * @param jdbc the test's JDBC template
+     * @param changeBus the change bus (its last published seq is the target)
+     */
+    public static void awaitCorrelationCursor(ai.foresignal.intel.CorrelationEngine intel, JdbcTemplate jdbc,
+            ChangeBus changeBus) {
+        await().atMost(Duration.ofSeconds(30)).until(() -> {
+            if (!intel.running()) {
+                return true;
+            }
+            // Skip a gap without versions (a jumpSeq), which the engine would otherwise walk in 10,000-seq chunks.
+            Long next = jdbc.queryForObject("SELECT min(seq) FROM record_version WHERE seq > ?", Long.class,
+                    intel.cursor());
+            if (next != null && next - 1 > intel.cursor()) {
+                intel.rewind(next - 1);
+            }
+            intel.catchUp();
+            return intel.cursor() >= changeBus.lastPublishedSeq();
+        });
     }
 
     /**
