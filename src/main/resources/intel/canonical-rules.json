@@ -1,0 +1,66 @@
+{
+  "version": "1.0.0",
+  "description": "Canonical-event rules (prompt 116): which event-class kinds the EvidenceResolver links, and how observations of one family are matched to the same real-world event. Families are tried in order; an input may restrict a kind with 'where'. Tolerances reuse prompt 099's corroboration rules where they exist.",
+  "minLinkConfidence": 0.5,
+  "families": [
+    {
+      "family": "seismic",
+      "inputs": [
+        {"kind": "earthquake"},
+        {"kind": "disaster", "where": {"field": "eventType", "in": ["EQ"]}}
+      ],
+      "match": "proximity",
+      "maxDtSeconds": 60,
+      "maxKm": 100,
+      "attribute": {"name": "magnitude", "fields": ["mag", "magnitude", "severity"], "maxDelta": 0.8},
+      "bands": {"prefix": "M", "start": 2.5, "step": 0.5, "end": 7.0}
+    },
+    {
+      "family": "fire",
+      "inputs": [{"kind": "fire-detection"}],
+      "match": "proximity",
+      "maxDtSeconds": 3600,
+      "maxKm": 1
+    },
+    {
+      "family": "conflict",
+      "inputs": [{"kind": "conflict-event"}],
+      "match": "cell-day",
+      "cellDegrees": 0.1
+    },
+    {
+      "family": "outage",
+      "inputs": [{"kind": "outage"}, {"kind": "internet-outage"}],
+      "match": "outage",
+      "maxDtSeconds": 21600,
+      "countryFields": ["country", "countryCode", "countryIso", "iso2", "entityCode"],
+      "asnFields": ["asn", "entityAsn"],
+      "startFields": ["start", "startTime", "startedAt", "from"],
+      "endFields": ["end", "endTime", "endedAt", "until"]
+    },
+    {
+      "family": "disaster",
+      "inputs": [{"kind": "disaster"}, {"kind": "natural-event"}, {"kind": "emergency-activation"}, {"kind": "disaster-declaration"}],
+      "match": "hazard",
+      "maxDtSeconds": 86400,
+      "maxKm": 200,
+      "typeFields": ["eventType", "types", "categories", "type", "incidentType", "hazard"]
+    },
+    {
+      "family": "weather-alert",
+      "inputs": [{"kind": "nws-alert"}, {"kind": "cap-alert"}, {"kind": "tsunami-warning"}],
+      "match": "identifier",
+      "maxDtSeconds": 86400
+    }
+  ],
+  "hazardTypes": {
+    "eq": "earthquake", "earthquake": "earthquake", "earthquakes": "earthquake",
+    "tc": "cyclone", "cyclone": "cyclone", "tropical cyclone": "cyclone", "severestorms": "cyclone", "hurricane": "cyclone", "typhoon": "cyclone",
+    "fl": "flood", "flood": "flood", "floods": "flood", "flash flood": "flood",
+    "vo": "volcano", "volcano": "volcano", "volcanoes": "volcano", "volcanic eruption": "volcano",
+    "dr": "drought", "drought": "drought",
+    "wf": "wildfire", "wildfire": "wildfire", "wildfires": "wildfire", "fire": "wildfire", "forest fire": "wildfire",
+    "ts": "tsunami", "tsunami": "tsunami",
+    "ls": "landslide", "landslide": "landslide", "landslides": "landslide", "mud slide": "landslide"
+  }
+}

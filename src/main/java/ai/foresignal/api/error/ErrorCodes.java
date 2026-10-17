@@ -540,6 +540,15 @@ public final class ErrorCodes {
     /** 409: a tuning suggestion's rule changed since it was generated, or the suggestion is not open (115). */
     public static final String SUGGESTION_STALE = "SUGGESTION_STALE";
 
+    /** 404: no canonical event has that id (116). */
+    public static final String UNKNOWN_CANONICAL_EVENT = "UNKNOWN_CANONICAL_EVENT";
+
+    /** 404: no analysis manifest has that id (116). */
+    public static final String UNKNOWN_MANIFEST = "UNKNOWN_MANIFEST";
+
+    /** 409: a manifest whose component cannot be replayed, known before a replay job is queued (116). */
+    public static final String MANIFEST_NOT_REPLAYABLE = "MANIFEST_NOT_REPLAYABLE";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

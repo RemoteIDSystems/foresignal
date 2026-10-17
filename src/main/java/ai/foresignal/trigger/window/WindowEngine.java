@@ -117,6 +117,18 @@ public class WindowEngine {
         this.jdbc = jdbc;
     }
 
+    /** Detectability (prompt 116), or null when the observability layer is absent. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.observability.ObservabilityService observability;
+
+    /** The observability family of each kind (prompt 116), or null. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.observability.ObservabilityDeclarations declarations;
+
+    /** Analysis manifests (prompt 116), or null. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.manifest.ManifestService manifests;
+
     /** Where window-state and anomaly records go (the {@code rule-windows} {@code DerivedContext}). */
     public interface Emitter {
 
@@ -258,8 +270,52 @@ public class WindowEngine {
             return;
         }
         int total = result.counts().values().stream().mapToInt(Integer::intValue).sum();
+        if (total == 0) {
+            // 116 (OBS-1): an absence needs detectability as well as healthy coverage.
+            ai.foresignal.observability.AbsenceCheck detect = detectable(rule, from, now, false);
+            if (!detect.ok()) {
+                unknown(rule, state, detect.reason(), watermark, now, emitter);
+                return;
+            }
+        }
         transition(rule, state, total == 0 ? "active" : "clear", (double) total, 0.0, null, watermark, now, emitter,
                 null, null);
+    }
+
+    /**
+     * The detectability half of the absence rule (prompt 116, OBS-1) for a rule's involved sources over each of
+     * its observability families, at the rule's geofence (everywhere without one): ok only when every family's
+     * combined {@code p ≥ absenceMinDetect}; otherwise {@code LOW_DETECTABILITY}. Always ok without the
+     * observability layer.
+     */
+    ai.foresignal.observability.AbsenceCheck detectable(WindowRule rule, Instant from, Instant to, boolean historical) {
+        if (observability == null || declarations == null) {
+            return new ai.foresignal.observability.AbsenceCheck(true, null, null);
+        }
+        Set<String> involved = gate.involvedSources(rule.spec().sources(), rule.spec().kinds(), from, to, historical);
+        ai.foresignal.observability.Place place = rule.spec().fence() == null
+                ? ai.foresignal.observability.Place.GLOBAL
+                : ai.foresignal.observability.Place.polygon(rule.spec().fence());
+        Set<String> families = new java.util.TreeSet<>();
+        for (String kind : rule.spec().kinds() == null ? Set.<String>of() : rule.spec().kinds()) {
+            families.add(declarations.familyOfKind(kind));
+        }
+        if (families.isEmpty()) {
+            families.add("*");
+        }
+        Double lowest = null;
+        for (String family : families) {
+            ai.foresignal.observability.AbsenceCheck check = "*".equals(family)
+                    ? new ai.foresignal.observability.AbsenceCheck(true, null, null)
+                    : observability.detectable(involved, family, place, to, null);
+            if (check.p() != null) {
+                lowest = lowest == null ? check.p() : Math.min(lowest, check.p());
+            }
+            if (!check.ok()) {
+                return check;
+            }
+        }
+        return new ai.foresignal.observability.AbsenceCheck(true, lowest, null);
     }
 
     /**
@@ -394,6 +450,14 @@ public class WindowEngine {
         AnomalyDetector.Result detector =
                 AnomalyDetector.evaluate(observed, baseline, coverageRatio, coverageOk, rule.window());
         boolean lowConfidence = AnomalyDetector.lowConfidence(baseline, rule.window());
+        // 116 (OBS-1): a downward anomaly is an absence-like conclusion and needs detectability too.
+        ai.foresignal.observability.AbsenceCheck detect = null;
+        if ("activity-down".equals(detector.classification())) {
+            detect = detectable(rule, bucketStart, bucketEnd, true);
+            if (!detect.ok()) {
+                detector = lowDetectability(detector);
+            }
+        }
 
         AnomalyObservationEntity observation =
                 new AnomalyObservationEntity(rule.spec().id(), group, bucketStart, bucketEnd, observed);
@@ -409,9 +473,14 @@ public class WindowEngine {
         Map<String, Object> evidence = evidence(result, group, fetchRanges);
         if (!coverage.ok() || result.capped()) {
             evidence.put("coverageReason", result.capped() ? capReason(result) : coverage.reason());
+        } else if (detect != null && !detect.ok()) {
+            evidence.put("coverageReason", ai.foresignal.observability.AbsenceCheck.LOW_DETECTABILITY);
+            evidence.put("pDetect", detect.p());
         }
         observation.setEvidence(evidence);
         observation.setWatermarkSeq(watermark);
+        observation.setManifestId(anomalyManifest(rule, group, bucketStart, bucketEnd, history, slot, watermark,
+                detect));
         anomalies.save(observation);
         if (detector.fire()) {
             sample.setFlagged(true);
@@ -428,12 +497,72 @@ public class WindowEngine {
                 : "insufficient-coverage".equals(detector.classification())
                         || "coverage-drop".equals(detector.classification()) ? "unknown" : "clear";
         String reason = "learning".equals(desired) ? "learning: fewer than minWeeks of coverage-ok history"
+                : detect != null && !detect.ok() ? ai.foresignal.observability.AbsenceCheck.LOW_DETECTABILITY
                 : "unknown".equals(desired) ? detector.classification()
                         + (coverage.reason() == null ? "" : ": " + coverage.reason()) : null;
         Map<String, Object> context = anomalyContext(rule, detector, baseline, observation, evidence, watermark,
                 lowConfidence);
         transition(rule, state(rule, group), desired, (double) observed, detector.expected(), reason, watermark, now,
                 emitter, context, anomalyMessage(detector, baseline));
+    }
+
+    /**
+     * A downward anomaly the sources could not have seen (prompt 116): {@code insufficient-coverage}, never an
+     * alert; the state becomes {@code unknown} with reason {@code LOW_DETECTABILITY}.
+     */
+    static AnomalyDetector.Result lowDetectability(AnomalyDetector.Result detector) {
+        return new AnomalyDetector.Result(detector.observed(), detector.expected(), detector.exposure(),
+                detector.pValue(), detector.score(), "insufficient-coverage", null, false);
+    }
+
+    /** The component name of anomaly manifests. */
+    public static final String ANOMALY_COMPONENT = AnomalyDetector.NAME;
+
+    /** The input ref of an activity sample: {@code activity-sample:{ruleId}/{group}/{bucketStart}}. */
+    public static String sampleRef(UUID ruleId, String group, Instant bucketStart) {
+        return "activity-sample:" + ruleId + "/" + java.net.URLEncoder.encode(group, java.nio.charset.StandardCharsets.UTF_8)
+                + "/" + bucketStart;
+    }
+
+    /**
+     * The manifest of one anomaly evaluation (prompt 116): the detector and its parameters, the window spec,
+     * the group and bucket, the detectability decision, and as inputs the bucket's own sample followed by the
+     * slot samples the baseline used, in order. {@code ManifestReplay} re-runs the detector from exactly these.
+     */
+    private String anomalyManifest(WindowRule rule, String group, Instant bucketStart, Instant bucketEnd,
+            List<ActivitySampleEntity> history, int slot, long watermark,
+            ai.foresignal.observability.AbsenceCheck detect) {
+        if (manifests == null) {
+            return null;
+        }
+        List<String> refs = new ArrayList<>();
+        refs.add(sampleRef(rule.spec().id(), group, bucketStart));
+        for (ActivitySampleEntity other : history) {
+            if (!other.getGroupKey().equals(group) || other.isFlagged() || !other.isCoverageOk()
+                    || !other.getBucketStart().isBefore(bucketStart)
+                    || slotOf(other.getBucketStart(), rule.window().slotMode()) != slot) {
+                continue;
+            }
+            refs.add(sampleRef(rule.spec().id(), group, other.getBucketStart()));
+        }
+        Map<String, Object> config = new LinkedHashMap<>(detectorMap(rule));
+        config.put("ruleId", rule.spec().id().toString());
+        config.put("group", group);
+        config.put("bucketStart", bucketStart.toString());
+        config.put("bucketEnd", bucketEnd.toString());
+        config.put("window", rule.window().toMap());
+        Map<String, Object> detectability = new LinkedHashMap<>();
+        detectability.put("checked", detect != null);
+        detectability.put("ok", detect == null || detect.ok());
+        detectability.put("p", detect == null ? null : detect.p());
+        config.put("detectability", detectability);
+        try {
+            return manifests.record(ai.foresignal.manifest.ManifestRequest.of(ANOMALY_COMPONENT, AnomalyDetector.VERSION)
+                    .config(config).registries("observability.json", "originators.json").asOf(watermark).inputs(refs));
+        } catch (RuntimeException e) {
+            log.warn("Could not record the anomaly manifest of rule {}: {}", rule.spec().id(), e.toString());
+            return null;
+        }
     }
 
     private Map<String, Object> detectorMap(WindowRule rule) {

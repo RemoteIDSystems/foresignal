@@ -109,6 +109,14 @@ foresignal:
   # and generates tuning suggestions. Off in tests.
   quality:
     scheduled: true
+  # Evidence identity (116): the EvidenceResolver links event-class observations to canonical events from its durable
+  # cursor evidence.cursor. Off in tests (the ITs call EvidenceResolver.catchUp()).
+  evidence:
+    auto-start: true
+  # Observability (116): the weekly estimator (Mondays from 04:30 UTC) adds capture-recapture, presence-proxy and
+  # receiver-range estimates. Off in tests.
+  observability:
+    scheduled: true
   # Root for INBOX_PATH source parameters. Every inbox read is confined to this
   # directory, re-checked per file, so a symlink cannot redirect a read out of it.
   inbox-dir: ${FORESIGNAL_INBOX_DIR:${FORESIGNAL_DATA_DIR:./data}/inbox}

@@ -1,0 +1,985 @@
+{
+  "version": "1.0.0",
+  "description": "Originator registry (prompt 116): who originated each source's observations, for evidence independence. 'sources' maps a source id, or a family pattern ending in '*', to an originator id or to {originator, class, notes}; '$source' means the source id itself. 'upstreamRefs' lists the payload fields carrying an upstream event id as 'field@namespace' ('$externalId' is the record's external id), and 'cite:field' for a field carrying the cited original source (a URL, domain or name).",
+  "originators": [
+    {
+      "id": "usgs-anss",
+      "class": "sensor-network",
+      "independenceGroup": "usgs",
+      "domains": [
+        "usgs.gov",
+        "earthquake.usgs.gov"
+      ],
+      "notes": "USGS Advanced National Seismic System and NEIC; also the source of ShakeMap"
+    },
+    {
+      "id": "emsc",
+      "class": "aggregator",
+      "independenceGroup": "emsc",
+      "domains": [
+        "emsc-csem.org",
+        "seismicportal.eu"
+      ],
+      "notes": "European-Mediterranean Seismological Centre; compiles its own solutions from contributing networks"
+    },
+    {
+      "id": "gfz",
+      "class": "sensor-network",
+      "independenceGroup": "gfz",
+      "domains": [
+        "geofon.gfz.de",
+        "gfz-potsdam.de"
+      ],
+      "notes": "GFZ GEOFON"
+    },
+    {
+      "id": "ingv",
+      "class": "sensor-network",
+      "independenceGroup": "ingv",
+      "domains": [
+        "ingv.it"
+      ],
+      "notes": "INGV, Italy"
+    },
+    {
+      "id": "geonet-nz",
+      "class": "sensor-network",
+      "independenceGroup": "geonet-nz",
+      "domains": [
+        "geonet.org.nz"
+      ],
+      "notes": "GNS Science GeoNet, New Zealand"
+    },
+    {
+      "id": "usgs-volcano",
+      "class": "agency",
+      "independenceGroup": "usgs",
+      "domains": [
+        "volcanoes.usgs.gov"
+      ],
+      "notes": "USGS Volcano Hazards Program (HANS)"
+    },
+    {
+      "id": "smithsonian-gvp",
+      "class": "aggregator",
+      "independenceGroup": "smithsonian-gvp",
+      "domains": [
+        "volcano.si.edu"
+      ],
+      "notes": "Global Volcanism Program weekly reports"
+    },
+    {
+      "id": "gdacs",
+      "class": "aggregator",
+      "independenceGroup": "gdacs",
+      "aggregates": [
+        "usgs-anss",
+        "noaa-nhc",
+        "firms-viirs",
+        "jtwc"
+      ],
+      "domains": [
+        "gdacs.org"
+      ],
+      "notes": "GDACS republishes USGS for earthquakes, NOAA/JTWC for cyclones and GWIS/FIRMS for fires"
+    },
+    {
+      "id": "reliefweb",
+      "class": "aggregator",
+      "independenceGroup": "reliefweb",
+      "domains": [
+        "reliefweb.int"
+      ],
+      "notes": "OCHA ReliefWeb; reports cite their original sources"
+    },
+    {
+      "id": "copernicus-ems",
+      "class": "agency",
+      "independenceGroup": "copernicus-ems",
+      "domains": [
+        "emergency.copernicus.eu"
+      ],
+      "notes": "Copernicus Emergency Management Service activations"
+    },
+    {
+      "id": "nasa-eonet",
+      "class": "aggregator",
+      "independenceGroup": "nasa-eonet",
+      "aggregates": [
+        "gdacs",
+        "inciweb",
+        "firms-viirs",
+        "smithsonian-gvp",
+        "noaa-nhc"
+      ],
+      "domains": [
+        "eonet.gsfc.nasa.gov"
+      ],
+      "notes": "NASA EONET curates events from other catalogs"
+    },
+    {
+      "id": "fema",
+      "class": "agency",
+      "independenceGroup": "fema",
+      "domains": [
+        "fema.gov"
+      ],
+      "notes": "FEMA disaster declarations"
+    },
+    {
+      "id": "who",
+      "class": "agency",
+      "independenceGroup": "who",
+      "domains": [
+        "who.int"
+      ],
+      "notes": "World Health Organization"
+    },
+    {
+      "id": "unhcr",
+      "class": "agency",
+      "independenceGroup": "unhcr",
+      "domains": [
+        "unhcr.org"
+      ]
+    },
+    {
+      "id": "firms-viirs",
+      "class": "sensor-network",
+      "independenceGroup": "nasa-firms",
+      "domains": [
+        "firms.modaps.eosdis.nasa.gov"
+      ],
+      "notes": "NASA FIRMS active fire detections (VIIRS and MODIS)"
+    },
+    {
+      "id": "goes-fdc",
+      "class": "sensor-network",
+      "independenceGroup": "noaa-goes",
+      "notes": "NOAA GOES ABI Fire Detection and Characterization"
+    },
+    {
+      "id": "goes-glm",
+      "class": "sensor-network",
+      "independenceGroup": "noaa-goes",
+      "notes": "GOES Geostationary Lightning Mapper"
+    },
+    {
+      "id": "noaa-hms",
+      "class": "aggregator",
+      "independenceGroup": "noaa-hms",
+      "aggregates": [
+        "firms-viirs",
+        "goes-fdc"
+      ],
+      "domains": [
+        "ospo.noaa.gov"
+      ],
+      "notes": "NOAA Hazard Mapping System analysts confirm satellite detections"
+    },
+    {
+      "id": "cwfis",
+      "class": "aggregator",
+      "independenceGroup": "cwfis",
+      "aggregates": [
+        "firms-viirs"
+      ],
+      "domains": [
+        "cwfis.cfs.nrcan.gc.ca"
+      ],
+      "notes": "Canadian Wildland Fire Information System hotspots are built from satellite detections"
+    },
+    {
+      "id": "inciweb",
+      "class": "agency",
+      "independenceGroup": "nifc",
+      "domains": [
+        "inciweb.wildfire.gov"
+      ],
+      "notes": "InciWeb incident pages"
+    },
+    {
+      "id": "nifc",
+      "class": "agency",
+      "independenceGroup": "nifc",
+      "domains": [
+        "nifc.gov"
+      ],
+      "notes": "National Interagency Fire Center"
+    },
+    {
+      "id": "acled",
+      "class": "aggregator",
+      "independenceGroup": "acled",
+      "domains": [
+        "acleddata.com"
+      ],
+      "notes": "ACLED codes events from media and local partner reports"
+    },
+    {
+      "id": "ucdp",
+      "class": "aggregator",
+      "independenceGroup": "ucdp",
+      "domains": [
+        "ucdp.uu.se"
+      ],
+      "notes": "Uppsala Conflict Data Program GED"
+    },
+    {
+      "id": "gdelt",
+      "class": "aggregator",
+      "independenceGroup": "gdelt",
+      "domains": [
+        "gdeltproject.org"
+      ],
+      "notes": "GDELT machine-codes news articles; each event cites its article's outlet"
+    },
+    {
+      "id": "alerts-in-ua",
+      "class": "operator",
+      "independenceGroup": "ua-civil-defence",
+      "domains": [
+        "alerts.in.ua"
+      ],
+      "notes": "Air-raid alert maps of Ukraine"
+    },
+    {
+      "id": "ua-air-raid-siren",
+      "class": "operator",
+      "independenceGroup": "ua-civil-defence"
+    },
+    {
+      "id": "deepstate",
+      "class": "crowd",
+      "independenceGroup": "deepstate",
+      "notes": "DeepState frontline map"
+    },
+    {
+      "id": "ioda",
+      "class": "sensor-network",
+      "independenceGroup": "ioda",
+      "domains": [
+        "ioda.inetintel.cc.gatech.edu"
+      ],
+      "notes": "Georgia Tech IODA"
+    },
+    {
+      "id": "cloudflare-radar",
+      "class": "sensor-network",
+      "independenceGroup": "cloudflare-radar",
+      "domains": [
+        "radar.cloudflare.com"
+      ]
+    },
+    {
+      "id": "ripe-ncc",
+      "class": "sensor-network",
+      "independenceGroup": "ripe-ncc",
+      "domains": [
+        "ripe.net"
+      ],
+      "notes": "RIPE RIS and RIPE Atlas"
+    },
+    {
+      "id": "google-cloud",
+      "class": "operator",
+      "independenceGroup": "google-cloud"
+    },
+    {
+      "id": "noaa-nws",
+      "class": "agency",
+      "independenceGroup": "noaa",
+      "domains": [
+        "weather.gov"
+      ],
+      "notes": "National Weather Service"
+    },
+    {
+      "id": "noaa-nhc",
+      "class": "agency",
+      "independenceGroup": "noaa",
+      "domains": [
+        "nhc.noaa.gov"
+      ],
+      "notes": "National Hurricane Center"
+    },
+    {
+      "id": "noaa-spc",
+      "class": "agency",
+      "independenceGroup": "noaa",
+      "domains": [
+        "spc.noaa.gov"
+      ],
+      "notes": "Storm Prediction Center"
+    },
+    {
+      "id": "noaa-swpc",
+      "class": "agency",
+      "independenceGroup": "noaa",
+      "domains": [
+        "swpc.noaa.gov"
+      ],
+      "notes": "Space Weather Prediction Center"
+    },
+    {
+      "id": "noaa",
+      "class": "agency",
+      "independenceGroup": "noaa",
+      "domains": [
+        "noaa.gov"
+      ],
+      "notes": "Other NOAA products (models, buoys, tides, aviation weather)"
+    },
+    {
+      "id": "noaa-tsunami",
+      "class": "agency",
+      "independenceGroup": "noaa",
+      "domains": [
+        "tsunami.gov"
+      ],
+      "notes": "NOAA Tsunami Warning Centers"
+    },
+    {
+      "id": "jtwc",
+      "class": "agency",
+      "independenceGroup": "jtwc",
+      "notes": "Joint Typhoon Warning Center"
+    },
+    {
+      "id": "ecmwf",
+      "class": "agency",
+      "independenceGroup": "ecmwf",
+      "domains": [
+        "ecmwf.int"
+      ]
+    },
+    {
+      "id": "meteoalarm",
+      "class": "aggregator",
+      "independenceGroup": "eumetnet",
+      "domains": [
+        "meteoalarm.org"
+      ],
+      "notes": "EUMETNET MeteoAlarm republishes national warnings"
+    },
+    {
+      "id": "uk-ea",
+      "class": "agency",
+      "independenceGroup": "uk-ea",
+      "notes": "Environment Agency flood warnings"
+    },
+    {
+      "id": "nasa",
+      "class": "agency",
+      "independenceGroup": "nasa",
+      "domains": [
+        "nasa.gov"
+      ],
+      "notes": "Other NASA services (DONKI, JPL)"
+    },
+    {
+      "id": "faa",
+      "class": "agency",
+      "independenceGroup": "faa",
+      "domains": [
+        "faa.gov"
+      ]
+    },
+    {
+      "id": "adsb-community",
+      "class": "crowd",
+      "independenceGroup": "adsb-community",
+      "notes": "Community ADS-B networks share many feeders, so they are never independent of each other"
+    },
+    {
+      "id": "opensky",
+      "class": "crowd",
+      "independenceGroup": "adsb-community",
+      "notes": "OpenSky Network"
+    },
+    {
+      "id": "ais-community",
+      "class": "crowd",
+      "independenceGroup": "ais-community",
+      "notes": "Terrestrial AIS receiver networks"
+    },
+    {
+      "id": "aisstream",
+      "class": "aggregator",
+      "independenceGroup": "ais-community",
+      "notes": "AISStream terrestrial AIS"
+    },
+    {
+      "id": "kystverket",
+      "class": "agency",
+      "independenceGroup": "kystverket",
+      "notes": "Norwegian Coastal Administration AIS"
+    },
+    {
+      "id": "fintraffic",
+      "class": "agency",
+      "independenceGroup": "fintraffic",
+      "notes": "Fintraffic Digitraffic (AIS and rail)"
+    },
+    {
+      "id": "gfw",
+      "class": "aggregator",
+      "independenceGroup": "gfw",
+      "aggregates": [
+        "ais-community"
+      ],
+      "domains": [
+        "globalfishingwatch.org"
+      ],
+      "notes": "Global Fishing Watch events are derived from AIS"
+    },
+    {
+      "id": "nga-msi",
+      "class": "agency",
+      "independenceGroup": "nga",
+      "notes": "NGA Maritime Safety Information"
+    },
+    {
+      "id": "imf-portwatch",
+      "class": "aggregator",
+      "independenceGroup": "imf-portwatch",
+      "aggregates": [
+        "ais-community"
+      ],
+      "notes": "IMF PortWatch derives transits from AIS"
+    },
+    {
+      "id": "celestrak",
+      "class": "aggregator",
+      "independenceGroup": "space-track",
+      "aggregates": [
+        "space-track"
+      ],
+      "domains": [
+        "celestrak.org"
+      ],
+      "notes": "CelesTrak republishes 18 SDS element sets"
+    },
+    {
+      "id": "space-track",
+      "class": "agency",
+      "independenceGroup": "space-track",
+      "domains": [
+        "space-track.org"
+      ],
+      "notes": "18th Space Defense Squadron"
+    },
+    {
+      "id": "launch-library",
+      "class": "aggregator",
+      "independenceGroup": "launch-library",
+      "notes": "The Space Devs Launch Library"
+    },
+    {
+      "id": "satnogs",
+      "class": "crowd",
+      "independenceGroup": "satnogs"
+    },
+    {
+      "id": "abuse-ch",
+      "class": "aggregator",
+      "independenceGroup": "abuse-ch",
+      "domains": [
+        "abuse.ch"
+      ]
+    },
+    {
+      "id": "cisa",
+      "class": "agency",
+      "independenceGroup": "cisa",
+      "domains": [
+        "cisa.gov"
+      ]
+    },
+    {
+      "id": "nist-nvd",
+      "class": "agency",
+      "independenceGroup": "nist",
+      "domains": [
+        "nvd.nist.gov"
+      ]
+    },
+    {
+      "id": "ct-logs",
+      "class": "aggregator",
+      "independenceGroup": "ct-logs",
+      "notes": "Certificate Transparency logs"
+    },
+    {
+      "id": "ofac",
+      "class": "agency",
+      "independenceGroup": "us-treasury",
+      "domains": [
+        "treasury.gov"
+      ]
+    },
+    {
+      "id": "uk-fcdo",
+      "class": "agency",
+      "independenceGroup": "uk-fcdo",
+      "domains": [
+        "gov.uk"
+      ]
+    },
+    {
+      "id": "un-security-council",
+      "class": "agency",
+      "independenceGroup": "un",
+      "domains": [
+        "un.org"
+      ]
+    },
+    {
+      "id": "sec",
+      "class": "agency",
+      "independenceGroup": "sec",
+      "domains": [
+        "sec.gov"
+      ]
+    },
+    {
+      "id": "us-state-dept",
+      "class": "agency",
+      "independenceGroup": "us-state-dept",
+      "domains": [
+        "state.gov"
+      ]
+    },
+    {
+      "id": "epa",
+      "class": "agency",
+      "independenceGroup": "epa",
+      "domains": [
+        "epa.gov"
+      ]
+    },
+    {
+      "id": "airnow",
+      "class": "agency",
+      "independenceGroup": "epa",
+      "domains": [
+        "airnow.gov"
+      ]
+    },
+    {
+      "id": "openaq",
+      "class": "aggregator",
+      "independenceGroup": "openaq",
+      "domains": [
+        "openaq.org"
+      ]
+    },
+    {
+      "id": "cdc",
+      "class": "agency",
+      "independenceGroup": "cdc",
+      "domains": [
+        "cdc.gov"
+      ]
+    },
+    {
+      "id": "usgs-water",
+      "class": "agency",
+      "independenceGroup": "usgs",
+      "notes": "USGS Water Data"
+    },
+    {
+      "id": "usda-nrcs",
+      "class": "agency",
+      "independenceGroup": "usda",
+      "notes": "SNOTEL"
+    },
+    {
+      "id": "ebird",
+      "class": "crowd",
+      "independenceGroup": "ebird"
+    },
+    {
+      "id": "inaturalist",
+      "class": "crowd",
+      "independenceGroup": "inaturalist"
+    },
+    {
+      "id": "safecast",
+      "class": "crowd",
+      "independenceGroup": "safecast"
+    },
+    {
+      "id": "sensor-community",
+      "class": "crowd",
+      "independenceGroup": "sensor-community"
+    },
+    {
+      "id": "radio-community",
+      "class": "crowd",
+      "independenceGroup": "radio-community",
+      "notes": "Amateur radio and SDR networks (APRS-IS, PSKReporter, KiwiSDR, SondeHub, Radio Browser, OpenMHz)"
+    },
+    {
+      "id": "mesh-community",
+      "class": "crowd",
+      "independenceGroup": "mesh-community",
+      "notes": "Meshtastic and MeshCore public networks"
+    },
+    {
+      "id": "grid-operators",
+      "class": "agency",
+      "independenceGroup": "grid-operators",
+      "notes": "Grid operators and electricity data (Fingrid, NESO, ERCOT, Ember, GIE, Carbon Intensity)"
+    },
+    {
+      "id": "wikidata",
+      "class": "crowd",
+      "independenceGroup": "wikimedia",
+      "notes": "Wikidata and Wikipedia"
+    },
+    {
+      "id": "openstreetmap",
+      "class": "crowd",
+      "independenceGroup": "openstreetmap"
+    },
+    {
+      "id": "reference-catalogs",
+      "class": "agency",
+      "independenceGroup": "reference-catalogs",
+      "notes": "Static reference catalogs (ports, airports, plants, cables, boundaries)"
+    },
+    {
+      "id": "gpsjam",
+      "class": "derived",
+      "independenceGroup": "gpsjam",
+      "aggregates": [
+        "adsb-community"
+      ],
+      "notes": "GPSJam derives interference from ADS-B navigation integrity"
+    },
+    {
+      "id": "foresignal",
+      "class": "derived",
+      "independenceGroup": "foresignal",
+      "notes": "Foresignal's own outputs (intelligence events, canaries, weather products)"
+    },
+    {
+      "id": "transit-agencies",
+      "class": "operator",
+      "independenceGroup": "transit-agencies"
+    },
+    {
+      "id": "road-agencies",
+      "class": "agency",
+      "independenceGroup": "road-agencies",
+      "notes": "Road event and work-zone feeds (WZDx and others)"
+    },
+    {
+      "id": "cctv-operators",
+      "class": "operator",
+      "independenceGroup": "cctv-operators"
+    },
+    {
+      "id": "status-pages",
+      "class": "operator",
+      "independenceGroup": "status-pages",
+      "notes": "Vendor status pages"
+    },
+    {
+      "id": "copernicus",
+      "class": "agency",
+      "independenceGroup": "copernicus",
+      "notes": "Copernicus satellite scenes"
+    }
+  ],
+  "sources": {
+    "usgs-earthquakes": "usgs-anss",
+    "usgs-shakemap": "usgs-anss",
+    "emsc-seismic": "emsc",
+    "geofon": "gfz",
+    "ingv": "ingv",
+    "geonet-volcanoes": "geonet-nz",
+    "usgs-hans-volcanoes": "usgs-volcano",
+    "gvp-volcanoes": "smithsonian-gvp",
+    "gdacs": "gdacs",
+    "reliefweb-disasters": "reliefweb",
+    "copernicus-ems": "copernicus-ems",
+    "nasa-eonet": "nasa-eonet",
+    "openfema-declarations": "fema",
+    "who-don": "who",
+    "unhcr-population": "unhcr",
+    "nasa-firms": "firms-viirs",
+    "goes-fdc": "goes-fdc",
+    "goes-glm": "goes-glm",
+    "hms-fire": "noaa-hms",
+    "hms-smoke": "noaa-hms",
+    "inciweb-incidents": "inciweb",
+    "nifc-perimeters": "nifc",
+    "acled": "acled",
+    "ucdp-ged": "ucdp",
+    "gdelt-events": "gdelt",
+    "alerts-in-ua": "alerts-in-ua",
+    "ua-air-raid-siren": "ua-air-raid-siren",
+    "deepstate-frontline": "deepstate",
+    "ioda-outages": "ioda",
+    "cloudflare-radar-outages": "cloudflare-radar",
+    "cloudflare-radar-bgp": "cloudflare-radar",
+    "ris-live": "ripe-ncc",
+    "ripe-atlas-probes": "ripe-ncc",
+    "google-status": "google-cloud",
+    "nws-alerts": "noaa-nws",
+    "nws-gridpoints": "noaa-nws",
+    "nwps-gauges": "noaa-nws",
+    "nhc-cyclones": "noaa-nhc",
+    "nhc-cyclone-cones": "noaa-nhc",
+    "spc-outlooks": "noaa-spc",
+    "spc-storm-reports": "noaa-spc",
+    "wpc-heatrisk": "noaa",
+    "tsunami-warnings": "noaa-tsunami",
+    "swpc-alerts": "noaa-swpc",
+    "swpc-aurora": "noaa-swpc",
+    "swpc-kp": "noaa-swpc",
+    "swpc-rtsw": "noaa-swpc",
+    "swpc-xray": "noaa-swpc",
+    "gfs": "noaa",
+    "gfs-wave": "noaa",
+    "hrrr": "noaa",
+    "nbm": "noaa",
+    "mrms": "noaa",
+    "mrms-probsevere": "noaa",
+    "rtma-ru": "noaa",
+    "nexrad-l3": "noaa",
+    "sst-geopolar": "noaa",
+    "ndbc-buoys": "noaa",
+    "noaa-coops-tides": "noaa",
+    "awc-metars": "noaa",
+    "usdm": "noaa",
+    "ecmwf-ifs": "ecmwf",
+    "aifs": "ecmwf",
+    "meteoalarm": "meteoalarm",
+    "ea-flood-warnings": "uk-ea",
+    "nasa-donki": "nasa",
+    "jpl-close-approaches": "nasa",
+    "jpl-fireballs": "nasa",
+    "faa-nas-status": "faa",
+    "faa-registry": "faa",
+    "faa-tfr": "faa",
+    "faa-uasfm": "faa",
+    "adsbfi-mil": "adsb-community",
+    "adsblol-mil": "adsb-community",
+    "airplaneslive-mil": "adsb-community",
+    "opensky-states": "opensky",
+    "aisstream": "aisstream",
+    "ais-kystverket": "kystverket",
+    "ais-digitraffic": "fintraffic",
+    "digitraffic-rail": "fintraffic",
+    "gfw-events": "gfw",
+    "nga-msi-warnings": "nga-msi",
+    "imf-portwatch-chokepoints": "imf-portwatch",
+    "imf-portwatch-ports": "imf-portwatch",
+    "celestrak-gp": "celestrak",
+    "celestrak-socrates": "celestrak",
+    "spacetrack-tip": "space-track",
+    "launch-library": "launch-library",
+    "satnogs-stations": "satnogs",
+    "satellite-passes": "celestrak",
+    "spaceports": "reference-catalogs",
+    "abusech-feodo": "abuse-ch",
+    "abusech-urlhaus": "abuse-ch",
+    "cisa-kev": "cisa",
+    "nvd-cves": "nist-nvd",
+    "ct-domain-watch": "ct-logs",
+    "ofac-sdn": "ofac",
+    "uk-sanctions-list": "uk-fcdo",
+    "un-sanctions": "un-security-council",
+    "sec-8k": "sec",
+    "travel-advisory-us": "us-state-dept",
+    "epa-radnet": "epa",
+    "epa-uv": "epa",
+    "airnow-hourly": "airnow",
+    "openaq": "openaq",
+    "cdc-nwss-detections": "cdc",
+    "cdc-nwss-wval": "cdc",
+    "usgs-water": "usgs-water",
+    "snotel": "usda-nrcs",
+    "ebird-notable": "ebird",
+    "inat-observations": "inaturalist",
+    "safecast-radiation": "safecast",
+    "sensor-community": "sensor-community",
+    "aprs-is": "radio-community",
+    "pskreporter-ft8": "radio-community",
+    "kiwisdr": "radio-community",
+    "sondehub": "radio-community",
+    "radio-browser": "radio-community",
+    "openmhz-systems": "radio-community",
+    "meshtastic-map": "mesh-community",
+    "meshtastic-mqtt": "mesh-community",
+    "grid-frequency-fingrid": "grid-operators",
+    "grid-frequency-gb": "grid-operators",
+    "ercot-public": "grid-operators",
+    "ember-electricity": "grid-operators",
+    "gie-agsi": "grid-operators",
+    "gb-carbon-intensity": "grid-operators",
+    "nuclear-plants-wikidata": "wikidata",
+    "wiki-edit-surge": "wikidata",
+    "osm-infrastructure": "openstreetmap",
+    "nuclear-reactors-us": "reference-catalogs",
+    "nps-boundaries": "reference-catalogs",
+    "ourairports": "reference-catalogs",
+    "submarine-cables": "reference-catalogs",
+    "world-port-index": "reference-catalogs",
+    "wri-power-plants": "reference-catalogs",
+    "gpsjam-daily": "gpsjam",
+    "foresignal-intel": "foresignal",
+    "system-canary": "foresignal",
+    "derived-aircraft": "adsb-community",
+    "amtraker": "transit-agencies",
+    "wx-areas": "foresignal",
+    "wx-cells": "foresignal",
+    "wx-forecast-areas": "foresignal",
+    "wx-places": "foresignal",
+    "wx-storm-tracks": "foresignal",
+    "meshtastic-local": {
+      "originator": "$source",
+      "class": "operator"
+    },
+    "mesh-reports": {
+      "originator": "$source",
+      "class": "operator"
+    },
+    "rule-windows": {
+      "originator": "foresignal"
+    }
+  },
+  "patterns": {
+    "cap-*": {
+      "originator": "$source",
+      "class": "agency",
+      "notes": "National meteorological and civil-protection CAP feeds"
+    },
+    "meteoalarm-*": {
+      "originator": "meteoalarm"
+    },
+    "awc-*": {
+      "originator": "noaa"
+    },
+    "cwfis-*": {
+      "originator": "cwfis"
+    },
+    "adsbfi-*": {
+      "originator": "adsb-community"
+    },
+    "adsblol-*": {
+      "originator": "adsb-community"
+    },
+    "airplaneslive-*": {
+      "originator": "adsb-community"
+    },
+    "local-*": {
+      "originator": "$source",
+      "class": "operator",
+      "notes": "The operator's own receivers"
+    },
+    "station-readsb-*": {
+      "originator": "$source",
+      "class": "operator"
+    },
+    "wxstation-*": {
+      "originator": "$source",
+      "class": "operator"
+    },
+    "airq-local-*": {
+      "originator": "$source",
+      "class": "operator"
+    },
+    "meshcore-*": {
+      "originator": "$source",
+      "class": "operator"
+    },
+    "derived-*": {
+      "originator": "$source",
+      "class": "derived"
+    },
+    "pattern-of-life*": {
+      "originator": "foresignal"
+    },
+    "satdump-*": {
+      "originator": "$source",
+      "class": "operator"
+    },
+    "goes-*": {
+      "originator": "noaa"
+    },
+    "transit-*": {
+      "originator": "transit-agencies"
+    },
+    "gbfs-*": {
+      "originator": "transit-agencies"
+    },
+    "wzdx-*": {
+      "originator": "road-agencies"
+    },
+    "roads-*": {
+      "originator": "road-agencies"
+    },
+    "cctv-*": {
+      "originator": "cctv-operators"
+    },
+    "status-*": {
+      "originator": "status-pages"
+    },
+    "feed-*": {
+      "originator": "$source",
+      "class": "media"
+    },
+    "wpc-ero-*": {
+      "originator": "noaa"
+    },
+    "faa-uas-*": {
+      "originator": "faa"
+    },
+    "peer-*": {
+      "originator": "$source",
+      "class": "aggregator",
+      "notes": "Federated peers republish their own sources"
+    },
+    "stac-*": {
+      "originator": "copernicus"
+    },
+    "earth-search*": {
+      "originator": "copernicus"
+    },
+    "fdsn-*": {
+      "originator": "$source",
+      "class": "sensor-network"
+    }
+  },
+  "upstreamRefs": {
+    "gdacs": [
+      "eventId@gdacs-event",
+      "glide@glide"
+    ],
+    "reliefweb-disasters": [
+      "glide@glide"
+    ],
+    "gdelt-events": [
+      "cite:sourceUrl"
+    ],
+    "nws-alerts": [
+      "$externalId@cap-identifier"
+    ],
+    "cap-*": [
+      "identifier@cap-identifier"
+    ],
+    "nasa-eonet": [
+      "cite:sources"
+    ],
+    "usgs-earthquakes": [
+      "$externalId@usgs-event"
+    ],
+    "usgs-shakemap": [
+      "$externalId@usgs-event"
+    ]
+  }
+}

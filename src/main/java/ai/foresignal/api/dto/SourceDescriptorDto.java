@@ -69,6 +69,8 @@ import java.util.Map;
  * @param licenceTerms the resolved license terms (prompt 109)
  * @param reliability the descriptor's Admiralty reliability grade {@code A}–{@code F} (prompt 109)
  * @param derivedFrom a DERIVED source's declared input source ids (prompt 109)
+ * @param upstreamRefFields payload fields carrying the upstream's event id or cited source (prompt 116)
+ * @param observability the declared observability in force (prompt 116), or null
  */
 public record SourceDescriptorDto(
         String id,
@@ -123,4 +125,6 @@ public record SourceDescriptorDto(
                 String llmNotice,
         ai.foresignal.provenance.LicenceTerms licenceTerms,
         String reliability,
-        List<String> derivedFrom) {}
+        List<String> derivedFrom,
+        List<String> upstreamRefFields,
+        ai.foresignal.source.spi.DeclaredObservability observability) {}

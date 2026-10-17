@@ -62,7 +62,7 @@ class CredibilityServiceTest {
                 null, null, null, null, qaFlags, null, null, null, null, null, null, null, null, null, null);
     }
 
-    /** A corroboration payload as {@code CorroborationGenerator.emit} writes it. */
+    /** A corroboration payload in 099's shape ({@code CorroborationGenerator.payload} keeps these members). */
     static String corroboration(int credibility, List<String> independent, String... members) {
         StringBuilder list = new StringBuilder();
         for (String member : members) {

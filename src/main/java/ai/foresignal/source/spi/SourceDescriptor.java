@@ -88,6 +88,11 @@ import java.util.Set;
  *     otherwise
  * @param originator the originator id used for evidence independence (prompt 116 reads it); null
  *     means the default from the originator registry
+ * @param upstreamRefFields payload fields that carry the upstream's own event id (prompt 116); an entry
+ *     prefixed {@code cite:} names a field that carries the cited original source instead; empty means the
+ *     default from {@code intel/originators.json}
+ * @param observability the declared observability per kind (prompt 116), or null for the default from
+ *     {@code intel/observability.json}
  * @param access how the source reaches its data, or null when not declared
  * @param hiddenKinds kinds left out of the default tile layer lists (EDP atomic streams, prompt
  *     024); still queryable, searchable and usable in rules, and requestable as a layer by name
@@ -224,7 +229,14 @@ public record SourceDescriptor(
          * The source ids a DERIVED source is built from (prompt 109); its terms are the most restrictive
          * of theirs. Empty for a non-derived source.
          */
-        List<String> derivedFrom) {
+        List<String> derivedFrom,
+        /**
+         * Payload fields carrying the upstream's own event id, or (prefixed {@code cite:}) the cited original
+         * source (prompt 116); empty for the registry default.
+         */
+        List<String> upstreamRefFields,
+        /** The declared observability per kind (prompt 116), or null for the registry default. */
+        DeclaredObservability observability) {
 
     /** The default shrink guard ratio of a complete-set reference dataset (prompt 094). */
     public static final double DEFAULT_MAX_ABSENT_RATIO = 0.2;
@@ -300,6 +312,7 @@ public record SourceDescriptor(
         }
         reliability = normalizeReliability(reliability);
         derivedFrom = derivedFrom == null ? List.of() : List.copyOf(derivedFrom);
+        upstreamRefFields = upstreamRefFields == null ? List.of() : List.copyOf(upstreamRefFields);
     }
 
     /** An unmodifiable copy of {@code map} that keeps its insertion order; empty when null. */
@@ -452,6 +465,8 @@ public record SourceDescriptor(
         private boolean custom;
         private Egress egress = Egress.OPEN;
         private String originator;
+        private final List<String> upstreamRefFields = new ArrayList<>();
+        private DeclaredObservability observability;
         private SourceAccess access;
 
         private Builder(String id) {
@@ -797,6 +812,24 @@ public record SourceDescriptor(
             return this;
         }
 
+        /**
+         * The payload fields carrying the upstream's own event id (prompt 116); prefix a field with
+         * {@code cite:} when it carries the cited original source instead.
+         */
+        public Builder upstreamRefFields(String... fields) {
+            this.upstreamRefFields.clear();
+            if (fields != null) {
+                this.upstreamRefFields.addAll(List.of(fields));
+            }
+            return this;
+        }
+
+        /** The declared observability per kind (prompt 116). */
+        public Builder observability(DeclaredObservability observability) {
+            this.observability = observability;
+            return this;
+        }
+
         /** How the source reaches its data. */
         public Builder access(SourceAccess access) {
             this.access = access;
@@ -989,7 +1022,9 @@ public record SourceDescriptor(
                     reconcileMaxAbsentRatio,
                     licenceTerms,
                     reliability != null ? reliability : ReliabilitySeed.seed(id, licence, mode, custom),
-                    derivedFrom);
+                    derivedFrom,
+                    upstreamRefFields,
+                    observability);
         }
     }
 }

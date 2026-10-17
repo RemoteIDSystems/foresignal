@@ -67,6 +67,7 @@ public final class AnalystViews {
         out.put("warnings", run.getWarnings());
         out.put("reason", run.getReason());
         out.put("promptHash", run.getPromptHash());
+        out.put("manifestId", run.getManifestId());
         out.put("detectorVersion", run.getDetectorVersion());
         out.put("content", run.getContent());
         return out;

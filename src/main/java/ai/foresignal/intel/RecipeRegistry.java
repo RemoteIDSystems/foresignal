@@ -102,9 +102,21 @@ public class RecipeRegistry {
      * clears it). A missing recipe is ignored.
      */
     public void recordRun(String id, java.time.Instant at, String error) {
+        recordRun(id, at, error, null);
+    }
+
+    /**
+     * Records a run with the manifest of its output (prompt 116); a null manifest keeps the last one.
+     *
+     * @param manifestId the manifest of a run that produced candidates, or null
+     */
+    public void recordRun(String id, java.time.Instant at, String error, String manifestId) {
         try {
             recipes.findById(id).ifPresent(entity -> {
                 entity.setLastRunAt(at);
+                if (manifestId != null) {
+                    entity.setLastManifestId(manifestId);
+                }
                 entity.setLastError(error == null ? null : error.length() > 1_000 ? error.substring(0, 1_000) : error);
                 recipes.save(entity);
             });

@@ -29,7 +29,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              # 114: pattern-of-life subjects and trips.
              "subjectId": "polSubjectId", "tripId": "tripId",
              # 115: exercise runs, tuning suggestions and tuning log entries.
-             "exerciseId": "exerciseId", "suggestionId": "suggestionId", "logId": "tuningLogId"}
+             "exerciseId": "exerciseId", "suggestionId": "suggestionId", "logId": "tuningLogId",
+             # 116: canonical events, analysis manifests and prompt templates.
+             "canonicalEventId": "canonicalEventId", "manifestId": "manifestId", "templateId": "templateId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -462,6 +464,10 @@ CAPTURE = {
   "createExercise": "const j = pm.response.json(); pm.collectionVariables.set('exerciseId', j.id);",
   "getTriggerSuggestions": "const j = pm.response.json(); if (j.suggestions && j.suggestions.length) pm.collectionVariables.set('suggestionId', j.suggestions[0].id);",
   "applyTuningSuggestion": "const j = pm.response.json(); pm.collectionVariables.set('tuningLogId', j.id);",
+  # 116: the first canonical event, the manifest of the newest anomaly and the replay job.
+  "listCanonicalEvents": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('canonicalEventId', j.items[0].id);",
+  "listAnomalies": "const j = pm.response.json(); const a = (j.items || []).find(i => i.manifestId); if (a) pm.collectionVariables.set('manifestId', a.manifestId);",
+  "replayManifest": "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.jobId);",
   "rotatePeerIngestKey": "const j = pm.response.json(); pm.collectionVariables.set('peerIngestKey', j.key); console.log('New peer ingest key (shown once):', j.key);",
   "createSnapshot": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
   "createPack": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
@@ -796,6 +802,7 @@ collection = {
       ("peerId", ""), ("peerIngestKey", ""), ("federationToken", ""),
       ("polSubjectId", ""), ("polPlaceId", ""), ("tripId", ""),
       ("exerciseId", ""), ("suggestionId", ""), ("tuningLogId", ""),
+      ("canonicalEventId", ""), ("manifestId", ""), ("templateId", "ask-system"), ("jobId", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

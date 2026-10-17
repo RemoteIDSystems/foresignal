@@ -96,7 +96,23 @@ class EventSchemaConformanceTest {
             entry("system", () -> List.of(toTree(NotificationJson.toMap(systemMessage())))),
             // 033: InboxTopic sends the device's badge as an id-less control event (checkpoint 041).
             entry("badge", () -> List.of(toTree(new ai.foresignal.notify.inbox.InboxService.Badge(3, 1, 42L).toMap()),
-                    toTree(new ai.foresignal.notify.inbox.InboxService.Badge(0, 0, null).toMap()))));
+                    toTree(new ai.foresignal.notify.inbox.InboxService.Badge(0, 0, null).toMap()))),
+            // 116: EvidenceTopic sends EvidenceEvent.payload() on topic evidence.
+            entry(ai.foresignal.evidence.EvidenceEvent.CREATED,
+                    () -> evidenceEvents(ai.foresignal.evidence.EvidenceEvent.CREATED)),
+            entry(ai.foresignal.evidence.EvidenceEvent.MERGED,
+                    () -> evidenceEvents(ai.foresignal.evidence.EvidenceEvent.MERGED)),
+            entry(ai.foresignal.evidence.EvidenceEvent.FLAGGED,
+                    () -> evidenceEvents(ai.foresignal.evidence.EvidenceEvent.FLAGGED)));
+
+    /** {@code canonical.*} payloads as {@code EvidenceEvent.payload()} writes them (prompt 116). */
+    static List<JsonNode> evidenceEvents(String type) {
+        ai.foresignal.evidence.EvidenceEvent event = new ai.foresignal.evidence.EvidenceEvent(type,
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3C", "seismic", "open", java.time.Instant.parse("2026-03-01T12:00:00Z"),
+                List.of("TR"), 3, 2, List.of("LATE_REVISION"), List.of("LATE_REVISION"), null,
+                List.of("01JA8Q3V7S2K9W4T6Y1B5N0M3D"), List.of("usgs-earthquakes"));
+        return List.of(toTree(event.payload()));
+    }
 
     // ------------------------------------------------------------------------- the table
 

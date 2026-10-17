@@ -232,6 +232,7 @@ public class WindowController {
         item.put("detector", row.getDetector());
         item.put("evidence", row.getEvidence());
         item.put("watermarkSeq", row.getWatermarkSeq());
+        item.put("manifestId", row.getManifestId());
         return item;
     }
 

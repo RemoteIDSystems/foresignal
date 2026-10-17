@@ -107,6 +107,7 @@ public class ListAnomaliesTool implements ForesignalMcpTool {
             item.put("classification", row.getClassification());
             item.put("detector", row.getDetector());
             item.put("baseline", row.getBaseline());
+            item.put("manifestId", row.getManifestId());
             items.add(shaper.objectTree(item));
         }
         return ToolResult.json(shaper.list(items, items.size(), false, Detail.SHORT, null));

@@ -141,6 +141,14 @@ public class CorrelationEngine implements ChangeListener, DisposableBean {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private List<EventAnnotator> annotators = List.of();
 
+    /** Evidence identity (prompt 116), or null when the evidence layer is absent. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.evidence.EvidenceService evidence;
+
+    /** Analysis manifests (prompt 116), or null. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.manifest.ManifestService manifests;
+
     /** The derived-record heads the annotators read (prompt 105), or null. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.derive.DerivedRecords derivedRecords;
@@ -256,8 +264,9 @@ public class CorrelationEngine implements ChangeListener, DisposableBean {
             for (RecipeDefinition recipe : enabled) {
                 Instant at = clock.instant();
                 try {
-                    correlate(recipe, from, to, true);
-                    recipes.recordRun(recipe.id(), at, null);
+                    List<Candidate> produced = correlate(recipe, from, to, true);
+                    recipes.recordRun(recipe.id(), at, null, produced.isEmpty() ? null : runManifest(recipe, from, to,
+                            produced.size()));
                 } catch (RuntimeException e) {
                     log.warn("Recipe {} failed on seq {}..{}: {}", recipe.id(), from, to, e.toString());
                     failures.add(recipe.id() + ": " + e);
@@ -296,6 +305,38 @@ public class CorrelationEngine implements ChangeListener, DisposableBean {
             }
         }
     }
+
+    /**
+     * The manifest of a recipe run that produced candidates (prompt 116): the engine and scorer versions, the
+     * recipe, its seed distance and the seq range read as the input query.
+     */
+    private String runManifest(RecipeDefinition recipe, long from, long to, int candidates) {
+        if (manifests == null) {
+            return null;
+        }
+        Map<String, Object> config = new LinkedHashMap<>();
+        config.put("recipeId", recipe.id());
+        config.put("recipeVersion", recipe.version());
+        config.put("scorer", EventScorer.NAME + "/" + EventScorer.VERSION);
+        config.put("seedKm", seedKm(recipe));
+        config.put("chunk", CHUNK);
+        Map<String, Object> query = new LinkedHashMap<>();
+        query.put("table", "record_version");
+        query.put("kinds", new ArrayList<>(recipe.allKinds()));
+        query.put("fromSeq", from);
+        query.put("toSeq", to);
+        query.put("candidates", candidates);
+        try {
+            return manifests.record(ai.foresignal.manifest.ManifestRequest.of(RECIPE_COMPONENT, EventScorer.VERSION)
+                    .config(config).registries("originators.json", "canonical-rules.json").asOf(to).query(query));
+        } catch (RuntimeException e) {
+            log.warn("Could not record the run manifest of recipe {}: {}", recipe.id(), e.toString());
+            return null;
+        }
+    }
+
+    /** The component name of recipe-run manifests. */
+    public static final String RECIPE_COMPONENT = "correlation-engine";
 
     // ------------------------------------------------------------------------- dry run
 
@@ -360,9 +401,10 @@ public class CorrelationEngine implements ChangeListener, DisposableBean {
         double seedKm = seedDistance(recipe);
         Duration seedWindow = seedWindow(recipe);
         Map<Long, ai.foresignal.reference.RegionTags> regionCache = new HashMap<>();
+        Map<String, ai.foresignal.evidence.EvidenceService.GroupKey> evidenceKeys = evidenceKeys(rows);
         List<Candidate> out = new ArrayList<>();
         for (List<MemberRow> cluster : cluster(rows, recipe.seed().kinds(), seedKm, seedWindow)) {
-            Candidate candidate = build(recipe, cluster, rows, from, to, regionCache);
+            Candidate candidate = build(recipe, cluster, rows, from, to, regionCache, evidenceKeys);
             if (candidate == null || !candidate.touches(freshSeqs)) {
                 continue;
             }
@@ -449,7 +491,8 @@ public class CorrelationEngine implements ChangeListener, DisposableBean {
             Map<String, Object> snapshot) {}
 
     private Candidate build(RecipeDefinition recipe, List<MemberRow> cluster, List<MemberRow> rows, long from, long to,
-            Map<Long, ai.foresignal.reference.RegionTags> regionCache) {
+            Map<Long, ai.foresignal.reference.RegionTags> regionCache,
+            Map<String, ai.foresignal.evidence.EvidenceService.GroupKey> evidenceKeys) {
         List<MemberLine> lines = new ArrayList<>();
         Set<String> families = new LinkedHashSet<>();
         List<EventScorer.MemberView> views = new ArrayList<>();
@@ -462,7 +505,7 @@ public class CorrelationEngine implements ChangeListener, DisposableBean {
             String family = SignalFamilies.forKind(row.kind());
             lines.add(line("supporting", row, family, RecipeRegistry.SEED_WEIGHT, Map.of("clause", "seed")));
             families.add(family);
-            views.add(view(row, family, RecipeRegistry.SEED_WEIGHT));
+            views.add(view(row, family, RecipeRegistry.SEED_WEIGHT, evidenceKeys));
             pinned.add(memberKey("record", row.sourceId(), row.externalId(), row.seq()));
             start = min(start, row.observedAt());
             end = max(end, row.observedAt());
@@ -515,7 +558,7 @@ public class CorrelationEngine implements ChangeListener, DisposableBean {
                 String role = join.role() == null ? "context" : join.role();
                 lines.add(line(role, row, family, join.weight(), reason));
                 families.add(family);
-                views.add(view(row, family, join.weight()));
+                views.add(view(row, family, join.weight(), evidenceKeys));
                 pinned.add(memberKey("record", row.sourceId(), row.externalId(), row.seq()));
                 anyPrivate = anyPrivate || visibility.isPrivateSource(row.sourceId());
                 if (row.geom() != null) {
@@ -1147,9 +1190,37 @@ public class CorrelationEngine implements ChangeListener, DisposableBean {
                 line.sourceId(), line.externalId(), line.seq()).isEmpty();
     }
 
-    private EventScorer.MemberView view(MemberRow row, String family, double weight) {
+    /**
+     * The scorer's view of a member (116: with its evidence group, so re-reports of one originator contribute
+     * once).
+     */
+    private EventScorer.MemberView view(MemberRow row, String family, double weight,
+            Map<String, ai.foresignal.evidence.EvidenceService.GroupKey> evidenceKeys) {
         boolean healthy = health(row.sourceId()) == HealthStatus.HEALTHY;
-        return new EventScorer.MemberView(family, weight, row.sourceId(), healthy, null);
+        ai.foresignal.evidence.EvidenceService.GroupKey key =
+                evidenceKeys.get(ai.foresignal.evidence.EvidenceService.recordKey(row.sourceId(), row.externalId()));
+        return new EventScorer.MemberView(family, weight, row.sourceId(), healthy, null,
+                key == null || !key.linked() ? null : key.key(), key == null ? null : key.root());
+    }
+
+    /** The evidence identity of every row (prompt 116), in one query; empty without the evidence service. */
+    private Map<String, ai.foresignal.evidence.EvidenceService.GroupKey> evidenceKeys(List<MemberRow> rows) {
+        if (evidence == null || rows.isEmpty()) {
+            return Map.of();
+        }
+        List<ai.foresignal.evidence.RecordRef> refs = new ArrayList<>();
+        Set<String> seen = new java.util.HashSet<>();
+        for (MemberRow row : rows) {
+            if (seen.add(ai.foresignal.evidence.EvidenceService.recordKey(row.sourceId(), row.externalId()))) {
+                refs.add(new ai.foresignal.evidence.RecordRef(row.sourceId(), row.externalId(), row.seq()));
+            }
+        }
+        try {
+            return evidence.groupKeys(refs);
+        } catch (RuntimeException e) {
+            log.warn("Evidence groups unavailable for correlation; members count separately: {}", e.toString());
+            return Map.of();
+        }
     }
 
     private MemberLine line(String role, MemberRow row, String family, double weight, Map<String, Object> clause) {

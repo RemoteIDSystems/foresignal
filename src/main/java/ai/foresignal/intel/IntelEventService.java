@@ -425,11 +425,17 @@ public class IntelEventService {
         return out;
     }
 
-    /** Recomputes confidence and evidence quality from the event's members. */
+    /**
+     * Recomputes confidence and evidence quality from the event's members (116: members in one evidence group
+     * contribute once) and records the analysis manifest of the score.
+     */
     public void rescore(IntelligenceEventEntity event) {
         List<EventScorer.MemberView> views = new ArrayList<>();
         List<IntelEventMemberEntity> all = members.findByEventIdOrderByIdAsc(event.getId());
         int contradictions = contradictions(all, event.getAlternatives());
+        Map<String, ai.foresignal.evidence.EvidenceService.GroupKey> keys = evidenceKeys(all);
+        List<String> refs = new ArrayList<>();
+        List<Map<String, Object>> memberViews = new ArrayList<>();
         for (IntelEventMemberEntity member : all) {
             if ("contradicting".equals(member.getRole())) {
                 continue;
@@ -440,16 +446,76 @@ public class IntelEventService {
             } catch (RuntimeException e) {
                 healthy = false;
             }
-            views.add(new EventScorer.MemberView(member.getSignalFamily(),
+            ai.foresignal.evidence.EvidenceService.GroupKey key = keys.get(
+                    ai.foresignal.evidence.EvidenceService.recordKey(member.getSourceId(), member.getExternalId()));
+            EventScorer.MemberView view = new EventScorer.MemberView(member.getSignalFamily(),
                     member.getWeight() == null ? EventScorer.DEFAULT_RELIABILITY : member.getWeight(),
-                    member.getSourceId(), healthy, null));
+                    member.getSourceId(), healthy, null, key == null || !key.linked() ? null : key.key(),
+                    key == null ? null : key.root());
+            views.add(view);
+            refs.add(ai.foresignal.evidence.RecordRef.format(member.getSourceId(), member.getExternalId(),
+                    member.getSeq()));
+            memberViews.add(EventScorerViews.toMap(view));
         }
         EventScorer.Score score = EventScorer.score(views, contradictions);
         event.setConfidence(score.confidence());
         event.setConfidenceLabel(score.label());
         event.setEvidenceQuality(score.evidenceQuality());
         event.setConfidenceMethod(EventScorer.METHOD);
+        event.setManifestId(scoreManifest(event, memberViews, contradictions, refs));
     }
+
+    /** The evidence identity of the members (prompt 116); empty without the evidence layer. */
+    private Map<String, ai.foresignal.evidence.EvidenceService.GroupKey> evidenceKeys(List<IntelEventMemberEntity> all) {
+        if (evidence == null || all.isEmpty()) {
+            return Map.of();
+        }
+        List<ai.foresignal.evidence.RecordRef> refs = new ArrayList<>();
+        for (IntelEventMemberEntity member : all) {
+            refs.add(new ai.foresignal.evidence.RecordRef(member.getSourceId(), member.getExternalId(), member.getSeq()));
+        }
+        try {
+            return evidence.groupKeys(refs);
+        } catch (RuntimeException e) {
+            return Map.of();
+        }
+    }
+
+    /**
+     * The manifest of an event's score (prompt 116): the scorer and version, the recipe, the members exactly as
+     * the scorer saw them (family, weight, health, evidence group) and the contradictions, with the pinned
+     * member refs as inputs. {@code EventScorerReplayer} re-scores from it.
+     */
+    private String scoreManifest(IntelligenceEventEntity event, List<Map<String, Object>> memberViews,
+            int contradictions, List<String> refs) {
+        if (manifests == null) {
+            return event.getManifestId();
+        }
+        Map<String, Object> config = new java.util.LinkedHashMap<>();
+        config.put("recipeId", event.getRecipeId());
+        config.put("recipeVersion", event.getRecipeVersion());
+        config.put("members", memberViews);
+        config.put("contradictions", contradictions);
+        config.put("cap", EventScorer.CAP);
+        config.put("contradictionPenalty", EventScorer.CONTRADICTION_PENALTY);
+        Object toSeq = event.getDetector() != null && event.getDetector().get("params") instanceof Map<?, ?> params
+                ? params.get("toSeq") : null;
+        try {
+            return manifests.record(ai.foresignal.manifest.ManifestRequest.of(EventScorer.NAME, EventScorer.VERSION)
+                    .config(config).registries("originators.json", "canonical-rules.json")
+                    .asOf(toSeq instanceof Number n ? n.longValue() : null).inputs(refs));
+        } catch (RuntimeException e) {
+            return event.getManifestId();
+        }
+    }
+
+    /** Evidence identity (prompt 116), or null. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.evidence.EvidenceService evidence;
+
+    /** Analysis manifests (prompt 116), or null. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.manifest.ManifestService manifests;
 
     /**
      * The active contradictions of an event: one per recipe contradiction clause that added contradicting

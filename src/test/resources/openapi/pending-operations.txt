@@ -1,11 +1,3 @@
-listCanonicalEvents 116
-getCanonicalEvent 116
-getRecordEvidence 116
-getObservability 116
-getObservabilityTile 116
-getManifest 116
-replayManifest 116
-getPromptTemplate 116
 listAttentionTopics 117
 createAttentionTopic 117
 getAttentionTopic 117

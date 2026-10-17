@@ -43,6 +43,10 @@ public class CorrelationRecipeEntity {
     @Column(name = "last_error", columnDefinition = "text")
     private String lastError;
 
+    /** The manifest of the last run that produced candidates (prompt 116), or null. */
+    @Column(name = "last_manifest_id", length = 26)
+    private String lastManifestId;
+
     /** JPA. */
     protected CorrelationRecipeEntity() {}
 
@@ -103,5 +107,15 @@ public class CorrelationRecipeEntity {
 
     public void setLastError(String lastError) {
         this.lastError = lastError;
+    }
+
+    /** The manifest of the last run that produced candidates (prompt 116), or null. */
+    public String getLastManifestId() {
+        return lastManifestId;
+    }
+
+    /** Sets the manifest of the last productive run (prompt 116). */
+    public void setLastManifestId(String lastManifestId) {
+        this.lastManifestId = lastManifestId;
     }
 }

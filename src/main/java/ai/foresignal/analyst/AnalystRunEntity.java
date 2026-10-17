@@ -93,6 +93,10 @@ public class AnalystRunEntity {
     @Column(name = "prompt_hash", length = 64)
     private String promptHash;
 
+    /** The analysis manifest of this output (prompt 116), or null for outputs written before it. */
+    @Column(name = "manifest_id", length = 26)
+    private String manifestId;
+
     @Column(name = "detector_version", length = 32, nullable = false)
     private String detectorVersion = "analyst-1.0.0";
 
@@ -308,5 +312,15 @@ public class AnalystRunEntity {
 
     public void setContent(Map<String, Object> content) {
         this.content = content;
+    }
+
+    /** The analysis manifest of this output (prompt 116), or null. */
+    public String getManifestId() {
+        return manifestId;
+    }
+
+    /** Sets the analysis manifest (prompt 116). */
+    public void setManifestId(String manifestId) {
+        this.manifestId = manifestId;
     }
 }

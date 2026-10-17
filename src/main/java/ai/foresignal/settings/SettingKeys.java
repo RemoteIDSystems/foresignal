@@ -145,12 +145,31 @@ public final class SettingKeys {
     /** How long exercise alerts are kept (prompt 115), a duration string such as {@code 7d}; default 7 days. */
     public static final String EXERCISE_ALERT_RETENTION = "exercise.alertRetention";
 
+    /** The evidence resolver's durable cursor (prompt 116; the consumer clamp of retention). */
+    public static final String EVIDENCE_CURSOR = "evidence.cursor";
+
+    /**
+     * Operator extensions of the originator registry (prompt 116): an object shaped like
+     * {@code intel/originators.json} ({@code originators}, {@code sources}, {@code patterns}, {@code upstreamRefs}).
+     */
+    public static final String INTEL_ORIGINATORS = "intel.originators";
+
+    /** The lowest link confidence the evidence resolver links at (prompt 116), a number; default 0.5. */
+    public static final String EVIDENCE_MIN_LINK_CONFIDENCE = "evidence.minLinkConfidence";
+
+    /**
+     * The detection probability an absence conclusion needs (prompt 116, {@code absenceMinDetect}), a number;
+     * default 0.8.
+     */
+    public static final String ABSENCE_MIN_DETECT = "observability.absenceMinDetect";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
                     STATS, GLANCE, METRICS, VISIBILITY, REGION_CURSOR, REGION_TAGGING, WEATHER, ENTITY_CURSOR,
                     ENTITY, INTEL_CURSOR, ARCHIVE, CAP_SENDER, INSTANCE_NAME, FEDERATION_INSTANCE_NAME,
-                    POL_RETENTION, EXERCISE_MAX_WINDOW, EXERCISE_ALERT_RETENTION);
+                    POL_RETENTION, EXERCISE_MAX_WINDOW, EXERCISE_ALERT_RETENTION, EVIDENCE_CURSOR, INTEL_ORIGINATORS,
+                    EVIDENCE_MIN_LINK_CONFIDENCE, ABSENCE_MIN_DETECT);
 
     private SettingKeys() {}
 }

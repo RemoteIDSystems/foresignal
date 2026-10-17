@@ -5714,3 +5714,73 @@ summary from the chat provider (budgeted; needs a token). Nothing changes a rule
 - **Undo:** `POST /v1/triggers/{id}/tuning-log/{logId}/undo` restores the earlier definition while the rule is
   unchanged since the change (`409` otherwise). `GET /v1/triggers/{id}/tuning-log` lists the changes.
 
+
+## Evidence and observability (prompt 116)
+
+**Why independence matters.** One earthquake can arrive four times: from USGS, from EMSC, from GDACS and from a
+news report. Four records are not four confirmations. GDACS republishes USGS for earthquakes, and the news report
+cites one of them. Foresignal therefore separates the real-world event from the observations that describe it:
+
+- every source maps to an **originator** (`intel/originators.json`, extended by the `intel.originators` setting or a
+  descriptor's own `originator`): an agency, sensor network, aggregator, outlet, crowd, your own receiver, or
+  Foresignal itself. Originators in one **independence group** (for example the community ADS-B networks, which share
+  feeders) are never independent of each other, and an aggregator lists the originators it **republishes**;
+- the evidence resolver links event-class observations (earthquakes, fires, conflict events, outages, disasters,
+  weather alerts; `intel/canonical-rules.json`) to **canonical events**, using the corroboration tolerances
+  (earthquakes 60 s, 100 km, 0.8 magnitude; fires 1 km, 1 h; conflict events the same 0.1° cell and UTC day; outages
+  the same country or network with overlapping times) and, ahead of them, the upstream's own event id (a GLIDE
+  number, the CAP identifier). Each link shows its confidence and why it was made; links below
+  `evidence.minLinkConfidence` (0.5) are not made;
+- observations that trace back to one originator form one **evidence group**. A news item that cites its source is
+  judged by what it cites. Only evidence groups count as independent: in the example above, USGS and GDACS are one
+  group and EMSC another, so the event has two independent confirmations, not four.
+
+`GET /v1/evidence/events` lists canonical events (filter by `family`, `region`, `since` and `flags`);
+`GET /v1/evidence/events/{id}` shows every observation, its originator, its link reason and the groups;
+`GET /v1/evidence/of?source=&externalId=` shows where one record went. The `evidence` stream topic announces
+`canonical.created`, `canonical.merged` and `canonical.flagged`. The corroboration layer (`derived-corroboration`)
+is now one record per canonical event, and the intelligence-event scorer (1.1.0) counts signal families from
+distinct evidence groups, so repeated reports never raise confidence or evidence quality.
+
+**Quality flags** describe the shape of the evidence; they never say a report is false:
+
+- `ECHO`: five or more observations of one evidence group within two hours: many re-reports of one origin;
+- `SINGLE_ORIGINATOR`: only one evidence group;
+- `TIMESTAMP_CONFLICT`: the observations disagree about when it happened by more than three times the family's
+  tolerance;
+- `LATE_REVISION`: a source moved the event's time or place after first publishing it.
+
+**Detection probabilities.** A healthy source is not the same as a source that could have seen something. For each
+source, family, place and threshold band Foresignal keeps time-versioned estimates of the probability of
+detection (`p`, with an interval):
+
+- **capture–recapture** for families with independent sources: of the events independent sources reported in the
+  last year, the share this source also reported (at least 20 reference events; per region and, for earthquakes,
+  per magnitude band such as `M4.5-5`);
+- **presence proxy** for aircraft and vessels: how often a map cell had traffic in the source's active hours over
+  the last 28 days, relative to its busiest cells (always low confidence); your own receivers get their
+  **measured range** instead;
+- **declared** footprints otherwise (`intel/observability.json` or the descriptor's `observability`): inside the
+  declared area and above the declared threshold, for example USGS reports magnitude 2.5 in the United States but
+  4.5 elsewhere. A source that declares nothing is assumed to observe everywhere; declare a footprint to restrict it.
+
+The estimator runs weekly (Mondays from 04:30 UTC). Combined detection is `1 − Π(1 − p)` across independence
+groups, never across sources of one group. A question about the past always uses the estimate that was valid then.
+`GET /v1/observability?family=seismic&region=TR` (or `&bbox=` for map cells, `&at=` for a past time,
+`&include=estimates` for the per-source numbers) answers how well instrumented a place is, and
+`GET /v1/observability/tiles/{z}/{x}/{y}.mvt?family=` draws it as a map layer.
+
+**Why some absences say `unknown`.** "Nothing happened" needs two things: every involved source healthy over the
+window, and a combined detection probability of at least `observability.absenceMinDetect` (0.8). Otherwise an
+absence rule, or a downward anomaly, reports `unknown` with reason `LOW_DETECTABILITY`, and never alerts: the
+sources could not have seen it, so silence says nothing.
+
+**Manifests and replay.** Every analytic output (anomaly evaluations, intelligence-event scores, recipe runs,
+analyst runs, backtest jobs, observability estimates) points to an analysis manifest: the component and version,
+the build, the configuration and its hash, the hashes of the registry files used, `asOfSeq`, the inputs and, for
+LLM steps, the provider, model, prompt hash and prompt template. Identical manifests are stored once.
+`GET /v1/manifests/{id}` shows one (agent), and `POST /v1/manifests/{id}/replay` queues a job (poll
+`GET /v1/jobs/{jobId}`) that re-runs a deterministic component with exactly those inputs and reports `identical`,
+`differs` (with what changed) or `not-replayable` (inputs purged by retention, a component that no longer exists,
+or LLM output: "inputs recorded; model output not reproducible"). Every LLM role's system prompt is a versioned
+template; `GET /v1/prompt-templates/{id}` shows exactly what the model was asked.

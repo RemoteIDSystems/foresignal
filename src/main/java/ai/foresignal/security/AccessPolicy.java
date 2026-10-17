@@ -453,6 +453,16 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/packs/population/import", AccessRequirement.ADMIN),
                 rule(HttpMethod.POST, "/v1/packs", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
 
+                // ---- Evidence identity, observability and manifests (prompt 116) ----
+                // Canonical events, the coverage layer and prompt templates are reads; manifests and their
+                // replay are agent operations (a replay is a deterministic 103 job and spends no LLM budget).
+                rule(HttpMethod.GET, "/v1/evidence/**", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/observability", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/observability/**", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/manifests/*", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/manifests/*/replay", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/prompt-templates/*", AccessRequirement.READ),
+
                 // ---- Autonomous analyst (prompt 102) ----
                 rule(HttpMethod.POST, "/v1/analyst/profiles/*/run", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/analyst/profiles/**", AccessRequirement.READ),

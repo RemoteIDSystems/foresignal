@@ -6461,7 +6461,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); const a = (j.items || []).find(i => i.manifestId); if (a) pm.collectionVariables.set('manifestId', a.manifestId);",
+                  "}"
                 ]
               }
             }
@@ -16926,7 +16929,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('canonicalEventId', j.items[0].id);",
+                  "}"
                 ]
               }
             }
@@ -17140,7 +17146,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));"
+                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.jobId);",
+                  "}"
                 ]
               }
             }
@@ -51399,6 +51408,22 @@
     },
     {
       "key": "tuningLogId",
+      "value": ""
+    },
+    {
+      "key": "canonicalEventId",
+      "value": ""
+    },
+    {
+      "key": "manifestId",
+      "value": ""
+    },
+    {
+      "key": "templateId",
+      "value": "ask-system"
+    },
+    {
+      "key": "jobId",
       "value": ""
     },
     {

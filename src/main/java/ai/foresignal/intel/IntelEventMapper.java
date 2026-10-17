@@ -43,6 +43,7 @@ public class IntelEventMapper {
         out.put("recipeId", event.getRecipeId());
         out.put("recipeVersion", event.getRecipeVersion());
         out.put("detector", event.getDetector());
+        out.put("manifestId", event.getManifestId());
         out.put("exposure", event.getExposure());
         out.put("context", event.getContext());
         out.put("explanation", event.getExplanation());

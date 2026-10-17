@@ -28,6 +28,7 @@ public final class BacktestViews {
         out.put("finishedAt", job.getFinishedAt());
         out.put("definitionHash", job.getDefinitionHash());
         out.put("detectorVersion", job.getDetectorVersion());
+        out.put("manifestId", job.getManifestId());
         out.put("createdBy", job.getCreatedBy());
         out.put("createdAt", job.getCreatedAt());
         out.put("cancelled", job.isCancelled());

@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "description": "Declared observability (prompt 116): where each cataloged source can observe a kind, and above which thresholds. Used as the low-confidence 'declared' fallback when no empirical estimate exists; a descriptor's own 'observability' field wins. 'trackKinds' maps track kinds to the observability family whose presence proxy is estimated from the hourly rollups.",
+  "trackKinds": {"aircraft": "aircraft", "vessel": "vessel"},
+  "sources": {
+    "usgs-earthquakes": {"kinds": {"earthquake": {"area": {"type": "global"}, "thresholds": [{"field": "mag", "min": 2.5, "area": "US"}, {"field": "mag", "min": 4.5, "area": "global"}], "notes": "Comprehensive in the United States; global coverage is for larger events"}}},
+    "emsc-seismic": {"kinds": {"earthquake": {"area": {"type": "global"}, "notes": "No completeness threshold declared; capture-recapture estimates refine it"}}},
+    "geofon": {"kinds": {"earthquake": {"area": {"type": "global"}, "notes": "No completeness threshold declared"}}},
+    "ingv": {"kinds": {"earthquake": {"area": {"type": "global"}, "notes": "Densest around Italy; no completeness threshold declared"}}},
+    "gdacs": {"kinds": {"disaster": {"area": {"type": "global"}, "notes": "Alerts only for events with humanitarian impact potential"}}},
+    "nasa-firms": {"kinds": {"fire-detection": {"area": {"type": "global"}}}},
+    "goes-fdc": {"kinds": {"fire-detection": {"area": {"type": "bbox", "bbox": [-180, -60, -10, 60]}, "notes": "Approximate GOES-East and GOES-West full-disk footprint"}}},
+    "hms-fire": {"kinds": {"fire-detection": {"area": {"type": "bbox", "bbox": [-170, 10, -50, 75]}, "notes": "Approximate North American analysis domain"}}},
+    "acled": {"kinds": {"conflict-event": {"area": {"type": "global"}, "notes": "Reporting density varies strongly between regions"}}},
+    "ucdp-ged": {"kinds": {"conflict-event": {"area": {"type": "global"}, "notes": "Organized violence only"}}},
+    "gdelt-events": {"kinds": {"conflict-event": {"area": {"type": "global"}, "notes": "Machine-coded news; reporting density varies strongly between regions"}}},
+    "ioda-outages": {"kinds": {"outage": {"area": {"type": "global"}}}},
+    "cloudflare-radar-outages": {"kinds": {"internet-outage": {"area": {"type": "global"}}}},
+    "nws-alerts": {"kinds": {"nws-alert": {"area": {"type": "regions", "regionCodes": ["US"]}}}},
+    "tsunami-warnings": {"kinds": {"tsunami-warning": {"area": {"type": "global"}}}},
+    "reliefweb-disasters": {"kinds": {"disaster": {"area": {"type": "global"}}}},
+    "nasa-eonet": {"kinds": {"natural-event": {"area": {"type": "global"}}}},
+    "copernicus-ems": {"kinds": {"emergency-activation": {"area": {"type": "global"}}}},
+    "openfema-declarations": {"kinds": {"disaster-declaration": {"area": {"type": "regions", "regionCodes": ["US"]}}}}
+  }
+}

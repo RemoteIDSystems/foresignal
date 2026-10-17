@@ -160,10 +160,29 @@ public class SourceMapper {
                 d.llmNotice(),
                 sourceLicences != null ? sourceLicences.termsOf(d) : d.licenceTerms(),
                 d.reliability(),
-                d.derivedFrom());
+                d.derivedFrom(),
+                upstreamRefs != null ? upstreamRefs.apply(d) : d.upstreamRefFields(),
+                declarations != null ? declarations.apply(d) : d.observability());
     }
 
     private ai.foresignal.provenance.SourceLicences sourceLicences;
+
+    private java.util.function.Function<SourceDescriptor, List<String>> upstreamRefs;
+
+    private java.util.function.Function<SourceDescriptor, ai.foresignal.source.spi.DeclaredObservability> declarations;
+
+    /**
+     * Wires the evidence registries (prompt 116) so {@code upstreamRefFields} and {@code observability} show the
+     * values in force (descriptor, else {@code intel/originators.json} and {@code intel/observability.json}).
+     *
+     * @param upstreamRefs the upstream reference fields in force for a descriptor
+     * @param declarations the declared observability in force for a descriptor
+     */
+    public void setEvidenceRegistries(java.util.function.Function<SourceDescriptor, List<String>> upstreamRefs,
+            java.util.function.Function<SourceDescriptor, ai.foresignal.source.spi.DeclaredObservability> declarations) {
+        this.upstreamRefs = upstreamRefs;
+        this.declarations = declarations;
+    }
 
     /** Wires the licence-terms resolver (prompt 109) for {@code licenceTerms}; optional so tests need none. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)

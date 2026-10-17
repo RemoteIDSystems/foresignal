@@ -78,6 +78,10 @@ public class AnomalyObservationEntity {
     @Column(name = "watermark_seq")
     private Long watermarkSeq;
 
+    /** The analysis manifest of this output (prompt 116), or null for outputs written before it. */
+    @Column(name = "manifest_id", length = 26)
+    private String manifestId;
+
     /** JPA. */
     protected AnomalyObservationEntity() {}
 
@@ -200,5 +204,15 @@ public class AnomalyObservationEntity {
 
     public void setWatermarkSeq(Long watermarkSeq) {
         this.watermarkSeq = watermarkSeq;
+    }
+
+    /** The analysis manifest of this output (prompt 116), or null. */
+    public String getManifestId() {
+        return manifestId;
+    }
+
+    /** Sets the analysis manifest (prompt 116). */
+    public void setManifestId(String manifestId) {
+        this.manifestId = manifestId;
     }
 }

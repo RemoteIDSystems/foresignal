@@ -97,6 +97,20 @@ public class BacktestJobService {
     /** The job types this service runs. */
     public static final List<String> TYPES = List.of("rule", "recipe", "precursor", "quality");
 
+    /** The job type of a manifest replay (prompt 116), run by a {@link JobRunner}. */
+    public static final String MANIFEST_REPLAY = "manifest-replay";
+
+    /** The component prefix of backtest manifests (prompt 116): {@code backtest:{type}}. */
+    public static final String MANIFEST_COMPONENT_PREFIX = "backtest:";
+
+    /** The job types implemented by {@link JobRunner}s (prompt 116). */
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.beans.factory.ObjectProvider<JobRunner> runners;
+
+    /** Analysis manifests (prompt 116), or null. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.manifest.ManifestService manifests;
+
     private static final Logger log = LoggerFactory.getLogger(BacktestJobService.class);
 
     private final BacktestJobRepository jobs;
@@ -218,10 +232,89 @@ public class BacktestJobService {
                 + resolved.toSeq() + "|" + resolved.from() + "|" + resolved.to()));
         job.setCaveats(CaveatGenerator.stored(CaveatGenerator.generate(new CaveatGenerator.Inputs(resolved.clamped(),
                 false, false, false, false, false, false, Integer.MAX_VALUE))));
+        job.setManifestId(manifest(job));
         jobs.save(job);
         String id = job.getId();
         afterCommit(() -> executor.submit(() -> runQuietly(id)));
         return job;
+    }
+
+    /**
+     * The manifest of a backtest job (prompt 116): the job type's detector version, the definition snapshot as
+     * configuration, the resolved range as the input query and {@code toSeq} as {@code asOfSeq}.
+     */
+    private String manifest(BacktestJobEntity job) {
+        if (manifests == null) {
+            return null;
+        }
+        Map<String, Object> query = new LinkedHashMap<>();
+        query.put("fromSeq", job.getFromSeq());
+        query.put("toSeq", job.getToSeq());
+        query.put("from", job.getRangeFrom() == null ? null : job.getRangeFrom().toString());
+        query.put("to", job.getRangeTo() == null ? null : job.getRangeTo().toString());
+        query.put("targetId", job.getTargetId());
+        try {
+            return manifests.record(ai.foresignal.manifest.ManifestRequest.of(MANIFEST_COMPONENT_PREFIX + job.getType(),
+                    job.getDetectorVersion() == null ? "1.0.0" : job.getDetectorVersion())
+                    .config(job.getDefinition()).asOf(job.getToSeq()).query(query));
+        } catch (RuntimeException e) {
+            log.warn("Could not record the manifest of backtest job {}: {}", job.getId(), e.toString());
+            return null;
+        }
+    }
+
+    /**
+     * Submits a job of a {@link JobRunner} type (prompt 116: {@code manifest-replay}): no range, the definition
+     * as given, the one-job-per-token rule, and the same worker pool.
+     *
+     * @throws ConflictException 409 {@code BACKTEST_IN_PROGRESS}
+     */
+    @Transactional
+    public BacktestJobEntity submitRunnerJob(String type, String targetId, Map<String, Object> definition,
+            String tokenId) {
+        if (tokenId != null) {
+            List<BacktestJobEntity> inFlight = jobs.findByCreatedByAndStatusIn(tokenId, List.of("queued", "running"));
+            if (!inFlight.isEmpty()) {
+                throw new ConflictException(ErrorCodes.BACKTEST_IN_PROGRESS,
+                        "You already have a queued or running job (" + inFlight.get(0).getId() + ").");
+            }
+        }
+        Instant now = clock.instant();
+        BacktestJobEntity job = new BacktestJobEntity(Ulids.next(now), type, now);
+        job.setTargetId(targetId);
+        job.setCreatedBy(tokenId);
+        job.setDefinition(definition == null ? new LinkedHashMap<>() : new LinkedHashMap<>(definition));
+        job.setDetectorVersion(type + "/1.0.0");
+        job.setDefinitionHash(hash(json.writeValueAsString(job.getDefinition())));
+        job.setCaveats(List.of());
+        jobs.save(job);
+        String id = job.getId();
+        afterCommit(() -> executor.submit(() -> runQuietly(id)));
+        return job;
+    }
+
+    /**
+     * Re-runs a finished rule, recipe or precursor job with its stored definition and range, writing nothing
+     * (prompt 116, the replay of a backtest manifest).
+     *
+     * @return the result as {@link #run} would store it
+     */
+    public Map<String, Object> rerun(BacktestJobEntity job, JobMonitor monitor) {
+        Map<String, Object> result = switch (job.getType()) {
+            case "rule" -> ruleBacktest.run(UUID.fromString(job.getTargetId()), job.getFromSeq(), job.getToSeq(),
+                    job.getRangeFrom(), job.getRangeTo(), variants(job), monitor);
+            case "recipe" -> recipeBacktest.run(job.getTargetId(), job.getRangeFrom(), job.getRangeTo(), monitor);
+            case "precursor" -> precursorTests.runJob(job, monitor);
+            default -> new LinkedHashMap<>();
+        };
+        return truncate(result);
+    }
+
+    /** The job whose manifest is {@code manifestId}, if any (the newest). */
+    public java.util.Optional<BacktestJobEntity> byManifest(String manifestId) {
+        List<String> ids = jdbc.queryForList("SELECT id FROM backtest_job WHERE manifest_id = ? ORDER BY created_at DESC"
+                + " LIMIT 1", String.class, manifestId);
+        return ids.isEmpty() ? java.util.Optional.empty() : jobs.findById(ids.get(0));
     }
 
     /** Runs {@code action} once the current transaction commits, or at once outside one. */
@@ -424,9 +517,9 @@ public class BacktestJobService {
                         job.getRangeFrom(), job.getRangeTo(), variants(job), monitor);
                 case "recipe" -> recipeBacktest.run(job.getTargetId(), job.getRangeFrom(), job.getRangeTo(), monitor);
                 case "precursor" -> precursorTests.runJob(job, monitor);
-                default -> new LinkedHashMap<>();
+                default -> runnerFor(job.getType()).map(r -> r.run(job, monitor)).orElseGet(LinkedHashMap::new);
             };
-            List<Map<String, Object>> caveats = caveats(job, result);
+            List<Map<String, Object>> caveats = runnerFor(job.getType()).isPresent() ? List.of() : caveats(job, result);
             if ("precursor".equals(job.getType())) {
                 // PrecursorTestResult carries its caveats too (required by the spec).
                 result = new LinkedHashMap<>(result);
@@ -439,6 +532,14 @@ public class BacktestJobService {
             log.warn("backtest job {} failed: {}", id, e.toString());
             finish(id, "failed", Map.of("error", String.valueOf(e.getMessage() == null ? e : e.getMessage())), null);
         }
+    }
+
+    /** The runner of a {@link JobRunner} type, if one is registered. */
+    private java.util.Optional<JobRunner> runnerFor(String type) {
+        if (runners == null) {
+            return java.util.Optional.empty();
+        }
+        return runners.orderedStream().filter(r -> r.type().equals(type)).findFirst();
     }
 
     /** Writes a terminal state unless the job already left {@code running} (a cancel). */

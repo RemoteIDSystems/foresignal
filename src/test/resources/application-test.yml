@@ -85,6 +85,12 @@ foresignal:
     scheduled: false
   quality:
     scheduled: false
+  # The evidence resolver does not run on its own in tests; the 116 ITs call EvidenceResolver.catchUp(), and the
+  # weekly observability estimator does not tick (CaptureRecaptureTest and the ITs call it directly).
+  evidence:
+    auto-start: false
+  observability:
+    scheduled: false
   # The enrichment worker does not subscribe on its own in tests (EnrichmentWorkerIT starts it), and
   # the LLM timeout is short so EnrichmentWorkerIT can provoke a timeout quickly.
   enrichment:
