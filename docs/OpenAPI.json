@@ -537,6 +537,11 @@
         "version": "1.3.0",
         "date": "2026-10-17",
         "note": "125: listHypothesisSets, createHypothesisSet, draftHypothesisSet, getHypothesisSet, updateHypothesisSet, listHypothesisRevisions, getAchMatrix, reviewHypothesisSet, addHypothesis, updateHypothesis, createIndicator, listIndicators, updateIndicator, retireIndicator, addAchEvidence, removeAchEvidence, createKeyAssumption, updateKeyAssumption, getInformationValue and listCollectionGaps are implemented, with the SSE topic hypotheses (set.created, set.revised, set.band_changed, set.resolved, indicator.observed, indicator.absent, assumption.broken; cursor key h), the notification events hypothesis.band_changed (inbox for daily and weekly sets, rate-limited to one per set per 6 h), indicator.observed and assumption.broken (channel opt-in), the foresignal-intel record kind hypothesis-set, the ledger forecaster indicator-bayes, and the MCP tools list_hypothesis_sets, get_hypothesis_set, get_ach_matrix, get_information_value, list_collection_gaps (read, also in the analyst's read catalog), create_hypothesis_set, add_evidence, review_hypothesis_set and draft_hypothesis_set (agent). Reconciliations (additive): watch rules are tagged indicator, origin-hypothesis and ind-{id} because a rule tag cannot hold a colon; HypothesisSet gains reviewFlagged, AchEvidence refs, IndicatorSignal baseRate, and priorBasis value (and refreshedAt on Hypothesis); the hypotheses SSE events carry an id; Problem lists UNKNOWN_HYPOTHESIS_SET, UNKNOWN_HYPOTHESIS, UNKNOWN_INDICATOR (404), HYPOTHESIS_SET_INVALID, INDICATOR_INVALID, LINT_FAILED (400), HYPOTHESIS_SET_VERSION_CONFLICT and HYPOTHESIS_SET_RESOLVED (409)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-17",
+        "note": "126: getSeriesForecast, getSeriesForecastModel, listRegionalOutlooks, getRegionalOutlook, listRegionalIndices, getRegionalIndex, putRegionalIndex, fitRegionalIndex and applyRegionalIndexWeights are implemented, with the analytics SSE events outlook.published, index.changed (5 points or more) and index.weights_proposed, the DERIVED source foresignal-outlook (kinds regional-outlook and regional-index), the finding types forecast-exceedance and outlook-exceedance, the ledger forecaster statistical, the 103 job type index-fit, and the MCP tools get_series_forecast, get_outlook, get_index (read, also in the analyst's read catalog) and fit_index (agent). Reconciliations (additive): the three SSE events carry an id (they replay from the finding log, cursor key f); the series forecast 404 is SERIES_NOT_FOUND, as on every series path; RegionalOutlook gains id, source and skill.backtest; RegionalIndexValue components gain missing; SeriesForecastModel gains manifestId; a count-threshold resolver without op and threshold answers a numeric question with the count; Problem lists UNKNOWN_INDEX, UNKNOWN_OUTLOOK, INDEX_INVALID and FORECAST_MODEL_NOT_READY."
       }
     ]
   },
@@ -12821,21 +12826,27 @@
               "$ref": "#/components/schemas/OutlookPublishedEvent"
             },
             "topic": "analytics",
-            "prompt": "126"
+            "prompt": "126",
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7"
           },
           "index.changed": {
             "schema": {
               "$ref": "#/components/schemas/IndexChangedEvent"
             },
             "topic": "analytics",
-            "prompt": "126"
+            "prompt": "126",
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7"
           },
           "index.weights_proposed": {
             "schema": {
               "$ref": "#/components/schemas/IndexWeightsProposedEvent"
             },
             "topic": "analytics",
-            "prompt": "126"
+            "prompt": "126",
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7"
           },
           "impact.projected": {
             "schema": {
@@ -62796,7 +62807,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "126",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -62886,7 +62897,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "126",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -62978,7 +62989,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "126",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -63098,7 +63109,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "126",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -63189,7 +63200,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "126",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -63271,7 +63282,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "126",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -63363,7 +63374,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "126",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -85931,7 +85942,7 @@
             }
           },
           "404": {
-            "description": "Not found (UNKNOWN_SERIES)",
+            "description": "Not found (SERIES_NOT_FOUND)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -85971,7 +85982,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "126",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -86031,7 +86042,7 @@
             }
           },
           "404": {
-            "description": "Not found (UNKNOWN_SERIES)",
+            "description": "Not found (SERIES_NOT_FOUND)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -86071,7 +86082,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "126",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -87468,6 +87479,30 @@
             "status": 409,
             "prompt": "125",
             "note": "updateHypothesisSet, reviewHypothesisSet, addHypothesis, updateHypothesis, createIndicator, updateIndicator, addAchEvidence, removeAchEvidence: the set is resolved and accepts no more changes"
+          },
+          {
+            "code": "UNKNOWN_INDEX",
+            "status": 404,
+            "prompt": "126",
+            "note": "getRegionalIndex, fitRegionalIndex, applyRegionalIndexWeights (and the MCP tools get_index and fit_index): no regional index has that id"
+          },
+          {
+            "code": "UNKNOWN_OUTLOOK",
+            "status": 404,
+            "prompt": "126",
+            "note": "getRegionalOutlook (and the MCP tool get_outlook): no outlook has been published for that region and family"
+          },
+          {
+            "code": "INDEX_INVALID",
+            "status": 400,
+            "prompt": "126",
+            "note": "putRegionalIndex, applyRegionalIndexWeights: the definition or weights change is not valid (components, weights summing to 1, floors, target, or a fitted version that is not the latest fit's)"
+          },
+          {
+            "code": "FORECAST_MODEL_NOT_READY",
+            "status": 409,
+            "prompt": "126",
+            "note": "getSeriesForecast, getSeriesForecastModel: no method has been selected for the series yet; fitRegionalIndex: the index's component series do not exist yet"
           }
         ]
       },
@@ -136188,11 +136223,11 @@
               "lte",
               "eq"
             ],
-            "description": "count-threshold, series-value"
+            "description": "count-threshold, series-value (omit op and threshold for a numeric question)"
           },
           "threshold": {
             "type": "number",
-            "description": "count-threshold, series-value (omit for a numeric series-value question)"
+            "description": "count-threshold, series-value (omit op and threshold for a numeric question: a series-value aggregate, or since 126 a count-threshold count; a referenceFamily selector then counts the events in its reference history, one source per region)"
           },
           "ref": {
             "$ref": "#/components/schemas/SeriesRef",
@@ -142552,6 +142587,16 @@
           "version": {
             "type": "string",
             "example": "series-forecast 1.0.0"
+          },
+          "manifestId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -142740,6 +142785,14 @@
                       "ok",
                       "insufficient"
                     ]
+                  },
+                  "backtest": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "additionalProperties": true,
+                    "description": "The monthly rolling-origin evaluation (last 26 weeks) against seasonal naive and climatology"
                   }
                 },
                 "required": [
@@ -142773,6 +142826,16 @@
                 "type": "null"
               }
             ]
+          },
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The reference source the counts came from (acled, ucdp, usgs, gdacs or foresignal)"
           }
         },
         "required": [
@@ -143213,6 +143276,10 @@
                 },
                 "contribution": {
                   "type": "number"
+                },
+                "missing": {
+                  "type": "boolean",
+                  "description": "True when the component had no value; its weight went to the others"
                 }
               },
               "required": [

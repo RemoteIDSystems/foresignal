@@ -82,6 +82,10 @@ public class FindingService {
     @org.springframework.beans.factory.annotation.Autowired
     private ObjectProvider<PrecursorSummaries> precursorSummaries;
 
+    /** Payloads of the {@code outlook.*} and {@code index.*} events (prompt 126), when that package is present. */
+    @org.springframework.beans.factory.annotation.Autowired
+    private ObjectProvider<AnalyticsEventSummaries> eventSummaries;
+
     /** The 123 benchmark gate: findings of a component whose latest benchmark failed carry BENCHMARK_FAIL. */
     @org.springframework.beans.factory.annotation.Autowired
     private ObjectProvider<ai.foresignal.benchmark.BenchmarkGate> benchmarkGate;
@@ -391,9 +395,39 @@ public class FindingService {
         publishAfterCommit(List.of(row), null);
     }
 
+    /**
+     * Logs and announces an {@code outlook.*} or {@code index.*} event on the {@code analytics} topic (prompt 126); its
+     * payload is resolved through {@link AnalyticsEventSummaries} when the event is sent or replayed.
+     *
+     * @param objectId the outlook, index value or index fit id (at most 26 characters)
+     */
+    @Transactional
+    public void announce(String objectId, String event, String actor, String reason) {
+        Objects.requireNonNull(objectId, "objectId");
+        if (event == null || !FindingEvent.flat(event)) {
+            throw new IllegalArgumentException("not an outlook or index event: " + event);
+        }
+        FindingLogEntity row = logs.save(new FindingLogEntity(objectId, clock.instant(), actor,
+                event.replace('.', '-').replace('_', '-'), event, reason));
+        publishAfterCommit(List.of(row), null);
+    }
+
     /** The event of a log row, or null when the finding (or precursor) no longer exists. */
     @Transactional(readOnly = true)
     public FindingEvent eventOf(FindingLogEntity row) {
+        if (row.getEvent() != null && FindingEvent.flat(row.getEvent())) {
+            Map<String, Object> summary = null;
+            if (eventSummaries != null) {
+                for (AnalyticsEventSummaries s : eventSummaries) {
+                    if (s.handles(row.getEvent())) {
+                        summary = s.summary(row.getEvent(), row.getFindingId());
+                        break;
+                    }
+                }
+            }
+            return summary == null ? null : new FindingEvent(row.getId(), row.getEvent(), row.getFindingId(), summary,
+                    row.getAt());
+        }
         if (row.getEvent() != null && row.getEvent().startsWith("precursor.")) {
             PrecursorSummaries summaries = precursorSummaries == null ? null : precursorSummaries.getIfAvailable();
             Map<String, Object> summary = summaries == null ? null : summaries.summary(row.getFindingId());

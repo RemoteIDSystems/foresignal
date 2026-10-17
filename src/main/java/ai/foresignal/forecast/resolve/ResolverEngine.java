@@ -155,6 +155,9 @@ public final class ResolverEngine {
         if (now.isBefore(due)) {
             return Verdict.waiting(now.isBefore(q.getResolveBy()) ? "not due" : "waiting for late data");
         }
+        if (resolver.get("op") == null) {
+            return numericCount(q, resolver, window, now, due, caveats, data);
+        }
         String op = resolver.get("op").toString();
         double threshold = ((Number) resolver.get("threshold")).doubleValue();
         double count;
@@ -194,6 +197,64 @@ public final class ResolverEngine {
         }
         return new Verdict(Kind.RESOLVE, met ? "yes" : "no", null, false, due, evidence, caveats, null,
                 "count " + num(count) + " " + op + " " + num(threshold) + ": " + (met ? "met" : "not met"));
+    }
+
+    /**
+     * The numeric mode of {@code count-threshold} (prompt 126): the count itself. A {@code referenceFamily}
+     * selector counts the family's reference-history events in the area's regions (one source per region), waiting
+     * until the source covers every week of the window and annulling {@code COVERAGE_GAP} after
+     * {@value #MAX_LAG_DAYS} days without it; a {@code rollup:} ref sums the series; any other selector counts
+     * occurrences, which needs 116 detectability (missed events would bias the count down).
+     */
+    private static Verdict numericCount(ForecastQuestionEntity q, Map<String, Object> resolver, Instant[] window,
+            Instant now, Instant due, List<Map<String, Object>> caveats, ResolutionData data) {
+        Map<String, Object> selector = JsonValues.child(resolver, "selector");
+        Map<String, Object> area = JsonValues.child(resolver, "area");
+        if (selector != null && selector.get("referenceFamily") != null) {
+            List<String> regions = new ArrayList<>(JsonValues.strings(area, "regionCodes"));
+            for (String code : JsonValues.strings(selector, "regionCodes")) {
+                if (!regions.contains(code)) {
+                    regions.add(code);
+                }
+            }
+            ResolutionData.ReferenceCount rc = data.referenceCount(selector.get("referenceFamily").toString(),
+                    regions, window[0], window[1]);
+            if (rc == null || rc.value() == null || !rc.covered()) {
+                if (now.isBefore(q.getResolveBy().plus(Duration.ofDays(MAX_LAG_DAYS)))) {
+                    return Verdict.waiting("waiting for the reference history to cover the window");
+                }
+                return Verdict.annul("COVERAGE_GAP", "no reference source covers every week of the window "
+                        + MAX_LAG_DAYS + " days after it ended");
+            }
+            List<String> evidence = rc.evidence() == null ? List.of() : rc.evidence();
+            return new Verdict(Kind.RESOLVE, null, rc.value(), false, due, evidence, caveats, null,
+                    "count " + num(rc.value()) + " (" + rc.source() + ")");
+        }
+        if (resolver.get("ref") != null) {
+            ResolutionData.Aggregate agg = data.seriesAggregate(resolver.get("ref").toString(), window[0], window[1],
+                    "sum", due);
+            if (agg.gapShare() > 1 - COVERAGE_MIN) {
+                return Verdict.annul("COVERAGE_GAP", Math.round(agg.gapShare() * 100) + "% of the window has no"
+                        + " covered data");
+            }
+            double count = agg.value() == null ? 0 : agg.value();
+            return new Verdict(Kind.RESOLVE, null, count, false, due, agg.evidence(), caveats, null,
+                    "count " + num(count));
+        }
+        ResolutionData.Scope scope = data.scope(resolver);
+        List<ResolutionData.Occurrence> found = data.occurrences(selector, area, window[0], window[1]);
+        Verdict gap = coverageGap(scope, window, data);
+        if (gap != null) {
+            return gap;
+        }
+        ResolutionData.Absence absence = data.canSeeAbsence(scope, area, window[0], window[1]);
+        if (!absence.ok()) {
+            return Verdict.annul("LOW_DETECTABILITY", "A count of occurrences needs adequate detectability, so that"
+                    + " missed events do not bias it: " + absence.reason());
+        }
+        List<String> evidence = refs(found);
+        return new Verdict(Kind.RESOLVE, null, (double) found.size(), false, due, evidence.isEmpty()
+                ? absenceEvidence(scope, area) : evidence, caveats, null, "count " + found.size());
     }
 
     private static Verdict series(ForecastQuestionEntity q, Map<String, Object> resolver, Instant[] window,

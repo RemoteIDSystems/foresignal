@@ -3438,7 +3438,8 @@ first of:
 2. `sources.{id}` (yours; the same value as `PUT /v1/sources/{id}` `retention`, stored once);
 3. the descriptor's per-kind default (`kindRetention`);
 4. the descriptor's `defaultRetention` (adapters set it by analytic class: events 1825 days, series
-   3650 days, bulk events 90 days);
+   3650 days, bulk events 90 days; the derived intelligence sources `foresignal-intel`, `foresignal-analytics` and
+   `foresignal-outlook` 1825 days);
 5. `default` (7 days).
 
 A `sources` entry for a TRACK source, or a `kinds` entry for a kind only TRACK sources emit, is
@@ -5956,6 +5957,7 @@ channel back with `PUT /v1/channels/{channelId}` (a `PUT` replaces the channel),
 ## Discovery (prompt 119)
 
 Discovery finds patterns nobody wrote a rule for and says how often each would turn up by chance. Three detectors run
+(and, since prompt 126, the `forecast` detector of "Outlooks and indices", whose exceedances are findings too)
 on their own schedule, deterministically and without an LLM; what they find is an **analytic finding**
 (`GET /v1/analytics/findings`), also published as a record of the DERIVED source `foresignal-analytics` (kind
 `analytic-finding`), so ordinary rules can alert on findings (`kind=analytic-finding`, `severity == significant`) and
@@ -5978,8 +5980,10 @@ together with re-reports of one event counted once (116 canonical events), which
 **The registry.** `GET /v1/analytics/series` lists the series the detectors run on. Every night at 02:00 UTC
 Foresignal registers busy region-day rollups (30 non-zero days in the last 90), every daily, weekly or hourly market
 and attention series, the PortWatch chokepoints and anomaly rule groups with eight weeks of samples, keeping at most
-`analysis.series.max` (2,000) automatic rows, busiest first. `PUT /v1/analytics/series` adds or changes a row as yours;
-automatic registration never removes your rows.
+`analysis.series.max` (2,000) automatic rows, busiest first. Automatic rows list the change-point detectors; since
+prompt 126 they also list `forecast` for region-day rollups with at least 365 days of history, the market and attention
+series and the PortWatch chokepoints. `PUT /v1/analytics/series` adds or changes a row as yours; automatic registration
+never removes your rows.
 
 **Change points** (03:00 UTC on daily and weekly series; hourly series you register run at :20). A CUSUM detector
 watches each series against its own recent baseline (the same weekday over the previous eight weeks for counts) and
@@ -6024,8 +6028,9 @@ Findings over `LOCAL_ONLY` series (FRED, LSEG-sourced EIA prices) keep their raw
 refuses and never put them on records.
 
 **Notifications and streams.** Add `finding.significant` to a channel's `events` to be told about significant
-findings (off by default; private findings send none). The `analytics` topic of `/v1/events/stream` carries
-`finding.created`, `finding.updated` and `finding.dismissed`.
+findings (off by default; private findings send none). The `analytics` topic of `/v1/events/stream` (cursor key `f`)
+carries `finding.created`, `finding.updated` and `finding.dismissed`, plus the precursor events of prompt 120 and
+`outlook.published`, `index.changed` and `index.weights_proposed` of prompt 126.
 
 **Tuning and cost.** Everything is deterministic database work, no LLM. The nightly runs read up to 400 days per daily
 series; the series cap (`analysis.series.max`) bounds the work. `analysis.findings.publishInfo=true` also publishes
@@ -6190,8 +6195,10 @@ the other way round.
 `ordered`, `numeric`), resolution criteria in plain words (shown verbatim to every forecaster) and a machine resolver:
 
 - `event-exists {selector, area, window}`: yes as soon as the selector finds an occurrence; it resolves early;
-- `count-threshold {selector | ref, area, window, op, threshold}`: the number of occurrences, or the sum of a `rollup:`
-  series;
+- `count-threshold {selector | ref, area, window, op?, threshold?}`: the number of occurrences, or the sum of a
+  `rollup:` series, compared with the threshold; without `op` and `threshold` (prompt 126) the count itself answers a
+  numeric question, and a `referenceFamily` selector then counts the family's events in the reference history (one
+  source per region), waiting until the source covers every week of the window;
 - `series-value {ref, period | window, aggregate, op?, threshold?}`: binary with a threshold, numeric without;
 - `alert-fired {ruleId, window, area?}`, `situation-status {situationId, status?, minSeverity?}`;
 - `hypothesis-outcome {setId}` (a hypothesis set's question, resolved by hand with the hypothesis that happened through
@@ -6215,10 +6222,12 @@ evidence ref. Selectors without an observability family (intel events, situation
 
 **Forecasters.** The baselines forecast every new open question they can, and again at most daily when their inputs
 change: `base-rate` (the 121 rate of the question's family, regions and window, scaled to the window; a Poisson count
-for thresholds; conditional when a precursor is linked), `climatology` (numeric: the same season in past years),
+for thresholds; conditional when a precursor is linked), `climatology` (numeric: the same season in past years, of a
+series or, since prompt 126, of a reference-history count),
 `persistence` (the last value or state carried forward), `precursor` (questions opened from `precursor-active`
 findings, which also open their own questions) and `analog` (121 analogs); `indicator-bayes` (prompt 125) records
-the probabilities of a linked hypothesis set at every revision and joins the ensemble like any other forecaster. When one cannot forecast a question it says
+the probabilities of a linked hypothesis set at every revision and joins the ensemble like any other forecaster, and
+`statistical` (prompt 126) records Foresignal's series forecasts and regional outlooks. When one cannot forecast a question it says
 why in `baselineNotes`. You are a forecaster too: `POST …/forecasts` with a read token records your forecast as
 `operator:{your handle}`, and so does `/forecast <questionId> <probability>` in an interactive chat (`/questions` lists
 the open ones). Forecasts are never edited: a new one supersedes the old, and `madeAt` and `asOfSeq` are set by the
@@ -6476,3 +6485,156 @@ and `assumption.broken` reach only channels whose `events` list them (`PUT /v1/c
 SSE topic `hypotheses` carries `set.created`, `set.revised`, `set.band_changed`, `set.resolved`, `indicator.observed`,
 `indicator.absent` and `assumption.broken`; private sets reach only callers with private access. Public sets are also
 published as `foresignal-intel` records of kind `hypothesis-set`, so ordinary trigger rules can watch them.
+
+## Outlooks and indices (prompt 126)
+
+Foresignal makes three kinds of statistical forecast of its own, and holds each one to account: **series forecasts**
+(quantiles of a series 1, 7 and 28 days ahead), **regional outlooks** (event counts per region for the next six
+4-week windows) and **regional indices** (transparent 0–100 composites whose weights are fitted to outcomes). Every
+series forecast on a configured series and every outlook window is a forecast-ledger question (prompt 122), forecast
+by the `statistical` forecaster and scored automatically when it resolves. No LLM is involved.
+
+### Series forecasts and method selection
+
+A series gets forecasts when its analysis-series row (prompt 119) lists the `forecast` detector. Automatic rows get it
+by default for region-day rollups with at least 365 days of history, for the 117 market and attention series
+(`cftc-cot`, `fred-series`, `wikimedia-pageviews`, `gdelt-timelines`, and any series of a market family) and for the
+PortWatch chokepoints; add or remove it with `PUT /v1/analytics/series` (`"detectors": [..., "forecast"]`). Daily,
+weekly and hourly series are forecast (hourly ones as days).
+
+**Methods** (`series-forecast` 1.0.0):
+
+- `seasonal-naive`: the last value of the same weekday (the benchmark every other method must beat);
+- `ets-ann`: simple exponential smoothing, ETS(A,N,N);
+- `ets-aaa`: exponential smoothing with additive trend and weekly season, ETS(A,A,A);
+- `nb-glm` (counts only): a negative-binomial regression on trend, weekday, two annual cycles and the count a week
+  earlier, with a parametric bootstrap for parameter uncertainty;
+- `damped-trend` (continuous series only): ETS(A,Ad,N), a trend that flattens out.
+
+The ETS methods fit their parameters by maximum likelihood; counts are modeled on `log1p(x)` and the quantiles
+transformed back. **The method is chosen per series by a rolling-origin backtest**: at each of the last 8 weekly
+origins every applicable method is fitted only on what was known by that origin and forecasts 1, 7 and 28 days ahead;
+the method with the lowest mean pinball loss at 7 days wins. The choice is redone monthly. See it, with every method's
+scores, at `GET /v1/analytics/series/forecast/model?ref=` (409 `FORECAST_MODEL_NOT_READY` until the first selection).
+
+**Forecasts** run nightly at 03:30 UTC (after the 03:00 change-point run): quantiles p05, p10, p25, p50, p75, p90 and
+p95 for each horizon, read at `GET /v1/analytics/series/forecast?ref=&horizon=`. Each run stores its method, the seq it
+read up to and a 116 manifest.
+
+**Ledger questions.** The series in the app setting `analysis.forecasts.questionSeries` (an array of series
+references; by default the PortWatch Bab el-Mandeb, Hormuz and Suez transits and COT WTI managed-money net) get one
+numeric `series-value` question per horizon and target day, category `markets` or `activity`. The `statistical`
+forecast is recorded on it at once, and the 122 `climatology` and `persistence` baselines forecast it automatically,
+so the scorecard compares Foresignal's model with both. The setting is an app setting without its own endpoint (like
+119's `analysis.series.max`); its value is a JSON array such as
+`["series:imf-portwatch-chokepoints/chokepoint4", "series:cftc-cot/cot.067651.disaggregated.mm_net"]`. A listed series
+needs the `forecast` detector too.
+
+**Exceedances.** When a day's actual value falls outside the 1-day p05–p95 band, Foresignal records a
+`forecast-exceedance` finding (`notable`; `significant` outside p01–p99 of the same distribution). A count that falls
+below the band where the sources could not have seen a fall is recorded as `info` with `LOW_DETECTABILITY` instead.
+
+**Licensed series.** A series of a `LOCAL_ONLY` source (FRED, for example) is forecast like any other; a caller that the
+egress policy refuses raw values to gets the quantiles in standardized units (`units: "standardised"`, standard
+deviations from the mean of the last year) and the model without its fitted parameters.
+
+### Reading quantiles and pinball loss
+
+A quantile forecast is a range, not a point. `p50` is the median: half the outcomes should fall below it. `p05`–`p95`
+is a 90% interval: about one outcome in ten should land outside it, so an occasional exceedance is expected and a
+calibrated forecaster has them about 10% of the time. Narrow intervals that are rarely missed are the goal.
+
+The **pinball loss** of a quantile `q` at level `τ` for an outcome `y` is `τ·(y − q)` when the outcome is above it and
+`(1 − τ)·(q − y)` when it is below. Averaged over the seven levels it rewards both a good median and honest spread, in
+the series' own units (lower is better). Twice the mean pinball loss is the CRPS the ledger reports. Compare methods on
+the same series only.
+
+### Regional outlooks (CAST-style)
+
+Every Monday at 06:00 UTC Foresignal publishes, for each eligible region and **outlook family**, quantiles of the event
+count in each of the next six 4-week windows, the first starting the following Monday, in the style of ACLED's CAST.
+The families are in `intel/outlook-families.json`:
+
+| Family | Counts from |
+|---|---|
+| `conflict:battles`, `conflict:explosions-remote`, `conflict:violence-civilians`, `conflict:protests` | ACLED where imported, UCDP otherwise (prompt 121 reference history) |
+| `outage` | Foresignal's canonical outage events (IODA and Cloudflare Radar) |
+| `weather-severe` | Foresignal's canonical weather-alert events (NWS and CAP warnings) |
+| `seismic:m4.5` | USGS ComCat, then Foresignal's canonical seismic events |
+
+Each region uses one source for its whole history, never a mix. **Regions** are countries with at least 52 weeks of
+history and an event in the last two years, and admin-1 regions with at least 52 weeks of 5 or more events.
+
+**The model** (`regional-outlook` 1.0.0) is a negative-binomial regression of weekly counts on the counts 1, 2 and 4
+weeks earlier, a 13-week average, an annual cycle, the neighboring regions' counts (adjacency from the 040 boundaries)
+and, when an enabled index targets the family, the region's index value. Each region's baseline level is pooled toward
+the mean of its continent, so a region with a short or noisy history borrows strength from similar ones. Regions with
+too little history fall back to the mean and spread of the last 52 weeks and say so (`SMALL_SAMPLE`). The model is
+refitted monthly, and each fit is evaluated on the last 26 weeks, refitting at every origin, against the seasonal-naive
+window (the same four weeks a year earlier) and climatology.
+
+**Each window is a ledger question**: a numeric `count-threshold` question over the same reference family and region,
+forecast by `statistical` (and by `climatology`), resolved from reference history 7 days after the window ends once the
+source covers every week (annulled `COVERAGE_GAP` after another 14 days without). So the accuracy is measured by the
+same ledger as every other forecaster, and **travels with the outlook**: `skill` gives the number of resolved windows,
+the mean pinball loss and CRPS, the skill against climatology on the same questions, the p10–p90 coverage of resolved
+windows, and the skill against seasonal naive from the monthly evaluation. Below 20 resolved windows the label is
+`insufficient`; quote the numbers only with that label.
+
+Read them at `GET /v1/outlooks?family=&region=` (the latest outlook per region and family) and
+`GET /v1/outlooks/{region}/{family}` (the six windows, past windows with their actual counts, and the skill). A window
+that resolves above its p95, or below its p05 where detectability is adequate, becomes an `outlook-exceedance` finding.
+
+**Reporting density.** Event data rest on reporting, and media coverage differs by orders of magnitude between regions.
+An outlook for a country in the bottom decile of reporting density (prompt 121) carries `lowReportingDensity: true` and
+the caveat `LOW_REPORTING_DENSITY`: its counts, and so its quantiles, may understate what happens. An outlook built on
+Foresignal's own sources where their detection probability is below `absenceMinDetect` carries `LOW_DETECTABILITY`, and
+a low count there is never read as a quiet period. An outlook whose reference history ends weeks before the first
+window (UCDP is published yearly) says so (`LAGGED_PUBLICATION`), and its quantiles are wider.
+
+### Regional indices
+
+A regional index is a **transparent composite**, not a probability: each **component** is a series template with
+`{region}` (for example `rollup:day/*/conflict-event/{region}`), a window (`P7D`, `P28D` or `P90D`), a transform and a
+direction. Every day at 03:45 UTC Foresignal sums each component over its window per region, normalizes it into
+0–100 against the pooled history of the region's continent over the past year (`pctrank`, the percentile, by default;
+`zscore`, `log1p` and `level` rescale instead), reverses it when the direction is −1, and adds the components with
+their weights. **Floors** then raise the value where a rule holds, for example "a UCDP war (1,000 or more battle deaths)
+in the last 12 months keeps the index at 70 or more". Every value comes with its decomposition: each component's raw
+window value, normalized value, weight and contribution (the contributions sum to the value before floors), the floors
+applied, and the change over 24 hours and 7 days.
+
+Three built-ins are seeded **disabled**: `instability` (conflict events, internet outages, travel-advisory activity,
+sanctions activity; target `conflict:battles`), `maritime-risk` (loitering, vessel encounters, maritime warnings, GNSS
+interference; target change points in maritime activity) and `infrastructure-stress` (internet and power outages,
+grid-frequency excursions, NWS warnings; target `outage`). Enable one, or define your own, with
+`PUT /v1/indices/{id}` (agent); `ready` says whether its component series exist yet. The first computation backfills
+two years of Mondays so the index can be fitted. A move of 5 points or more emits `index.changed`.
+
+**Why the weights are fitted, and only proposed.** Hand-set weights encode someone's guess about what matters.
+`POST /v1/indices/{id}/fit` (agent; a 103 job, also monthly on the 1st at 04:30 UTC) asks the data instead: a
+regularized negative-binomial regression of the next four weeks' target count on the components, across all regions,
+with the penalty chosen by rolling-origin validation and the last part of the history held out. The result reports
+the **out-of-sample skill** of the index's implied count forecast against the seasonal-naive outlook (pinball loss and
+log score), each component's coefficient and significance, and the **proposed** weights with a `weightsVersion`
+(`index.weights_proposed` on the stream). Nothing changes until you, or an agent you allow, apply them:
+
+```json
+POST /v1/indices/instability/weights
+{"source": "fitted", "version": 2, "rationale": "Beat the seasonal-naive outlook out of sample."}
+```
+
+`source: operator` applies your own weights and `source: default` restores the definition's; every change is logged on
+the definition and bumps `weightsVersion`. Set `autoApplyFittedWeights: true` on an index to apply fitted weights
+automatically. Every index response includes `weightsOrigin` (`default`, `fitted` or `operator`) and the latest
+out-of-sample `skill`; an index whose fit cannot beat seasonal naive tells you so.
+
+### Records, the stream and MCP
+
+Outlook windows and index values are also records of the DERIVED source `foresignal-outlook`: kind `regional-outlook`
+(`externalId` `{region}:{family}:{windowStart}`, carrying the quantiles, the ledger question, the skill and coverage,
+and the flags) and kind `regional-index` (`externalId` `{indexId}:{region}`, re-emitted when the value moves by a point
+or more). Ordinary trigger rules can watch them, for example an alert when an outlook's p50 for battles in Yemen
+exceeds a threshold. The `analytics` SSE topic carries `outlook.published`, `index.changed` and
+`index.weights_proposed`. MCP offers `get_series_forecast`, `get_outlook` and `get_index` (read) and `fit_index`
+(agent).

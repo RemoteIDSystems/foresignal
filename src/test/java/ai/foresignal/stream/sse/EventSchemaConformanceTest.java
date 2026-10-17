@@ -141,6 +141,13 @@ class EventSchemaConformanceTest {
                     () -> precursorEvents(ai.foresignal.analytics.finding.FindingEvent.PRECURSOR_STALE)),
             entry(ai.foresignal.analytics.finding.FindingEvent.PRECURSOR_RETIRED,
                     () -> precursorEvents(ai.foresignal.analytics.finding.FindingEvent.PRECURSOR_RETIRED)),
+            // 126: AnalyticsTopic sends the outlook and index summaries themselves (FindingEvent.payload()).
+            entry(ai.foresignal.analytics.finding.FindingEvent.OUTLOOK_PUBLISHED,
+                    EventSchemaConformanceTest::outlookPublishedEvents),
+            entry(ai.foresignal.analytics.finding.FindingEvent.INDEX_CHANGED,
+                    EventSchemaConformanceTest::indexChangedEvents),
+            entry(ai.foresignal.analytics.finding.FindingEvent.INDEX_WEIGHTS_PROPOSED,
+                    EventSchemaConformanceTest::indexWeightsProposedEvents),
             // 122: ForecastsTopic sends the forecast_log payloads written by ForecastEvents on topic forecasts.
             entry(ai.foresignal.forecast.ForecastEvents.OPENED,
                     () -> questionEvents(ai.foresignal.forecast.ForecastEvents.OPENED)),
@@ -309,6 +316,79 @@ class EventSchemaConformanceTest {
         for (String situation : java.util.Arrays.asList("01JA8Q3V7S2K9W4T6Y1B5N0M3D", null)) {
             out.add(toTree(new ai.foresignal.analytics.finding.FindingEvent(5, type, f.getId(),
                     ai.foresignal.analytics.finding.FindingViews.summary(f, situation), at).payload()));
+        }
+        return out;
+    }
+
+    /** {@code outlook.published} payloads as {@code FindingEvent.payload()} sends them (prompt 126), open and resolved. */
+    static List<JsonNode> outlookPublishedEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-19T06:00:00Z");
+        ai.foresignal.outlook.regional.RegionalOutlookEntity o = new ai.foresignal.outlook.regional
+                .RegionalOutlookEntity("01JA8Q3V7S2K9W4T6Y1B5N0M3C", "YE", "country", "conflict:battles", "conflict",
+                        at, "regional-outlook 1.0.0", 42L);
+        List<java.util.Map<String, Object>> windows = new java.util.ArrayList<>();
+        for (int i = 1; i <= 2; i++) {
+            java.util.Map<String, Object> w = new java.util.LinkedHashMap<>();
+            w.put("index", i);
+            w.put("windowStart", java.time.LocalDate.of(2026, 10, 26).plusWeeks(4L * (i - 1)).toString());
+            w.put("windowEnd", java.time.LocalDate.of(2026, 11, 22).plusWeeks(4L * (i - 1)).toString());
+            w.put("quantiles", java.util.Map.of("p05", 2.0, "p10", 3.0, "p25", 5.0, "p50", 8.0, "p75", 12.0, "p90",
+                    16.0, "p95", 20.0));
+            w.put("tails", java.util.Map.of("p01", 1.0, "p99", 28.0));
+            w.put("questionId", i == 1 ? "01JA8Q3V7S2K9W4T6Y1B5N0M3D" : null);
+            w.put("status", i == 1 ? "resolved" : "open");
+            w.put("actual", i == 1 ? 25L : null);
+            w.put("withinP10P90", i == 1 ? Boolean.FALSE : null);
+            w.put("exceedance", i == 1 ? "above-p95" : null);
+            windows.add(w);
+        }
+        o.setWindows(windows);
+        return List.of(toTree(new ai.foresignal.analytics.finding.FindingEvent(11,
+                ai.foresignal.analytics.finding.FindingEvent.OUTLOOK_PUBLISHED, o.getId(),
+                ai.foresignal.outlook.regional.OutlookViews.published(o), at).payload()));
+    }
+
+    /** {@code index.changed} payloads (prompt 126), with and without the previous day's value. */
+    static List<JsonNode> indexChangedEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T03:45:00Z");
+        List<JsonNode> out = new java.util.ArrayList<>();
+        for (Double previous : java.util.Arrays.asList(55.0, null)) {
+            ai.foresignal.outlook.index.RegionalIndexValueEntity v = new ai.foresignal.outlook.index
+                    .RegionalIndexValueEntity("01JA8Q3V7S2K9W4T6Y1B5N0M3C", "instability", "YE",
+                            java.time.LocalDate.of(2026, 10, 16), 62.5, at);
+            v.setDelta24h(previous == null ? null : 7.5);
+            out.add(toTree(new ai.foresignal.analytics.finding.FindingEvent(12,
+                    ai.foresignal.analytics.finding.FindingEvent.INDEX_CHANGED, v.getId(),
+                    ai.foresignal.outlook.OutlookEventSummaries.changed(v, previous, "fitted"), at).payload()));
+        }
+        return out;
+    }
+
+    /** {@code index.weights_proposed} payloads (prompt 126), with and without skill. */
+    static List<JsonNode> indexWeightsProposedEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-11-01T04:30:00Z");
+        List<JsonNode> out = new java.util.ArrayList<>();
+        for (boolean withSkill : new boolean[] {true, false}) {
+            ai.foresignal.outlook.index.RegionalIndexFitEntity f = new ai.foresignal.outlook.index
+                    .RegionalIndexFitEntity("01JA8Q3V7S2K9W4T6Y1B5N0M3C", "instability", at);
+            f.setProposedWeights(java.util.Map.of("conflict", 0.6, "outages", 0.4));
+            f.setWeightsVersion(2);
+            if (withSkill) {
+                java.util.Map<String, Object> skill = new java.util.LinkedHashMap<>();
+                skill.put("evaluatedAt", at.toString());
+                skill.put("n", 120);
+                skill.put("pinballLoss", 1.2);
+                skill.put("logScore", 2.1);
+                skill.put("baselinePinballLoss", 1.5);
+                skill.put("baselineLogScore", 2.4);
+                skill.put("skillPinball", 0.2);
+                skill.put("skillLog", 0.125);
+                skill.put("baseline", "seasonal-naive outlook");
+                f.setSkill(skill);
+            }
+            out.add(toTree(new ai.foresignal.analytics.finding.FindingEvent(13,
+                    ai.foresignal.analytics.finding.FindingEvent.INDEX_WEIGHTS_PROPOSED, f.getId(),
+                    ai.foresignal.outlook.OutlookEventSummaries.proposed(f), at).payload()));
         }
         return out;
     }

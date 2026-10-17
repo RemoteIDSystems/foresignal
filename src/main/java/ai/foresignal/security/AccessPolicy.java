@@ -542,6 +542,17 @@ public class AccessPolicy {
                 rule(null, "/v1/hypotheses/**", AccessRequirement.AGENT),
                 rule(null, "/v1/indicators/**", AccessRequirement.AGENT),
 
+                // ---- Series forecasts, regional outlooks and indices (prompt 126): forecasts, models, outlooks,
+                // index definitions and values are reads; defining an index, fitting its weights and applying weights
+                // are agent operations (no LLM is used). ----
+                rule(HttpMethod.GET, "/v1/analytics/series/forecast", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/analytics/series/forecast/model", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/outlooks", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/outlooks/**", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/indices", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/indices/*", AccessRequirement.READ),
+                rule(null, "/v1/indices/**", AccessRequirement.AGENT),
+
                 // ---- Analytic benchmark harness (prompt 123): runs, their results and the status per component are
                 // reads; starting a run and the historical corpus are agent operations. ----
                 rule(HttpMethod.GET, "/v1/benchmarks/runs", AccessRequirement.READ),

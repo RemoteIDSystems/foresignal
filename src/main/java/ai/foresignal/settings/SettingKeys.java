@@ -266,6 +266,12 @@ public final class SettingKeys {
      */
     public static final String BENCHMARK_THRESHOLDS = "benchmark.thresholds";
 
+    /**
+     * The series whose statistical forecasts are opened as ledger questions (prompt 126), an array of series
+     * references; absent: the PortWatch Bab el-Mandeb, Hormuz and Suez transits and COT WTI managed-money net.
+     */
+    public static final String ANALYSIS_FORECASTS_QUESTION_SERIES = "analysis.forecasts.questionSeries";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -279,7 +285,8 @@ public final class SettingKeys {
                     ANALYSIS_SERIES_MAX, ANALYSIS_FINDINGS_PUBLISH_INFO, ANALYSIS_LIVE_CURSOR, ANALYSIS_LIVE_RECHECKS,
                     ANALYSIS_PRECURSORS_MAX_TESTS, ANALYSIS_PRECURSORS_LOOKBACK_DAYS,
                     ANALYSIS_PRECURSORS_DISCOVERY_FRACTION, PRECURSOR_CURSOR, PRECURSOR_STREAM_CURSORS,
-                    BASERATE_FOLD_WEEK, FORECAST_ENSEMBLE, BENCHMARK_THRESHOLDS);
+                    BASERATE_FOLD_WEEK, FORECAST_ENSEMBLE, BENCHMARK_THRESHOLDS,
+                    ANALYSIS_FORECASTS_QUESTION_SERIES);
 
     private SettingKeys() {}
 }

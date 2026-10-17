@@ -70,7 +70,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * MAN-1 across the analytic outputs of prompts 100–123 (checkpoint 124, focus area 5).
+ * MAN-1 across the analytic outputs of prompts 100–123 (checkpoint 124, focus area 5) and the outlook tables of 126.
  *
  * <ul>
  *   <li>Every column named {@code manifest_id}, {@code last_manifest_id} or {@code brief_manifest_id} in the schema is
@@ -114,7 +114,16 @@ class ManifestReplayCheckIT {
             Map.entry("analyst_run.manifest_id", "LLM run: inputs recorded, output not reproducible (ManifestReplayIT"
                     + " llmManifest)"),
             Map.entry("situation.brief_manifest_id", "LLM brief: inputs recorded, output not reproducible"),
-            Map.entry("correlation_recipe.last_manifest_id", "run bookkeeping of a recipe, not an output row")));
+            Map.entry("correlation_recipe.last_manifest_id", "run bookkeeping of a recipe, not an output row"),
+            // 126: series forecasts, outlooks and indices.
+            Map.entry("series_forecast.manifest_id", "SeriesForecastIT (every forecast row carries its manifest)"),
+            Map.entry("series_forecast_model.manifest_id", "SeriesForecastIT (the method selection's manifest)"),
+            Map.entry("regional_outlook.manifest_id", "RegionalOutlookIT (every published outlook)"),
+            Map.entry("regional_outlook_model.manifest_id", "RegionalOutlookService.refit writes each fit's manifest"
+                    + " (RegionalOutlookIT publishes after a refit)"),
+            Map.entry("regional_index_value.manifest_id", "RegionalIndexService.computeDays writes one manifest per"
+                    + " computation; IndexFitIT plants rows by hand"),
+            Map.entry("regional_index_fit.manifest_id", "IndexFitIT (a finished fit carries its manifest)")));
 
     @Autowired TriggerRuleService rules;
     @Autowired WindowEngine engine;

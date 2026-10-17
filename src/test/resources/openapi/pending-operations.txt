@@ -1,12 +1,3 @@
-listRegionalOutlooks 126
-getRegionalOutlook 126
-listRegionalIndices 126
-getRegionalIndex 126
-putRegionalIndex 126
-fitRegionalIndex 126
-applyRegionalIndexWeights 126
-getSeriesForecast 126
-getSeriesForecastModel 126
 listProjectedImpacts 127
 getProjectedImpact 127
 listImpactRates 127

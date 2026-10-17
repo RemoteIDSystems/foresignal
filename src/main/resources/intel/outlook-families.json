@@ -1,0 +1,62 @@
+{
+  "version": "1.0.0",
+  "description": "Regional outlook families (prompt 126, Intelligence-Design §9.2). Each family forecasts weekly event counts per region from reference_history: referenceFamily names the 121 reference family (conflict: ACLED where available, UCDP otherwise, then Foresignal's folded canonical events; seismic: USGS, then Foresignal; families with canonical events count Foresignal's folded canonical events, never raw records). observabilityFamily is the 116 family used for the LOW_DETECTABILITY flag; category is the ledger category of the window questions. Operators may edit this file; ids are lower case with ':' and '.' allowed.",
+  "families": [
+    {
+      "id": "conflict:battles",
+      "label": "Battles",
+      "category": "conflict",
+      "referenceFamily": "conflict:battles",
+      "observabilityFamily": "conflict",
+      "sources": "ACLED where available, UCDP otherwise"
+    },
+    {
+      "id": "conflict:explosions-remote",
+      "label": "Explosions and remote violence",
+      "category": "conflict",
+      "referenceFamily": "conflict:explosions-remote",
+      "observabilityFamily": "conflict",
+      "sources": "ACLED"
+    },
+    {
+      "id": "conflict:violence-civilians",
+      "label": "Violence against civilians",
+      "category": "conflict",
+      "referenceFamily": "conflict:violence-civilians",
+      "observabilityFamily": "conflict",
+      "sources": "ACLED where available, UCDP otherwise"
+    },
+    {
+      "id": "conflict:protests",
+      "label": "Protests",
+      "category": "conflict",
+      "referenceFamily": "conflict:protests",
+      "observabilityFamily": "conflict",
+      "sources": "ACLED"
+    },
+    {
+      "id": "outage",
+      "label": "Internet outages",
+      "category": "infrastructure",
+      "referenceFamily": "outage",
+      "observabilityFamily": "outage",
+      "sources": "Foresignal canonical outage events (IODA and Cloudflare Radar)"
+    },
+    {
+      "id": "weather-severe",
+      "label": "Severe weather warnings",
+      "category": "weather",
+      "referenceFamily": "weather-alert",
+      "observabilityFamily": "weather-alert",
+      "sources": "Foresignal canonical weather-alert events (NWS and CAP warnings)"
+    },
+    {
+      "id": "seismic:m4.5",
+      "label": "Earthquakes of magnitude 4.5 or more",
+      "category": "seismic",
+      "referenceFamily": "seismic:m4.5",
+      "observabilityFamily": "seismic",
+      "sources": "USGS ComCat, then Foresignal canonical seismic events"
+    }
+  ]
+}

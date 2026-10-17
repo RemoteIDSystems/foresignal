@@ -61,6 +61,7 @@ public class JdbcResolutionData implements ResolutionData {
     private final ObjectProvider<TriggerRuleRepository> rules;
     private final NamedParameterJdbcTemplate jdbc;
     private final JsonMapper json;
+    private ObjectProvider<ai.foresignal.baserate.reference.ReferenceCounts> referenceCounts;
 
     /** Creates the data port. */
     public JdbcResolutionData(ObjectProvider<EventSelectorResolver> selectors, ObjectProvider<SeriesReader> reader,
@@ -363,6 +364,41 @@ public class JdbcResolutionData implements ResolutionData {
             return List.of(Place.GLOBAL);
         }
         return List.of(Place.polygon(new GeoJsonReader().read(geo.get(0))));
+    }
+
+    /** The reference-history counts (prompt 126; optional, so the 122 wiring is unchanged). */
+    @org.springframework.beans.factory.annotation.Autowired
+    void setReferenceCounts(ObjectProvider<ai.foresignal.baserate.reference.ReferenceCounts> referenceCounts) {
+        this.referenceCounts = referenceCounts;
+    }
+
+    @Override
+    public ReferenceCount referenceCount(String family, List<String> regions, Instant from, Instant to) {
+        ai.foresignal.baserate.reference.ReferenceCounts counts = referenceCounts == null ? null
+                : referenceCounts.getIfAvailable();
+        if (counts == null || regions == null || regions.isEmpty()) {
+            return new ReferenceCount(null, false, null, List.of());
+        }
+        java.time.LocalDate fromWeek = ReferenceFamilies.weekStart(from.atZone(java.time.ZoneOffset.UTC)
+                .toLocalDate());
+        java.time.LocalDate toWeek = ReferenceFamilies.weekCeil(to.atZone(java.time.ZoneOffset.UTC).toLocalDate());
+        double total = 0;
+        boolean covered = true;
+        List<String> sources = new ArrayList<>();
+        List<String> evidence = new ArrayList<>();
+        for (String region : regions) {
+            ai.foresignal.baserate.reference.ReferenceCounts.Count c = counts.count(family, region, fromWeek, toWeek);
+            if (c.value() == null) {
+                return new ReferenceCount(null, false, null, List.of());
+            }
+            total += c.value();
+            covered &= c.covered();
+            if (c.source() != null && !sources.contains(c.source())) {
+                sources.add(c.source());
+            }
+            evidence.add("reference-history:" + family + "/" + region + "/" + fromWeek + "/" + toWeek);
+        }
+        return new ReferenceCount(total, covered, String.join("+", sources), evidence);
     }
 
     @Override

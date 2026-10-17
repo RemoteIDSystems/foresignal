@@ -7,7 +7,9 @@ import java.util.Map;
 /**
  * One stream event on the {@code analytics} SSE topic: {@code finding.created}, {@code finding.updated} or
  * {@code finding.dismissed} (prompt 119), or {@code precursor.validated}, {@code precursor.stale} or
- * {@code precursor.retired} (prompt 120); {@code cursor} is the {@code analytic_finding_log} id.
+ * {@code precursor.retired} (prompt 120), or {@code outlook.published}, {@code index.changed} or
+ * {@code index.weights_proposed} (prompt 126, whose payload is the summary itself); {@code cursor} is the
+ * {@code analytic_finding_log} id.
  *
  * @param cursor the topic cursor
  * @param event the event name
@@ -36,6 +38,20 @@ public record FindingEvent(long cursor, String event, String findingId, Map<Stri
     /** A precursor was retired (prompt 120). */
     public static final String PRECURSOR_RETIRED = "precursor.retired";
 
+    /** A regional outlook was published (prompt 126). */
+    public static final String OUTLOOK_PUBLISHED = "outlook.published";
+
+    /** A regional index moved by at least 5 points (prompt 126). */
+    public static final String INDEX_CHANGED = "index.changed";
+
+    /** Fitted index weights were proposed (prompt 126). */
+    public static final String INDEX_WEIGHTS_PROPOSED = "index.weights_proposed";
+
+    /** True for an {@code outlook.*} or {@code index.*} event, whose payload is its summary itself (prompt 126). */
+    public static boolean flat(String event) {
+        return event != null && (event.startsWith("outlook.") || event.startsWith("index."));
+    }
+
     /** True for a {@code precursor.*} event. */
     public boolean precursorEvent() {
         return event != null && event.startsWith("precursor.");
@@ -43,6 +59,9 @@ public record FindingEvent(long cursor, String event, String findingId, Map<Stri
 
     /** The {@code FindingEvent} payload, or the {@code PrecursorEvent} payload of a {@code precursor.*} event. */
     public Map<String, Object> payload() {
+        if (flat(event)) {
+            return finding == null ? new LinkedHashMap<>() : new LinkedHashMap<>(finding);
+        }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("event", event);
         out.put(precursorEvent() ? "precursor" : "finding", finding);
@@ -50,8 +69,8 @@ public record FindingEvent(long cursor, String event, String findingId, Map<Stri
         return out;
     }
 
-    /** True when the finding is private. */
+    /** True when the finding is private (outlook and index events never are). */
     public boolean privateFinding() {
-        return finding != null && Boolean.TRUE.equals(finding.get("private"));
+        return !flat(event) && finding != null && Boolean.TRUE.equals(finding.get("private"));
     }
 }

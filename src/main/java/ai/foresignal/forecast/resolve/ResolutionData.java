@@ -79,4 +79,25 @@ public interface ResolutionData {
 
     /** The publication lag of the resolver's sources, in days. */
     double releaseLagDays(Map<String, Object> resolver);
+
+    /**
+     * A count of reference-history events (prompt 126).
+     *
+     * @param value the count, or null when no source covers the weeks
+     * @param covered true when the source used covers every week of the window
+     * @param source the source used, or null
+     * @param evidence the refs to pin
+     */
+    record ReferenceCount(Double value, boolean covered, String source, List<String> evidence) {}
+
+    /**
+     * The events of a reference family in some regions over the whole weeks overlapping {@code [from, to)}, each
+     * region from one source (prompt 126, the numeric {@code count-threshold} of a {@code referenceFamily}
+     * selector). The default implementation has no reference history.
+     *
+     * @param regions the 040 region codes (empty: none can be counted)
+     */
+    default ReferenceCount referenceCount(String family, List<String> regions, Instant from, Instant to) {
+        return new ReferenceCount(null, false, null, List.of());
+    }
 }

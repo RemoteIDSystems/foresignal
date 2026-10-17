@@ -660,6 +660,18 @@ public final class ErrorCodes {
     /** 409: the hypothesis set is resolved and accepts no more changes (125). */
     public static final String HYPOTHESIS_SET_RESOLVED = "HYPOTHESIS_SET_RESOLVED";
 
+    /** 404: no regional index has that id (126). */
+    public static final String UNKNOWN_INDEX = "UNKNOWN_INDEX";
+
+    /** 404: no outlook exists for that region and family (126). */
+    public static final String UNKNOWN_OUTLOOK = "UNKNOWN_OUTLOOK";
+
+    /** 400: a regional index definition or weights change is not valid (126). */
+    public static final String INDEX_INVALID = "INDEX_INVALID";
+
+    /** 409: no forecast method has been selected for the series yet, or an index's inputs are not ready (126). */
+    public static final String FORECAST_MODEL_NOT_READY = "FORECAST_MODEL_NOT_READY";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

@@ -64,6 +64,16 @@ public class AnalysisSeriesRegistrar {
     /** Weeks of samples an anomaly rule group needs. */
     public static final int MIN_RULE_WEEKS = 8;
 
+    /** The {@code forecast} detector value (prompt 126). */
+    public static final String FORECAST = "forecast";
+
+    /** Days of history a region-day rollup needs for the {@code forecast} detector by default (prompt 126). */
+    public static final int FORECAST_MIN_DAYS = 365;
+
+    /** Sources whose series get the {@code forecast} detector by default (117 markets and attention, PortWatch). */
+    public static final Set<String> FORECAST_SOURCES = Set.of("cftc-cot", "fred-series", "wikimedia-pageviews",
+            "gdelt-timelines", SeriesReader.PORTWATCH);
+
     /** The look-back of the volume and threshold checks. */
     static final Duration LOOKBACK = Duration.ofDays(90);
 
@@ -141,6 +151,7 @@ public class AnalysisSeriesRegistrar {
                 .thenComparing(Comparator.comparingDouble(Candidate::volume).reversed())
                 .thenComparing(Candidate::ref));
         Set<String> kept = new HashSet<>();
+        Set<String> forecastDefaults = forecastDefaults(candidates, now);
         for (Candidate c : candidates) {
             if (kept.size() >= room) {
                 break;
@@ -156,6 +167,11 @@ public class AnalysisSeriesRegistrar {
                 row = new AnalysisSeriesEntity(c.ref(), "auto", now);
                 row.setDetectors(AnalysisSeriesService.DEFAULT_DETECTORS);
                 row.setEnabled(true);
+            }
+            if (forecastDefaults.contains(c.ref()) && !row.getDetectors().contains(FORECAST)) {
+                List<String> detectors = new ArrayList<>(row.getDetectors());
+                detectors.add(FORECAST);
+                row.setDetectors(detectors);
             }
             row.setFrequency(c.frequency());
             row.setFamily(c.family());
@@ -176,6 +192,50 @@ public class AnalysisSeriesRegistrar {
             log.warn("Default watch-pair series not found and skipped: {}", skipped);
         }
         return new Result(candidates.size(), kept.size(), removed, List.copyOf(skipped));
+    }
+
+    /**
+     * The candidates whose automatic rows get the {@code forecast} detector by default (prompt 126): region-day
+     * rollups with at least {@value #FORECAST_MIN_DAYS} days of history, the 117 market and attention series
+     * ({@code cftc-cot}, {@code fred-series}, {@code wikimedia-pageviews}, {@code gdelt-timelines}, and series of a
+     * market family), and the PortWatch chokepoints whose forecasts are ledger questions by default.
+     */
+    Set<String> forecastDefaults(List<Candidate> candidates, Instant now) {
+        Set<String> out = new HashSet<>();
+        Set<String> longRollups = new HashSet<>();
+        jdbc.query("SELECT kind, region_code FROM activity_rollup WHERE resolution = :resolution AND source_id = :all"
+                        + " AND region_code IS NOT NULL GROUP BY kind, region_code HAVING min(bucket_start) <= :since",
+                new MapSqlParameterSource().addValue("resolution", RegionRollupResolution.DAY.code())
+                        .addValue("all", RegionRollupComputer.ALL_SOURCES)
+                        .addValue("since", Timestamp.from(now.minus(Duration.ofDays(FORECAST_MIN_DAYS)))),
+                rs -> {
+                    longRollups.add(SeriesRef.rollup("day", SeriesRef.ALL_SOURCES, rs.getString("kind"),
+                            rs.getString("region_code")).format());
+                });
+        for (Candidate c : candidates) {
+            if (longRollups.contains(c.ref())) {
+                out.add(c.ref());
+                continue;
+            }
+            if (!c.ref().startsWith("series:")) {
+                continue;
+            }
+            try {
+                SeriesRef ref = SeriesRef.parse(c.ref());
+                if (FORECAST_SOURCES.contains(ref.sourceId())) {
+                    out.add(c.ref());
+                    continue;
+                }
+                SeriesReader.Meta meta = reader.meta(ref);
+                if (ai.foresignal.analytics.AnalyticsSupport.MARKET_FAMILIES.contains(meta.seriesFamily())
+                        || "markets".equals(meta.signalFamily()) || "attention".equals(meta.signalFamily())) {
+                    out.add(c.ref());
+                }
+            } catch (RuntimeException e) {
+                log.debug("No forecast default for {}: {}", c.ref(), e.toString());
+            }
+        }
+        return out;
     }
 
     // ------------------------------------------------------------------------- candidates

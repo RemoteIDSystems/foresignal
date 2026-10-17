@@ -76,6 +76,8 @@ dependencies {
     implementation(libs.commons.numbers.gamma)
     implementation(libs.commons.rng.simple)
     implementation(libs.commons.rng.sampling)
+    // Series forecasts (126): Hipparchus optimizers (Apache-2.0) for the ETS maximum likelihood.
+    implementation(libs.hipparchus.optim)
     implementation(libs.caffeine)
     // GRIB2 and NetCDF4 decoding (046): cdm-core and grib, versions from the NetCDF-Java BOM; cdm-radial for
     // the NIDS (NEXRAD Level III) reader of nexrad-l3 (106).

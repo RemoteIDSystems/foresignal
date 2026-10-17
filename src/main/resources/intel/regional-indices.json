@@ -1,0 +1,55 @@
+{
+  "version": "1.0.0",
+  "description": "Built-in regional indices (prompt 126, Intelligence-Design §9.3). Each is seeded disabled once and computed only after an operator or agent enables it and its component series exist. Components are SeriesRef templates with {region}; weights sum to 1 and are the defaults until a fit proposes others; floors raise the value when their condition holds. Indices are transparent composites, never probabilities.",
+  "indices": [
+    {
+      "id": "instability",
+      "name": "Instability",
+      "description": "Conflict events, internet outages, travel-advisory activity and sanctions activity per country, normalized against the country's continent over the last year. Target: battles in the next four weeks.",
+      "components": [
+        {"key": "conflict", "ref": "rollup:day/*/conflict-event/{region}", "transform": "pctrank", "window": "P28D", "direction": 1},
+        {"key": "outages", "ref": "rollup:day/*/internet-outage/{region}", "transform": "pctrank", "window": "P28D", "direction": 1},
+        {"key": "advisories", "ref": "rollup:day/*/travel-advisory/{region}", "transform": "pctrank", "window": "P90D", "direction": 1},
+        {"key": "sanctions", "ref": "rollup:day/*/sanction/{region}", "transform": "pctrank", "window": "P90D", "direction": 1}
+      ],
+      "weights": {"conflict": 0.45, "outages": 0.2, "advisories": 0.15, "sanctions": 0.2},
+      "floors": [
+        {
+          "id": "ucdp-war",
+          "description": "A UCDP war (1,000 or more battle deaths in a year) in the last 12 months keeps the index at 70 or more.",
+          "condition": {"type": "reference", "family": "conflict:battles", "source": "ucdp", "minFatalities": 1000, "withinDays": 365},
+          "minValue": 70
+        }
+      ],
+      "target": "conflict:battles"
+    },
+    {
+      "id": "maritime-risk",
+      "name": "Maritime risk",
+      "description": "Loitering and vessel encounters, navigational warnings and GNSS interference per region. Target: change points in maritime (AIS behavior) activity in the next four weeks.",
+      "components": [
+        {"key": "loitering", "ref": "rollup:day/*/loitering-event/{region}", "transform": "pctrank", "window": "P28D", "direction": 1},
+        {"key": "encounters", "ref": "rollup:day/*/vessel-encounter/{region}", "transform": "pctrank", "window": "P28D", "direction": 1},
+        {"key": "warnings", "ref": "rollup:day/*/maritime-warning/{region}", "transform": "pctrank", "window": "P28D", "direction": 1},
+        {"key": "gnss", "ref": "rollup:day/*/jamming-cell/{region}", "transform": "pctrank", "window": "P7D", "direction": 1}
+      ],
+      "weights": {"loitering": 0.25, "encounters": 0.2, "warnings": 0.3, "gnss": 0.25},
+      "floors": [],
+      "target": "finding:change-point:ais-behaviour"
+    },
+    {
+      "id": "infrastructure-stress",
+      "name": "Infrastructure stress",
+      "description": "Internet and power outages, grid-frequency excursions and severe-weather warnings per region. Target: outages in the next four weeks.",
+      "components": [
+        {"key": "internet", "ref": "rollup:day/*/internet-outage/{region}", "transform": "pctrank", "window": "P28D", "direction": 1},
+        {"key": "power", "ref": "rollup:day/*/outage/{region}", "transform": "pctrank", "window": "P28D", "direction": 1},
+        {"key": "grid", "ref": "rollup:day/*/frequency-excursion/{region}", "transform": "pctrank", "window": "P28D", "direction": 1},
+        {"key": "weather", "ref": "rollup:day/*/nws-alert/{region}", "transform": "pctrank", "window": "P7D", "direction": 1}
+      ],
+      "weights": {"internet": 0.35, "power": 0.3, "grid": 0.1, "weather": 0.25},
+      "floors": [],
+      "target": "outage"
+    }
+  ]
+}

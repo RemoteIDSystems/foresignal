@@ -196,6 +196,10 @@ class PostmanCollectionContractTest {
             Map.entry("addAchEvidence", ai.foresignal.hypothesis.HypothesisInputs::evidence),
             Map.entry("createKeyAssumption", ai.foresignal.hypothesis.HypothesisInputs::assumption),
             Map.entry("updateKeyAssumption", ai.foresignal.hypothesis.HypothesisInputs::assumptionPatch),
+            // 126: the regional index parsers (pure); the weights body is checked against the example's components.
+            Map.entry("putRegionalIndex", ai.foresignal.outlook.index.IndexInputs::definition),
+            Map.entry("applyRegionalIndexWeights", body -> ai.foresignal.outlook.index.IndexInputs.weights(body,
+                    java.util.Set.of("conflict", "outages"))),
             // 111: the production parsers of bulk export and offline pack specs (pure).
             Map.entry("createExport", ai.foresignal.export.ExportSpec::parse),
             Map.entry("createPack", ai.foresignal.export.PackSpec::parse),

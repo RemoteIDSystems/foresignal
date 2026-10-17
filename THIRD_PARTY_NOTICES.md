@@ -241,6 +241,17 @@ section lists dependencies a prompt asked to record here.
   <https://commons.apache.org/proper/commons-numbers/>, <https://commons.apache.org/proper/commons-rng/>, Copyright
   The Apache Software Foundation.
 
+### Hipparchus (prompt 126)
+
+- **Artifact (Maven Central, used unmodified):** `org.hipparchus:hipparchus-optim` 4.0.3 (with `hipparchus-core`
+  4.0.3). The same version already reaches the runtime classpath through Orekit (see below); prompt 126 declares it
+  directly because the forecasting code calls it.
+- **Use:** the BOBYQA bounded optimizer behind the maximum-likelihood fits of the ETS forecasting methods
+  (`ai.foresignal.outlook.series`, `series-forecast` 1.0.0).
+- **License:** Apache License, Version 2.0 (<https://www.apache.org/licenses/LICENSE-2.0>), confirmed in the POM's
+  `<licenses>` block and the project's `LICENSE.txt` on 2026-10-17.
+- **Project:** <https://hipparchus.org>, Copyright the Hipparchus project.
+
 ### Caffeine
 
 - **Artifact:** `com.github.ben-manes.caffeine:caffeine` 3.2.4 (Maven Central; the version the Spring Boot 4.1.1 BOM

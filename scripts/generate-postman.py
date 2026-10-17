@@ -46,7 +46,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              "questionId": "questionId", "forecasterId": "forecasterId", "evaluationId": "evaluationId",
              # 125: hypothesis sets, hypotheses, indicators, ACH evidence and key assumptions.
              "setId": "hypothesisSetId", "hypothesisId": "hypothesisId", "indicatorId": "indicatorId",
-             "evidenceId": "achEvidenceId", "assumptionId": "assumptionId"}
+             "evidenceId": "achEvidenceId", "assumptionId": "assumptionId",
+             # 126: regional indices.
+             "indexId": "indexId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -60,7 +62,9 @@ PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
                        # 114: a learned pattern-of-life place is not a 036 place of {{placeId}}.
                        ("/v1/pol/places/", {"placeId": "polPlaceId"}),
                        # 123: a benchmark run is not a briefing run of {{runId}}.
-                       ("/v1/benchmarks/", {"runId": "benchmarkRunId", "caseId": "benchmarkCaseId"})]
+                       ("/v1/benchmarks/", {"runId": "benchmarkRunId", "caseId": "benchmarkCaseId"}),
+                       # 126: the region and family of a regional outlook.
+                       ("/v1/outlooks/", {"region": "outlookRegion", "family": "outlookFamily"})]
 
 # The EDP manifest of docs/External-Data-Protocol.md §2 (024).
 EDP_MANIFEST = {
@@ -667,6 +671,24 @@ BODIES = {
                           "citations": []},
   "draftHypothesisSet": {"text": "Watch whether the Red Sea situation spreads to Hormuz",
                          "regionCodes": ["OM", "IR", "AE"]},
+  # 126: an operator-defined regional index (PUT {{indexId}}; the built-ins instability, maritime-risk and
+  # infrastructure-stress are seeded disabled: PUT them with "enabled": true to compute them), and the weights change
+  # that applies the version a fit proposed (fitRegionalIndex has no body; its 202 is the queued fit).
+  "putRegionalIndex": {"name": "Unrest pressure", "description": "Conflict events and internet outages per country.",
+                       "components": [
+                           {"key": "conflict", "ref": "rollup:day/*/conflict-event/{region}", "transform": "pctrank",
+                            "window": "P28D", "direction": 1},
+                           {"key": "outages", "ref": "rollup:day/*/internet-outage/{region}", "transform": "pctrank",
+                            "window": "P7D", "direction": 1, "floor": None}],
+                       "weights": {"conflict": 0.7, "outages": 0.3},
+                       "floors": [{"id": "ucdp-war", "description": "A UCDP war in the last 12 months keeps the index"
+                                                                   " at 70 or more.",
+                                   "condition": {"type": "reference", "family": "conflict:battles", "source": "ucdp",
+                                                 "minFatalities": 1000, "withinDays": 365},
+                                   "minValue": 70}],
+                       "target": "conflict:battles", "enabled": True, "autoApplyFittedWeights": False},
+  "applyRegionalIndexWeights": {"source": "fitted", "version": 2,
+                                "rationale": "The fit beat the seasonal-naive outlook out of sample."},
   # 098: assert an IMO number (check digit valid) on the entity in {{entityId}}, and merge another entity into it
   # (replace the example ULID with the other entity's id; entity ids are ULIDs, which a {{variable}} cannot match).
   "addEntityKey": {"keyType": "imo", "keyValue": "9074729", "confidence": 1.0,
@@ -775,6 +797,8 @@ CAPTURE = {
   "createIndicator": "const j = pm.response.json(); pm.collectionVariables.set('indicatorId', j.id);",
   "addAchEvidence": "const j = pm.response.json(); pm.collectionVariables.set('achEvidenceId', j.id);",
   "createKeyAssumption": "const j = pm.response.json(); pm.collectionVariables.set('assumptionId', j.id);",
+  # 126: the queued index fit (a 103 job: read it with getBacktest).
+  "fitRegionalIndex": "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
   # 117: the created attention topic.
   "createAttentionTopic": "const j = pm.response.json(); pm.collectionVariables.set('attentionTopicId', j.id);",
   "rotatePeerIngestKey": "const j = pm.response.json(); pm.collectionVariables.set('peerIngestKey', j.key); console.log('New peer ingest key (shown once):', j.key);",
@@ -1166,6 +1190,7 @@ collection = {
       ("questionId", ""), ("forecasterId", "ensemble"), ("evaluationId", ""),
       ("benchmarkRunId", ""), ("benchmarkCaseId", ""),
       ("hypothesisSetId", ""), ("hypothesisId", ""), ("indicatorId", ""), ("achEvidenceId", ""), ("assumptionId", ""),
+      ("indexId", "instability"), ("outlookRegion", "YE"), ("outlookFamily", "conflict:battles"),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

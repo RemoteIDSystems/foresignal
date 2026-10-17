@@ -28,8 +28,10 @@ import java.util.regex.Pattern;
  * <ul>
  *   <li>{@code event-exists {selector, area?, window}} (binary): yes when the selector finds an occurrence in the
  *       area and window.</li>
- *   <li>{@code count-threshold {selector | ref, area?, window, op, threshold}} (binary): the count of occurrences, or
- *       the sum of a {@code rollup:} series, compared with the threshold.</li>
+ *   <li>{@code count-threshold {selector | ref, area?, window, op?, threshold?}}: the count of occurrences, or the
+ *       sum of a {@code rollup:} series, compared with the threshold (binary); without {@code op} and
+ *       {@code threshold} the count itself answers a numeric question (prompt 126; a {@code referenceFamily}
+ *       selector then counts the events of the family's reference history, not the weeks with events).</li>
  *   <li>{@code series-value {ref, period | window, aggregate, op?, threshold?}}: binary with a threshold, numeric
  *       without.</li>
  *   <li>{@code alert-fired {ruleId, window, area?}} (binary).</li>
@@ -117,7 +119,14 @@ public final class ResolverSpec {
                 window(resolver.get("window"), true);
             }
             case "count-threshold" -> {
-                requireType(questionType, type, Ledger.BINARY);
+                boolean hasOp = resolver.get("op") != null;
+                boolean hasThreshold = resolver.get("threshold") != null;
+                if (hasOp != hasThreshold) {
+                    throw invalid("resolver.threshold", "op and threshold go together");
+                }
+                // Prompt 126: without op and threshold the resolver answers a numeric question with the count itself.
+                requireType(questionType, hasOp ? type : type + " without a threshold",
+                        hasOp ? Ledger.BINARY : Ledger.NUMERIC);
                 boolean hasSelector = resolver.get("selector") != null;
                 boolean hasRef = resolver.get("ref") != null;
                 if (hasSelector == hasRef) {
@@ -136,8 +145,10 @@ public final class ResolverSpec {
                     area(resolver.get("area"), selector);
                 }
                 window(resolver.get("window"), true);
-                op(resolver.get("op"), true);
-                threshold(resolver.get("threshold"), true);
+                if (hasOp) {
+                    op(resolver.get("op"), true);
+                    threshold(resolver.get("threshold"), true);
+                }
             }
             case "series-value" -> {
                 seriesRef(resolver.get("ref"));

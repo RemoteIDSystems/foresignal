@@ -23,7 +23,8 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 
 /**
- * The {@code climatology} forecaster (prompt 122 §4): for a numeric {@code series-value} question, the empirical
+ * The {@code climatology} forecaster (prompt 122 §4; numeric reference counts since prompt 126, see
+ * {@link #referenceCount}): for a numeric {@code series-value} question, the empirical
  * quantiles of the same aggregate of the same series over the same calendar window in past years, with the window
  * shifted by up to {@code seasonalDays} (default 14) in 7-day steps, across up to {@code maxYears} (default 30) years.
  * Only data known by the forecast time is read (the {@code SeriesReader} {@code asOf}); a past window with more than
@@ -46,9 +47,97 @@ public class ClimatologyForecaster implements BaselineForecaster {
         return ForecasterRegistry.CLIMATOLOGY;
     }
 
+    private ai.foresignal.baserate.reference.ReferenceCounts referenceCounts;
+
+    /** The reference-history counts for numeric count questions (prompt 126; optional). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setReferenceCounts(ai.foresignal.baserate.reference.ReferenceCounts referenceCounts) {
+        this.referenceCounts = referenceCounts;
+    }
+
     @Override
     public boolean supports(ForecastQuestionEntity q) {
-        return Ledger.NUMERIC.equals(q.getType()) && "series-value".equals(q.getResolverType());
+        return Ledger.NUMERIC.equals(q.getType()) && ("series-value".equals(q.getResolverType())
+                || referenceCountQuestion(q));
+    }
+
+    /** True for a numeric {@code count-threshold} question over a {@code referenceFamily} selector (prompt 126). */
+    static boolean referenceCountQuestion(ForecastQuestionEntity q) {
+        if (!"count-threshold".equals(q.getResolverType()) || q.getResolver().get("op") != null) {
+            return false;
+        }
+        Object selector = q.getResolver().get("selector");
+        return selector instanceof Map<?, ?> m && m.get("referenceFamily") != null;
+    }
+
+    /**
+     * The climatology of a numeric reference count (prompt 126): the same family's counts in the same regions over
+     * the same calendar window in past years, shifted by up to {@code seasonalDays} in 7-day steps, using only
+     * windows that ended by {@code asOf} and that the chosen source covers.
+     */
+    Outcome referenceCount(ForecastQuestionEntity q, Instant asOf, int seasonal, int maxYears, int minSamples) {
+        if (referenceCounts == null) {
+            return Outcome.skip("reference history is unavailable");
+        }
+        Map<String, Object> resolver = q.getResolver();
+        Map<String, Object> selector = ai.foresignal.forecast.JsonValues.child(resolver, "selector");
+        Map<String, Object> area = ai.foresignal.forecast.JsonValues.child(resolver, "area");
+        String family = selector.get("referenceFamily").toString();
+        List<String> regions = new ArrayList<>(ai.foresignal.forecast.JsonValues.strings(area, "regionCodes"));
+        regions.addAll(ai.foresignal.forecast.JsonValues.strings(selector, "regionCodes"));
+        if (regions.isEmpty()) {
+            return Outcome.skip("the count names no region");
+        }
+        Instant[] window = ResolverSpec.window(resolver, q.getResolveBy());
+        java.time.LocalDate until = ai.foresignal.baserate.reference.ReferenceFamilies.weekStart(
+                asOf.atZone(ZoneOffset.UTC).toLocalDate());
+        Map<String, ai.foresignal.baserate.reference.ReferenceCounts.Weekly> weekly = referenceCounts.weekly(family,
+                until, regions);
+        List<Double> sample = new ArrayList<>();
+        for (int k = 1; k <= maxYears; k++) {
+            for (int d = -seasonal; d <= seasonal; d += 7) {
+                Instant from = shift(window[0], -k, d);
+                Instant to = shift(window[1], -k, d);
+                if (to.isAfter(asOf)) {
+                    continue;
+                }
+                java.time.LocalDate fromWeek = ai.foresignal.baserate.reference.ReferenceFamilies.weekStart(
+                        from.atZone(ZoneOffset.UTC).toLocalDate());
+                java.time.LocalDate toWeek = ai.foresignal.baserate.reference.ReferenceFamilies.weekCeil(
+                        to.atZone(ZoneOffset.UTC).toLocalDate());
+                double total = 0;
+                boolean ok = true;
+                for (String region : regions) {
+                    ai.foresignal.baserate.reference.ReferenceCounts.Weekly w = weekly.get(region);
+                    int a = w == null ? -1 : w.indexOf(fromWeek);
+                    int b = w == null ? -1 : w.indexOf(toWeek.minusWeeks(1));
+                    if (a < 0 || b < a) {
+                        ok = false;
+                        break;
+                    }
+                    for (int i = a; i <= b; i++) {
+                        total += w.counts()[i];
+                    }
+                }
+                if (ok) {
+                    sample.add(total);
+                }
+            }
+        }
+        if (sample.size() < minSamples) {
+            return Outcome.skip("only " + sample.size() + " comparable past windows (at least " + minSamples
+                    + " needed)");
+        }
+        double[] values = sample.stream().mapToDouble(Double::doubleValue).toArray();
+        Map<String, Object> inputs = new LinkedHashMap<>();
+        inputs.put("referenceFamily", family);
+        inputs.put("regions", regions);
+        inputs.put("samples", values.length);
+        inputs.put("seasonalDays", seasonal);
+        inputs.put("asOf", asOf.toString());
+        return Outcome.of(ForecastValue.quantiles(quantiles(values)), "Climatology: empirical quantiles of the "
+                + family + " count in " + String.join(", ", regions) + " over " + values.length + " comparable past"
+                + " windows (same season ±" + seasonal + " days).", inputs);
     }
 
     /** The type-7 quantiles p05…p95 of a sample. */
@@ -65,12 +154,15 @@ public class ClimatologyForecaster implements BaselineForecaster {
     @Override
     public Outcome forecast(ForecastQuestionEntity q, Instant asOf, boolean retrospective) {
         if (!supports(q)) {
-            return Outcome.skip("climatology forecasts numeric series-value questions only");
+            return Outcome.skip("climatology forecasts numeric series-value and reference-count questions only");
         }
         ForecasterEntity config = registry.find(id()).orElse(null);
         int seasonal = config == null ? 14 : (int) config.configNumber("seasonalDays", 14);
         int maxYears = config == null ? 30 : (int) config.configNumber("maxYears", 30);
         int minSamples = config == null ? 5 : (int) config.configNumber("minSamples", 5);
+        if (referenceCountQuestion(q)) {
+            return referenceCount(q, asOf, seasonal, maxYears, minSamples);
+        }
         Map<String, Object> resolver = q.getResolver();
         String refText = resolver.get("ref").toString();
         String aggregate = resolver.get("aggregate") == null ? "last" : resolver.get("aggregate").toString();
