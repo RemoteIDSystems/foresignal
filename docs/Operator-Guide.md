@@ -5957,7 +5957,8 @@ channel back with `PUT /v1/channels/{channelId}` (a `PUT` replaces the channel),
 ## Discovery (prompt 119)
 
 Discovery finds patterns nobody wrote a rule for and says how often each would turn up by chance. Three detectors run
-(and, since prompt 126, the `forecast` detector of "Outlooks and indices", whose exceedances are findings too)
+(and, since prompt 126, the `forecast` detector of "Outlooks and indices", whose exceedances are findings too; since
+prompt 127 the impact projector of "Impact projection" writes `projected-impact` findings)
 on their own schedule, deterministically and without an LLM; what they find is an **analytic finding**
 (`GET /v1/analytics/findings`), also published as a record of the DERIVED source `foresignal-analytics` (kind
 `analytic-finding`), so ordinary rules can alert on findings (`kind=analytic-finding`, `severity == significant`) and
@@ -6029,8 +6030,9 @@ refuses and never put them on records.
 
 **Notifications and streams.** Add `finding.significant` to a channel's `events` to be told about significant
 findings (off by default; private findings send none). The `analytics` topic of `/v1/events/stream` (cursor key `f`)
-carries `finding.created`, `finding.updated` and `finding.dismissed`, plus the precursor events of prompt 120 and
-`outlook.published`, `index.changed` and `index.weights_proposed` of prompt 126.
+carries `finding.created`, `finding.updated` and `finding.dismissed`, plus the precursor events of prompt 120,
+`outlook.published`, `index.changed` and `index.weights_proposed` of prompt 126, and `impact.projected` and
+`impact.superseded` of prompt 127.
 
 **Tuning and cost.** Everything is deterministic database work, no LLM. The nightly runs read up to 400 days per daily
 series; the series cap (`analysis.series.max`) bounds the work. `analysis.findings.publishInfo=true` also publishes
@@ -6227,7 +6229,8 @@ series or, since prompt 126, of a reference-history count),
 `persistence` (the last value or state carried forward), `precursor` (questions opened from `precursor-active`
 findings, which also open their own questions) and `analog` (121 analogs); `indicator-bayes` (prompt 125) records
 the probabilities of a linked hypothesis set at every revision and joins the ensemble like any other forecaster, and
-`statistical` (prompt 126) records Foresignal's series forecasts and regional outlooks. When one cannot forecast a question it says
+`statistical` (prompt 126) records Foresignal's series forecasts and regional outlooks, and `impact` (prompt 127) records
+the probability of each projected impact on the question it opens. When one cannot forecast a question it says
 why in `baselineNotes`. You are a forecaster too: `POST …/forecasts` with a read token records your forecast as
 `operator:{your handle}`, and so does `/forecast <questionId> <probability>` in an interactive chat (`/questions` lists
 the open ones). Forecasts are never edited: a new one supersedes the old, and `madeAt` and `asOfSeq` are set by the
@@ -6638,3 +6641,128 @@ or more). Ordinary trigger rules can watch them, for example an alert when an ou
 exceeds a threshold. The `analytics` SSE topic carries `outlook.published`, `index.changed` and
 `index.weights_proposed`. MCP offers `get_series_forecast`, `get_outlook` and `get_index` (read) and `fit_index`
 (agent).
+
+## Impact projection (prompt 127)
+
+The impact projector turns the hazard forecasts Foresignal already ingests into probabilistic impact statements that are
+scored like any other forecast: "Tropical-storm-force winds: 40% chance in Texas; given that, an internet outage is
+reported in the same admin1 region within 48 h in 55% of comparable cases, so a 22% chance of an outage report by
+Thursday 18:00Z." Each statement is a `projected-impact` finding with its inputs, exposed assets and dependency paths,
+and, when it is likely enough, a ledger question that Foresignal resolves from its own sources. **Every projection is
+labeled "modelled; heuristic links may be wrong; not an official warning".** Official warnings come from the agencies;
+the projector never replaces them. No LLM is involved.
+
+### What the numbers mean
+
+`P(impact) = P(hazard) × P(impact | hazard class)`.
+
+- **`pHazard`** is the producer's published probability that the hazard occurs at an exposed asset or somewhere in the
+  admin1 region: the highest published band that intersects the region or contains an exposed asset. The band's lower
+  bound is used, and its upper bound is the top of the interval.
+- **`pConditional`** is how often the impact family was reported in the same admin1 region after the hazard class, in
+  Foresignal's own history of the last 1825 days, with a 95% Jeffreys interval and `n`, the number of hazard
+  occurrences (admin1 region × UTC day). Fewer than 20 occurrences is `insufficient`: the pair is skipped for that
+  region class and listed in the projection's `skipped`. An unknown rate gives no projection, never a guess.
+- **`pImpact`** is the product. Its `interval` is the product of the interval bounds, so it carries both the producer's
+  band and the history's sampling uncertainty.
+
+Region classes are the continent classes of base rates (121): an admin1 region belongs to its country's continent
+(`continent:NA` for `US-TX`). Rates are computed on demand and cached for a day.
+
+### Which products carry real probabilities
+
+| Hazard type | Source | Probability used |
+|---|---|---|
+| `tropical-wind-34`, `-50`, `-64` | `nhc-wind-probs` (new, below) | NHC's published cumulative wind-speed probability bands (5–10% … >90%) over the 120 hours after the advisory |
+| `tropical-track` | `nhc-cyclone-cones` | **none**: context and timing only |
+| `tornado`, `wind`, `hail` | `spc-outlooks`, days 1–2 | SPC's published point probability: `torn` 0.10 means a 10% chance of a tornado within 25 miles of a point |
+| `severe-categorical` | `spc-outlooks` | **none**: categorical risk is context only |
+| `excessive-rain` | `wpc-ero-d1` to `-d3` | WPC's published range per category (marginal ≥ 5%, slight ≥ 15%, moderate ≥ 40%, high ≥ 70%): the lower bound, with the range stored |
+| `river-flood` | `nwps-gauges` | the gauge's forecast category (else its current category, under persistence), calibrated by the gauge's own history: the share of past days at that basis that verified at the flood-relevant category (moderate) within the horizon; fewer than 10 such days gives no probability |
+| `storm-cell` | `wx-storm-tracks` | **none** today: the 105 tracker publishes no position error |
+
+**Why a cone is not a probability.** NHC sizes the cone so that the storm's center stays inside it about two thirds of
+the time, using historical track errors. It says nothing about winds away from the center, about intensity or about
+impacts, and it is the same width for every storm in a season. The wind-speed probabilities are the product that
+answers "how likely are damaging winds here"; the cone appears only as context (the storm, its advisory and its timing)
+on tropical wind projections. In the same way an SPC "moderate risk" or a gauge's deterministic forecast category is a
+label, not a probability, unless the producer publishes the mapping (WPC does) or Foresignal calibrates it from history
+(gauges).
+
+**New source `nhc-wind-probs`** (disabled by default, like every source). It reads the layers "Probabilistic Winds 34
+kts", "50 kts" and "64 kts" of NOAA's `NHC_tropical_weather_summary` MapServer (ids 30, 31 and 32 on 2026-10-17,
+resolved by name each day) every 15 minutes (at most every 5) with the ArcGIS kit: one `wind-probability` record per published band, ids
+such as `34kt:40-50`, valid 120 hours from the advisory, retention 1825 days. Enable it alongside `nhc-cyclone-cones`
+during hurricane season.
+
+### Exposure and dependencies
+
+For each probabilistic hazard the projector finds the admin1 regions its bands touch (040 reference regions: load the
+reference data first, or nothing is projected), the 104 infrastructure facilities inside the area (published polygons
+count within `impact.assetBufferKm`, 5 km, of a facility) with their dependency paths two hops downstream and each
+path's weakest-edge label (`confirmed`, `likely`, `possible`, `speculative`), your 036 places that intersect it, and
+the 101 exposure summary (facility counts, places and population) of the hazard's part of each region. Without an
+infrastructure build, or for an area too large to traverse, facilities are left out with the caveat
+`INFRASTRUCTURE_NOT_EVALUATED`; the regional projection still stands.
+
+### When it runs and what it writes
+
+The projector follows the record stream with the durable cursor `impact.cursor` (in retention's consumer clamp). A new
+version of a hazard record schedules its hazard 10 minutes later, so the bands of one advisory are projected once.
+Each run:
+
+- keeps one projection per impact family and admin1 region, drops those below `impact.minProbability` (0.05) and keeps
+  the 20 most likely per hazard;
+- writes one `projected-impact` finding per (hazard, impact family, admin1 region) with `stats` `{pHazard,
+  pConditional, pImpact, interval, n}`, the exposed assets, the dependency paths, the inputs (the hazard band, the rate,
+  the pair, the exposure summary and, for tropical winds, the cones), the skipped pairs and the label, plus a 116
+  manifest. Severity is `significant` at 50% or more, `notable` at 20% or more, else `info`;
+- supersedes the hazard's earlier projections: the next advisory's projection for the same family and region replaces
+  the old one (`supersededBy`), and a projection the next run no longer produces is superseded without a successor;
+- announces `impact.projected` and `impact.superseded` on the `analytics` topic.
+
+The built-in pairs live in `intel/impact-pairs.json`:
+
+| Hazard class (one occurrence: a matching record in the region on a UTC day) | Impact family | Lag |
+|---|---|---|
+| `tropical-wind-34` (34-kt band ≥ 50%) | `outage`, `ground-stop` | 48 h |
+| `tropical-wind-50`, `tropical-wind-64` (band ≥ 50%) | `outage` | 48 h |
+| `tornado` (SPC ≥ 10%) | `tornado-warning`, `outage` | 12 h |
+| `wind` (SPC ≥ 15%) | `outage` | 12 h |
+| `hail` (SPC ≥ 15%) | `ground-stop` | 12 h |
+| `excessive-rain` (WPC moderate or high) | `river-flood` | 72 h |
+| `river-flood` (a gauge at moderate or major) | `outage` | 48 h |
+
+Impact families: `outage` (IODA region-level outages, 068; Cloudflare Radar outages name countries, not regions, so
+they cannot resolve a regional question), `ground-stop` (FAA NAS status, 087), `tornado-warning` (NWS alerts, 047) and
+`river-flood` (NWPS gauges at moderate or major flood, 079). The hazard classes of tropical winds, SPC outlooks and
+WPC are forecast thresholds, so their conditional rate is the rate after a likely forecast, not after observed winds:
+the product then tends to understate, never overstate, the chance of an impact. Rates for SPC and WPC need history
+those sources keep only briefly by default (14 and 90 days); raise their retention if you want those pairs to reach
+20 occurrences.
+
+### How projections are scored
+
+A projection at or above `impact.questionMinProbability` (0.10) opens a binary ledger question (122), category
+`weather-impact`: "Will an internet outage be reported in Texas (US-TX) between {validFrom} and {validTo + lag}?". Its
+`event-exists` resolver selects the alerts of the impact family's trigger rule in that region. The rules ("Impact
+family: …", tagged `impact` and `origin-impact`) are created on first use; their alerts reach no notification channel
+unless a channel names the rule, but they stay in the inbox and on the streams. The question is answered `yes` as soon
+as the rule fires in the region inside the window, `no` after the window only if the rule's sources were healthy and
+could have seen a report (otherwise it is annulled, never scored), so a quiet sensor never counts as "no impact". The
+forecaster `impact` records `pImpact`, the baselines add theirs, and the ledger scores them all: the impact
+forecaster's Brier score and calibration on `GET /v1/forecasts/scorecard` tell you how far to trust the projections.
+One question is opened per advisory, impact family and region; the next advisory opens its own.
+
+### Reading them
+
+- `GET /v1/analytics/impacts` (read): the current projections, highest probability first within each hazard; filters
+  `hazardType`, `region` (a country or admin1 code), `since`, `minProbability`.
+- `GET /v1/analytics/impacts/{findingId}` (read): one projection with the hazard's bands, the inputs, the exposed
+  assets, the dependency paths, the skipped pairs, the label and the ledger question; superseded ones too.
+  404 `UNKNOWN_IMPACT`.
+- `GET /v1/analytics/impact-rates?hazardClass&impactFamily&regionClass` (read): the conditional rates with intervals,
+  `n` and `status`.
+- MCP: `list_projected_impacts` and `get_impact_rate` (read).
+
+Settings: `impact.minProbability` (0.05), `impact.questionMinProbability` (0.10) and `impact.assetBufferKm` (5).

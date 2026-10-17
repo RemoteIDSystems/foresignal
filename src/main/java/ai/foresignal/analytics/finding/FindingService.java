@@ -183,6 +183,35 @@ public class FindingService {
     }
 
     /**
+     * Supersedes an open finding without recording a new one in its place (prompt 127: a projection the next run of the
+     * same hazard no longer produces): {@code status=superseded}, {@code superseded_by} the successor when there is one,
+     * a version bump and {@code finding.updated}. Does nothing when the finding is not open.
+     *
+     * @param id the finding
+     * @param supersededBy the successor finding, or null
+     * @param actor the detector ({@code name:version})
+     * @param reason why
+     * @return true when the finding was superseded
+     */
+    @Transactional
+    public boolean supersede(String id, String supersededBy, String actor, String reason) {
+        AnalyticFindingEntity f = id == null ? null : findings.findById(id).orElse(null);
+        if (f == null || !"open".equals(f.getStatus())) {
+            return false;
+        }
+        Instant now = clock.instant();
+        f.setStatus("superseded");
+        f.setSupersededBy(supersededBy);
+        f.bumpVersion();
+        f.setUpdatedAt(now);
+        findings.save(f);
+        FindingLogEntity row = logs.save(new FindingLogEntity(f.getId(), now, actor, "superseded",
+                FindingEvent.UPDATED, reason));
+        publishAfterCommit(List.of(row), null);
+        return true;
+    }
+
+    /**
      * Dismisses a finding with a reason.
      *
      * @throws NotFoundException 404 {@code UNKNOWN_FINDING}
@@ -396,16 +425,17 @@ public class FindingService {
     }
 
     /**
-     * Logs and announces an {@code outlook.*} or {@code index.*} event on the {@code analytics} topic (prompt 126); its
-     * payload is resolved through {@link AnalyticsEventSummaries} when the event is sent or replayed.
+     * Logs and announces an {@code outlook.*} or {@code index.*} event (prompt 126) or an {@code impact.*} event (prompt
+     * 127) on the {@code analytics} topic; its payload is resolved through {@link AnalyticsEventSummaries} when the event
+     * is sent or replayed.
      *
-     * @param objectId the outlook, index value or index fit id (at most 26 characters)
+     * @param objectId the outlook, index value, index fit or projected-impact finding id (at most 26 characters)
      */
     @Transactional
     public void announce(String objectId, String event, String actor, String reason) {
         Objects.requireNonNull(objectId, "objectId");
         if (event == null || !FindingEvent.flat(event)) {
-            throw new IllegalArgumentException("not an outlook or index event: " + event);
+            throw new IllegalArgumentException("not an outlook, index or impact event: " + event);
         }
         FindingLogEntity row = logs.save(new FindingLogEntity(objectId, clock.instant(), actor,
                 event.replace('.', '-').replace('_', '-'), event, reason));

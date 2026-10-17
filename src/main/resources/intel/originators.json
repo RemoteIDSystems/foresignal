@@ -782,6 +782,7 @@
     "nwps-gauges": "noaa-nws",
     "nhc-cyclones": "noaa-nhc",
     "nhc-cyclone-cones": "noaa-nhc",
+    "nhc-wind-probs": "noaa-nhc",
     "spc-outlooks": "noaa-spc",
     "spc-storm-reports": "noaa-spc",
     "wpc-heatrisk": "noaa",

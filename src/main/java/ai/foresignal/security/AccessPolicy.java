@@ -553,6 +553,11 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/indices/*", AccessRequirement.READ),
                 rule(null, "/v1/indices/**", AccessRequirement.AGENT),
 
+                // ---- Impact projection (prompt 127): projections and conditional rates are reads. ----
+                rule(HttpMethod.GET, "/v1/analytics/impacts", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/analytics/impacts/*", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/analytics/impact-rates", AccessRequirement.READ),
+
                 // ---- Analytic benchmark harness (prompt 123): runs, their results and the status per component are
                 // reads; starting a run and the historical corpus are agent operations. ----
                 rule(HttpMethod.GET, "/v1/benchmarks/runs", AccessRequirement.READ),

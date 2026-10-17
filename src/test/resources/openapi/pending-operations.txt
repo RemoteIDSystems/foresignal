@@ -1,6 +1,3 @@
-listProjectedImpacts 127
-getProjectedImpact 127
-listImpactRates 127
 listAnalysisCycles 128
 createAnalysisCycle 128
 getAnalysisCycle 128

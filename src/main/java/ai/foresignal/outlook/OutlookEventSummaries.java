@@ -39,7 +39,7 @@ public class OutlookEventSummaries implements AnalyticsEventSummaries {
 
     @Override
     public boolean handles(String event) {
-        return FindingEvent.flat(event);
+        return event != null && (event.startsWith("outlook.") || event.startsWith("index."));
     }
 
     @Override

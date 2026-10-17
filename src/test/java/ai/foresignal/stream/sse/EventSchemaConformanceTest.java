@@ -148,6 +148,11 @@ class EventSchemaConformanceTest {
                     EventSchemaConformanceTest::indexChangedEvents),
             entry(ai.foresignal.analytics.finding.FindingEvent.INDEX_WEIGHTS_PROPOSED,
                     EventSchemaConformanceTest::indexWeightsProposedEvents),
+            // 127: the projected-impact summaries (ImpactViews.event), sent as the payload itself.
+            entry(ai.foresignal.analytics.finding.FindingEvent.IMPACT_PROJECTED,
+                    () -> impactEvents(ai.foresignal.analytics.finding.FindingEvent.IMPACT_PROJECTED)),
+            entry(ai.foresignal.analytics.finding.FindingEvent.IMPACT_SUPERSEDED,
+                    () -> impactEvents(ai.foresignal.analytics.finding.FindingEvent.IMPACT_SUPERSEDED)),
             // 122: ForecastsTopic sends the forecast_log payloads written by ForecastEvents on topic forecasts.
             entry(ai.foresignal.forecast.ForecastEvents.OPENED,
                     () -> questionEvents(ai.foresignal.forecast.ForecastEvents.OPENED)),
@@ -360,6 +365,32 @@ class EventSchemaConformanceTest {
             out.add(toTree(new ai.foresignal.analytics.finding.FindingEvent(12,
                     ai.foresignal.analytics.finding.FindingEvent.INDEX_CHANGED, v.getId(),
                     ai.foresignal.outlook.OutlookEventSummaries.changed(v, previous, "fitted"), at).payload()));
+        }
+        return out;
+    }
+
+    /** {@code impact.projected} and {@code impact.superseded} payloads (prompt 127), with and without a question. */
+    static List<JsonNode> impactEvents(String event) {
+        java.time.Instant at = java.time.Instant.parse("2026-09-10T15:10:00Z");
+        List<JsonNode> out = new java.util.ArrayList<>();
+        for (boolean superseded : new boolean[] {false, true}) {
+            ai.foresignal.analytics.finding.AnalyticFindingEntity f = new ai.foresignal.analytics.finding
+                    .AnalyticFindingEntity("01JA8Q3V7S2K9W4T6Y1B5N0M3C", "projected-impact", "Projection", "notable",
+                            at, at);
+            java.util.Map<String, Object> stats = new java.util.LinkedHashMap<>();
+            stats.put("hazardKey", "nhc-wind-probs:34");
+            stats.put("hazardType", "tropical-wind-34");
+            stats.put("sourceRef", "record:nhc-wind-probs/34kt:40-50@12");
+            stats.put("impactFamily", "outage");
+            stats.put("admin1", "US-TX");
+            stats.put("pImpact", 0.22);
+            f.setStats(stats);
+            f.setUpdatedAt(at);
+            if (superseded) {
+                f.setSupersededBy("01JA8Q3V7S2K9W4T6Y1B5N0M3D");
+            }
+            out.add(toTree(new ai.foresignal.analytics.finding.FindingEvent(13, event, f.getId(),
+                    ai.foresignal.impact.ImpactViews.event(f, at), at).payload()));
         }
         return out;
     }

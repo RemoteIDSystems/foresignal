@@ -95,13 +95,15 @@ class ConsumerClampIT extends RetentionItSupport {
     }
 
     @Test
-    @DisplayName("the intelligence cursors of 116–120 join the clamp: evidence, situation, region rollup and precursor")
+    @DisplayName("the intelligence cursors of 116–127 join the clamp: evidence, situation, region rollup, precursor and"
+            + " impact")
     void intelligenceCursorsRegistered() {
         // Checkpoint 124, focus area 8. Each subscriber's restart is covered by its own suite:
         // EvidenceResolverIT.cursorRestartExactlyOnce, SituationLinkerIT (a rewound cursor gives exactly-once
         // membership), RegionRollupJobIT.cursorExactlyOnce and PrecursorLiveWatchIT.restartExactlyOnce.
         assertThat(job.consumers()).extracting(RetentionConsumer::name).contains(SettingKeys.EVIDENCE_CURSOR,
-                SettingKeys.SITUATION_CURSOR, SettingKeys.STATS_REGION_CURSOR, SettingKeys.PRECURSOR_CURSOR);
+                SettingKeys.SITUATION_CURSOR, SettingKeys.STATS_REGION_CURSOR, SettingKeys.PRECURSOR_CURSOR,
+                SettingKeys.IMPACT_CURSOR);
         assertThat(job.consumers()).extracting(RetentionConsumer::name).doesNotHaveDuplicates();
     }
 }

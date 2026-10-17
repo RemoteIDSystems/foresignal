@@ -666,6 +666,9 @@ public final class ErrorCodes {
     /** 404: no outlook exists for that region and family (126). */
     public static final String UNKNOWN_OUTLOOK = "UNKNOWN_OUTLOOK";
 
+    /** 404: no projected-impact finding has that id, or the caller may not see it (127). */
+    public static final String UNKNOWN_IMPACT = "UNKNOWN_IMPACT";
+
     /** 400: a regional index definition or weights change is not valid (126). */
     public static final String INDEX_INVALID = "INDEX_INVALID";
 

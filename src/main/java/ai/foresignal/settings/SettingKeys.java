@@ -272,6 +272,21 @@ public final class SettingKeys {
      */
     public static final String ANALYSIS_FORECASTS_QUESTION_SERIES = "analysis.forecasts.questionSeries";
 
+    /** The durable seq cursor of the impact projector (prompt 127; the consumer clamp of retention). */
+    public static final String IMPACT_CURSOR = "impact.cursor";
+
+    /** Projections below this probability are dropped (prompt 127, {@code impact.minProbability}); 0.05. */
+    public static final String IMPACT_MIN_PROBABILITY = "impact.minProbability";
+
+    /**
+     * Projections at or above this probability open ledger questions (prompt 127,
+     * {@code impact.questionMinProbability}); 0.10.
+     */
+    public static final String IMPACT_QUESTION_MIN_PROBABILITY = "impact.questionMinProbability";
+
+    /** The buffer in kilometers around an asset for published probability polygons (prompt 127); 5. */
+    public static final String IMPACT_ASSET_BUFFER_KM = "impact.assetBufferKm";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -286,7 +301,8 @@ public final class SettingKeys {
                     ANALYSIS_PRECURSORS_MAX_TESTS, ANALYSIS_PRECURSORS_LOOKBACK_DAYS,
                     ANALYSIS_PRECURSORS_DISCOVERY_FRACTION, PRECURSOR_CURSOR, PRECURSOR_STREAM_CURSORS,
                     BASERATE_FOLD_WEEK, FORECAST_ENSEMBLE, BENCHMARK_THRESHOLDS,
-                    ANALYSIS_FORECASTS_QUESTION_SERIES);
+                    ANALYSIS_FORECASTS_QUESTION_SERIES, IMPACT_CURSOR, IMPACT_MIN_PROBABILITY,
+                    IMPACT_QUESTION_MIN_PROBABILITY, IMPACT_ASSET_BUFFER_KM);
 
     private SettingKeys() {}
 }

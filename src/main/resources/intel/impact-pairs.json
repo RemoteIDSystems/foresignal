@@ -1,0 +1,93 @@
+{
+  "version": "1.0.0",
+  "description": "Built-in impact pairs of the impact projector (prompt 127). A hazard class names the records that count as one occurrence of the hazard in an admin1 region (per UTC day) when the conditional rate is computed from history; an impact family names the records that count as the impact, the trigger rule that resolves the ledger question, and the sources behind it. Conditions use the trigger-rule operators ==, in and >= on payload fields.",
+  "hazardClasses": {
+    "tropical-wind-34": {
+      "hazardType": "tropical-wind-34",
+      "label": "tropical-storm-force winds (34 kt)",
+      "sources": ["nhc-wind-probs"], "kinds": ["wind-probability"],
+      "conditions": [{"path": "thresholdKt", "op": "==", "value": 34}, {"path": "pMin", "op": ">=", "value": 0.5}]
+    },
+    "tropical-wind-50": {
+      "hazardType": "tropical-wind-50",
+      "label": "50-kt winds",
+      "sources": ["nhc-wind-probs"], "kinds": ["wind-probability"],
+      "conditions": [{"path": "thresholdKt", "op": "==", "value": 50}, {"path": "pMin", "op": ">=", "value": 0.5}]
+    },
+    "tropical-wind-64": {
+      "hazardType": "tropical-wind-64",
+      "label": "hurricane-force winds (64 kt)",
+      "sources": ["nhc-wind-probs"], "kinds": ["wind-probability"],
+      "conditions": [{"path": "thresholdKt", "op": "==", "value": 64}, {"path": "pMin", "op": ">=", "value": 0.5}]
+    },
+    "tornado": {
+      "hazardType": "tornado",
+      "label": "a tornado within 25 miles",
+      "sources": ["spc-outlooks"], "kinds": ["spc-outlook"],
+      "conditions": [{"path": "type", "op": "==", "value": "torn"}, {"path": "dn", "op": ">=", "value": 10}]
+    },
+    "wind": {
+      "hazardType": "wind",
+      "label": "damaging thunderstorm winds within 25 miles",
+      "sources": ["spc-outlooks"], "kinds": ["spc-outlook"],
+      "conditions": [{"path": "type", "op": "==", "value": "wind"}, {"path": "dn", "op": ">=", "value": 15}]
+    },
+    "hail": {
+      "hazardType": "hail",
+      "label": "large hail within 25 miles",
+      "sources": ["spc-outlooks"], "kinds": ["spc-outlook"],
+      "conditions": [{"path": "type", "op": "==", "value": "hail"}, {"path": "dn", "op": ">=", "value": 15}]
+    },
+    "excessive-rain": {
+      "hazardType": "excessive-rain",
+      "label": "rainfall exceeding flash-flood guidance (moderate or high risk)",
+      "sources": ["wpc-ero-d1"], "kinds": ["rainfall-outlook"],
+      "conditions": [{"path": "category", "op": "in", "value": ["MDT", "HIGH"]}]
+    },
+    "river-flood": {
+      "hazardType": "river-flood",
+      "label": "a river gauge at moderate flood or above",
+      "minCategory": "moderate",
+      "sources": ["nwps-gauges"], "kinds": ["river-gauge"],
+      "conditions": [{"path": "floodCategory", "op": "in", "value": ["moderate", "major"]}]
+    }
+  },
+  "impactFamilies": {
+    "outage": {
+      "label": "an internet outage",
+      "sources": ["ioda-outages"], "kinds": ["outage"],
+      "conditions": [{"path": "entityType", "op": "==", "value": "region"}],
+      "note": "IODA region-level outage alerts (068). Cloudflare Radar outages (092) name countries, not admin1 regions, so they cannot resolve an admin1 question."
+    },
+    "ground-stop": {
+      "label": "an airport ground stop",
+      "sources": ["faa-nas-status"], "kinds": ["airport-delay"],
+      "conditions": [{"path": "delayKind", "op": "==", "value": "ground-stop"}],
+      "note": "FAA NAS status ground stops (087)."
+    },
+    "tornado-warning": {
+      "label": "an NWS tornado warning",
+      "sources": ["nws-alerts"], "kinds": ["nws-alert"],
+      "conditions": [{"path": "event", "op": "==", "value": "Tornado Warning"}],
+      "note": "NWS alerts (047)."
+    },
+    "river-flood": {
+      "label": "a river gauge at moderate flood or above",
+      "sources": ["nwps-gauges"], "kinds": ["river-gauge"],
+      "conditions": [{"path": "floodCategory", "op": "in", "value": ["moderate", "major"]}],
+      "note": "NWPS gauge flood categories (079)."
+    }
+  },
+  "pairs": [
+    {"hazardClass": "tropical-wind-34", "impactFamily": "outage", "lagHours": 48},
+    {"hazardClass": "tropical-wind-50", "impactFamily": "outage", "lagHours": 48},
+    {"hazardClass": "tropical-wind-64", "impactFamily": "outage", "lagHours": 48},
+    {"hazardClass": "tropical-wind-34", "impactFamily": "ground-stop", "lagHours": 48},
+    {"hazardClass": "tornado", "impactFamily": "tornado-warning", "lagHours": 12},
+    {"hazardClass": "tornado", "impactFamily": "outage", "lagHours": 12},
+    {"hazardClass": "wind", "impactFamily": "outage", "lagHours": 12},
+    {"hazardClass": "hail", "impactFamily": "ground-stop", "lagHours": 12},
+    {"hazardClass": "excessive-rain", "impactFamily": "river-flood", "lagHours": 72},
+    {"hazardClass": "river-flood", "impactFamily": "outage", "lagHours": 48}
+  ]
+}

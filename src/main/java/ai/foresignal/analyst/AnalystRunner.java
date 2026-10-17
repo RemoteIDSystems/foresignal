@@ -129,7 +129,8 @@ public class AnalystRunner {
             "list_findings", "get_finding", "get_series_data", "list_analysis_series", "list_precursors",
             "get_precursor", "get_base_rate", "find_analogs", "list_questions", "get_question", "get_scorecard",
             "get_benchmark_status", "list_hypothesis_sets", "get_hypothesis_set", "get_ach_matrix",
-            "get_information_value", "list_collection_gaps", "get_series_forecast", "get_outlook", "get_index");
+            "get_information_value", "list_collection_gaps", "get_series_forecast", "get_outlook", "get_index",
+            "list_projected_impacts", "get_impact_rate");
 
     private final LlmService llm;
     private final LlmSettingsService llmSettings;

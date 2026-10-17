@@ -542,6 +542,11 @@
         "version": "1.3.0",
         "date": "2026-10-17",
         "note": "126: getSeriesForecast, getSeriesForecastModel, listRegionalOutlooks, getRegionalOutlook, listRegionalIndices, getRegionalIndex, putRegionalIndex, fitRegionalIndex and applyRegionalIndexWeights are implemented, with the analytics SSE events outlook.published, index.changed (5 points or more) and index.weights_proposed, the DERIVED source foresignal-outlook (kinds regional-outlook and regional-index), the finding types forecast-exceedance and outlook-exceedance, the ledger forecaster statistical, the 103 job type index-fit, and the MCP tools get_series_forecast, get_outlook, get_index (read, also in the analyst's read catalog) and fit_index (agent). Reconciliations (additive): the three SSE events carry an id (they replay from the finding log, cursor key f); the series forecast 404 is SERIES_NOT_FOUND, as on every series path; RegionalOutlook gains id, source and skill.backtest; RegionalIndexValue components gain missing; SeriesForecastModel gains manifestId; a count-threshold resolver without op and threshold answers a numeric question with the count; Problem lists UNKNOWN_INDEX, UNKNOWN_OUTLOOK, INDEX_INVALID and FORECAST_MODEL_NOT_READY."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-17",
+        "note": "127: listProjectedImpacts, getProjectedImpact and listImpactRates are implemented, with the analytics SSE events impact.projected and impact.superseded, the finding type projected-impact, the ledger forecaster impact (category weather-impact), the source nhc-wind-probs (kind wind-probability) and the MCP tools list_projected_impacts and get_impact_rate (read, also in the analyst's read catalog). Reconciliations (additive): the two SSE events carry an id (they replay from the finding log, cursor key f); HazardForecast gains hazardKey, sourceRefs, pointRadiusKm and details, and a probability band's geometry is optional (lists leave band geometries out); ProjectedImpact gains admin1Name, lagHours and questionWindow, exposed assets gain band and dependency paths depth; Problem lists UNKNOWN_IMPACT; Record kinds gain wind-probability."
       }
     ]
   },
@@ -12853,14 +12858,18 @@
               "$ref": "#/components/schemas/ImpactProjectionEvent"
             },
             "topic": "analytics",
-            "prompt": "127"
+            "prompt": "127",
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7"
           },
           "impact.superseded": {
             "schema": {
               "$ref": "#/components/schemas/ImpactProjectionEvent"
             },
             "topic": "analytics",
-            "prompt": "127"
+            "prompt": "127",
+            "id": true,
+            "idValue": "composite cursor, e.g. c=1234;a=56;n=7"
           },
           "assessment.published": {
             "schema": {
@@ -63517,7 +63526,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "127",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -63597,7 +63606,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "127",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -63716,7 +63725,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "127",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -87493,6 +87502,12 @@
             "note": "getRegionalOutlook (and the MCP tool get_outlook): no outlook has been published for that region and family"
           },
           {
+            "code": "UNKNOWN_IMPACT",
+            "status": 404,
+            "prompt": "127",
+            "note": "getProjectedImpact (and the MCP tool list_projected_impacts with findingId): no projected-impact finding has that id, or the caller may not see it (a private projection without private access)"
+          },
+          {
             "code": "INDEX_INVALID",
             "status": 400,
             "prompt": "126",
@@ -92640,6 +92655,23 @@
               ]
             },
             "note": "externalId = {office}.{phen}.{sig}.{etn}, so an update to the same warning versions the same record; CAN/EXP tombstone. A P-VTEC warning with a LAT...LON polygon intersecting the places AOI. fallback:true; authoritativeSource nws-alerts. duplicateOf is present only while nws-alerts is healthy and holds the same VTEC."
+          },
+          "wind-probability": {
+            "x-foresignal-prompt": "127",
+            "payloadFields": {
+              "nhc-wind-probs": [
+                "thresholdKt",
+                "band",
+                "pMin",
+                "pMax",
+                "issuedAt",
+                "validUntil",
+                "horizonHours",
+                "geometrySimplified",
+                "simplifyToleranceDeg"
+              ]
+            },
+            "note": "Built in 127. nhc-wind-probs (NOAA NHC_tropical_weather_summary MapServer, layers Probabilistic Winds 34, 50 and 64 kts, ids 30, 31 and 32 on 2026-10-17, resolved by name): one polygon per published band of the field percentage (<5%, 5-10%, 10-20% … 80-90%, >90%), the cumulative probability that sustained winds of at least thresholdKt occur at a point within 120 hours of the advisory, for all active storms together (no storm id). externalId {kt}kt:{low}-{high} in percent (34kt:40-50; <5% is 0-5, >90% is 90-100); pMin and pMax are the bounds as probabilities; observedAt = validFrom = idp_filedate, validUntil 120 h later. Bands are tombstoned per layer once missing from two consecutive complete fetches; out of season every layer is empty. Analytic class event (1825 d)."
           }
         }
       },
@@ -143898,14 +143930,15 @@
                   ]
                 },
                 "geometry": {
-                  "$ref": "#/components/schemas/Geometry"
+                  "$ref": "#/components/schemas/Geometry",
+                  "description": "The band's area (simplified to 0.02°); present on getProjectedImpact"
                 }
               },
               "required": [
-                "pMin",
-                "geometry"
+                "pMin"
               ]
-            }
+            },
+            "description": "Published probability bands, highest first; geometries only on getProjectedImpact (lists leave them out)"
           },
           "probabilityModel": {
             "type": "string",
@@ -143961,6 +143994,29 @@
               "null"
             ],
             "example": "The cone covers about two thirds of historical track errors"
+          },
+          "hazardKey": {
+            "type": "string",
+            "description": "The hazard's identity across versions (debounce, supersession, question dedup), e.g. nhc-wind-probs:34, spc-outlooks:day1:torn, wpc-ero-d1, nwps-gauges:{lid}"
+          },
+          "sourceRefs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Every pinned record behind the forecast (sourceRef is the newest)"
+          },
+          "pointRadiusKm": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Radius a published point probability applies within (SPC and WPC: 25 miles = 40.2336 km)"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Source-specific facts: NHC thresholdKt and horizonHours; SPC day and layer; WPC day and categoryName; a gauge's basis (forecast or persistence), categories, calibration {basis, minCategory, n, hits, p, lower, upper, minSamples} and reason when no probability is derived (below-category, uncalibrated, no-geometry); a storm cell's reason (no-position-error)"
           }
         },
         "required": [
@@ -144179,6 +144235,13 @@
                     "null"
                   ],
                   "format": "int64"
+                },
+                "band": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The published band at the asset"
                 }
               },
               "required": [
@@ -144214,6 +144277,10 @@
                     "speculative"
                   ],
                   "description": "Relation or dependency label (104 vocabulary)"
+                },
+                "depth": {
+                  "type": "integer",
+                  "description": "Edges from the exposed facility"
                 }
               },
               "required": [
@@ -144336,6 +144403,31 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Caveat"
+            }
+          },
+          "admin1Name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "Texas"
+          },
+          "lagHours": {
+            "type": "integer",
+            "description": "Hours after the hazard within which the impact counts (the pair's lag)"
+          },
+          "questionWindow": {
+            "type": "object",
+            "description": "The ledger question's window: the hazard's valid start to its valid end plus the lag",
+            "properties": {
+              "start": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "end": {
+                "type": "string",
+                "format": "date-time"
+              }
             }
           }
         },

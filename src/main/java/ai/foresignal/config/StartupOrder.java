@@ -123,6 +123,9 @@ public final class StartupOrder {
      */
     public static final int SITUATIONS = 32;
 
+    /** The impact projector (prompt 127): a change-bus subscriber with a durable cursor, after the situation linker. */
+    public static final int IMPACT = 33;
+
     /** The briefing scheduler (prompt 029), after the collector scheduler. */
     public static final int BRIEFINGS = 35;
 

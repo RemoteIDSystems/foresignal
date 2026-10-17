@@ -168,7 +168,9 @@ public class NotificationRouter implements AlertListener {
                 && rules.findById(alert.ruleId()).map(r -> r.mutedAt(clock.instant())).orElse(false);
         // Prompt 125: an indicator's watch rule (tag origin-hypothesis) routes to no channel by default; only a
         // channel that names the rule in its ruleIds receives its alerts. They stay in the inbox and on the streams.
-        boolean indicatorWatch = alert.tags().contains(ai.foresignal.hypothesis.IndicatorWatchService.ORIGIN_TAG);
+        // Prompt 127: the impact-family rules (tag origin-impact) that resolve impact questions are routed the same way.
+        boolean indicatorWatch = alert.tags().contains(ai.foresignal.hypothesis.IndicatorWatchService.ORIGIN_TAG)
+                || alert.tags().contains(ai.foresignal.impact.ImpactRules.ORIGIN_TAG);
         java.util.function.Predicate<ai.foresignal.notify.NotificationChannel> filter = muted ? c -> false
                 : indicatorWatch ? c -> c.ruleIds() != null && c.ruleIds().contains(alert.ruleId()) : null;
         NotificationMessage persisted = service.publish(message, filter);

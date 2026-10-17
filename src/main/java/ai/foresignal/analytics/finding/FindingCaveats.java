@@ -37,6 +37,9 @@ public final class FindingCaveats {
     /** Fewer than ten samples (103). */
     public static final String SMALL_SAMPLE = "SMALL_SAMPLE";
 
+    /** A modeled projection, not an observation or an official warning (prompt 127). */
+    public static final String MODELED = "MODELED";
+
     private FindingCaveats() {}
 
     /** A caveat without data. */

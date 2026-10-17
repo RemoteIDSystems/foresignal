@@ -8,7 +8,8 @@ import java.util.Map;
  * One stream event on the {@code analytics} SSE topic: {@code finding.created}, {@code finding.updated} or
  * {@code finding.dismissed} (prompt 119), or {@code precursor.validated}, {@code precursor.stale} or
  * {@code precursor.retired} (prompt 120), or {@code outlook.published}, {@code index.changed} or
- * {@code index.weights_proposed} (prompt 126, whose payload is the summary itself); {@code cursor} is the
+ * {@code index.weights_proposed} (prompt 126), or {@code impact.projected} or {@code impact.superseded} (prompt 127),
+ * whose payload is the summary itself; {@code cursor} is the
  * {@code analytic_finding_log} id.
  *
  * @param cursor the topic cursor
@@ -47,9 +48,19 @@ public record FindingEvent(long cursor, String event, String findingId, Map<Stri
     /** Fitted index weights were proposed (prompt 126). */
     public static final String INDEX_WEIGHTS_PROPOSED = "index.weights_proposed";
 
-    /** True for an {@code outlook.*} or {@code index.*} event, whose payload is its summary itself (prompt 126). */
+    /** A projected impact was recorded (prompt 127). */
+    public static final String IMPACT_PROJECTED = "impact.projected";
+
+    /** A projected impact was superseded by the next run of its hazard (prompt 127). */
+    public static final String IMPACT_SUPERSEDED = "impact.superseded";
+
+    /**
+     * True for an {@code outlook.*} or {@code index.*} event (prompt 126) or an {@code impact.*} event (prompt 127), whose
+     * payload is its summary itself.
+     */
     public static boolean flat(String event) {
-        return event != null && (event.startsWith("outlook.") || event.startsWith("index."));
+        return event != null && (event.startsWith("outlook.") || event.startsWith("index.")
+                || event.startsWith("impact."));
     }
 
     /** True for a {@code precursor.*} event. */
@@ -69,7 +80,7 @@ public record FindingEvent(long cursor, String event, String findingId, Map<Stri
         return out;
     }
 
-    /** True when the finding is private (outlook and index events never are). */
+    /** True when the finding is private (outlook, index and impact events never are). */
     public boolean privateFinding() {
         return !flat(event) && finding != null && Boolean.TRUE.equals(finding.get("private"));
     }
