@@ -1,0 +1,6 @@
+time,latitude,longitude,depth,mag,magType,nst,gap,dmin,rms,net,id,updated,place,type,horizontalError,depthError,magError,magNst,status,locationSource,magSource
+2023-01-05T14:25:53.019Z,36.4738,70.7455,203,6.2,mww,108,22,2.377,0.73,us,us7000aaa1,2023-03-11T22:51:41.040Z,"44 km S of Jurm, Afghanistan",earthquake,7.14,1.888,0.039,62,reviewed,us,us
+2023-01-06T10:00:00.000Z,36.40,70.70,180,4.7,mb,50,40,2.1,0.7,us,us7000aaa2,2023-03-11T22:51:41.040Z,"Hindu Kush, Afghanistan",earthquake,7,1.9,0.05,30,reviewed,us,us
+2023-01-06T11:00:00.000Z,36.40,70.70,0,4.9,mb,50,40,2.1,0.7,us,us7000aaa3,2023-03-11T22:51:41.040Z,"Hindu Kush, Afghanistan",quarry blast,7,1.9,0.05,30,reviewed,us,us
+2023-02-01T00:00:00.000Z,35.0,145.0,10,5.1,mww,50,40,2.1,0.7,us,us7000aaa4,2023-03-11T22:51:41.040Z,"off the east coast of Honshu, Japan",earthquake,7,1.9,0.05,30,reviewed,us,us
+2023-03-01T00:00:00.000Z,-40.0,-120.0,10,5.5,mww,50,40,2.1,0.7,us,us7000aaa5,2023-03-11T22:51:41.040Z,"southern East Pacific Rise",earthquake,7,1.9,0.05,30,reviewed,us,us

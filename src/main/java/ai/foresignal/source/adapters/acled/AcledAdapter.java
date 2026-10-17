@@ -21,7 +21,9 @@ import ai.foresignal.source.spi.ParamSpec;
 import ai.foresignal.source.spi.ParamType;
 import ai.foresignal.source.spi.PollingAdapter;
 import ai.foresignal.source.spi.SourceDescriptor;
+import ai.foresignal.source.spi.SourceHttp;
 import ai.foresignal.source.spi.TtlAnchor;
+import ai.foresignal.source.spi.UpstreamFormatException;
 import ai.foresignal.source.spi.UpstreamResponse;
 import ai.foresignal.source.spi.ValidatedParams;
 import java.net.URI;
@@ -284,6 +286,56 @@ public class AcledAdapter implements PollingAdapter {
         url.append("&fields=").append(FIELDS.replace("|", "%7C"))
                 .append("&iso=").append(String.join("%7C", codes));
         return URI.create(url.toString());
+    }
+
+    /** The fields the history import (prompt 121) asks for: only what weekly counts need. */
+    public static final String HISTORY_FIELDS = "event_id_cnty|event_date|event_type|sub_event_type|country|iso"
+            + "|admin1|fatalities";
+
+    /**
+     * The URL of one history page (prompt 121): events of one country (ISO 3166 numeric) with
+     * {@code event_date} in {@code [from, to]}.
+     */
+    public URI historyUri(String isoNumeric, LocalDate from, LocalDate to, int page) {
+        return URI.create(base + EVENTS_PATH + "?_format=json&limit=" + PAGE_LIMIT + "&page=" + page + "&event_date="
+                + from + "%7C" + to + "&event_date_where=BETWEEN&fields=" + HISTORY_FIELDS.replace("|", "%7C")
+                + "&iso=" + isoNumeric);
+    }
+
+    /**
+     * Reads one history page outside a fetch (prompt 121: the ACLED history import), through the source's own
+     * {@link SourceHttp} and budget and the in-memory tokens; a 401 refreshes the token once and retries.
+     *
+     * @param http the {@code acled} source's HTTP client
+     * @param now the current time
+     * @param email the account email
+     * @param password the account password
+     * @param isoNumeric the country (ISO 3166 numeric)
+     * @param from the first event date
+     * @param to the last event date
+     * @param page the page number, from 1
+     * @return the response body
+     * @throws CredentialsRejectedException when the login is refused
+     * @throws AdapterException when a request fails otherwise
+     */
+    public byte[] historyPage(SourceHttp http, Instant now, String email, String password, String isoNumeric,
+            LocalDate from, LocalDate to, int page) throws AdapterException {
+        URI uri = historyUri(isoNumeric, from, to, page);
+        UpstreamResponse response;
+        try {
+            response = http.get(uri, bearer(tokens.accessToken(http, ID, now, email, password, message -> { })));
+        } catch (AdapterException e) {
+            if (e.httpStatus().orElse(0) != 401) {
+                throw e;
+            }
+            tokens.invalidateAccess(ID);
+            response = http.get(uri, bearer(tokens.accessToken(http, ID, now, email, password, message -> { })));
+        }
+        if (response.status() != 200 || response.truncated()) {
+            throw new UpstreamFormatException(ID + ": " + uri.getPath() + " answered HTTP " + response.status()
+                    + (response.truncated() ? " (truncated)" : ""), "");
+        }
+        return response.body();
     }
 
     /** The deletions URL of one page. */

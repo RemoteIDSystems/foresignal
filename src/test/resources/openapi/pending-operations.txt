@@ -1,15 +1,3 @@
-createReferenceImport 121
-listReferenceImports 121
-getReferenceImport 121
-deleteReferenceImport 121
-listBaseRates 121
-createBaseRate 121
-queryBaseRate 121
-refreshBaseRates 121
-getBaseRate 121
-deleteBaseRate 121
-getSituationAnalogs 121
-queryAnalogs 121
 listForecastQuestions 122
 createForecastQuestion 122
 getForecastQuestion 122

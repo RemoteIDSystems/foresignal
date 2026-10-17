@@ -591,6 +591,21 @@ public final class ErrorCodes {
     /** 409: a precursor mining or re-test run is already queued or running (120). */
     public static final String PRECURSOR_MINING_IN_PROGRESS = "PRECURSOR_MINING_IN_PROGRESS";
 
+    /** 404: no base rate has that id (121). */
+    public static final String UNKNOWN_BASE_RATE = "UNKNOWN_BASE_RATE";
+
+    /** 404: no reference import has that id (121). */
+    public static final String UNKNOWN_IMPORT = "UNKNOWN_IMPORT";
+
+    /** 409: the reference dataset's file, API or credentials are not available (121). */
+    public static final String IMPORT_DATASET_UNAVAILABLE = "IMPORT_DATASET_UNAVAILABLE";
+
+    /** 400: a base-rate definition is not valid (121). */
+    public static final String BASE_RATE_INVALID = "BASE_RATE_INVALID";
+
+    /** 409: an automatic base rate cannot be deleted (121). */
+    public static final String BASE_RATE_NOT_CUSTOM = "BASE_RATE_NOT_CUSTOM";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

@@ -6097,3 +6097,81 @@ validated series precursor's antecedent moved 2 or more robust standard deviatio
 `(hits + 1) / (n + 2)`, pulled toward the chance rate by its sample size (`n / (n + 20)`), so a pattern seen ten times
 says less than one seen a hundred times. Prompt 122 turns these into forecast questions. Its position is the durable
 cursor `precursor.cursor`, which retention respects.
+
+## Base rates and analogs (prompt 121)
+
+**Why the outside view matters.** Before asking "what is special about this case?", ask "how often does this kind of
+thing happen at all?". A forecaster who starts from the base rate (the reference class: battles in Yemen per 28 days,
+M6 earthquakes in Indonesia per week) and then adjusts for what is special is right far more often than one who starts
+from the story. Every probability Foresignal produces starts from a stated base rate, and analysts and agents can ask
+for one directly (`POST /v1/base-rates/query`, MCP `get_base_rate`).
+
+**Where the history comes from.** Foresignal's own history starts the day you install it, which is too short for rates
+of rare events. So you can import decades of reference history, kept only as weekly counts per family and region
+(`reference_history`), never as raw rows:
+
+| Dataset | What to do | License |
+|---|---|---|
+| UCDP GED (conflict, 1989–) | Download the GED CSV from `https://ucdp.uu.se/downloads/` (for example `ged261-csv.zip`), put it under `${FORESIGNAL_DATA_DIR}/imports/`, then `POST /v1/reference-imports {"dataset": "ucdp-ged", "params": {"file": "ged261-csv.zip"}}`. The ZIP or the CSV inside it both work. With the `ucdp-ged` source's token set you can use the API instead: `{"useApi": true, "version": "26.1", "yearFrom": 1989}` (it spends that source's budget). | CC BY 4.0: credit UCDP when you share results |
+| USGS ComCat (earthquakes, decades) | `POST /v1/reference-imports {"dataset": "usgs-comcat", "params": {"yearFrom": 1973, "minMagnitude": 4.5}}`. One request per year (split when a year has more than 20,000 events). | Public domain |
+| GDACS (disasters, 2000–) | `{"dataset": "gdacs", "params": {"yearFrom": 2000}}`: orange and red alerts per hazard type. | Open, with attribution to GDACS |
+| ACLED (conflict and protest, by country) | Set the `acled` source's `email` and `password` credentials first, then `{"dataset": "acled", "params": {"countries": ["YE", "SD"], "yearFrom": 2018}}` (up to 30 countries). Without credentials the import is recorded as `skipped` with the reason `credentials absent`. | ACLED's terms forbid redistribution: rows are `LOCAL_ONLY`, used for computation only |
+
+Import UCDP GED and USGS ComCat first: together they give conflict and seismic base rates for every country before
+Foresignal has much history of its own. Each import is a 103 job (`GET /v1/reference-imports/{id}` shows progress, rows
+read and written, the period and the license). Asking for the same dataset and parameters again resumes or re-runs the
+same import: finished years are skipped and a re-run writes exactly the same counts, so nothing is ever double counted.
+`DELETE /v1/reference-imports/{id}` removes the import and its rows; rates that used them change at the next refresh.
+
+Every night at 02:15 UTC Foresignal folds its own history into the same table (`source = foresignal`): canonical events
+(re-reports of one event count once), per family, region and complete week, plus the M4.5, M5 and M6 bands for
+earthquakes. So the reference set keeps growing after the imports end.
+
+**Families.** Reference families are a signal family plus a subtype: `conflict:battles`,
+`conflict:explosions-remote`, `conflict:violence-civilians`, `conflict:protests`, `conflict:riots` (ACLED event types;
+UCDP state-based and non-state violence count as battles, one-sided violence as violence against civilians),
+`seismic:m4.5`, `seismic:m5`, `seismic:m6` (an M6.2 counts in all three), `disaster:gdacs-orange+`,
+`disaster:gdacs-red` and `disaster:gdacs-{eq|tc|fl|vo|dr|wf}-orange+`. Foresignal's own history adds the bare families
+(`conflict`, `fire`, `outage`, `disaster`, `weather-alert`, `seismic`).
+
+**What a base rate says.** A definition names a family, regions (040 codes, or a region class such as `continent:AF`
+or `income:low`, or neither for worldwide), a window (`P7D`, `P28D` or `P90D`, the last being 13 whole weeks) and,
+optionally, a condition. The answer gives:
+
+- `ratePerWindow`: mean events per window;
+- `pAtLeastOne`: the share of windows with at least one event, with a 95% **Jeffreys interval** (`interval`). Read the
+  interval, not just the number: 3 of 10 windows and 300 of 1,000 are both 30%, but the first could easily be 10% or
+  60%;
+- `nWindows`, `nEvents`, `periodFrom`, `periodTo`: how much history stands behind it;
+- `sourceMix` and `licences`: which sources contributed how many events. Each region and week uses one source only
+  (ACLED before UCDP for conflict, USGS for earthquakes, GDACS for disasters, then Foresignal's own history), so the
+  same events are never counted twice;
+- `caveats`: `SMALL_SAMPLE` (fewer than 30 windows), `MIXED_SOURCES` (different sources for different regions or
+  periods; their coding rules differ), `LOW_REPORTING_DENSITY` (the region is among the 10% least reported countries
+  for its population size: the true rate is probably higher) and `LOW_DETECTABILITY` (Foresignal's own history was
+  used where its sources would miss many events);
+- a conditional rate (`condition: {family, withinDays}`) keeps only the windows that followed the antecedent within
+  that many days, and reports the unconditional rate alongside (`unconditional`), so you can see whether the
+  antecedent really changes the odds.
+
+**Reporting density.** Media coverage differs by two orders of magnitude between countries. Each refresh computes, per
+country, its weekly count of text-reported conflict events over the last ten years divided by the median of countries
+of similar population (`regionProfiles` on each rate). The bottom decile gets `LOW_REPORTING_DENSITY`.
+
+**Automatic and custom rates.** Automatic rates exist for every family and region with at least 52 weeks of coverage,
+for 7- and 28-day windows. They are recomputed on the first of each month at 03:30 UTC, after each finished import, and
+on `POST /v1/base-rates/refresh` (one refresh at a time). Agents and operators can store their own definitions (`POST
+/v1/base-rates`) and delete them; automatic rates cannot be deleted. Ad-hoc queries are computed on the spot and cached
+for 24 hours.
+
+**Analogs.** For a situation, `GET /v1/situations/{id}/analogs` finds past situations that looked like it at the same
+age: the same families in similar numbers in their first days (scaled by how variable each family is), a similar
+escalation slope, theme, region class, entity types and severity path, and a similar deterministic summary (027
+embeddings, when an embedding model is set up; otherwise the result says `feature-only`). Situations that overlap it in
+time and its own merges are never analogs. Each analog shows what happened next: duration, peak severity and the
+families active in its regions within 7 and 30 days. Add `outcome=conflict:battles/P30D` (or `critical`) to get how
+often that happened among the analogs, pulled toward the base rate by `k ÷ (k + 10)`: ten analogs carry half the weight,
+so a handful of look-alikes never overrides decades of history. `POST /v1/analogs/query` does the same for a region's
+recent weeks without a situation, against two-week periods of the same continent's countries over the previous ten
+years. Signatures are computed when a situation becomes active and daily for its first 30 days; outcomes once it is
+dormant, closed or a month old.

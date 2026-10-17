@@ -1,0 +1,7 @@
+{"status": 200, "success": true, "count": 5, "data": [
+  {"event_id_cnty": "YEM1001", "event_date": "2023-01-03", "event_type": "Battles", "sub_event_type": "Armed clash", "country": "Yemen", "iso": "887", "admin1": "Marib", "fatalities": "4"},
+  {"event_id_cnty": "YEM1002", "event_date": "2023-01-04", "event_type": "Explosions/Remote violence", "sub_event_type": "Air/drone strike", "country": "Yemen", "iso": "887", "admin1": "Sanaa", "fatalities": "0"},
+  {"event_id_cnty": "YEM1003", "event_date": "2023-01-10", "event_type": "Protests", "sub_event_type": "Peaceful protest", "country": "Yemen", "iso": "887", "admin1": "Aden", "fatalities": "0"},
+  {"event_id_cnty": "YEM1004", "event_date": "2023-01-11", "event_type": "Strategic developments", "sub_event_type": "Agreement", "country": "Yemen", "iso": "887", "admin1": "Aden", "fatalities": "0"},
+  {"event_id_cnty": "YEM1001", "event_date": "2023-01-03", "event_type": "Battles", "sub_event_type": "Armed clash", "country": "Yemen", "iso": "887", "admin1": "Marib", "fatalities": "4"}
+]}

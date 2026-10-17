@@ -861,16 +861,19 @@ Telegram channels, Facebook pages, TikTok and any other platform: external EDP p
 
 ## Reference-history datasets (prompt 121, v1.3)
 
-Imported as weekly counts per family and region (`reference_history`); never served raw.
+Imported as weekly counts per family and region (`reference_history`); never stored or served raw. Each row keeps its
+license and egress. Imports are admin operations (`POST /v1/reference-imports`) run as 103 jobs; URLs and formats were
+verified on 2026-10-17.
 
-| Dataset | Access | Span | Licence / egress |
-|---|---|---|---|
-| UCDP GED (annual + candidate) | operator download or UCDP API | 1989– | CC BY 4.0 |
-| ACLED history | ACLED API with the operator's credentials | by region | ACLED EULA; `LOCAL_ONLY`, never redistributed |
-| USGS ComCat | FDSN event service | decades | public domain |
-| GDACS archive | GDACS event list API | 2000s– | open, attribution |
-| CFTC COT history | via `cftc-cot` backfill | 1986– | public domain |
-| IMF PortWatch history | via 088 | 2019– | IMF terms: reuse with attribution |
+| Dataset | Access | Span | Families | License / egress |
+|---|---|---|---|---|
+| UCDP GED (annual + candidate) | Operator download from `https://ucdp.uu.se/downloads/` (`ged261-csv.zip`, GED 26.1) placed under `${FORESIGNAL_DATA_DIR}/imports`, or the UCDP API (`ucdpapi.pcr.uu.se/api/gedevents/{version}`) with the `ucdp-ged` token and budget | 1989– | `conflict:battles` (violence types 1, 2), `conflict:violence-civilians` (3) | CC BY 4.0; `OPEN` |
+| ACLED history | ACLED API (`/api/acled/read`, `event_date` ranges per country) through the 081 client with the operator's credentials and the `acled` budget | 1997– / 2018– by region | `conflict:battles`, `conflict:explosions-remote`, `conflict:violence-civilians`, `conflict:protests`, `conflict:riots` | ACLED EULA; `LOCAL_ONLY`, never redistributed (derived rates only) |
+| USGS ComCat | FDSN event service `https://earthquake.usgs.gov/fdsnws/event/1/query?format=csv` per year (20,000 events per query) | decades | `seismic:m4.5`, `seismic:m5`, `seismic:m6` | public domain; `OPEN` |
+| GDACS archive | GDACS event search API `/gdacsapi/api/Events/geteventlist/search` (orange and red, per hazard, 100 per page) | 2000– | `disaster:gdacs-orange+`, `disaster:gdacs-red`, `disaster:gdacs-{hazard}-orange+` | open, attribution to GDACS; `OPEN` |
+| Foresignal own history | nightly fold of 116 canonical events | from install | bare families plus the seismic bands | derived; `OPEN` (events seen only by private sources are left out) |
+| CFTC COT history | via `cftc-cot` backfill (117) | 1986– | (series, not weekly counts) | public domain |
+| IMF PortWatch history | via 088 | 2019– | (series, not weekly counts) | IMF terms: reuse with attribution |
 
 ## Derived layers (prompt 099)
 

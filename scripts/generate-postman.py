@@ -39,7 +39,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              # 119: analytic findings.
              "findingId": "findingId",
              # 120: precursors, mining batches and operator candidates.
-             "precursorId": "precursorId", "batchId": "precursorBatchId", "candidateId": "precursorCandidateId"}
+             "precursorId": "precursorId", "batchId": "precursorBatchId", "candidateId": "precursorCandidateId",
+             # 121: reference-history imports and base rates.
+             "importId": "referenceImportId", "baseRateId": "baseRateId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -509,6 +511,18 @@ BODIES = {
                                "spatial": {"rule": "sameRegion", "regionLevel": "country"},
                                "lagMin": "P0D", "lagMax": "P3D", "regionCodes": ["YE"]},
   "updatePrecursor": {"status": "retired", "reason": "The pattern reflects a reporting artifact, not activity"},
+  # 121: import USGS ComCat M4.5+ history (public domain) as weekly counts, ask for the 28-day base rate of battles
+  # in Yemen (and its conditional form after explosions within 14 days), store a custom rate, and find region-period
+  # analogs for Yemen's last two weeks with the outcome "battles within 30 days".
+  "createReferenceImport": {"dataset": "usgs-comcat", "params": {"yearFrom": 1990, "yearTo": 2025,
+                                                                 "minMagnitude": 4.5}},
+  "queryBaseRate": {"family": "conflict:battles", "regionCodes": ["YE"], "window": "P28D",
+                    "condition": {"family": "conflict:explosions-remote", "withinDays": 14}},
+  "createBaseRate": {"name": "Battles in the Horn of Africa per 28 days",
+                     "definition": {"family": "conflict:battles", "regionCodes": ["ET", "SO", "ER", "DJ"],
+                                    "window": "P28D"}},
+  "queryAnalogs": {"regionCode": "YE", "from": "2026-10-01T00:00:00Z", "to": "2026-10-15T00:00:00Z", "k": 10,
+                   "outcome": "conflict:battles/P30D"},
   # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
   # one nautical mile in the next hour.
   "cpaBatch": {"subject": "aisstream/244660000", "filter": {"kinds": ["vessel"], "sources": [],
@@ -543,6 +557,10 @@ CAPTURE = {
   "createPrecursorCandidate": "const j = pm.response.json(); pm.collectionVariables.set('precursorCandidateId', j.id);",
   "minePrecursors": "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
   "retestPrecursors": "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
+  # 121: the import, the stored base rate and the refresh job.
+  "createReferenceImport": "const j = pm.response.json(); pm.collectionVariables.set('referenceImportId', j.id);",
+  "createBaseRate": "const j = pm.response.json(); pm.collectionVariables.set('baseRateId', j.id);",
+  "refreshBaseRates": "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
   # 117: the created attention topic.
   "createAttentionTopic": "const j = pm.response.json(); pm.collectionVariables.set('attentionTopicId', j.id);",
   "rotatePeerIngestKey": "const j = pm.response.json(); pm.collectionVariables.set('peerIngestKey', j.key); console.log('New peer ingest key (shown once):', j.key);",
@@ -886,6 +904,7 @@ collection = {
       ("situationId", ""), ("situationMemberId", ""), ("otherSituationId", ""),
       ("findingId", ""), ("seriesRef", "rollup:day/*/earthquake/US"),
       ("precursorId", ""), ("precursorBatchId", ""), ("precursorCandidateId", ""),
+      ("referenceImportId", ""), ("baseRateId", ""),
       ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",

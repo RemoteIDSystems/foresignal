@@ -24,8 +24,10 @@ import tools.jackson.databind.json.JsonMapper;
  * Resolves an {@code EventSelector} to event occurrences for batch event studies (prompt 119): 103's
  * {@code alertRuleId}, {@code intelEventType} and {@code anomalyRuleId} (+ {@code classification}), plus
  * {@code alertRuleTag}, {@code situationActivated}, {@code changePoint} and {@code unexplainedMove} (by series family)
- * and explicit {@code timestamps}; narrowed by {@code regionCodes} and {@code minSeverity}. The inline {@code rule}
- * form (as in 103) and {@code referenceFamily} (prompt 121) are refused with {@code EVENT_STUDY_INVALID}.
+ * and explicit {@code timestamps}, and since prompt 121 {@code referenceFamily} (one occurrence per region and ISO week
+ * with at least one event of the family in {@code reference_history}, at the week's Monday); narrowed by
+ * {@code regionCodes} and {@code minSeverity}. The inline {@code rule} form (as in 103) is refused with
+ * {@code EVENT_STUDY_INVALID}.
  */
 @Component
 public class EventSelectorResolver {
@@ -35,7 +37,7 @@ public class EventSelectorResolver {
 
     /** The selector forms this prompt resolves. */
     public static final List<String> FORMS = List.of("alertRuleId", "alertRuleTag", "intelEventType", "anomalyRuleId",
-            "situationActivated", "changePoint", "unexplainedMove", "timestamps");
+            "situationActivated", "changePoint", "unexplainedMove", "referenceFamily", "timestamps");
 
     /** Every selector form of the spec. */
     public static final List<String> ALL_FORMS = List.of("rule", "alertRuleId", "alertRuleTag", "intelEventType",
@@ -83,7 +85,11 @@ public class EventSelectorResolver {
                     + " alertRuleId, alertRuleTag or intelEventType");
         }
         if (selector.containsKey("referenceFamily")) {
-            throw invalid("selector.referenceFamily", "reference-history families arrive with prompt 121");
+            Object family = selector.get("referenceFamily");
+            if (family == null || !ai.foresignal.baserate.reference.ReferenceFamilies.FAMILY.matcher(family.toString())
+                    .matches()) {
+                throw invalid("selector.referenceFamily", "must be a reference family such as conflict:battles");
+            }
         }
         for (String key : List.of("alertRuleId", "anomalyRuleId")) {
             if (selector.get(key) != null) {
@@ -184,6 +190,15 @@ public class EventSelectorResolver {
                     + " AND l.at >= :from AND l.at <= :to" + themeClause + " ORDER BY l.at, l.id LIMIT :limit", p,
                     (rs, n) -> new Occurrence(ts(rs, "at"), "situation:" + rs.getString("id"),
                             csv(rs.getString("regions")), rs.getString("severity")));
+        } else if (selector.containsKey("referenceFamily")) {
+            p.addValue("family", selector.get("referenceFamily").toString())
+                    .addValue("fromDay", java.sql.Date.valueOf(from.atZone(java.time.ZoneOffset.UTC).toLocalDate()))
+                    .addValue("toDay", java.sql.Date.valueOf(to.atZone(java.time.ZoneOffset.UTC).toLocalDate()));
+            out = jdbc.query("SELECT week_start, region_code FROM reference_history WHERE family = :family AND count > 0"
+                    + " AND region_code <> 'ZZ' AND week_start >= :fromDay AND week_start <= :toDay GROUP BY 1, 2"
+                    + " ORDER BY 1, 2 LIMIT :limit", p, (rs, n) -> new Occurrence(rs.getDate("week_start")
+                            .toLocalDate().atStartOfDay(java.time.ZoneOffset.UTC).toInstant(), null,
+                            List.of(rs.getString("region_code")), null));
         } else if (selector.containsKey("changePoint") || selector.containsKey("unexplainedMove")) {
             boolean changePoint = selector.containsKey("changePoint");
             Map<?, ?> spec = (Map<?, ?>) selector.get(changePoint ? "changePoint" : "unexplainedMove");

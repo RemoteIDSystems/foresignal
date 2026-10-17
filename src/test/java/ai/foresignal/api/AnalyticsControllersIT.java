@@ -181,7 +181,7 @@ class AnalyticsControllersIT extends AnalyticsItSupport {
         assertThat(body(accepted).get("type").asString()).isEqualTo("event-study");
         MockHttpServletResponse invalid = call(agent, post("/v1/analytics/event-studies")
                 .contentType(MediaType.APPLICATION_JSON).content(body.replace("timestamps", "referenceFamily")
-                        .replace("[\"" + T0.plus(Duration.ofDays(5)) + "\"]", "\"seismic:m5\"")));
+                        .replace("[\"" + T0.plus(Duration.ofDays(5)) + "\"]", "\"Not A Family\"")));
         assertThat(invalid.getStatus()).isEqualTo(400);
         assertThat(body(invalid).get("code").asString()).isEqualTo("EVENT_STUDY_INVALID");
     }

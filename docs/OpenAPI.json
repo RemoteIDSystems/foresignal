@@ -517,6 +517,11 @@
         "version": "1.3.0",
         "date": "2026-10-17",
         "note": "120: listPrecursors, getPrecursor, updatePrecursor, listPrecursorBatches, getPrecursorBatch, listPrecursorCandidates, createPrecursorCandidate, deletePrecursorCandidate, minePrecursors and retestPrecursors are implemented, with the 103 job type precursor-mining (mode mine or retest), the analytics topic events precursor.validated, precursor.stale and precursor.retired, precursor-active findings and the MCP tools list_precursors, get_precursor and mine_precursors. Reconciliations (additive): Problem lists UNKNOWN_PRECURSOR (404) and PRECURSOR_MINING_IN_PROGRESS (409); Precursor gains lastRetest and history; PrecursorBatch gains insufficient and windows; PrecursorWindowStats gains coverageGapFraction, blockLength and reason; BacktestJob.result may be a PrecursorBatch."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-17",
+        "note": "121: createReferenceImport, listReferenceImports, getReferenceImport, deleteReferenceImport, listBaseRates, createBaseRate, queryBaseRate, refreshBaseRates, getBaseRate, deleteBaseRate, getSituationAnalogs and queryAnalogs are implemented, with the 103 job types reference-import and base-rate-refresh, the MCP tools get_base_rate and find_analogs, and the EventSelector form referenceFamily (event studies and precursor mining). Reconciliations (additive): Problem lists UNKNOWN_BASE_RATE (404), UNKNOWN_IMPORT (404), IMPORT_DATASET_UNAVAILABLE (409), BASE_RATE_INVALID (400) and BASE_RATE_NOT_CUSTOM (409); the target-outcome pattern also allows `.` so `seismic:m4.5/P30D` is valid; ReferenceImportRequest.params gains version (ucdp-ged with useApi); BaseRate.unconditional gains nWindows and caveats may include LOCAL_ONLY_WITHHELD; BacktestJob.result may be a ReferenceImport or the new BaseRateRefreshResult."
       }
     ]
   },
@@ -57425,7 +57430,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "121",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -57528,7 +57533,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "121",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -57599,7 +57604,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "121",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -57661,7 +57666,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "121",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -57793,7 +57798,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "121",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -57862,7 +57867,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "121",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -57940,7 +57945,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "121",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -58001,7 +58006,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "121",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -58080,7 +58085,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "121",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -58153,7 +58158,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "121",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -58198,7 +58203,7 @@
             "description": "Target outcome: `critical` (situation reaches critical) or `{family}/P{n}D` (a family within n days), e.g. `conflict:battles/P30D`",
             "schema": {
               "type": "string",
-              "pattern": "^(critical|[a-z][a-z0-9:+-]*/P\\d+D)$",
+              "pattern": "^(critical|[a-z][a-z0-9:+.-]*/P\\d+D)$",
               "description": "Target outcome: `critical` (situation reaches critical) or `{family}/P{n}D` (a family within n days), e.g. `conflict:battles/P30D`"
             }
           }
@@ -58265,7 +58270,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "121",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -58344,7 +58349,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "121",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -87234,7 +87239,7 @@
             "code": "EVENT_STUDY_INVALID",
             "status": 400,
             "prompt": "119",
-            "note": "createEventStudy: the selector does not name exactly one supported form (the inline rule form and referenceFamily before 121 are refused), a family is unknown, the range is empty or longer than 10 years, asOf is in the future, or the target is not a daily, weekly or hourly series"
+            "note": "createEventStudy: the selector does not name exactly one supported form (the inline rule form is refused; referenceFamily is accepted from 121 and must be a family name), a family is unknown, the range is empty or longer than 10 years, asOf is in the future, or the target is not a daily, weekly or hourly series"
           },
           {
             "code": "UNKNOWN_PRECURSOR",
@@ -87247,6 +87252,36 @@
             "status": 409,
             "prompt": "120",
             "note": "minePrecursors, retestPrecursors: a precursor-mining job (mining or re-test) is already queued or running"
+          },
+          {
+            "code": "UNKNOWN_BASE_RATE",
+            "status": 404,
+            "prompt": "121",
+            "note": "getBaseRate, deleteBaseRate: no base rate has that id"
+          },
+          {
+            "code": "UNKNOWN_IMPORT",
+            "status": 404,
+            "prompt": "121",
+            "note": "getReferenceImport, deleteReferenceImport: no reference import has that id"
+          },
+          {
+            "code": "IMPORT_DATASET_UNAVAILABLE",
+            "status": 409,
+            "prompt": "121",
+            "note": "createReferenceImport: the UCDP GED file is not under ${FORESIGNAL_DATA_DIR}/imports, or the UCDP API token is not set (ACLED without credentials is recorded as skipped instead)"
+          },
+          {
+            "code": "BASE_RATE_INVALID",
+            "status": 400,
+            "prompt": "121",
+            "note": "createBaseRate, queryBaseRate: the definition has no valid family or window, an invalid region code or class, both regionCodes and regionClass, or an invalid condition"
+          },
+          {
+            "code": "BASE_RATE_NOT_CUSTOM",
+            "status": 409,
+            "prompt": "121",
+            "note": "deleteBaseRate: automatic rates are replaced at every refresh and cannot be deleted"
           }
         ]
       },
@@ -116980,6 +117015,12 @@
                 "$ref": "#/components/schemas/PrecursorBatch"
               },
               {
+                "$ref": "#/components/schemas/ReferenceImport"
+              },
+              {
+                "$ref": "#/components/schemas/BaseRateRefreshResult"
+              },
+              {
                 "type": "null"
               }
             ],
@@ -134926,7 +134967,7 @@
             "properties": {
               "file": {
                 "type": "string",
-                "description": "ucdp-ged: CSV path relative to `${FORESIGNAL_DATA_DIR}/imports`"
+                "description": "ucdp-ged: CSV (or the downloaded ZIP holding it) path relative to `${FORESIGNAL_DATA_DIR}/imports`"
               },
               "useApi": {
                 "type": "boolean",
@@ -134959,6 +135000,10 @@
                   "type": "string"
                 },
                 "description": "gdacs: hazard types (default all)"
+              },
+              "version": {
+                "type": "string",
+                "description": "ucdp-ged with useApi: the GED release to read, e.g. `26.1` (required with useApi)"
               }
             }
           }
@@ -135322,6 +135367,10 @@
                   },
                   "interval": {
                     "$ref": "#/components/schemas/StatInterval"
+                  },
+                  "nWindows": {
+                    "type": "integer",
+                    "description": "Windows behind the unconditional rate"
                   }
                 },
                 "required": [
@@ -135346,7 +135395,7 @@
             "items": {
               "$ref": "#/components/schemas/Caveat"
             },
-            "description": "`SMALL_SAMPLE`, `LOW_REPORTING_DENSITY`, `MIXED_SOURCES`, `LOW_DETECTABILITY`"
+            "description": "`SMALL_SAMPLE`, `LOW_REPORTING_DENSITY`, `MIXED_SOURCES`, `LOW_DETECTABILITY`, and `LOCAL_ONLY_WITHHELD` when the per-source counts of a LOCAL_ONLY source are not shown on the path"
           },
           "computer": {
             "$ref": "#/components/schemas/DetectorRef"
@@ -135671,7 +135720,7 @@
                 "properties": {
                   "outcome": {
                     "type": "string",
-                    "pattern": "^(critical|[a-z][a-z0-9:+-]*/P\\d+D)$",
+                    "pattern": "^(critical|[a-z][a-z0-9:+.-]*/P\\d+D)$",
                     "description": "Target outcome: `critical` (situation reaches critical) or `{family}/P{n}D` (a family within n days), e.g. `conflict:battles/P30D`"
                   },
                   "analogCount": {
@@ -135772,7 +135821,7 @@
           },
           "outcome": {
             "type": "string",
-            "pattern": "^(critical|[a-z][a-z0-9:+-]*/P\\d+D)$",
+            "pattern": "^(critical|[a-z][a-z0-9:+.-]*/P\\d+D)$",
             "description": "Target outcome: `critical` (situation reaches critical) or `{family}/P{n}D` (a family within n days), e.g. `conflict:battles/P30D`"
           }
         },
@@ -165566,6 +165615,46 @@
           }
         },
         "x-foresignal-prompt": "056"
+      },
+      "BaseRateRefreshResult": {
+        "type": "object",
+        "description": "Result of a base-rate-refresh job (121): region profiles and automatic rates recomputed",
+        "properties": {
+          "profiles": {
+            "type": "integer",
+            "description": "Region profiles written"
+          },
+          "rates": {
+            "type": "integer",
+            "description": "Automatic rates written (family × region × window)"
+          },
+          "skipped": {
+            "type": "integer",
+            "description": "Family-region pairs with under 52 covered weeks"
+          },
+          "removed": {
+            "type": "integer",
+            "description": "Automatic rates no longer produced and removed"
+          },
+          "families": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "regions": {
+            "type": "integer",
+            "description": "Regions with at least one automatic rate"
+          },
+          "computer": {
+            "$ref": "#/components/schemas/DetectorRef"
+          }
+        },
+        "required": [
+          "profiles",
+          "rates",
+          "families"
+        ]
       }
     },
     "securitySchemes": {

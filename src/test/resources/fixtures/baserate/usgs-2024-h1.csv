@@ -1,0 +1,2 @@
+time,latitude,longitude,depth,mag,magType,nst,gap,dmin,rms,net,id,updated,place,type,horizontalError,depthError,magError,magNst,status,locationSource,magSource
+2024-01-01T07:10:09.000Z,37.49,137.27,10,7.5,mww,200,20,1,0.7,us,us6000m0xl,2024-03-01T00:00:00.000Z,"Noto Peninsula, Japan",earthquake,7,1.9,0.05,30,reviewed,us,us

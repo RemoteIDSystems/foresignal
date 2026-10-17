@@ -36,7 +36,8 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p><b>Families</b> are intel event types (101), alert rule tags (017), anomaly classifications per rule (100), change
  * points and {@code unexplained-move} findings per signal family (119) and situation activations per theme (118); each
- * family is an {@code EventSelector}. Reference-import families (121) are not built yet and yield nothing.
+ * family is an {@code EventSelector}. Since prompt 121, reference-history families ({@code referenceFamily}) add one
+ * occurrence per country and ISO week with at least one event (at the week's Monday).
  *
  * <p><b>Occurrences</b> are read per selector, each query in its own read transaction with the 103 statement timeout.
  * Mining uses non-private data only: private intel events, situations and findings and alerts or anomalies of private
@@ -197,6 +198,17 @@ public class PrecursorOccurrences {
                         return new Occurrence(ts(rs, "at"), "finding:" + rs.getString("id"), region[0], region[1],
                                 null, null, rs.getString("severity"));
                     });
+        } else if (selector.get("referenceFamily") != null) {
+            p.addValue("family", selector.get("referenceFamily").toString())
+                    .addValue("fromDay", java.sql.Date.valueOf(from.atZone(java.time.ZoneOffset.UTC).toLocalDate()))
+                    .addValue("toDay", java.sql.Date.valueOf(to.atZone(java.time.ZoneOffset.UTC).toLocalDate()));
+            out = read("SELECT week_start, region_code FROM reference_history WHERE family = :family AND count > 0 AND"
+                    + " length(region_code) = 2 AND region_code <> 'ZZ' AND week_start >= :fromDay AND week_start <"
+                    + " :toDay GROUP BY 1, 2 ORDER BY 1, 2 LIMIT :limit", p, (rs, n) -> new Occurrence(
+                            rs.getDate("week_start").toLocalDate().atStartOfDay(java.time.ZoneOffset.UTC).toInstant(),
+                            "reference:" + selector.get("referenceFamily") + "/" + rs.getString("region_code") + "/"
+                                    + rs.getDate("week_start").toLocalDate(), rs.getString("region_code"), null, null,
+                            null, null));
         } else if (selector.get("timestamps") instanceof List<?> list) {
             out = new ArrayList<>();
             for (Object t : list) {
@@ -316,6 +328,13 @@ public class PrecursorOccurrences {
             String[] parts = key.split("\u0000", 3);
             out.add(count(parts[2], Map.of(parts[0], Map.of("family", parts[1])), c[0], c[1]));
         });
+        read("SELECT family, region_code AS cc, count(DISTINCT week_start) AS n FROM reference_history WHERE count > 0"
+                + " AND length(region_code) = 2 AND region_code <> 'ZZ' AND week_start >= CAST(:from AS date) AND"
+                + " week_start < CAST(:to AS date) GROUP BY 1, 2", p, (rs, n) -> {
+                    out.add(count(rs.getString("cc"), Map.of("referenceFamily", rs.getString("family")),
+                            rs.getLong("n"), 0));
+                    return null;
+                });
         read("SELECT s.theme, substr(r.code, 1, 2) AS cc, count(*) AS n, count(*) FILTER (WHERE r.code LIKE '__-%') AS"
                 + " a1 FROM situation_log l JOIN situation s ON s.id = l.situation_id CROSS JOIN LATERAL"
                 + " unnest(s.region_codes) AS r(code) WHERE l.event = 'situation.activated' AND s.private = false AND"
@@ -353,6 +372,11 @@ public class PrecursorOccurrences {
                 return families.canonical(m.get("family").toString()).orElse(m.get("family").toString());
             }
         }
+        if (selector.get("referenceFamily") != null) {
+            String root = ai.foresignal.baserate.reference.ReferenceFamilies.root(selector.get("referenceFamily")
+                    .toString());
+            return families.canonical(root).orElse(root);
+        }
         return null;
     }
 
@@ -379,6 +403,9 @@ public class PrecursorOccurrences {
             if (selector.get(key) instanceof Map<?, ?> m) {
                 return key + ":" + m.get("family");
             }
+        }
+        if (selector.get("referenceFamily") != null) {
+            return "referenceFamily:" + selector.get("referenceFamily");
         }
         if (selector.get("timestamps") != null) {
             return "timestamps";
@@ -413,6 +440,9 @@ public class PrecursorOccurrences {
         }
         if (selector.get("unexplainedMove") instanceof Map<?, ?> m) {
             return "unexplained moves in " + m.get("family") + " series";
+        }
+        if (selector.get("referenceFamily") != null) {
+            return "weeks with " + selector.get("referenceFamily") + " events (reference history)";
         }
         return "the given times";
     }

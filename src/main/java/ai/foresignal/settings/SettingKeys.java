@@ -248,6 +248,12 @@ public final class SettingKeys {
      */
     public static final String PRECURSOR_STREAM_CURSORS = "precursor.cursor.streams";
 
+    /**
+     * The Monday after the last week the own-history fold wrote to {@code reference_history} (prompt 121), an ISO
+     * date; the next fold re-folds four weeks before it.
+     */
+    public static final String BASERATE_FOLD_WEEK = "baserate.fold.lastWeek";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -260,7 +266,8 @@ public final class SettingKeys {
                     INTEL_THEMES_LLM_CLASSIFY, INTEL_SIGNAL_FAMILIES, STATS_REGION_CURSOR, STATS_REGION_LEVEL,
                     ANALYSIS_SERIES_MAX, ANALYSIS_FINDINGS_PUBLISH_INFO, ANALYSIS_LIVE_CURSOR, ANALYSIS_LIVE_RECHECKS,
                     ANALYSIS_PRECURSORS_MAX_TESTS, ANALYSIS_PRECURSORS_LOOKBACK_DAYS,
-                    ANALYSIS_PRECURSORS_DISCOVERY_FRACTION, PRECURSOR_CURSOR, PRECURSOR_STREAM_CURSORS);
+                    ANALYSIS_PRECURSORS_DISCOVERY_FRACTION, PRECURSOR_CURSOR, PRECURSOR_STREAM_CURSORS,
+                    BASERATE_FOLD_WEEK);
 
     private SettingKeys() {}
 }

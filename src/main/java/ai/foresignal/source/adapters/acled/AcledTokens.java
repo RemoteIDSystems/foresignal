@@ -4,6 +4,7 @@ import ai.foresignal.source.adapters.conflict.ConflictSources;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.CredentialsRejectedException;
 import ai.foresignal.source.spi.FetchContext;
+import ai.foresignal.source.spi.SourceHttp;
 import ai.foresignal.source.spi.UpstreamFormatException;
 import ai.foresignal.source.spi.UpstreamResponse;
 import java.net.URI;
@@ -78,27 +79,45 @@ final class AcledTokens {
      * @throws AdapterException when a token request fails otherwise
      */
     String accessToken(FetchContext ctx, String email, String password) throws AdapterException {
+        return accessToken(ctx.http(), ctx.sourceId(), ctx.now(), email, password,
+                message -> ctx.log().info(message));
+    }
+
+    /**
+     * A valid access token for the source outside a fetch (prompt 121: the ACLED history import), through the
+     * source's own {@link SourceHttp} so the token requests are budgeted like the adapter's.
+     *
+     * @param http the source's HTTP client
+     * @param sourceId the source
+     * @param now the current time
+     * @param email the account email
+     * @param password the account password
+     * @param info where an informational message goes
+     * @throws CredentialsRejectedException when the password login is refused
+     * @throws AdapterException when a token request fails otherwise
+     */
+    String accessToken(SourceHttp http, String sourceId, Instant now, String email, String password,
+            java.util.function.Consumer<String> info) throws AdapterException {
         String fingerprint = fingerprint(email, password);
-        Instant now = ctx.now();
-        Tokens cached = tokens.get(ctx.sourceId());
+        Tokens cached = tokens.get(sourceId);
         if (cached != null && cached.fingerprint().equals(fingerprint)) {
             if (now.isBefore(cached.accessExpiresAt().minus(REFRESH_MARGIN))) {
                 return cached.accessToken();
             }
             if (cached.refreshToken() != null && now.isBefore(cached.refreshExpiresAt().minus(REFRESH_MARGIN))) {
                 try {
-                    Tokens refreshed = request(ctx, "grant_type=refresh_token&refresh_token="
+                    Tokens refreshed = request(http, "grant_type=refresh_token&refresh_token="
                             + encode(cached.refreshToken()) + "&client_id=acled", fingerprint, now, false);
-                    tokens.put(ctx.sourceId(), refreshed);
+                    tokens.put(sourceId, refreshed);
                     return refreshed.accessToken();
                 } catch (CredentialsRejectedException e) {
-                    ctx.log().info("acled: the refresh token was refused; logging in again");
+                    info.accept("acled: the refresh token was refused; logging in again");
                 }
             }
         }
-        Tokens fresh = request(ctx, "username=" + encode(email) + "&password=" + encode(password)
+        Tokens fresh = request(http, "username=" + encode(email) + "&password=" + encode(password)
                 + "&grant_type=password&client_id=acled&scope=authenticated", fingerprint, now, true);
-        tokens.put(ctx.sourceId(), fresh);
+        tokens.put(sourceId, fresh);
         return fresh.accessToken();
     }
 
@@ -118,11 +137,11 @@ final class AcledTokens {
         return tokens.containsKey(sourceId);
     }
 
-    private Tokens request(FetchContext ctx, String form, String fingerprint, Instant now, boolean login)
+    private Tokens request(SourceHttp http, String form, String fingerprint, Instant now, boolean login)
             throws AdapterException {
         UpstreamResponse response;
         try {
-            response = ctx.http().post(tokenUri, "application/x-www-form-urlencoded",
+            response = http.post(tokenUri, "application/x-www-form-urlencoded",
                     form.getBytes(StandardCharsets.UTF_8), Map.of());
         } catch (AdapterException e) {
             int status = e.httpStatus().orElse(0);

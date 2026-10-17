@@ -3262,7 +3262,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));"
+                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('referenceImportId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -3303,7 +3306,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"dataset\": \"usgs-comcat\",\n  \"params\": {\n    \"yearFrom\": 1990,\n    \"yearTo\": 2025,\n    \"minMagnitude\": 4.5\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3404,14 +3407,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/reference-imports/{{importId}}",
+              "raw": "{{baseUrl}}/v1/reference-imports/{{referenceImportId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "reference-imports",
-                "{{importId}}"
+                "{{referenceImportId}}"
               ],
               "query": []
             },
@@ -3445,14 +3448,14 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/reference-imports/{{importId}}",
+              "raw": "{{baseUrl}}/v1/reference-imports/{{referenceImportId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "reference-imports",
-                "{{importId}}"
+                "{{referenceImportId}}"
               ],
               "query": []
             },
@@ -3546,7 +3549,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('baseRateId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -3587,7 +3593,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Battles in the Horn of Africa per 28 days\",\n  \"definition\": {\n    \"family\": \"conflict:battles\",\n    \"regionCodes\": [\n      \"ET\",\n      \"SO\",\n      \"ER\",\n      \"DJ\"\n    ],\n    \"window\": \"P28D\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3639,7 +3645,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"family\": \"conflict:battles\",\n  \"regionCodes\": [\n    \"YE\"\n  ],\n  \"window\": \"P28D\",\n  \"condition\": {\n    \"family\": \"conflict:explosions-remote\",\n    \"withinDays\": 14\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3656,7 +3662,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));"
+                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -3870,7 +3879,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"regionCode\": \"YE\",\n  \"from\": \"2026-10-01T00:00:00Z\",\n  \"to\": \"2026-10-15T00:00:00Z\",\n  \"k\": 10,\n  \"outcome\": \"conflict:battles/P30D\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -51502,6 +51511,14 @@
     },
     {
       "key": "precursorCandidateId",
+      "value": ""
+    },
+    {
+      "key": "referenceImportId",
+      "value": ""
+    },
+    {
+      "key": "baseRateId",
       "value": ""
     },
     {

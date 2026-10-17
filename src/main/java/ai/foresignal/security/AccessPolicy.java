@@ -501,6 +501,19 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/precursors/*", AccessRequirement.READ),
                 rule(null, "/v1/precursors/**", AccessRequirement.AGENT),
 
+                // ---- Base rates, reference imports and analogs (prompt 121): rates, ad-hoc queries and analogs are
+                // reads; storing, deleting and refreshing rates are agent operations; reference imports are admin
+                // (they read operator files and spend upstream budgets). No LLM is used. ----
+                rule(HttpMethod.POST, "/v1/base-rates/query", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/base-rates/refresh", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/base-rates", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/base-rates/*", AccessRequirement.READ),
+                rule(null, "/v1/base-rates", AccessRequirement.AGENT),
+                rule(null, "/v1/base-rates/**", AccessRequirement.AGENT),
+                rule(null, "/v1/reference-imports", AccessRequirement.ADMIN),
+                rule(null, "/v1/reference-imports/**", AccessRequirement.ADMIN),
+                rule(HttpMethod.POST, "/v1/analogs/query", AccessRequirement.READ),
+
                 // ---- Autonomous analyst (prompt 102) ----
                 rule(HttpMethod.POST, "/v1/analyst/profiles/*/run", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/analyst/profiles/**", AccessRequirement.READ),
