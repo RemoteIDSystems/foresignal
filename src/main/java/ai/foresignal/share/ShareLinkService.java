@@ -127,6 +127,7 @@ public class ShareLinkService {
     private final JsonMapper json;
     private final Clock clock;
     private final SecureRandom random = new SecureRandom();
+    private volatile Map<String, ExtraShareTarget> extraTargets = Map.of();
     private final Map<String, Instant> lastAuditedUse = new ConcurrentHashMap<>();
 
     /** Creates the service. */
@@ -152,6 +153,27 @@ public class ShareLinkService {
         this.audit = audit;
         this.json = json;
         this.clock = clock;
+    }
+
+    /**
+     * The target types other packages contribute (prompt 129: {@code workspace}).
+     *
+     * @param targets the contributed targets
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setExtraTargets(List<ExtraShareTarget> targets) {
+        Map<String, ExtraShareTarget> byType = new java.util.LinkedHashMap<>();
+        for (ExtraShareTarget t : targets) {
+            byType.put(t.type(), t);
+        }
+        this.extraTargets = Map.copyOf(byType);
+    }
+
+    /** Every accepted target type: the built-in ones and the contributed ones. */
+    public List<String> targetTypes() {
+        List<String> out = new ArrayList<>(TARGET_TYPES);
+        out.addAll(extraTargets.keySet());
+        return out;
     }
 
     /**
@@ -206,8 +228,8 @@ public class ShareLinkService {
     public Created create(Create request, Caller caller) {
         Instant now = clock.instant();
         List<FieldError> errors = new ArrayList<>();
-        if (request.targetType() == null || !TARGET_TYPES.contains(request.targetType())) {
-            errors.add(new FieldError("targetType", "must be one of " + String.join(", ", TARGET_TYPES)));
+        if (request.targetType() == null || !targetTypes().contains(request.targetType())) {
+            errors.add(new FieldError("targetType", "must be one of " + String.join(", ", targetTypes())));
         }
         if (request.targetRef() == null || request.targetRef().isBlank() || request.targetRef().length() > 600) {
             errors.add(new FieldError("targetRef", "must be a non-empty reference of at most 600 characters"));
@@ -379,7 +401,13 @@ public class ShareLinkService {
             case "track" -> renderTrack(link, ref, excluded, restriction);
             case "briefing-run" -> renderRun(ref, restriction);
             case "export" -> renderExport(ref);
-            default -> throw new NotFoundException(ErrorCodes.NOT_FOUND, "Unknown share target.");
+            default -> {
+                ExtraShareTarget extra = extraTargets.get(link.getTargetType());
+                if (extra == null) {
+                    throw new NotFoundException(ErrorCodes.NOT_FOUND, "Unknown share target.");
+                }
+                yield extra.render(link);
+            }
         };
     }
 
@@ -622,7 +650,13 @@ public class ShareLinkService {
                 boolean forbidden = sources.stream().anyMatch(s -> denied.contains(s) && !egress.isPrivate(s));
                 yield new Target(new LinkedHashSet<>(sources), forbidden);
             }
-            default -> throw ValidationException.forField("targetType", "is not supported");
+            default -> {
+                ExtraShareTarget extra = extraTargets.get(type);
+                if (extra == null) {
+                    throw ValidationException.forField("targetType", "is not supported");
+                }
+                yield new Target(extra.check(ref, caller), false);
+            }
         };
     }
 

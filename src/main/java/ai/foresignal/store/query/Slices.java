@@ -18,6 +18,16 @@ public final class Slices {
     public record RecordSlice(List<RecordRow> rows, String nextCursor, long watermarkSeq, Long asOfSeq) {}
 
     /**
+     * Current records of one kind and source in an area (prompt 129).
+     *
+     * @param kind the kind
+     * @param sourceId the source
+     * @param count every current non-tombstone record
+     * @param live the unexpired ones
+     */
+    public record AreaCount(String kind, String sourceId, long count, long live) {}
+
+    /**
      * A page of versions (versions endpoint or history).
      *
      * @param rows the rows

@@ -304,6 +304,31 @@ public class RecordQueryService {
         });
     }
 
+    /**
+     * Current records per kind and source inside {@code bbox} (prompt 129, the context summary's layer counts):
+     * every non-tombstone current record, and those not expired. Aggregates only; never a feature list.
+     *
+     * @param bbox the viewport
+     * @param excludedSources sources the caller may not read
+     * @return one row per kind and source, ordered by kind then source
+     */
+    public List<Slices.AreaCount> countsIn(BboxFilter bbox, Set<String> excludedSources) {
+        Instant now = clock.instant();
+        return runner.read(jdbc -> {
+            SqlParams p = new SqlParams();
+            StringBuilder sql = new StringBuilder("SELECT h.kind, h.source_id, count(*) AS n, count(*) FILTER (WHERE"
+                    + " l.valid_until IS NULL OR l.valid_until > ").append(p.instant(now)).append(") AS live")
+                    .append(CURRENT_FROM)
+                    .append(" WHERE NOT h.tombstone AND ").append(bboxClause("l.geom", bbox, p));
+            if (!excludedSources.isEmpty()) {
+                sql.append(" AND NOT (h.source_id = ANY(").append(p.textArray(excludedSources)).append("))");
+            }
+            sql.append(" GROUP BY h.kind, h.source_id ORDER BY h.kind, h.source_id");
+            return jdbc.query(sql.toString(), p.source(), (rs, i) -> new Slices.AreaCount(rs.getString("kind"),
+                    rs.getString("source_id"), rs.getLong("n"), rs.getLong("live")));
+        });
+    }
+
     // =====================================================================================
     // Versions and history
     // =====================================================================================

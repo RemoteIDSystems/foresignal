@@ -11,4 +11,7 @@ public interface InvestigationRepository extends JpaRepository<InvestigationEnti
 
     /** The newest display id for a year, for the {@code INV-{yyyy}-{nnnn}} sequence. */
     List<InvestigationEntity> findTop1ByDisplayIdStartingWithOrderByDisplayIdDesc(String prefix);
+
+    /** The investigation with a display id ({@code INV-yyyy-nnnn}, prompt 129 object references). */
+    java.util.Optional<InvestigationEntity> findByDisplayId(String displayId);
 }

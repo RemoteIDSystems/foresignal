@@ -581,6 +581,39 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/assessments", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/assessments/**", AccessRequirement.READ),
 
+                // ---- Objects, relations, annotations and workspaces (prompt 129): object reads, graph queries, the
+                // context summary, precision, sensor discovery and deep links are reads; annotations and workspaces are
+                // read-scope writes that the controllers hold to a token (verdicts and workspace metadata changes check
+                // agent scope there); operator relations and workspace share links are agent operations. The 130 routes
+                // under /v1/objects/{ref}/ and /v1/annotations/{id}/ keep their own rules. ----
+                rule(HttpMethod.GET, "/v1/contract", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/objects/resolve", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/objects/*", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/objects/*/dossier", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/objects/*/related", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/objects/*/annotations", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/objects/*/annotations", AccessRequirement.READ),
+                rule(HttpMethod.PATCH, "/v1/annotations/*", AccessRequirement.READ),
+                rule(HttpMethod.DELETE, "/v1/annotations/*", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/context/summary", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/context-links", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/graph", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/graph/common-dependencies", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/relations", AccessRequirement.AGENT),
+                rule(HttpMethod.DELETE, "/v1/relations/*", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/analytics/precision", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/sensors", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/workspaces/*/share", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/workspaces", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/workspaces", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/workspaces/*", AccessRequirement.READ),
+                rule(HttpMethod.PATCH, "/v1/workspaces/*", AccessRequirement.READ),
+                rule(HttpMethod.DELETE, "/v1/workspaces/*", AccessRequirement.READ),
+                rule(HttpMethod.PUT, "/v1/workspaces/*/layout", AccessRequirement.READ),
+                rule(HttpMethod.PATCH, "/v1/workspaces/*/context", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/workspaces/*/summary", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/workspaces/*/context-link", AccessRequirement.READ),
+
                 // ---- Autonomous analyst (prompt 102) ----
                 rule(HttpMethod.POST, "/v1/analyst/profiles/*/run", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/analyst/profiles/**", AccessRequirement.READ),

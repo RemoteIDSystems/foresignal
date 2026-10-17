@@ -79,6 +79,7 @@ public class CyclePacketReader {
         safely("findings", () -> findings(p, sections));
         safely("forecasts", () -> forecasts(p, until, CycleVocabulary.horizon(cadence), sections));
         safely("outlooks", () -> outlooks(since, until, p, sections));
+        safely("verdicts", () -> verdicts(p, sections));
         List<String> failing = new ArrayList<>();
         List<String> degraded = new ArrayList<>();
         safely("coverage", () -> coverage(failing, degraded));
@@ -98,6 +99,27 @@ public class CyclePacketReader {
         } catch (RuntimeException e) {
             log.warn("The cycle packet could not read {}: {}", what, e.toString());
         }
+    }
+
+    // ------------------------------------------------------------------------- verdicts
+
+    /** Analyst verdicts (129 annotations) created in the period, with the producer they judge. */
+    private void verdicts(MapSqlParameterSource p, Map<String, List<CyclePacketItem>> out) {
+        jdbc.query("SELECT id, target_ref, verdict, author, target_component, target_key, status_applied, created_at,"
+                + " \"private\" FROM annotation WHERE kind = 'verdict' AND deleted_at IS NULL AND created_at >= :since"
+                + " AND created_at < :until ORDER BY created_at DESC LIMIT :limit", p, rs -> {
+                    Map<String, Object> detail = new LinkedHashMap<>();
+                    detail.put("annotationId", rs.getString("id"));
+                    detail.put("author", rs.getString("author"));
+                    detail.put("component", rs.getString("target_component"));
+                    detail.put("producer", rs.getString("target_key"));
+                    detail.put("statusApplied", rs.getBoolean("status_applied"));
+                    String verdict = rs.getString("verdict");
+                    add(out, "verdicts", new CyclePacketItem(rs.getString("target_ref"), "Verdict " + verdict + " on "
+                            + rs.getString("target_ref"), verdict, null, instant(rs, "created_at"),
+                            "needs-review".equals(verdict) ? 0.5 : 1.0, List.of(), null, null, null, null, null,
+                            null, rs.getBoolean("private"), detail));
+                });
     }
 
     // ------------------------------------------------------------------------- situations

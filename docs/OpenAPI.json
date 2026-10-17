@@ -552,6 +552,11 @@
         "version": "1.3.0",
         "date": "2026-10-17",
         "note": "128: listAnalysisCycles, createAnalysisCycle, getAnalysisCycle, updateAnalysisCycle, deleteAnalysisCycle, runAnalysisCycle, listCycleRuns, getCycleRun, runAnalysisMaintenance, listAssessments, getLatestAssessment, getAssessment, getAssessmentBundle, submitAssessmentFeedback, createSituationAssessment, listSituationAssessments and getIntelBoard are implemented, with the SSE topic assessments (assessment.published, cycle.run_failed), the notification event assessment.published, the ledger forecasters llm:{profile}:{provider} and llm-redteam:{profile}, the analyst proposal types propose_hypothesis_set, propose_indicator, propose_question and propose_situation_merge, the prompt templates cycle-analyst-system, cycle-red-team-system, cycle-forecaster-system and cycle-proposer-system, and the MCP tools get_assessment, list_assessments, get_intel_board (read, also in the analyst read catalog) and run_cycle (agent). Reconciliations (additive): the two assessments SSE events carry an id (they replay from assessment_log, cursor key m); MaintenanceRun.trigger gains schedule (the monthly maintenance runs on the 1st at 03:30 UTC when no monthly cycle is enabled); CyclePacket gains cadence; Problem lists UNKNOWN_CYCLE, UNKNOWN_CYCLE_RUN, UNKNOWN_ASSESSMENT, CYCLE_RUN_IN_PROGRESS and MAINTENANCE_IN_PROGRESS."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-17",
+        "note": "129: getContract, getObject, resolveObjects, getObjectDossier, listRelatedObjects, summarizeContext, queryGraph, findCommonDependencies, createRelation, deleteRelation, listObjectAnnotations, createAnnotation, updateAnnotation, deleteAnnotation, getPrecision, listSensors, listWorkspaces, createWorkspace, getWorkspace, updateWorkspace, deleteWorkspace, putWorkspaceLayout, patchWorkspaceContext, getWorkspaceSummary, getWorkspaceContextLink, createContextLink and shareWorkspace are implemented, with the SSE topic workspace (workspace.context, workspace.presence; id-less control events), the share-link target type workspace, and the MCP tools get_object, get_related, get_workspace_context (read), annotate (read; verdicts need agent) and set_workspace_focus (agent). Reconciliations (additive except where noted): AnnotationInput.kind drops the never-implemented tag value (labels are 130 tags; notes carry free tags), and the annotation descriptions say so; x-foresignal-sse-topics lists workspace; getWorkspaceSummary's 409 is WORKSPACE_CONTEXT_INCOMPLETE; Problem lists OBJECT_REF_INVALID, UNKNOWN_OBJECT, UNKNOWN_RELATION, RELATION_NOT_EDITABLE, UNKNOWN_ANNOTATION, UNKNOWN_WORKSPACE, WORKSPACE_FORBIDDEN, WORKSPACE_CONTEXT_STALE and WORKSPACE_CONTEXT_INCOMPLETE."
       }
     ]
   },
@@ -12928,7 +12933,8 @@
           "analytics": "119",
           "forecasts": "122",
           "social": "135",
-          "external": "024"
+          "external": "024",
+          "workspace": "129"
         }
       }
     },
@@ -65348,7 +65354,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -65456,7 +65462,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -65535,7 +65541,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -65688,7 +65694,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -65860,7 +65866,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -65939,7 +65945,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -66018,7 +66024,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -66097,7 +66103,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -66178,7 +66184,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -66252,7 +66258,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -66267,7 +66273,7 @@
         ],
         "operationId": "listObjectAnnotations",
         "summary": "List an object's annotations",
-        "description": "Notes, tags and verdicts on the object visible to the caller.\n\n**Scope:** `read` (token required).",
+        "description": "Notes and verdicts on the object visible to the caller.\n\n**Scope:** `read` (token required).",
         "parameters": [
           {
             "name": "ref",
@@ -66395,7 +66401,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -66411,7 +66417,7 @@
         ],
         "operationId": "createAnnotation",
         "summary": "Annotate an object",
-        "description": "Read scope may add notes and tags; verdicts need agent scope (403). Verdicts feed precision metrics and propose historical benchmark cases; a `rejected` verdict dismisses a finding or intel event only with `applyStatus: true` from agent scope.\n\n**Scope:** `read` (token required).",
+        "description": "Read scope may add notes (with free tags); verdicts need agent scope (403). Verdicts feed precision metrics and propose historical benchmark cases; a `rejected` verdict dismisses a finding or intel event only with `applyStatus: true` from agent scope.\n\n**Scope:** `read` (token required).",
         "parameters": [
           {
             "name": "ref",
@@ -66505,7 +66511,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -66627,7 +66633,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -66707,7 +66713,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -66802,7 +66808,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -66955,7 +66961,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -67057,7 +67063,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -67161,7 +67167,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -67258,7 +67264,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -67375,7 +67381,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -67455,7 +67461,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -67575,7 +67581,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -67732,7 +67738,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -67801,7 +67807,7 @@
             }
           },
           "409": {
-            "description": "Context has no viewport or time range",
+            "description": "Context has no viewport or time range (WORKSPACE_CONTEXT_INCOMPLETE)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -67831,7 +67837,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -67930,7 +67936,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -68018,7 +68024,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -68100,7 +68106,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "129",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -87557,6 +87563,60 @@
             "status": 409,
             "prompt": "128",
             "note": "runAnalysisMaintenance: the monthly maintenance is already running"
+          },
+          {
+            "code": "OBJECT_REF_INVALID",
+            "status": 400,
+            "prompt": "129",
+            "note": "getObject, resolveObjects, getObjectDossier, listRelatedObjects, queryGraph, findCommonDependencies, createRelation, createAnnotation, patchWorkspaceContext, createContextLink (and the MCP object tools): a reference is malformed or names an unknown object type (docs/Client-Contract.md §2)"
+          },
+          {
+            "code": "UNKNOWN_OBJECT",
+            "status": 404,
+            "prompt": "129",
+            "note": "getObject, getObjectDossier, listRelatedObjects, createRelation, createAnnotation, findCommonDependencies (and get_object, set_workspace_focus): no object has that reference, or it is private or unshared and the caller may not see it"
+          },
+          {
+            "code": "UNKNOWN_RELATION",
+            "status": 404,
+            "prompt": "129",
+            "note": "deleteRelation: no live relation has that id, or it is private and the caller may not see it"
+          },
+          {
+            "code": "RELATION_NOT_EDITABLE",
+            "status": 409,
+            "prompt": "129",
+            "note": "deleteRelation: the relation is projected from an owning structure and is never edited by hand"
+          },
+          {
+            "code": "UNKNOWN_ANNOTATION",
+            "status": 404,
+            "prompt": "129",
+            "note": "updateAnnotation and deleteAnnotation: no live annotation has that id, or it is private and the caller may not see it"
+          },
+          {
+            "code": "UNKNOWN_WORKSPACE",
+            "status": 404,
+            "prompt": "129",
+            "note": "the workspace operations (and the workspace SSE topic and MCP tools): no workspace has that id, or the caller is neither its owner nor a member"
+          },
+          {
+            "code": "WORKSPACE_FORBIDDEN",
+            "status": 403,
+            "prompt": "129",
+            "note": "updateWorkspace, deleteWorkspace, putWorkspaceLayout, patchWorkspaceContext and shareWorkspace: the caller's workspace role does not allow the change"
+          },
+          {
+            "code": "WORKSPACE_CONTEXT_STALE",
+            "status": 412,
+            "prompt": "129",
+            "note": "patchWorkspaceContext: If-Match names an older contextVersion; the problem carries the current contextVersion"
+          },
+          {
+            "code": "WORKSPACE_CONTEXT_INCOMPLETE",
+            "status": 409,
+            "prompt": "129",
+            "note": "getWorkspaceSummary: the workspace context has no viewport or time range to summarize"
           }
         ]
       },
@@ -147903,7 +147963,7 @@
       },
       "Annotation": {
         "type": "object",
-        "description": "A note or verdict on any object (labels use 129 tags)",
+        "description": "A note or verdict on any object (labels use 130 tags)",
         "properties": {
           "id": {
             "$ref": "#/components/schemas/Ulid"
@@ -148059,13 +148119,12 @@
       },
       "AnnotationInput": {
         "type": "object",
-        "description": "A new annotation; verdicts need agent scope",
+        "description": "A new annotation; verdicts need agent scope. There is no tag kind: label objects with 130 tags; a note may carry free tags.",
         "properties": {
           "kind": {
             "type": "string",
             "enum": [
               "note",
-              "tag",
               "verdict"
             ]
           },

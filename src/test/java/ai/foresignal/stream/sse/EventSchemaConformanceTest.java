@@ -179,7 +179,38 @@ class EventSchemaConformanceTest {
                     EventSchemaConformanceTest::assumptionEvents),
             // 128: AssessmentsTopic sends the assessment_log payloads written by AssessmentEvents on topic assessments.
             entry(ai.foresignal.cycle.AssessmentEvents.PUBLISHED, EventSchemaConformanceTest::assessmentPublishedEvents),
-            entry(ai.foresignal.cycle.AssessmentEvents.RUN_FAILED, EventSchemaConformanceTest::cycleRunFailedEvents));
+            entry(ai.foresignal.cycle.AssessmentEvents.RUN_FAILED, EventSchemaConformanceTest::cycleRunFailedEvents),
+            // 129: WorkspaceTopic sends id-less control events built by its payload helpers.
+            entry(ai.foresignal.object.WorkspaceTopic.CONTEXT_EVENT, EventSchemaConformanceTest::workspaceContextEvents),
+            entry(ai.foresignal.object.WorkspaceTopic.PRESENCE_EVENT,
+                    EventSchemaConformanceTest::workspacePresenceEvents));
+
+    /** {@code workspace.context} payloads as {@code WorkspaceTopic.contextPayload} writes them (prompt 129). */
+    static List<JsonNode> workspaceContextEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        Map<String, Object> patch = new java.util.LinkedHashMap<>();
+        patch.put("focusRef", "situation:01JA8Q3V7S2K9W4T6Y1B5N0M3C");
+        patch.put("asOf", null);
+        return List.of(
+                toTree(ai.foresignal.object.WorkspaceTopic.contextPayload("01JA8Q3V7S2K9W4T6Y1B5N0M3C", 2, patch,
+                        "globe-1", "01JA8Q3V7S2K9W4T6Y1B5N0M3D", at)),
+                toTree(ai.foresignal.object.WorkspaceTopic.contextPayload("01JA8Q3V7S2K9W4T6Y1B5N0M3C", 3, Map.of(),
+                        null, null, at)));
+    }
+
+    /** {@code workspace.presence} payloads as {@code WorkspaceTopic.presencePayload} writes them (prompt 129). */
+    static List<JsonNode> workspacePresenceEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        ai.foresignal.object.WorkspaceFilter globe = new ai.foresignal.object.WorkspaceFilter(
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3C", "globe-1", "globe", "01JA8Q3V7S2K9W4T6Y1B5N0M3D", at);
+        return List.of(
+                toTree(ai.foresignal.object.WorkspaceTopic.presencePayload("01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+                        List.of(globe), "joined", "globe-1", at)),
+                toTree(ai.foresignal.object.WorkspaceTopic.presencePayload("01JA8Q3V7S2K9W4T6Y1B5N0M3C", List.of(),
+                        "left", "globe-1", at)),
+                toTree(ai.foresignal.object.WorkspaceTopic.presencePayload("01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+                        List.of(globe), null, null, at)));
+    }
 
     /** {@code assessment.published} payloads as {@code AssessmentEvents.publishedPayload} writes them (prompt 128). */
     static List<JsonNode> assessmentPublishedEvents() {

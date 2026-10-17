@@ -79,8 +79,8 @@ Two Server-Sent Events endpoints push changes as they are committed (typically w
   `externalId`, `bbox` (a box with `minLon > maxLon` crosses the antimeridian), `near` +
   `radiusKm`, `payload` (default false), `live` (default true) and `touches` (default false).
 - `GET /v1/events/stream` multiplexes topics on one connection: `topics=changes,alerts`, and
-  `notifications`, `system`, `inbox`, `intel`, `evidence`, `analyst`, `situations`, `analytics`, `forecasts` and
-  `hypotheses` as their prompts add them. Filters take the topic as a prefix
+  `notifications`, `system`, `inbox`, `intel`, `evidence`, `analyst`, `situations`, `analytics`, `forecasts`,
+  `hypotheses`, `assessments` and `workspace` as their prompts add them. Filters take the topic as a prefix
   (`changes.bbox=…`, `changes.live=false`, `alerts.minSeverity=warning`). The first event is `hello {streamId, topics,
   watermarkSeq, filterVersion}`. The filter can be swapped without reconnecting (below).
 
@@ -692,6 +692,11 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `get_assessment` | read | One analysis assessment (128) by `assessmentId`, or the latest (of a `cadence`: `daily`, `weekly`, `monthly`, `on-demand`): the bottom line of typed, cited key judgments (each probability a number with its derived ICD 203 term, confidence in a separate statement), what changed since the previous one, and its sections and markdown. **Read the latest assessment before answering questions about situations, and cite it as `assessment:ID`.** Judgments with `textOrigin: llm` were written by a model and validated; speculation is in its own section. |
 | `list_assessments` | read | Assessments newest first (128): `cadence`, `situationId`, `since`, `limit`; id, period, status and headline. |
 | `get_intel_board` | read | The ≤ 8 KB intel board (128): top situations, band changes and observed indicators of the last 24 h, forecasts due in 7 days, the latest assessment per cadence, the ensemble's 90-day calibration next to the operator's, and benchmark status. Read it first for "what is going on" questions. |
+| `get_object` | read | The uniform envelope of any object by its reference (129): `ref` (`{type}:{id}`, for example `situation:01J…`, `record:{sourceId}/{externalId}`, `intel-event:01J…`), optional `asOf`. Title, summary (with `textOrigin`), status, severity, time, simplified geometry, `private`, provenance and the `actions` your token may perform. Unknown types are refused (`OBJECT_REF_INVALID`); objects you may not see are `UNKNOWN_OBJECT`. |
+| `get_related` | read | The neighborhood of an object through the relation graph (129): `ref`, optional `types`, `direction` (`out`, `in`, `both`), `asOf`, `minConfidence`, `limit` ≤ 200. Each item has the relation (type, validity, confidence, label, provenance: a projecting component or an operator) and the neighbor's envelope; `located-in` places are computed on demand. A relation says how two objects are linked, not that one caused the other: `causes` is only ever asserted by people. |
+| `annotate` | read (verdicts: agent) | Adds a note (`body` ≤ 10,000 characters, `tags`) or, with agent scope, a verdict (`kind: verdict`, `verdict` `confirmed`, `rejected`, `needs-review` or `duplicate-of` with `duplicateOfRef`) to any object (129). Verdicts feed precision metrics and propose benchmark cases; `applyStatus: true` with a rejected verdict also dismisses a finding or intel event, so use it only when you mean to. A token is required. |
+| `get_workspace_context` | read | A workspace's shared context (129): selected objects, `focusRef`, time range, viewport, active situation and hypothesis set, `contextVersion` and the clients following it; without `workspaceId`, your workspaces. Only owners and members see a workspace. |
+| `set_workspace_focus` | agent | Points every client following a workspace at an object (129): sets `focusRef` and selects it (`workspaceId`, `ref`). Needs the owner's or an editor's role on the workspace; the change reaches every open app with `originClientId` `mcp:{session}`. |
 | `list_products` | read | The weather and imagery products you may sample: `id`, `title`, `kind`, `units`, `coverage`, `latest` (newest frame or complete run) and `health` (`ok`, or `unavailable` with the reason); optional `category` (052). |
 | `sample_weather` | read | Product values at `lon`/`lat` or a `place` (needs a token), `time` `latest`, `now`, ISO or an offset (`-PT1H`, `+PT6H`), each with `validTime`, `localTime`, `ageMinutes`, `run`, `coverage` and `status`; plus `hazards`: NWS alerts covering the point (`automated: false`) and ProbSevere objects within 50 km (`automated: true`). A status other than `ok` is unknown, never clear (052). |
 | `weather_forecast` | read | A 3-hourly point forecast to 120 h (`hours`) from the stored GFS and HRRR runs: temperature, wind, gusts, precipitation per step and HRRR smoke, with each provider's `run` and `status` (052). For a place it adds provider `nws` (053): the official NWS gridpoint forecast to 72 h with precipitation probability (`popPct`) and sky cover, `coverage: place`, its `updatedAt`, and `status` `stale` once it is more than 6 hours old. |
@@ -770,10 +775,28 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 - **LLM forecasts are just forecasts.** The cycle's `llm:*` and `llm-redteam:*` forecasters are scored in the ledger
   like every other forecaster; quote their scorecard, not their confidence.
 
+### Objects, relations and workspaces
+
+- **Refer to objects by their `ObjectRef`.** Every Foresignal object has one reference, `{type}:{id}`
+  (`situation:01J…`, `finding:01J…`, `record:{sourceId}/{externalId}`, `alert:42`; docs/Client-Contract.md §2), and
+  the same reference works in `get_object`, `get_related`, `annotate`, workspace contexts and deep links. Use it when
+  you name an object to the operator or to another tool; a client can resolve it in one call.
+- **Use workspace focus to show the operator what you mean.** When you discuss an object the operator is following in
+  a workspace, call `set_workspace_focus` with its reference: the globe, the analyst workstation and every other app on
+  that workspace move to it. Read `get_workspace_context` first to see what is already selected; never change the
+  focus of a workspace you were not asked to work in.
+- **Relations carry their provenance.** A projected relation names the component that derived it from a stored
+  structure (situation membership, intel-event roles, entity links, facility edges, ACH ratings); an operator relation
+  names the person or agent. Quote the label and confidence with any link you report.
+- **Validation teaches the system.** Prefer a note when you are unsure; record a verdict only when the evidence
+  supports it, and say why in `body`. `needs-review` asks a person to look.
+
 ### Vocabulary
 
 - A **watch** is a trigger rule: conditions on sources, kinds, payload fields and geofences. When a record matches, the watch raises an **alert**, which can be acknowledged, resolved or snoozed.
 - A **record** is identified as `source:externalId`. Every stored version has a global, increasing **seq**.
+- An **object reference** (`ObjectRef`, prompt 129) names any object as `{type}:{id}`; a record's is
+  `record:{sourceId}/{externalId}` (with `@{seq}` for one version).
 
 ### Citing
 
@@ -982,6 +1005,8 @@ OpenClaw skill in `integrations/openclaw/foresignal/` packages the same knowledg
 | Create and run briefings | `agent` | |
 | Read places (always a token, even under `openReads`); create, change or delete places and views; watchlists | `read` / `agent` (watchlists: `agent`) | |
 | Acknowledge, resolve, snooze alerts | `agent`, or a capability URL from a notification | |
+| Resolve objects, read relations, add notes, follow workspaces | `read` (notes and workspaces: a token) | |
+| Verdicts, operator relations, set a workspace's focus | `agent` (focus: the workspace's owner or an editor) | |
 | Push records into a custom source | the source's ingest key (`eik_…`) | the source (admin) |
 | Channels, sources, credentials, LLM providers, tokens, settings | `admin` | never an agent |
 

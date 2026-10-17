@@ -287,6 +287,9 @@ public final class SettingKeys {
     /** The buffer in kilometers around an asset for published probability polygons (prompt 127); 5. */
     public static final String IMPACT_ASSET_BUFFER_KM = "impact.assetBufferKm";
 
+    /** The durable seq cursor of the relation projector (prompt 129; the consumer clamp of retention). */
+    public static final String RELATION_CURSOR = "relation.cursor";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -302,7 +305,7 @@ public final class SettingKeys {
                     ANALYSIS_PRECURSORS_DISCOVERY_FRACTION, PRECURSOR_CURSOR, PRECURSOR_STREAM_CURSORS,
                     BASERATE_FOLD_WEEK, FORECAST_ENSEMBLE, BENCHMARK_THRESHOLDS,
                     ANALYSIS_FORECASTS_QUESTION_SERIES, IMPACT_CURSOR, IMPACT_MIN_PROBABILITY,
-                    IMPACT_QUESTION_MIN_PROBABILITY, IMPACT_ASSET_BUFFER_KM);
+                    IMPACT_QUESTION_MIN_PROBABILITY, IMPACT_ASSET_BUFFER_KM, RELATION_CURSOR);
 
     private SettingKeys() {}
 }

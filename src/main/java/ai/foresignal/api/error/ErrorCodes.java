@@ -690,6 +690,33 @@ public final class ErrorCodes {
     /** 409: monthly maintenance is already running (128). */
     public static final String MAINTENANCE_IN_PROGRESS = "MAINTENANCE_IN_PROGRESS";
 
+    /** 400: an object reference is malformed or names an unknown type (129, Client-Contract §2). */
+    public static final String OBJECT_REF_INVALID = "OBJECT_REF_INVALID";
+
+    /** 404: no object has that reference, or the caller may not see it (129). */
+    public static final String UNKNOWN_OBJECT = "UNKNOWN_OBJECT";
+
+    /** 404: no workspace has that id, or the caller is neither its owner nor a member (129). */
+    public static final String UNKNOWN_WORKSPACE = "UNKNOWN_WORKSPACE";
+
+    /** 404: no annotation has that id, or the caller may not see it (129). */
+    public static final String UNKNOWN_ANNOTATION = "UNKNOWN_ANNOTATION";
+
+    /** 404: no relation has that id, or the caller may not see it (129). */
+    public static final String UNKNOWN_RELATION = "UNKNOWN_RELATION";
+
+    /** 409: a projected relation is never edited by hand (129). */
+    public static final String RELATION_NOT_EDITABLE = "RELATION_NOT_EDITABLE";
+
+    /** 412: the workspace context changed since the version in {@code If-Match} (129). */
+    public static final String WORKSPACE_CONTEXT_STALE = "WORKSPACE_CONTEXT_STALE";
+
+    /** 409: the workspace context has no viewport or time range to summarize (129). */
+    public static final String WORKSPACE_CONTEXT_INCOMPLETE = "WORKSPACE_CONTEXT_INCOMPLETE";
+
+    /** 403: the caller's workspace role does not allow the change (129). */
+    public static final String WORKSPACE_FORBIDDEN = "WORKSPACE_FORBIDDEN";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

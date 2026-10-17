@@ -50,7 +50,10 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              # 126: regional indices.
              "indexId": "indexId",
              # 128: analysis cycles and assessments.
-             "cycleId": "cycleId", "assessmentId": "assessmentId"}
+             "cycleId": "cycleId", "assessmentId": "assessmentId",
+             # 129: object references (one path segment, / percent-encoded), workspaces, annotations, relations.
+             "ref": "objectRef", "workspaceId": "workspaceId", "annotationId": "annotationId",
+             "relationId": "relationId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -140,6 +143,17 @@ CAP_ALERT = """<?xml version="1.0" encoding="UTF-8"?>
 
 # Request bodies that are not JSON (024): content type, raw text, Postman language.
 RAW_BODIES = {
+  # 129: JSON merge patches (application/merge-patch+json): an annotation's body, a workspace's name and members, and
+  # a workspace context patch (send it with If-Match: {{contextVersion}}).
+  "updateAnnotation": ("application/merge-patch+json", json.dumps({"body": "Confirmed by the 06:00 imagery pass.",
+                                                                   "tags": ["imagery"]}, indent=2), "json"),
+  "updateWorkspace": ("application/merge-patch+json", json.dumps({"name": "Red Sea watch (night shift)",
+                                                                  "members": {"principal-analyst-2": "viewer"}},
+                                                                 indent=2), "json"),
+  "patchWorkspaceContext": ("application/merge-patch+json", json.dumps({
+      "focusRef": "situation:{{situationId}}", "selectedRefs": ["situation:{{situationId}}"],
+      "timeRange": {"start": "2026-10-16T00:00:00Z", "end": None}, "playback": {"state": "paused", "rate": 60}},
+      indent=2), "json"),
   "ntfyPublish": ("text/plain", "Backup finished on pve1", "text"),
   "ntfyPublishPut": ("text/plain", "Disk usage above 90% on nas", "text"),
   # 036: a watchlist CSV import (header value[,label,notes,tags]; tags separated by ;).
@@ -190,6 +204,8 @@ FORMDATA_BODIES = {
 
 # Request headers for operations that need more than the generic ones (024).
 EXTRA_HEADERS = {
+  # 129: the context version the patch was made against, and this client's id (its originClientId).
+  "patchWorkspaceContext": [("If-Match", "{{contextVersion}}"), ("Foresignal-Client-Id", "postman")],
   "ntfyPublish": [("X-Title", "Proxmox"), ("X-Priority", "high"), ("X-Tags", "backup,id=pve1-backup")],
   "ntfyPublishPut": [("Title", "NAS"), ("Priority", "4"), ("Tags", "storage")],
 }
@@ -768,6 +784,31 @@ BODIES = {
                           "roles": ["analyst", "red-team"], "enabled": True},
   "submitAssessmentFeedback": {"rating": "useful", "comment": "The red-team premortem changed our watch list."},
   "createSituationAssessment": {"roles": ["analyst"], "effort": "medium"},
+  # 129: resolve a batch of references, a two-hop subgraph of a situation, a verdict on a finding (agent scope; a
+  # note needs only a token), a workspace over the Red Sea with its initial context, an operator relation, shared
+  # dependencies of two objects, a viewport summary, an ad-hoc deep link and a one-day share of a workspace.
+  "resolveObjects": {"refs": ["situation:{{situationId}}", "finding:{{findingId}}",
+                              "record:{{sourceId}}/{{externalId}}"], "asOf": None},
+  "queryGraph": {"refs": ["situation:{{situationId}}"], "depth": 2, "types": ["member-of", "evidence-for",
+                 "depends-on", "same-as"], "limit": 500},
+  "createAnnotation": {"kind": "verdict", "verdict": "confirmed", "body": "Matches the port authority notice.",
+                       "tags": ["port"], "applyStatus": False},
+  "createWorkspace": {"name": "Red Sea watch", "members": {},
+                      "context": {"selectedRefs": ["situation:{{situationId}}"], "focusRef": "situation:{{situationId}}",
+                                  "timeRange": {"start": "2026-10-10T00:00:00Z", "end": None}, "asOf": None,
+                                  "viewport": {"bbox": [32.0, 11.0, 45.0, 21.0]}, "filters": {"kinds": ["vessel"]},
+                                  "layers": ["vessel", "observability:ais-behaviour"]},
+                      "layout": {"panels": ["globe", "timeline"]}, "private": False},
+  "createRelation": {"fromRef": "finding:{{findingId}}", "toRef": "situation:{{situationId}}",
+                     "type": "related-to", "confidence": 0.7, "label": "likely"},
+  "findCommonDependencies": {"refs": ["situation:{{situationId}}", "record:{{sourceId}}/{{externalId}}"]},
+  "summarizeContext": {"viewport": {"center": [43.1, 14.8], "radiusKm": 300},
+                       "timeRange": {"start": "2026-10-16T00:00:00Z", "end": None},
+                       "filters": {"minSeverity": "warning"}, "layers": ["vessel", "aircraft"]},
+  "createContextLink": {"context": {"focusRef": "situation:{{situationId}}",
+                                    "viewport": {"center": [43.1, 14.8], "radiusKm": 150}}},
+  "shareWorkspace": {"expiresAt": None, "maxUses": 50},
+  "putWorkspaceLayout": {"panels": ["globe", "timeline", "dossier"], "globe": {"pitch": 45}},
   # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
   # one nautical mile in the next hour.
   "cpaBatch": {"subject": "aisstream/244660000", "filter": {"kinds": ["vessel"], "sources": [],
@@ -821,6 +862,11 @@ CAPTURE = {
   "createAnalysisCycle": "const j = pm.response.json(); pm.collectionVariables.set('cycleId', j.id);",
   "runAnalysisCycle": "const j = pm.response.json(); pm.collectionVariables.set('cycleRunId', j.id);",
   "listAssessments": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('assessmentId', j.items[0].id);",
+  # 129: the workspace (and its context version for If-Match), the annotation and the relation.
+  "createWorkspace": "const j = pm.response.json(); pm.collectionVariables.set('workspaceId', j.id); pm.collectionVariables.set('contextVersion', String(j.contextVersion));",
+  "patchWorkspaceContext": "const j = pm.response.json(); pm.collectionVariables.set('contextVersion', String(j.contextVersion));",
+  "createAnnotation": "const j = pm.response.json(); pm.collectionVariables.set('annotationId', j.id);",
+  "createRelation": "const j = pm.response.json(); pm.collectionVariables.set('relationId', j.id);",
   # 126: the queued index fit (a 103 job: read it with getBacktest).
   "fitRegionalIndex": "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
   # 117: the created attention topic.
@@ -1030,6 +1076,13 @@ def example_for(schema):
     if schema.get("format") == "date-time": return "2026-10-10T00:00:00Z"
     return {"integer": "", "number": "", "boolean": "false"}.get(t, "")
 
+# 129: read-scope operations whose controller requires a token (security without the anonymous alternative).
+TOKEN_REQUIRED_READS = {"listObjectAnnotations", "createAnnotation", "updateAnnotation", "deleteAnnotation",
+                        "listWorkspaces", "createWorkspace", "getWorkspace", "updateWorkspace", "deleteWorkspace",
+                        "putWorkspaceLayout", "patchWorkspaceContext", "getWorkspaceSummary",
+                        "getWorkspaceContextLink"}
+
+
 def req_item(path, method, op):
     opid = op["operationId"]
     scope = op.get("x-foresignal-scope", "open")
@@ -1081,7 +1134,8 @@ def req_item(path, method, op):
     elif admin:
         var = "{{agentToken}}" if scope == "agent" else "{{adminToken}}"
         request["auth"] = {"type": "bearer", "bearer": [{"key": "token", "value": var, "type": "string"}]}
-    elif scope == "read" and op.get("x-foresignal-always-authenticated"):
+    elif scope == "read" and (op.get("x-foresignal-always-authenticated")
+                              or (opid in TOKEN_REQUIRED_READS and op.get("security") == [{"bearerToken": []}])):
         # Always authenticated (023): a token is needed even while openReads is on.
         request["auth"] = {"type": "bearer", "bearer": [{"key": "token", "value": "{{readToken}}", "type": "string"}]}
     else:
@@ -1213,6 +1267,8 @@ collection = {
       ("referenceImportId", ""), ("baseRateId", ""),
       ("questionId", ""), ("forecasterId", "ensemble"), ("evaluationId", ""),
       ("cycleId", ""), ("cycleRunId", ""), ("assessmentId", ""),
+      ("objectRef", "situation:{{situationId}}"), ("workspaceId", ""), ("contextVersion", "1"), ("annotationId", ""),
+      ("relationId", ""),
       ("benchmarkRunId", ""), ("benchmarkCaseId", ""),
       ("hypothesisSetId", ""), ("hypothesisId", ""), ("indicatorId", ""), ("achEvidenceId", ""), ("assumptionId", ""),
       ("indexId", "instability"), ("outlookRegion", "YE"), ("outlookFamily", "conflict:battles"),

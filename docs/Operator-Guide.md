@@ -5427,8 +5427,8 @@ File → New Calendar Subscription; in Google Calendar: Other calendars → From
 ### Share links
 
 `POST /v1/share-links` (agent token) creates an expiring link (default 7 days, at most 30) to one `record`,
-`alert`, `view`, `track`, `briefing-run` or `export`; the `fss_` key is returned once and only its hash is
-stored. The link works without a token, only at `GET /v1/k/{key}` (JSON, or GeoJSON with
+`alert`, `view`, `track`, `briefing-run` or `export` (a workspace is shared with `POST /v1/workspaces/{id}/share`,
+see "Objects, workspaces and validation"); the `fss_` key is returned once and only its hash is stored. The link works without a token, only at `GET /v1/k/{key}` (JSON, or GeoJSON with
 `Accept: application/geo+json`), `/v1/k/{key}/geojson`, `/v1/k/{key}/tiles/{z}/{x}/{y}.mvt` (views) and
 `/v1/k/{key}/download` (exports); it is never accepted as a bearer token. Uses are counted (`maxUses`), limited to
 60 a minute per link, and audited (the first use and then at most one an hour); a revoked, expired or used-up link
@@ -6957,3 +6957,135 @@ cut in `truncated`.
 The SSE topic `assessments` carries `assessment.published` and `cycle.run_failed` (cursor key `m`; a reconnecting
 client replays what it missed). MCP: `get_assessment`, `list_assessments` and `get_intel_board` (read, also in the
 analyst's and the cycles' read catalog) and `run_cycle` (agent, cost-bearing).
+
+## Objects, workspaces and validation (prompt 129)
+
+Prompt 129 gives every analytic object one address, links objects into a graph, lets analysts and agents record
+verdicts on what Foresignal produced, and lets several clients (a globe, a map, an analyst console, an agent) share one
+working context.
+
+### Object references
+
+Every object has a reference of the form `{type}:{id}`: `record:{sourceId}/{externalId}`, `situation:{id}`,
+`finding:{id}`, `intel-event:{id}`, `canonical-event:{id}`, `entity:{id}`, `precursor:{id}`, `base-rate:{id}`,
+`hypothesis-set:{id}`, `hypothesis:{id}`, `indicator:{id}`, `question:{id}`, `forecast:{id}`, `assessment:{id}`,
+`alert:{id}`, `investigation:{id}`, `place:{id}`, `view:{id}`, `watchlist:{id}`, `source:{id}`,
+`sensor:{kind}:{id}`, `workspace:{id}` and `annotation:{id}`. `GET /v1/contract` (read) lists the types, the relation
+types, the confidence labels and the client kinds with the contract version (`1.0`).
+
+In a URL path the reference is one segment, so its `/` is written `%2F`
+(`GET /v1/objects/record:usgs-quakes%2Fus7000abcd`). Foresignal's Tomcat connector passes encoded slashes through for
+this; a reverse proxy in front of it must forward them still encoded. An invalid reference answers 400 `OBJECT_REF_INVALID`, an unknown or
+invisible one 404 `UNKNOWN_OBJECT`.
+
+### Envelopes, dossiers and context summaries
+
+`GET /v1/objects/{ref}` (read) returns the object's **envelope**: type, title, time, geometry (simplified to at most
+500 vertices), severity or status, `private`, the provenance it came from and the **actions** the caller may take on
+it (open, annotate, share, add to a workspace, and so on, each with the method and path). `?asOf=` reads the object as
+it was: records from their version history (`record:{source}/{id}@{seq}` names one version), situations from their
+snapshots; types without history answer only for their current state. `POST /v1/objects/resolve` turns up to 500
+references into envelopes in one call; unknown ones come back in `missing`.
+
+`GET /v1/objects/{ref}/dossier` (read; at most 64 KB; ETag and 304) gathers what a client needs to open an object in
+one call: an overview, current imagery (raster frames and satellite scenes covering it), official forecasts (NHC),
+projected impacts (127), related objects, a timeline, evidence and analogs. `include=` picks sections. Imagery uses the
+current scene and frame heads only, and official forecasts cover NHC only.
+
+`POST /v1/context/summary` (read; at most 32 KB; cached 30 seconds) summarizes an area and time range for a side panel:
+record counts per layer (current state), the latest activity (findings, intel events, alerts and situation changes;
+`asOf` bounds the activity only), up to 15 insights and up to 10 related objects. It writes no narrative; the
+`narrative` field is null. `GET /v1/workspaces/{id}/summary` does the same for a workspace's context (409
+`WORKSPACE_CONTEXT_INCOMPLETE` when the context lacks a viewport or a time range).
+
+### Relations and the projector
+
+Relations are typed, dated edges between references: `member-of`, `observed-by`, `same-as`, `located-in`, `near`,
+`depends-on`, `affects`, `derived-from`, `evidence-for`, `evidence-against`, `about`, `mentions`, `precedes`, `causes`
+and `related-to`, each with a confidence label (`confirmed`, `likely`, `possible`, `speculative`) and a validity
+interval.
+
+Most relations are **projected** from what Foresignal already knows, by the `relation-projector` (1.0.0):
+
+- incrementally from the record stream for record-backed owners (situations, intel events, findings and the other
+  `foresignal-intel` and `foresignal-analytics` records), with the durable cursor `relation.cursor`, which retention's
+  consumer clamp respects like every other cursor;
+- nightly at 03:40 UTC (UTC, `foresignal.relations.reconcile-cron`) for the rest: entity links, infrastructure
+  dependency edges (owner `infra:graph`), canonical events, questions and investigations. A first reconcile also runs
+  when no projected relation exists yet.
+
+`foresignal.relations.auto-start` (default: the same as `foresignal.analytics.scheduled`) turns the projector off for
+tests or a replica. `located-in` is computed on demand from your 036 places, not stored. `precedes` and `affects` are
+not projected, and neither is `causes`.
+
+Reading the graph: `GET /v1/objects/{ref}/related` (read; `types`, `direction`, `asOf`, `minConfidence`, `limit`),
+`POST /v1/graph` (read; up to 50 seed references, at most 2,000 edges) and `POST /v1/graph/common-dependencies` (read;
+up to 20 references; the infrastructure the objects share, through the 104 facilities that directly affect them).
+Operators and agents add their own edges with `POST /v1/relations` (agent, 201) and retire them with
+`DELETE /v1/relations/{id}` (204); projected edges cannot be retired by hand (409 `RELATION_NOT_EDITABLE`). A
+`causes` edge is labeled at most `possible` unless an admin token asserts it: Foresignal never claims causation by
+itself.
+
+### Annotations, verdicts and precision
+
+`POST /v1/objects/{ref}/annotations` (read token for a note, agent for a verdict) attaches a `note` (a body of at most
+10,000 characters and up to 20 tags) or a `verdict`: `confirmed`, `rejected`, `needs-review` or `duplicate-of` (with
+`duplicateOfRef`). `GET` lists them (`thread` for replies), `PATCH /v1/annotations/{id}` (JSON merge patch) edits one
+and `DELETE` removes it; 404 `UNKNOWN_ANNOTATION`. A note tagged `propose-watch` is how a client suggests a watch; it is
+an annotation, not a 102 proposal. A private annotation is visible only to callers with private access.
+
+Verdicts do three things:
+
+- **Precision.** `GET /v1/analytics/precision?component=&since=` (read) gives, per producing component (detectors,
+  the situation linker, the impact projector and so on), the share of labeled objects confirmed, with a 95% Wilson
+  interval. Only the latest live verdict per object counts, and `needs-review` is not a label. Read the interval: five
+  confirmations out of six is not the same evidence as fifty out of sixty.
+- **Status, only when asked.** A `rejected` verdict dismisses a finding or an intel event only when its agent-scope
+  author says so (`"applyStatus": true`); otherwise the object stays as it was and the verdict is recorded beside it.
+- **Benchmark cases.** A verdict on an object with a time window proposes a historical benchmark case (123), stored
+  as a pending proposal for an operator; nothing is added to the corpus by itself. The 128 cycle packet lists the
+  period's verdicts.
+
+### Workspaces
+
+A workspace is a shared context several clients follow: `POST /v1/workspaces` (any authenticated token) creates one,
+`GET /v1/workspaces` lists those you can see, and `GET`, `PATCH` (merge patch) and `DELETE /v1/workspaces/{id}` read,
+change and remove one (404 `UNKNOWN_WORKSPACE`, 403 `WORKSPACE_FORBIDDEN`). Its **context** holds `selectedRefs`,
+`focusRef`, `timeRange`, `asOf`, `playback`, `viewport` (a bbox, or a center and radius), `activeSituationId`,
+`activeHypothesisSetId`, `filters` and `layers`; its **layout** (`PUT …/layout`, at most 64 KB) is free-form client
+state.
+
+Roles: the owner, and members (at most 200) as `editor` or `viewer`. Owners and editors change the context and layout;
+the owner, or an editor with an agent token, changes the name, members, saved views and the private flag; the owner or
+an admin deletes it; an admin may read any workspace. A private workspace is visible only to callers with private
+access.
+
+**Keeping clients in step.** `PATCH /v1/workspaces/{id}/context` takes a JSON merge patch with `If-Match` set to the
+context version you hold; a stale version answers 412 `WORKSPACE_CONTEXT_STALE` with the current `contextVersion`, so
+the client re-reads and re-applies. Send `Foresignal-Client-Id` so other clients can tell your changes from theirs. The
+SSE topic `workspace` of `/v1/events/stream` (cursor key `w`; filter `workspaceId`, optional `clientId` and
+`clientKind`; always authenticated) carries `workspace.context` on every change and `workspace.presence` when the set
+of connected clients changes (checked every 2 seconds).
+
+**Deep links and sharing.** `GET /v1/workspaces/{id}/context-link` and `POST /v1/context-links` encode a context as a
+`#fs=` fragment (at most 2,048 bytes) a client can open without a server round trip. `POST /v1/workspaces/{id}/share`
+(agent) creates an expiring share link to a read-only snapshot of the workspace, with the same rules as other share links.
+
+### Sensor discovery
+
+`GET /v1/sensors?bbox=` (or `placeId=`) with `from`, `to` (at most 7 days) and `kinds` answers "what could observe this
+area?": enabled sources whose 116 detection probability there is above 0.2, local receivers whose last position is
+within 400 km, stations within 2,500 km, curated Earth-observation satellites with predicted passes at 10° elevation or
+more (from current CelesTrak elements), STAC scenes and raster products already in Foresignal. Every answer says
+"Foresignal cannot task public satellites or third-party sensors": it tells you what may already be looking, not what
+you can order.
+
+The satellite list is `intel/satellite-capabilities.json` (39 satellites: operator, sensor type, nominal resolution and
+swath, and the NORAD catalog number, checked against CelesTrak on 2026-10-17; geostationary satellites are left out).
+Point `foresignal.sensors.capabilities-file` at a JSON file of the same shape to add satellites or replace bundled
+entries with the same NORAD number. The figures are nominal, not per-pass.
+
+### MCP
+
+`get_object`, `get_related` and `get_workspace_context` (read; `get_object` and `get_related` are also in the
+analyst's read catalog), `annotate` (read for notes, agent for verdicts) and `set_workspace_focus` (agent).

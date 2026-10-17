@@ -162,5 +162,12 @@ public final class StartupOrder {
      */
     public static final int REFERENCE = 40;
 
+    /**
+     * The relation projector (prompt 129): its change-bus subscriber and catch-up loop start after every structure it
+     * projects from (situations, intel, impact, cycles); a first reconcile runs on its own thread when no projected
+     * relation exists yet.
+     */
+    public static final int RELATIONS = 41;
+
     private StartupOrder() {}
 }
