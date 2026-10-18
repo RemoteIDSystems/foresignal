@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling>=1.32.4"]
+build-backend = "hatchling.build"
+
+[project]
+name = "foresignal-edp"
+version = "1.0.0"
+description = "Provider library for the Foresignal External Data Protocol (EDP) 1.0: manifest and item builders, validation, push client and pull-server helper."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Foresignal" }]
+keywords = ["foresignal", "edp", "external-data-protocol", "osint", "data-provider"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Typing :: Typed",
+]
+dependencies = [
+    "jsonschema>=4.26.0,<5",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=9.1.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/foresignal_edp"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/foresignal_edp", "tests", "examples", "scripts", "README.md", "pyproject.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

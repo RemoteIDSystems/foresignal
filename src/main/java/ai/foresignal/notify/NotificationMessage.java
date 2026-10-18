@@ -170,6 +170,11 @@ public record NotificationMessage(
         public boolean loaded() {
             return bytes != null && bytes.length > 0;
         }
+
+        /** True for an {@code audio/*} attachment (prompt 141). */
+        public boolean isAudio() {
+            return contentType != null && contentType.toLowerCase(java.util.Locale.ROOT).startsWith("audio/");
+        }
     }
 
     /** A copy carrying {@code newAttachments} (prompt 055: the delivery worker attaches the alert's map). */
@@ -184,10 +189,20 @@ public record NotificationMessage(
                 tags, attachments, updateOf, origin, createdAt, alertId, ruleId, briefingRunId, exercise);
     }
 
-    /** The first attachment whose bytes are loaded, or null. */
+    /** The first image attachment whose bytes are loaded, or null (prompt 141: audio is {@link #audio()}). */
     public Attachment image() {
         for (Attachment a : attachments) {
-            if (a.loaded()) {
+            if (a.loaded() && !a.isAudio()) {
+                return a;
+            }
+        }
+        return null;
+    }
+
+    /** The first audio attachment whose bytes are loaded (prompt 141: briefing audio), or null. */
+    public Attachment audio() {
+        for (Attachment a : attachments) {
+            if (a.loaded() && a.isAudio()) {
                 return a;
             }
         }

@@ -1,0 +1,201 @@
+from http import HTTPStatus
+from typing import Any
+from urllib.parse import quote
+from uuid import UUID
+
+import httpx
+
+from ... import errors
+from ...client import AuthenticatedClient, Client
+from ...models.problem import Problem
+from ...models.push_test_result import PushTestResult
+from ...types import Response
+
+
+def _get_kwargs(
+    device_id: UUID,
+) -> dict[str, Any]:
+
+    _kwargs: dict[str, Any] = {
+        "method": "post",
+        "url": "/v1/push/devices/{device_id}/test".format(
+            device_id=quote(str(device_id), safe=""),
+        ),
+    }
+
+    return _kwargs
+
+
+def _parse_response(
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Problem | PushTestResult | None:
+    if response.status_code == 200:
+        response_200 = PushTestResult.from_dict(response.json())
+
+        return response_200
+
+    if response.status_code == 401:
+        response_401 = Problem.from_dict(response.json())
+
+        return response_401
+
+    if response.status_code == 403:
+        response_403 = Problem.from_dict(response.json())
+
+        return response_403
+
+    if response.status_code == 404:
+        response_404 = Problem.from_dict(response.json())
+
+        return response_404
+
+    if response.status_code == 429:
+        response_429 = Problem.from_dict(response.json())
+
+        return response_429
+
+    if client.raise_on_unexpected_status:
+        raise errors.UnexpectedStatus(response.status_code, response.content)
+    else:
+        return None
+
+
+def _build_response(
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[Problem | PushTestResult]:
+    return Response(
+        status_code=HTTPStatus(response.status_code),
+        content=response.content,
+        headers=response.headers,
+        parsed=_parse_response(client=client, response=response),
+    )
+
+
+def sync_detailed(
+    device_id: UUID,
+    *,
+    client: AuthenticatedClient,
+) -> Response[Problem | PushTestResult]:
+    """Send a test push to a device
+
+     Owner only (others get 404); at most 5 per hour per device (429 RATE_LIMITED with Retry-After).
+    Sends a minimal `system` test notice (id 0) through the provider that serves the device; a gone
+    token deletes the device.
+
+    **Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).
+
+    Args:
+        device_id (UUID):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        Response[Problem | PushTestResult]
+    """
+
+    kwargs = _get_kwargs(
+        device_id=device_id,
+    )
+
+    response = client.get_httpx_client().request(
+        **kwargs,
+    )
+
+    return _build_response(client=client, response=response)
+
+
+def sync(
+    device_id: UUID,
+    *,
+    client: AuthenticatedClient,
+) -> Problem | PushTestResult | None:
+    """Send a test push to a device
+
+     Owner only (others get 404); at most 5 per hour per device (429 RATE_LIMITED with Retry-After).
+    Sends a minimal `system` test notice (id 0) through the provider that serves the device; a gone
+    token deletes the device.
+
+    **Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).
+
+    Args:
+        device_id (UUID):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        Problem | PushTestResult
+    """
+
+    return sync_detailed(
+        device_id=device_id,
+        client=client,
+    ).parsed
+
+
+async def asyncio_detailed(
+    device_id: UUID,
+    *,
+    client: AuthenticatedClient,
+) -> Response[Problem | PushTestResult]:
+    """Send a test push to a device
+
+     Owner only (others get 404); at most 5 per hour per device (429 RATE_LIMITED with Retry-After).
+    Sends a minimal `system` test notice (id 0) through the provider that serves the device; a gone
+    token deletes the device.
+
+    **Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).
+
+    Args:
+        device_id (UUID):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        Response[Problem | PushTestResult]
+    """
+
+    kwargs = _get_kwargs(
+        device_id=device_id,
+    )
+
+    response = await client.get_async_httpx_client().request(**kwargs)
+
+    return _build_response(client=client, response=response)
+
+
+async def asyncio(
+    device_id: UUID,
+    *,
+    client: AuthenticatedClient,
+) -> Problem | PushTestResult | None:
+    """Send a test push to a device
+
+     Owner only (others get 404); at most 5 per hour per device (429 RATE_LIMITED with Retry-After).
+    Sends a minimal `system` test notice (id 0) through the provider that serves the device; a gone
+    token deletes the device.
+
+    **Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).
+
+    Args:
+        device_id (UUID):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        Problem | PushTestResult
+    """
+
+    return (
+        await asyncio_detailed(
+            device_id=device_id,
+            client=client,
+        )
+    ).parsed

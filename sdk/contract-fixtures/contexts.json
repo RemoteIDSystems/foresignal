@@ -1,0 +1,460 @@
+{
+  "description": "Workspace contexts and deep links (docs/Client-Contract.md sections 5 and 6) shared by the three SDKs' contract tests. encode(workspaceId, context) must give payload exactly (compact JSON {v, ws, ctx} with ctx's null members dropped, base64url without padding); decode(payload) and decode(fragment) must give version 1, workspaceId and decodedContext. invalidPayloads must be rejected with the named error kind, tooLarge must be refused by encode, and mergePatches follow RFC 7396.",
+  "deepLinkVersion": 1,
+  "contexts": [
+    {
+      "name": "full workspace context",
+      "workspaceId": "01JAB0000000000000000000WS",
+      "context": {
+        "selectedRefs": [
+          "record:adsblol-mil/ae1234",
+          "situation:01JA8Q3V7S2K9W4T6Y1B5N0M3C"
+        ],
+        "focusRef": "record:adsblol-mil/ae1234",
+        "timeRange": {
+          "start": "2026-10-10T00:00:00Z",
+          "end": "2026-10-11T00:00:00Z"
+        },
+        "asOf": null,
+        "playback": {
+          "state": "paused",
+          "rate": 60
+        },
+        "viewport": {
+          "center": [
+            -96.55,
+            33.75
+          ],
+          "radiusKm": 150
+        },
+        "activeSituationId": "01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+        "activeHypothesisSetId": null,
+        "filters": {
+          "kinds": [
+            "aircraft",
+            "vessel"
+          ],
+          "minSeverity": "warning"
+        },
+        "layers": [
+          "aircraft",
+          "jamming-cells",
+          "observability:aircraft"
+        ]
+      },
+      "decodedContext": {
+        "selectedRefs": [
+          "record:adsblol-mil/ae1234",
+          "situation:01JA8Q3V7S2K9W4T6Y1B5N0M3C"
+        ],
+        "focusRef": "record:adsblol-mil/ae1234",
+        "timeRange": {
+          "start": "2026-10-10T00:00:00Z",
+          "end": "2026-10-11T00:00:00Z"
+        },
+        "playback": {
+          "state": "paused",
+          "rate": 60
+        },
+        "viewport": {
+          "center": [
+            -96.55,
+            33.75
+          ],
+          "radiusKm": 150
+        },
+        "activeSituationId": "01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+        "filters": {
+          "kinds": [
+            "aircraft",
+            "vessel"
+          ],
+          "minSeverity": "warning"
+        },
+        "layers": [
+          "aircraft",
+          "jamming-cells",
+          "observability:aircraft"
+        ]
+      },
+      "payload": "eyJ2IjoxLCJ3cyI6IjAxSkFCMDAwMDAwMDAwMDAwMDAwMDAwMFdTIiwiY3R4Ijp7InNlbGVjdGVkUmVmcyI6WyJyZWNvcmQ6YWRzYmxvbC1taWwvYWUxMjM0Iiwic2l0dWF0aW9uOjAxSkE4UTNWN1MySzlXNFQ2WTFCNU4wTTNDIl0sImZvY3VzUmVmIjoicmVjb3JkOmFkc2Jsb2wtbWlsL2FlMTIzNCIsInRpbWVSYW5nZSI6eyJzdGFydCI6IjIwMjYtMTAtMTBUMDA6MDA6MDBaIiwiZW5kIjoiMjAyNi0xMC0xMVQwMDowMDowMFoifSwicGxheWJhY2siOnsic3RhdGUiOiJwYXVzZWQiLCJyYXRlIjo2MH0sInZpZXdwb3J0Ijp7ImNlbnRlciI6Wy05Ni41NSwzMy43NV0sInJhZGl1c0ttIjoxNTB9LCJhY3RpdmVTaXR1YXRpb25JZCI6IjAxSkE4UTNWN1MySzlXNFQ2WTFCNU4wTTNDIiwiZmlsdGVycyI6eyJraW5kcyI6WyJhaXJjcmFmdCIsInZlc3NlbCJdLCJtaW5TZXZlcml0eSI6Indhcm5pbmcifSwibGF5ZXJzIjpbImFpcmNyYWZ0IiwiamFtbWluZy1jZWxscyIsIm9ic2VydmFiaWxpdHk6YWlyY3JhZnQiXX19",
+      "fragment": "#fs=eyJ2IjoxLCJ3cyI6IjAxSkFCMDAwMDAwMDAwMDAwMDAwMDAwMFdTIiwiY3R4Ijp7InNlbGVjdGVkUmVmcyI6WyJyZWNvcmQ6YWRzYmxvbC1taWwvYWUxMjM0Iiwic2l0dWF0aW9uOjAxSkE4UTNWN1MySzlXNFQ2WTFCNU4wTTNDIl0sImZvY3VzUmVmIjoicmVjb3JkOmFkc2Jsb2wtbWlsL2FlMTIzNCIsInRpbWVSYW5nZSI6eyJzdGFydCI6IjIwMjYtMTAtMTBUMDA6MDA6MDBaIiwiZW5kIjoiMjAyNi0xMC0xMVQwMDowMDowMFoifSwicGxheWJhY2siOnsic3RhdGUiOiJwYXVzZWQiLCJyYXRlIjo2MH0sInZpZXdwb3J0Ijp7ImNlbnRlciI6Wy05Ni41NSwzMy43NV0sInJhZGl1c0ttIjoxNTB9LCJhY3RpdmVTaXR1YXRpb25JZCI6IjAxSkE4UTNWN1MySzlXNFQ2WTFCNU4wTTNDIiwiZmlsdGVycyI6eyJraW5kcyI6WyJhaXJjcmFmdCIsInZlc3NlbCJdLCJtaW5TZXZlcml0eSI6Indhcm5pbmcifSwibGF5ZXJzIjpbImFpcmNyYWZ0IiwiamFtbWluZy1jZWxscyIsIm9ic2VydmFiaWxpdHk6YWlyY3JhZnQiXX19",
+      "bytes": 688
+    },
+    {
+      "name": "ad-hoc context without a workspace",
+      "workspaceId": null,
+      "context": {
+        "timeRange": {
+          "start": "2026-10-01T00:00:00Z",
+          "end": null
+        },
+        "viewport": {
+          "bbox": [
+            32.1,
+            11.2,
+            45.5,
+            20.4
+          ]
+        },
+        "layers": [
+          "vessel"
+        ]
+      },
+      "decodedContext": {
+        "timeRange": {
+          "start": "2026-10-01T00:00:00Z",
+          "end": null
+        },
+        "viewport": {
+          "bbox": [
+            32.1,
+            11.2,
+            45.5,
+            20.4
+          ]
+        },
+        "layers": [
+          "vessel"
+        ]
+      },
+      "payload": "eyJ2IjoxLCJ3cyI6bnVsbCwiY3R4Ijp7InRpbWVSYW5nZSI6eyJzdGFydCI6IjIwMjYtMTAtMDFUMDA6MDA6MDBaIiwiZW5kIjpudWxsfSwidmlld3BvcnQiOnsiYmJveCI6WzMyLjEsMTEuMiw0NS41LDIwLjRdfSwibGF5ZXJzIjpbInZlc3NlbCJdfX0",
+      "fragment": "#fs=eyJ2IjoxLCJ3cyI6bnVsbCwiY3R4Ijp7InRpbWVSYW5nZSI6eyJzdGFydCI6IjIwMjYtMTAtMDFUMDA6MDA6MDBaIiwiZW5kIjpudWxsfSwidmlld3BvcnQiOnsiYmJveCI6WzMyLjEsMTEuMiw0NS41LDIwLjRdfSwibGF5ZXJzIjpbInZlc3NlbCJdfX0",
+      "bytes": 191
+    },
+    {
+      "name": "non-ASCII and encoded record refs",
+      "workspaceId": "01JAB0000000000000000000WS",
+      "context": {
+        "selectedRefs": [
+          "record:osm-places/Zürich",
+          "record:custom-feed/a%20b%40c%25d%2Fe@7",
+          "chronicle:01JA8Q3V7S2K9W4T6Y1B5N0M3C"
+        ],
+        "focusRef": "chronicle:01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+        "filters": {
+          "q": "café",
+          "minMag": 4.5,
+          "live": true
+        }
+      },
+      "decodedContext": {
+        "selectedRefs": [
+          "record:osm-places/Zürich",
+          "record:custom-feed/a%20b%40c%25d%2Fe@7",
+          "chronicle:01JA8Q3V7S2K9W4T6Y1B5N0M3C"
+        ],
+        "focusRef": "chronicle:01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+        "filters": {
+          "q": "café",
+          "minMag": 4.5,
+          "live": true
+        }
+      },
+      "payload": "eyJ2IjoxLCJ3cyI6IjAxSkFCMDAwMDAwMDAwMDAwMDAwMDAwMFdTIiwiY3R4Ijp7InNlbGVjdGVkUmVmcyI6WyJyZWNvcmQ6b3NtLXBsYWNlcy9aw7xyaWNoIiwicmVjb3JkOmN1c3RvbS1mZWVkL2ElMjBiJTQwYyUyNWQlMkZlQDciLCJjaHJvbmljbGU6MDFKQThRM1Y3UzJLOVc0VDZZMUI1TjBNM0MiXSwiZm9jdXNSZWYiOiJjaHJvbmljbGU6MDFKQThRM1Y3UzJLOVc0VDZZMUI1TjBNM0MiLCJmaWx0ZXJzIjp7InEiOiJjYWbDqSIsIm1pbk1hZyI6NC41LCJsaXZlIjp0cnVlfX19",
+      "fragment": "#fs=eyJ2IjoxLCJ3cyI6IjAxSkFCMDAwMDAwMDAwMDAwMDAwMDAwMFdTIiwiY3R4Ijp7InNlbGVjdGVkUmVmcyI6WyJyZWNvcmQ6b3NtLXBsYWNlcy9aw7xyaWNoIiwicmVjb3JkOmN1c3RvbS1mZWVkL2ElMjBiJTQwYyUyNWQlMkZlQDciLCJjaHJvbmljbGU6MDFKQThRM1Y3UzJLOVc0VDZZMUI1TjBNM0MiXSwiZm9jdXNSZWYiOiJjaHJvbmljbGU6MDFKQThRM1Y3UzJLOVc0VDZZMUI1TjBNM0MiLCJmaWx0ZXJzIjp7InEiOiJjYWbDqSIsIm1pbk1hZyI6NC41LCJsaXZlIjp0cnVlfX19",
+      "bytes": 364
+    },
+    {
+      "name": "empty context",
+      "workspaceId": "01JAB0000000000000000000WS",
+      "context": {},
+      "decodedContext": {},
+      "payload": "eyJ2IjoxLCJ3cyI6IjAxSkFCMDAwMDAwMDAwMDAwMDAwMDAwMFdTIiwiY3R4Ijp7fX0",
+      "fragment": "#fs=eyJ2IjoxLCJ3cyI6IjAxSkFCMDAwMDAwMDAwMDAwMDAwMDAwMFdTIiwiY3R4Ijp7fX0",
+      "bytes": 67
+    }
+  ],
+  "invalidPayloads": [
+    {
+      "name": "unsupported version",
+      "payload": "eyJ2IjoyLCJ3cyI6bnVsbCwiY3R4Ijp7fX0",
+      "error": "version"
+    },
+    {
+      "name": "missing version",
+      "payload": "eyJ3cyI6bnVsbCwiY3R4Ijp7fX0",
+      "error": "malformed"
+    },
+    {
+      "name": "not base64url JSON",
+      "payload": "!!not-base64!!",
+      "error": "malformed"
+    },
+    {
+      "name": "JSON array",
+      "payload": "WzEsMl0",
+      "error": "malformed"
+    },
+    {
+      "name": "invalid ref in context",
+      "payload": "eyJ2IjoxLCJ3cyI6bnVsbCwiY3R4Ijp7ImZvY3VzUmVmIjoibm90IGEgcmVmIn19",
+      "error": "context"
+    },
+    {
+      "name": "unknown context member",
+      "payload": "eyJ2IjoxLCJ3cyI6bnVsbCwiY3R4Ijp7ImNhbWVyYSI6e319fQ",
+      "error": "context"
+    }
+  ],
+  "tooLarge": {
+    "name": "context over 2 KB encoded",
+    "workspaceId": null,
+    "context": {
+      "selectedRefs": [
+        "record:adsblol-mil/000000aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000001aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000002aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000003aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000004aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000005aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000006aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000007aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000008aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000009aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00000aaaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00000baaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00000caaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00000daaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00000eaaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00000faaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000010aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000011aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000012aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000013aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000014aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000015aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000016aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000017aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000018aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000019aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00001aaaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00001baaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00001caaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00001daaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00001eaaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00001faaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000020aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000021aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000022aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000023aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000024aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000025aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000026aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000027aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000028aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000029aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00002aaaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00002baaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00002caaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00002daaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00002eaaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00002faaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000030aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000031aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000032aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000033aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000034aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000035aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000036aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000037aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000038aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000039aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00003aaaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00003baaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00003caaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00003daaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00003eaaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00003faaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000040aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000041aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000042aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000043aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000044aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000045aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000046aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000047aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000048aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000049aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00004aaaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00004baaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00004caaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00004daaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00004eaaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00004faaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000050aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000051aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000052aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000053aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000054aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000055aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000056aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000057aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000058aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000059aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00005aaaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00005baaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00005caaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00005daaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00005eaaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00005faaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000060aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000061aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000062aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000063aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000064aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000065aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000066aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000067aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000068aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000069aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00006aaaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00006baaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00006caaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00006daaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00006eaaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/00006faaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000070aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000071aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000072aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000073aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000074aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000075aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000076aaaaaaaaaaaaaaaaaaaa",
+        "record:adsblol-mil/000077aaaaaaaaaaaaaaaaaaaa"
+      ]
+    },
+    "error": "too-large"
+  },
+  "mergePatches": [
+    {
+      "name": "replace a member",
+      "target": {
+        "focusRef": "a:1",
+        "layers": [
+          "x"
+        ]
+      },
+      "patch": {
+        "focusRef": "b:2"
+      },
+      "result": {
+        "focusRef": "b:2",
+        "layers": [
+          "x"
+        ]
+      }
+    },
+    {
+      "name": "null removes a member",
+      "target": {
+        "focusRef": "a:1",
+        "asOf": "2026-10-10T00:00:00Z"
+      },
+      "patch": {
+        "asOf": null
+      },
+      "result": {
+        "focusRef": "a:1"
+      }
+    },
+    {
+      "name": "nested object merges",
+      "target": {
+        "playback": {
+          "state": "paused",
+          "rate": 60
+        }
+      },
+      "patch": {
+        "playback": {
+          "state": "playing"
+        }
+      },
+      "result": {
+        "playback": {
+          "state": "playing",
+          "rate": 60
+        }
+      }
+    },
+    {
+      "name": "arrays replace",
+      "target": {
+        "selectedRefs": [
+          "a:1",
+          "b:2"
+        ]
+      },
+      "patch": {
+        "selectedRefs": [
+          "c:3"
+        ]
+      },
+      "result": {
+        "selectedRefs": [
+          "c:3"
+        ]
+      }
+    },
+    {
+      "name": "object replaces scalar",
+      "target": {
+        "filters": "x"
+      },
+      "patch": {
+        "filters": {
+          "kinds": [
+            "aircraft"
+          ]
+        }
+      },
+      "result": {
+        "filters": {
+          "kinds": [
+            "aircraft"
+          ]
+        }
+      }
+    },
+    {
+      "name": "null inside a new object is dropped",
+      "target": {},
+      "patch": {
+        "viewport": {
+          "bbox": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "center": null
+        }
+      },
+      "result": {
+        "viewport": {
+          "bbox": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      }
+    },
+    {
+      "name": "empty patch is a no-op",
+      "target": {
+        "layers": [
+          "x"
+        ]
+      },
+      "patch": {},
+      "result": {
+        "layers": [
+          "x"
+        ]
+      }
+    }
+  ]
+}

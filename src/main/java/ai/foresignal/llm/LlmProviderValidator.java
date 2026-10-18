@@ -71,7 +71,10 @@ public class LlmProviderValidator {
             "updatedAt", "supportsTools", "lastSuccessAt", "lastErrorAt", "consecutiveFailures", "local");
 
     private static final Set<String> OPTION_MEMBERS = Set.of("effort", "maxTokens", "temperature", "extraHeaders",
-            "local");
+            "local", "ttsModel", "ttsCharactersPerDay");
+
+    /** The largest daily character budget of the {@code tts} role (prompt 141). */
+    public static final long MAX_TTS_CHARACTERS_PER_DAY = 100_000_000L;
 
     /** Headers an operator may not set: Foresignal sets them, or the HTTP client forbids them. */
     private static final Set<String> RESERVED_HEADERS = Set.of("authorization", "x-api-key", "content-type",
@@ -231,7 +234,8 @@ public class LlmProviderValidator {
             for (String name : node.propertyNames()) {
                 if (!OPTION_MEMBERS.contains(name)) {
                     errors.add(new FieldError("options." + name,
-                            "is not an option (effort, maxTokens, temperature, extraHeaders, local)"));
+                            "is not an option (effort, maxTokens, temperature, extraHeaders, local, ttsModel,"
+                                    + " ttsCharactersPerDay)"));
                 }
             }
             JsonNode effort = node.get("effort");
@@ -284,6 +288,27 @@ public class LlmProviderValidator {
                     if (!copy.isEmpty()) {
                         out.put("extraHeaders", copy);
                     }
+                }
+            }
+            // Prompt 141: the speech model and the daily character budget of the tts role.
+            JsonNode ttsModel = node.get("ttsModel");
+            if (ttsModel != null && !ttsModel.isNull()) {
+                if (!ttsModel.isString() || ttsModel.asString().isBlank() || ttsModel.asString().length() > 200) {
+                    errors.add(new FieldError("options.ttsModel", "must be a model name of 1 to 200 characters"));
+                } else if (type != LlmProviderType.OPENAI_COMPATIBLE) {
+                    errors.add(new FieldError("options.ttsModel", "applies only to openai-compatible providers"));
+                } else {
+                    out.put("ttsModel", ttsModel.asString().strip());
+                }
+            }
+            JsonNode ttsChars = node.get("ttsCharactersPerDay");
+            if (ttsChars != null && !ttsChars.isNull()) {
+                if (!ttsChars.isIntegralNumber() || ttsChars.asLong() < 1_000
+                        || ttsChars.asLong() > MAX_TTS_CHARACTERS_PER_DAY) {
+                    errors.add(new FieldError("options.ttsCharactersPerDay",
+                            "must be an integer from 1000 to " + MAX_TTS_CHARACTERS_PER_DAY));
+                } else {
+                    out.put("ttsCharactersPerDay", ttsChars.asLong());
                 }
             }
             JsonNode local = node.get("local");

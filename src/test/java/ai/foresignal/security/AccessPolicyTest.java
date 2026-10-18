@@ -302,6 +302,28 @@ class AccessPolicyTest {
     }
 
     @Test
+    @DisplayName("141: /fdsnws/** is read, /taxii2/** and /v1/export/stix are agent; other methods are admin, never open")
+    void exchangeFormats() {
+        assertThat(requirement("GET", "/fdsnws/event/1/query")).isEqualTo(AccessRequirement.READ);
+        assertThat(requirement("GET", "/fdsnws/event/1/version")).isEqualTo(AccessRequirement.READ);
+        assertThat(requirement("GET", "/fdsnws/event/1/application.wadl")).isEqualTo(AccessRequirement.READ);
+        assertThat(requirement("HEAD", "/fdsnws/event/1/query")).isEqualTo(AccessRequirement.READ);
+        assertScope("POST", "/fdsnws/event/1/query", Scope.ADMIN);
+        assertScope("PUT", "/fdsnws/anything", Scope.ADMIN);
+
+        assertThat(requirement("GET", "/taxii2/")).isEqualTo(AccessRequirement.AGENT);
+        assertThat(requirement("GET", "/taxii2")).isEqualTo(AccessRequirement.AGENT);
+        assertThat(requirement("GET", "/taxii2/foresignal/")).isEqualTo(AccessRequirement.AGENT);
+        assertThat(requirement("GET", "/taxii2/foresignal/collections/")).isEqualTo(AccessRequirement.AGENT);
+        assertThat(requirement("GET", "/taxii2/foresignal/collections/abc/objects/")).isEqualTo(AccessRequirement.AGENT);
+        assertScope("POST", "/taxii2/foresignal/collections/abc/objects/", Scope.ADMIN);
+        assertScope("DELETE", "/taxii2", Scope.ADMIN);
+
+        assertThat(requirement("GET", "/v1/export/stix")).isEqualTo(AccessRequirement.AGENT);
+        assertScope("POST", "/v1/export/stix", Scope.ADMIN);
+    }
+
+    @Test
     @DisplayName("the CelesTrak-compatible output outside /v1 is read, never open; other methods are admin (064)")
     void celestrakCompat() {
         assertThat(requirement("GET", "/compat/celestrak/gp.php")).isEqualTo(AccessRequirement.READ);
@@ -545,5 +567,16 @@ class AccessPolicyTest {
                 Scope.ADMIN);
         assertScope("POST", "/v1/custom-sources/custom-x/devices/0b6f2c1e-0000-4000-8000-000000000001/purge",
                 Scope.ADMIN);
+    }
+
+    @Test
+    @DisplayName("141: the RFC 9728 metadata is open, the mcp.auth settings are admin, /mcp stays read")
+    void mcpRemoteAuthorization() {
+        assertOpen("GET", "/.well-known/oauth-protected-resource");
+        assertOpen("GET", "/.well-known/oauth-protected-resource/mcp");
+        assertOpen("HEAD", "/.well-known/oauth-protected-resource/mcp");
+        assertScope("GET", "/v1/settings/mcp-auth", Scope.ADMIN);
+        assertScope("PUT", "/v1/settings/mcp-auth", Scope.ADMIN);
+        assertScope("POST", "/mcp", Scope.READ);
     }
 }

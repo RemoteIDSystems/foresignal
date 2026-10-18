@@ -129,6 +129,9 @@ public class LlmProviderService {
         if (roles.contains("embedding")) {
             roleErrors.addAll(LlmSettingsService.embeddingProblems(entity, "embeddingProvider"));
         }
+        if (roles.contains("tts")) {
+            roleErrors.addAll(LlmSettingsService.ttsProblems(entity, "ttsProvider"));
+        }
         if (!roleErrors.isEmpty()) {
             throw new ValidationException("The change would leave a role this provider holds unserved;"
                     + " reassign the role first.", roleErrors);

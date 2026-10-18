@@ -1,0 +1,9 @@
+from enum import StrEnum
+
+
+class PrecursorTestSpatialType2SameRegion(StrEnum):
+    ADMIN1 = "admin1"
+    COUNTRY = "country"
+
+    def __str__(self) -> str:
+        return str(self.value)

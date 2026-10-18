@@ -413,6 +413,26 @@ public final class SettingKeys {
     /** The shortest interval between two automatic doctor runs of one source (prompt 140, {@code doctor.autoCooldown}); 6 h. */
     public static final String DOCTOR_AUTO_COOLDOWN = "doctor.autoCooldown";
 
+    /**
+     * Remote MCP authorization (prompt 141, {@code mcp.auth}): {@code {mode: token|oauth|both, issuer, audience, jwksUri,
+     * scopeMap, scopeClaim, allowedAlgs}}; OpenAPI schema {@code McpAuthSettings}. {@code token} (the default) keeps
+     * {@code /mcp} on Foresignal tokens only.
+     */
+    public static final String MCP_AUTH = "mcp.auth";
+
+    /**
+     * {@code ai.foresignal.plugin.PluginSettings}: whether out-of-tree WASM parser plugins may run at all (prompt 141,
+     * {@code plugins}); {@code {"enabled": false}} by default.
+     */
+    public static final String PLUGINS = "plugins";
+
+    /**
+     * The plugins the admin enabled after reviewing their SHA-256 (prompt 141): a JSON object from plugin name to
+     * {@code {sha256, enabledAt}} ({@code ai.foresignal.plugin.PluginApprovals}). A plugin runs only while its file
+     * still hashes to the approved value.
+     */
+    public static final String PLUGINS_APPROVALS = "plugins.approvals";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -435,7 +455,7 @@ public final class SettingKeys {
                     SOCIAL_MIN_REGION_BASELINE, SOCIAL_VELOCITY, SOCIAL_KEEP_MEDIA, SOCIAL_LLM_CLAIM_MIN_POSTS,
                     SOCIAL_LLM_CLAIMS_PER_DAY, SOCIAL_SOURCE_RELIABILITY, SOCIAL_COMPARE, SOCIAL_ATTENTION_GAP,
                     SOCIAL_CUES, SOCIAL_TRACK_RECORD, EXTERNAL_BINDING_CURSOR, DOCTOR_AUTO_LLM,
-                    DOCTOR_AUTO_COOLDOWN);
+                    DOCTOR_AUTO_COOLDOWN, MCP_AUTH, PLUGINS, PLUGINS_APPROVALS);
 
     private SettingKeys() {}
 }

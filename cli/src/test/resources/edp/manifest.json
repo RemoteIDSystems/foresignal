@@ -1,0 +1,45 @@
+{
+  "protocol": "foresignal-edp/1.0",
+  "source": {
+    "id": "river-gauges-example",
+    "name": "River gauges (example)",
+    "publisher": {
+      "name": "Example Hydro"
+    },
+    "licence": {
+      "id": "CC-BY-4.0",
+      "redistribution": "allowed"
+    },
+    "access": {
+      "route": "official",
+      "fragility": "low"
+    },
+    "originator": {
+      "id": "example-hydro",
+      "class": "sensor-network"
+    }
+  },
+  "transport": {
+    "push": true
+  },
+  "streams": [
+    {
+      "id": "levels",
+      "mode": "atomic",
+      "itemType": "observation",
+      "kind": "river-level",
+      "title": "Daily mean river level",
+      "unit": "m",
+      "geometry": "none",
+      "retentionClass": "series",
+      "suggestedBindings": [
+        {
+          "target": "series",
+          "config": {
+            "transform": "none"
+          }
+        }
+      ]
+    }
+  ]
+}

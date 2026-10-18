@@ -456,6 +456,35 @@ Apache HttpClient, HttpCore and HttpMime 4 with Commons Logging and Commons Code
 - **License:** MIT/X style (<https://gdal.org/license.html>), Copyright the GDAL/OGR project contributors; the
   distribution package's own copyright file lists the bundled third-party code.
 
+### Nimbus JOSE+JWT (prompt 141)
+
+- **Artifact:** `com.nimbusds:nimbus-jose-jwt` 10.10 (Maven Central), used unmodified. The jar shades Gson
+  (Apache License, Version 2.0) and the JCIP annotations inside it; it has no required runtime dependencies (Google
+  Tink, below, is one of its optional ones).
+- **Use:** `ai.foresignal.mcp.oauth` (`McpTokenValidator`, `JwksCache`): verifies the identity provider's JWT access
+  tokens on `/mcp` (RS256, ES256, EdDSA/Ed25519) against its JWKS, for remote MCP authorization.
+- **License:** Apache License, Version 2.0 (the pom's `<licenses>`).
+- **Project:** <https://connect2id.com/products/nimbus-jose-jwt>, Copyright Connect2id Ltd.
+
+### Google Tink (prompt 141)
+
+- **Artifact:** `com.google.crypto.tink:tink` 1.23.0 (Maven Central; the version `nimbus-jose-jwt` 10.10 declares),
+  used unmodified, with `protobuf-java` excluded (the Ed25519 primitives do not use it). Runtime dependencies:
+  `com.google.code.gson:gson` (Apache License, Version 2.0), `com.google.code.findbugs:jsr305` (BSD-3-Clause) and
+  `com.google.errorprone:error_prone_annotations` (Apache License, Version 2.0).
+- **Use:** the Ed25519 verification under Nimbus's `Ed25519Verifier`, for EdDSA/Ed25519 access tokens on `/mcp`.
+- **License:** Apache License, Version 2.0 (the pom's `<licenses>`).
+- **Project:** <https://github.com/tink-crypto/tink-java>, Copyright Google LLC.
+
+### Chicory (prompt 141)
+
+- **Artifacts:** `com.dylibso.chicory:runtime` and `com.dylibso.chicory:wasm` 1.7.5 (Maven Central), used unmodified;
+  no other runtime dependencies. No WASI module is included.
+- **Use:** `ai.foresignal.plugin.WasmParserHost`: the pure-Java WebAssembly interpreter that runs operator-installed
+  parser plugins, without filesystem, network, clock or WASI access (`docs/Plugin-Design.md`).
+- **License:** Apache License, Version 2.0 (the parent pom's `<licenses>`).
+- **Project:** <https://github.com/dylibso/chicory>, Copyright Dylibso, Inc.
+
 ---
 
 ## Orekit data (prompt 054)
@@ -801,3 +830,59 @@ schema, used only to validate test output; it is not part of the application.
 The OASIS CAP 1.2 schema in the test resources (`src/test/resources/cap/CAP-v1.2.xsd`, Copyright OASIS Open 2010,
 from https://docs.oasis-open.org/emergency/cap/v1.2/CAP-v1.2.xsd) is used only to validate the CAP messages the
 tests write (prompt 112); it is not part of the application.
+
+## QuakeML 1.2 BED schema (test resource, prompt 141)
+
+- **File:** `src/test/resources/fdsn/QuakeML-BED-1.2.xsd`, the QuakeML 1.2 Basic Event Description schema, redistributed
+  unmodified (SHA-256 `98d33f02998a82681ff55847d1e90471998dab79cdff28d65a582d3dfb81de41`), downloaded on 2026-10-18
+  from <https://quake.ethz.ch/quakeml/docs/xml?action=AttachFile&do=get&target=QuakeML-BED-1.2.xsd>; provenance in
+  the `README.md` beside it.
+- **Use:** only by `FdsnEventIT`, to validate the QuakeML that `GET /fdsnws/event/1/query` writes; it is not part of
+  the application.
+- **License:** the file states no license or copyright notice. QuakeML is published by the QuakeML project
+  (<https://quake.ethz.ch/quakeml/>).
+
+---
+
+## Command-line client (`cli/`, prompt 141)
+
+The standalone command-line client in `cli/` is its own Gradle build (`cli/build.gradle.kts`). It is **not shipped
+with the broker**: none of these libraries is on the broker's classpath or in its image. They are packaged only in the
+CLI's own distributions (`installDist`, the uber jar and the optional native image), all used unmodified, from Maven
+Central. Versions as declared in `cli/build.gradle.kts`, or resolved through it:
+
+| Library | Version | License | Use |
+|---|---|---|---|
+| `info.picocli:picocli` (and `picocli-codegen`, an annotation processor at build time only) | 4.7.7 | Apache-2.0 | Command-line parsing and help |
+| `tools.jackson.core:jackson-core`, `jackson-databind` (Jackson BOM `tools.jackson:jackson-bom`) | 3.2.3 | Apache-2.0 | JSON trees for requests, responses and output |
+| `com.fasterxml.jackson.core:jackson-annotations` (the 2.x annotations that Jackson 3 keeps) | 2.22 | Apache-2.0 | Runtime dependency of `jackson-databind` |
+| `tools.jackson.dataformat:jackson-dataformat-yaml` | 3.2.3 | Apache-2.0 | Runtime dependency of the schema validator |
+| `org.snakeyaml:snakeyaml-engine` | 3.0.1 | Apache-2.0 | Runtime dependency of `jackson-dataformat-yaml` |
+| `com.networknt:json-schema-validator` | 3.0.8 | Apache-2.0 | Local `edp validate` against the bundled EDP 1.0 schemas |
+| `com.ethlo.time:itu` | 1.14.0 | Apache-2.0 | Runtime dependency of the schema validator |
+| `org.slf4j:slf4j-api` and `org.slf4j:slf4j-nop` | 2.0.20 | MIT | The schema validator's logging API, silenced by the no-op binding |
+
+The CLI also bundles copies of the EDP 1.0 JSON Schemas from `docs/protocol/edp-1.0/` (Foresignal's own, MIT).
+
+---
+
+## Client SDKs and EDP provider libraries (`sdk/`, prompt 141)
+
+The SDKs in `sdk/` are separate packages, **not shipped with the broker**. They declare their dependencies in their own
+manifests; nothing is vendored. Pinned versions are in `sdk/versions.properties`.
+
+| Package | Dependency | Version | License |
+|---|---|---|---|
+| `sdk/dart/foresignal_api`, `sdk/dart/foresignal_sdk` | `dio` | ^5.11.1 | MIT |
+| `sdk/dart/foresignal_api` | `json_annotation` | ^4.12.0 | BSD-3-Clause |
+| `sdk/dart/foresignal_api` | `copy_with_extension` | ^18.0.0 | MIT |
+| `sdk/typescript` | `openapi-fetch` (with `openapi-typescript-helpers`) | 0.17.0 | MIT |
+| `sdk/python` | `httpx` | >=0.28.1,<0.29 | BSD-3-Clause |
+| `sdk/python` | `attrs` | >=26.1.0 | MIT |
+| `sdk/typescript-edp` | `ajv` | 8.20.0 | MIT |
+| `sdk/python-edp` | `jsonschema` | >=4.26.0,<5 | MIT |
+
+The generated code under `sdk/dart/foresignal_api`, `sdk/typescript/src/generated` and `sdk/python/foresignal_client`
+is produced from `docs/OpenAPI.json` by openapi-generator 7.25.0 (Apache-2.0), openapi-typescript 7.13.0 (MIT) and
+openapi-python-client 0.29.1 (MIT); the generators are build tools and their output carries no license header. The
+EDP libraries bundle copies of the EDP 1.0 JSON Schemas from `docs/protocol/edp-1.0/` (Foresignal's own, MIT).

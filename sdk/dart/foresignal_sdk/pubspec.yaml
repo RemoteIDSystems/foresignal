@@ -1,0 +1,18 @@
+# Hand-written Dart layer of the Foresignal SDK (prompt 141): realtime (ChangeStream), paging (cursor streams) and
+# client-contract helpers (ObjectRef, envelopes, resolve batching, WorkspaceSync, deep links). It depends only on
+# dio, the HTTP client the generated package foresignal_api uses, so it works with or without the generated types.
+# Versions: sdk/versions.properties. The package version is the API's info.version.
+name: foresignal_sdk
+version: 1.3.0
+description: Realtime, paging and client-contract helpers for the Foresignal API (hand-written, on dio).
+publish_to: none
+
+environment:
+  sdk: ^3.8.0
+
+dependencies:
+  dio: ^5.11.1
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.32.0

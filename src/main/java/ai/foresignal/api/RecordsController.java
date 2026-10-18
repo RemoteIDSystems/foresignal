@@ -696,10 +696,9 @@ public class RecordsController {
             HttpServletResponse response)
             throws IOException {
         ReadCaller caller = callers.resolveScoped(request);
-        if (format != null && "czml".equalsIgnoreCase(format.strip())) {
-            throw ValidationException.forField("format", "czml is not available yet (prompt 141)");
-        }
-        ResponseFormat fmt = ResponseFormat.negotiate(format, accept, LIST_FORMATS);
+        // format=czml (prompt 141) wins over Accept like every other ?format=; it reads whole versions in full pages.
+        boolean czml = format != null && "czml".equalsIgnoreCase(format.strip());
+        ResponseFormat fmt = czml ? ResponseFormat.JSON : ResponseFormat.negotiate(format, accept, LIST_FORMATS);
         Instant sinceAt = QueryParams.instant("since", since);
         if (sinceAt == null) {
             throw ValidationException.forField("since", "since is required");
@@ -708,8 +707,9 @@ public class RecordsController {
         if (untilAt != null && !sinceAt.isBefore(untilAt)) {
             throw ValidationException.forField("until", "must be after since");
         }
-        FieldSelection selection = FieldSelector.parse(fields);
+        FieldSelection selection = czml ? FieldSelection.ALL : FieldSelector.parse(fields);
         Set<String> includes = QueryParams.enumSet("include", include, List.of("observer"));
+        int pageSize = QueryParams.intInRange("limit", limit, 1, MAX_HISTORY_LIMIT, DEFAULT_HISTORY_LIMIT);
         HistoryQuery query = new HistoryQuery(
                 knownSources(QueryParams.multi("source", source), callers.hiddenSources(caller)),
                 QueryParams.multi("kind", kind),
@@ -720,7 +720,7 @@ public class RecordsController {
                 untilAt,
                 TimeField.parse(timeField, TimeField.OBSERVED),
                 cursor,
-                QueryParams.intInRange("limit", limit, 1, MAX_HISTORY_LIMIT, DEFAULT_HISTORY_LIMIT),
+                czml ? MAX_HISTORY_LIMIT : pageSize,
                 selection,
                 GeometryOptions.parse(precision, simplify),
                 fmt == ResponseFormat.CSV ? GeometryEncoding.WKT : GeometryEncoding.GEOJSON,
@@ -730,6 +730,9 @@ public class RecordsController {
         if (QueryParams.bool("count", request.getParameter("count"), false)) {
             // count=true (prompt 038): {count, exact, watermarkSeq} and no items, whatever the format.
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(queries.countHistory(query).toMap());
+        }
+        if (czml) {
+            return czmlHistory(query, sinceAt, untilAt, caller, request);
         }
         if (fmt.streaming()) {
             streamRecords(fmt, selection, response, sink -> queries.streamHistory(query, maxRows(), sink),
@@ -744,6 +747,79 @@ public class RecordsController {
                 : new RecordVersionPage(records(rows, selection, RecordMapper.Shape.VERSION), slice.nextCursor());
         return ResponseEntity.ok().contentType(MediaType.parseMediaType(fmt.mediaType())).body(body);
     }
+
+    /** The most versions one {@code format=czml} history response reads (prompt 141). */
+    static final int CZML_MAX_ROWS = 200_000;
+
+    /** Builds CZML documents (prompt 141); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.czml.CzmlService czmlService;
+
+    /**
+     * {@code queryHistory} with {@code format=czml} (prompt 141): every page of the range up to
+     * {@value #CZML_MAX_ROWS} versions, filtered like the JSON form (restriction, private sources, the MLAT gate and
+     * the caller's license policy), as a CZML document whose clock spans {@code since} to {@code until} (default
+     * now), one packet per entity (at most {@value ai.foresignal.czml.CzmlWriter#MAX_ENTITIES}) and the aggregated
+     * attribution in the document packet. {@code cursor} is honored as the starting point; {@code limit} is not
+     * (CZML is not paged). A capped document says so in its description and in {@code Foresignal-Truncated: true}.
+     */
+    private ResponseEntity<Object> czmlHistory(HistoryQuery first, Instant since, Instant until, ReadCaller caller,
+            HttpServletRequest request) {
+        if (czmlService == null) {
+            throw ValidationException.forField("format", "czml is not available in this context");
+        }
+        List<RecordRow> rows = new ArrayList<>();
+        HistoryQuery page = first;
+        boolean truncated = false;
+        while (true) {
+            Slices.VersionSlice slice = queries.history(page);
+            rows.addAll(slice.rows());
+            if (slice.nextCursor() == null) {
+                break;
+            }
+            if (rows.size() >= CZML_MAX_ROWS) {
+                truncated = true;
+                break;
+            }
+            page = new HistoryQuery(page.sources(), page.kinds(), page.externalIds(), page.bbox(), page.near(),
+                    page.since(), page.until(), page.timeField(), slice.nextCursor(), page.limit(), page.fields(),
+                    page.geometry(), page.encoding(), page.includeObserver(), page.excludedSources(),
+                    page.restriction());
+        }
+        LicenceFilter licence = licenceFilter(visible(rows, caller, FieldSelection.ALL), request);
+        ai.foresignal.czml.CzmlService.Entities entities = czmlService.fromRows(licence.rows(),
+                row -> (String) mapper.record(row, FieldSelection.ALL, RecordMapper.Shape.VERSION).get("title"));
+        String attribution = licence.attributionText();
+        if (attribution == null) {
+            Set<String> sourceIds = new java.util.TreeSet<>();
+            licence.rows().forEach(row -> sourceIds.add(row.sourceId()));
+            attribution = czmlService.attributionOf(sourceIds);
+        }
+        Instant end = until != null ? until : clock.instant();
+        if (end.isBefore(since)) {
+            end = since;
+        }
+        boolean capped = truncated || entities.truncated();
+        List<Map<String, Object>> packets = ai.foresignal.czml.CzmlWriter.packets(
+                new ai.foresignal.czml.CzmlWriter.Document("Foresignal history", since, end, attribution, capped),
+                entities.entities());
+        HttpHeaders headers = varyByLicencePolicy(ETags.cacheHeaders(new HttpHeaders(), null, caller.publicCache()));
+        if (licence.attributionText() != null) {
+            headers.set(ATTRIBUTION_HEADER, licence.attributionText());
+        }
+        for (String url : licence.licenceLinks()) {
+            headers.add(HttpHeaders.LINK, "<" + url + ">; rel=\"license\"");
+        }
+        if (capped) {
+            headers.set(CZML_TRUNCATED_HEADER, "true");
+        }
+        return ResponseEntity.ok().headers(headers)
+                .contentType(MediaType.parseMediaType(ai.foresignal.czml.CzmlWriter.MEDIA_TYPE))
+                .body(czmlService.bytes(packets));
+    }
+
+    /** Set on a {@code format=czml} response that a cap shortened (prompt 141). */
+    public static final String CZML_TRUNCATED_HEADER = "Foresignal-Truncated";
 
     // ------------------------------------------------------------------ kinds
 

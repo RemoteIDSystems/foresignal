@@ -20,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>An assigned provider must exist and be enabled; the chat provider needs a {@code chatModel};
  * the embedding provider needs {@code embeddingModel} and {@code embeddingDimensions} and cannot be
  * an {@code anthropic} provider (Anthropic has no embeddings endpoint). Reassigning the embedding
- * role publishes {@link EmbeddingModelChangedEvent} after the change commits.
+ * role publishes {@link EmbeddingModelChangedEvent} after the change commits. The {@code tts} provider
+ * (prompt 141) must be an enabled {@code openai-compatible} provider: speech uses the OpenAI
+ * {@code /audio/speech} endpoint, which Anthropic and Ollama do not offer.
  */
 @Service
 public class LlmSettingsService {
@@ -67,6 +69,14 @@ public class LlmSettingsService {
                 errors.addAll(embeddingProblems(embedding.get(), "embeddingProvider"));
             }
         }
+        if (next.ttsProvider() != null) {
+            Optional<LlmProviderEntity> tts = providers.findById(next.ttsProvider());
+            if (tts.isEmpty()) {
+                errors.add(new FieldError("ttsProvider", "provider '" + next.ttsProvider() + "' does not exist"));
+            } else {
+                errors.addAll(ttsProblems(tts.get(), "ttsProvider"));
+            }
+        }
         if (!errors.isEmpty()) {
             throw new ValidationException("The LLM settings are not valid.", errors);
         }
@@ -84,7 +94,7 @@ public class LlmSettingsService {
         return specOf(get().embeddingProvider());
     }
 
-    /** The roles {@code providerId} holds: {@code chat}, {@code embedding}. */
+    /** The roles {@code providerId} holds: {@code chat}, {@code embedding}, {@code tts} (prompt 141). */
     public List<String> roles(String providerId) {
         LlmSettings current = get();
         List<String> roles = new ArrayList<>();
@@ -93,6 +103,9 @@ public class LlmSettingsService {
         }
         if (providerId.equals(current.embeddingProvider())) {
             roles.add("embedding");
+        }
+        if (providerId.equals(current.ttsProvider())) {
+            roles.add("tts");
         }
         return roles;
     }
@@ -123,6 +136,23 @@ public class LlmSettingsService {
         if (provider.getEmbeddingModel() == null || provider.getEmbeddingDimensions() == null) {
             errors.add(new FieldError(field,
                     "provider '" + provider.getId() + "' needs embeddingModel and embeddingDimensions"));
+        }
+        return errors;
+    }
+
+    /**
+     * What stops {@code provider} from serving the {@code tts} role (prompt 141); empty when it can: it must be
+     * enabled and {@code openai-compatible}.
+     */
+    static List<FieldError> ttsProblems(LlmProviderEntity provider, String field) {
+        List<FieldError> errors = new ArrayList<>();
+        if (!LlmProviderType.OPENAI_COMPATIBLE.wireValue().equals(provider.getType())) {
+            errors.add(new FieldError(field, "the tts role needs an openai-compatible provider (an OpenAI-compatible"
+                    + " /audio/speech endpoint such as OpenAI, Kokoro-FastAPI or openedai-speech)"));
+            return errors;
+        }
+        if (!provider.isEnabled()) {
+            errors.add(new FieldError(field, "provider '" + provider.getId() + "' is disabled"));
         }
         return errors;
     }

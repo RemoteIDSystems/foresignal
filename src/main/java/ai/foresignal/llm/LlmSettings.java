@@ -18,22 +18,38 @@ import tools.jackson.databind.JsonNode;
  * @param askMaxTokens the token cap of one Ask tool loop (028), at least 1000
  * @param allowPrivateLocal private-source records may be placed in prompts for providers classified
  *     as local (prompt 039; default false); never for remote providers
+ * @param ttsProvider the provider of the {@code tts} role (prompt 141: OpenAI-compatible
+ *     {@code /audio/speech} for audio briefings), or null
  */
 public record LlmSettings(String chatProvider, String embeddingProvider, boolean askEnabled,
-        boolean enrichmentEnabled, boolean logContent, int askMaxTokens, boolean allowPrivateLocal) {
+        boolean enrichmentEnabled, boolean logContent, int askMaxTokens, boolean allowPrivateLocal,
+        String ttsProvider) {
 
     /** The settings of an installation that never configured LLM. */
-    public static final LlmSettings DEFAULTS = new LlmSettings(null, null, true, true, false, 200_000, false);
+    public static final LlmSettings DEFAULTS = new LlmSettings(null, null, true, true, false, 200_000, false, null);
+
+    /** Settings without a {@code tts} provider (the shape before prompt 141). */
+    public LlmSettings(String chatProvider, String embeddingProvider, boolean askEnabled, boolean enrichmentEnabled,
+            boolean logContent, int askMaxTokens, boolean allowPrivateLocal) {
+        this(chatProvider, embeddingProvider, askEnabled, enrichmentEnabled, logContent, askMaxTokens,
+                allowPrivateLocal, null);
+    }
+
+    /** A copy with {@code value} as the {@code tts} provider (prompt 141). */
+    public LlmSettings withTtsProvider(String value) {
+        return new LlmSettings(chatProvider, embeddingProvider, askEnabled, enrichmentEnabled, logContent, askMaxTokens,
+                allowPrivateLocal, value);
+    }
 
     /** The smallest {@code askMaxTokens}. */
     public static final int MIN_ASK_MAX_TOKENS = 1000;
 
     private static final Set<String> MEMBERS = Set.of("chatProvider", "embeddingProvider", "askEnabled",
-            "enrichmentEnabled", "logContent", "askMaxTokens", "allowPrivateLocal");
+            "enrichmentEnabled", "logContent", "askMaxTokens", "allowPrivateLocal", "ttsProvider");
 
-    /** True when a chat provider is assigned. */
+    /** True when a chat, embedding or {@code tts} provider is assigned. */
     public boolean configured() {
-        return chatProvider != null || embeddingProvider != null;
+        return chatProvider != null || embeddingProvider != null || ttsProvider != null;
     }
 
     /**
@@ -53,6 +69,7 @@ public record LlmSettings(String chatProvider, String embeddingProvider, boolean
         }
         String chat = optionalString(body, "chatProvider", errors);
         String embedding = optionalString(body, "embeddingProvider", errors);
+        String tts = optionalString(body, "ttsProvider", errors);
         boolean ask = bool(body, "askEnabled", DEFAULTS.askEnabled(), errors);
         boolean enrichment = bool(body, "enrichmentEnabled", DEFAULTS.enrichmentEnabled(), errors);
         boolean logContent = bool(body, "logContent", DEFAULTS.logContent(), errors);
@@ -71,7 +88,7 @@ public record LlmSettings(String chatProvider, String embeddingProvider, boolean
         if (!errors.isEmpty()) {
             throw new ValidationException("The LLM settings are not valid.", errors);
         }
-        return new LlmSettings(chat, embedding, ask, enrichment, logContent, askMaxTokens, allowPrivateLocal);
+        return new LlmSettings(chat, embedding, ask, enrichment, logContent, askMaxTokens, allowPrivateLocal, tts);
     }
 
     private static String optionalString(JsonNode body, String name, List<FieldError> errors) {

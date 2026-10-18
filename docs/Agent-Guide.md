@@ -2,10 +2,13 @@
 
 How programs read Foresignal: agents, dashboards, mobile and desktop clients, home automation.
 Prompts add sections as they build the features (015 streaming, 017 rules, 025 MCP, 028 Ask, 029
-briefings, 034 agent cookbook). The API contract is `docs/OpenAPI.json`; this guide explains how to
-use it well. Step-by-step integrations with importable files are in `docs/cookbooks/` and
+briefings, 034 agent cookbook, 141 remote MCP authorization and exchange formats). The API contract
+is `docs/OpenAPI.json`; this guide explains how to use it well. Step-by-step integrations with
+importable files are in `docs/cookbooks/` and
 `integrations/` (Home Assistant, Node-RED, event-bus bridges, Open WebUI and LibreChat, phone
-automations, TAK, n8n, Grafana, the OpenClaw skill and MCP client configurations).
+automations, TAK, n8n, Grafana, the OpenClaw skill and MCP client configurations). Client SDKs for Dart,
+TypeScript and Python are in `sdk/` (`sdk/README.md`), and the command-line client is in `cli/`
+(`cli/README.md`).
 
 ## Reading records
 
@@ -125,6 +128,9 @@ connection.
    the history you asked for is gone: take a new snapshot ("Keeping a mirror", step 1) and
    reconnect from its `watermarkSeq`.
 5. `raster-frame` changes always carry their payload; other changes only with `payload=true`.
+
+`foresignal changes tail` (the command-line client in `cli/`, prompt 141) implements this client contract and is
+a working reference.
 
 ### Panning a map without reconnecting
 
@@ -507,6 +513,16 @@ the Client Guide ("Time travel"). Agents use the MCP tools `get_state_at` and `g
 answer never changes once its time has passed, except where retention removes history or prompt
 044's downsampling thins it; both are flagged (`horizon`, `approximate`, `downsampled`).
 
+## Exchange formats (prompt 141)
+
+Agents with an `agent` token can fetch `GET /v1/export/stix` for a STIX 2.1 bundle of the cyber feeds (KEV and NVD
+vulnerabilities and Feodo indicators; URLhaus indicators are withheld by their license terms), or page
+`/taxii2/foresignal/collections/{id}/objects/` through the read-only TAXII 2.1 server. FDSN clients read earthquakes
+from `/fdsnws/event/1/query` (`read` scope). A track or a history range comes as a CZML document for CesiumJS with
+`format=czml`, and the MCP tool `get_track` accepts `format: czml`. All of them are views of stored records under the
+same egress rules, and the STIX, TAXII and FDSN views are not MCP tools. Details are in the Operator Guide, "Exchange
+formats: CZML, FDSN/QuakeML, STIX/TAXII".
+
 ## Home Assistant
 
 Home Assistant's `geo_json_events` integration can show Foresignal records on its map. Add it in
@@ -546,7 +562,7 @@ Use streamable HTTP unless a client can only speak the older transport. Behind a
 
 ### Authentication and scopes
 
-The MCP server takes the same bearer tokens as the REST API (`Authorization: Bearer fsr_…`; create them with `POST /v1/tokens`).
+The MCP server takes the same bearer tokens as the REST API (`Authorization: Bearer fsr_…`; create them with `POST /v1/tokens`). An operator can also let remote clients sign in through their own identity provider; see "Remote MCP authorization" below.
 
 | Caller | Sees and may call |
 |---|---|
@@ -578,10 +594,47 @@ Every client needs the same three things: the URL (`http://<host>:8080/mcp`), th
 - **OpenClaw:** add Foresignal under `mcp.servers` in `~/.openclaw/openclaw.json` with `transport: "streamable-http"` (OpenClaw defaults to `sse`) and the header: `integrations/openclaw/openclaw-mcp.json`. The skill in `integrations/openclaw/foresignal/` teaches the agent the tools.
 - **n8n:** the MCP Client Tool node with Server Transport "HTTP Streamable" and Bearer Auth: `integrations/mcp-clients/n8n.md`. Give workflows that change watches or alerts an `agent` token; give read-only workflows a `read` token.
 - **Open WebUI and LibreChat:** Open WebUI 0.6.31+ adds "MCP (Streamable HTTP)" servers with a bearer key; LibreChat takes `mcpServers` with `type: streamable-http` and `headers` in `librechat.yaml`: `integrations/mcp-clients/` and `docs/cookbooks/ai-chat-hosts.md`.
-- **Home Assistant Assist:** its MCP client authenticates only through OAuth, which Foresignal does not offer, so it cannot connect; use the REST integration (`integrations/mcp-clients/home-assistant-assist.md`).
+- **Home Assistant Assist:** its MCP client authenticates only through OAuth. Foresignal accepts OAuth access tokens only from the operator's own identity provider ("Remote MCP authorization" below), and that path has not been tried with Assist; use the REST integration (`integrations/mcp-clients/home-assistant-assist.md`).
 - **Custom agents:** any MCP client that speaks streamable HTTP works. The official MCP SDKs connect with the URL and a request customizer that adds the header.
 
 For clients that only speak the older transport, enable the legacy flag and use `http://<host>:8080/mcp/sse`.
+
+### Remote MCP authorization (prompt 141)
+
+An operator can let remote MCP clients sign in through their own identity provider (settings `mcp.auth`; Operator
+Guide, "Remote MCP with your identity provider"). What an agent sees:
+
+- **Discovery.** Without a token, `POST /mcp` answers `401` with
+  `WWW-Authenticate: Bearer resource_metadata="<url>", scope="foresignal:read"`. The URL is RFC 9728 protected
+  resource metadata (`/.well-known/oauth-protected-resource/mcp`, also served at `/.well-known/oauth-protected-resource`)
+  with:
+  - `resource` (use it as the RFC 8707 `resource` parameter);
+  - `authorization_servers` (the issuer to log in at; read its RFC 8414 or OpenID Connect metadata);
+  - `scopes_supported`;
+  - `bearer_methods_supported: ["header"]`.
+- **Tokens.** Send the access token as `Authorization: Bearer <jwt>` on every request, including after an MCP
+  session starts. A refreshed token of the same subject continues the same session; a token of another subject is
+  refused with `403`. Tokens in query strings or bodies are not accepted.
+- **Scopes.**
+  - The identity-provider scopes in `scopes_supported` map to Foresignal `read` or `agent`. `tools/list` shows only
+    the tools the mapped scope reaches.
+  - No identity-provider scope ever reaches `admin`.
+  - A valid token with no mapped scope gets `403` with `error="insufficient_scope"`.
+- **Step-up.** Calling a tool above the token's scope answers HTTP `403` with
+  `WWW-Authenticate: Bearer error="insufficient_scope", scope="<scopes to request>", resource_metadata="…"` and a
+  JSON-RPC error body (code `-32600`) that carries the call's `id` (`null` when the call had none). Request the named
+  scope from the identity provider and retry the call with the new token. (Agents using Foresignal tokens still get a
+  tool error naming the scope needed, as before: a Foresignal token cannot be stepped up.)
+- **Errors.** An invalid token (signature, issuer, audience, expiry, algorithm) answers `401` with
+  `error="invalid_token"` and the same `resource_metadata`; the problem body's detail says what failed. Get a new
+  token; do not retry the same one. Repeated bad credentials from one address can get `429 RATE_LIMITED` with
+  `Retry-After` instead: wait that long.
+- **REST.** Identity-provider tokens work on `/mcp` only. REST endpoints need a Foresignal token.
+- **Modes.**
+  - In `mode: oauth` a Foresignal token is refused on `/mcp`.
+  - In `mode: both` either kind works.
+  - In `mode: token` (the default) the metadata answers `404 MCP_OAUTH_DISABLED`, and `/mcp` behaves as described
+    above.
 
 ### Tools
 
@@ -651,7 +704,7 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `get_observability` | read | The detection probability of a `family` at a point (`lon`, `lat`), a `region` or everywhere, at `at` (default now), optionally for a `band` such as `M4.5-5`: `p`, `lo`, `hi`, the methods and sources, and `absenceOk`. When `absenceOk` is false (`LOW_DETECTABILITY`) an absence of reports there is unknown, never "nothing happened" (116). |
 | `list_satellite_passes` | read | Passes of the operator's SatDump ground stations, newest AOS first: optional `station`, `since`, `status` (`receiving`, `recorded`, `decoded`, `failed`), `limit` ≤ 50; compact items, `detail=long` for full payloads with the RF statistics (049). |
 | `get_satellite_pass` | read | One pass by `id` (`{station}:{satKey}:{aosEpochMinute}`, or the item id `satdump-{station}:…`): metadata plus the first composite's 256 px thumbnail as image content with a text caption (049). |
-| `get_track` | read | The simplified path of one entity (`sourceId`, `externalId`) between `from` and `to` (same time forms; default the last 6 h), `maxPoints` ≤ 500 (100 with `detail=short`, which stays within 4 KB): segments of `[lon, lat, epochSeconds]` plus a summary with `distanceKm`, `durationSeconds`, `bbox`, `maxSpeedKmh`, `segments` and `approximate` (037). |
+| `get_track` | read | The simplified path of one entity (`sourceId`, `externalId`) between `from` and `to` (same time forms; default the last 6 h), `maxPoints` ≤ 500 (100 with `detail=short`, which stays within 4 KB): segments of `[lon, lat, epochSeconds]` plus a summary with `distanceKm`, `durationSeconds`, `bbox`, `maxSpeedKmh`, `segments` and `approximate` (037). `format: czml` stores the track as a CZML document and returns `media.url` (expires after 24 hours) and the summary instead of the points (141). |
 | `get_series` | read | The energy and markets series catalog (source id, series id, name, unit, frequency and point count), or, given a `source` and `series`, that series' points newest-first with `period`, `periodStart`, `periodEnd`, `value`, `unit` and `status`; compact output carries a `*_total` count and a `truncated` flag (093). |
 | `list_attention_topics` | read | The operator's attention topics (117): `id`, `name`, `gdeltQuery`, `wikiArticles`, `keywords`, `regionCodes`, `themes` and `enabled`; `enabled` filters. Enabled topics drive the series `gdelt.{topicId}.vol`, `gdelt.{topicId}.tone` and `wiki.{project}.{article}`; read them with `get_series`. Market series (`cot.*`, `fred.*`, `wb.*`) carry `family`, `transform` and `releaseLagDays` in their catalog entry; `fred-series` values are `LOCAL_ONLY`. |
 | `list_situations` | read | Situations (118), persistent storylines, by latest activity: `status`, `theme`, `region`, `since`, `q`, `limit`, `cursor`. Each item has `status`, `severity`, `signalFamilies`, `memberCount`, `corroborationShare` and the deterministic `summary`. Private situations appear only for callers with private access. |
@@ -1391,7 +1444,8 @@ diagnose_source {"sourceId": "usgs-earthquakes", "llm": "auto", "detail": "long"
   should do instead.
 - `UA_BLOCKED` means contacting the upstream or joining its key or feeder program. **Never suggest spoofing the
   User-Agent.** `HTML_INSTEAD_OF_DATA` may be a captcha: **Foresignal never solves captchas**, and neither should you.
-- The CLI command `foresignal sources doctor <id>` arrives with prompt 141.
+- The CLI command `foresignal sources doctor <id>` (`cli/`, prompt 141) runs the same doctor from a terminal and
+  prints any patch labeled "proposed, not applied"; see `cli/README.md`.
 
 ### Security
 

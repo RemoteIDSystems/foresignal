@@ -153,8 +153,10 @@ the database and is managed through the API.
   [Architecture §10.1](docs/Architecture.md#101-api-evolution): `/v1` is additive only.
 - After changing the spec, run `./gradlew generatePostman` and `./gradlew lintOpenApi` (Node.js
   ≥ 20.19 with `npx`; pass `-PskipOpenApiLint=true` to skip the lint where Node.js is missing).
-- `./gradlew checkSdkGeneration` optionally generates TypeScript and Dart clients into
-  `build/sdk-check` as a smoke test.
+- `./gradlew generateSdks` regenerates the Dart, TypeScript and Python clients under `sdk/`
+  (see [sdk/README.md](sdk/README.md)); `./gradlew checkSdkGeneration` preprocesses the spec for Dart
+  and dry-runs the dart-dio generator.
+- The command-line client is a separate Gradle build in `cli/` (see [cli/README.md](cli/README.md)).
 
 ## Documentation
 
@@ -171,6 +173,9 @@ the database and is managed through the API.
 - [Operator Guide](docs/Operator-Guide.md) — running, tuning and backing up an instance
 - [Frontend Guide](docs/Frontend-Guide.md) — map clients: tile keys, templates, retries and per-client recipes
 - [Adapter Guide](docs/Adapter-Guide.md) — writing a source adapter
+- [Plugin Design](docs/Plugin-Design.md) — out-of-tree WASM parser plugins (ABI, limits, security model)
+- [SDKs](sdk/README.md) — generated Dart, TypeScript and Python clients with the hand-written streaming layer
+- [CLI](cli/README.md) — the `foresignal` command-line client
 
 ## Licence
 

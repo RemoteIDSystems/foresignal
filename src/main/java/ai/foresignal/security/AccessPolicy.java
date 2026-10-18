@@ -96,8 +96,22 @@ import org.springframework.util.AntPathMatcher;
  * <p>Prompt 140 adds the adapter doctor: {@code POST /v1/sources/{id}/doctor} ({@code admin}, always authenticated,
  * because a run can spend LLM budget) and the doctor reports ({@code agent}).
  *
+ * <p>Prompt 141 adds the plugin operations ({@code GET}/{@code PUT /v1/plugins} and {@code /v1/plugins/{name}}) as
+ * explicit {@code admin} rules.
+ *
+ * <p>Prompt 141 adds the exchange formats: {@code GET /fdsnws/**} (the FDSN event service) as {@code read},
+ * {@code GET /taxii2} and {@code GET /taxii2/**} (TAXII 2.1) and {@code GET /v1/export/stix} as {@code agent}. The
+ * FDSN and TAXII paths are outside {@code /v1}, so every other method on them is mapped to {@code admin} explicitly
+ * rather than reaching the open fallback for non-{@code /v1} paths.
+ *
  * <p>Prompt 025 adds {@code /mcp} and {@code /mcp/**} (the MCP server, also outside {@code /v1}):
  * {@code read}, with per-tool scope checks inside the server ({@code McpToolRegistry}).
+ *
+ * <p>Prompt 141 (MCP remote authorization) needs no new rule: the RFC 9728 metadata at
+ * {@code /.well-known/oauth-protected-resource} and {@code /.well-known/oauth-protected-resource/mcp} is open under
+ * the {@code /.well-known/**} entry of {@link #OPEN_PATHS}, and {@code /v1/settings/mcp-auth} is admin under
+ * {@code /v1/settings/**}. Which credential {@code /mcp} accepts ({@code mcp.auth.mode}) is decided in
+ * {@link TokenFilter} through {@link McpOAuthGate}, not here.
  */
 @Component
 public class AccessPolicy {
@@ -232,6 +246,15 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/compat/celestrak/**", AccessRequirement.READ),
                 rule(HttpMethod.HEAD, "/compat/celestrak/**", AccessRequirement.READ),
                 rule(null, "/compat/celestrak/**", AccessRequirement.ADMIN),
+                // FDSN event service (141), outside /v1: read (open while openReads is on); any other method is
+                // admin, so nothing under /fdsnws reaches the open fallback for paths outside /v1.
+                rule(HttpMethod.GET, "/fdsnws/**", AccessRequirement.READ),
+                rule(null, "/fdsnws/**", AccessRequirement.ADMIN),
+                // TAXII 2.1 (141), outside /v1: read-only and agent; any other method is admin.
+                rule(HttpMethod.GET, "/taxii2", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/taxii2/**", AccessRequirement.AGENT),
+                rule(null, "/taxii2", AccessRequirement.ADMIN),
+                rule(null, "/taxii2/**", AccessRequirement.ADMIN),
                 // ntfy- and Gotify-compatible publish, outside /v1 (the key resolves the source).
                 rule(null, "/compat/ntfy", AccessRequirement.INGEST_KEY_OR_ADMIN),
                 rule(null, "/compat/ntfy/**", AccessRequirement.INGEST_KEY_OR_ADMIN),
@@ -322,6 +345,9 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/llm/providers/*/test", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),
                 rule(null, "/v1/llm/**", AccessRequirement.ADMIN),
                 rule(null, "/v1/custom-sources/**", AccessRequirement.ADMIN),
+                // ---- Plugins (prompt 141): out-of-tree WASM parsers; listing, switching and enabling are admin ----
+                rule(null, "/v1/plugins", AccessRequirement.ADMIN),
+                rule(null, "/v1/plugins/*", AccessRequirement.ADMIN),
                 // ---- Mappings (prompt 059): the LLM draft spends budget, so it is always authenticated ----
                 rule(HttpMethod.POST, "/v1/mappings/suggest", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),
                 rule(null, "/v1/mappings/**", AccessRequirement.ADMIN),
@@ -346,6 +372,8 @@ public class AccessPolicy {
                 // ---- Records, changes, tiles, kinds, history: data reads ----
                 // Per-entity export and purge (039) are admin and sit before the records READ rule.
                 rule(HttpMethod.GET, "/v1/records/*/*/export", AccessRequirement.ADMIN),
+                // The STIX 2.1 bundle (141) is agent; /v1/exports/** below does not match /v1/export/stix.
+                rule(HttpMethod.GET, "/v1/export/stix", AccessRequirement.AGENT),
                 rule(HttpMethod.POST, "/v1/records/*/*/purge", AccessRequirement.ADMIN),
                 // Attribution aggregates for a scope (109): read.
                 rule(HttpMethod.GET, "/v1/attributions", AccessRequirement.READ),
@@ -458,6 +486,8 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/kml/**", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/alerts/feed.*", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/briefings/*/runs/feed.*", AccessRequirement.READ),
+                // Prompt 141: the briefing podcast (RSS 2.0 with audio enclosures), a read like the run feeds.
+                rule(HttpMethod.GET, "/v1/briefings/*/podcast.rss", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/triggers/*.kml", AccessRequirement.READ),
 
                 // ---- Triggers: read to list, agent to change ----

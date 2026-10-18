@@ -1,0 +1,38 @@
+{
+  "name": "@foresignal/edp",
+  "version": "1.0.0",
+  "description": "Provider library for the Foresignal External Data Protocol (EDP) 1.0: manifest and item builders, validation, push client and pull-server helper.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "sync-schemas": "node scripts/sync-schemas.mjs",
+    "test": "vitest run",
+    "example": "node --experimental-strip-types examples/river-gauges-provider.ts"
+  },
+  "dependencies": {
+    "ajv": "8.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.6",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3"
+  }
+}

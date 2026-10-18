@@ -21,7 +21,9 @@ public enum Purpose {
     /** The intelligence layer's analyst calls (101 onward). */
     ANALYST(Effort.MEDIUM),
     /** LLM-suggested draft RecordMappings (059); wire value {@code mapping-suggest}. */
-    MAPPING_SUGGEST(Effort.LOW);
+    MAPPING_SUGGEST(Effort.LOW),
+    /** Notification translation (141); wire value {@code translate}, also the budget role it is logged under. */
+    TRANSLATE(Effort.LOW);
 
     private final Effort defaultEffort;
 

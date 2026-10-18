@@ -268,6 +268,13 @@ EXTRA_HEADERS = {
 }
 
 BODIES = {
+  # 141: WASM parser plugins; enable one after reviewing its SHA-256 (this is the example plugin's hash). Plugins stay off until updatePluginSettings enables them.
+  "updatePlugin": {"enabled": True, "sha256": "232eeeefab43a723a76b0a15f8d1e8b67f8bf9aae0cfa2a7ffa8ba7c70d8f6f8"},
+  "updatePluginSettings": {"enabled": False},
+  # 141: remote MCP authorization delegated to the operator's identity provider; admin is never mappable.
+  "updateMcpAuthSettings": {"mode": "both", "issuer": "https://auth.example.org/realms/home", "audience": "https://foresignal.example.org/mcp",
+                            "scopeMap": {"foresignal:read": "read", "foresignal:agent": "agent"}, "scopeClaim": "scope",
+                            "allowedAlgs": ["RS256", "ES256", "EdDSA"]},
   # 140: the adapter doctor; llm auto adds an explanation and a proposed (never applied) patch when a chat provider is assigned.
   "runSourceDoctor": {"probe": True, "llm": "auto", "detail": "compact"},
   # 108: raster exports (MBTiles/PMTiles take WebMercatorQuad only; a COG in WebMercatorQuad is EPSG:3857) and the place pack

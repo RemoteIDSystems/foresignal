@@ -19,18 +19,29 @@ import java.time.Instant;
  *     null when nothing bypasses the pause
  * @param chatops the interactive chat-command settings (prompt 061); null reads as the defaults
  * @param imageLinks expose the map as a URL for non-attachment channels (prompt 108); default false
+ * @param defaultLanguage the BCP 47 language notifications are written in (prompt 141, {@code notify.defaultLanguage});
+ *     a channel whose {@code language} differs gets them translated; null reads as {@value #DEFAULT_LANGUAGE}
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record NotificationSettings(Instant pausedUntil, String pauseBypassSeverity, ChatOps chatops,
-        Boolean imageLinks) {
+        Boolean imageLinks, String defaultLanguage) {
 
     /** The shipped bypass severity. */
     public static final String DEFAULT_BYPASS = "critical";
+
+    /** The shipped source language of notifications (prompt 141). */
+    public static final String DEFAULT_LANGUAGE = "en";
 
     /** Nulls read as their defaults. */
     public NotificationSettings {
         chatops = chatops == null ? ChatOps.defaults() : chatops;
         imageLinks = imageLinks == null ? Boolean.FALSE : imageLinks;
+        defaultLanguage = defaultLanguage == null || defaultLanguage.isBlank() ? DEFAULT_LANGUAGE : defaultLanguage;
+    }
+
+    /** Settings in the default language (the shape before prompt 141). */
+    public NotificationSettings(Instant pausedUntil, String pauseBypassSeverity, ChatOps chatops, Boolean imageLinks) {
+        this(pausedUntil, pauseBypassSeverity, chatops, imageLinks, null);
     }
 
     /** Settings with the default {@code chatops} and image links off (the shape before prompt 061). */
@@ -45,7 +56,7 @@ public record NotificationSettings(Instant pausedUntil, String pauseBypassSeveri
 
     /** No pause; critical bypasses; interactive chat channels enabled; image links off. */
     public static NotificationSettings defaults() {
-        return new NotificationSettings(null, DEFAULT_BYPASS, ChatOps.defaults(), false);
+        return new NotificationSettings(null, DEFAULT_BYPASS, ChatOps.defaults(), false, DEFAULT_LANGUAGE);
     }
 
     /** True when image links are enabled. */

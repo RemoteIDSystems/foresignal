@@ -1,0 +1,13 @@
+from enum import StrEnum
+
+
+class StatsSeriesMeasure(StrEnum):
+    ALERTS = "alerts"
+    EDGES = "edges"
+    ENTITIES = "entities"
+    FIRSTS = "firsts"
+    TOMBSTONES = "tombstones"
+    VERSIONS = "versions"
+
+    def __str__(self) -> str:
+        return str(self.value)

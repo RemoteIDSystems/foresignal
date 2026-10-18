@@ -19,10 +19,57 @@ import java.util.UUID;
  * @param instructions the LLM instructions (≤ 4000 characters), or null
  * @param channelIds the channels; empty for every channel subscribed to {@code briefing}
  * @param maxItemsPerKind notable records per kind (1–50, default 5)
+ * @param audio the audio option (prompt 141), or null for no audio
  */
 public record BriefingInput(String name, boolean enabled, String schedule, String timezone, BriefingScope scope,
         String lookback, Duration lookbackDuration, String mode, String instructions, List<UUID> channelIds,
-        int maxItemsPerKind) {
+        int maxItemsPerKind, Audio audio) {
+
+    /** An input without audio (the shape before prompt 141). */
+    public BriefingInput(String name, boolean enabled, String schedule, String timezone, BriefingScope scope,
+            String lookback, Duration lookbackDuration, String mode, String instructions, List<UUID> channelIds,
+            int maxItemsPerKind) {
+        this(name, enabled, schedule, timezone, scope, lookback, lookbackDuration, mode, instructions, channelIds,
+                maxItemsPerKind, null);
+    }
+
+    /**
+     * The audio option of a briefing (prompt 141, OpenAPI {@code BriefingInput.audio}): the plain-text rendition
+     * is synthesized with the {@code tts} role after each run.
+     *
+     * @param voice the provider's voice name, for example {@code alloy} or {@code af_bella}
+     * @param format {@value #MP3} (default) or {@value #OPUS}
+     */
+    public record Audio(String voice, String format) {
+
+        /** MP3: long text is synthesized in chunks and concatenated. */
+        public static final String MP3 = "mp3";
+
+        /** Opus in Ogg: long text is truncated with a note. */
+        public static final String OPUS = "opus";
+
+        /** Requires the voice; the format defaults to {@value #MP3}. */
+        public Audio {
+            Objects.requireNonNull(voice, "voice");
+            format = format == null ? MP3 : format;
+        }
+
+        /** The stored and wire form, {@code {voice, format}}. */
+        public java.util.Map<String, Object> toMap() {
+            java.util.Map<String, Object> out = new java.util.LinkedHashMap<>();
+            out.put("voice", voice);
+            out.put("format", format);
+            return out;
+        }
+
+        /** The option stored as {@code map}, or null when absent or unreadable. */
+        public static Audio fromMap(java.util.Map<String, Object> map) {
+            if (map == null || !(map.get("voice") instanceof String voice) || voice.isBlank()) {
+                return null;
+            }
+            return new Audio(voice, map.get("format") instanceof String f ? f : MP3);
+        }
+    }
 
     /** {@code mode} without an LLM. */
     public static final String DIGEST = "digest";
@@ -59,7 +106,7 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
         }).filter(Objects::nonNull).toList();
         return new BriefingInput(entity.getName(), entity.isEnabled(), entity.getSchedule(), entity.getTimezone(),
                 BriefingScope.fromMap(entity.getScope()), entity.getLookback(), lookback, entity.getMode(),
-                entity.getInstructions(), channels, entity.getMaxItemsPerKind());
+                entity.getInstructions(), channels, entity.getMaxItemsPerKind(), Audio.fromMap(entity.getAudio()));
     }
 
     /** Writes this input onto {@code entity} (schedule fields only; times and ownership are the caller's). */
@@ -74,5 +121,6 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
         entity.setInstructions(instructions);
         entity.setChannelIds(new java.util.ArrayList<>(channelIds.stream().map(UUID::toString).toList()));
         entity.setMaxItemsPerKind(maxItemsPerKind);
+        entity.setAudio(audio == null ? null : new java.util.LinkedHashMap<>(audio.toMap()));
     }
 }

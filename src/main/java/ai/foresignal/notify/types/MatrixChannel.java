@@ -23,6 +23,10 @@ import org.springframework.stereotype.Component;
  * update sends a new event whose {@code body} starts with {@code "* "}, carrying {@code m.new_content}
  * and {@code m.relates_to {rel_type: "m.replace", event_id}} (an edit).
  *
+ * <p>Prompt 141: briefing audio is uploaded to the homeserver's media repository
+ * ({@code POST /_matrix/media/v3/upload}) after the text event, and posted as an {@code m.audio} event naming the
+ * returned {@code mxc://} URI ({@link #audioUpload}).
+ *
  * <p>Prompt 061: with {@code interactive: true} the channel also accepts commands from its unencrypted
  * {@code allowedChats} rooms ({@code ai.foresignal.chatops.MatrixConnector}).
  */
@@ -66,6 +70,41 @@ public class MatrixChannel extends AbstractChannelType {
     @Override
     public ChannelRateLimit rateLimit() {
         return ChannelRateLimit.perSecond(5);
+    }
+
+    /** Synapse's default {@code max_upload_size} (50 MB). */
+    static final long AUDIO_MAX_BYTES = 50L * 1024 * 1024;
+
+    @Override
+    public long audioAttachmentLimit() {
+        return AUDIO_MAX_BYTES;
+    }
+
+    /**
+     * Prompt 141: the upload of the audio to the media repository, then an {@code m.audio} event with
+     * {@code url} = the returned {@code content_uri}, {@code body} = the file name and {@code info} (mimetype,
+     * size); its transaction id is the delivery id plus {@code -audio}, so a retry stays idempotent.
+     */
+    @Override
+    public Optional<ai.foresignal.notify.AudioUpload> audioUpload(NotificationMessage m, ChannelSettings s) {
+        NotificationMessage.Attachment audio = m.audio();
+        if (audio == null) {
+            return Optional.empty();
+        }
+        Map<String, String> headers = baseHeaders(s);
+        headers.putAll(auth(s));
+        headers.put("Content-Type", audio.contentType());
+        String upload = ChannelSettings.trimSlash(s.config("homeserverUrl", "")) + "/_matrix/media/v3/upload?filename="
+                + URLEncoder.encode(audio.filename(), StandardCharsets.UTF_8).replace("+", "%20");
+        PreparedRequest request = new PreparedRequest("POST", upload, headers,
+                new PreparedRequest.Bytes(audio.contentType(), audio.bytes()));
+        return Optional.of(new ai.foresignal.notify.AudioUpload(request, response -> refAt(response, "content_uri")
+                .filter(uri -> uri.startsWith("mxc://"))
+                .map(uri -> json("PUT", url(s) + "-audio", auth(s), obj(
+                        "msgtype", "m.audio",
+                        "body", audio.filename(),
+                        "url", uri,
+                        "info", obj("mimetype", audio.contentType(), "size", audio.bytes().length)), s))));
     }
 
     @Override

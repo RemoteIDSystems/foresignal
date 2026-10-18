@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foresignal.ai/protocol/edp-1.0/forecast.schema.json",
+  "title": "Foresignal EDP 1.0 forecast",
+  "type": "object",
+  "description": "A probability or quantiles (monotonic: p05 ≤ p10 ≤ p25 ≤ p50 ≤ p75 ≤ p90 ≤ p95, checked by the server) for a question",
+  "properties": {
+    "stream": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 48
+    },
+    "type": {
+      "type": "string",
+      "const": "forecast"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "observedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "properties": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Item properties, validated against the stream's payloadSchema"
+    },
+    "question": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "externalId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "closeTime": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "resolutionCriteria": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "externalId",
+        "title"
+      ]
+    },
+    "questionRef": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "probability": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1
+    },
+    "quantiles": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Quantiles"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "madeAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Provider-claimed time; the recorded made_at is max(madeAt, receipt time)"
+    },
+    "origin": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/EdpOrigin"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "stream",
+    "type",
+    "id",
+    "madeAt"
+  ],
+  "additionalProperties": true,
+  "allOf": [
+    {
+      "anyOf": [
+        {
+          "required": [
+            "probability"
+          ],
+          "properties": {
+            "probability": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        {
+          "required": [
+            "quantiles"
+          ],
+          "properties": {
+            "quantiles": {
+              "$ref": "#/$defs/Quantiles"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "anyOf": [
+        {
+          "required": [
+            "question"
+          ],
+          "properties": {
+            "question": {
+              "type": "object"
+            }
+          }
+        },
+        {
+          "required": [
+            "questionRef"
+          ],
+          "properties": {
+            "questionRef": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "$defs": {
+    "EdpOrigin": {
+      "type": "object",
+      "description": "Item-level provenance: who originally observed or published this item, when it differs from the manifest originator (for evidence independence)",
+      "properties": {
+        "originator": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "class": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "sensor-network",
+            "agency",
+            "aggregator",
+            "media",
+            "crowd",
+            "social",
+            "operator",
+            "derived",
+            null
+          ]
+        },
+        "upstreamId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The original publisher's id for the observation or report"
+        },
+        "derivedFrom": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Other items (stream:id) or upstream ids this item was derived from"
+        }
+      },
+      "required": [
+        "originator"
+      ]
+    },
+    "Quantiles": {
+      "type": "object",
+      "properties": {
+        "p05": {
+          "type": "number"
+        },
+        "p10": {
+          "type": "number"
+        },
+        "p25": {
+          "type": "number"
+        },
+        "p50": {
+          "type": "number"
+        },
+        "p75": {
+          "type": "number"
+        },
+        "p90": {
+          "type": "number"
+        },
+        "p95": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "p05",
+        "p25",
+        "p50",
+        "p75",
+        "p95"
+      ]
+    }
+  }
+}

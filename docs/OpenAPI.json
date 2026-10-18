@@ -607,6 +607,11 @@
         "version": "1.3.0",
         "date": "2026-10-18",
         "note": "140: runSourceDoctor, listSourceDoctorReports and getDoctorReport are implemented, with the adapter doctor: fixtures packaged into the jar under META-INF/foresignal/fixtures/ (256 KB per file; JSON cut to a valid prefix, CSV to 500 rows; fixtures-index.json with capture dates and SHA-256) and adapter sources under META-INF/foresignal/adapter-src/ (package-per-adapter index; files ported from third-party code excluded), StructureExtractor (JSON path trees with presence ratios, CSV/TSV columns, XML through a DTD-refusing DOM factory, binary magic and ZIP entries, HTML titles), StructureDiff (added, removed, retyped, presence drops of 50 points, emptied arrays, reordered columns, delimiter and content-type changes, size ratio, rename candidates by snake-camel equality, Levenshtein similarity 0.6 or value distribution, always under the same parent), deterministic findings (AUTH_FAILED, UA_BLOCKED, ENDPOINT_MOVED, RATE_LIMITED, UPSTREAM_ERROR, HTML_INSTEAD_OF_DATA, EMPTY_RESULT, FIELD_RENAMED, FIELD_REMOVED, TYPE_CHANGED, FORMAT_CHANGED, PARSER_REJECTS, COVERAGE_DROPPED, NO_CHANGE_DETECTED, PROBE_SKIPPED_BUDGET; parser reads by a static literal scan, marked heuristic), the table doctor_report (retained 90 days; no raw upstream body), one run per source per 10 minutes (DOCTOR_BUSY), the optional LLM step (026 chat role, purpose doctor, low effort, template doctor-system@1.0.0, compact context of 6k tokens or full of 30k, upstream content in a delimited untrusted block, no tools, lenient JSON extraction, 60 s timeout; the proposed patch validated in memory by an in-house unified-diff applier with brace and class-name checks, never written, compiled or applied, labeled proposed, not applied), automatic runs on degraded or failing health with a format-change, coverage-dropped or parse-error reason (LLM only with doctor.autoLlm, cool-off doctor.autoCooldown 6 h), the system notification subtype system.doctor_broken, SourceHealth.lastDoctorReport, the MCP tools diagnose_source (admin, cost-bearing) and get_doctor_report (agent), the app settings doctor.autoLlm and doctor.autoCooldown, and the error codes DOCTOR_BUSY and UNKNOWN_DOCTOR_REPORT. Reconciliations (additive): StructureDiff.format gains text; DoctorReport.probe gains skipReason, records, requests and error; DoctorReport.fixture gains truncated; DoctorReport.llm gains contextTokens, detail and error; ProposedPatch gains error; getDoctorReport answers 202 with DoctorRunAccepted while the run is in progress."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-18",
+        "note": "141: the last 18 planned operations are implemented, so pending-operations.txt is empty. MCP remote authorization (RFC 9728, identity-provider delegation, no built-in authorization server): getProtectedResourceMetadata and getMcpProtectedResourceMetadata (open; 404 MCP_OAUTH_DISABLED while mcp.auth.mode is token), getMcpAuthSettings and updateMcpAuthSettings (admin; admin is never mappable in scopeMap; issuer and JWKS URLs through the outbound URL policy, 400 VALIDATION_FAILED or URL_NOT_ALLOWED); JWTs verified with Nimbus JOSE+JWT (RS256, ES256, EdDSA/Ed25519 through Tink), iss, aud (RFC 8707), exp/nbf with 60 s skew, JWKS refreshed on an unknown kid at most once a minute; /mcp answers 401 with resource_metadata and scope, and 403 insufficient_scope for a tools/call above an identity-provider token's mapped scope; REST keeps Foresignal tokens; McpAuthSettings gains defaults for allowedAlgs and scopeMap, minItems and maxProperties; error code MCP_OAUTH_DISABLED. WASM parser plugins (Chicory, disabled by default): listPlugins, updatePluginSettings (gains a 400), getPlugin and updatePlugin, ABI v1 (foresignal_parse returning a 4-byte little-endian length plus UTF-8 JSON, alloc/dealloc, the single host import foresignal_log, no WASI), 64 MB memory, 5 s timeout, 16 MB output, the wasm-feed source family; error codes UNKNOWN_PLUGIN (404), PLUGIN_HASH_MISMATCH (409) and PLUGINS_DISABLED (409). Exchange formats: format=czml on queryHistory (gains the Foresignal-Truncated header) and getRecordTrack (the pre-141 400 wording removed); queryFdsnEvents (gains nodata=204|404 and a text 404), getFdsnEventVersion and getFdsnEventWadl; exportStix (gains Foresignal-Licence-Filtered and a RESULT_TOO_LARGE 400) and the five TAXII 2.1 operations (getTaxiiCollectionObjects gains the filtered-count header and a 400). Audio briefings and translation: getBriefingPodcast (RSS 2.0 with enclosures, ETag and Last-Modified); BriefingInput.audio gains voice limits and additionalProperties false; BriefingRun.audio gains bytes, contentType and signature; LlmSettings.ttsProvider and LlmProviderInput.options ttsModel and ttsCharactersPerDay are added; NotificationSettings.defaultLanguage is added; Channel and ChannelInput language descriptions updated. Media: contentType gains application/czml+json, audio/mpeg and audio/ogg; role gains document and audio; getMediaThumbnail documents a 400 for documents and audio. x-foresignal-extended-by 141 added to Briefing, LlmSettings, LlmProviderInput, NotificationSettings, Media and getMediaThumbnail."
       }
     ]
   },
@@ -3109,7 +3114,7 @@
             "name": "format",
             "in": "query",
             "required": false,
-            "description": "Response format; wins over Accept. Streaming formats (ndjson, geojsonseq, csv) are not paged and are capped at `foresignal.api.stream.maxRows` (400 RESULT_TOO_LARGE); csv needs `fields=` for payload columns.",
+            "description": "Response format; wins over Accept. Streaming formats (ndjson, geojsonseq, csv) are not paged and are capped at `foresignal.api.stream.maxRows` (400 RESULT_TOO_LARGE); csv needs `fields=` for payload columns. `czml` (prompt 141) is not paged either: it reads up to 200,000 versions from `cursor` on and returns one CZML document (`limit` and `fields` are ignored).",
             "schema": {
               "type": "string",
               "enum": [
@@ -3332,7 +3337,7 @@
                     "type": "object",
                     "additionalProperties": true
                   },
-                  "description": "CZML document: document packet (clock, attribution) then one packet per entity (≤ 5,000)"
+                  "description": "CZML document: document packet (clock from since to until, attribution in `description`) then one packet per entity (≤ 5,000) with sampled `cartographicDegrees` positions, `availability`, `label` (title) and `point` (kindDisplay color)"
                 }
               }
             },
@@ -3347,6 +3352,15 @@
                 "description": "Joined attribution text of the records in the response (at most 1 KB, truncated with …)",
                 "schema": {
                   "type": "string"
+                }
+              },
+              "Foresignal-Truncated": {
+                "description": "`true` on a `format=czml` response shortened by the 200,000-version or 5,000-entity cap (prompt 141)",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "true"
+                  ]
                 }
               }
             }
@@ -10335,7 +10349,7 @@
         ],
         "operationId": "createBriefing",
         "summary": "Create a scheduled briefing",
-        "description": "Creates a scheduled briefing. Validation: 5-field cron no more frequent than every 15 minutes, valid IANA `timezone`, existing scope ids (a private source the caller may not see is reported as unknown), `lookback` 1h–7d; scope members of later prompts (`placeIds`, `viewId`, `country`, `admin1`, `county`, `places`, `weatherProducts`) are refused with 400 until their prompt while non-empty, and a non-null `audio` until 141; channels that do not exist, are disabled or are not subscribed to `briefing` produce `warnings`, not failures; `mode=llm` is accepted without a provider (checked at run time). The creating token's scope is the briefing's owner scope: only an `admin`-owned briefing lists records of private sources, any other counts them only.\n\n**Scope:** `agent`.",
+        "description": "Creates a scheduled briefing. Validation: 5-field cron no more frequent than every 15 minutes, valid IANA `timezone`, existing scope ids (a private source the caller may not see is reported as unknown), `lookback` 1h–7d; scope members of later prompts (`placeIds`, `viewId`, `country`, `admin1`, `county`, `places`, `weatherProducts`) are refused with 400 until their prompt while non-empty, ; `audio` (141) is null or `{voice, format}` with a voice of 1–100 characters and `format` `mp3` (default) or `opus`, accepted without a `tts` provider (runs then record `audio.status` `skipped`); channels that do not exist, are disabled or are not subscribed to `briefing` produce `warnings`, not failures; `mode=llm` is accepted without a provider (checked at run time). The creating token's scope is the briefing's owner scope: only an `admin`-owned briefing lists records of private sources, any other counts them only.\n\n**Scope:** `agent`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -23079,7 +23093,7 @@
             "name": "format",
             "in": "query",
             "required": false,
-            "description": "Response format",
+            "description": "Response format; `czml` returns a CZML document (prompt 141)",
             "schema": {
               "type": "string",
               "enum": [
@@ -23106,7 +23120,8 @@
                   "items": {
                     "type": "object",
                     "additionalProperties": true
-                  }
+                  },
+                  "description": "CZML document (prompt 141): document packet (clock over [from, to], attribution in `description`) then one entity packet with sampled `cartographicDegrees` positions, `availability`, `label` (title) and `point` (kindDisplay color)"
                 }
               }
             },
@@ -23135,7 +23150,7 @@
             "description": "Not modified"
           },
           "400": {
-            "description": "Validation failed (TRACK_WINDOW_TOO_LARGE; VALIDATION_FAILED for a bad window, future `to`, field name, `maxPoints`, `gap`, or `format=czml` before prompt 141)",
+            "description": "Validation failed (TRACK_WINDOW_TOO_LARGE; VALIDATION_FAILED for a bad window, future `to`, field name, `maxPoints`, or `gap`)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -27550,7 +27565,7 @@
             }
           },
           "400": {
-            "description": "Unsupported width (VALIDATION_FAILED)",
+            "description": "Unsupported width, or the media is audio (141) (VALIDATION_FAILED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -27627,6 +27642,9 @@
           {
             "bearerToken": []
           }
+        ],
+        "x-foresignal-extended-by": [
+          "141"
         ]
       }
     },
@@ -80120,7 +80138,7 @@
         ],
         "operationId": "getProtectedResourceMetadata",
         "summary": "Protected resource metadata",
-        "description": "RFC 9728 metadata for the MCP resource (same document as the `/mcp` path variant). Clients find it through `WWW-Authenticate: Bearer resource_metadata=…` on 401 from `/mcp`.\n\n**Scope:** `open` (no token).",
+        "description": "RFC 9728 metadata for the MCP resource (same document as the `/mcp` path variant). Clients find it through `WWW-Authenticate: Bearer resource_metadata=…` on 401 from `/mcp`.\n\nWhile `mcp.auth.mode` is `oauth` or `both`, `/mcp` always needs a credential (open reads do not apply there): a request without one, or with an invalid token, gets `401` with `WWW-Authenticate: Bearer resource_metadata=\"{base}/.well-known/oauth-protected-resource/mcp\", scope=\"foresignal:read\"` (plus `error=\"invalid_token\"` when a token was presented); a valid token whose scopes map to nothing, or an identity-provider token calling a tool above its mapped scope, gets `403` with `WWW-Authenticate: Bearer error=\"insufficient_scope\", scope=\"…\", resource_metadata=\"…\"`. The `scope` values are the identity-provider scopes of `mcp.auth.scopeMap` that reach the needed Foresignal scope. REST paths never accept identity-provider tokens.\n\n**Scope:** `open` (no token).",
         "responses": {
           "200": {
             "description": "Metadata",
@@ -80133,7 +80151,7 @@
             }
           },
           "404": {
-            "description": "MCP OAuth disabled (`mcp.auth.mode=token`)",
+            "description": "MCP OAuth disabled (`mcp.auth.mode=token`); code `MCP_OAUTH_DISABLED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -80148,7 +80166,7 @@
         ],
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/.well-known/oauth-protected-resource/mcp": {
@@ -80171,7 +80189,7 @@
             }
           },
           "404": {
-            "description": "MCP OAuth disabled (`mcp.auth.mode=token`)",
+            "description": "MCP OAuth disabled (`mcp.auth.mode=token`); code `MCP_OAUTH_DISABLED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -80186,7 +80204,7 @@
         ],
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/settings/mcp-auth": {
@@ -80236,7 +80254,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -80244,7 +80262,7 @@
         ],
         "operationId": "updateMcpAuthSettings",
         "summary": "Update MCP authorization settings",
-        "description": "Replaces `mcp.auth`. `admin` can never appear in `scopeMap`; the issuer and JWKS URLs pass the 035 outbound URL policy. Applies only to `/mcp`; REST keeps Foresignal tokens.\n\n**Scope:** `admin`.",
+        "description": "Replaces `mcp.auth`. `admin` can never appear in `scopeMap` (400). With `mode` `oauth` or `both`, `issuer` is required, and `audience` too unless `server.publicBaseUrl` is set. `issuer` and `jwksUri` must be absolute http(s) URLs without query or fragment that pass the 035 outbound URL policy (`LAN_ALLOWED`; plain `http` only towards loopback, private or tailnet addresses). Applies only to `/mcp`; REST keeps Foresignal tokens.\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -80267,7 +80285,7 @@
             }
           },
           "400": {
-            "description": "Validation failed (URL_NOT_ALLOWED)",
+            "description": "Validation failed (`VALIDATION_FAILED` with field errors; `URL_NOT_ALLOWED` when an issuer or JWKS URL is refused by the outbound URL policy)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -80304,7 +80322,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/plugins": {
@@ -80314,7 +80332,7 @@
         ],
         "operationId": "listPlugins",
         "summary": "List plugins",
-        "description": "Whether plugins are enabled and the plugins found on disk with their hash state.\n\n**Scope:** `admin`.",
+        "description": "Whether plugins are enabled and the plugins found on disk with their hash state. Discovery reads and hashes `${FORESIGNAL_DATA_DIR}/plugins/{name}/plugin.wasm` and `plugin.json` but never runs a plugin.\n\n**Scope:** `admin`.",
         "responses": {
           "200": {
             "description": "Plugins",
@@ -80354,7 +80372,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -80362,7 +80380,7 @@
         ],
         "operationId": "updatePluginSettings",
         "summary": "Enable or disable plugins",
-        "description": "Settings `plugins` (`enabled=false` by default).\n\n**Scope:** `admin`.",
+        "description": "Settings `plugins` (`enabled=false` by default). While off, no plugin runs whatever its own state, every `wasm-feed` fetch fails with a `plugins are disabled` health reason, and no plugin can be enabled (`409 PLUGINS_DISABLED`).\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -80384,6 +80402,16 @@
               }
             }
           },
+          "400": {
+            "description": "Validation failed (`enabled` missing)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Missing or invalid token",
             "content": {
@@ -80412,7 +80440,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/plugins/{name}": {
@@ -80484,7 +80512,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -80492,7 +80520,7 @@
         ],
         "operationId": "updatePlugin",
         "summary": "Enable or disable a plugin",
-        "description": "Enables a plugin after the admin reviewed its sha256 (must match the file), or disables it. ABI v1 parsers run in Chicory with no WASI imports, 64 MB memory, 5 s timeout and 16 MB output.\n\n**Scope:** `admin`.",
+        "description": "Enables a plugin after the admin reviewed its sha256 (must match the file), or disables it. ABI v1 parsers run in Chicory with no WASI imports, 64 MB memory, 5 s timeout and 16 MB output. Enabling needs plugins on (`409 PLUGINS_DISABLED`), `sha256` in the body (`400`), a `plugin.wasm` that hashes to it and to the hash `plugin.json` declares (`409 PLUGIN_HASH_MISMATCH`), and a module that loads: valid WebAssembly, importing nothing but `env.foresignal_log(i32, i32, i32)` and exporting `memory`, `alloc`, `dealloc` and `foresignal_parse` (`400`). The approval is bound to that hash: if the file later changes, the plugin stops running (state `hash-mismatch`) until it is reviewed and enabled again. Disabling always works, also while plugins are off.\n\n**Scope:** `admin`.",
         "parameters": [
           {
             "name": "name",
@@ -80584,7 +80612,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/fdsnws/event/1/query": {
@@ -80594,7 +80622,7 @@
         ],
         "operationId": "queryFdsnEvents",
         "summary": "FDSN event query",
-        "description": "fdsnws-event 1.2 over `earthquake` records: QuakeML 1.2 BED (`smi:foresignal/{source}/{externalId}` publicIDs) or the pipe-separated text format. `204` when no events match (FDSN convention); errors use FDSN plain-text bodies.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "fdsnws-event 1.2 over `earthquake` records: QuakeML 1.2 BED (`smi:foresignal/{source}/{externalId}` publicIDs) or the pipe-separated text format. `204` when no events match (FDSN convention; `nodata=404` selects 404); errors use FDSN plain-text bodies. Long and short parameter names are accepted (`start`, `minlat`, `minmag`, …); unsupported parameters are a 400. Depth is in meters in QuakeML and in km in the text format.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "starttime",
@@ -80762,6 +80790,20 @@
               ],
               "default": "xml"
             }
+          },
+          {
+            "name": "nodata",
+            "in": "query",
+            "required": false,
+            "description": "Status of an empty result: 204 (default, FDSN convention) or 404 with an FDSN plain-text body",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                204,
+                404
+              ],
+              "default": 204
+            }
           }
         ],
         "responses": {
@@ -80784,7 +80826,17 @@
             "description": "No matching events"
           },
           "400": {
-            "description": "Bad request (FDSN plain-text error)",
+            "description": "Bad or unsupported parameter (FDSN plain-text error)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No matching events and `nodata=404` (FDSN plain-text body)",
             "content": {
               "text/plain": {
                 "schema": {
@@ -80830,7 +80882,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/fdsnws/event/1/version": {
@@ -80890,7 +80942,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/fdsnws/event/1/application.wadl": {
@@ -80949,7 +81001,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/export/stix": {
@@ -80959,7 +81011,7 @@
         ],
         "operationId": "exportStix",
         "summary": "Export a STIX 2.1 bundle",
-        "description": "`cisa-kev`/`nvd-cves` → `vulnerability`, abuse.ch IOCs → `indicator` (pattern from the IOC type), plus a Foresignal `identity`; deterministic UUIDv5 ids from record refs. Licence egress applies.\n\n**Scope:** `agent`.",
+        "description": "`cisa-kev`/`nvd-cves` → `vulnerability`, abuse.ch IOCs → `indicator` (pattern from the IOC type), plus a Foresignal `identity`; deterministic UUIDv5 ids from record refs. Every record passes `EgressPolicy` on the EXPORT path (private sources, `LOCAL_ONLY` egress and license terms); refused records are counted in `Foresignal-Licence-Filtered`. Kinds: `vulnerability`, `malware-url`, `malware-c2` (default all three).\n\n**Scope:** `agent`.",
         "parameters": [
           {
             "name": "kind",
@@ -80998,10 +81050,18 @@
                   "$ref": "#/components/schemas/StixBundle"
                 }
               }
+            },
+            "headers": {
+              "Foresignal-Licence-Filtered": {
+                "description": "Records left out by the egress policy on the EXPORT path (private, LOCAL_ONLY or license terms); absent when none",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           },
           "400": {
-            "description": "Validation failed",
+            "description": "Validation failed: a kind without a STIX mapping (VALIDATION_FAILED), or more than 50,000 matching records (RESULT_TOO_LARGE)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -81038,7 +81098,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/taxii2/": {
@@ -81088,7 +81148,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/taxii2/foresignal/": {
@@ -81138,7 +81198,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/taxii2/foresignal/collections/": {
@@ -81188,7 +81248,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/taxii2/foresignal/collections/{collectionId}/": {
@@ -81259,7 +81319,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/taxii2/foresignal/collections/{collectionId}/objects/": {
@@ -81269,7 +81329,7 @@
         ],
         "operationId": "getTaxiiCollectionObjects",
         "summary": "TAXII collection objects",
-        "description": "STIX objects with `added_after` and `next` pagination; `X-TAXII-Date-Added-First`/`-Last` headers.\n\n**Scope:** `agent`.",
+        "description": "STIX object versions in ingest order with `added_after` (strictly after the version's ingest time) and `next` pagination (repeat the same `added_after` with `next`); the default page is 100; `X-TAXII-Date-Added-First`/`-Last` headers.\n\n**Scope:** `agent`.",
         "parameters": [
           {
             "name": "collectionId",
@@ -81333,6 +81393,22 @@
                   "type": "string",
                   "format": "date-time"
                 }
+              },
+              "Foresignal-Licence-Filtered": {
+                "description": "Records left out by the egress policy on the EXPORT path; absent when none",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (a bad `added_after`, `limit` or `next`)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
               }
             }
           },
@@ -81374,7 +81450,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/briefings/{briefingId}/podcast.rss": {
@@ -81384,7 +81460,7 @@
         ],
         "operationId": "getBriefingPodcast",
         "summary": "Briefing audio podcast feed",
-        "description": "RSS 2.0 feed (058 feed writer) of the briefing's runs that have audio, each with an `<enclosure>` to the signed media. Feed keys work through `/v1/k/{key}/…`.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "RSS 2.0 feed (058 feed writer family) of the briefing's runs that have audio (`audio.status` `ok` and a media row that still exists), newest first, at most 50 items. Each `<item>` has a non-permalink `<guid>`, the run's HTML rendition as `<link>`, its plain text as `<description>`, and an `<enclosure url length type>` to the 043 media (`audio/mpeg` or `audio/ogg`), whose detached JWS is the run's `audio.signature` (109). Feed keys work through `/v1/k/{key}/briefings/{briefingId}/podcast.rss`; the enclosure URLs then carry the same key, so create the key with prefixes covering both the feed and `/v1/media/`. Same visibility as the run feeds: 404 unless the briefing is visible to the caller, runs citing private sources only behind the private gate. Strong ETag and `Last-Modified`; 304 on a match.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "briefingId",
@@ -81402,6 +81478,20 @@
             "description": "Feed",
             "content": {
               "application/rss+xml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Strong validator",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Last-Modified": {
+                "description": "Newest item",
                 "schema": {
                   "type": "string"
                 }
@@ -81458,7 +81548,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/social/platforms": {
@@ -87947,6 +88037,24 @@
             "status": 404,
             "prompt": "140",
             "note": "getDoctorReport: no doctor report has that id"
+          },
+          {
+            "code": "UNKNOWN_PLUGIN",
+            "status": 404,
+            "prompt": "141",
+            "note": "getPlugin, updatePlugin: no plugin directory with that name under ${FORESIGNAL_DATA_DIR}/plugins/ (or the name is not a valid plugin name)"
+          },
+          {
+            "code": "PLUGIN_HASH_MISMATCH",
+            "status": 409,
+            "prompt": "141",
+            "note": "updatePlugin: the reviewed sha256 does not match plugin.wasm, or plugin.json declares another hash than the file has"
+          },
+          {
+            "code": "PLUGINS_DISABLED",
+            "status": 409,
+            "prompt": "141",
+            "note": "updatePlugin: a plugin cannot be enabled while the plugins setting is off"
           }
         ]
       },
@@ -96781,7 +96889,7 @@
               "string",
               "null"
             ],
-            "description": "BCP 47 language for notifications on this channel"
+            "description": "BCP 47 language for notifications on this channel (141), stored canonicalized (`pt-br` → `pt-BR`); null uses `notify.defaultLanguage`. When the primary language or script differs from it, title and body are translated through the 026 chat role (budget `translate`, low effort), code spans, URLs and placeholders untouched, cached 24 h; after 8 s, or on any failure, the original is sent with the title prefixed `[untranslated]`."
           }
         },
         "required": [
@@ -97088,7 +97196,7 @@
               "string",
               "null"
             ],
-            "description": "BCP 47; when it differs from `notify.defaultLanguage` title and body are translated (026 chat role, budget `translate`), cached 24 h, `[untranslated]` marker on timeout"
+            "description": "BCP 47; when it differs from `notify.defaultLanguage` (primary language or script) title and body are translated (026 chat role, budget `translate`), cached 24 h, the original with an `[untranslated]` title marker after 8 s or on failure (141)"
           },
           "ownerPrincipalId": {
             "oneOf": [
@@ -97428,6 +97536,20 @@
                 "type": "boolean",
                 "default": false,
                 "description": "Treat this provider as local for LLM egress (private-source records may be sent to it, 026/039); `ollama` is always local"
+              },
+              "ttsModel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "default": "tts-1",
+                "description": "Speech model for the `tts` role (141), sent as `model` to `{baseUrl}/audio/speech`; openai-compatible only (for example `tts-1`, `gpt-4o-mini-tts`, `kokoro`)"
+              },
+              "ttsCharactersPerDay": {
+                "type": "integer",
+                "minimum": 1000,
+                "maximum": 100000000,
+                "default": 100000,
+                "description": "Daily character budget of the `tts` role (141), per UTC day"
               }
             }
           },
@@ -97460,7 +97582,8 @@
         ],
         "x-foresignal-extended-by": [
           "026",
-          "122"
+          "122",
+          "141"
         ]
       },
       "LlmProvider": {
@@ -97637,10 +97760,18 @@
             "type": "boolean",
             "default": false,
             "description": "Allow private-source records in prompts for providers classified as local (039): Ollama or `options.local`, whose base URL resolves only to loopback or private addresses. Never for remote providers. Default false."
+          },
+          "ttsProvider": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Provider of the `tts` role (141): an enabled `openai-compatible` provider whose `/audio/speech` endpoint synthesizes audio briefings (OpenAI, Kokoro-FastAPI, openedai-speech). Budgeted by characters (`options.ttsCharactersPerDay`) and by the provider's requests per minute."
           }
         },
         "x-foresignal-extended-by": [
-          "039"
+          "039",
+          "141"
         ]
       },
       "LlmTestResult": {
@@ -98623,10 +98754,13 @@
             "oneOf": [
               {
                 "type": "object",
-                "description": "Synthesise the plain-text rendition with the 026 `tts` role after each run",
+                "description": "Synthesize the plain-text rendition with the 026 `tts` role after each run (141): at most 4,000 characters per request; longer text is split at paragraph or sentence boundaries and the MP3 parts concatenated (at most 25 requests), while `opus` is truncated to one request with a spoken note. A synthesis failure never blocks the text delivery.",
                 "properties": {
                   "voice": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The provider's voice, for example `alloy` (OpenAI) or `af_bella` (Kokoro)",
+                    "minLength": 1,
+                    "maxLength": 100
                   },
                   "format": {
                     "type": "string",
@@ -98639,7 +98773,8 @@
                 },
                 "required": [
                   "voice"
-                ]
+                ],
+                "additionalProperties": false
               },
               {
                 "type": "null"
@@ -98710,7 +98845,8 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "029"
+          "029",
+          "141"
         ]
       },
       "BriefingRun": {
@@ -98814,7 +98950,7 @@
             "oneOf": [
               {
                 "type": "object",
-                "description": "Synthesised audio of the run",
+                "description": "Synthesized audio of the run (141); null when the briefing has no `audio` option",
                 "properties": {
                   "status": {
                     "type": "string",
@@ -98822,7 +98958,8 @@
                       "ok",
                       "failed",
                       "skipped"
-                    ]
+                    ],
+                    "description": "`ok` stored; `failed` provider, budget or storage failure (the text was delivered anyway); `skipped` no `tts` provider or no text"
                   },
                   "mediaId": {
                     "type": [
@@ -98852,16 +98989,45 @@
                     "type": [
                       "integer",
                       "null"
-                    ]
+                    ],
+                    "description": "Characters synthesized (the `tts` budget unit)"
                   },
                   "truncated": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "True when the text was cut to fit (always for long `opus`; MP3 beyond 25 requests)"
                   },
                   "error": {
                     "type": [
                       "string",
                       "null"
                     ]
+                  },
+                  "bytes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Size of the stored audio"
+                  },
+                  "contentType": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "audio/mpeg",
+                      "audio/ogg",
+                      null
+                    ],
+                    "description": "Media type of the stored audio"
+                  },
+                  "signature": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Detached JWS (`header..signature`, Ed25519, b64:false, `typ` the audio media type) over the audio bytes; verify against /.well-known/jwks.json (109)"
                   }
                 },
                 "required": [
@@ -101633,8 +101799,16 @@
             "type": "boolean",
             "default": false,
             "description": "108: add feed-key image links to map attachments for channels that cannot take attachments; requires an https publicBaseUrl (400 IMAGE_LINKS_REQUIRE_HTTPS)"
+          },
+          "defaultLanguage": {
+            "type": "string",
+            "default": "en",
+            "description": "141 (`notify.defaultLanguage`): BCP 47 language notifications are written in; a channel whose `language` differs gets the title and body translated"
           }
-        }
+        },
+        "x-foresignal-extended-by": [
+          "141"
+        ]
       },
       "WebhookEnvelope": {
         "type": "object",
@@ -109035,7 +109209,7 @@
       },
       "Media": {
         "type": "object",
-        "description": "A content-addressed media row (SatDump composite, thumbnail, static map)",
+        "description": "A content-addressed media row (SatDump composite, thumbnail, static map, briefing audio, or a generated document such as the CZML linked by MCP `get_track`, prompt 141)",
         "properties": {
           "id": {
             "$ref": "#/components/schemas/Ulid"
@@ -109049,14 +109223,19 @@
             "enum": [
               "image/png",
               "image/jpeg",
-              "image/tiff"
+              "image/tiff",
+              "application/czml+json",
+              "audio/mpeg",
+              "audio/ogg"
             ]
           },
           "width": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Pixels; 0 for audio"
           },
           "height": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Pixels; 0 for audio"
           },
           "bytes": {
             "type": "integer",
@@ -109068,8 +109247,11 @@
               "image",
               "thumbnail",
               "projected",
-              "map"
-            ]
+              "map",
+              "document",
+              "audio"
+            ],
+            "description": "`document` (141): a generated non-image document such as CZML, stored with an expiry; `audio` (141): synthesized speech of a briefing run, expiring with the briefing-run retention. Neither has thumbnails"
           },
           "sourceId": {
             "type": [
@@ -109135,7 +109317,7 @@
           },
           "links": {
             "type": "object",
-            "description": "Expanded links",
+            "description": "Expanded links (documents have no thumbnail links)",
             "properties": {
               "self": {
                 "type": "string"
@@ -109161,6 +109343,9 @@
           "bytes",
           "role",
           "createdAt"
+        ],
+        "x-foresignal-extended-by": [
+          "141"
         ]
       },
       "Attachment": {
@@ -159337,7 +159522,8 @@
             "items": {
               "type": "string",
               "format": "uri"
-            }
+            },
+            "description": "The identity provider's issuer (`mcp.auth.issuer`); empty while none is configured"
           },
           "scopes_supported": {
             "type": "array",
@@ -159347,7 +159533,8 @@
             "example": [
               "foresignal:read",
               "foresignal:agent"
-            ]
+            ],
+            "description": "The identity-provider scopes of `mcp.auth.scopeMap` that map to `read` or `agent`, sorted"
           },
           "bearer_methods_supported": {
             "type": "array",
@@ -159367,7 +159554,8 @@
               "string",
               "null"
             ],
-            "format": "uri"
+            "format": "uri",
+            "description": "The API documentation, `{base}/docs`"
           }
         },
         "required": [
@@ -159387,14 +159575,16 @@
               "oauth",
               "both"
             ],
-            "default": "token"
+            "default": "token",
+            "description": "`token`: Foresignal tokens only (open reads apply as on REST). `oauth`: identity-provider access tokens only. `both`: either. With `oauth` or `both`, `/mcp` always needs a credential"
           },
           "issuer": {
             "type": [
               "string",
               "null"
             ],
-            "format": "uri"
+            "format": "uri",
+            "description": "Issuer identifier, compared exactly with the token's `iss`; required with `oauth` or `both`"
           },
           "audience": {
             "type": [
@@ -159425,7 +159615,12 @@
             "example": {
               "foresignal:read": "read",
               "foresignal:agent": "agent"
-            }
+            },
+            "default": {
+              "foresignal:read": "read",
+              "foresignal:agent": "agent"
+            },
+            "maxProperties": 50
           },
           "scopeClaim": {
             "type": "string",
@@ -159433,7 +159628,8 @@
               "scope",
               "scp"
             ],
-            "default": "scope"
+            "default": "scope",
+            "description": "Claim carrying the scopes; a space-separated string or an array of strings is read from either claim"
           },
           "allowedAlgs": {
             "type": "array",
@@ -159445,7 +159641,15 @@
                 "EdDSA",
                 "Ed25519"
               ]
-            }
+            },
+            "default": [
+              "RS256",
+              "ES256",
+              "EdDSA",
+              "Ed25519"
+            ],
+            "minItems": 1,
+            "description": "Accepted JWS algorithms; `none` and HMAC algorithms are never accepted"
           }
         },
         "required": [
@@ -159464,26 +159668,31 @@
           },
           "abi": {
             "type": "integer",
-            "const": 1
+            "const": 1,
+            "description": "Always 1, the only ABI this host runs; a manifest declaring another is in state `error`"
           },
           "kind": {
             "type": "string",
-            "const": "parser"
+            "const": "parser",
+            "description": "Always `parser`, the only kind of ABI v1; a manifest declaring another is in state `error`"
           },
           "sha256": {
             "type": "string",
             "pattern": "^[0-9a-f]{64}$",
-            "description": "Declared in plugin.json"
+            "description": "Declared in plugin.json; the file's own hash when the manifest is invalid (empty when neither is known)"
           },
           "actualSha256": {
             "type": "string",
-            "pattern": "^[0-9a-f]{64}$"
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "The SHA-256 of plugin.wasm as read now; absent when the file is missing"
           },
           "hashMatches": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "True when the declared and actual hashes are equal"
           },
           "enabled": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "True when the admin enabled this plugin (an approval bound to a SHA-256 is stored)"
           },
           "state": {
             "type": "string",
@@ -159492,13 +159701,15 @@
               "enabled",
               "hash-mismatch",
               "error"
-            ]
+            ],
+            "description": "`error`: the manifest or module is invalid; `hash-mismatch`: the file does not hash to the declared SHA-256, or to the approved one; `enabled`: enabled, plugins on, hashes match and the module loads; `disabled`: otherwise"
           },
           "error": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Why the plugin will not load or run, or null"
           },
           "sourceIds": {
             "type": "array",
@@ -159512,7 +159723,8 @@
               "string",
               "null"
             ],
-            "format": "date-time"
+            "format": "date-time",
+            "description": "When its current module was last loaded to run (since this process started), or null"
           }
         },
         "required": [

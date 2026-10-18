@@ -2521,6 +2521,208 @@ of the server. Validate a manifest and sample items with `POST /v1/external/vali
 advisories, channels, prediction markets, market data and more), each with the stream modes and item types a provider
 would use and the binding that makes it useful.
 
+## Plugins (prompt 141)
+
+A plugin is a parser for an upstream format Foresignal does not know. It is a WebAssembly module you install in the
+data directory, and it turns the bytes Foresignal fetches into records. Plugins are off by default, and nothing changes
+until you install one, switch plugins on and enable it. The design, the ABI and the security model are in
+`docs/Plugin-Design.md`.
+
+Use a plugin when Foresignal can fetch the data itself (one https URL) and only the format is new. When the data needs
+its own network logic (logins, scraping, many requests), write an External Data Protocol provider instead
+(`docs/External-Data-Protocol.md`, and [External data providers](#external-data-providers) above).
+
+### What a plugin can and cannot do
+
+A plugin runs in Chicory, a WebAssembly interpreter written in Java. It sees only the bytes it is given:
+
+- **No access to anything else.** It has no filesystem, network, clock, environment or randomness. A module that
+  imports any WASI function, or any host function but `env.foresignal_log`, is refused when it loads.
+- **Memory:** at most 64 MB.
+- **Time:** at most 5 seconds of wall-clock time per call, after which it is interrupted.
+- **Output:** at most 16 MB and 50,000 records.
+- **Input:** at most 16 MB.
+- **Logging:** at most 20 log lines a call and 60 a minute. Control characters are replaced with spaces.
+- **No state between calls.** Every call starts a fresh instance.
+- **Records go through the normal ingest path.** The normalizer checks them as it checks any source's, and a bad
+  record is rejected on its own without failing the batch.
+
+At most two plugin calls run at once.
+
+### Installing a plugin
+
+1. Copy the plugin into its own directory, `$FORESIGNAL_DATA_DIR/plugins/{name}/`. A plugin name is 1 to 64 lower-case
+   letters, digits and hyphens, starting with a letter or digit. The directory holds:
+   - `plugin.wasm`, the module (at most 32 MB);
+   - `plugin.json`, the manifest:
+
+     ```json
+     {"name": "geojson-passthrough", "version": "0.1.0", "abi": 1, "kind": "parser",
+      "sha256": "<sha256 of plugin.wasm>"}
+     ```
+
+   `name` must equal the directory name, `abi` must be `1` and `kind` must be `parser`. Links are refused, so copy the
+   files rather than linking them.
+2. Check what Foresignal sees. Discovery reads and hashes the files but never runs them:
+
+   ```sh
+   curl -H "Authorization: Bearer $ADMIN" "$FORESIGNAL_URL/v1/plugins"
+   ```
+
+   Each plugin shows its `name`, `version`, `abi`, `kind`, its declared `sha256` (the file's own hash when the manifest
+   is invalid), the `actualSha256` of the file (absent when the file is missing), `hashMatches`, `enabled`, a `state`,
+   the `sourceIds` that call it and, when it will not load, an `error`.
+3. Compare `actualSha256` with the hash published by whoever built the plugin, or with `sha256sum plugin.wasm` on a
+   copy you built yourself.
+4. Switch plugins on. This is a setting, `plugins`, and it is off by default:
+
+   ```sh
+   curl -X PUT -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
+     -d '{"enabled": true}' "$FORESIGNAL_URL/v1/plugins"
+   ```
+
+5. Enable the plugin with the hash you reviewed:
+
+   ```sh
+   curl -X PUT -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
+     -d '{"enabled": true, "sha256": "<reviewed sha256>"}' "$FORESIGNAL_URL/v1/plugins/geojson-passthrough"
+   ```
+
+   Foresignal refuses when:
+   - plugins are off: `409 PLUGINS_DISABLED`;
+   - the hash is missing: `400`;
+   - the file does not hash to your value, or to the one `plugin.json` declares: `409 PLUGIN_HASH_MISMATCH`;
+   - the module does not load (not WebAssembly, a forbidden import, a missing export): `400`, with the reason.
+
+The approval is bound to the hash. If `plugin.wasm` changes later, Foresignal stops running the plugin and shows
+`hash-mismatch` (or `error`, when the changed module does not load either) until you review the new file and enable it
+again. To disable a plugin, send `{"enabled": false}`; that works whenever the plugin's directory exists, even while
+plugins are off. Switching plugins off stops every plugin at once without forgetting which ones you enabled.
+
+**States:**
+
+| State | Meaning |
+|---|---|
+| `disabled` | Not enabled, or plugins are off |
+| `enabled` | Enabled, plugins on, hashes match and the module loads; it runs when a source calls it |
+| `hash-mismatch` | The file does not hash to the declared hash, or to the hash you approved |
+| `error` | The manifest or the module is invalid; `error` says why |
+
+`loadedAt` is when the running process last loaded the plugin's current module, for a parse or for the check before a
+fetch; it is cleared whenever the `plugins` or `plugins.approvals` setting changes.
+
+### Defining a `wasm-feed` source
+
+A plugin does nothing until a source calls it. A `wasm-feed` source names a plugin, an https URL and the full
+descriptor of its records. Write it in a JSON file under `$FORESIGNAL_DATA_DIR/wasm-feeds/`, then restart Foresignal.
+Specs are read only at startup and never accepted over the API. Each file is a JSON array of specs:
+
+```json
+[{
+  "id": "wasm-stations",
+  "name": "Example stations",
+  "plugin": "geojson-passthrough",
+  "url": "https://data.example.org/stations.geojson",
+  "kinds": ["station"],
+  "attribution": "Example Data",
+  "license": "CC-BY-4.0",
+  "observedAtMode": "RECEIVED",
+  "recordTtl": "2h",
+  "ingestPolicy": {"mode": "LATEST", "keyframe": "1h"},
+  "interval": "10m",
+  "budget": {"perMinute": 2, "perDay": 300},
+  "titleField": "name",
+  "tileProperties": ["name"]
+}]
+```
+
+**Required members:**
+
+- `id`: `wasm-` followed by lower-case letters, digits and hyphens, at most 64 characters, and unique.
+- `name` and `plugin`.
+- `url`: https, with no user name or password in it.
+- `kinds`: at least one, each lower-case letters, digits and hyphens. When the source has exactly one kind, a record
+  without `kind` gets it; with several kinds, a record without a matching `kind` is rejected.
+
+**Optional members, with their defaults:**
+
+| Member | Default | Notes |
+|---|---|---|
+| `historyTier` | `STANDARD` | `TRACK` needs `recordTtl` and `ttlAnchor: OBSERVED` |
+| `observedAtMode` | `RECEIVED` | With `UPSTREAM`, every record must carry `observedAt` |
+| `recordTtl` | none | |
+| `ttlAnchor` | `RECEIVED` | |
+| `ingestPolicy` | `ALL` | |
+| `interval` | 15 min | |
+| `minInterval` | 5 min | |
+| `budget` | 4 a minute and 400 a day | |
+| `retention` | 1825 days | |
+| `egress` | `OPEN` | `LOCAL_ONLY` keeps the records on this instance |
+| `conditional` | true | Sends `If-None-Match` and `If-Modified-Since` |
+| `maxResponseBytes` | 8 MB | At most 16 MB |
+| `licenseTerms` | none | Members `id`, `name`, `commercialUse`, `shareAlike`, `attributionRequired`, `redistribution`, `attributionText` and `termsUrl`. `shareAlike` and `attributionRequired` must be present; a missing `commercialUse` or `redistribution` is treated as `UNKNOWN`, the restrictive reading |
+
+The display fields work as in every descriptor: `titleField`, `searchFields`, `embedFields`, `tileProperties`,
+`volatileFields`, `significantFields` and `fieldSpecs`. Durations are written as `10m`, `2h` or `30d`. The full table
+is in `docs/Plugin-Design.md` §5.
+
+**Validation at startup.** Foresignal checks every spec when it starts, and refuses to start if any spec is wrong. The
+log lists every problem with its file, position and id. Unknown members are refused, so a misspelled key is caught. The
+URL must pass the outbound URL policy's `PUBLIC_ONLY` profile; a LAN host needs an exception in `allowHosts` or
+`allowCidrs` (`PUT /v1/settings/outbound`). A host that does not resolve at startup is accepted and checked again
+before each fetch.
+
+**The new source** appears in `GET /v1/sources` disabled, like every source. Enable it, set its interval and budget,
+and watch its health as usual.
+
+**Each run:**
+
+1. The URL is checked against the outbound URL policy.
+2. The plugin must be able to run. If plugins are off, or the plugin is not enabled or no longer matches its approved
+   hash, the run fails with that reason before any request is made.
+3. Foresignal fetches the URL through the source's budget. A 304 means "unchanged". Redirects are never followed: a
+   3xx, any other status but 200, or a body over `maxResponseBytes` fails the run.
+4. The plugin parses the body. A timeout, trap, oversized or malformed answer fails the run, and the health reason
+   names the plugin and the limit.
+5. The records go to the writer. A record the plugin got wrong is rejected on its own. Rejections are counted in the
+   metric `foresignal.plugin.rejected{source, plugin, reason}` and logged at debug under `foresignal.source.{id}`.
+
+When the plugin answers `"complete": true` and no record was rejected, the run is the upstream's whole current set,
+and records that disappeared are reconciled. Otherwise the run only adds and updates.
+
+Plugin log lines go to the logger `foresignal.plugin.{name}`.
+
+### Problem codes and settings
+
+**Problem codes:**
+
+| Code | Status | When |
+|---|---|---|
+| `UNKNOWN_PLUGIN` | 404 | No plugin directory of that name |
+| `PLUGINS_DISABLED` | 409 | You tried to enable a plugin while plugins are off |
+| `PLUGIN_HASH_MISMATCH` | 409 | The reviewed or declared hash is not the file's |
+
+**Settings:**
+
+- `plugins`: `{"enabled": false}` by default.
+- `plugins.approvals`: `{"approved": {name: {sha256, enabledAt}}}`. It is written only by `PUT /v1/plugins/{name}`.
+
+### Building a plugin
+
+The example is `examples/plugins/geojson-passthrough/`, written in Rust. Build it with
+`cargo build --release` for the `wasm32-unknown-unknown` target. Do not use a WASI target: Foresignal refuses WASI
+imports.
+
+The ABI is short:
+
+- **Exports:** `memory`, `alloc(size) -> ptr`, `dealloc(ptr, size)` and `foresignal_parse(ptr, len) -> out`.
+- **Optional import:** `env.foresignal_log(level, ptr, len)`.
+- **Return value:** a little-endian `u32` byte count followed by the UTF-8 JSON
+  `{"records": [...], "complete": bool}`.
+
+The record fields are the ones `POST /v1/ingest/{sourceId}` accepts in `{"records": [...]}`. See
+`docs/Plugin-Design.md` §3.
+
 ## Streaming for frontends, tiles and asOf
 
 **Snapshot plus stream.** A frontend that mirrors current state:
@@ -2569,6 +2771,30 @@ histograms (`GET /v1/timeline`). Past asOf tiles and tracks are sent with
 may keep them; `public` is used only while `openReads` covers the path and no private source is
 involved. Chrome ignores `immutable` but honors the year-long `max-age`. The client recipe is in the
 Client Guide ("Time travel").
+
+## Client SDKs and the command-line client (prompt 141)
+
+**SDKs.** `sdk/` holds client SDKs for the API in Dart (`sdk/dart/foresignal_api`), TypeScript (`sdk/typescript`) and
+Python (`sdk/python`, package `foresignal_client`), generated from `docs/OpenAPI.json` with a hand-written layer for
+the streams and paging described above (resume, `reset`, heartbeats, cursors), and two External Data Protocol
+provider libraries, `sdk/python-edp` and `sdk/typescript-edp`. They are not part of the broker build; `sdk/README.md`
+explains how to install and regenerate them.
+
+**Command-line client.** Foresignal ships a command-line client in `cli/`, a standalone Gradle build that is not part
+of the broker. Build it with `./gradlew -p cli installDist` (or `uberJar`, or `nativeCompile` with a GraalVM JDK 21),
+then run `foresignal login --url https://your-instance --token fsr_…` once. The profile goes to
+`~/.config/foresignal/config.json` with owner-only permissions; `FORESIGNAL_URL` and `FORESIGNAL_TOKEN` override it.
+Useful operator commands:
+
+- `foresignal sources health`;
+- `foresignal sources doctor <id>`, which prints the adapter doctor's findings, and any LLM patch labeled "proposed,
+  not applied";
+- `foresignal changes tail --source <id>`, which resumes and re-snapshots on its own;
+- `foresignal tokens create --name … --scope read`;
+- `foresignal edp validate manifest.json items.ndjson`.
+
+Exit codes: 0 success, 1 usage or invalid input, 2 API error (the ProblemDetail `code` is printed), 3 network. The
+full reference is `cli/README.md`.
 
 ## Tokens, pairing and the audit log
 
@@ -2737,6 +2963,191 @@ revocations. Filter with `since`, `until`, `tokenId`, `operationId` and `status`
 `cursor` and `limit` (up to 500). Entries never contain secrets, token values or request bodies.
 They are kept for `retention.audit` (default 90 days). Writing the log never slows a request: under
 extreme load entries are dropped and counted (`foresignal.audit.dropped`).
+
+## Remote MCP with your identity provider (prompt 141)
+
+Foresignal's MCP server at `/mcp` normally takes the same Foresignal API tokens as REST (`fsr_…`, see
+[Tokens and scopes](#tokens-and-scopes)). That works for local agents. A remote MCP client such as Claude, which signs
+the user in through a browser, wants OAuth: it discovers where to log in, gets an access token and presents it.
+Foresignal supports this by **delegating to your own identity provider**. Foresignal runs no authorization server and
+no device grant. It publishes RFC 9728 metadata that names your identity provider, then verifies the access tokens
+that provider issues. The agent's side of this is in the Agent Guide, "Remote MCP authorization".
+
+### How it works
+
+1. The MCP client calls `POST /mcp` without a token and gets `401` with
+   `WWW-Authenticate: Bearer resource_metadata="https://foresignal.example/.well-known/oauth-protected-resource/mcp", scope="foresignal:read"`.
+2. It reads that document (open, no token). The document's `authorization_servers` lists your issuer, and
+   `resource` is the canonical resource URI (by default `{server.publicBaseUrl}/mcp`).
+3. It signs the user in at your identity provider, requests the scopes it needs, and passes
+   `resource=https://foresignal.example/mcp` (RFC 8707).
+4. It calls `/mcp` with `Authorization: Bearer <access token>`. Foresignal checks the token and accepts it when all
+   of these hold:
+   - the signature verifies against the provider's JWKS;
+   - `iss` equals `mcp.auth.issuer` exactly;
+   - `aud` contains the audience;
+   - `exp` and `nbf` hold, with 60 s of clock skew;
+   - `alg` is in `mcp.auth.allowedAlgs`.
+5. The token's scopes map to a Foresignal scope through `mcp.auth.scopeMap`, and that scope decides which tools the
+   client sees and may call, exactly as for a token of that scope.
+   - `admin` is **never** mappable: a remote MCP client can at most reach `agent` tools.
+6. When a tool needs more than the token carries, the call gets `403` with
+   `WWW-Authenticate: Bearer error="insufficient_scope", scope="foresignal:agent", resource_metadata="…"`. The client
+   can then ask for the wider scope and retry.
+
+The token is verified locally and never forwarded anywhere. Every identity-provider subject gets its own Foresignal
+principal (handle `idp-` followed by a hash of the issuer and subject), created on first use. Audit rows read
+`token:oauth:<name>`, where `<name>` is the token's `name`, `preferred_username`, `email` or subject claim. Disabling
+that principal (`PATCH /v1/principals/{principalId}`) shuts the person out even while their tokens are still valid.
+
+REST is unaffected: identity-provider tokens are accepted only on `/mcp`. On every other path such a token is not a
+Foresignal token, so an operation that needs a token answers `401`. Keep using Foresignal tokens there.
+
+### Settings `mcp.auth`
+
+`GET /v1/settings/mcp-auth` reads the settings and `PUT /v1/settings/mcp-auth` replaces them. Both are admin-only.
+Members:
+
+| Member | Meaning |
+|---|---|
+| `mode` | `token` (default): Foresignal tokens only, open reads apply as on REST. `oauth`: identity-provider tokens only. `both`: either. With `oauth` or `both`, `/mcp` **always** needs a credential, so clients get the `401` that starts discovery. |
+| `issuer` | Your provider's issuer identifier, exactly as it appears in `iss`, including any trailing slash. Required for `oauth` and `both`. |
+| `audience` | The value tokens must carry in `aud`. Default `{server.publicBaseUrl}/mcp`. Required when `publicBaseUrl` is not set. |
+| `jwksUri` | Optional. When empty, Foresignal discovers it from the issuer: first RFC 8414 (`https://host/.well-known/oauth-authorization-server/<issuer path>`), then OpenID Connect (`<issuer>/.well-known/openid-configuration`); a trailing slash of the issuer is dropped before either path is added. A discovery document is trusted only when its `issuer` equals yours. |
+| `scopeMap` | Identity-provider scope → `read` or `agent`. Default `{"foresignal:read":"read","foresignal:agent":"agent"}`. `admin` is refused with `400`. |
+| `scopeClaim` | `scope` (default; a space-separated string) or `scp`. Arrays and strings are read from either claim. |
+| `allowedAlgs` | Any of `RS256`, `ES256`, `EdDSA`, `Ed25519` (default: all four). `none` and HMAC algorithms are never accepted. |
+
+The issuer and JWKS URLs are fetched through the outbound URL policy (`LAN_ALLOWED`), so an identity provider on
+your LAN or tailnet works. Plain `http` is accepted only when the host resolves to a loopback, private or tailnet
+address; anything public needs `https`. Keys are cached for an hour. A token naming an unknown `kid` triggers at
+most one refetch per minute, so after rotating keys, new tokens work within a minute.
+
+Example, with `server.publicBaseUrl` set to `https://foresignal.example`:
+
+```http
+PUT /v1/settings/mcp-auth
+Authorization: Bearer fsr_…admin…
+
+{"mode": "both", "issuer": "https://id.example/realms/home"}
+```
+
+Then check `GET /.well-known/oauth-protected-resource/mcp` (the same document is also served at
+`/.well-known/oauth-protected-resource`). It answers `404 MCP_OAUTH_DISABLED` while `mode` is `token`.
+
+Choose `both` while you migrate, so existing agents with Foresignal tokens keep working. Choose `oauth` when every
+MCP client signs in through the identity provider.
+
+### Common setup at any identity provider
+
+Do the same four things everywhere:
+
+1. **Scopes.** Create the scopes `foresignal:read` and `foresignal:agent`. You can use other names if you change
+   `scopeMap` to match. Grant `foresignal:agent` only to people who may create and change watches and alerts.
+2. **Audience.** Make access tokens for Foresignal carry `aud` = `https://foresignal.example/mcp`, the value of
+   `resource` in the metadata.
+   - If your provider honors the RFC 8707 `resource` parameter, the MCP client's request sets it.
+   - Otherwise, configure a fixed audience on the client or scope.
+   - If your provider can only put the client ID in `aud`, set `mcp.auth.audience` to that client ID. This is weaker,
+     because any token for that client is accepted, but it works.
+3. **JWT access tokens.** Foresignal verifies JWTs. Opaque access tokens, which would need introspection, are not
+   supported.
+4. **A client for the MCP client.** Register a public client: authorization code with PKCE, and the redirect URI
+   your MCP client documents. Foresignal never sees this client; it only checks the tokens.
+
+### Keycloak
+
+- Use the realm that holds your users. The issuer is `https://<host>/realms/<realm>`, and OpenID Connect discovery
+  finds the JWKS, so leave `jwksUri` empty.
+- **Client scopes:** create `foresignal:read` and `foresignal:agent` as *Optional* client scopes, type OpenID Connect,
+  with "Include in token scope" on, so they appear in the `scope` claim. **(verify)**
+- **Audience:** in each of these client scopes, add an *Audience* mapper with "Included Custom Audience" =
+  `https://foresignal.example/mcp` and "Add to access token" on. **(verify)** Older Keycloak releases ignore the
+  RFC 8707 `resource` parameter, so the fixed audience mapper is the dependable route. **(verify the release your
+  instance runs)**
+- **Client:** a public OpenID Connect client with "Standard flow" and PKCE (S256), whose valid redirect URIs are your
+  MCP client's callback. Add the two client scopes to it as optional scopes. **(verify)**
+- To keep `foresignal:agent` from some users, give the scope a role scope mapping or guard it with a client policy.
+  **(verify)**
+- Keycloak signs with RS256 by default; `allowedAlgs` can stay at its default.
+
+### Authentik
+
+- Create an *OAuth2/OpenID Provider* and an *Application* for it. The issuer is the provider's "OpenID Configuration
+  Issuer", usually `https://<host>/application/o/<slug>/` **with the trailing slash**. Copy it exactly. **(verify)**
+- **Scopes:** add two *Scope Mappings* (Customization → Property Mappings) with scope names `foresignal:read` and
+  `foresignal:agent`, and select them on the provider. **(verify)** To restrict `foresignal:agent`, have that
+  mapping's expression check group membership. **(verify)**
+- **Audience:** Authentik puts the provider's client ID in `aud` **(verify)**, so either:
+  - set `mcp.auth.audience` to that client ID; or
+  - add `https://foresignal.example/mcp` to `aud` through a scope mapping, if your version allows it. **(verify)**
+- Use client type *Public*, with your MCP client's redirect URI. Pick an RS256 or ES256 signing key; Foresignal
+  accepts both.
+
+### Pocket ID
+
+Pocket ID is a passkey-only OpenID Connect provider.
+
+- The issuer is your Pocket ID URL, and OpenID Connect discovery finds the JWKS.
+- Create an OIDC client for the MCP client, public with PKCE, using the MCP client's callback URL. **(verify)**
+- Pocket ID does not obviously offer custom scopes or a configurable access-token audience. **(verify against its
+  documentation for your version)** If it does not:
+  - set `mcp.auth.audience` to the client ID (if that is what its access tokens carry in `aud`);
+  - map a scope it always issues, for example `scopeMap: {"openid": "read"}`.
+
+  Every signed-in user of that client then gets `read`. Keep `agent` for a provider that can issue a separate
+  scope, or for Foresignal tokens in `both` mode.
+- Use Pocket ID's user groups and "allowed groups" on the client to limit who can sign in at all. **(verify)**
+
+### Auth0
+
+- Create an *API* (Applications → APIs) whose **Identifier** is `https://foresignal.example/mcp`. Auth0 uses this
+  value as the access token's `aud`. Clients name it with Auth0's `audience` parameter; some tenants also accept the
+  RFC 8707 `resource` parameter. **(verify)**
+- Under the API's *Permissions*, add `foresignal:read` and `foresignal:agent`. They appear in the token's `scope`
+  claim. With RBAC and "Add Permissions in the Access Token" on, they also appear in `permissions`, which Foresignal
+  does not read; keep `scopeClaim: "scope"`. **(verify)**
+- The issuer is `https://<tenant>.<region>.auth0.com/` **with the trailing slash**, or your custom domain. Auth0
+  serves OpenID Connect discovery there. Auth0 signs access tokens with RS256 by default. **(verify)**
+- Register the MCP client as a *Single Page* or *Native* application with your MCP client's callback, or enable
+  Dynamic Client Registration if the client depends on it. **(verify)**
+
+### Connecting Claude and other MCP clients
+
+- In the MCP client, add a remote (streamable HTTP) server with URL `https://foresignal.example/mcp`. The URL must be
+  reachable from wherever the client runs. A cloud-hosted client such as Claude on the web needs a public `https`
+  name, which usually means a reverse proxy in front of Foresignal with `server.publicBaseUrl` set to that name.
+- On the first call the client gets the `401`, reads the metadata, opens your provider's login page and stores the
+  token. Nothing is configured in Foresignal per client.
+- If your provider does not support Dynamic Client Registration, enter the client ID (and secret, for a confidential
+  client) you registered above in the MCP client's connection settings, if it offers them. **(verify per client)**
+- Clients that send no `resource` parameter still work, as long as the provider puts the expected audience in the
+  token (fixed audience above).
+- Local agents and scripts can keep using a Foresignal token (`Authorization: Bearer fsr_…`) with `mode` `both`.
+
+### Troubleshooting
+
+The `401` problem body names what failed, as `The access token is not valid here: <detail>`. The
+`WWW-Authenticate` challenge carries only `error="invalid_token"`, `resource_metadata` and `scope`, never the reason.
+
+| Detail | Cause |
+|---|---|
+| `the issuer does not match` | `iss` differs from `mcp.auth.issuer`, often a trailing slash or http/https |
+| `the token is not for this resource (aud does not contain …)` | Audience not configured at the provider, or `mcp.auth.audience` differs |
+| `no audience is configured (set mcp.auth.audience or server.publicBaseUrl)` | Neither setting is set |
+| `the algorithm … is not allowed` | Widen `allowedAlgs`, or change the provider's signing key |
+| `the key … is not among the identity provider's keys` | Rotation within the last minute, or the wrong `jwksUri` |
+| `no key of the identity provider fits the token` | The token names no `kid` and no key of the JWKS fits it |
+| `the signature does not verify` | The token was not signed by the provider's current keys |
+| `the identity provider's keys could not be loaded: …` | The text after the colon says why: the URL was refused by the outbound URL policy, the provider is down, or discovery failed (including a discovery document that names another issuer); the log repeats it |
+| `the token has expired` / `the token is not valid yet` | Clocks more than 60 s apart, or the token really has expired |
+| `the token has no exp` | The provider issues tokens without an expiry; Foresignal refuses them |
+| `the token names no subject (sub, client_id or azp)` | The token carries no subject Foresignal can map to a principal |
+| `the token is not a signed JWT` | An opaque or unsigned token (see "JWT access tokens" above) |
+| `the principal of this subject is disabled` | The person's principal was disabled |
+
+`403` with `insufficient_scope` means the token is valid but its scopes do not reach the tool, or map to nothing.
+The `scope` in the challenge names what to request.
 
 ## LLM
 
@@ -2974,6 +3385,8 @@ sources never go to a non-local provider. Usage is recorded per run.
 - Runs are kept for the `briefings` retention (default 180 days), even after the briefing is
   deleted, and are searchable with `docType=briefing` when semantic search is on. MCP agents use
   `list_briefings`, `get_briefing_run`, `create_briefing` and `run_briefing`.
+- With a speech provider and `audio` set on the briefing, each run is also read aloud and listed in a podcast
+  feed: see [Audio briefings and translation](#audio-briefings-and-translation-prompt-141).
 
 ## Alert enrichment
 
@@ -3030,6 +3443,118 @@ are exported as metrics.
 out for a remote provider and sent only to a local one, and an alert on a private source is not
 enriched at all by a remote provider. Record text is treated as data: instructions hidden in a record
 are not followed, and the model is offered no tools, so it cannot change anything.
+
+## Audio briefings and translation (prompt 141)
+
+Both features are optional and stay inert until you configure them. Without a `tts` provider no briefing is
+synthesized, and without a channel `language` nothing is translated. The broker behaves exactly as before.
+
+### Audio briefings
+
+A [briefing](#briefings) can be read aloud after each run. Foresignal sends the run's plain-text rendition to a speech
+endpoint, stores the audio in the media store, attaches it to the delivery where the channel can carry audio, and
+lists it in a podcast feed.
+
+**1. Add a speech provider.** Any OpenAI-compatible `/v1/audio/speech` endpoint works: OpenAI itself, or a local
+server such as Kokoro-FastAPI or openedai-speech. Create it as an `openai-compatible` provider. Its `baseUrl` ends
+in `/v1`, as it does for chat, and Foresignal appends `/audio/speech`:
+
+```http
+POST /v1/llm/providers
+{
+  "id": "speech",
+  "type": "openai-compatible",
+  "baseUrl": "http://kokoro:8880/v1",
+  "options": { "ttsModel": "kokoro", "ttsCharactersPerDay": 200000 }
+}
+```
+
+- `options.ttsModel` is sent as `model`. The default is `tts-1`, OpenAI's model name.
+- `options.ttsCharactersPerDay` is the daily budget, counted in characters per UTC day. The default is 100,000.
+  Speech is priced and limited by input characters, so it does not use the provider's token budget. Each request
+  still counts toward the provider's `requestsPerMinute`. The day's count is kept in memory, so a restart sets it back
+  to zero.
+- A cloud endpoint needs `apiKey`. A local server usually needs none.
+
+**2. Assign the `tts` role:** `PUT /v1/llm/settings` with `"ttsProvider": "speech"`. Keep your other settings in
+the body, because the PUT replaces them. The provider must be enabled and `openai-compatible`; Anthropic and
+Ollama have no speech endpoint. While it holds the role it shows `"tts"` in `roles`, and it cannot be deleted.
+
+**3. Turn audio on for a briefing:** set `"audio": {"voice": "af_bella", "format": "mp3"}` on create or replace.
+The voice name belongs to the provider. OpenAI uses `alloy`, `nova` and so on; Kokoro uses `af_bella`, `am_adam`
+and so on. The format is `mp3` (the default) or `opus`.
+
+**What happens after a run:**
+
+- The text is the run's notification title (the briefing's name and date) followed by the run rendered as plain
+  text. Link targets and URLs are dropped, and table rows are read as comma-separated cells.
+- One request carries at most 4,000 characters.
+  - **MP3:** longer text is split at paragraph or sentence boundaries and the parts are joined into one file, up
+    to 25 requests (about 100,000 characters).
+  - **Opus:** Ogg streams cannot be joined, so the text is cut to a single request.
+  - Text that is cut ends with a spoken note: "The audio ends here; the full briefing is in the text."
+- The audio is stored as media with `role=audio` (`audio/mpeg` or `audio/ogg`). It expires with the briefing-run
+  retention (`retention.briefings`, 180 days by default).
+- It is signed like the run's markdown: a detached JWS in `audio.signature`, verifiable against
+  `/.well-known/jwks.json` (see [Licences and egress](#licences-and-egress-prompt-109), "Signing").
+- The run's `audio` object records the outcome:
+  - `status`: `ok`, `failed` or `skipped`
+  - `mediaId`, `format`, `voice`, `characters`, `truncated` and `error`
+  - `bytes`, `contentType` and `signature`, only when the status is `ok`
+- **A speech failure never holds back the text.** A provider error, a spent budget or a storage problem sets
+  `status: failed` with the reason, and the briefing is delivered as usual. Without a `tts` provider, or with nothing
+  to say, the status is `skipped`.
+
+**Delivery:**
+
+| Channel | Audio |
+|---|---|
+| Telegram | `sendAudio` for MP3, or `sendVoice` for Opus (shown as a voice message), with the briefing as the caption. When the text does not fit the caption, the caption is the title and the full text follows as a message. Up to 50 MB. |
+| Matrix | The text event as usual, then the file is uploaded to the homeserver media repository and posted as an `m.audio` event. Up to 50 MB (Synapse's default `max_upload_size`). A failed upload or `m.audio` post is only logged; no link is sent then. |
+| Email | A file attachment, in plain-text mode too. Up to 18 MB. |
+| ntfy | An attachment. The server needs attachments enabled; a refusal sends the text with a link instead. Up to 15 MB (ntfy's default). |
+| Every other type | A `[Listen](…)` link to `{publicBaseUrl}/v1/media/{id}` at the end of the body. |
+
+A file over the channel's limit also gets the link.
+
+**Podcast feed.** `GET /v1/briefings/{id}/podcast.rss` is an RSS 2.0 feed of the briefing's runs with audio,
+newest first, at most 50 items. Each item has an `<enclosure>` pointing at the media. It needs `read`, or no token
+while `security.openReads` is on.
+
+Most podcast apps cannot send headers, so give them a feed key. Create the key with prefixes for both the feed and
+the media, for example `["/v1/briefings/<briefing id>/podcast.rss", "/v1/media/"]`, and the restriction every feed
+key needs (at least one of `sources`, `kinds`, `area` or `bbox`). Subscribe to
+`https://…/v1/k/{key}/briefings/{id}/podcast.rss`; the enclosure URLs in that feed carry the same key.
+
+### Notification translation
+
+Notifications are written in `notify.defaultLanguage`, which is `defaultLanguage` in `PUT /v1/settings/notifications`
+and defaults to `en`. Give a channel a `language` (a BCP 47 tag such as `de`, `fr-CA` or `pt-BR`, next to its other
+common fields in [Notification channels](#notification-channels)). When that language differs from the default, each
+message's title and body are translated before they are sent to that channel.
+
+- **Which channels:** two tags count as the same language when their primary language and script match. `en-US`
+  on an English instance is not translated; `zh-Hant` and `zh-Hans` are different languages, and so are a bare `zh`
+  and `zh-Hans`.
+- **How:** through the chat provider (the LLM `chatProvider` role) at low effort. Calls are logged and budgeted
+  under the purpose `translate` and spend the chat provider's tokens.
+- **What is never translated:**
+  - links, tags, severity and the event data, which are never sent to the model;
+  - code spans and code blocks, where templates put record values, URLs (link targets included) and template
+    placeholders, which are replaced by numbered tokens before the text goes to the model and put back afterwards.
+- **Safety:** the system prompt tells the model that the content is untrusted text to translate, never an
+  instruction. Foresignal rejects the output, and sends the original instead, when it:
+  - comes back empty or cut off;
+  - is longer than one and a half times the input (short strings may grow by up to 16 characters);
+  - loses, repeats or invents a protected token.
+- **Cache:** each title and body is cached by its SHA-256 and the target language for 24 hours, so a message sent
+  to several channels in the same language, or sent again, is translated only once.
+- **Timeout:** a translation that takes longer than 8 seconds is abandoned. The original is sent with the title
+  prefixed `[untranslated]`. The same fallback applies when no chat provider is assigned, the budget is spent, the
+  provider fails or refuses, or the output is rejected. A message is always delivered.
+
+Large bodies, such as long briefings, may not translate within 8 seconds on slower models. Those arrive marked
+`[untranslated]`.
 
 ## Web Push and UnifiedPush
 
@@ -3933,6 +4458,9 @@ viewer.dataSources.add(Cesium.KmlDataSource.load(
   `${base}/v1/kml/networklink.kml?layers=usgs-earthquakes`,
   { camera: viewer.scene.camera, canvas: viewer.scene.canvas }));
 ```
+
+CesiumJS can also load tracks and history as CZML: see
+[Exchange formats](#exchange-formats-czml-fdsnquakeml-stixtaxii-prompt-141).
 
 **MapLibre style.** `GET /v1/map/style.json?layers=…&theme=light|dark` is an overlay style built from each
 kind's display hints, with an SDF sprite (Maki and Temaki icons) and no glyphs; `docs/Frontend-Guide.md`
@@ -5723,6 +6251,68 @@ privacy mask for personal sources (precision capped to 1,000 m, observer, device
 the payload reduced to `title`, `kind` and `observedAt`) is built in, but a private target is refused even for an
 admin token, because Foresignal's egress policy never lets a private record leave on a share link. Views over
 places or watchlists cannot be shared (they reveal your places).
+
+## Exchange formats: CZML, FDSN/QuakeML, STIX/TAXII (prompt 141)
+
+All four are read-only views of data Foresignal already stores. None needs configuring, and none changes ingest.
+
+**CZML for CesiumJS.**
+- `GET /v1/history?since=…&until=…&format=czml` and `GET /v1/records/{sourceId}/{externalId}/track?format=czml`
+  return a CZML document (`application/czml+json`).
+- The first packet is the document packet. Its clock spans the requested range and its `description` carries the
+  attribution. Then comes one packet per entity, with its positions as sampled `cartographicDegrees` (a constant
+  position when the entity has a single sample), `availability`, the title as its label and the kind's `kindDisplay`
+  color.
+- History CZML is not paged. It reads about 200,000 versions at most (the cap is checked after each page) and 5,000
+  entities. A capped document says so in its description and in the header `Foresignal-Truncated: true`.
+- Load it in Cesium with `Cesium.CzmlDataSource.load(url)`. `load(url)` sends no headers, so either pass a
+  `Cesium.Resource` that carries `Authorization: Bearer …`, or put a feed key in the URL (see
+  [Exposing Foresignal](#exposing-foresignal)). The KML route for Cesium is in
+  [Feeds, Google Earth and Cesium](#feeds-google-earth-and-cesium).
+- The MCP tool `get_track` with `format: czml` stores the document in the media store, where it expires after 24
+  hours, and returns a `media` object (`id`, `url` of `/v1/media/{id}`, `contentType`, `bytes`, `expiresAt`) with the
+  track summary. The `url` is absolute when `publicBaseUrl` is set.
+
+**FDSN event service (fdsnws-event 1.2).**
+- `GET /fdsnws/event/1/query` serves the current `earthquake` records (of every source that writes that kind) to
+  FDSN clients such as ObsPy (`Client(base_url="https://your-host")`), SeisComP or QGIS plugins. A query scans at
+  most 200,000 current records.
+- Parameters: `starttime`, `endtime`, a rectangle (`minlatitude`…`maxlongitude`), a circle (`latitude`,
+  `longitude`, `minradius`, `maxradius` in degrees), `minmagnitude`, `maxmagnitude`, `orderby` (`time`,
+  `time-asc`, `magnitude`, `magnitude-asc`), `limit` (at most 20,000), `format` (`xml` or `text`) and `nodata`
+  (204 or 404). Short names (`start`, `minlat`, `minmag`, …) work too. Any other parameter is a 400, except a feed
+  key's `key`.
+- `xml` is QuakeML 1.2 BED, with publicIDs `smi:foresignal/{source}/{externalId}` and depth in meters. `text` is the
+  FDSN pipe-separated format, with depth in km.
+- No match returns `204` with no body. Errors use the FDSN plain-text body.
+- `/fdsnws/event/1/version` returns `1.2.0`. `/fdsnws/event/1/application.wadl` describes the parameters.
+- Access is `read`, so the service is open while `security.openReads` is on. Private sources and token restrictions
+  apply as on `/v1/records`.
+
+**STIX 2.1 and TAXII 2.1 (agent scope).**
+- `GET /v1/export/stix?kind=&since=` returns a STIX bundle (`application/stix+json;version=2.1`; a client that asks
+  only for `application/json` gets that type). `kind` may be repeated and takes `vulnerability`, `malware-url` or
+  `malware-c2`:
+  - KEV and NVD `vulnerability` records become `vulnerability` objects with a CVE external reference;
+  - URLhaus `malware-url` records become `indicator` objects with the pattern `[url:value = '…']`;
+  - Feodo `malware-c2` records become `indicator` objects with a `network-traffic` pattern (address and port), or an
+    `ipv4-addr` or `ipv6-addr` pattern when no port is known.
+- The bundle also holds an `identity` for Foresignal. Ids are UUIDv5 values of the record reference, so they are the
+  same on every export.
+- If more than 50,000 records match (counted before the egress filter), the answer is `400 RESULT_TOO_LARGE`; narrow
+  `since` or use TAXII.
+- The TAXII 2.1 server is read-only. Point a TAXII client (OpenCTI, MISP's taxii2 client, `taxii2-client`) at
+  `https://your-host/taxii2/` with an agent token as `Authorization: Bearer …`. It serves two collections,
+  *Vulnerabilities* and *Indicators*, under `/taxii2/foresignal/collections/{id}/objects/`. Objects are listed in
+  ingest order, with `added_after`, `limit` (100 by default, at most 1,000) and `next` paging.
+- **Egress:** both STIX and TAXII run every record through `EgressPolicy` on the `EXPORT` path, without
+  `personalUse`. Private sources, MLAT positions and records whose license does not allow redistribution (`FORBIDDEN`,
+  `LOCAL_ONLY` or `UNKNOWN` redistribution) are left out; when any were, their count is in
+  `Foresignal-Licence-Filtered`.
+  - By default this withholds every URLhaus indicator. `abusech-urlhaus` maps to the catalog entry
+    `provider-terms-nc`, whose redistribution is `UNKNOWN`, so it counts as `LOCAL_ONLY`. Feodo Tracker and KEV
+    (CC0) and NVD (`reuse-with-attribution`) pass. There is currently no operator setting that releases URLhaus
+    records to STIX or TAXII.
 
 ## Federation and edge relay (prompt 113)
 

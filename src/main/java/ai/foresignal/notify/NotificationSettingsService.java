@@ -29,13 +29,15 @@ import tools.jackson.databind.JsonNode;
  * bypasses. When the pause ends earlier than before (or is lifted), deliveries it deferred are
  * brought forward to the new end. {@code chatops.enabled} (prompt 061) is the global kill switch
  * of interactive chat channels (omitted: true). {@code imageLinks} (108) is accepted and not stored
- * until that prompt.
+ * until that prompt. {@code defaultLanguage} (prompt 141) is the BCP 47 language notifications are written in
+ * (default {@code en}); channels with another {@code language} get translations.
  */
 @Service
 public class NotificationSettingsService {
 
     /** The members a {@code NotificationSettings} body may carry. */
-    public static final Set<String> FIELDS = Set.of("pausedUntil", "pauseBypassSeverity", "chatops", "imageLinks");
+    public static final Set<String> FIELDS = Set.of("pausedUntil", "pauseBypassSeverity", "chatops", "imageLinks",
+            "defaultLanguage");
 
     private final AppSettingService settings;
     private final NotificationService notifications;
@@ -126,10 +128,20 @@ public class NotificationSettingsService {
                 imageLinks = node.asBoolean();
             }
         }
+        String defaultLanguage = NotificationSettings.DEFAULT_LANGUAGE;
+        JsonNode languageNode = body.get("defaultLanguage");
+        if (languageNode != null && !languageNode.isNull()) {
+            String tag = languageNode.isString() ? NotificationTranslator.canonicalTag(languageNode.asString()) : null;
+            if (tag == null) {
+                errors.add(new FieldError("defaultLanguage", "must be a BCP 47 language tag, for example en or de"));
+            } else {
+                defaultLanguage = tag;
+            }
+        }
         if (!errors.isEmpty()) {
             throw new ValidationException("The notification settings are not valid.", errors);
         }
-        return new NotificationSettings(until, bypass, chatops, imageLinks);
+        return new NotificationSettings(until, bypass, chatops, imageLinks, defaultLanguage);
     }
 
     /** Parses {@code chatops} (prompt 061): an object whose only member is the boolean {@code enabled}. */

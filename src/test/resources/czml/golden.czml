@@ -1,0 +1,69 @@
+[
+  {
+    "id": "document",
+    "name": "Foresignal history",
+    "version": "1.0",
+    "clock": {
+      "interval": "2026-03-01T00:00:00Z/2026-03-01T01:00:00Z",
+      "currentTime": "2026-03-01T00:00:00Z",
+      "multiplier": 30,
+      "range": "LOOP_STOP",
+      "step": "SYSTEM_CLOCK_MULTIPLIER"
+    },
+    "description": "Data: Attribution A · Attribution B"
+  },
+  {
+    "id": "tt-mover:m1",
+    "name": "CS-1",
+    "availability": "2026-03-01T00:00:00Z/2026-03-01T00:01:30.500Z",
+    "position": {
+      "epoch": "2026-03-01T00:00:00Z",
+      "cartographicDegrees": [
+        0.0, 10.0, 50.0, 0.0,
+        60.0, 10.1234568, 50.5, 1000.46,
+        90.5, 10.2, 50.25, 0.0
+      ]
+    },
+    "label": {
+      "text": "CS-1",
+      "font": "12pt sans-serif",
+      "fillColor": { "rgba": [255, 255, 255, 255] },
+      "outlineColor": { "rgba": [0, 0, 0, 255] },
+      "outlineWidth": 2,
+      "style": "FILL_AND_OUTLINE",
+      "horizontalOrigin": "LEFT",
+      "pixelOffset": { "cartesian2": [10, 0] }
+    },
+    "point": {
+      "color": { "rgba": [255, 136, 0, 255] },
+      "pixelSize": 8,
+      "outlineColor": { "rgba": [0, 0, 0, 255] },
+      "outlineWidth": 1
+    },
+    "properties": { "kind": "tt-vehicle" }
+  },
+  {
+    "id": "tt-mover:m2",
+    "name": "tt-mover:m2",
+    "availability": "2026-03-01T00:00:30Z/2026-03-01T00:00:30Z",
+    "position": {
+      "cartographicDegrees": [-120.5, 35.25, 12.0]
+    },
+    "label": {
+      "text": "tt-mover:m2",
+      "font": "12pt sans-serif",
+      "fillColor": { "rgba": [255, 255, 255, 255] },
+      "outlineColor": { "rgba": [0, 0, 0, 255] },
+      "outlineWidth": 2,
+      "style": "FILL_AND_OUTLINE",
+      "horizontalOrigin": "LEFT",
+      "pixelOffset": { "cartesian2": [10, 0] }
+    },
+    "point": {
+      "color": { "rgba": [51, 136, 255, 255] },
+      "pixelSize": 8,
+      "outlineColor": { "rgba": [0, 0, 0, 255] },
+      "outlineWidth": 1
+    }
+  }
+]

@@ -1237,7 +1237,7 @@
               ],
               "query": []
             },
-            "description": "Creates a scheduled briefing. Validation: 5-field cron no more frequent than every 15 minutes, valid IANA `timezone`, existing scope ids (a private source the caller may not see is reported as unknown), `lookback` 1h\u20137d; scope members of later prompts (`placeIds`, `viewId`, `country`, `admin1`, `county`, `places`, `weatherProducts`) are refused with 400 until their prompt while non-empty, and a non-null `audio` until 141; channels that do not exist, are disabled or are not subscribed to `briefing` produce `warnings`, not failures; `mode=llm` is accepted without a provider (checked at run time). The creating token's scope is the briefing's owner scope: only an `admin`-owned briefing lists records of private sources, any other counts them only.\n\n**Scope:** `agent`.\n\noperationId: `createBriefing`",
+            "description": "Creates a scheduled briefing. Validation: 5-field cron no more frequent than every 15 minutes, valid IANA `timezone`, existing scope ids (a private source the caller may not see is reported as unknown), `lookback` 1h\u20137d; scope members of later prompts (`placeIds`, `viewId`, `country`, `admin1`, `county`, `places`, `weatherProducts`) are refused with 400 until their prompt while non-empty, ; `audio` (141) is null or `{voice, format}` with a voice of 1\u2013100 characters and `format` `mp3` (default) or `opus`, accepted without a `tts` provider (runs then record `audio.status` `skipped`); channels that do not exist, are disabled or are not subscribed to `briefing` produce `warnings`, not failures; `mode=llm` is accepted without a provider (checked at run time). The creating token's scope is the briefing's owner scope: only an `admin`-owned briefing lists records of private sources, any other counts them only.\n\n**Scope:** `agent`.\n\noperationId: `createBriefing`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -8696,7 +8696,7 @@
               ],
               "query": []
             },
-            "description": "Creates a scheduled briefing. Validation: 5-field cron no more frequent than every 15 minutes, valid IANA `timezone`, existing scope ids (a private source the caller may not see is reported as unknown), `lookback` 1h\u20137d; scope members of later prompts (`placeIds`, `viewId`, `country`, `admin1`, `county`, `places`, `weatherProducts`) are refused with 400 until their prompt while non-empty, and a non-null `audio` until 141; channels that do not exist, are disabled or are not subscribed to `briefing` produce `warnings`, not failures; `mode=llm` is accepted without a provider (checked at run time). The creating token's scope is the briefing's owner scope: only an `admin`-owned briefing lists records of private sources, any other counts them only.\n\n**Scope:** `agent`.\n\noperationId: `createBriefing`",
+            "description": "Creates a scheduled briefing. Validation: 5-field cron no more frequent than every 15 minutes, valid IANA `timezone`, existing scope ids (a private source the caller may not see is reported as unknown), `lookback` 1h\u20137d; scope members of later prompts (`placeIds`, `viewId`, `country`, `admin1`, `county`, `places`, `weatherProducts`) are refused with 400 until their prompt while non-empty, ; `audio` (141) is null or `{voice, format}` with a voice of 1\u2013100 characters and `format` `mp3` (default) or `opus`, accepted without a `tts` provider (runs then record `audio.status` `skipped`); channels that do not exist, are disabled or are not subscribed to `briefing` produce `warnings`, not failures; `mode=llm` is accepted without a provider (checked at run time). The creating token's scope is the briefing's owner scope: only an `admin`-owned briefing lists records of private sources, any other counts them only.\n\n**Scope:** `agent`.\n\noperationId: `createBriefing`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -9254,7 +9254,7 @@
               ],
               "query": []
             },
-            "description": "RSS 2.0 feed (058 feed writer) of the briefing's runs that have audio, each with an `<enclosure>` to the signed media. Feed keys work through `/v1/k/{key}/\u2026`.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getBriefingPodcast`",
+            "description": "RSS 2.0 feed (058 feed writer family) of the briefing's runs that have audio (`audio.status` `ok` and a media row that still exists), newest first, at most 50 items. Each `<item>` has a non-permalink `<guid>`, the run's HTML rendition as `<link>`, its plain text as `<description>`, and an `<enclosure url length type>` to the 043 media (`audio/mpeg` or `audio/ogg`), whose detached JWS is the run's `audio.signature` (109). Feed keys work through `/v1/k/{key}/briefings/{briefingId}/podcast.rss`; the enclosure URLs then carry the same key, so create the key with prefixes covering both the feed and `/v1/media/`. Same visibility as the run feeds: 404 unless the briefing is visible to the caller, runs citing private sources only behind the private gate. Strong ETag and `Last-Modified`; 304 on a match.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getBriefingPodcast`",
             "auth": {
               "type": "noauth"
             }
@@ -22568,7 +22568,7 @@
                 {
                   "key": "format",
                   "value": "json",
-                  "description": "Response format",
+                  "description": "Response format; `czml` returns a CZML document (prompt 141)",
                   "disabled": true
                 }
               ]
@@ -29329,7 +29329,7 @@
               ],
               "query": []
             },
-            "description": "RFC 9728 metadata for the MCP resource (same document as the `/mcp` path variant). Clients find it through `WWW-Authenticate: Bearer resource_metadata=\u2026` on 401 from `/mcp`.\n\n**Scope:** `open` (no token).\n\noperationId: `getProtectedResourceMetadata`",
+            "description": "RFC 9728 metadata for the MCP resource (same document as the `/mcp` path variant). Clients find it through `WWW-Authenticate: Bearer resource_metadata=\u2026` on 401 from `/mcp`.\n\nWhile `mcp.auth.mode` is `oauth` or `both`, `/mcp` always needs a credential (open reads do not apply there): a request without one, or with an invalid token, gets `401` with `WWW-Authenticate: Bearer resource_metadata=\"{base}/.well-known/oauth-protected-resource/mcp\", scope=\"foresignal:read\"` (plus `error=\"invalid_token\"` when a token was presented); a valid token whose scopes map to nothing, or an identity-provider token calling a tool above its mapped scope, gets `403` with `WWW-Authenticate: Bearer error=\"insufficient_scope\", scope=\"\u2026\", resource_metadata=\"\u2026\"`. The `scope` values are the identity-provider scopes of `mcp.auth.scopeMap` that reach the needed Foresignal scope. REST paths never accept identity-provider tokens.\n\n**Scope:** `open` (no token).\n\noperationId: `getProtectedResourceMetadata`",
             "auth": {
               "type": "noauth"
             }
@@ -34882,7 +34882,7 @@
               ],
               "query": []
             },
-            "description": "Whether plugins are enabled and the plugins found on disk with their hash state.\n\n**Scope:** `admin`.\n\noperationId: `listPlugins`",
+            "description": "Whether plugins are enabled and the plugins found on disk with their hash state. Discovery reads and hashes `${FORESIGNAL_DATA_DIR}/plugins/{name}/plugin.wasm` and `plugin.json` but never runs a plugin.\n\n**Scope:** `admin`.\n\noperationId: `listPlugins`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -34931,7 +34931,7 @@
               ],
               "query": []
             },
-            "description": "Settings `plugins` (`enabled=false` by default).\n\n**Scope:** `admin`.\n\noperationId: `updatePluginSettings`",
+            "description": "Settings `plugins` (`enabled=false` by default). While off, no plugin runs whatever its own state, every `wasm-feed` fetch fails with a `plugins are disabled` health reason, and no plugin can be enabled (`409 PLUGINS_DISABLED`).\n\n**Scope:** `admin`.\n\noperationId: `updatePluginSettings`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -34944,7 +34944,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"enabled\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -35036,7 +35036,7 @@
               ],
               "query": []
             },
-            "description": "Enables a plugin after the admin reviewed its sha256 (must match the file), or disables it. ABI v1 parsers run in Chicory with no WASI imports, 64 MB memory, 5 s timeout and 16 MB output.\n\n**Scope:** `admin`.\n\noperationId: `updatePlugin`",
+            "description": "Enables a plugin after the admin reviewed its sha256 (must match the file), or disables it. ABI v1 parsers run in Chicory with no WASI imports, 64 MB memory, 5 s timeout and 16 MB output. Enabling needs plugins on (`409 PLUGINS_DISABLED`), `sha256` in the body (`400`), a `plugin.wasm` that hashes to it and to the hash `plugin.json` declares (`409 PLUGIN_HASH_MISMATCH`), and a module that loads: valid WebAssembly, importing nothing but `env.foresignal_log(i32, i32, i32)` and exporting `memory`, `alloc`, `dealloc` and `foresignal_parse` (`400`). The approval is bound to that hash: if the file later changes, the plugin stops running (state `hash-mismatch`) until it is reviewed and enabled again. Disabling always works, also while plugins are off.\n\n**Scope:** `admin`.\n\noperationId: `updatePlugin`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -35049,7 +35049,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"enabled\": true,\n  \"sha256\": \"232eeeefab43a723a76b0a15f8d1e8b67f8bf9aae0cfa2a7ffa8ba7c70d8f6f8\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -38573,7 +38573,7 @@
                 {
                   "key": "format",
                   "value": "json",
-                  "description": "Response format; wins over Accept. Streaming formats (ndjson, geojsonseq, csv) are not paged and are capped at `foresignal.api.stream.maxRows` (400 RESULT_TOO_LARGE); csv needs `fields=` for payload columns.",
+                  "description": "Response format; wins over Accept. Streaming formats (ndjson, geojsonseq, csv) are not paged and are capped at `foresignal.api.stream.maxRows` (400 RESULT_TOO_LARGE); csv needs `fields=` for payload columns. `czml` (prompt 141) is not paged either: it reads up to 200,000 versions from `cursor` on and returns one CZML document (`limit` and `fields` are ignored).",
                   "disabled": true
                 },
                 {
@@ -42080,7 +42080,7 @@
               ],
               "query": []
             },
-            "description": "Replaces `mcp.auth`. `admin` can never appear in `scopeMap`; the issuer and JWKS URLs pass the 035 outbound URL policy. Applies only to `/mcp`; REST keeps Foresignal tokens.\n\n**Scope:** `admin`.\n\noperationId: `updateMcpAuthSettings`",
+            "description": "Replaces `mcp.auth`. `admin` can never appear in `scopeMap` (400). With `mode` `oauth` or `both`, `issuer` is required, and `audience` too unless `server.publicBaseUrl` is set. `issuer` and `jwksUri` must be absolute http(s) URLs without query or fragment that pass the 035 outbound URL policy (`LAN_ALLOWED`; plain `http` only towards loopback, private or tailnet addresses). Applies only to `/mcp`; REST keeps Foresignal tokens.\n\n**Scope:** `admin`.\n\noperationId: `updateMcpAuthSettings`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -42093,7 +42093,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"mode\": \"both\",\n  \"issuer\": \"https://auth.example.org/realms/home\",\n  \"audience\": \"https://foresignal.example.org/mcp\",\n  \"scopeMap\": {\n    \"foresignal:read\": \"read\",\n    \"foresignal:agent\": \"agent\"\n  },\n  \"scopeClaim\": \"scope\",\n  \"allowedAlgs\": [\n    \"RS256\",\n    \"ES256\",\n    \"EdDSA\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -46473,10 +46473,16 @@
                   "value": "xml",
                   "description": "Output",
                   "disabled": true
+                },
+                {
+                  "key": "nodata",
+                  "value": "204",
+                  "description": "Status of an empty result: 204 (default, FDSN convention) or 404 with an FDSN plain-text body",
+                  "disabled": true
                 }
               ]
             },
-            "description": "fdsnws-event 1.2 over `earthquake` records: QuakeML 1.2 BED (`smi:foresignal/{source}/{externalId}` publicIDs) or the pipe-separated text format. `204` when no events match (FDSN convention); errors use FDSN plain-text bodies.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `queryFdsnEvents`",
+            "description": "fdsnws-event 1.2 over `earthquake` records: QuakeML 1.2 BED (`smi:foresignal/{source}/{externalId}` publicIDs) or the pipe-separated text format. `204` when no events match (FDSN convention; `nodata=404` selects 404); errors use FDSN plain-text bodies. Long and short parameter names are accepted (`start`, `minlat`, `minmag`, \u2026); unsupported parameters are a 400. Depth is in meters in QuakeML and in km in the text format.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `queryFdsnEvents`",
             "auth": {
               "type": "noauth"
             }
@@ -46608,7 +46614,7 @@
                 }
               ]
             },
-            "description": "`cisa-kev`/`nvd-cves` \u2192 `vulnerability`, abuse.ch IOCs \u2192 `indicator` (pattern from the IOC type), plus a Foresignal `identity`; deterministic UUIDv5 ids from record refs. Licence egress applies.\n\n**Scope:** `agent`.\n\noperationId: `exportStix`",
+            "description": "`cisa-kev`/`nvd-cves` \u2192 `vulnerability`, abuse.ch IOCs \u2192 `indicator` (pattern from the IOC type), plus a Foresignal `identity`; deterministic UUIDv5 ids from record refs. Every record passes `EgressPolicy` on the EXPORT path (private sources, `LOCAL_ONLY` egress and license terms); refused records are counted in `Foresignal-Licence-Filtered`. Kinds: `vulnerability`, `malware-url`, `malware-c2` (default all three).\n\n**Scope:** `agent`.\n\noperationId: `exportStix`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -46857,7 +46863,7 @@
                 }
               ]
             },
-            "description": "STIX objects with `added_after` and `next` pagination; `X-TAXII-Date-Added-First`/`-Last` headers.\n\n**Scope:** `agent`.\n\noperationId: `getTaxiiCollectionObjects`",
+            "description": "STIX object versions in ingest order with `added_after` (strictly after the version's ingest time) and `next` pagination (repeat the same `added_after` with `next`); the default page is 100; `X-TAXII-Date-Added-First`/`-Last` headers.\n\n**Scope:** `agent`.\n\noperationId: `getTaxiiCollectionObjects`",
             "auth": {
               "type": "bearer",
               "bearer": [

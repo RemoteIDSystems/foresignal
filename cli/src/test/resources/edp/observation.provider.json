@@ -1,0 +1,46 @@
+{
+  "$comment": [
+    "A minimal provider of observation items (EDP 1.0, docs/External-Data-Protocol.md). Documentation only: Foresignal does not load this file.",
+    "manifest: register it with POST /v1/external/sources {\"manifest\": ..., \"approve\": true}; the source becomes ext-river-gauges-example.",
+    "batch: push it with POST /v1/external/sources/ext-river-gauges-example/items and the ingest key (X-Foresignal-Ingest-Key).",
+    "Each observation becomes one record {stream}:{id} of the stream's kind; seriesKey + t name the point; knownAt says when the value became knowable (availability is max(knownAt, receipt)).",
+    "bindings: the atomic stream does nothing until bound; target series makes series:ext-river-gauges-example/river-level/{seriesKey} for change points, event studies and charts."
+  ],
+  "manifest": {
+    "protocol": "foresignal-edp/1.0",
+    "source": {
+      "id": "river-gauges-example",
+      "name": "River gauges (example)",
+      "publisher": {"name": "Example Hydro"},
+      "licence": {"id": "CC-BY-4.0", "redistribution": "allowed"},
+      "access": {"route": "official", "fragility": "low"},
+      "originator": {"id": "example-hydro", "class": "sensor-network"}
+    },
+    "transport": {"push": true},
+    "streams": [
+      {
+        "id": "levels",
+        "mode": "atomic",
+        "itemType": "observation",
+        "kind": "river-level",
+        "title": "Daily mean river level",
+        "unit": "m",
+        "geometry": "none",
+        "retentionClass": "series",
+        "suggestedBindings": [{"target": "series", "config": {"transform": "none"}}]
+      }
+    ]
+  },
+  "batch": {
+    "protocol": "foresignal-edp/1.0",
+    "sentAt": "2026-10-18T06:00:00Z",
+    "items": [
+      {"stream": "levels", "type": "observation", "id": "rhine-kaub:2026-10-17", "observedAt": "2026-10-18T05:00:00Z", "seriesKey": "rhine-kaub", "t": "2026-10-17", "value": 1.12, "knownAt": "2026-10-18T05:00:00Z"},
+      {"stream": "levels", "type": "observation", "id": "rhine-kaub:2026-10-16", "observedAt": "2026-10-17T05:00:00Z", "seriesKey": "rhine-kaub", "t": "2026-10-16", "value": 1.19}
+    ]
+  },
+  "bindings": [
+    {"streamId": "levels", "target": "series", "config": {"unit": "m", "transform": "none", "releaseLagDays": 1, "regionCode": "DE"}},
+    {"streamId": "levels", "target": "place", "config": {"placeId": "PLACE-ID-OF-KAUB"}, "filter": [{"path": "seriesKey", "op": "==", "value": "rhine-kaub"}]}
+  ]
+}

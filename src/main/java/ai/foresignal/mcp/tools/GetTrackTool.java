@@ -1,11 +1,16 @@
 package ai.foresignal.mcp.tools;
 
 import static ai.foresignal.mcp.JsonSchemas.detail;
+import static ai.foresignal.mcp.JsonSchemas.enumeration;
 import static ai.foresignal.mcp.JsonSchemas.integer;
 import static ai.foresignal.mcp.JsonSchemas.object;
 import static ai.foresignal.mcp.JsonSchemas.props;
 import static ai.foresignal.mcp.JsonSchemas.string;
 
+import ai.foresignal.czml.CzmlService;
+import ai.foresignal.czml.CzmlWriter;
+import ai.foresignal.media.MediaDocuments;
+import ai.foresignal.media.MediaRow;
 import ai.foresignal.mcp.ForesignalMcpTool;
 import ai.foresignal.mcp.McpArgs;
 import ai.foresignal.mcp.McpOutputShaper;
@@ -13,6 +18,7 @@ import ai.foresignal.mcp.McpOutputShaper.Detail;
 import ai.foresignal.mcp.McpTimes;
 import ai.foresignal.mcp.ToolContext;
 import ai.foresignal.mcp.ToolResult;
+import ai.foresignal.raster.ProductUrls;
 import ai.foresignal.security.Scope;
 import ai.foresignal.store.track.TrackQuery;
 import ai.foresignal.store.track.TrackResult;
@@ -33,6 +39,11 @@ import tools.jackson.databind.node.ObjectNode;
  * duration, bounding box, the highest speed between two returned points, the segment count and
  * {@code approximate}. Short mode caps the points at {@value #SHORT_MAX_POINTS} so the result stays
  * within 4 KB.
+ *
+ * <p>Prompt 141 adds {@code format: czml}: the same track as a CZML document (the {@code GET …/track?format=czml}
+ * shape) is stored in the media store as a {@link MediaDocuments document} that expires after
+ * {@link MediaDocuments#DEFAULT_LIFETIME}, and the result is a link to it ({@code /v1/media/{id}}) plus the summary,
+ * never the CZML inline. The media row names the entity, so callers who may not see its source cannot fetch it.
  */
 @ai.foresignal.security.restrict.RestrictedRead
 @Component
@@ -55,17 +66,27 @@ public class GetTrackTool implements ForesignalMcpTool {
             "to", string("Window end, in the same forms; default now."),
             "maxPoints", integer("Most points to return (2–" + MAX_POINTS + "; detail=short returns at most "
                     + SHORT_MAX_POINTS + ").", 2, MAX_POINTS, (long) DEFAULT_MAX_POINTS),
-            "detail", detail()), "sourceId", "externalId");
+            "detail", detail(),
+            "format", enumeration("json (default): the compact track inline. czml: store the track as a CZML document"
+                    + " for CesiumJS and return a link to it (expires after 24 hours) instead of the points.", "json",
+                    "json", "czml")), "sourceId", "externalId");
 
     private final TrackService tracks;
     private final McpOutputShaper shaper;
     private final Clock clock;
+    private final CzmlService czml;
+    private final MediaDocuments documents;
+    private final ProductUrls urls;
 
     /** Creates the tool. */
-    public GetTrackTool(TrackService tracks, McpOutputShaper shaper, Clock clock) {
+    public GetTrackTool(TrackService tracks, McpOutputShaper shaper, Clock clock, CzmlService czml,
+            MediaDocuments documents, ProductUrls urls) {
         this.tracks = tracks;
         this.shaper = shaper;
         this.clock = clock;
+        this.czml = czml;
+        this.documents = documents;
+        this.urls = urls;
     }
 
     @Override
@@ -84,7 +105,9 @@ public class GetTrackTool implements ForesignalMcpTool {
                 + " of [lon, lat, epochSeconds] points, simplified to maxPoints and split at gaps longer than the"
                 + " source's TTL (at least 10 minutes), at tombstones and at the antimeridian, plus a summary"
                 + " (distanceKm, durationSeconds, bbox, maxSpeedKmh between returned points, segments, approximate)."
-                + " live=true means the last point is the current position, newer than any stored version.";
+                + " live=true means the last point is the current position, newer than any stored version."
+                + " format=czml stores the track as a CZML document for CesiumJS and returns media.url (a link that"
+                + " expires after 24 hours) with the summary instead of the points.";
     }
 
     @Override
@@ -104,11 +127,37 @@ public class GetTrackTool implements ForesignalMcpTool {
         Instant to = McpTimes.instant(args, "to", now, now);
         Instant from = McpTimes.instant(args, "from", now, to.minus(TrackService.DEFAULT_WINDOW));
         int requested = McpArgs.integer(args, "maxPoints", DEFAULT_MAX_POINTS);
-        int maxPoints = Math.max(2, Math.min(requested, detail == Detail.SHORT ? SHORT_MAX_POINTS : MAX_POINTS));
-        TrackResult track = tracks.track(new TrackQuery(McpArgs.requiredText(args, "sourceId"),
-                McpArgs.requiredText(args, "externalId"), from, to, null, maxPoints, null, true, List.of(),
-                context.excludedSources(), context.restriction()));
+        boolean asCzml = "czml".equals(McpArgs.text(args, "format"));
+        // A stored CZML document is not bound by the inline short-form cap.
+        int cap = detail == Detail.SHORT && !asCzml ? SHORT_MAX_POINTS : MAX_POINTS;
+        int maxPoints = Math.max(2, Math.min(requested, cap));
+        String sourceId = McpArgs.requiredText(args, "sourceId");
+        String externalId = McpArgs.requiredText(args, "externalId");
+        TrackResult track = tracks.track(new TrackQuery(sourceId, externalId, from, to, null, maxPoints, null, true,
+                List.of(), context.excludedSources(), context.restriction()));
+        if (asCzml) {
+            return ToolResult.json(shaper.object(czmlLink(track, context), detail));
+        }
         return ToolResult.json(shaper.object(compact(track), detail));
+    }
+
+    /** Stores the track's CZML and returns the link plus the summary (prompt 141). */
+    ObjectNode czmlLink(TrackResult track, ToolContext context) {
+        String title = czml.currentTitle(track.sourceId(), track.externalId(), context.excludedSources(),
+                context.restriction());
+        byte[] bytes = czml.bytes(czml.trackDocument(track, title, null));
+        MediaRow row = documents.store(new MediaDocuments.Document(bytes, CzmlWriter.MEDIA_TYPE, "czml",
+                track.sourceId(), track.externalId(), null));
+        ObjectNode out = compact(track);
+        out.remove("segments");
+        out.put("format", "czml");
+        ObjectNode media = out.putObject("media");
+        media.put("id", row.id());
+        media.put("url", urls.storedBase() + "/v1/media/" + row.id());
+        media.put("contentType", row.contentType());
+        media.put("bytes", row.bytes());
+        media.put("expiresAt", row.expiresAt().toString());
+        return out;
     }
 
     /** The compact track and its summary. */

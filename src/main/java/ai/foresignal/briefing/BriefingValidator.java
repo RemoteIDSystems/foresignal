@@ -40,6 +40,9 @@ import tools.jackson.databind.JsonNode;
  *       {@code briefing} is a warning in the response, not a failure.
  *   <li>{@code lookback}: 1 h–7 d, or null for "since the last run, or 24 h".
  *   <li>{@code mode=llm} is accepted without a chat provider; that is checked when it runs.
+ *   <li>{@code audio} (prompt 141): null, or {@code {voice, format}} with a voice of 1–100 characters and
+ *       {@code format} {@code mp3} (default) or {@code opus}; accepted without a {@code tts} provider (each run
+ *       then records {@code audio.status=skipped}).
  * </ul>
  */
 @Component
@@ -243,17 +246,52 @@ public class BriefingValidator {
             }
         }
 
-        JsonNode audio = body.get("audio");
-        if (audio != null && !audio.isNull()) {
-            errors.add(new FieldError("audio", "audio briefings are not available until prompt 141; use null"));
-        }
+        BriefingInput.Audio audio = audio(body.get("audio"), errors);
 
         if (!errors.isEmpty()) {
             throw new ValidationException("The briefing is not valid.", errors);
         }
         BriefingInput input = new BriefingInput(name.strip(), enabled, schedule, timezone, scope, lookbackText, lookback,
-                mode, instructions, channelIds, maxItems);
+                mode, instructions, channelIds, maxItems, audio);
         return new Validated(input, channelWarnings(channelIds));
+    }
+
+    /** The longest voice name (prompt 141). */
+    static final int MAX_VOICE = 100;
+
+    /** Parses {@code audio} (prompt 141): null, or an object with {@code voice} and an optional {@code format}. */
+    static BriefingInput.Audio audio(JsonNode node, List<FieldError> errors) {
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        if (!node.isObject()) {
+            errors.add(new FieldError("audio", "must be an object {voice, format} or null"));
+            return null;
+        }
+        boolean ok = true;
+        for (String member : node.propertyNames()) {
+            if (!"voice".equals(member) && !"format".equals(member)) {
+                errors.add(new FieldError("audio." + member, "is not a member of audio (voice, format)"));
+                ok = false;
+            }
+        }
+        JsonNode voice = node.get("voice");
+        if (voice == null || !voice.isString() || voice.asString().isBlank() || voice.asString().length() > MAX_VOICE) {
+            errors.add(new FieldError("audio.voice", "must be a voice name of 1 to " + MAX_VOICE + " characters"));
+            ok = false;
+        }
+        String format = BriefingInput.Audio.MP3;
+        JsonNode formatNode = node.get("format");
+        if (formatNode != null && !formatNode.isNull()) {
+            if (!formatNode.isString() || !(BriefingInput.Audio.MP3.equals(formatNode.asString())
+                    || BriefingInput.Audio.OPUS.equals(formatNode.asString()))) {
+                errors.add(new FieldError("audio.format", "must be mp3 or opus"));
+                ok = false;
+            } else {
+                format = formatNode.asString();
+            }
+        }
+        return ok ? new BriefingInput.Audio(voice.asString().strip(), format) : null;
     }
 
     /**

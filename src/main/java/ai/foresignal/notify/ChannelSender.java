@@ -250,6 +250,41 @@ public class ChannelSender {
         return alternative;
     }
 
+    /**
+     * The body of an email with file attachments (prompt 141): {@code multipart/mixed} whose first part is the
+     * body (the alternative-with-inlines, a plain/HTML alternative, or plain text) and whose other parts are the
+     * attachments ({@code Content-Disposition: attachment}).
+     */
+    static jakarta.mail.internet.MimeMultipart mixedWithAttachments(PreparedRequest.Mail mail)
+            throws jakarta.mail.MessagingException {
+        jakarta.mail.internet.MimeMultipart mixed = new jakarta.mail.internet.MimeMultipart("mixed");
+        jakarta.mail.internet.MimeBodyPart body = new jakarta.mail.internet.MimeBodyPart();
+        if (mail.html() != null && !mail.inlines().isEmpty()) {
+            body.setContent(alternativeWithInlines(mail));
+        } else if (mail.html() != null) {
+            jakarta.mail.internet.MimeMultipart alternative = new jakarta.mail.internet.MimeMultipart("alternative");
+            jakarta.mail.internet.MimeBodyPart text = new jakarta.mail.internet.MimeBodyPart();
+            text.setText(mail.text(), "UTF-8");
+            alternative.addBodyPart(text);
+            jakarta.mail.internet.MimeBodyPart html = new jakarta.mail.internet.MimeBodyPart();
+            html.setText(mail.html(), "UTF-8", "html");
+            alternative.addBodyPart(html);
+            body.setContent(alternative);
+        } else {
+            body.setText(mail.text(), "UTF-8");
+        }
+        mixed.addBodyPart(body);
+        for (PreparedRequest.FileAttachment attachment : mail.attachments()) {
+            jakarta.mail.internet.MimeBodyPart part = new jakarta.mail.internet.MimeBodyPart();
+            part.setDataHandler(new jakarta.activation.DataHandler(
+                    new jakarta.mail.util.ByteArrayDataSource(attachment.bytes(), attachment.contentType())));
+            part.setDisposition(jakarta.mail.Part.ATTACHMENT);
+            part.setFileName(attachment.filename());
+            mixed.addBodyPart(part);
+        }
+        return mixed;
+    }
+
     private ChannelResponse sendMail(PreparedRequest.Mail mail) throws IOException {
         JavaMailSenderImpl sender = new JavaMailSenderImpl();
         sender.setHost(mail.host());
@@ -274,7 +309,14 @@ public class ChannelSender {
         sender.setJavaMailProperties(props);
         try {
             MimeMessage message = sender.createMimeMessage();
-            if (mail.html() != null && !mail.inlines().isEmpty()) {
+            if (!mail.attachments().isEmpty()) {
+                // Prompt 141: multipart/mixed of the body (as built below) and each file attachment.
+                message.setFrom(new jakarta.mail.internet.InternetAddress(mail.from()));
+                message.setRecipients(jakarta.mail.Message.RecipientType.TO,
+                        jakarta.mail.internet.InternetAddress.parse(String.join(",", mail.to())));
+                message.setSubject(mail.subject(), "UTF-8");
+                message.setContent(mixedWithAttachments(mail));
+            } else if (mail.html() != null && !mail.inlines().isEmpty()) {
                 message.setFrom(new jakarta.mail.internet.InternetAddress(mail.from()));
                 message.setRecipients(jakarta.mail.Message.RecipientType.TO,
                         jakarta.mail.internet.InternetAddress.parse(String.join(",", mail.to())));

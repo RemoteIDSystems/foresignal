@@ -1,0 +1,82 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any, Self, TypeVar
+from uuid import UUID
+
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
+
+from ..types import UNSET, Unset
+
+T = TypeVar("T", bound="DigestAlertsByRuleItem")
+
+
+@_attrs_define
+class DigestAlertsByRuleItem:
+    """Counts per rule
+
+    Attributes:
+        rule_id (UUID):
+        count (int):
+        rule_name (str | Unset):
+    """
+
+    rule_id: UUID
+    count: int
+    rule_name: str | Unset = UNSET
+    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        rule_id = str(self.rule_id)
+
+        count = self.count
+
+        rule_name = self.rule_name
+
+        field_dict: dict[str, Any] = {}
+        field_dict.update(self.additional_properties)
+        field_dict.update(
+            {
+                "ruleId": rule_id,
+                "count": count,
+            }
+        )
+        if rule_name is not UNSET:
+            field_dict["ruleName"] = rule_name
+
+        return field_dict
+
+    @classmethod
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
+        d = dict(src_dict)
+        rule_id = UUID(d.pop("ruleId"))
+
+        count = d.pop("count")
+
+        rule_name = d.pop("ruleName", UNSET)
+
+        digest_alerts_by_rule_item = cls(
+            rule_id=rule_id,
+            count=count,
+            rule_name=rule_name,
+        )
+
+        digest_alerts_by_rule_item.additional_properties = d
+        return digest_alerts_by_rule_item
+
+    @property
+    def additional_keys(self) -> list[str]:
+        return list(self.additional_properties.keys())
+
+    def __getitem__(self, key: str) -> Any:
+        return self.additional_properties[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self.additional_properties[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self.additional_properties[key]
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.additional_properties

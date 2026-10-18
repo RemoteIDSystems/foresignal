@@ -1,0 +1,14 @@
+# openapi-python-client configuration for sdk/python/foresignal_client (prompt 141).
+# Used by `./gradlew generateSdks` (sdkGeneratePython) with --meta none, so only the package directory is
+# generated; sdk/python/pyproject.toml and the hand-written foresignal_sdk package are never touched.
+package_name_override: foresignal_client
+project_name_override: foresignal-client
+literal_enums: false
+# Binary bodies the generator cannot model are exposed as raw bytes (File) instead of being dropped.
+content_type_overrides:
+  application/cbor: application/octet-stream
+  application/vnd.foresignal.package+zip: application/octet-stream
+  application/vnd.mapbox-vector-tile: application/octet-stream
+  image/png: application/octet-stream
+  image/webp: application/octet-stream
+  "image/png, image/webp": application/octet-stream

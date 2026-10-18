@@ -1,0 +1,70 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any, Self, TypeVar
+
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
+
+from ..types import UNSET, Unset
+
+T = TypeVar("T", bound="ObjectEnvelopeLinks")
+
+
+@_attrs_define
+class ObjectEnvelopeLinks:
+    """
+    Attributes:
+        self_ (str | Unset):
+        related (str | Unset):
+    """
+
+    self_: str | Unset = UNSET
+    related: str | Unset = UNSET
+    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        self_ = self.self_
+
+        related = self.related
+
+        field_dict: dict[str, Any] = {}
+        field_dict.update(self.additional_properties)
+        field_dict.update({})
+        if self_ is not UNSET:
+            field_dict["self"] = self_
+        if related is not UNSET:
+            field_dict["related"] = related
+
+        return field_dict
+
+    @classmethod
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
+        d = dict(src_dict)
+        self_ = d.pop("self", UNSET)
+
+        related = d.pop("related", UNSET)
+
+        object_envelope_links = cls(
+            self_=self_,
+            related=related,
+        )
+
+        object_envelope_links.additional_properties = d
+        return object_envelope_links
+
+    @property
+    def additional_keys(self) -> list[str]:
+        return list(self.additional_properties.keys())
+
+    def __getitem__(self, key: str) -> Any:
+        return self.additional_properties[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self.additional_properties[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self.additional_properties[key]
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.additional_properties

@@ -1,0 +1,7 @@
+{
+  "name": "wasi-import",
+  "version": "1.0.0",
+  "abi": 1,
+  "kind": "parser",
+  "sha256": "0dfd699ede1a2a789638c5fc71219b5b8594d73cc4779470cca91b3dec64624e"
+}

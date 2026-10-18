@@ -64,6 +64,11 @@ dependencies {
     implementation(libs.re2j)
     implementation(libs.mcp.core)
     implementation(libs.mcp.json.jackson3)
+    // MCP remote authorization (141): IdP access tokens on /mcp; Tink for Nimbus's Ed25519Verifier.
+    implementation(libs.nimbus.jose.jwt)
+    implementation(libs.tink) {
+        exclude(group = "com.google.protobuf", module = "protobuf-java")
+    }
     implementation(libs.anthropic.java)
     implementation(libs.commonmark)
     implementation(libs.commonmark.ext.gfm.tables)
@@ -130,6 +135,8 @@ dependencies {
     implementation(libs.flatgeobuf)
     // Social post language detection (135): Lingua, restricted to social.languages.
     implementation(libs.lingua)
+    // Out-of-tree WASM parser plugins (141): the Chicory interpreter, no WASI.
+    implementation(libs.chicory.runtime)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))
@@ -418,40 +425,7 @@ tasks.check {
     dependsOn(lintOpenApi)
 }
 
-// Optional SDK smoke test (not wired to anything): generates typescript-fetch
-// and dart-dio clients from the authored spec into build/sdk-check and fails on
-// generator errors. The npm wrapper and the generator jar are both pinned; the
-// jar version is written to build/sdk-check/openapitools.json, which the wrapper
-// reads from its working directory. Needs npx and a Java runtime.
-val openApiGeneratorCli = "@openapitools/openapi-generator-cli@2.41.0"
-val openApiGeneratorVersion = "7.26.0"
-val sdkCheckDir = layout.buildDirectory.dir("sdk-check")
-val sdkCheckTasks = listOf("typescript-fetch", "dart-dio").map { generator ->
-    tasks.register<Exec>("checkSdkGeneration-$generator") {
-        group = "api"
-        description = "Generates a $generator client from docs/OpenAPI.json into build/sdk-check/$generator."
-        val specFile = layout.projectDirectory.file("docs/OpenAPI.json").asFile
-        workingDir = sdkCheckDir.get().asFile
-        commandLine(
-            "npx", "--yes", openApiGeneratorCli, "generate",
-            "-i", specFile.absolutePath,
-            "-g", generator,
-            "-o", sdkCheckDir.get().dir(generator).asFile.absolutePath,
-        )
-        doFirst {
-            if (!onPath("npx")) {
-                throw GradleException("checkSdkGeneration needs npx (Node.js >= 20.19) and a Java runtime.")
-            }
-            val dir = sdkCheckDir.get().asFile
-            dir.mkdirs()
-            File(dir, "openapitools.json").writeText(
-                """{"spaces": 2, "generator-cli": {"version": "$openApiGeneratorVersion"}}""" + "\n"
-            )
-        }
-    }
-}
-tasks.register("checkSdkGeneration") {
-    group = "api"
-    description = "Optional: generates typescript-fetch and dart-dio clients from docs/OpenAPI.json (prompt 141 owns the real SDKs)."
-    dependsOn(sdkCheckTasks)
-}
+// Client SDKs (prompt 141): generateSdks regenerates sdk/dart/foresignal_api, sdk/typescript/src/generated
+// and sdk/python/foresignal_client; checkSdkGeneration preprocesses the spec for Dart and dry-runs dart-dio.
+// Neither is wired to build or check. Tool versions: sdk/versions.properties.
+apply(from = "gradle/sdk.gradle.kts")

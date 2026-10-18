@@ -88,6 +88,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * except accepted requests on {@code /mcp/**}, whose tool calls the MCP server audits one by one
  * (prompt 025).
  *
+ * <p>Prompt 141 adds MCP remote authorization ({@link McpOAuthGate}): while {@code mcp.auth.mode} is
+ * {@code oauth} or {@code both}, {@code /mcp} always needs a credential (open reads do not apply, so an MCP
+ * client gets the {@code 401} that leads it to the identity provider), a JWT-shaped bearer there is verified as
+ * an identity-provider access token, and every {@code 401} on {@code /mcp} carries
+ * {@code WWW-Authenticate: Bearer resource_metadata="…", scope="…"}. A valid token whose scopes map to nothing
+ * gets {@code 403} with {@code error="insufficient_scope"}. In {@code oauth} mode a Foresignal token is refused on
+ * {@code /mcp}; REST paths never accept identity-provider tokens.
+ *
  * <p>Deliberately a plain servlet filter: a small static policy table and one credential family do
  * not need Spring Security. That choice is why {@code management.endpoint.health.show-details} must
  * be {@code never}. Runs after {@link CorsFilter} so a preflight gets its CORS headers even when the
@@ -214,6 +222,24 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
             return;
         }
 
+        if (mcpOAuthActive(path)) {
+            if (bearer == null) {
+                reject(request, response, method, "This MCP server requires an access token from its identity"
+                        + " provider; see the resource_metadata in WWW-Authenticate.", false);
+                return;
+            }
+            if (McpOAuthGate.looksLikeJwt(bearer)) {
+                mcpOAuthToken(request, response, chain, method, path, bearer);
+                return;
+            }
+            if (!mcpOAuth.acceptsApiTokens()) {
+                reject(request, response, method, "Only access tokens from the identity provider are accepted on"
+                        + " /mcp (mcp.auth.mode is oauth).");
+                return;
+            }
+            // mode both: a Foresignal token continues below; its 401s carry the OAuth challenge.
+        }
+
         // ---- resolve the caller ----
         CurrentToken current = null;
         Ticket streamTicket = null;
@@ -257,7 +283,7 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
                 request.setAttribute(REJECTION_ATTRIBUTE, problem.getProperties() == null ? null
                         : problem.getProperties().get("code"));
                 if (problem.getStatus() == HttpStatus.UNAUTHORIZED.value()) {
-                    response.setHeader(HttpHeaders.WWW_AUTHENTICATE, WWW_AUTHENTICATE_VALUE);
+                    response.setHeader(HttpHeaders.WWW_AUTHENTICATE, challengeFor(request, current != null));
                 }
                 problems.write(response, problem);
                 auditIfNeeded(request, response, method, path, current);
@@ -364,6 +390,63 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
             audit.record(new AuditRecord(clock.instant(), AuditRecord.INGEST_KEY, null, "peer:" + peer.get(), null,
                     null, method.name(), normalized, spec.operationId(method, normalized), response.getStatus(),
                     "federation", peer.get(), request.getRemoteAddr(), detail));
+        }
+    }
+
+    /** Verifies identity-provider access tokens on {@code /mcp} (prompt 141); absent in slices without it. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private McpOAuthGate mcpOAuth;
+
+    /** Sets the {@link McpOAuthGate} (unit tests that build the filter by hand). */
+    void setMcpOAuthGate(McpOAuthGate gate) {
+        this.mcpOAuth = gate;
+    }
+
+    /** True when {@code path} is the MCP server's and {@code mcp.auth.mode} is {@code oauth} or {@code both}. */
+    private boolean mcpOAuthActive(String path) {
+        McpOAuthGate gate = mcpOAuth;
+        return gate != null && isMcp(AccessPolicy.normalize(path)) && gate.active();
+    }
+
+    /**
+     * The {@code WWW-Authenticate} value of a {@code 401} on this request: the RFC 9728 challenge on
+     * {@code /mcp} while MCP remote authorization is on (prompt 141), else {@value #WWW_AUTHENTICATE_VALUE}.
+     */
+    private String challengeFor(HttpServletRequest request, boolean presented) {
+        if (mcpOAuthActive(request.getRequestURI())) {
+            return mcpOAuth.challenge(request, presented);
+        }
+        return WWW_AUTHENTICATE_VALUE;
+    }
+
+    /**
+     * An identity-provider access token on {@code /mcp} (prompt 141). Accepted: the request proceeds with the
+     * synthetic {@link CurrentToken} and {@link McpOAuthGate#ATTRIBUTE}; refused: {@code 401} with the RFC 9728
+     * challenge (counted by the failure backoff); valid without a mapped scope: {@code 403 INSUFFICIENT_SCOPE}
+     * with {@code error="insufficient_scope"}. The token itself is never forwarded or logged.
+     */
+    private void mcpOAuthToken(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
+            HttpMethod method, String path, String bearer) throws IOException, ServletException {
+        McpOAuthGate.Outcome outcome = mcpOAuth.authenticate(bearer);
+        switch (outcome) {
+            case McpOAuthGate.Accepted accepted -> {
+                CurrentToken current = new CurrentToken(accepted.token(), false);
+                accept(request, current);
+                request.setAttribute(McpOAuthGate.ATTRIBUTE, accepted);
+                chain.doFilter(request, response);
+                auditIfNeeded(request, response, method, path, current);
+            }
+            case McpOAuthGate.Rejected refused -> reject(request, response, method,
+                    "The access token is not valid here: " + refused.reason());
+            case McpOAuthGate.NoScope noScope -> {
+                ProblemDetail problem = problems.problem(HttpStatus.FORBIDDEN, ErrorCodes.INSUFFICIENT_SCOPE,
+                        noScope.reason());
+                problem.setProperty("requiredScope", Scope.READ.wireValue());
+                request.setAttribute(REJECTION_ATTRIBUTE, ErrorCodes.INSUFFICIENT_SCOPE);
+                response.setHeader(HttpHeaders.WWW_AUTHENTICATE, mcpOAuth.insufficientScope(request, Scope.READ));
+                problems.write(response, problem);
+                auditIfNeeded(request, response, method, path, null);
+            }
         }
     }
 
@@ -659,7 +742,7 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
             return;
         }
         request.setAttribute(REJECTION_ATTRIBUTE, ErrorCodes.UNAUTHORIZED);
-        response.setHeader(HttpHeaders.WWW_AUTHENTICATE, WWW_AUTHENTICATE_VALUE);
+        response.setHeader(HttpHeaders.WWW_AUTHENTICATE, challengeFor(request, presented));
         problems.write(response, unauthorized(detail));
         auditIfNeeded(request, response, method, request.getRequestURI(), null);
     }

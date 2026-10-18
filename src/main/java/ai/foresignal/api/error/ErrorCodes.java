@@ -197,6 +197,12 @@ public final class ErrorCodes {
     /** 403: the token's scope is below the operation's; carries {@code requiredScope} (prompt 023). */
     public static final String INSUFFICIENT_SCOPE = "INSUFFICIENT_SCOPE";
 
+    /**
+     * 404: the RFC 9728 protected resource metadata is asked for while {@code mcp.auth.mode} is {@code token}, so
+     * {@code /mcp} accepts no identity-provider tokens (prompt 141).
+     */
+    public static final String MCP_OAUTH_DISABLED = "MCP_OAUTH_DISABLED";
+
     /** 403: the token has an endpoint restriction and no pattern matches the request (prompt 023). */
     public static final String ENDPOINT_NOT_ALLOWED = "ENDPOINT_NOT_ALLOWED";
 
@@ -899,6 +905,18 @@ public final class ErrorCodes {
 
     /** 404: no adapter-doctor report with this id (140). */
     public static final String UNKNOWN_DOCTOR_REPORT = "UNKNOWN_DOCTOR_REPORT";
+
+    /** 404: no plugin directory with this name under {@code ${FORESIGNAL_DATA_DIR}/plugins/} (141). */
+    public static final String UNKNOWN_PLUGIN = "UNKNOWN_PLUGIN";
+
+    /**
+     * 409: the plugin cannot be enabled because its file does not hash to the reviewed SHA-256, or to the one its
+     * {@code plugin.json} declares (141).
+     */
+    public static final String PLUGIN_HASH_MISMATCH = "PLUGIN_HASH_MISMATCH";
+
+    /** 409: a plugin cannot be enabled while the {@code plugins} setting is off (141). */
+    public static final String PLUGINS_DISABLED = "PLUGINS_DISABLED";
 
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 

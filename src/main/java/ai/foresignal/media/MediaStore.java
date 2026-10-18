@@ -44,6 +44,9 @@ import org.springframework.stereotype.Component;
  *   <li>always inserts a new row.
  * </ol>
  *
+ * <p>Prompt 141: an {@link MediaRole#AUDIO} input skips the image guard; its declared type must agree with the
+ * sniffed {@link AudioFormat} (MP3 or Ogg), and its width and height are stored as 0.
+ *
  * <p>Steps 3 and 4 hold the hash's {@link MediaLocks} stripe, so retention never unlinks a file that
  * a store just reused. Nothing is decoded here: the guard reads headers only.
  */
@@ -117,11 +120,27 @@ public class MediaStore {
             try (FileChannel channel = FileChannel.open(staged, StandardOpenOption.WRITE)) {
                 channel.force(true);
             }
-            ImageInfo info = guard.inspect(staged, input.contentType(), input.allowMultiImage());
+            String contentType;
+            String extension;
+            int width;
+            int height;
+            if (input.role() == MediaRole.AUDIO) {
+                AudioFormat audio = AudioFormat.inspect(staged, input.contentType());
+                contentType = audio.contentType();
+                extension = audio.extension();
+                width = 0;
+                height = 0;
+            } else {
+                ImageInfo info = guard.inspect(staged, input.contentType(), input.allowMultiImage());
+                contentType = info.format().contentType();
+                extension = info.format().extension();
+                width = info.width();
+                height = info.height();
+            }
             String sha = HexFormat.of().formatHex(digest.digest());
-            String relative = MediaPaths.relative(sha, info.format().extension());
+            String relative = MediaPaths.relative(sha, extension);
             long size = written;
-            MediaRow row = new MediaRow(id, sha, info.format().contentType(), info.width(), info.height(), size,
+            MediaRow row = new MediaRow(id, sha, contentType, width, height, size,
                     relative, input.role().wireValue(), input.sourceId(), input.recordSourceId(),
                     input.recordExternalId(), input.licence(), now, input.expiresAt(), variantOf, variantWidth);
             locks.withLock(sha, () -> {

@@ -1,0 +1,25 @@
+{
+  "source": {
+    "id": "river-gauges-example",
+    "name": "River gauges (example)",
+    "publisher": {
+      "name": "Example Hydro"
+    },
+    "licence": {
+      "id": "CC-BY-4.0",
+      "redistribution": "allowed"
+    },
+    "access": {
+      "route": "official",
+      "fragility": "low"
+    },
+    "originator": {
+      "id": "example-hydro",
+      "class": "sensor-network"
+    }
+  },
+  "transport": {
+    "push": true
+  },
+  "streams": []
+}

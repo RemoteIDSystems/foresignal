@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foresignal.ai/protocol/edp-1.0/delete.schema.json",
+  "title": "Foresignal EDP 1.0 delete",
+  "type": "object",
+  "description": "Tombstone for {stream}:{id}; observedAt and properties are optional (kept for audit)",
+  "properties": {
+    "stream": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 48
+    },
+    "type": {
+      "type": "string",
+      "const": "delete"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "observedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "properties": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Item properties, validated against the stream's payloadSchema"
+    }
+  },
+  "required": [
+    "stream",
+    "type",
+    "id"
+  ],
+  "additionalProperties": true
+}

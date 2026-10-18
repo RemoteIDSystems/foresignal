@@ -1,0 +1,221 @@
+{
+  "description": "Object references (docs/Client-Contract.md section 2) shared by the Dart, TypeScript and Python SDK contract tests. Every valid ref parses to its parts, formats back to the same string, and encodes to pathSegment for a URL path; record parts format to the same ref; every invalid ref is rejected.",
+  "valid": [
+    {
+      "ref": "situation:01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+      "type": "situation",
+      "id": "01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+      "pathSegment": "situation:01JA8Q3V7S2K9W4T6Y1B5N0M3C"
+    },
+    {
+      "ref": "record:adsblol-mil/ae1234",
+      "type": "record",
+      "id": "adsblol-mil/ae1234",
+      "pathSegment": "record:adsblol-mil%2Fae1234",
+      "record": {
+        "sourceId": "adsblol-mil",
+        "externalId": "ae1234",
+        "seq": null
+      }
+    },
+    {
+      "ref": "record:adsblol-mil/ae1234@88120391",
+      "type": "record",
+      "id": "adsblol-mil/ae1234@88120391",
+      "pathSegment": "record:adsblol-mil%2Fae1234@88120391",
+      "record": {
+        "sourceId": "adsblol-mil",
+        "externalId": "ae1234",
+        "seq": 88120391
+      }
+    },
+    {
+      "ref": "record:nws-alerts/urn:oid:2.49.0.1.840.0.abc%2Fdef",
+      "type": "record",
+      "id": "nws-alerts/urn:oid:2.49.0.1.840.0.abc%2Fdef",
+      "pathSegment": "record:nws-alerts%2Furn:oid:2.49.0.1.840.0.abc%252Fdef",
+      "record": {
+        "sourceId": "nws-alerts",
+        "externalId": "urn:oid:2.49.0.1.840.0.abc/def",
+        "seq": null
+      }
+    },
+    {
+      "ref": "record:custom-feed/a%20b%40c%25d%2Fe@7",
+      "type": "record",
+      "id": "custom-feed/a%20b%40c%25d%2Fe@7",
+      "pathSegment": "record:custom-feed%2Fa%2520b%2540c%2525d%252Fe@7",
+      "record": {
+        "sourceId": "custom-feed",
+        "externalId": "a b@c%d/e",
+        "seq": 7
+      }
+    },
+    {
+      "ref": "record:osm-places/Zürich",
+      "type": "record",
+      "id": "osm-places/Zürich",
+      "pathSegment": "record:osm-places%2FZürich",
+      "record": {
+        "sourceId": "osm-places",
+        "externalId": "Zürich",
+        "seq": null
+      }
+    },
+    {
+      "ref": "record:ais/tab%09here",
+      "type": "record",
+      "id": "ais/tab%09here",
+      "pathSegment": "record:ais%2Ftab%2509here",
+      "record": {
+        "sourceId": "ais",
+        "externalId": "tab\there",
+        "seq": null
+      }
+    },
+    {
+      "ref": "sensor:satellite:40697",
+      "type": "sensor",
+      "id": "satellite:40697",
+      "pathSegment": "sensor:satellite:40697",
+      "sensor": {
+        "kind": "satellite",
+        "id": "40697"
+      }
+    },
+    {
+      "ref": "sensor:scene:sentinel-2/S2B_MSIL2A_20261010",
+      "type": "sensor",
+      "id": "scene:sentinel-2/S2B_MSIL2A_20261010",
+      "pathSegment": "sensor:scene:sentinel-2%2FS2B_MSIL2A_20261010",
+      "sensor": {
+        "kind": "scene",
+        "id": "sentinel-2/S2B_MSIL2A_20261010"
+      }
+    },
+    {
+      "ref": "remote:fs-eu-1/report:01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+      "type": "remote",
+      "id": "fs-eu-1/report:01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+      "pathSegment": "remote:fs-eu-1%2Freport:01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+      "remote": {
+        "instanceId": "fs-eu-1",
+        "ref": "report:01JA8Q3V7S2K9W4T6Y1B5N0M3C"
+      }
+    },
+    {
+      "ref": "principal:jsmith",
+      "type": "principal",
+      "id": "jsmith",
+      "pathSegment": "principal:jsmith"
+    },
+    {
+      "ref": "canonical-event:01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+      "type": "canonical-event",
+      "id": "01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+      "pathSegment": "canonical-event:01JA8Q3V7S2K9W4T6Y1B5N0M3C"
+    },
+    {
+      "ref": "report:01JA8Q3V7S2K9W4T6Y1B5N0M3C#b1",
+      "type": "report",
+      "id": "01JA8Q3V7S2K9W4T6Y1B5N0M3C#b1",
+      "pathSegment": "report:01JA8Q3V7S2K9W4T6Y1B5N0M3C%23b1"
+    },
+    {
+      "ref": "future-type:opaque?id",
+      "type": "future-type",
+      "id": "opaque?id",
+      "pathSegment": "future-type:opaque%3Fid"
+    }
+  ],
+  "invalid": [
+    {
+      "ref": "",
+      "reason": "empty"
+    },
+    {
+      "ref": "situation",
+      "reason": "no colon"
+    },
+    {
+      "ref": "situation:",
+      "reason": "empty id"
+    },
+    {
+      "ref": ":01JA8",
+      "reason": "empty type"
+    },
+    {
+      "ref": "Situation:01JA8",
+      "reason": "type must be lower case"
+    },
+    {
+      "ref": "situation:has space",
+      "reason": "whitespace in id"
+    },
+    {
+      "ref": "situation:ctl\u0001x",
+      "reason": "control character in id"
+    },
+    {
+      "ref": "record:noslash",
+      "reason": "record without /"
+    },
+    {
+      "ref": "record:/ae1234",
+      "reason": "record without source id"
+    },
+    {
+      "ref": "record:src/",
+      "reason": "record without external id"
+    },
+    {
+      "ref": "record:src/a@1@2",
+      "reason": "two @ in a record id"
+    },
+    {
+      "ref": "record:src/@5",
+      "reason": "@ without external id"
+    },
+    {
+      "ref": "record:src/a@x1",
+      "reason": "non-numeric seq"
+    },
+    {
+      "ref": "record:src/a@",
+      "reason": "empty seq"
+    },
+    {
+      "ref": "record:src/a%zz",
+      "reason": "malformed percent-encoding"
+    },
+    {
+      "ref": "record:src/a%2",
+      "reason": "truncated percent-encoding"
+    },
+    {
+      "ref": "sensor:planet:1",
+      "reason": "unknown sensor kind"
+    },
+    {
+      "ref": "sensor:satellite:",
+      "reason": "empty sensor id"
+    },
+    {
+      "ref": "remote:fs-eu-1",
+      "reason": "remote without inner ref"
+    },
+    {
+      "ref": "remote:fs-eu-1/remote:x/y:z",
+      "reason": "remote inside remote"
+    },
+    {
+      "ref": "remote:fs-eu-1/report",
+      "reason": "inner ref without colon"
+    },
+    {
+      "ref": "situation:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "reason": "longer than 1024 characters"
+    }
+  ]
+}

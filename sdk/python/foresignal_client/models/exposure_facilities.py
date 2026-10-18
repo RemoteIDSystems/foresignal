@@ -1,0 +1,120 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Self, TypeVar
+
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
+
+from ..models.exposure_facilities_status import ExposureFacilitiesStatus
+from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.attribution import Attribution
+    from ..models.exposure_facilities_counts import ExposureFacilitiesCounts
+
+
+T = TypeVar("T", bound="ExposureFacilities")
+
+
+@_attrs_define
+class ExposureFacilities:
+    """Current reference facilities by kind (094)
+
+    Attributes:
+        status (ExposureFacilitiesStatus):
+        attribution (list[Attribution] | Unset):
+        counts (ExposureFacilitiesCounts | Unset): power-plant, airport, port, cable-landing, data-centre, nuclear-
+            facility, spaceport
+        total (int | Unset):
+    """
+
+    status: ExposureFacilitiesStatus
+    attribution: list[Attribution] | Unset = UNSET
+    counts: ExposureFacilitiesCounts | Unset = UNSET
+    total: int | Unset = UNSET
+    additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        status = self.status.value
+
+        attribution: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.attribution, Unset):
+            attribution = []
+            for attribution_item_data in self.attribution:
+                attribution_item = attribution_item_data.to_dict()
+                attribution.append(attribution_item)
+
+        counts: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.counts, Unset):
+            counts = self.counts.to_dict()
+
+        total = self.total
+
+        field_dict: dict[str, Any] = {}
+        field_dict.update(self.additional_properties)
+        field_dict.update(
+            {
+                "status": status,
+            }
+        )
+        if attribution is not UNSET:
+            field_dict["attribution"] = attribution
+        if counts is not UNSET:
+            field_dict["counts"] = counts
+        if total is not UNSET:
+            field_dict["total"] = total
+
+        return field_dict
+
+    @classmethod
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
+        from ..models.attribution import Attribution
+        from ..models.exposure_facilities_counts import ExposureFacilitiesCounts
+
+        d = dict(src_dict)
+        status = ExposureFacilitiesStatus(d.pop("status"))
+
+        _attribution = d.pop("attribution", UNSET)
+        attribution: list[Attribution] | Unset = UNSET
+        if _attribution is not UNSET:
+            attribution = []
+            for attribution_item_data in _attribution:
+                attribution_item = Attribution.from_dict(attribution_item_data)
+
+                attribution.append(attribution_item)
+
+        _counts = d.pop("counts", UNSET)
+        counts: ExposureFacilitiesCounts | Unset
+        if isinstance(_counts, Unset):
+            counts = UNSET
+        else:
+            counts = ExposureFacilitiesCounts.from_dict(_counts)
+
+        total = d.pop("total", UNSET)
+
+        exposure_facilities = cls(
+            status=status,
+            attribution=attribution,
+            counts=counts,
+            total=total,
+        )
+
+        exposure_facilities.additional_properties = d
+        return exposure_facilities
+
+    @property
+    def additional_keys(self) -> list[str]:
+        return list(self.additional_properties.keys())
+
+    def __getitem__(self, key: str) -> Any:
+        return self.additional_properties[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self.additional_properties[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self.additional_properties[key]
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.additional_properties

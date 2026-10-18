@@ -1,0 +1,11 @@
+# Redocly configuration used only by openapi-typescript when generating src/generated/schema.ts
+# (`./gradlew generateSdks`, prompt 141). Generation must not fail on lint findings: the authored spec is
+# linted separately by `./gradlew lintOpenApi` with the repository's redocly.yaml.
+extends:
+  - minimal
+rules:
+  no-path-trailing-slash: off
+  no-unused-components: off
+  no-server-example.com: off
+  no-ambiguous-paths: off
+  operation-2xx-response: off

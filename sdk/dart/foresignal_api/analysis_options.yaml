@@ -1,0 +1,8 @@
+# Hand-maintained (listed in .openapi-generator-ignore). The generated sources import more than each file
+# uses; those warnings are generator noise, not defects in this package.
+analyzer:
+  exclude:
+    - lib/src/model/*.g.dart
+  errors:
+    unused_import: ignore
+    deprecated_member_use_from_same_package: ignore
