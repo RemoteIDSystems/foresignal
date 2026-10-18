@@ -183,6 +183,56 @@ class McpTimeTravelToolsIT {
         assertThat(call("get_track", Map.of("sourceId", MOVER), null).isError()).as("externalId required").isTrue();
     }
 
+    @Autowired ai.foresignal.media.MediaStore mediaStore;
+    @Autowired org.springframework.test.web.servlet.MockMvc mvc;
+
+    @Test
+    @DisplayName("get_track format=czml (141): a media link to a stored CZML document, never the CZML inline")
+    void trackCzmlLink() throws Exception {
+        seed();
+        JsonNode result = structured(call("get_track", Map.of("sourceId", MOVER, "externalId", "m1",
+                "from", T.toString(), "to", "now", "format", "czml"), null));
+        assertThat(result.get("format").asString()).isEqualTo("czml");
+        assertThat(result.has("segments")).as("no inline points").isFalse();
+        assertThat(result.get("summary").get("points").asInt()).isGreaterThan(2);
+        JsonNode media = result.get("media");
+        String id = media.get("id").asString();
+        assertThat(media.get("url").asString()).endsWith("/v1/media/" + id);
+        assertThat(media.get("contentType").asString()).isEqualTo("application/czml+json");
+        assertThat(media.get("expiresAt").asString()).isEqualTo(T.plusSeconds(6000).plusSeconds(86_400).toString());
+
+        ai.foresignal.media.MediaRow row = mediaStore.find(id).orElseThrow();
+        assertThat(row.role()).isEqualTo("document");
+        assertThat(row.recordSourceId()).isEqualTo(MOVER);
+        assertThat(row.recordExternalId()).isEqualTo("m1");
+        JsonNode czml = JSON.readTree(java.nio.file.Files.readString(mediaStore.file(row)));
+        assertThat(czml.get(0).get("id").asString()).isEqualTo("document");
+        assertThat(czml.get(1).get("id").asString()).isEqualTo(MOVER + ":m1");
+        assertThat(czml.get(1).get("label").get("text").asString()).isEqualTo("CS-m1");
+        assertThat(czml.get(1).get("position").get("cartographicDegrees").size() % 4).isZero();
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/v1/media/" + id))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .contentTypeCompatibleWith("application/czml+json"));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/v1/media/" + id
+                        + "/thumbnail"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isBadRequest());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/v1/media/" + id
+                        + "/meta"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.role")
+                        .value("document"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath(
+                        "$.links.thumbnail256").doesNotExist());
+
+        // detail=short does not cap a stored document at the inline 100 points.
+        JsonNode stored = structured(call("get_track", Map.of("sourceId", MOVER, "externalId", "m1",
+                "from", T.toString(), "to", "now", "format", "czml", "maxPoints", 300), null));
+        assertThat(stored.get("summary").get("points").asInt()).isGreaterThan(100);
+        assertThat(call("get_track", Map.of("sourceId", MOVER, "externalId", "m1", "format", "kml"), null).isError())
+                .as("unknown format").isTrue();
+    }
+
     @Test
     @DisplayName("both tools are read tools: listed for anonymous callers only while openReads is on")
     void scope() {

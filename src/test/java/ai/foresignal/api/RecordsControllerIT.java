@@ -383,8 +383,12 @@ class RecordsControllerIT {
         void history() throws Exception {
             seed();
             mvc.perform(get("/v1/history")).andExpect(status().isBadRequest());
+            // format=czml (prompt 141): a CZML document, the document packet first.
             mvc.perform(get("/v1/history").param("since", "2026-02-28T00:00:00Z").param("format", "czml"))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isOk())
+                    .andExpect(header().string("Content-Type", org.hamcrest.Matchers.startsWith("application/czml+json")))
+                    .andExpect(jsonPath("$[0].id").value("document"))
+                    .andExpect(jsonPath("$[0].clock.interval").exists());
             mvc.perform(get("/v1/history").param("since", "2026-02-28T00:00:00Z"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.items", hasSize(2)))

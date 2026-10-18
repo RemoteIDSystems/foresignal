@@ -88,6 +88,10 @@ public class MediaController {
         int width = width(w);
         ReadCaller caller = callers.resolve(request);
         MediaRow original = media.visible(mediaId, callers.excludedSources(caller));
+        if (ai.foresignal.source.spi.MediaRole.DOCUMENT.wireValue().equals(original.role())) {
+            // A generated document (prompt 141, for example CZML) is not an image: there is nothing to render.
+            throw ValidationException.forField("mediaId", "this media is a document and has no thumbnail");
+        }
         MediaRow variant = thumbnails.thumbnail(original.id(), width);
         return serve(variant, publicFor(caller, original), ifNoneMatch);
     }

@@ -233,8 +233,11 @@ class TrackServiceIT {
         mvc.perform(get(url))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "public, max-age=300"));
+        // format=czml (prompt 141): the document packet, then the entity.
         mvc.perform(get(url).param("from", t(0).toString()).param("to", t(600).toString()).param("format", "czml"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, org.hamcrest.Matchers.startsWith("application/czml+json")))
+                .andExpect(jsonPath("$[0].id").value("document"));
         mvc.perform(get(url).param("maxPoints", "1")).andExpect(status().isBadRequest());
         mvc.perform(get(url).param("from", t(3600).minus(Duration.ofDays(5)).toString()))
                 .andExpect(status().isBadRequest())

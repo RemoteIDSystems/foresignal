@@ -3109,7 +3109,7 @@
             "name": "format",
             "in": "query",
             "required": false,
-            "description": "Response format; wins over Accept. Streaming formats (ndjson, geojsonseq, csv) are not paged and are capped at `foresignal.api.stream.maxRows` (400 RESULT_TOO_LARGE); csv needs `fields=` for payload columns.",
+            "description": "Response format; wins over Accept. Streaming formats (ndjson, geojsonseq, csv) are not paged and are capped at `foresignal.api.stream.maxRows` (400 RESULT_TOO_LARGE); csv needs `fields=` for payload columns. `czml` (prompt 141) is not paged either: it reads up to 200,000 versions from `cursor` on and returns one CZML document (`limit` and `fields` are ignored).",
             "schema": {
               "type": "string",
               "enum": [
@@ -3332,7 +3332,7 @@
                     "type": "object",
                     "additionalProperties": true
                   },
-                  "description": "CZML document: document packet (clock, attribution) then one packet per entity (≤ 5,000)"
+                  "description": "CZML document: document packet (clock from since to until, attribution in `description`) then one packet per entity (≤ 5,000) with sampled `cartographicDegrees` positions, `availability`, `label` (title) and `point` (kindDisplay color)"
                 }
               }
             },
@@ -3347,6 +3347,15 @@
                 "description": "Joined attribution text of the records in the response (at most 1 KB, truncated with …)",
                 "schema": {
                   "type": "string"
+                }
+              },
+              "Foresignal-Truncated": {
+                "description": "`true` on a `format=czml` response shortened by the 200,000-version or 5,000-entity cap (prompt 141)",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "true"
+                  ]
                 }
               }
             }
@@ -23079,7 +23088,7 @@
             "name": "format",
             "in": "query",
             "required": false,
-            "description": "Response format",
+            "description": "Response format; `czml` returns a CZML document (prompt 141)",
             "schema": {
               "type": "string",
               "enum": [
@@ -23106,7 +23115,8 @@
                   "items": {
                     "type": "object",
                     "additionalProperties": true
-                  }
+                  },
+                  "description": "CZML document (prompt 141): document packet (clock over [from, to], attribution in `description`) then one entity packet with sampled `cartographicDegrees` positions, `availability`, `label` (title) and `point` (kindDisplay color)"
                 }
               }
             },
@@ -23135,7 +23145,7 @@
             "description": "Not modified"
           },
           "400": {
-            "description": "Validation failed (TRACK_WINDOW_TOO_LARGE; VALIDATION_FAILED for a bad window, future `to`, field name, `maxPoints`, `gap`, or `format=czml` before prompt 141)",
+            "description": "Validation failed (TRACK_WINDOW_TOO_LARGE; VALIDATION_FAILED for a bad window, future `to`, field name, `maxPoints`, or `gap`)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -80594,7 +80604,7 @@
         ],
         "operationId": "queryFdsnEvents",
         "summary": "FDSN event query",
-        "description": "fdsnws-event 1.2 over `earthquake` records: QuakeML 1.2 BED (`smi:foresignal/{source}/{externalId}` publicIDs) or the pipe-separated text format. `204` when no events match (FDSN convention); errors use FDSN plain-text bodies.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "fdsnws-event 1.2 over `earthquake` records: QuakeML 1.2 BED (`smi:foresignal/{source}/{externalId}` publicIDs) or the pipe-separated text format. `204` when no events match (FDSN convention; `nodata=404` selects 404); errors use FDSN plain-text bodies. Long and short parameter names are accepted (`start`, `minlat`, `minmag`, …); unsupported parameters are a 400. Depth is in meters in QuakeML and in km in the text format.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "starttime",
@@ -80762,6 +80772,20 @@
               ],
               "default": "xml"
             }
+          },
+          {
+            "name": "nodata",
+            "in": "query",
+            "required": false,
+            "description": "Status of an empty result: 204 (default, FDSN convention) or 404 with an FDSN plain-text body",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                204,
+                404
+              ],
+              "default": 204
+            }
           }
         ],
         "responses": {
@@ -80784,7 +80808,17 @@
             "description": "No matching events"
           },
           "400": {
-            "description": "Bad request (FDSN plain-text error)",
+            "description": "Bad or unsupported parameter (FDSN plain-text error)",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No matching events and `nodata=404` (FDSN plain-text body)",
             "content": {
               "text/plain": {
                 "schema": {
@@ -80830,7 +80864,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/fdsnws/event/1/version": {
@@ -80890,7 +80924,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/fdsnws/event/1/application.wadl": {
@@ -80949,7 +80983,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/export/stix": {
@@ -80959,7 +80993,7 @@
         ],
         "operationId": "exportStix",
         "summary": "Export a STIX 2.1 bundle",
-        "description": "`cisa-kev`/`nvd-cves` → `vulnerability`, abuse.ch IOCs → `indicator` (pattern from the IOC type), plus a Foresignal `identity`; deterministic UUIDv5 ids from record refs. Licence egress applies.\n\n**Scope:** `agent`.",
+        "description": "`cisa-kev`/`nvd-cves` → `vulnerability`, abuse.ch IOCs → `indicator` (pattern from the IOC type), plus a Foresignal `identity`; deterministic UUIDv5 ids from record refs. Every record passes `EgressPolicy` on the EXPORT path (private sources, `LOCAL_ONLY` egress and license terms); refused records are counted in `Foresignal-Licence-Filtered`. Kinds: `vulnerability`, `malware-url`, `malware-c2` (default all three).\n\n**Scope:** `agent`.",
         "parameters": [
           {
             "name": "kind",
@@ -80998,10 +81032,18 @@
                   "$ref": "#/components/schemas/StixBundle"
                 }
               }
+            },
+            "headers": {
+              "Foresignal-Licence-Filtered": {
+                "description": "Records left out by the egress policy on the EXPORT path (private, LOCAL_ONLY or license terms); absent when none",
+                "schema": {
+                  "type": "integer"
+                }
+              }
             }
           },
           "400": {
-            "description": "Validation failed",
+            "description": "Validation failed: a kind without a STIX mapping (VALIDATION_FAILED), or more than 50,000 matching records (RESULT_TOO_LARGE)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -81038,7 +81080,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/taxii2/": {
@@ -81088,7 +81130,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/taxii2/foresignal/": {
@@ -81138,7 +81180,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/taxii2/foresignal/collections/": {
@@ -81188,7 +81230,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/taxii2/foresignal/collections/{collectionId}/": {
@@ -81259,7 +81301,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/taxii2/foresignal/collections/{collectionId}/objects/": {
@@ -81269,7 +81311,7 @@
         ],
         "operationId": "getTaxiiCollectionObjects",
         "summary": "TAXII collection objects",
-        "description": "STIX objects with `added_after` and `next` pagination; `X-TAXII-Date-Added-First`/`-Last` headers.\n\n**Scope:** `agent`.",
+        "description": "STIX object versions in ingest order with `added_after` (strictly after the version's ingest time) and `next` pagination (repeat the same `added_after` with `next`); the default page is 100; `X-TAXII-Date-Added-First`/`-Last` headers.\n\n**Scope:** `agent`.",
         "parameters": [
           {
             "name": "collectionId",
@@ -81333,6 +81375,22 @@
                   "type": "string",
                   "format": "date-time"
                 }
+              },
+              "Foresignal-Licence-Filtered": {
+                "description": "Records left out by the egress policy on the EXPORT path; absent when none",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (a bad `added_after`, `limit` or `next`)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
               }
             }
           },
@@ -81374,7 +81432,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/briefings/{briefingId}/podcast.rss": {
@@ -109035,7 +109093,7 @@
       },
       "Media": {
         "type": "object",
-        "description": "A content-addressed media row (SatDump composite, thumbnail, static map)",
+        "description": "A content-addressed media row (SatDump composite, thumbnail, static map, or a generated document such as the CZML linked by MCP `get_track`, prompt 141)",
         "properties": {
           "id": {
             "$ref": "#/components/schemas/Ulid"
@@ -109049,7 +109107,8 @@
             "enum": [
               "image/png",
               "image/jpeg",
-              "image/tiff"
+              "image/tiff",
+              "application/czml+json"
             ]
           },
           "width": {
@@ -109068,7 +109127,8 @@
               "image",
               "thumbnail",
               "projected",
-              "map"
+              "map",
+              "document"
             ]
           },
           "sourceId": {
@@ -109135,7 +109195,7 @@
           },
           "links": {
             "type": "object",
-            "description": "Expanded links",
+            "description": "Expanded links (documents have no thumbnail links)",
             "properties": {
               "self": {
                 "type": "string"

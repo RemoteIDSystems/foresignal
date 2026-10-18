@@ -37,10 +37,14 @@ class RestrictedReadCoverageTest {
             "/v1/tiles", "/v1/events", "/v1/alerts", "/v1/search", "/v1/notifications", "/v1/digest", "/v1/briefings",
             "/v1/views", "/v1/timeline", "/v1/stats", "/v1/glance",
             // 093: series points and the series catalog are records (series-point, series-latest).
-            "/v1/series");
+            "/v1/series",
+            // 141: the FDSN event query, the STIX export and TAXII objects return earthquake and cyber records.
+            "/fdsnws/event/1/query", "/v1/export", "/taxii2");
 
     /** GET operations under those prefixes that return no records or alerts. */
-    static final Set<String> EXEMPT = Set.of("getSearchStatus", "getAlertEscalation", "listViews", "getView");
+    static final Set<String> EXEMPT = Set.of("getSearchStatus", "getAlertEscalation", "listViews", "getView",
+            // 141: TAXII discovery, the API root and collection descriptions carry no records.
+            "getTaxiiDiscovery", "getTaxiiApiRoot", "listTaxiiCollections", "getTaxiiCollection");
 
     /** Non-GET operations that read records or alerts on the caller's behalf. */
     static final Set<String> REQUIRED = Set.of("ask", "askStream", "previewBriefing", "runBriefing",

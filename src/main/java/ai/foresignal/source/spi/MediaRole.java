@@ -17,7 +17,13 @@ public enum MediaRole {
     PROJECTED,
 
     /** A static map, for example a notification attachment (prompt 055). */
-    MAP;
+    MAP,
+
+    /**
+     * A generated document that is not an image, for example the CZML of a track the MCP {@code get_track} tool
+     * links to (prompt 141, {@code ai.foresignal.media.MediaDocuments}); stored with an expiry, never thumbnailed.
+     */
+    DOCUMENT;
 
     /** The wire and column value: the lower-case name. */
     public String wireValue() {

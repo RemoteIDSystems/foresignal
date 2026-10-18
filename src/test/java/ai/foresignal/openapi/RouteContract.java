@@ -46,7 +46,10 @@ final class RouteContract {
             // remote uploads answer 202 Accepted through ResponseEntity.status (054, RemoteIngestIT).
             Map.entry("getProductTile", "ResponseEntity: 204 for an empty tile with ?empty=204"),
             Map.entry("ingestSourceMedia", "ResponseEntity.status(ACCEPTED)"),
-            Map.entry("ingestSourceRasters", "ResponseEntity.status(ACCEPTED)"));
+            Map.entry("ingestSourceRasters", "ResponseEntity.status(ACCEPTED)"),
+            // Prompt 141: an FDSN query with no matching events is 204 (FDSN convention), chosen at run time; FdsnEventIT
+            // asserts it.
+            Map.entry("queryFdsnEvents", "ResponseEntity.noContent when no event matches"));
 
     private RouteContract() {}
 

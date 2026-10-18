@@ -66,6 +66,9 @@ public class TimeTravelController {
     /** The GeoJSON media type of tracks. */
     public static final MediaType GEO_JSON = MediaType.parseMediaType("application/geo+json");
 
+    /** The CZML media type of {@code format=czml} tracks (prompt 141). */
+    public static final MediaType CZML = MediaType.parseMediaType(ai.foresignal.czml.CzmlWriter.MEDIA_TYPE);
+
     /** The ndjson media type of frames. */
     public static final MediaType NDJSON = MediaType.parseMediaType("application/x-ndjson");
 
@@ -78,6 +81,10 @@ public class TimeTravelController {
     private final ReadCallerResolver callers;
     private final SourceRegistry registry;
     private final JsonMapper json;
+
+    /** Builds CZML tracks (prompt 141); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.czml.CzmlService czml;
 
     /** Creates the controller. */
     public TimeTravelController(TrackService tracks, HistoryFramesService frames, TimelineService timelines,
@@ -94,8 +101,9 @@ public class TimeTravelController {
 
     /**
      * {@code getRecordTrack}: the simplified track of one entity as a GeoJSON {@code Feature} with
-     * {@code MultiLineString} geometry. Strong ETag; {@code immutable} caching only for closed past
-     * windows ({@link TimeTravelCache}, keyed on {@code to}).
+     * {@code MultiLineString} geometry, or with {@code format=czml} (prompt 141) a CZML document whose clock spans
+     * the window and whose one entity carries the samples, the current title and the kind's color. Strong ETag;
+     * {@code immutable} caching only for closed past windows ({@link TimeTravelCache}, keyed on {@code to}).
      */
     @GetMapping("/v1/records/{sourceId}/{externalId}/track")
     @Operation(operationId = "getRecordTrack", tags = "History")
@@ -114,8 +122,8 @@ public class TimeTravelController {
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
             HttpServletRequest request) {
         String fmt = QueryParams.oneOf("format", format, List.of("json", "geojson", "czml"), "json");
-        if ("czml".equals(fmt)) {
-            throw ValidationException.forField("format", "czml is not available yet (prompt 141 builds it)");
+        if ("czml".equals(fmt) && czml == null) {
+            throw ValidationException.forField("format", "czml is not available in this context");
         }
         ReadCaller caller = callers.resolveScoped(request);
         TrackQuery query = new TrackQuery(sourceId, externalId, QueryParams.instant("from", from),
@@ -125,7 +133,12 @@ public class TimeTravelController {
                 QueryParams.multi("fields", fields, TrackService.MAX_FIELDS), callers.excludedSources(caller),
                 caller.restriction());
         TrackResult track = tracks.track(query);
-        String body = json.writeValueAsString(feature(track));
+        boolean asCzml = "czml".equals(fmt);
+        String body = asCzml
+                // format=czml (prompt 141): the document packet over [from, to] and one entity packet.
+                ? json.writeValueAsString(czml.trackDocument(track, czml.currentTitle(sourceId, externalId,
+                        callers.excludedSources(caller), caller.restriction()), null))
+                : json.writeValueAsString(feature(track));
         String etag = ETags.forDocument(body);
         HttpHeaders headers = new HttpHeaders();
         headers.setETag(etag);
@@ -135,7 +148,7 @@ public class TimeTravelController {
         if (ETags.matches(ifNoneMatch, etag)) {
             return ResponseEntity.status(304).headers(headers).build();
         }
-        return ResponseEntity.ok().headers(headers).contentType(GEO_JSON).body(body);
+        return ResponseEntity.ok().headers(headers).contentType(asCzml ? CZML : GEO_JSON).body(body);
     }
 
     /** The {@code Track} feature of {@code track}. */

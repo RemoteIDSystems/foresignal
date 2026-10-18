@@ -104,8 +104,11 @@ public class MediaService {
         Map<String, Object> links = new LinkedHashMap<>();
         links.put("self", self);
         links.put("meta", self + "/meta");
-        links.put("thumbnail256", self + "/thumbnail?w=" + ThumbnailService.SMALL);
-        links.put("thumbnail1024", self + "/thumbnail?w=" + ThumbnailService.LARGE);
+        // A generated document (prompt 141) is not an image and has no thumbnails.
+        if (!ai.foresignal.source.spi.MediaRole.DOCUMENT.wireValue().equals(row.role())) {
+            links.put("thumbnail256", self + "/thumbnail?w=" + ThumbnailService.SMALL);
+            links.put("thumbnail1024", self + "/thumbnail?w=" + ThumbnailService.LARGE);
+        }
         out.put("links", links);
         return out;
     }
