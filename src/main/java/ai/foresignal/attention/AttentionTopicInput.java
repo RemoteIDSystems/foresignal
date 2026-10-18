@@ -17,7 +17,7 @@ import java.util.Map;
  * @param regionCodes 040 region codes
  * @param themes free themes
  * @param enabled whether the topic drives the attention sources (default false)
- * @param social the social block of prompt 135; accepted and not stored by prompt 117
+ * @param social the social block (prompt 135, {@code ai.foresignal.social.SocialTopicBlock}), or null for none
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record AttentionTopicInput(

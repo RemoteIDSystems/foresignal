@@ -63,6 +63,12 @@ class BoundSourceHttp implements SourceHttp {
     /** OpenSky sends this instead of Retry-After. */
     static final String OPENSKY_RETRY_AFTER_HEADER = "x-rate-limit-retry-after-seconds";
 
+    /**
+     * The WebSocket handshake header naming subprotocols (prompt 135). A streaming adapter passes it in
+     * {@code headers}; it is offered through {@code WebSocket.Builder.subprotocols}, comma-separated values in order.
+     */
+    public static final String SUBPROTOCOL_HEADER = "Sec-WebSocket-Protocol";
+
     private final UpstreamClient parent;
     private final String sourceId;
     private final SourceDescriptor descriptor;
@@ -390,7 +396,12 @@ class BoundSourceHttp implements SourceHttp {
         if (headers != null) {
             headers.forEach(
                     (name, value) -> {
-                        if (!"user-agent".equalsIgnoreCase(name)) {
+                        if (SUBPROTOCOL_HEADER.equalsIgnoreCase(name)) {
+                            // The JDK refuses the handshake header itself; subprotocols are offered through the
+                            // builder (prompt 135: Jetstream v2 asks for xrpc.v1.json).
+                            String[] offered = value.split("\\s*,\\s*");
+                            builder.subprotocols(offered[0], java.util.Arrays.copyOfRange(offered, 1, offered.length));
+                        } else if (!"user-agent".equalsIgnoreCase(name)) {
                             builder.header(name, value);
                         }
                     });

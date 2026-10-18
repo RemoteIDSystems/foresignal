@@ -488,6 +488,14 @@ public class AccessPolicy {
                 rule(HttpMethod.PATCH, "/v1/media/outlets/*", AccessRequirement.ADMIN),
                 rule(HttpMethod.PUT, "/v1/media/providers/*", AccessRequirement.ADMIN),
                 rule(HttpMethod.POST, "/v1/media/ratings/import", AccessRequirement.ADMIN),
+                // Prompt 135: social platforms, coverage, volume and posts are reads; platform settings are admin.
+                rule(HttpMethod.GET, "/v1/social/platforms", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/social/platforms/*", AccessRequirement.READ),
+                rule(HttpMethod.PUT, "/v1/social/platforms/*", AccessRequirement.ADMIN),
+                rule(HttpMethod.GET, "/v1/social/coverage", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/social/volume", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/social/posts", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/social/posts/*/*", AccessRequirement.READ),
 
                 // ---- Evidence identity, observability and manifests (prompt 116) ----
                 // Canonical events, the coverage layer and prompt templates are reads; manifests and their

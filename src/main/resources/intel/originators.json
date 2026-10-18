@@ -831,9 +831,66 @@
         "worldbank.org"
       ],
       "notes": "World Bank Indicators; compiled from national statistical offices and UN agencies"
+    },
+    {
+      "id": "bluesky",
+      "class": "social",
+      "independenceGroup": "social-bluesky",
+      "domains": ["bsky.app", "bsky.social"],
+      "notes": "Bluesky (prompt 135): a platform, not a reporter; each post's originator is social:bluesky:{authorKey}, and reposts and quotes inherit the original post's originator"
+    },
+    {
+      "id": "mastodon",
+      "class": "social",
+      "independenceGroup": "social-mastodon",
+      "domains": [],
+      "notes": "Mastodon (fediverse) (prompt 135): a platform, not a reporter; each post's originator is social:mastodon:{authorKey}, and reposts and quotes inherit the original post's originator"
+    },
+    {
+      "id": "reddit",
+      "class": "social",
+      "independenceGroup": "social-reddit",
+      "domains": ["reddit.com"],
+      "notes": "Reddit (prompt 135): a platform, not a reporter; each post's originator is social:reddit:{authorKey}, and reposts and quotes inherit the original post's originator"
+    },
+    {
+      "id": "youtube",
+      "class": "social",
+      "independenceGroup": "social-youtube",
+      "domains": ["youtube.com", "youtu.be"],
+      "notes": "YouTube (prompt 135): a platform, not a reporter; each post's originator is social:youtube:{authorKey}, and reposts and quotes inherit the original post's originator"
+    },
+    {
+      "id": "x",
+      "class": "social",
+      "independenceGroup": "social-x",
+      "domains": ["x.com", "twitter.com"],
+      "notes": "X (prompt 135): a platform, not a reporter; each post's originator is social:x:{authorKey}, and reposts and quotes inherit the original post's originator"
+    },
+    {
+      "id": "threads",
+      "class": "social",
+      "independenceGroup": "social-threads",
+      "domains": ["threads.net", "threads.com"],
+      "notes": "Threads (prompt 135): a platform, not a reporter; each post's originator is social:threads:{authorKey}, and reposts and quotes inherit the original post's originator"
+    },
+    {
+      "id": "instagram",
+      "class": "social",
+      "independenceGroup": "social-instagram",
+      "domains": ["instagram.com"],
+      "notes": "Instagram (prompt 135): a platform, not a reporter; each post's originator is social:instagram:{authorKey}, and reposts and quotes inherit the original post's originator"
     }
   ],
   "sources": {
+    "bluesky-jetstream": {"originator": "bluesky", "class": "social", "notes": "social platform adapter (prompt 135)"},
+    "bluesky-search": {"originator": "bluesky", "class": "social", "notes": "social platform adapter (prompt 135)"},
+    "mastodon": {"originator": "mastodon", "class": "social", "notes": "social platform adapter (prompt 135)"},
+    "reddit": {"originator": "reddit", "class": "social", "notes": "social platform adapter (prompt 135)"},
+    "youtube": {"originator": "youtube", "class": "social", "notes": "social platform adapter (prompt 135)"},
+    "x": {"originator": "x", "class": "social", "notes": "social platform adapter (prompt 135)"},
+    "threads": {"originator": "threads", "class": "social", "notes": "social platform adapter (prompt 135)"},
+    "instagram-hashtags": {"originator": "instagram", "class": "social", "notes": "social platform adapter (prompt 135)"},
     "usgs-earthquakes": "usgs-anss",
     "usgs-shakemap": "usgs-anss",
     "emsc-seismic": "emsc",

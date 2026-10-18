@@ -406,6 +406,18 @@ Apache HttpClient, HttpCore and HttpMime 4 with Commons Logging and Commons Code
   Copyright 2002-2026 The Apache Software Foundation" and credits the Adobe Glyph List, Copyright 1997, 1998, 2002,
   2007, 2010 Adobe Systems Incorporated). Project: <https://pdfbox.apache.org/>.
 
+### Lingua (prompt 135)
+
+- **Artifact:** `com.github.pemistahl:lingua` 1.2.2 (Maven Central; the latest release, checked 2026-10-17), used
+  unmodified. Runtime dependencies: `com.squareup.moshi:moshi` and `moshi-kotlin` 1.13.0 and `it.unimi.dsi:fastutil`
+  8.5.8 (all Apache License, Version 2.0), and the Kotlin standard library (already on the classpath through the
+  Anthropic Java SDK; the Spring Boot BOM manages its version). The jar is about 80 MB because it carries the language
+  models of every supported language.
+- **Use:** `ai.foresignal.social.SocialLanguages`: the language of a social post the platform did not tag, restricted
+  to the configured `social.languages`, in low-accuracy mode; nothing is sent anywhere.
+- **License:** Apache License, Version 2.0 (the pom's `<licenses>`). Project: <https://github.com/pemistahl/lingua>,
+  Copyright Peter M. Stahl.
+
 ### MeshCore (prompt 083)
 
 - **Consulted:** the MIT-licensed MeshCore repository (<https://github.com/meshcore-dev/MeshCore>, local reference clone
@@ -675,6 +687,25 @@ attribution and date beside it, and returns the attribution with every rating it
 - **License:** the Media Bias/Fact Check API terms and RapidAPI's terms, which exclude redistribution. The ratings are
   always `LOCAL_ONLY` and are never redistributed.
 - **Attribution:** "Media Bias/Fact Check".
+
+## Social platform data (prompt 135)
+
+None of this data is bundled: the platform adapters fetch it at run time with the operator's own credentials, after
+the operator enables them (only `bluesky-jetstream`, which needs no account, is on by default). Posts are kept for the
+operator's own analysis with their platform, URL and handle, for the platform's retention (`social.postRetention`,
+30 days by default), and deleted posts are tombstoned where deletion sync is on. The license entries of
+`provenance/licences.json` keep these posts off federation, share links, sinks and exports (redistribution `FORBIDDEN`
+for X, Reddit, YouTube, Threads and Instagram; `LOCAL_ONLY` for Bluesky and Mastodon). Per-source details, costs and
+terms summaries are in [`docs/Source-Catalog.md`](docs/Source-Catalog.md), "Social platforms (prompts 135–137)".
+
+| Platform | Access | Terms |
+|---|---|---|
+| Bluesky | Jetstream v2 (open) and AppView search | Bluesky terms of service; the authors keep their rights |
+| Mastodon | the instances the operator lists | each instance's rules; the authors keep their rights |
+| Reddit | Data API with the operator's OAuth app | Reddit Data API Terms (non-commercial) |
+| YouTube | Data API v3 with the operator's key | YouTube API Services Terms of Service |
+| X | API v2 pay-per-use with the operator's bearer token | X Developer Agreement and Policy |
+| Threads, Instagram | Meta Graph APIs with the operator's tokens | Meta Platform Terms |
 
 ## webp-imageio (Java library, bundled)
 

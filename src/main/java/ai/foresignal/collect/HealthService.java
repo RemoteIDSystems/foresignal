@@ -129,6 +129,10 @@ public class HealthService implements SourceHealthLookup {
         this.clock = clock;
     }
 
+    /** The money ledgers of paid sources (prompt 135); null in a hand-built service. */
+    @org.springframework.beans.factory.annotation.Autowired
+    private ObjectProvider<SourceSpendLookup> spendLookups;
+
     // ---------- views ----------
 
     /**
@@ -219,7 +223,27 @@ public class HealthService implements SourceHealthLookup {
                 HealthEvaluator.budgetHoursRemaining(budgetStatus, lastHour),
                 newestFrameAt,
                 frameAgeSeconds,
-                details(descriptor));
+                details(descriptor),
+                spent(id));
+    }
+
+    /** The money a paid source spent this month (135), from the {@link SourceSpendLookup} beans; null when none. */
+    Double spent(String sourceId) {
+        if (spendLookups == null) {
+            return null;
+        }
+        Double out = null;
+        for (SourceSpendLookup lookup : spendLookups.orderedStream().toList()) {
+            try {
+                Double value = lookup.spentUsdThisMonth(sourceId);
+                if (value != null) {
+                    out = value;
+                }
+            } catch (RuntimeException e) {
+                log.debug("A spend lookup failed for {}", sourceId, e);
+            }
+        }
+        return out;
     }
 
     /** The merged {@code details} of every contributor, or null when none has anything (063). */

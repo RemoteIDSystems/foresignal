@@ -141,6 +141,7 @@ public class AnalysisSeriesRegistrar {
         candidates.addAll(portWatch(now));
         candidates.addAll(ruleGroups(now));
         candidates.addAll(newsCoverage(now));
+        candidates.addAll(socialVolume(now));
         List<String> skipped = new ArrayList<>();
         Map<String, List<Map<String, Object>>> defaults = defaultWatchPairs(candidates, skipped);
         Map<String, AnalysisSeriesEntity> existing = new HashMap<>();
@@ -263,6 +264,45 @@ public class AnalysisSeriesRegistrar {
                     });
         } catch (RuntimeException e) {
             log.debug("No news coverage series: {}", e.toString());
+        }
+        return out;
+    }
+
+    /** The hours with rows a social volume series needs in the lookback to be registered (prompt 135): one week. */
+    public static final int MIN_SOCIAL_HOURS = 168;
+
+    /** The social aggregate tables (prompt 135), when the social package is present. */
+    @org.springframework.beans.factory.annotation.Autowired
+    private ObjectProvider<ai.foresignal.social.SocialVolumeStore> socialVolume;
+
+    /**
+     * The hourly social mention-volume series (prompt 135, {@code social:{scope}/{platform}/posts}) of topics, places
+     * and entities with at least {@value #MIN_SOCIAL_HOURS} hours of complete or paged rows in the lookback (sampled
+     * paths never feed series), plus each platform's denominator series; volume = posts.
+     */
+    List<Candidate> socialVolume(Instant now) {
+        List<Candidate> out = new ArrayList<>();
+        ai.foresignal.social.SocialVolumeStore store = socialVolume == null ? null : socialVolume.getIfAvailable();
+        if (store == null) {
+            return out;
+        }
+        try {
+            java.util.Set<String> platforms = new java.util.TreeSet<>();
+            for (ai.foresignal.social.SocialVolumeStore.SeriesSummary s : store.series(now.minus(LOOKBACK),
+                    MIN_SOCIAL_HOURS)) {
+                SeriesRef ref = SeriesRef.social(s.scopeType() + ":" + s.scopeId(), s.platform(), "posts", null);
+                SeriesRef.parse(ref.format());
+                out.add(new Candidate(ref.format(), "hour", "attention", null, s.posts()));
+                platforms.add(s.platform());
+            }
+            for (String platform : platforms) {
+                if (store.hasDenominators(platform)) {
+                    out.add(new Candidate(SeriesRef.social(ai.foresignal.social.SocialVocabulary.SCOPE_ALL, platform,
+                            "denominator", null).format(), "hour", "attention", null, 0));
+                }
+            }
+        } catch (RuntimeException e) {
+            log.debug("No social volume series: {}", e.toString());
         }
         return out;
     }

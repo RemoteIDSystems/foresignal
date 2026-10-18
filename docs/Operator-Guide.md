@@ -5850,7 +5850,8 @@ written into the `topics` parameter of `wikimedia-pageviews`, `gdelt-timelines` 
 `gulf-energy-infrastructure`, `taiwan-strait` and `ukraine-front`; enable one with a `PUT` that sets
 `"enabled": true`. A topic has an id (`a-z`, `0-9` and `-`, 3 to 48 characters), a name, up to 20 Wikipedia articles
 (`{"project": "en.wikipedia", "article": "Strait_of_Hormuz"}`), up to 30 keywords (the situation linker uses them),
-040 region codes and themes.
+040 region codes, themes and, since prompt 135, a `social` block (see
+[Social signals](#social-signals-prompt-135)).
 
 **Writing a GDELT query** (at most 250 characters): quote phrases (`"Strait of Hormuz"`), and put alternatives joined
 with `OR` in parentheses (`("Red Sea" OR "Bab el-Mandeb") (tanker OR Houthi)`); terms side by side must all match.
@@ -8043,3 +8044,158 @@ agent operations for the owner; salts are admin; the peer inbox takes a peer ing
 | `409 NETWORK_SALT_UNKNOWN` | a sketch batch for a network with no current salt here |
 | `400 SKETCH_BATCH_INVALID` | a malformed sketch batch or a signature that does not verify |
 | `429 REQUEST_RATE_LIMITED` | more than 10 access requests in a day |
+
+## Social signals (prompt 135)
+
+Foresignal can watch what people post about the places, topics and entities you track, on the platforms you choose,
+with your own accounts, budgets and judgment. Each platform is an adapter (see the Source Catalog, "Social platforms"):
+nothing is collected from a platform until you enable it, except Bluesky's open Jetstream firehose, which is switched
+on the first time its platform row is created (`foresignal.social.default-enable`, true by default) and stays as you
+set it afterwards. Read each platform's terms before enabling it: the platform view carries a summary and the link,
+but the terms are the platform's and they change.
+
+### Platforms, credentials and budgets
+
+| Call | What it does |
+|---|---|
+| `GET /v1/social/platforms` (read) | Every platform with its state (`disabled`, `credentials-required`, `budget-exhausted`, `unavailable`, `degraded` or `enabled`), its collection paths, quotas, spend, deletion sync and terms |
+| `GET /v1/social/platforms/{platformId}` (read) | One platform, adding the stream's cursor, lag and gaps, and the monthly estimate of X standing counts; 404 `UNKNOWN_PLATFORM` |
+| `PUT /v1/social/platforms/{platformId}` (admin) | Replace its settings (below) |
+| `PUT /v1/sources/{id}/credentials` (admin) | Store the platform's credentials; the platform id is the source id |
+
+```json
+PUT /v1/social/platforms/x
+{"enabled": true, "mode": "counts", "monthlyCapUsd": 25, "deletionSync": true, "postRetention": "30d",
+ "channels": [], "options": {"standingCounts": true, "fullArchive": false, "maxResults": 100}}
+```
+
+`enabled` is required; `mode` is for `x` only (`counts`, `search` or `counts+search`); `channels` (at most 200) are
+platform channels to follow (subreddits for Reddit, channel ids for YouTube, `#tags` for Mastodon and Instagram);
+`deletionSync` and `postRetention` (at most 3650 days) are described below; `budget` (`perMinute`, `perDay`) changes
+the source's request budget; `prices` and `pricesAsOf` replace the money table when a platform changes its prices;
+`options` carries the per-platform switches: `instances` (Mastodon), `replay` (Bluesky Network
+Replay), `standingCounts`, `fullArchive`, `maxResults` and `fieldsParam` (X), `comments` (YouTube; comments are not
+read yet). Enabling a platform whose credentials are missing leaves it `credentials-required`; storing them later
+turns it on.
+
+| Platform | Credentials | Notes |
+|---|---|---|
+| `bluesky-jetstream` | none (`apiToken` only for Network Replay) | on by default; `endpoint` `us-west` uses the west instance |
+| `bluesky-search` | none, or `identifier` and `appPassword` (an app password from Bluesky's settings) | runs the standing topics' terms every run |
+| `mastodon` | `accessToken`, or per instance `instanceTokens` as `host=token` pairs | a **user** token with `read:statuses` (streams need it since Mastodon 4.2) and `read:accounts` for followed accounts; list the instances in `options.instances` |
+| `reddit` | `clientId`, `clientSecret`, `contactEmail` | register a script app at `reddit.com/prefs/apps`; Reddit approves Data API access by hand, for non-commercial use |
+| `youtube` | `apiKey` | a Google Cloud project with the YouTube Data API v3 enabled |
+| `x` | `bearerToken` | a pay-per-use developer account; see "The X spend cap" |
+| `threads` | `accessToken` | a Threads app with `threads_basic` and `threads_keyword_search` (the latter needs Meta's app review) |
+| `instagram-hashtags` | `accessToken`, `userId` | a professional account and Instagram Public Content Access (Meta's app review) |
+
+**Quotas are kept locally.** Every platform's published limits (requests per window, YouTube's 10,000 units a day and
+its 100 searches a day, Threads' 2,200 queries per rolling day, Instagram's 30 hashtags per rolling week) are counted
+before each call, rolling windows included; a call that would exceed one is not sent, and the platform shows
+`budget-exhausted`. A `429` or a platform's own quota error backs the source off as for any
+source.
+
+### The X spend cap
+
+X bills every read. Before each call Foresignal estimates its cost from the price table (a search: `max_results` ×
+the post-read price; counts: the request price; a deletion check: the ids × the post-read price) and refuses it when
+this month's spend plus the estimate would pass `monthlyCapUsd` (default $25; `null` removes the cap). A refused call
+is counted on the platform, shown in its health, and answers `BUDGET_EXCEEDED` with `monthlyCapUsd`, `spentThisMonth`
+and `estimateUsd` on the API path. What a call actually cost is charged from the answer, and the month's spend is
+`SourceHealth.spentUsdThisMonth` and the platform's `spend`. Hourly standing counts cost one request per standing topic
+an hour (about $3.60 a topic a month at $0.005): the platform shows `standingCountsEstimateMonthly` for the topics you
+have before you switch them on. The prices were read on 2026-10-17; update `prices` and `pricesAsOf` when X changes
+them.
+
+### What to watch: the attention topic's `social` block
+
+Social collection follows your 117 attention topics. Add a `social` block to a topic (`PUT /v1/attention/topics/{id}`):
+
+```json
+"social": {"mode": "standing",
+           "terms": {"en": ["Strait of Hormuz", "Hormuz tanker"], "fa": ["تنگه هرمز"]},
+           "hashtags": ["Hormuz"], "excludeTerms": {"en": ["hormuz restaurant"]},
+           "accounts": [{"platform": "bluesky-jetstream", "id": "did:plc:…"}],
+           "channels": [{"platform": "reddit", "id": "geopolitics"}],
+           "platforms": [], "placeIds": [], "regionCodes": ["IR", "OM"], "entityRefs": []}
+```
+
+- `mode` `standing` collects and counts continuously; `cue-only` is kept for the targeted searches of prompt 137.
+- `terms` per language (at most 50 each) match case- and diacritic-insensitively on word boundaries (Arabic and Hebrew
+  prefixes such as و and ה are allowed; Chinese and Japanese match anywhere); `hashtags` (at most 30) match tags;
+  `excludeTerms` drop a post that would otherwise match. `accounts` (at most 100) and `channels` (at most 100) also
+  feed the adapters' follow lists; `platforms` limits the topic to some platforms (empty: all).
+- `placeIds`, `regionCodes` and `entityRefs` make the topic's posts count for those places, regions and 098 entities
+  too, so `GET /v1/social/volume?place=` works without a separate topic.
+
+Editing a topic rebuilds the matcher at once. Every adapter matches every post against the same index; a post that
+matches is stored as a `social-post` record, and on Jetstream every post, matching or not, is counted once for its
+platform and language (the **denominator**). `social.languages` (default `en, ar, he, fa, ru, uk, fr, es, de, tr, zh`)
+lists the languages Foresignal tells apart when a post carries no language tag; anything else counts as `other`.
+
+### What is stored, and for how long
+
+A `social-post` record holds the post's text (at most 5,000 characters), language, creation time, links, hashtags,
+mentions, reply and quote references, engagement counts, media links (never downloaded), the platform's own geotag
+when it has one, the matched topics and the collection path. The author is kept as handle and display name plus an
+`authorKey`: an HMAC-SHA256 of the platform and account id under a random salt that exists only on this instance
+(`social_salt`, encrypted with `secret.key`, never exported, never rotated), so counts of distinct authors stay
+stable without any cross-instance identifier. Posts are kept 30 days by default (`postRetention` per platform), as the
+analytic class `social`. Hourly counts (`social_volume_hourly`, `social_denominator_hourly`, `social_coverage`) carry
+no post or author and are kept with the series retention.
+
+**Deletion sync.** With `deletionSync` on (by default for Bluesky, X and Threads, where the terms or the
+firehose call for it), a post deleted upstream gets a tombstoned version: the text, links and media links are removed
+and `deleted: true` is set, while counts, topics and the author key stay. Jetstream applies delete events as they
+arrive; Bluesky search, X, Reddit and Threads check their stored posts once a day (X's check is billed and counts
+against the cap). X's Developer Policy asks for deleted content to be removed within 24 hours.
+
+**Where posts may go.** The Bluesky and Mastodon records are `LOCAL_ONLY`: your own API, tiles, streams, MCP and
+notifications see them; sinks, federation, share links, feeds and exports without `personalUse` do not. X, Reddit,
+YouTube, Threads and Instagram records are `FORBIDDEN` for redistribution: your own use only (109's table). Every post
+is evidence of class `social`, with the originator `social:{platform}:{authorKey}`; reposts and quotes keep the
+original's originator, so a thousand reposts are one evidence group, never a thousand confirmations.
+
+### Reading volume and coverage
+
+- `GET /v1/social/volume?topic=|place=|entity=&platform&language&metric&interval&since&until` (read): one hourly (or
+  daily, `interval=P1D`) series with each point's baseline, `velocityRatio` and robust z, its collection type and
+  whether its hour was complete. `metric` is `posts`, `uniqueAuthors`, `reposts` or `engagement`. The same series are
+  119 analysis series (`social:topic:{id}/{platform}/posts`, `social:all/{platform}/denominator`, …), registered once
+  they have a week of hours, so change points, event studies and the precursor miner use them.
+- `GET /v1/social/coverage?platform&region&since&until` (read): per platform, region and hour, the posts attributed to
+  the region and whether the hour was complete.
+- `GET /v1/social/posts?topic&platform&q&cueId&since&until` and `GET /v1/social/posts/{platform}/{postId}` (read):
+  the stored posts, newest first; restricted tokens see only their sources, and spatial restrictions see none.
+- MCP: `get_social_volume` and `search_social_posts` (read; also in the analyst's read catalog).
+
+**Baselines and velocity.** `SocialBaseline` 1.0.0 compares each hour with the same hour of the week over the last
+eight weeks (at least four collected samples). Where the platform has a denominator, each sample is a share of
+everything posted on the platform in that language, so platform growth, an outage or a quiet holiday changes the
+expectation instead of looking like attention. When an hour closes, a scope whose posts reach `minRatio` (5) times the
+baseline from at least `minUniqueAuthors` (20) distinct authors becomes a `social-velocity` finding (`notable`;
+`significant` at a robust z of 8), at most once per scope and platform every `dedupHours` (6); set the three in the app
+setting `social.velocity`. Sampled paths (ranked search, YouTube search, X search) are stored and searchable but never
+baselined: a ranked search shows what the platform chose to show, not how much was posted.
+
+### Health, gaps and observability
+
+A stream gap (from the drop to the reconnect) is recorded with whether it was replayed: Jetstream resumes from its
+cursor when the outage is shorter than 35 hours, otherwise it reconnects live and the gap stays unreplayed. The
+platform view and `GET /v1/sources/{id}/health` show the stream's cursor, lag and recent gaps. **Bluesky Network
+Replay** (`options.replay` with an `apiToken`) is only planned: Foresignal asks for a snapshot plan and reports it in
+the gap, but does not apply replay segments, whose format could not be verified.
+
+Silence on social media means something only where the platform was watched and is busy. `canSeeAbsence` for the
+family `social-attention` (method `platform-volume`) holds for a region and window only when a complete stream was
+healthy for the whole window and the region's trailing 8-week mean is at least `social.minRegionBaseline` posts an hour
+(20); otherwise the answer is `unknown` with `LOW_SOCIAL_COVERAGE` or `SOCIAL_STREAM_GAP`, and absence rules, indicator
+absence and downward findings stay silent.
+
+**Streams.** The `social` topic of `/v1/events/stream` (cursor key `o`) carries `social.velocity` and
+`social.platform.state`. Problem codes: `404 UNKNOWN_PLATFORM`, `BUDGET_EXCEEDED` (the X cap) and `409 PLATFORM_DISABLED`,
+reserved for the targeted searches of prompt 137 when no requested platform is enabled.
+
+**Settings.** App settings `social.languages`, `social.minRegionBaseline` (20) and `social.velocity`
+(`{"minRatio": 5, "minUniqueAuthors": 20, "dedupHours": 6}`); deployment properties `foresignal.social.scheduled`
+(true; the hourly close, velocity, flush and daily deletion jobs) and `foresignal.social.default-enable` (true).

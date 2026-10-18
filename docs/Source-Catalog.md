@@ -782,7 +782,7 @@ Bound with target `social` (138), captured posts join narratives and claims (136
 | `derived-lightning-holdover` | 099 | GLM flashes over dry cells, watched for later fire detections |
 | `derived-hf-blackout` | 099 | PSKReporter spot and SNR drops on sunlit paths, with concurrent SWPC X-ray class |
 
-Every catalogued source also has an originator and observability entry in `src/main/resources/intel/originators.json` and `intel/observability.json` (prompt 116).
+Every cataloged source also has an originator and observability entry in `src/main/resources/intel/originators.json` and `intel/observability.json` (prompt 116); the social platform adapters (prompt 135) have originators there and are observed through the `social-attention` family instead.
 
 ## News and media ratings (prompt 133, v1.3)
 
@@ -853,22 +853,113 @@ need SAS signing, which Foresignal will not do. Earth Search stays the default (
 
 ## Social platforms (prompts 135–137, v1.3)
 
-Foresignal is a single-operator tool: every platform below is an adapter the operator enables with their own credentials and budget, after reading the platform's terms (summarised here; check them yourself, they change). Nothing is hard-blocked. "Collection" says what the data can be used for: **complete** and **paged** paths feed volume baselines; **sample** paths feed claims and leads only.
+**Built in prompt 135.** Foresignal is a single-operator tool: every platform below is an adapter the operator enables
+with their own credentials and budget, after reading the platform's terms (summarized here; check them yourself, they
+change). Nothing is hard-blocked. Only `bluesky-jetstream` (open, no account) is on by default: it is switched on the
+first time its platform row is created (`foresignal.social.default-enable`), and the operator's choice stands after
+that. Settings, state, quotas and spend are on `/v1/social/platforms`; credentials use `PUT /v1/sources/{id}/credentials`.
+"Collection" says what the data can be used for: **complete** and **paged** paths feed volume baselines and velocity;
+**sampled** paths (ranked search, cues) feed claims and leads only (SOC-3).
 
-| Source id | Access | Cost and quota (checked 2026-10-11) | Terms summary | Default | Collection | Deletion sync |
+**`social-post` record** (`ai.foresignal.social.SocialPosts`, OpenAPI `SocialPostPayload`). `externalId` =
+`{platform}:{postId}` (Bluesky: the AT-URI; Mastodon: `{instance}/{id}`; Reddit: the `t3_` fullname). `observedAt` =
+`eventTime` = the platform's creation time; the payload's `observedAt` (when Foresignal saw it) and `engagement` are
+volatile, so a changed text is a new version and a changed like count is not (YouTube keeps `engagement` significant:
+tracked videos' statistics are its complete path). Payload `platform, postId, url, author {handle, displayName,
+accountId, accountCreatedAt, followers, verified}, authorKey` (HMAC-SHA256 of `{platform}:{accountId}` with the instance
+social salt, `social_salt`, encrypted with the secret key, never rotated or exported), `text` (≤ 5,000 characters),
+`language` (the platform's tag, else Lingua among `social.languages`), `createdAt, observedAt, replyTo, quoteOf,
+repostOf, links, hashtags, mentions, media [{type, url, thumbUrl, altText}]` (links only), `engagement, geo` (only
+platform coordinates or place; `geom` only from them), `channel, collection` (`stream`, `search`, `sample`, `cue`,
+`import`), `topicIds, cueId, deleted`. Analytic class `social`: 30 days by default (`social.postRetention`, per platform,
+applied as the source's retention override). **Deletion sync** writes a tombstoned version (`deleted: true`, text,
+links and media links removed; author, counts and topics kept). Each post's 116 originator is
+`social:{platform}:{authorKey}` (class `social`); reposts and quotes inherit the original's originator, so amplification
+never adds an evidence group (SOC-1). License entries (`provenance/licences.json`): redistribution `FORBIDDEN` for X,
+Reddit, YouTube, Threads and Instagram, `LOCAL_ONLY` for Bluesky and Mastodon (the operator's own use; never
+federation, share links, sinks or exports).
+
+**Matching and counting.** Enabled attention topics with a `social` block (terms per language ≤ 50, hashtags ≤ 30,
+accounts ≤ 100, channels ≤ 100, exclude terms, platforms, `placeIds`, `regionCodes`, `entityRefs`, mode `standing` or
+`cue-only`) build one Aho–Corasick index (case- and diacritic-folded, word boundaries per script, Arabic and Hebrew
+proclitics allowed, unspaced scripts matched anywhere). A matching post is stored; every post on a whole-platform stream
+(Jetstream) is counted for the platform-language denominator. Hourly volume per topic, place and entity × platform ×
+language × collection type (`posts`, distinct `uniqueAuthors`, `reposts`, `engagement`) is kept in
+`social_volume_hourly` and served as the 119 series `social:{scope}/{platform}/{metric}[/{language}]`;
+`social:all/{platform}/denominator` is the denominator. A post is counted once, however often it is seen again.
+
+| Source id | Access | Cost and quota (checked 2026-10-17) | Terms summary | Default | Collection | Deletion sync |
 |---|---|---|---|---|---|---|
-| `bluesky-jetstream` | Jetstream v2 WebSocket (`jetstream.us-east` / `us-west.bsky.network`), Network Replay with API token | free; replay token from `bsky.network/account` | Bluesky Protocol Services contracts | **on** | complete (posts, reposts) | on (delete events) |
-| `bluesky-search` | AppView `app.bsky.feed.searchPosts` | free; app password if required | as above | off | paged | on |
-| `mastodon` | per instance: hashtag streams, `/api/v1/trends/tags`, account statuses | free; per-instance limits | each instance's rules | off | complete per instance (streams), daily history (trends) | n/a |
-| `reddit` | OAuth API, `/r/{sub}/new`, `/search` | free tier 100 queries/min, non-commercial, manual app approval | Reddit Data API Terms | off | paged | optional |
-| `youtube` | Data API v3 | 10,000 units/day; `search.list` 100 units, `videos.list` 1 unit | YouTube API Services Terms | off | sample (search), complete (tracked videos' stats) | n/a |
-| `x` | API v2 pay-per-use: `counts/recent`, `search/recent` (optional `counts/all`, `search/all`) | $0.005 per post read; $0.005 per recent counts request; monthly cap `social.x.monthlyCapUsd` (default $25) | X Developer Agreement; remove deleted content within 24 h | off | complete counts; paged search | on |
-| `threads` | `keyword_search` with `threads_keyword_search` permission | 2,200 queries per rolling 24 h | Meta Platform Terms | off | paged (`RECENT`) | on |
-| `instagram-hashtags` | Graph API `ig_hashtag_search`, `recent_media` (business account, Public Content Access review) | 30 unique hashtags per rolling 7 days | Meta Platform Terms | off | sample | optional |
-| `xai-x-search` (cue backend, 137) | xAI API X search tool | ~$5 per 1,000 posts returned plus model tokens (per-result billing since 2026-09-21) | xAI terms | off | sample | n/a |
+| `bluesky-jetstream` | Jetstream v2 WebSocket `wss://jetstream.us-east.bsky.network` (param `endpoint` `us-west` for `jetstream.us-west`), path `/xrpc/network.bsky.jetstream.subscribeEvents`, subprotocol `xrpc.v1.json`, `kinds=commit`, `collections=app.bsky.feed.post` and `app.bsky.feed.repost` | free; connection attempts 6/min, 500/day; hosted instances keep 36 h of cursor history; Network Replay metered by the operator's API key | Bluesky terms; the authors keep their rights | **on** | complete (posts, reposts) | on (delete events) |
+| `bluesky-search` | AppView `app.bsky.feed.searchPosts` (`sort=latest`, `since`, `tag`, `limit` 100, `cursor`) on `https://api.bsky.app`, or with `identifier` + `appPassword` a session on `https://bsky.social` (`com.atproto.server.createSession`) | free; 30/min, 3,000/day; 20 queries a run, 5 pages each | as above | off | paged | on (`app.bsky.feed.getPosts`, 25 URIs a call, daily) |
+| `mastodon` | per instance in option `instances`: hashtag streams on `/api/v1/streaming` (subscribe messages), `/api/v1/trends/tags` hourly, followed accounts' `/api/v1/accounts/{id}/statuses` every 15 min | free; 300 requests per 5 min per account; 20/min, 3,000/day | each instance's rules | off | complete per instance (hashtag streams), daily history (trends), paged (accounts) | off (delete events when switched on) |
+| `reddit` | OAuth API with the operator's app (application-only `client_credentials` at `https://www.reddit.com/api/v1/access_token`), `https://oauth.reddit.com/r/{sub}/new`, `/search` (`sort=new`, `t=day`) | free tier; 100 queries/min per client is the commonly published figure (not on Reddit's own pages), enforced locally with `X-Ratelimit-Remaining` honored | Reddit Data API Terms: non-commercial, approval is manual, descriptive User-Agent | off | paged | off (`/api/info`, daily, when switched on) |
+| `youtube` | Data API v3 `search.list` (`type=video`, `order=date`, `publishedAfter`, `q` or `channelId`) and `videos.list` (`part=snippet,statistics`) | 10,000 units/day (`videos.list` 1 unit); since 2026-06 `search.list` has its own bucket of 100 calls/day; 4 searches a run | YouTube API Services Terms | off | sampled (search), complete (tracked videos' statistics, every 6 h for 7 days) | n/a |
+| `x` | API v2 pay-per-use: `counts/recent` (hourly per standing topic), `search/recent` (`max_results` 10–100, option `maxResults`), `tweets?ids=` (deletion checks); options `standingCounts`, `fullArchive` (`counts/all`, `search/all`), `fieldsParam` | $0.005 per post read; $0.005 per `counts/recent` request; $0.010 per `counts/all` request; $0.010 per user read (pricing page read 2026-10-17); 3M post reads/month; monthly cap `social.x.monthlyCapUsd` (default $25) | X Developer Agreement and Policy: deleted or changed content removed within 24 h | off | complete (counts); sampled (search) | on (daily, budgeted) |
+| `threads` | `GET https://graph.threads.net/v1.0/keyword_search` (`search_type=RECENT`, `search_mode` `KEYWORD`/`TAG`, `since`, `limit` 100) with `threads_basic` and `threads_keyword_search` | 2,200 queries per rolling 24 h per user (queries without results free); 20 a run | Meta Platform Terms: delete Platform Data promptly | off | paged | on (`GET /v1.0/{id}`, daily) |
+| `instagram-hashtags` | Graph API v26.0 `ig_hashtag_search` and `/{hashtag-id}/recent_media` (last 24 h, 50 a page) for the operator's professional account (Instagram Public Content Access) | 30 unique hashtags per rolling 7 days | Meta Platform Terms | off | sampled | n/a |
+| `xai-x-search` (cue backend, 137) | xAI API X search tool | ~$5 per 1,000 posts returned plus model tokens (per-result billing since 2026-09-21) | xAI terms | off | sampled | n/a |
 | EDP providers (024, 138) | any platform as `document` items (`social-post`), bound with target `social` | n/a | provider's and operator's responsibility | n/a | as the manifest declares | provider |
 
-Telegram channels, Facebook pages, TikTok and any other platform: external EDP providers (see "External provider ideas"). Meta Content Library is research-only and TikTok's Research API academic-only, so there is no official route for those.
+**Adapter notes.**
+- **`bluesky-jetstream`** (`BlueskyJetstreamAdapter`, `JetstreamSession`, `BlueskyRecords`; verified on
+  bsky.network/docs/jetstream 2026-10-17). Frames `{"$type":"message","payload":{…}}`; a `#commit` payload carries
+  `seq, did, time, rev, operation, collection, rkey, record, cid`; the v1 shape (`kind: commit`, `time_us`,
+  `commit{…}`) is read too. **The cursor is the event `seq`** (v2; the prompt's v1 `time_us` is still accepted as a
+  cursor ≥ 10^15): stored every 5 s (`jetstream:seq`, `jetstream:time`) and resumed on reconnect when the stored time is
+  within 35 h, so the gap is recorded as replayed; an older cursor connects live and records the gap as not replayed; a
+  first start records the partial hour. Events at or below the last seq are dropped. Post records: text, `createdAt`,
+  `langs[0]`, `tags`, facets (`#link`, `#tag`, `#mention`), `reply.parent`, quotes from `app.bsky.embed.record` and
+  `recordWithMedia`; blob media are linked through the post's web page (`https://bsky.app/profile/{did}/post/{rkey}`).
+  A repost of a matched post counts into its scopes. A connection silent 2 min is recycled. **Network Replay**
+  (option `replay`, credential `apiToken`): `POST /xrpc/network.bsky.jetstream.planSnapshot` is called and its plan
+  reported in the gap reason; **segments are not applied** because the `getSegment` byte format could not be verified.
+- **`bluesky-search`** (`BlueskySearchAdapter`). `public.api.bsky.app` answered search with 403 on 2026-10-17, so the
+  unauthenticated path uses `api.bsky.app`. Post views give engagement (`replyCount`, `repostCount`, `quoteCount`,
+  `likeCount`) and media URLs (`app.bsky.embed.images#view` `fullsize`/`thumb`, `video#view` `playlist`,
+  `external#view`; lexicons verified 2026-10-18).
+- **`mastodon`** (`MastodonAdapter`, `MastodonSession`, `MastodonStatuses`). Since Mastodon 4.2 streams need a
+  **user** token with `read:statuses` (`accessToken`, or per instance in `instanceTokens` as `host=token` pairs); the
+  streaming base comes from `/api/v2/instance` `configuration.urls.streaming`. Followed hashtags: the topics' hashtags
+  and `mastodon-hashtag` channels and the platform channels written `#tag`. A hashtag stream is complete for its filter
+  but is not a denominator. Statuses: `content` HTML to text, `account`, `language`, `in_reply_to_id`,
+  `media_attachments`, `tags`, `mentions`, `card.url`, counts; a boost counts for the boosted status. Trending tags that
+  match a topic become daily `series-point` records `mastodon-trend:{instance}:{tag}` (value `uses`, extra `accounts`,
+  family `attention`). Account lookup (`/api/v1/accounts/lookup`) needs a user token with `read:accounts`.
+- **`reddit`** (`RedditAdapter`). Channels: the platform channels and the topics' `subreddit` channels; each is read
+  back to its last run (≤ 3 pages of 100); search runs per standing term (quoted) and hashtag. The listing field names
+  (`data.children[].data`: `name, subreddit, author, author_fullname, title, selftext, created_utc, permalink, url,
+  num_comments, score`) are not in Reddit's published reference: **fixture synthetic, recapture with a real app**. The
+  User-Agent is Foresignal's own with the operator's `contactEmail` credential (for example `/u/name`).
+- **`youtube`** (`YouTubeAdapter`). Statistics arrive as strings. A `quotaExceeded` 403 ends the run. Quota windows
+  are rolling 24 hours (never more than the daily quota). Comment threads (option `comments`) are not read: their
+  response fields were not verified.
+- **`x`** (`XAdapter`, `XPosts`, `XSpend`). **Every paid call is estimated first** (`max_results × post-read` for a
+  search, the request price for counts, `ids × post-read` for a lookup) and refused when `spent + estimate >
+  monthlyCapUsd` (counted as a refusal, `BUDGET_EXCEEDED` on the API path); the actual cost is charged from the answer
+  (`social_spend`, shown as `SourceHealth.spentUsdThisMonth`). Queries OR the standing topic's quoted terms, `#tags` and
+  `from:` accounts (≤ 4,096 characters). Hourly counts are written as the topic's complete X volume (language bucket
+  `other`). The live OpenAPI (`api.x.com/2/openapi.json`, v2.172) names the field parameter `post.fields` and the count
+  `post_count`, the data dictionary `tweet.fields` and `tweet_count`: both answers are read and option `fieldsParam`
+  (`post` by default) chooses the request parameter, **unverified until one real call**. The monthly estimate of hourly
+  counts for the standing topics is shown on the platform before they are enabled.
+- **`threads`** (`ThreadsAdapter`). The answer names no author id (`owner` is not returned), so the handle is the
+  account id. Meta timestamps (`+0000` offsets) are read.
+- **`instagram-hashtags`** (`InstagramHashtagsAdapter`). Hashtags: the topics' hashtags and the platform channels. A
+  hashtag searched in the last 7 days is free; a new one needs room under 30 (`social_quota_use`). `username` is not
+  available, so each post counts as its own author.
+
+**Collection health and coverage.** Stream gaps (`social_stream_gap`: from the drop to the reconnect, replayed or not)
+and the stream's lag and cursor appear in the platform view and in the source's health details. Each closed hour stamps
+`complete` on the platform's denominator and `social_coverage` rows (platform × 040 region × hour: posts attributed by
+platform geo and by region names the topics track; 136 adds text-derived places). **Social observability** (family
+`social-attention`, method `platform-volume`): `canSeeAbsence(social-attention, region, window)` is ok only when a
+complete-stream platform was healthy over the whole window and the region's trailing 8-week mean is at least
+`social.minRegionBaseline` posts per hour (20); otherwise `LOW_SOCIAL_COVERAGE` or `SOCIAL_STREAM_GAP`.
+
+Telegram channels, Facebook pages, TikTok and any other platform: external EDP providers (see "External provider
+ideas"). Meta Content Library is research-only and TikTok's Research API academic-only, so there is no official route
+for those.
 
 ## Reference-history datasets (prompt 121, v1.3)
 

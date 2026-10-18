@@ -202,7 +202,40 @@ class EventSchemaConformanceTest {
             // 131: ChronicleTopic sends ChronicleThreadService.item for thread items and the status snapshot.
             entry(ai.foresignal.chronicle.ChronicleTopic.ITEM_EVENT, EventSchemaConformanceTest::chronicleItemEvents),
             entry(ai.foresignal.chronicle.ChronicleTopic.STATUS_EVENT,
-                    EventSchemaConformanceTest::chronicleStatusEvents));
+                    EventSchemaConformanceTest::chronicleStatusEvents),
+            // 135: SocialTopic sends SocialEvents.velocityBody (from the finding) and the platformStateBody control event.
+            entry(ai.foresignal.social.SocialEvents.VELOCITY, EventSchemaConformanceTest::socialVelocityEvents),
+            entry(ai.foresignal.social.SocialEvents.PLATFORM_STATE,
+                    EventSchemaConformanceTest::socialPlatformStateEvents));
+
+    /** {@code social.velocity} payloads as {@code VelocityDetector} and {@code SocialEvents} build them (prompt 135). */
+    static List<JsonNode> socialVelocityEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        ai.foresignal.social.SocialBaseline.Point point = new ai.foresignal.social.SocialBaseline.Point(at, 60, 10.0,
+                1.0, 6.0, 15.8, 8, true);
+        ai.foresignal.social.VelocityDetector.Candidate c = new ai.foresignal.social.VelocityDetector.Candidate(
+                "topic:red-sea", "bluesky", point, 25, "significant");
+        return List.of(toTree(ai.foresignal.social.SocialEvents.velocityBody(
+                ai.foresignal.social.VelocityDetector.eventPayload("01JA8Q3V7S2K9W4T6Y1B5N0M3C", c, at))));
+    }
+
+    /** {@code social.platform.state} payloads as {@code SocialEvents.platformStateBody} builds them (prompt 135). */
+    static List<JsonNode> socialPlatformStateEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        Map<String, Object> spend = new java.util.LinkedHashMap<>();
+        spend.put("currency", "USD");
+        spend.put("spentThisMonth", 25);
+        spend.put("monthlyCapUsd", 25);
+        spend.put("projectedThisMonth", null);
+        spend.put("standingCountsEstimateMonthly", 10.95);
+        spend.put("pricesAsOf", "2026-10-17");
+        spend.put("refusedThisMonth", 3);
+        return List.of(
+                toTree(ai.foresignal.social.SocialEvents.platformStateBody("x", "budget-exhausted", "enabled",
+                        "the monthly cap of $25 is spent", spend, at)),
+                toTree(ai.foresignal.social.SocialEvents.platformStateBody("bluesky-jetstream", "enabled", null, null,
+                        null, at)));
+    }
 
     /** A {@code PrincipalSummary} as {@code PrincipalViews.summary} writes it (prompt 130). */
     static Map<String, Object> principalSummary() {

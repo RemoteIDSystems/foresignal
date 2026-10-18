@@ -94,6 +94,8 @@ public class AnalyticsSupport {
                     + (ref.allSources() ? "" : " (" + ref.sourceId() + ")");
             case RULE -> "anomaly rule " + ref.ruleId() + " group " + ref.groupKey();
             case NEWS -> ref.groupKey() + " news coverage of " + ref.seriesId();
+            case SOCIAL -> ref.kind() + " of " + ref.seriesId() + " on " + ref.sourceId()
+                    + (ref.groupKey() == null ? "" : " (" + ref.groupKey() + ")");
         };
     }
 

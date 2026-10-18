@@ -43908,7 +43908,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"enabled\": true,\n  \"mode\": \"counts\",\n  \"deletionSync\": true,\n  \"postRetention\": \"30d\",\n  \"monthlyCapUsd\": 25,\n  \"options\": {\n    \"standingCounts\": true\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"

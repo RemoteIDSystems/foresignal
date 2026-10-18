@@ -162,10 +162,26 @@ public class OriginatorRegistry {
         return new Originator(id, mapping.originatorClass(), null, List.of(), mapping.notes(), List.of());
     }
 
-    /** The originator with id {@code id}, when the registry declares it. */
+    /**
+     * The originator with id {@code id}, when the registry declares it; a social account or post id
+     * ({@code social:{platform}:{authorKey}}, prompt 135) is answered with class {@code social} and its own
+     * independence group.
+     */
     public Optional<Originator> originator(String id) {
-        return Optional.ofNullable(id == null ? null : model().originators.get(id));
+        if (id == null) {
+            return Optional.empty();
+        }
+        Originator declared = model().originators.get(id);
+        if (declared == null && id.startsWith(SOCIAL_PREFIX) && id.length() > SOCIAL_PREFIX.length()) {
+            return Optional.of(new Originator(id, "social", id, List.of(),
+                    "social account or post (prompt 135); reposts and quotes inherit the original's originator",
+                    List.of()));
+        }
+        return Optional.ofNullable(declared);
     }
+
+    /** The prefix of per-account social originators (prompt 135). */
+    public static final String SOCIAL_PREFIX = "social:";
 
     /** Every declared originator, sorted by id. */
     public List<Originator> originators() {

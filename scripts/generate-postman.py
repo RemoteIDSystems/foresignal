@@ -195,6 +195,11 @@ RAW_BODIES = {
   "importMediaRatings": ("text/csv", "domain,dimension,value,label,licence,attribution\n"
                          "example-news.com,lean,-1,lean-left,CC BY 4.0,Example ratings project\n"
                          "example-news.com,factuality,4,,CC BY 4.0,Example ratings project\n", "text"),
+  # 135: a social platform's settings (replace semantics): X with hourly counts for standing topics, a $25 monthly
+  # cap and deletion sync. Set the bearer token first with PUT /v1/sources/x/credentials.
+  "updateSocialPlatform": ("application/json", json.dumps({"enabled": True, "mode": "counts", "deletionSync": True,
+                                                           "postRetention": "30d", "monthlyCapUsd": 25,
+                                                           "options": {"standingCounts": True}}, indent=2), "json"),
   "ntfyPublish": ("text/plain", "Backup finished on pve1", "text"),
   "ntfyPublishPut": ("text/plain", "Disk usage above 90% on nas", "text"),
   # 036: a watchlist CSV import (header value[,label,notes,tags]; tags separated by ;).

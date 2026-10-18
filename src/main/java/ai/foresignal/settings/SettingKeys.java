@@ -333,6 +333,25 @@ public final class SettingKeys {
      */
     public static final String NETWORK_FEDERATED = "network.federated";
 
+    /**
+     * The languages social posts are detected in and kept as separate volume series (prompt 135,
+     * {@code social.languages}): a JSON array of BCP 47 primary subtags; default
+     * {@code en, ar, he, fa, ru, uk, fr, es, de, tr, zh}.
+     */
+    public static final String SOCIAL_LANGUAGES = "social.languages";
+
+    /**
+     * The trailing-baseline posts per hour a region needs before social silence there means anything (prompt 135,
+     * {@code social.minRegionBaseline}); 20. Below it social observability answers {@code LOW_SOCIAL_COVERAGE}.
+     */
+    public static final String SOCIAL_MIN_REGION_BASELINE = "social.minRegionBaseline";
+
+    /**
+     * The {@code social-velocity} finding thresholds (prompt 135, {@code social.velocity}): a JSON object
+     * {@code {minRatio: 5, minUniqueAuthors: 20, dedupHours: 6}}.
+     */
+    public static final String SOCIAL_VELOCITY = "social.velocity";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -351,7 +370,8 @@ public final class SettingKeys {
                     IMPACT_QUESTION_MIN_PROBABILITY, IMPACT_ASSET_BUFFER_KM, RELATION_CURSOR,
                     CHRONICLE_DEFAULT_CAP_GB, CHRONICLE_AUTO_ACTIVATE_PER_DAY, CHRONICLE_AUTO_ACTIVATE_CAP_GB,
                     CHRONICLE_THREAD_CURSORS, EXCHANGE_MAX_PACKAGE_MB, EXCHANGE_ALLOW_GREEN_LINKS,
-                    MEDIA_RELIABILITY_MAP, NETWORK_MIN_SHARED_KEYS, NETWORK_FEDERATED);
+                    MEDIA_RELIABILITY_MAP, NETWORK_MIN_SHARED_KEYS, NETWORK_FEDERATED, SOCIAL_LANGUAGES,
+                    SOCIAL_MIN_REGION_BASELINE, SOCIAL_VELOCITY);
 
     private SettingKeys() {}
 }

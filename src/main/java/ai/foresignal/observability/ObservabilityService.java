@@ -193,6 +193,29 @@ public class ObservabilityService {
 
     // ------------------------------------------------------------------------- API
 
+    /** The {@code social-attention} family (prompt 135). */
+    public static final String SOCIAL_ATTENTION = "social-attention";
+
+    /** The {@code social-attention} estimator (prompt 135), when the social package is present. */
+    @org.springframework.beans.factory.annotation.Autowired
+    private ObjectProvider<ai.foresignal.social.SocialObservability> socialObservability;
+
+    /**
+     * The {@code social-attention} family's absence rule (prompt 135, method {@code platform-volume}): delegated to
+     * {@code SocialObservability}; null for every other family.
+     */
+    private AbsenceCheck socialAttention(String family, Place place, Instant from, Instant to) {
+        if (!SOCIAL_ATTENTION.equals(family)) {
+            return null;
+        }
+        ai.foresignal.social.SocialObservability social = socialObservability == null ? null
+                : socialObservability.getIfAvailable();
+        if (social == null) {
+            return new AbsenceCheck(false, null, "no social observability is available");
+        }
+        return social.canSeeAbsence(place == null ? null : place.regionCode(), from, to);
+    }
+
     /** {@code absenceMinDetect} in force. */
     public double absenceMinDetect() {
         try {
@@ -223,6 +246,10 @@ public class ObservabilityService {
      * happened" (OBS-1): every involved source healthy over the window and {@code p ≥ absenceMinDetect}.
      */
     public AbsenceCheck canSeeAbsence(String family, Place place, Instant from, Instant to, String band) {
+        AbsenceCheck social = socialAttention(family, place, from, to);
+        if (social != null) {
+            return social;
+        }
         Snapshot snapshot = snapshot(family, to);
         return canSeeAbsence(involved(family, to, snapshot), family, place, from, to, band);
     }
@@ -230,6 +257,10 @@ public class ObservabilityService {
     /** {@link #canSeeAbsence(String, Place, Instant, Instant, String)} over the given sources. */
     public AbsenceCheck canSeeAbsence(Collection<String> sourceIds, String family, Place place, Instant from,
             Instant to, String band) {
+        AbsenceCheck social = socialAttention(family, place, from, to);
+        if (social != null) {
+            return social;
+        }
         Set<String> involved = new TreeSet<>(sourceIds);
         if (involved.isEmpty()) {
             return new AbsenceCheck(false, null, "no enabled source observes " + family);

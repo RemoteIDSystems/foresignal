@@ -36,6 +36,7 @@ import java.util.Map;
  * @param newestFrameAt product sources: newest frame time, or null
  * @param frameAgeSeconds product sources: age of the newest frame, or null
  * @param details adapter-specific details (063), omitted when there are none
+ * @param spentUsdThisMonth paid adapters: US dollars spent this calendar month (135), omitted for free sources
  */
 public record SourceHealthDto(
         String sourceId,
@@ -63,4 +64,5 @@ public record SourceHealthDto(
         Double budgetHoursRemaining,
         Instant newestFrameAt,
         Long frameAgeSeconds,
-        @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> details) {}
+        @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> details,
+        @JsonInclude(JsonInclude.Include.NON_NULL) Double spentUsdThisMonth) {}

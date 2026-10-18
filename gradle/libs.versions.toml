@@ -140,6 +140,12 @@ hadoopCommon = "3.4.1"
 # zstd-jni (111): ZSTD compression of GeoParquet pages (BSD-2-Clause). 1.5.7-15 is the version parquet-hadoop
 # 1.18.1 depends on; verified on Maven Central 2026-10-16 (latest there 1.5.7-23).
 zstdJni = "1.5.7-15"
+# Social post language detection (135): Lingua, Apache-2.0. Verified on Maven Central 2026-10-17: 1.2.2 is the latest
+# release (maven-metadata.xml latest/release 1.2.2, last updated 2022-08-02); runtime deps kotlin-stdlib 1.6.21 (the
+# Spring Boot BOM manages kotlin-stdlib, already on the classpath through anthropic-java), moshi 1.13.0 and fastutil
+# 8.5.8, all Apache-2.0. The jar is about 80 MB because it carries every language model; only the languages in
+# social.languages are loaded.
+lingua = "1.2.2"
 
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
@@ -240,6 +246,8 @@ zstd-jni = { module = "com.github.luben:zstd-jni", version.ref = "zstdJni" }
 webp-imageio = { module = "com.github.usefulness:webp-imageio", version.ref = "webpImageio" }
 # MBTiles exports (108): sqlite-jdbc, Apache-2.0, bundles the SQLite native library.
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbc" }
+# Social post language detection (135), Apache-2.0.
+lingua = { module = "com.github.pemistahl:lingua", version.ref = "lingua" }
 
 # --- Test; versions from the Testcontainers BOM where unspecified ---
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }

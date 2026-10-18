@@ -456,6 +456,84 @@
       ]
     },
     {
+      "id": "bluesky-terms",
+      "name": "Bluesky public network data (Bluesky terms)",
+      "commercialUse": "UNKNOWN",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "LOCAL_ONLY",
+      "attributionText": "Bluesky public posts; the authors keep their rights; kept for the operator's own analysis.",
+      "termsUrl": "https://bsky.social/about/support/tos",
+      "aliases": [
+        "Bluesky public data; Bluesky Protocol Services terms"
+      ]
+    },
+    {
+      "id": "mastodon-instance-terms",
+      "name": "Mastodon instance terms",
+      "commercialUse": "UNKNOWN",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "LOCAL_ONLY",
+      "attributionText": "Mastodon posts from the listed instances; the authors keep their rights; each instance's rules apply.",
+      "termsUrl": "https://docs.joinmastodon.org/",
+      "aliases": [
+        "Each instance's terms; posts remain their authors'"
+      ]
+    },
+    {
+      "id": "reddit-data-api-terms",
+      "name": "Reddit Data API Terms",
+      "commercialUse": "FORBIDDEN",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "FORBIDDEN",
+      "attributionText": "Reddit content via the Data API; non-commercial, the operator's own use, no redistribution.",
+      "termsUrl": "https://redditinc.com/policies/data-api-terms",
+      "aliases": [
+        "Reddit Data API Terms (non-commercial)"
+      ]
+    },
+    {
+      "id": "youtube-api-terms",
+      "name": "YouTube API Services Terms of Service",
+      "commercialUse": "UNKNOWN",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "FORBIDDEN",
+      "attributionText": "YouTube data via the YouTube API Services; the operator's own use, no redistribution.",
+      "termsUrl": "https://developers.google.com/youtube/terms/api-services-terms-of-service",
+      "aliases": [
+        "YouTube API Services Terms of Service"
+      ]
+    },
+    {
+      "id": "x-developer-terms",
+      "name": "X Developer Agreement and Policy",
+      "commercialUse": "UNKNOWN",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "FORBIDDEN",
+      "attributionText": "X content via the X API; the operator's own use; deleted content is removed within 24 hours.",
+      "termsUrl": "https://docs.x.com/developer-terms/policy",
+      "aliases": [
+        "X Developer Agreement and Policy"
+      ]
+    },
+    {
+      "id": "meta-platform-terms",
+      "name": "Meta Platform Terms",
+      "commercialUse": "UNKNOWN",
+      "shareAlike": false,
+      "attributionRequired": true,
+      "redistribution": "FORBIDDEN",
+      "attributionText": "Threads and Instagram content via Meta's APIs; the operator's own use, deleted when no longer needed.",
+      "termsUrl": "https://developers.facebook.com/terms/",
+      "aliases": [
+        "Meta Platform Terms"
+      ]
+    },
+    {
       "id": "unknown",
       "name": "Unknown licence",
       "commercialUse": "UNKNOWN",

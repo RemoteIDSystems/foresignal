@@ -130,6 +130,11 @@ foresignal:
     retention-scheduled: false
     async-jobs: false
     network-scheduled: false
+  # Social signals (prompt 135): nothing aggregates on its own and bluesky-jetstream is not switched on, so no test
+  # connects to Jetstream; the ITs call SocialJobs.flush() and closeHour() and enable platforms explicitly.
+  social:
+    scheduled: false
+    default-enable: false
 
 logging:
   level:

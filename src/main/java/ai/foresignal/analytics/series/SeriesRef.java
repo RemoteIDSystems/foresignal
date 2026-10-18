@@ -18,18 +18,24 @@ import java.util.regex.Pattern;
  *   <li>{@code rule:{ruleId}/{groupKey}}: the 100 anomaly rule's {@code activity_sample} rows of one group;
  *   <li>{@code rollup:news/{topicId|situationId}/{bucket}}: the daily news coverage of an attention topic or a
  *       situation in one bucket ({@code left}, {@code center}, {@code right}, {@code unrated}, {@code state}), in
- *       evidence groups (prompt 133).
+ *       evidence groups (prompt 133);
+ *   <li>{@code social:{topic|place|entity}:{id}/{platform}/{metric}[/{language}]}: the hourly social mention volume
+ *       of a scope on one network ({@code posts}, {@code uniqueAuthors}, {@code reposts}, {@code engagement}), every
+ *       language summed unless a language bucket is given; {@code social:all/{platform}/denominator[/{language}]}
+ *       is the platform-language denominator (prompt 135). Only complete and paged collection is read.
  * </ul>
  *
  * @param type the reference type
- * @param sourceId the source ({@code series}, {@code rollup}), or null
- * @param seriesId the series id ({@code series}), or the topic or situation id ({@code news}), or null
+ * @param sourceId the source ({@code series}, {@code rollup}), the network ({@code social}), or null
+ * @param seriesId the series id ({@code series}), the topic or situation id ({@code news}), the scope
+ *     ({@code social}: {@code topic:{id}}, {@code place:{id}}, {@code entity:{id}} or {@code all}), or null
  * @param resolution {@code hour} or {@code day} ({@code rollup}), or null
- * @param kind the record kind ({@code rollup}), or null
+ * @param kind the record kind ({@code rollup}), the metric ({@code social}), or null
  * @param region the 040 region code ({@code rollup} by region), or null
  * @param cell the H3 address ({@code rollup} by cell), or null
  * @param ruleId the anomaly rule ({@code rule}), or null
- * @param groupKey the rule group ({@code rule}), or the coverage bucket ({@code news}), or null
+ * @param groupKey the rule group ({@code rule}), the coverage bucket ({@code news}), the language bucket
+ *     ({@code social}, null for every language), or null
  */
 public record SeriesRef(Type type, String sourceId, String seriesId, String resolution, String kind, String region,
         String cell, UUID ruleId, String groupKey) {
@@ -43,8 +49,18 @@ public record SeriesRef(Type type, String sourceId, String seriesId, String reso
         /** {@code rule:} */
         RULE,
         /** {@code rollup:news/} (prompt 133) */
-        NEWS
+        NEWS,
+        /** {@code social:} (prompt 135) */
+        SOCIAL
     }
+
+    /** The volume metrics of {@code social:} references (prompt 135). */
+    public static final List<String> SOCIAL_METRICS = List.of("posts", "uniqueAuthors", "reposts", "engagement",
+            "denominator");
+
+    private static final Pattern SOCIAL_SCOPE = Pattern.compile("^((topic|place|entity):[A-Za-z0-9._~-]{1,64}|all)$");
+    private static final Pattern SOCIAL_NETWORK = Pattern.compile("^[a-z0-9][a-z0-9-]{0,31}$");
+    private static final Pattern SOCIAL_LANGUAGE = Pattern.compile("^([a-z]{2,3}|other)$");
 
     /** The news coverage buckets of {@code rollup:news/} references (prompt 133). */
     public static final List<String> NEWS_BUCKETS = List.of("left", "center", "right", "unrated", "state");
@@ -79,6 +95,18 @@ public record SeriesRef(Type type, String sourceId, String seriesId, String reso
         return new SeriesRef(Type.NEWS, null, scopeId, "day", null, null, null, null, bucket);
     }
 
+    /**
+     * The reference of a social volume series (prompt 135).
+     *
+     * @param scope {@code topic:{id}}, {@code place:{id}}, {@code entity:{id}} or {@code all}
+     * @param platform the network
+     * @param metric the metric
+     * @param language the language bucket, or null for every language
+     */
+    public static SeriesRef social(String scope, String platform, String metric, String language) {
+        return new SeriesRef(Type.SOCIAL, platform, scope, "hour", metric, null, null, null, language);
+    }
+
     /** The reference of an anomaly rule group. */
     public static SeriesRef rule(UUID ruleId, String groupKey) {
         return new SeriesRef(Type.RULE, null, null, null, null, null, null, ruleId, groupKey);
@@ -96,7 +124,7 @@ public record SeriesRef(Type type, String sourceId, String seriesId, String reso
         String value = text.strip();
         int colon = value.indexOf(':');
         if (colon < 0) {
-            throw invalid(value, "must start with series:, rollup: or rule:");
+            throw invalid(value, "must start with series:, rollup:, rule: or social:");
         }
         String scheme = value.substring(0, colon);
         String rest = value.substring(colon + 1);
@@ -158,8 +186,31 @@ public record SeriesRef(Type type, String sourceId, String seriesId, String reso
                     throw invalid(value, "has a rule id that is not a UUID");
                 }
             }
-            case "social" -> throw invalid(value, "social series arrive with prompt 135");
-            default -> throw invalid(value, "must start with series:, rollup: or rule:");
+            case "social" -> {
+                String[] parts = rest.split("/", -1);
+                if (parts.length != 3 && parts.length != 4) {
+                    throw invalid(value, "must be social:{scope}/{platform}/{metric}[/{language}]");
+                }
+                if (!SOCIAL_SCOPE.matcher(parts[0]).matches()) {
+                    throw invalid(value, "has a scope other than topic:{id}, place:{id}, entity:{id} or all");
+                }
+                if (!SOCIAL_NETWORK.matcher(parts[1]).matches()) {
+                    throw invalid(value, "has an invalid network");
+                }
+                if (!SOCIAL_METRICS.contains(parts[2])) {
+                    throw invalid(value, "has a metric other than " + SOCIAL_METRICS);
+                }
+                if ("all".equals(parts[0]) != "denominator".equals(parts[2])) {
+                    throw invalid(value, "uses the denominator metric with a scope other than all, or all with another"
+                            + " metric");
+                }
+                String language = parts.length == 4 ? parts[3] : null;
+                if (language != null && !SOCIAL_LANGUAGE.matcher(language).matches()) {
+                    throw invalid(value, "has an invalid language bucket");
+                }
+                return social(parts[0], parts[1], parts[2], language);
+            }
+            default -> throw invalid(value, "must start with series:, rollup:, rule: or social:");
         }
     }
 
@@ -171,6 +222,7 @@ public record SeriesRef(Type type, String sourceId, String seriesId, String reso
                     + (cell != null ? "cell:" + cell : region);
             case RULE -> "rule:" + ruleId + "/" + groupKey;
             case NEWS -> "rollup:news/" + seriesId + "/" + groupKey;
+            case SOCIAL -> "social:" + seriesId + "/" + sourceId + "/" + kind + (groupKey == null ? "" : "/" + groupKey);
         };
     }
 

@@ -142,6 +142,7 @@ public class SeriesReader {
             case ROLLUP -> rollupMeta(ref);
             case RULE -> ruleMeta(ref).meta();
             case NEWS -> newsMeta(ref);
+            case SOCIAL -> socialMeta(ref);
         };
     }
 
@@ -176,6 +177,7 @@ public class SeriesReader {
             case ROLLUP -> rollupPoints(ref, start, end, asOf);
             case RULE -> rulePoints(ref, start, end, asOf);
             case NEWS -> newsPoints(ref, start, end, asOf);
+            case SOCIAL -> socialPoints(ref, start, end, asOf);
         };
         long asOfSeq = asOf == null ? seqClock.seqAt(jdbc, clock.instant()) : seqClock.seqAt(jdbc, asOf);
         boolean localOnly = false;
@@ -314,6 +316,85 @@ public class SeriesReader {
             }
         }
         return new ArrayList<>(byStart.values());
+    }
+
+    // ------------------------------------------------------------------------- social: (prompt 135)
+
+    /** The social aggregate tables (prompt 135), when the social package is present. */
+    @org.springframework.beans.factory.annotation.Autowired
+    private ObjectProvider<ai.foresignal.social.SocialVolumeStore> socialVolume;
+
+    private ai.foresignal.social.SocialVolumeStore socialStore(SeriesRef ref) {
+        ai.foresignal.social.SocialVolumeStore store = socialVolume == null ? null : socialVolume.getIfAvailable();
+        if (store == null) {
+            throw notFound(ref);
+        }
+        return store;
+    }
+
+    private Meta socialMeta(SeriesRef ref) {
+        ai.foresignal.social.SocialVolumeStore store = socialStore(ref);
+        String scope = ref.seriesId();
+        boolean all = ai.foresignal.social.SocialVocabulary.SCOPE_ALL.equals(scope);
+        int colon = scope.indexOf(':');
+        boolean exists = all ? store.hasDenominators(ref.sourceId())
+                : store.exists(scope.substring(0, colon), scope.substring(colon + 1), ref.sourceId());
+        if (!exists) {
+            throw notFound(ref);
+        }
+        Set<String> sources = new java.util.TreeSet<>();
+        for (ai.foresignal.social.SocialPlatformCatalog.Definition d
+                : ai.foresignal.social.SocialPlatformCatalog.all()) {
+            if (d.network().equals(ref.sourceId())) {
+                sources.add(d.id());
+            }
+        }
+        String topicId = !all && scope.startsWith(ai.foresignal.social.SocialVocabulary.SCOPE_TOPIC + ":")
+                ? scope.substring(colon + 1) : null;
+        String unit = "denominator".equals(ref.kind()) || "posts".equals(ref.kind()) ? "posts" : ref.kind();
+        return new Meta(SeriesFrequency.HOUR, unit, "attention", "count", "log-level", 0, null, topicId, sources);
+    }
+
+    /**
+     * The hourly social volume of a scope on one network (complete and paged collection only; sampled paths never
+     * feed series), or its denominator. Hours from the first stored hour to the last closed one are covered; on a
+     * platform with complete streams an hour whose collection was incomplete is a coverage gap. An hour is known at
+     * its close.
+     */
+    private List<SeriesValue> socialPoints(SeriesRef ref, Instant from, Instant to, Instant asOf) {
+        ai.foresignal.social.SocialVolumeStore store = socialStore(ref);
+        String scope = ref.seriesId();
+        boolean all = ai.foresignal.social.SocialVocabulary.SCOPE_ALL.equals(scope);
+        Map<Instant, Long> values = new TreeMap<>();
+        if (all) {
+            values.putAll(store.denominators(ref.sourceId(), ref.groupKey(), from, to));
+        } else {
+            int colon = scope.indexOf(':');
+            for (ai.foresignal.social.SocialVolumeStore.VolumeRow r : store.volume(scope.substring(0, colon),
+                    scope.substring(colon + 1), ref.sourceId(), ref.groupKey(), from, to)) {
+                if (ai.foresignal.social.SocialVocabulary.feedsBaselines(r.collectionType())) {
+                    values.merge(r.hour(), r.metric(ref.kind()), Long::sum);
+                }
+            }
+        }
+        Map<Instant, Boolean> complete = store.completeHours(ref.sourceId(), from, to);
+        List<SeriesValue> out = new ArrayList<>();
+        if (values.isEmpty() && complete.isEmpty()) {
+            return out;
+        }
+        Instant first = values.isEmpty() ? from : ((TreeMap<Instant, Long>) values).firstKey();
+        Instant now = clock.instant();
+        for (Instant t = SeriesFrequency.HOUR.floor(from); t.isBefore(to); t = SeriesFrequency.HOUR.next(t)) {
+            Instant end = SeriesFrequency.HOUR.next(t);
+            if (t.isBefore(first) || end.isAfter(now) || (asOf != null && end.isAfter(asOf))) {
+                continue;
+            }
+            Boolean ok = complete.get(t);
+            boolean covered = complete.isEmpty() || ok == null || ok;
+            out.add(new SeriesValue(t, end, covered ? (double) values.getOrDefault(t, 0L) : null, end, covered, null,
+                    null, null));
+        }
+        return out;
     }
 
     // ------------------------------------------------------------------------- rollup:news/ (prompt 133)

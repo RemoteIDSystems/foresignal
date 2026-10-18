@@ -10,6 +10,7 @@ import ai.foresignal.collect.ProbeResult;
 import ai.foresignal.collect.ProbeService;
 import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.settings.SettingKeys;
+import ai.foresignal.social.SocialTopicBlock;
 import ai.foresignal.source.SourceService;
 import ai.foresignal.source.SourceSettingsUpdate;
 import ai.foresignal.source.adapters.gdelt.GdeltTimelineAdapter;
@@ -28,6 +29,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,15 +83,17 @@ public class AttentionTopicService {
     private final ProbeService probes;
     private final AppSettingService settings;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
     /** Creates the service. */
     public AttentionTopicService(AttentionTopicRepository topics, SourceService sources, ProbeService probes,
-            AppSettingService settings, Clock clock) {
+            AppSettingService settings, Clock clock, ApplicationEventPublisher events) {
         this.topics = topics;
         this.sources = sources;
         this.probes = probes;
         this.settings = settings;
         this.clock = clock;
+        this.events = events;
     }
 
     /**
@@ -159,6 +163,7 @@ public class AttentionTopicService {
         apply(topic, input);
         topics.save(topic);
         syncSources();
+        events.publishEvent(new AttentionTopicsChangedEvent(topic.getId()));
         return topic;
     }
 
@@ -179,6 +184,7 @@ public class AttentionTopicService {
         topic.setUpdatedAt(clock.instant());
         topics.save(topic);
         syncSources();
+        events.publishEvent(new AttentionTopicsChangedEvent(topic.getId()));
         return topic;
     }
 
@@ -192,6 +198,7 @@ public class AttentionTopicService {
         topics.delete(get(id));
         topics.flush();
         syncSources();
+        events.publishEvent(new AttentionTopicsChangedEvent(id));
     }
 
     /**
@@ -321,6 +328,9 @@ public class AttentionTopicService {
         tags(errors, "keywords", input.keywords(), MAX_KEYWORDS, null);
         tags(errors, "themes", input.themes(), MAX_TAGS, null);
         tags(errors, "regionCodes", input.regionCodes(), MAX_TAGS, REGION_CODE);
+        if (input.social() != null) {
+            SocialTopicBlock.parse(input.social(), errors);
+        }
         if (!errors.isEmpty()) {
             throw new ValidationException(ErrorCodes.TOPIC_INVALID, "The attention topic is not valid.", errors);
         }
@@ -363,6 +373,8 @@ public class AttentionTopicService {
         topic.setRegionCodes(strip(input.regionCodes()));
         topic.setThemes(strip(input.themes()));
         topic.setEnabled(Boolean.TRUE.equals(input.enabled()));
+        SocialTopicBlock block = SocialTopicBlock.parse(input.social(), null);
+        topic.setSocial(block == null ? null : block.toMap());
     }
 
     private static List<String> strip(List<String> values) {
@@ -390,7 +402,7 @@ public class AttentionTopicService {
         out.put("regionCodes", topic.getRegionCodes());
         out.put("themes", topic.getThemes());
         out.put("enabled", topic.isEnabled());
-        out.put("social", null);
+        out.put("social", topic.getSocial());
         if (topic.getCreatedBy() != null) {
             out.put("createdBy", topic.getCreatedBy());
         }

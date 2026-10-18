@@ -852,6 +852,12 @@ public final class ErrorCodes {
     /** 400: a sketch batch is malformed or its signature does not verify (134). */
     public static final String SKETCH_BATCH_INVALID = "SKETCH_BATCH_INVALID";
 
+    /** 404: no social platform adapter with this id, or no network of this name (135). */
+    public static final String UNKNOWN_PLATFORM = "UNKNOWN_PLATFORM";
+
+    /** 409: the social platform adapter is disabled, so the operation cannot use it (135). */
+    public static final String PLATFORM_DISABLED = "PLATFORM_DISABLED";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

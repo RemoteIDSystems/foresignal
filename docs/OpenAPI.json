@@ -582,6 +582,11 @@
         "version": "1.3.0",
         "date": "2026-10-17",
         "note": "134: listRelatedChronicles, setChronicleDiscoverability, dismissChronicleLink, requestChronicleAccess, listChronicleClusters, getChronicleCluster, getChronicleClusterTimeline, listChronicleAccessRequests, grantChronicleAccessRequest, declineChronicleAccessRequest, setChronicleNetworkSalt and receiveChronicleSketches are implemented, with global evidence keys (ev:, cell:, ent:, at:, topic:) keyed by HMAC-SHA256 under an instance salt (rotated yearly) or a per-network salt (90 days), 128-permutation MinHash sketches per chronicle, key type and salt, LSH discovery (16 bands of 8 rows) nightly and on a sketch change above 10%, links at a minimum of network.minSharedKeys (5) shared keys and 0.05 containment, clusters of medium-or-stronger links, the deduplicated cluster timeline, full and opaque disclosure bounded by visibility, discoverability and TLP, the anti-probing limits (50 keys before discovery, 20 new opaque links per principal per day, churn holds), access requests (10 per day, 30-day suppression after a decline) granted by access list or 132 package, the me events chronicle.link.found and chronicle.access.requested|granted|declined, the inbox notice chronicle.discoverability_lowered, the MCP tool get_related_chronicles, the app settings network.minSharedKeys and network.federated, and CircularReportingDetector (ConfidenceAssessor 1.2.0). Reconciliations (additive): ChronicleSketchBatch gains accessRequests and accessDecisions; AchEvidence gains caveats; the confidence basis gains circularReporting and circularSupports; ChronicleSketchPackage.minhash says 128 values; Problem codes UNKNOWN_LINK, UNKNOWN_CLUSTER, UNKNOWN_ACCESS_REQUEST (404), DISCOVERABILITY_NOT_ALLOWED, CHRONICLE_ALREADY_VISIBLE, ACCESS_REQUEST_DECIDED, FEDERATED_DISCOVERY_DISABLED, NETWORK_SALT_UNKNOWN (409), SKETCH_BATCH_INVALID (400) and REQUEST_RATE_LIMITED (429). Package loop prevention (132) now counts only the hops of the package's own product, so a new report citing this instance's work can come back and is marked CIRCULAR_REPORTING when used as support."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-18",
+        "note": "135: listSocialPlatforms, getSocialPlatform, updateSocialPlatform, getSocialCoverage, getSocialVolume, listSocialPosts and getSocialPost are implemented, with the social-post record kind (externalId {platform}:{postId}, analytic class social, 30 d per platform as the source's retention override; tombstoned versions by deletion sync), the eight platform adapters bluesky-jetstream (Jetstream v2, on by default, cursor = event seq), bluesky-search, mastodon, reddit, youtube, x, threads and instagram-hashtags, the social block of attention topics (stored and validated) and its Aho-Corasick term index, hourly volume series social_volume_hourly with platform-language denominators, SocialBaseline 1.0.0 and the social-velocity finding, the stream gaps and social_coverage tables, the social-attention observability family (method platform-volume; reasons LOW_SOCIAL_COVERAGE and SOCIAL_STREAM_GAP), the money ledger XSpend (SOC-4), the SSE topic social (social.velocity with cursor key o from social_event_log; social.platform.state id-less), the MCP tools get_social_volume and search_social_posts (read, also in the analyst read catalog), SourceHealth.spentUsdThisMonth, the app settings social.languages, social.minRegionBaseline and social.velocity, and the error codes UNKNOWN_PLATFORM and PLATFORM_DISABLED. Reconciliations (additive): SeriesRef accepts social:{scope}/{platform}/{metric}[/{language}] and social:all/{platform}/denominator; SocialPlatformSettings.options gains maxResults and fieldsParam (X); the SocialPlatformSettings.mode example is counts."
       }
     ]
   },
@@ -81467,7 +81472,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "135",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/social/platforms/{platformId}": {
@@ -81547,7 +81552,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "135",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -81636,7 +81641,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "135",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/social/coverage": {
@@ -81782,7 +81787,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "135",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/social/volume": {
@@ -81962,7 +81967,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "135",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/social/posts": {
@@ -82124,7 +82129,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "135",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/social/posts/{platform}/{postId}": {
@@ -82217,7 +82222,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "135",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/social/narratives": {
@@ -86756,7 +86761,8 @@
           {
             "code": "BUDGET_EXCEEDED",
             "status": 429,
-            "prompt": "010"
+            "prompt": "010",
+            "note": "a request would exceed a source's call budget; 135: a paid social call (X) would exceed the platform's monthly money cap, with the properties monthlyCapUsd, spentThisMonth and estimateUsd"
           },
           {
             "code": "ALREADY_RUNNING",
@@ -87438,7 +87444,7 @@
             "code": "SERIES_REF_INVALID",
             "status": 400,
             "prompt": "119",
-            "note": "getAnalyticsSeriesData, upsertAnalysisSeries, deleteAnalysisSeries, listFindings, createEventStudy: the series reference is not series:{sourceId}/{seriesId}, rollup:{hour|day}/{sourceId|*}/{kind}/{region|cell:h3}, rule:{ruleId}/{groupKey} or rollup:news/{topicId|situationId}/{left|center|right|unrated|state} (133)"
+            "note": "getAnalyticsSeriesData, upsertAnalysisSeries, deleteAnalysisSeries, listFindings, createEventStudy: the series reference is not series:{sourceId}/{seriesId}, rollup:{hour|day}/{sourceId|*}/{kind}/{region|cell:h3}, rule:{ruleId}/{groupKey}, rollup:news/{topicId|situationId}/{left|center|right|unrated|state} (133) or social:{scope}/{platform}/{metric}[/{language}] (135)"
           },
           {
             "code": "SERIES_NOT_FOUND",
@@ -87811,6 +87817,18 @@
             "status": 400,
             "prompt": "133",
             "note": "importMediaRatings: unknown provider, malformed CSV or JSON, rows missing for an operator, AllSides or MBFC import, or no usable row"
+          },
+          {
+            "code": "UNKNOWN_PLATFORM",
+            "status": 404,
+            "prompt": "135",
+            "note": "getSocialPlatform, updateSocialPlatform: no social platform adapter has that id; getSocialCoverage, getSocialVolume, listSocialPosts, getSocialPost: no network of that name has social data"
+          },
+          {
+            "code": "PLATFORM_DISABLED",
+            "status": 409,
+            "prompt": "135",
+            "note": "an operation that needs a social platform adapter to be collecting (137 cues) found it disabled"
           }
         ]
       },
@@ -99044,7 +99062,7 @@
       "SeriesRef": {
         "type": "string",
         "pattern": "^(series|rollup|rule|social):.+$",
-        "description": "Series reference (Intelligence-Design §4.3): `series:{sourceId}/{seriesId}` (093/117 series; `series:imf-portwatch-chokepoints/{portId}` for PortWatch daily transits), `rollup:{hour|day}/{sourceId|*}/{kind}/{region|cell:h3}` (activity rollups; `*` is the cross-source event count with canonical events counted once) `rule:{ruleId}/{groupKey}` (100 anomaly rule samples) or `rollup:news/{topicId|situationId}/{bucket}` (133: daily news coverage in evidence groups by lean bucket left, center, right, unrated or state); `social:` arrives with 135",
+        "description": "Series reference (Intelligence-Design §4.3): `series:{sourceId}/{seriesId}` (093/117 series; `series:imf-portwatch-chokepoints/{portId}` for PortWatch daily transits), `rollup:{hour|day}/{sourceId|*}/{kind}/{region|cell:h3}` (activity rollups; `*` is the cross-source event count with canonical events counted once) `rule:{ruleId}/{groupKey}` (100 anomaly rule samples) or `rollup:news/{topicId|situationId}/{bucket}` (133: daily news coverage in evidence groups by lean bucket left, center, right, unrated or state); or `social:{topic|place|entity}:{id}/{platform}/{metric}[/{language}]` (135: hourly social mention volume of a scope on one network, metric posts, uniqueAuthors, reposts or engagement, every language summed unless a language bucket is given; `social:all/{platform}/denominator[/{language}]` is the platform-language denominator; complete and paged collection only)",
         "example": "series:cftc-cot/067651.disagg.mm_net"
       },
       "TimeRange": {
@@ -131623,7 +131641,7 @@
         ]
       },
       "AttentionTopic": {
-        "description": "An attention topic; enabled topics are synced into the topics param of gdelt-timelines and wikimedia-pageviews (117)",
+        "description": "An attention topic; enabled topics are synced into the topics param of gdelt-timelines and wikimedia-pageviews (117), and their social blocks drive the social term index (135)",
         "allOf": [
           {
             "$ref": "#/components/schemas/AttentionTopicInput"
@@ -160339,7 +160357,7 @@
               "null"
             ],
             "description": "Adapter mode: x `counts` | `search` | `counts+search`; others null",
-            "example": "web-preview"
+            "example": "counts"
           },
           "channels": {
             "type": "array",
@@ -160421,6 +160439,22 @@
               "comments": {
                 "type": "boolean",
                 "description": "YouTube comment threads"
+              },
+              "maxResults": {
+                "type": "integer",
+                "minimum": 10,
+                "maximum": 100,
+                "default": 10,
+                "description": "X: max_results of a recent search (each post returned is billed)"
+              },
+              "fieldsParam": {
+                "type": "string",
+                "enum": [
+                  "post",
+                  "tweet"
+                ],
+                "default": "post",
+                "description": "X: the field parameter naming, post.fields (the live OpenAPI) or tweet.fields (the data dictionary); X's documents disagree (135)"
               }
             },
             "additionalProperties": true

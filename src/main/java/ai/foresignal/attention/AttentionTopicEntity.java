@@ -15,8 +15,9 @@ import org.hibernate.type.SqlTypes;
  * An operator-defined attention topic (prompt 117, table {@code attention_topic}): what drives the
  * {@code gdelt-timelines} and {@code wikimedia-pageviews} sources, and the keywords prompt 118's linker uses.
  *
- * <p>The model is additive: prompt 135 adds a {@code social} block (terms per language, hashtags, accounts,
- * channels, platforms, places, entities) as a further column without changing these.
+ * <p>The model is additive: prompt 135 adds the {@code social} block (terms per language, hashtags, accounts,
+ * channels, excludes, platforms, places, regions, entities, mode) as the jsonb column {@code social}, parsed by
+ * {@code ai.foresignal.social.SocialTopicBlock}.
  */
 @Entity
 @Table(name = "attention_topic")
@@ -53,6 +54,10 @@ public class AttentionTopicEntity {
 
     @Column(name = "enabled", nullable = false)
     private boolean enabled;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "social")
+    private Map<String, Object> social;
 
     @Column(name = "created_by", length = 200)
     private String createdBy;
@@ -155,6 +160,16 @@ public class AttentionTopicEntity {
     /** Sets the themes. */
     public void setThemes(List<String> themes) {
         this.themes = themes == null ? new ArrayList<>() : new ArrayList<>(themes);
+    }
+
+    /** The social block (prompt 135), or null when the topic has none. */
+    public Map<String, Object> getSocial() {
+        return social;
+    }
+
+    /** Sets the social block (prompt 135), or null for none. */
+    public void setSocial(Map<String, Object> social) {
+        this.social = social == null ? null : new java.util.LinkedHashMap<>(social);
     }
 
     /** True when the topic drives the attention sources. */

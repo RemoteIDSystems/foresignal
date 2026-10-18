@@ -532,6 +532,24 @@ class FamilyDefaultsTest {
                     new ai.foresignal.source.adapters.gdelt.GdeltArticlesAdapter("").descriptor(), "bulk-event")),
             Map.entry("MediaRatingsAdapter", new Entry(
                     new ai.foresignal.source.adapters.media.MediaRatingsAdapter().descriptor(), "reference")),
+            // Prompt 135: social posts are the social class (30 d per platform, social.postRetention); volume series,
+            // narratives and claims are kept as series and intel. Mastodon's trend series-points keep the series class.
+            Map.entry("BlueskyJetstreamAdapter", new Entry(new ai.foresignal.source.adapters.bluesky
+                    .BlueskyJetstreamAdapter("", (ai.foresignal.social.SocialRuntime) null).descriptor(), "social")),
+            Map.entry("BlueskySearchAdapter", new Entry(new ai.foresignal.source.adapters.bluesky
+                    .BlueskySearchAdapter("", (ai.foresignal.social.SocialRuntime) null).descriptor(), "social")),
+            Map.entry("MastodonAdapter", new Entry(new ai.foresignal.source.adapters.mastodon
+                    .MastodonAdapter("", (ai.foresignal.social.SocialRuntime) null).descriptor(), "social")),
+            Map.entry("RedditAdapter", new Entry(new ai.foresignal.source.adapters.reddit
+                    .RedditAdapter("", (ai.foresignal.social.SocialRuntime) null).descriptor(), "social")),
+            Map.entry("YouTubeAdapter", new Entry(new ai.foresignal.source.adapters.youtube
+                    .YouTubeAdapter("", (ai.foresignal.social.SocialRuntime) null).descriptor(), "social")),
+            Map.entry("XAdapter", new Entry(new ai.foresignal.source.adapters.x
+                    .XAdapter("", (ai.foresignal.social.SocialRuntime) null).descriptor(), "social")),
+            Map.entry("ThreadsAdapter", new Entry(new ai.foresignal.source.adapters.threads
+                    .ThreadsAdapter("", (ai.foresignal.social.SocialRuntime) null).descriptor(), "social")),
+            Map.entry("InstagramHashtagsAdapter", new Entry(new ai.foresignal.source.adapters.instagram
+                    .InstagramHashtagsAdapter("", (ai.foresignal.social.SocialRuntime) null).descriptor(), "social")),
             Map.entry("WikimediaPageviewsAdapter", new Entry(
                     new ai.foresignal.source.adapters.wikimedia.WikimediaPageviewsAdapter("").descriptor(),
                     "bulk-event")),

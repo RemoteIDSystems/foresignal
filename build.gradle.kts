@@ -128,6 +128,8 @@ dependencies {
     // is on the runtime classpath (ParquetClasspathTest).
     compileOnly(libs.hadoop.common) { isTransitive = false }
     implementation(libs.flatgeobuf)
+    // Social post language detection (135): Lingua, restricted to social.languages.
+    implementation(libs.lingua)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))

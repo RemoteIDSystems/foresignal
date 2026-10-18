@@ -9,8 +9,8 @@ import java.util.Map;
 /**
  * One source's health, shaped like the OpenAPI {@code SourceHealth} schema (FR-10).
  *
- * <p>{@code lastDoctorReport} and {@code spentUsdThisMonth} are added by the prompts that own them (140,
- * 135) and are not here yet; {@code details} arrived with 063.
+ * <p>{@code lastDoctorReport} is added by the prompt that owns it (140); {@code details} arrived with 063 and
+ * {@code spentUsdThisMonth} with 135.
  *
  * @param sourceId the source
  * @param status the derived status
@@ -39,6 +39,7 @@ import java.util.Map;
  * @param frameAgeSeconds product sources: the newest frame's age, or null
  * @param details adapter-specific details from the {@link HealthDetailsContributor}s, or null when there
  *     are none (063: aisstream {@code compressionEnabled})
+ * @param spentUsdThisMonth paid adapters: US dollars spent this calendar month (135), or null
  */
 public record SourceHealthView(
         String sourceId,
@@ -66,4 +67,40 @@ public record SourceHealthView(
         Double budgetHoursRemaining,
         Instant newestFrameAt,
         Long frameAgeSeconds,
-        Map<String, Object> details) {}
+        Map<String, Object> details,
+        Double spentUsdThisMonth) {
+
+    /** A view of a source that spends no money (the members before prompt 135). */
+    public SourceHealthView(
+            String sourceId,
+            HealthStatus status,
+            String statusReason,
+            Instant lastAttemptAt,
+            Instant lastSuccessAt,
+            Instant lastErrorAt,
+            String lastError,
+            Integer lastHttpStatus,
+            int consecutiveFailures,
+            int lastRecordsSeen,
+            int lastRecordsChanged,
+            double errorRateLastHour,
+            Instant backoffUntil,
+            Budget budget,
+            long budgetUsedToday,
+            Long budgetRemainingToday,
+            long refusedLastHour,
+            long requestsLastHour,
+            long bytesLastHour,
+            CoverageSample coverage,
+            SourceStorage storage,
+            Instant lastDataAt,
+            Double budgetHoursRemaining,
+            Instant newestFrameAt,
+            Long frameAgeSeconds,
+            Map<String, Object> details) {
+        this(sourceId, status, statusReason, lastAttemptAt, lastSuccessAt, lastErrorAt, lastError, lastHttpStatus,
+                consecutiveFailures, lastRecordsSeen, lastRecordsChanged, errorRateLastHour, backoffUntil, budget,
+                budgetUsedToday, budgetRemainingToday, refusedLastHour, requestsLastHour, bytesLastHour, coverage,
+                storage, lastDataAt, budgetHoursRemaining, newestFrameAt, frameAgeSeconds, details, null);
+    }
+}
