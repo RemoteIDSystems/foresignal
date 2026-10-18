@@ -68,7 +68,8 @@ import tools.jackson.databind.json.JsonMapper;
  *       other forecasters' numbers.</li>
  *   <li><b>Proposer</b>: 102 proposals ({@code propose_hypothesis_set} validated as a 125 draft,
  *       {@code propose_indicator}, {@code propose_watch}, {@code propose_question} validated by 122,
- *       {@code propose_situation_merge}), pending unless the profile allows actions and the 123 benchmark gate passes.</li>
+ *       {@code propose_situation_merge}, and since prompt 131 {@code propose_chronicle}, whose chronicle is created at
+ *       once as {@code proposed}), pending unless the profile allows actions and the 123 benchmark gate passes.</li>
  * </ul>
  */
 @Component
@@ -118,6 +119,14 @@ public class CycleRoles {
         this.jdbc = jdbc;
         this.json = json;
         this.clock = clock;
+    }
+
+    private ObjectProvider<ai.foresignal.analyst.ChronicleProposalHandler> chronicleProposals;
+
+    /** Injects the {@code propose_chronicle} handler (prompt 131); optional in slices without chronicles. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void setChronicleProposals(ObjectProvider<ai.foresignal.analyst.ChronicleProposalHandler> chronicleProposals) {
+        this.chronicleProposals = chronicleProposals;
     }
 
     /** The key of a profile in forecaster ids: its id in lower case, or {@code default}. */
@@ -834,7 +843,17 @@ public class CycleRoles {
             proposal.setPayload(spec.payload());
             proposal.setRationale(spec.rationale());
             proposal.setCitations(spec.citations());
-            saved.add(proposals.save(proposal));
+            AnalystProposalEntity stored = proposals.save(proposal);
+            if (ai.foresignal.analyst.AnalystActions.PROPOSE_CHRONICLE.equals(stored.getType())
+                    && chronicleProposals != null && chronicleProposals.getIfAvailable() != null) {
+                try {
+                    chronicleProposals.getIfAvailable().created(stored);
+                    stored = proposals.save(stored);
+                } catch (RuntimeException e) {
+                    outcome.warn("proposed chronicle not created: " + e.getMessage());
+                }
+            }
+            saved.add(stored);
             outcome.proposal(proposal.getId());
         }
         AnalystProposalEvents events = proposalEvents.getIfAvailable();
@@ -869,6 +888,12 @@ public class CycleRoles {
             }
             case ai.foresignal.analyst.AnalystActions.PROPOSE_WATCH -> payload.put("rule", args.get("rule"));
             case ai.foresignal.analyst.AnalystActions.PROPOSE_QUESTION -> payload.put("question", args.get("question"));
+            case ai.foresignal.analyst.AnalystActions.PROPOSE_CHRONICLE -> {
+                payload.put("situationId", args.get("situationId"));
+                payload.put("area", args.get("area"));
+                payload.put("topic", args.get("topic"));
+                payload.put("name", args.get("name"));
+            }
             default -> {
                 payload.put("situationId", args.get("situationId"));
                 payload.put("intoId", args.get("intoId"));
@@ -905,6 +930,17 @@ public class CycleRoles {
                         return "no question";
                     }
                     ForecastInputs.question(json.valueToTree(question), now);
+                }
+                case ai.foresignal.analyst.AnalystActions.PROPOSE_CHRONICLE -> {
+                    ai.foresignal.analyst.ChronicleProposalHandler handler = chronicleProposals == null ? null
+                            : chronicleProposals.getIfAvailable();
+                    if (handler == null) {
+                        return "chronicles are not available";
+                    }
+                    String problem = handler.validate(payload);
+                    if (problem != null) {
+                        return problem;
+                    }
                 }
                 case ai.foresignal.analyst.AnalystActions.PROPOSE_SITUATION_MERGE -> {
                     String a = text(payload.get("situationId"));

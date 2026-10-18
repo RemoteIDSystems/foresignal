@@ -31,6 +31,9 @@ import org.springframework.context.annotation.DependsOn;
  *       applies {@code embedding_document}'s full-text, spatial and vector DDL at the same point.
  * </ol>
  *
+ * <p>{@code ChronicleSchemaInitializer} (prompt 131) creates the partitioned {@code chronicle_version} parent in the
+ * same way; its statements are listed in {@code ChronicleDdl}.
+ *
  * <p>When Flyway is introduced for production (prompt 144), this DDL moves into the baseline
  * migration and the initializers are deleted; the {@link PartitionManager} stays.
  */
@@ -80,6 +83,16 @@ public class SchemaBootstrap {
     @Bean
     public SpatialIndexInitializer spatialIndexInitializer(DataSource dataSource) {
         return new SpatialIndexInitializer(dataSource);
+    }
+
+    /**
+     * Creates the partitioned {@code chronicle_version} parent and its partitioned indexes (prompt 131); leaves are
+     * created per chronicle on activation. Hibernate never maps the table.
+     */
+    @Bean
+    @DependsOn(POSTGIS_INITIALIZER_BEAN)
+    public ai.foresignal.chronicle.ChronicleSchemaInitializer chronicleSchemaInitializer(DataSource dataSource) {
+        return new ai.foresignal.chronicle.ChronicleSchemaInitializer(dataSource);
     }
 
     /** Creates the held-versions table for legal holds (prompt 111) before Hibernate. */

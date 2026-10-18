@@ -56,7 +56,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              "relationId": "relationId",
              # 130: principals, groups, tags, attachments, evidence items and saved searches.
              "principalId": "principalId", "groupId": "groupId", "tagId": "tagId", "attachmentId": "attachmentId",
-             "evidenceItemId": "evidenceItemId", "savedSearchId": "savedSearchId"}
+             "evidenceItemId": "evidenceItemId", "savedSearchId": "savedSearchId",
+             # 131: chronicles and their layers.
+             "chronicleId": "chronicleId", "layerId": "chronicleLayerId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -166,6 +168,14 @@ RAW_BODIES = {
   "updateEvidenceItem": ("application/merge-patch+json", json.dumps({"sourceReliability": "B",
                                                                      "informationCredibility": 2}, indent=2), "json"),
   "updateSavedSearch": ("application/merge-patch+json", json.dumps({"notify": True}, indent=2), "json"),
+  # 131: merge patches of a chronicle (send If-Match with its ETag to guard against a concurrent change) and of a
+  # layer (the new definition applies from the edit's seq onward).
+  "updateChronicle": ("application/merge-patch+json", json.dumps({"description": "Regional war monitoring, 2026",
+                                                                  "sizeCapBytes": 32212254720, "retention": "forever"},
+                                                                 indent=2), "json"),
+  "updateChronicleLayer": ("application/merge-patch+json", json.dumps({"capture": {"mode": "downsampled",
+                                                                                   "interval": "PT120S"}}, indent=2),
+                           "json"),
   "ntfyPublish": ("text/plain", "Backup finished on pve1", "text"),
   "ntfyPublishPut": ("text/plain", "Disk usage above 90% on nas", "text"),
   # 036: a watchlist CSV import (header value[,label,notes,tags]; tags separated by ;).
@@ -865,6 +875,48 @@ BODIES = {
                                                   "quietHours": {"start": "22:00", "end": "07:00"},
                                                   "enabled": True}]},
   "putWorkspaceLayout": {"panels": ["globe", "timeline", "dossier"], "globe": {"pitch": 45}},
+  # 131: the Middle East example with five layers (conflict events, military aircraft and vessels near the Gulf and
+  # the Red Sea, NOTAMs and TFRs, GPS-jamming cells and the linked situation), created proposed; then activation with a
+  # one-week backfill, a further layer, a suggestion from a situation, an export and moving the thread read cursor.
+  "createChronicle": {"name": "Middle East war 2026",
+                      "description": "Conflict, military movements, airspace, jamming and the linked situation.",
+                      "visibility": "private", "tlp": "AMBER",
+                      "area": {"regionCodes": ["IL", "LB", "SY", "IQ", "IR", "YE", "SA"],
+                               "geometry": {"type": "Polygon", "coordinates": [[[32.0, 12.0], [60.0, 12.0],
+                                                                                [60.0, 38.0], [32.0, 38.0],
+                                                                                [32.0, 12.0]]]},
+                               "bufferKm": 50},
+                      "retention": "forever", "sizeCapBytes": 21474836480,
+                      "situationIds": ["{{situationId}}"], "hypothesisSetIds": [], "topicIds": [],
+                      "layers": [
+                          {"name": "Conflict events", "selector": {"type": "records", "sources": ["acled", "ucdp-ged"],
+                                                                   "kinds": ["conflict-event"]},
+                           "capture": {"mode": "full"}},
+                          {"name": "Military aircraft", "selector": {"type": "records", "sources": ["adsblol"],
+                                                                     "kinds": ["aircraft"],
+                                                                     "conditions": [{"path": "military", "op": "==",
+                                                                                     "value": True}]},
+                           "capture": {"mode": "downsampled", "interval": "PT60S"}},
+                          {"name": "Vessels in the Gulf and the Red Sea",
+                           "selector": {"type": "records", "sources": ["aisstream"], "kinds": ["vessel"]},
+                           "areaOverride": {"geometry": {"type": "MultiPolygon", "coordinates": [
+                               [[[32.0, 12.0], [44.0, 12.0], [44.0, 30.0], [32.0, 30.0], [32.0, 12.0]]],
+                               [[[47.0, 23.0], [57.0, 23.0], [57.0, 31.0], [47.0, 31.0], [47.0, 23.0]]]]}},
+                           "capture": {"mode": "downsampled", "interval": "PT120S"}},
+                          {"name": "NOTAMs, TFRs and GPS jamming",
+                           "selector": {"type": "records", "sources": ["faa-notam", "faa-tfr", "gpsjam-daily"]},
+                           "capture": {"mode": "events-only"}},
+                          {"name": "Situation and members", "selector": {"type": "situations",
+                                                                         "situationIds": ["{{situationId}}"]},
+                           "capture": {"mode": "full"}}],
+                      "activate": False},
+  "activateChronicle": {"backfill": {"from": "2026-10-10T00:00:00Z"}},
+  "createChronicleLayer": {"name": "Energy prices", "selector": {"type": "series",
+                                                                 "refs": ["series:eia-steo/BREPUUS"]},
+                           "capture": {"mode": "full"}, "enabled": True},
+  "suggestChronicle": {"situationId": "{{situationId}}"},
+  "exportChronicle": {"format": "geoparquet", "layers": [], "from": None, "to": None},
+  "markChronicleThreadRead": {"upToId": 0},
   # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
   # one nautical mile in the next hour.
   "cpaBatch": {"subject": "aisstream/244660000", "filter": {"kinds": ["vessel"], "sources": [],
@@ -930,6 +982,9 @@ CAPTURE = {
   "uploadAttachment": "const j = pm.response.json(); pm.collectionVariables.set('attachmentId', j.id);",
   "createEvidenceItem": "const j = pm.response.json(); pm.collectionVariables.set('evidenceItemId', j.id);",
   "createSavedSearch": "const j = pm.response.json(); pm.collectionVariables.set('savedSearchId', j.id);",
+  # 131: the chronicle (and its display id, the confirmation of a delete) and the added layer.
+  "createChronicle": "const j = pm.response.json(); pm.collectionVariables.set('chronicleId', j.id); pm.collectionVariables.set('chronicleDisplayId', j.displayId);",
+  "createChronicleLayer": "const j = pm.response.json(); pm.collectionVariables.set('chronicleLayerId', j.id);",
   # 126: the queued index fit (a 103 job: read it with getBacktest).
   "fitRegionalIndex": "const j = pm.response.json(); pm.collectionVariables.set('jobId', j.id);",
   # 117: the created attention topic.
@@ -1129,7 +1184,9 @@ VARIANTS = {
 
 QUERY_DEFAULTS = {"after": "{{lastSeq}}", "cursor": "{{cursor}}", "source": "{{sourceId}}", "ruleId": "{{ruleId}}",
                   # 119: every query parameter named ref is a series reference.
-                  "ref": "{{seriesRef}}"}
+                  "ref": "{{seriesRef}}",
+                  # 131: a chronicle is deleted with its display id as confirmation.
+                  "confirm": "{{chronicleDisplayId}}"}
 
 def example_for(schema):
     t = schema.get("type"); t = t[0] if isinstance(t, list) else t

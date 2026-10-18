@@ -87,16 +87,19 @@ public class RasterRetentionStep implements RetentionStep {
     private final AtomicLong arrival = new AtomicLong();
     private final ObjectProvider<FlashStore> flashes;
     private final ai.foresignal.raster.model.FieldStore fieldStore;
+    private final ObjectProvider<FramePin> pins;
 
     /**
      * Creates the step.
      *
      * @param flashes the GLM flash store (prompt 048), resolved lazily; null for none
      * @param fieldStore the wind field files (prompt 051), swept with their runs
+     * @param pins the frame pins (prompt 131 chronicles); a pinned frame is never deleted by the ladder or the quota
      */
     public RasterRetentionStep(ProductRegistry registry, RasterFrameQueries frames, FrameStore store, GridStore grids,
             RasterSettings settings, IngestQueue queue, ProductUrls urls, JsonMapper json, MediaQueries media,
-            ObjectProvider<FlashStore> flashes, ai.foresignal.raster.model.FieldStore fieldStore) {
+            ObjectProvider<FlashStore> flashes, ai.foresignal.raster.model.FieldStore fieldStore,
+            ObjectProvider<FramePin> pins) {
         this.registry = registry;
         this.frames = frames;
         this.store = store;
@@ -108,6 +111,25 @@ public class RasterRetentionStep implements RetentionStep {
         this.media = media;
         this.flashes = flashes;
         this.fieldStore = fieldStore;
+        this.pins = pins;
+    }
+
+    /** True when a {@link FramePin} (a chronicle, prompt 131) holds {@code frame}; such a frame is never deleted here. */
+    boolean pinned(RasterFrameRow frame) {
+        if (pins == null) {
+            return false;
+        }
+        for (FramePin pin : pins) {
+            try {
+                if (pin.pinned(frame.productId(), frame.frameKey())) {
+                    return true;
+                }
+            } catch (RuntimeException e) {
+                log.warn("A frame pin failed for {}/{}; keeping the frame", frame.productId(), frame.frameId(), e);
+                return true;
+            }
+        }
+        return false;
     }
 
     /** The flash store, or null when none is installed. */
@@ -172,7 +194,7 @@ public class RasterRetentionStep implements RetentionStep {
             }
             FrameThinning.Plan plan = FrameThinning.plan(product.spec(), frames.allFrames(product.id()), now);
             for (RasterFrameRow frame : plan.delete()) {
-                if (deleteFrame(frame.productId(), frame.frameId())) {
+                if (!pinned(frame) && deleteFrame(frame.productId(), frame.frameId())) {
                     deleted++;
                 }
             }
@@ -199,14 +221,22 @@ public class RasterRetentionStep implements RetentionStep {
             if (oldest.isEmpty()) {
                 break;
             }
+            long before = deleted;
             for (RasterFrameRow frame : oldest) {
                 if (bytes <= quota) {
                     break;
+                }
+                if (pinned(frame)) {
+                    continue;
                 }
                 if (deleteFrame(frame.productId(), frame.frameId())) {
                     bytes -= frame.bytes();
                     deleted++;
                 }
+            }
+            if (deleted == before) {
+                // Every remaining candidate is pinned by a chronicle (prompt 131): stop rather than loop.
+                break;
             }
         }
         if (deleted > 0) {

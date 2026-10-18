@@ -55,6 +55,7 @@ public class RetentionJob implements IngestStateReset {
 
     private final List<RetentionStep> steps;
     private final List<RetentionConsumer> consumers;
+    private final List<RetentionConsumerProvider> providers;
     private final RetentionResolver resolver;
     private final RetentionStateStore state;
     private final SeqClockQuery seqClock;
@@ -69,14 +70,20 @@ public class RetentionJob implements IngestStateReset {
     private volatile RetentionRunResult lastResult;
     private volatile List<RetentionRun.Lag> lastLags = List.of();
 
-    /** Creates the job. */
-    public RetentionJob(List<RetentionStep> steps, List<RetentionConsumer> consumers, RetentionResolver resolver,
+    /**
+     * Creates the job.
+     *
+     * @param providers the providers of run-time consumers (prompt 131 chronicles), asked at the start of each run
+     */
+    public RetentionJob(List<RetentionStep> steps, List<RetentionConsumer> consumers,
+            List<RetentionConsumerProvider> providers, RetentionResolver resolver,
             RetentionStateStore state, SeqClockQuery seqClock, NamedParameterJdbcTemplate jdbc,
             RetentionProperties properties, ApplicationEventPublisher events, MeterRegistry meters, Clock clock) {
         List<RetentionStep> ordered = new ArrayList<>(steps);
         ordered.sort(Comparator.comparingInt(RetentionStep::order));
         this.steps = List.copyOf(ordered);
         this.consumers = List.copyOf(consumers);
+        this.providers = providers == null ? List.of() : List.copyOf(providers);
         this.resolver = resolver;
         this.state = state;
         this.seqClock = seqClock;
@@ -126,9 +133,23 @@ public class RetentionJob implements IngestStateReset {
         return lastLags;
     }
 
-    /** The registered consumers, in registration order. */
+    /**
+     * The consumers in force: the registered beans in registration order, then those of every
+     * {@link RetentionConsumerProvider} (one per active chronicle, prompt 131). A provider that fails contributes none.
+     */
     public List<RetentionConsumer> consumers() {
-        return consumers;
+        if (providers.isEmpty()) {
+            return consumers;
+        }
+        List<RetentionConsumer> all = new ArrayList<>(consumers);
+        for (RetentionConsumerProvider provider : providers) {
+            try {
+                all.addAll(provider.retentionConsumers());
+            } catch (RuntimeException e) {
+                log.warn("A retention consumer provider failed; its consumers do not clamp this run", e);
+            }
+        }
+        return List.copyOf(all);
     }
 
     /**
@@ -143,7 +164,7 @@ public class RetentionJob implements IngestStateReset {
         long start = System.nanoTime();
         try {
             Instant now = clock.instant();
-            RetentionRun run = new RetentionRun(now, resolver.settings(), jdbc, seqClock, consumers);
+            RetentionRun run = new RetentionRun(now, resolver.settings(), jdbc, seqClock, consumers());
             for (RetentionStep step : steps) {
                 try {
                     step.run(run);

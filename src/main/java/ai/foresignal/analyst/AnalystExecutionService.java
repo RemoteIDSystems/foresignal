@@ -102,6 +102,23 @@ public class AnalystExecutionService {
         this.proposalEvents = proposalEvents;
     }
 
+    private ObjectProvider<ChronicleProposalHandler> chronicleProposals;
+
+    /** Injects the {@code propose_chronicle} handler (prompt 131); optional in slices without chronicles. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void setChronicleProposals(ObjectProvider<ChronicleProposalHandler> chronicleProposals) {
+        this.chronicleProposals = chronicleProposals;
+    }
+
+    /** Activates the chronicle of a {@code propose_chronicle} proposal (prompt 131). */
+    private String activateChronicle(AnalystProposalEntity proposal, boolean auto, String actor) {
+        ChronicleProposalHandler handler = chronicleProposals == null ? null : chronicleProposals.getIfAvailable();
+        if (handler == null) {
+            throw new IllegalStateException("chronicles are not available");
+        }
+        return handler.execute(proposal, auto, actor);
+    }
+
     /** Announces a proposal change on the {@code analyst} topic when the publisher is present. */
     private void announce(AnalystProposalEntity proposal, String change) {
         AnalystProposalEvents events = proposalEvents == null ? null : proposalEvents.getIfAvailable();
@@ -244,6 +261,7 @@ public class AnalystExecutionService {
                 case AnalystActions.PROPOSE_INDICATOR -> createIndicator(proposal, privateAccess);
                 case AnalystActions.PROPOSE_QUESTION -> openQuestion(proposal, actor);
                 case AnalystActions.PROPOSE_SITUATION_MERGE -> mergeSituations(proposal, actor, privateAccess);
+                case AnalystActions.PROPOSE_CHRONICLE -> activateChronicle(proposal, auto, actor);
                 default -> throw new IllegalStateException("unknown proposal type " + proposal.getType());
             });
             proposal.setStatus("executed");

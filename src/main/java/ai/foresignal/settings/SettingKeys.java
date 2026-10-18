@@ -290,6 +290,21 @@ public final class SettingKeys {
     /** The durable seq cursor of the relation projector (prompt 129; the consumer clamp of retention). */
     public static final String RELATION_CURSOR = "relation.cursor";
 
+    /** The default size cap of a new chronicle, in GB (prompt 131, {@code chronicle.defaultCapGb}); 20. */
+    public static final String CHRONICLE_DEFAULT_CAP_GB = "chronicle.defaultCapGb";
+
+    /** How many proposed chronicles the analysis cycles may activate on their own per UTC day (prompt 131); 2. */
+    public static final String CHRONICLE_AUTO_ACTIVATE_PER_DAY = "chronicle.autoActivatePerDay";
+
+    /** The size cap of a chronicle the analysis cycles activate on their own, in GB (prompt 131); 5. */
+    public static final String CHRONICLE_AUTO_ACTIVATE_CAP_GB = "chronicle.autoActivateCapGb";
+
+    /**
+     * The chronicle thread's poll positions (prompt 131): the last {@code hypothesis_log} id and the last forecast
+     * resolution time read for band-change and resolution items.
+     */
+    public static final String CHRONICLE_THREAD_CURSORS = "chronicle.threadCursors";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -305,7 +320,9 @@ public final class SettingKeys {
                     ANALYSIS_PRECURSORS_DISCOVERY_FRACTION, PRECURSOR_CURSOR, PRECURSOR_STREAM_CURSORS,
                     BASERATE_FOLD_WEEK, FORECAST_ENSEMBLE, BENCHMARK_THRESHOLDS,
                     ANALYSIS_FORECASTS_QUESTION_SERIES, IMPACT_CURSOR, IMPACT_MIN_PROBABILITY,
-                    IMPACT_QUESTION_MIN_PROBABILITY, IMPACT_ASSET_BUFFER_KM, RELATION_CURSOR);
+                    IMPACT_QUESTION_MIN_PROBABILITY, IMPACT_ASSET_BUFFER_KM, RELATION_CURSOR,
+                    CHRONICLE_DEFAULT_CAP_GB, CHRONICLE_AUTO_ACTIVATE_PER_DAY, CHRONICLE_AUTO_ACTIVATE_CAP_GB,
+                    CHRONICLE_THREAD_CURSORS);
 
     private SettingKeys() {}
 }

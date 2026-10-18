@@ -27,6 +27,21 @@ public final class MeEvents {
     /** The events this prompt emits. */
     public static final List<String> ALL = List.of(SHARE_RECEIVED, MENTION, COMMENT_REPLY, SAVED_SEARCH_MATCHES);
 
+    /**
+     * The analysis cycles proposed a chronicle to its owner (prompt 131). Inbox and personal channels only: it is not
+     * an event of the {@code me} topic.
+     */
+    public static final String CHRONICLE_PROPOSED = "chronicle.proposed";
+
+    /** A chronicle reached 90% of its size cap (prompt 131); inbox and personal channels only. */
+    public static final String CHRONICLE_CAP_WARNING = "chronicle.cap_warning";
+
+    /** A chronicle fell behind global retention and has a capture gap (prompt 131); inbox and personal channels only. */
+    public static final String CHRONICLE_GAP = "chronicle.gap";
+
+    /** The chronicle events of prompt 131. */
+    public static final List<String> CHRONICLE = List.of(CHRONICLE_PROPOSED, CHRONICLE_CAP_WARNING, CHRONICLE_GAP);
+
     /** Longest comment excerpt, in characters. */
     public static final int EXCERPT_MAX = 280;
 
@@ -39,6 +54,7 @@ public final class MeEvents {
             case MENTION -> "mention";
             case COMMENT_REPLY -> "comment-reply";
             case SAVED_SEARCH_MATCHES -> "saved-search";
+            case CHRONICLE_PROPOSED, CHRONICLE_CAP_WARNING, CHRONICLE_GAP -> "chronicle";
             default -> "system";
         };
     }
@@ -49,6 +65,7 @@ public final class MeEvents {
             case SHARE_RECEIVED -> "share";
             case MENTION -> "mention";
             case COMMENT_REPLY -> "comment-reply";
+            case CHRONICLE_PROPOSED, CHRONICLE_CAP_WARNING, CHRONICLE_GAP -> "chronicle";
             default -> null;
         };
     }

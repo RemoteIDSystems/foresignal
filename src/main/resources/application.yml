@@ -134,6 +134,20 @@ foresignal:
     keep-exif: false
     max-upload-mb: 50
     saved-search-scheduled: true
+  # Chronicles (prompt 131): the capture loop follows record_version from each active chronicle's durable cursor
+  # (auto-start), reading at most chunk-seqs per pass and sleeping poll-interval when idle; at most
+  # first-appearances-per-hour first-appearance thread items per layer; rollup:/rule: series layers are sampled every
+  # series-sample-interval; the chronicles' own retention runs hourly; backfills, archives and restores run on their
+  # own virtual threads. The default size cap and the auto-activation caps are app settings (chronicle.defaultCapGb,
+  # chronicle.autoActivatePerDay, chronicle.autoActivateCapGb).
+  chronicles:
+    auto-start: true
+    poll-interval: 2s
+    chunk-seqs: 10000
+    first-appearances-per-hour: 20
+    series-sample-interval: 15m
+    retention-scheduled: true
+    async-jobs: true
   # Discovery (119): analysis-series auto-registration (02:00 UTC), change points (03:00 and :20), unexplained moves
   # (04:00), co-occurrence (05:00) and the live event-study poll (every minute). Off in tests.
   analytics:

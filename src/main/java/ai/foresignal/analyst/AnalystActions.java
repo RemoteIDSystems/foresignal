@@ -5,7 +5,8 @@ import java.util.Set;
 /**
  * The analyst's allowed action types (prompt 102). Prompt 128 adds the analysis-cycle proposer's types:
  * {@code propose_hypothesis_set}, {@code propose_indicator}, {@code propose_question} and
- * {@code propose_situation_merge}. Nothing here deletes or disables anything.
+ * {@code propose_situation_merge}; prompt 131 adds {@code propose_chronicle}. Nothing here deletes or disables
+ * anything.
  */
 public final class AnalystActions {
 
@@ -33,9 +34,13 @@ public final class AnalystActions {
     /** Merge one situation into another (prompt 128). */
     public static final String PROPOSE_SITUATION_MERGE = "propose_situation_merge";
 
+    /** Propose a chronicle for an emerging situation or a new theme; executing it activates it (prompt 131). */
+    public static final String PROPOSE_CHRONICLE = "propose_chronicle";
+
     /** Every action an operator may allow today. */
     public static final Set<String> ALL = Set.of(PROPOSE_WATCH, PROPOSE_INTEL_EVENT, PROPOSE_INVESTIGATION_ITEM,
-            ANNOTATE_EVENT, PROPOSE_HYPOTHESIS_SET, PROPOSE_INDICATOR, PROPOSE_QUESTION, PROPOSE_SITUATION_MERGE);
+            ANNOTATE_EVENT, PROPOSE_HYPOTHESIS_SET, PROPOSE_INDICATOR, PROPOSE_QUESTION, PROPOSE_SITUATION_MERGE,
+            PROPOSE_CHRONICLE);
 
     private AnalystActions() {}
 }

@@ -189,7 +189,11 @@ class EventSchemaConformanceTest {
             entry(ai.foresignal.collab.MeEvents.MENTION, () -> commentEvents("mention")),
             entry(ai.foresignal.collab.MeEvents.COMMENT_REPLY, () -> commentEvents("reply")),
             entry(ai.foresignal.collab.MeEvents.SAVED_SEARCH_MATCHES,
-                    EventSchemaConformanceTest::savedSearchMatchesEvents));
+                    EventSchemaConformanceTest::savedSearchMatchesEvents),
+            // 131: ChronicleTopic sends ChronicleThreadService.item for thread items and the status snapshot.
+            entry(ai.foresignal.chronicle.ChronicleTopic.ITEM_EVENT, EventSchemaConformanceTest::chronicleItemEvents),
+            entry(ai.foresignal.chronicle.ChronicleTopic.STATUS_EVENT,
+                    EventSchemaConformanceTest::chronicleStatusEvents));
 
     /** A {@code PrincipalSummary} as {@code PrincipalViews.summary} writes it (prompt 130). */
     static Map<String, Object> principalSummary() {
@@ -235,6 +239,53 @@ class EventSchemaConformanceTest {
                         refs, at)),
                 toTree(ai.foresignal.collab.MeEvents.savedSearchMatches("01JA8Q3V7S2K9W4T6Y1B5N0M3H", "Convoys", 1,
                         List.of("evidence-item:01JA8Q3V7S2K9W4T6Y1B5N0M3J"), at)));
+    }
+
+    /** A saved thread item with an id, as the SSE topic reads it (prompt 131). */
+    static ai.foresignal.chronicle.ChronicleEventEntity chronicleItem(String type, long id) {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        ai.foresignal.chronicle.ChronicleEventEntity row = new ai.foresignal.chronicle.ChronicleEventEntity(
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3C", type, at, "Chronicle item " + type, at);
+        org.springframework.test.util.ReflectionTestUtils.setField(row, "id", id);
+        return row;
+    }
+
+    /** {@code chronicle.item} payloads as {@code ChronicleThreadService.item} writes them (prompt 131). */
+    static List<JsonNode> chronicleItemEvents() {
+        ai.foresignal.chronicle.ChronicleEventEntity first = chronicleItem("first-appearance", 7);
+        first.setSeq(42L);
+        first.setLayerId("01JA8Q3V7S2K9W4T6Y1B5N0M3D");
+        first.setRef("record:acled/YEM123@42");
+        first.setSnapshot(Map.of("sourceId", "acled", "externalId", "YEM123"));
+        ai.foresignal.chronicle.ChronicleEventEntity gap = chronicleItem("capture-gap", 8);
+        gap.setSummary("global retention removed versions");
+        gap.setGap(Map.of("from", "2026-10-16T00:00:00Z", "to", "2026-10-17T00:00:00Z", "reason", "clamp released"));
+        ai.foresignal.chronicle.ChronicleEventEntity backfill = chronicleItem("backfill", 9);
+        backfill.setBackfilled(true);
+        return List.of(toTree(ai.foresignal.chronicle.ChronicleTopic.frameData(first)),
+                toTree(ai.foresignal.chronicle.ChronicleTopic.frameData(gap)),
+                toTree(ai.foresignal.chronicle.ChronicleTopic.frameData(backfill)));
+    }
+
+    /** {@code chronicle.status} payloads as {@code ChronicleThreadService.statusChange} writes them (prompt 131). */
+    static List<JsonNode> chronicleStatusEvents() {
+        ai.foresignal.chronicle.ChronicleEventEntity activated = chronicleItem("status-change", 10);
+        Map<String, Object> event = new java.util.LinkedHashMap<>();
+        event.put("chronicleId", "01JA8Q3V7S2K9W4T6Y1B5N0M3C");
+        event.put("status", "active");
+        event.put("previousStatus", "proposed");
+        event.put("capState", "ok");
+        event.put("bytesUsed", 0L);
+        event.put("reason", "activated");
+        event.put("at", "2026-10-17T06:00:00Z");
+        activated.setSnapshot(event);
+        ai.foresignal.chronicle.ChronicleEventEntity first = chronicleItem("status-change", 11);
+        Map<String, Object> proposed = new java.util.LinkedHashMap<>(event);
+        proposed.put("status", "proposed");
+        proposed.put("previousStatus", null);
+        first.setSnapshot(proposed);
+        return List.of(toTree(ai.foresignal.chronicle.ChronicleTopic.frameData(activated)),
+                toTree(ai.foresignal.chronicle.ChronicleTopic.frameData(first)));
     }
 
     /** {@code workspace.context} payloads as {@code WorkspaceTopic.contextPayload} writes them (prompt 129). */

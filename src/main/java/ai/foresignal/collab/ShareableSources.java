@@ -53,7 +53,9 @@ public class ShareableSources {
 
     /** {@code workspace}. */
     @Bean
-    public ShareableSource workspaceShareableSource(WorkspaceRepository workspaces) {
+    public ShareableSource workspaceShareableSource(WorkspaceRepository workspaces,
+            org.springframework.jdbc.core.JdbcTemplate jdbc,
+            org.springframework.beans.factory.ObjectProvider<AccessResolver> access) {
         return new ShareableSource() {
             @Override
             public String type() {
@@ -66,12 +68,45 @@ public class ShareableSources {
                         w.getMembers().isEmpty() ? Visibility.PRIVATE : Visibility.SHARED, null));
             }
 
+            /**
+             * A member's role, else (prompt 131) the principal's role on the chronicle that owns the workspace: editors
+             * and owners of the chronicle edit its workspace, viewers and commenters view it.
+             */
             @Override
             public AclRole intrinsicRole(String id, String principalId) {
-                return workspaces.findById(id).map(w -> w.getMembers().get(principalId))
+                AclRole member = workspaces.findById(id).map(w -> w.getMembers().get(principalId))
                         .map(r -> "editor".equals(r) ? AclRole.EDITOR : AclRole.VIEWER).orElse(null);
+                if (member != null) {
+                    return member;
+                }
+                return chronicleRole(id, principalId, jdbc, access);
             }
         };
+    }
+
+    /** The principal's role on the chronicle owning workspace {@code workspaceId} (prompt 131), mapped, or null. */
+    static AclRole chronicleRole(String workspaceId, String principalId, org.springframework.jdbc.core.JdbcTemplate jdbc,
+            org.springframework.beans.factory.ObjectProvider<AccessResolver> access) {
+        if (principalId == null || jdbc == null || access == null) {
+            return null;
+        }
+        try {
+            java.util.List<String> owners = jdbc.queryForList("SELECT id FROM chronicle WHERE workspace_id = ? LIMIT 1",
+                    String.class, workspaceId);
+            AccessResolver resolver = access.getIfAvailable();
+            if (owners.isEmpty() || resolver == null) {
+                return null;
+            }
+            String role = resolver.grantedRole("chronicle:" + owners.getFirst(), new ai.foresignal.object.ObjectCaller(
+                    principalId, principalId, ai.foresignal.security.Scope.READ, false, java.util.Set.of()));
+            if (role == null) {
+                return null;
+            }
+            AclRole granted = AclRole.fromWire(role);
+            return granted.atLeast(AclRole.EDITOR) ? AclRole.EDITOR : AclRole.VIEWER;
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     /** {@code annotation}. */

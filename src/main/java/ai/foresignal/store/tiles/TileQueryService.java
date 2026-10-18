@@ -220,13 +220,16 @@ public class TileQueryService {
         return sql.toString();
     }
 
-    /** {@code column} clipped to the latitudes Web Mercator can show (see {@link #CLIPPED_GEOM}). */
-    static String clipped(String column) {
+    /**
+     * {@code column} clipped to the latitudes Web Mercator can show (see {@link #CLIPPED_GEOM}); public for the
+     * chronicle tiles of prompt 131, which render chronicle storage with the same machinery.
+     */
+    public static String clipped(String column) {
         return "ST_ClipByBox2D(" + column + ", ST_MakeEnvelope(-180, -85.06, 180, 85.06, 4326))";
     }
 
-    /** {@code ST_TileEnvelope(z, x, y)} with bound integers. */
-    static String envelope(TileCoordinates c, SqlParams p) {
+    /** {@code ST_TileEnvelope(z, x, y)} with bound integers (public for the prompt 131 chronicle tiles). */
+    public static String envelope(TileCoordinates c, SqlParams p) {
         return "ST_TileEnvelope(CAST(" + p.add(c.z()) + " AS integer), CAST(" + p.add(c.x())
                 + " AS integer), CAST(" + p.add(c.y()) + " AS integer))";
     }

@@ -80,8 +80,9 @@ Two Server-Sent Events endpoints push changes as they are committed (typically w
   `radiusKm`, `payload` (default false), `live` (default true) and `touches` (default false).
 - `GET /v1/events/stream` multiplexes topics on one connection: `topics=changes,alerts`, and
   `notifications`, `system`, `inbox`, `intel`, `evidence`, `analyst`, `situations`, `analytics`, `forecasts`,
-  `hypotheses`, `assessments`, `workspace` and `me` (130: the caller's own `share.received`, `mention`,
-  `comment.reply` and `saved-search.matches`, resumable by id) as their prompts add them. Filters take the topic as a prefix
+  `hypotheses`, `assessments`, `workspace`, `me` (130: the caller's own `share.received`, `mention`,
+  `comment.reply` and `saved-search.matches`, resumable by id) and `chronicle` (131: `chronicle.item` and
+  `chronicle.status` of the chronicles the caller can see, filter `chronicle.chronicleId`) as their prompts add them. Filters take the topic as a prefix
   (`changes.bbox=…`, `changes.live=false`, `alerts.minSeverity=warning`). The first event is `hello {streamId, topics,
   watermarkSeq, filterVersion}`. The filter can be swapped without reconnecting (below).
 
@@ -703,6 +704,11 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `tag_objects` | read | Labels up to 500 object references at once with a tag (130): `tagId`, or `tag` by name (a personal tag is created when you see none of that name); `remove: true` removes it. References you cannot see are skipped and listed, not errors. |
 | `comment` | read | Starts a comment thread on an object (`ref`) or replies in one (`replyTo`), `body` ≤ 10,000 characters (130). `@handle` mentions notify only principals who can see the object; the rest come back in `droppedMentions`. On a work product it needs the commenter role. |
 | `share_object` | agent | Shares a work product you own or edit with `grantees` (`principal:{id or handle}`, `group:{id}`, `instance`) as `viewer`, `commenter` or `editor`, with an optional `message` and `expiresAt`, and notifies them (130). The object's TLP label decides who may receive it (`TLP_VIOLATION` names the rule); every share is audited. |
+| `list_chronicles` | read, always authenticated | The chronicles you own or that are shared with you (131): `status` (`proposed`, `active`, `paused`, `stopped`, `archived`), `scope` (`mine`, `shared`, `all`), `situationId`, `q`, `limit`; each with its layers and capture modes, capture span, `bytesUsed` against `sizeCapBytes`, `capState` and your `unreadCount`. |
+| `get_chronicle_thread` | read, always authenticated | A chronicle's thread, oldest first (131): `chronicleId` (or its display id), `after`, `types`, `cursor`, `limit`. Alerts, findings, situation changes, hypothesis band changes, forecast resolutions, first appearances, layer edits, capture gaps, cap warnings and status changes, each with the snapshot kept at the time. |
+| `get_chronicle_state` | read, always authenticated | What a chronicle recorded at a moment (131): `chronicleId`, `at`, optional `layer`, `cursor`, `limit`. Per layer, the latest captured version of each entity observed and known by then and still valid, from the chronicle's own storage (independent of global retention), with `caveats` such as `CAPTURE_GAP` and `BEFORE_CAPTURE`. |
+| `create_chronicle` | agent | Creates a chronicle you own (131): `name`, optional `description`, `visibility`, `tlp`, `area`, `retention`, `sizeCapBytes`, links (`situationIds`, `hypothesisSetIds`, `investigationIds`, `topicIds`), `layers` (selector, optional `areaOverride`, `capture`) and `activate`. It stays `proposed` (no capture) unless `activate` is true. |
+| `add_chronicle_layer` | agent | Adds a layer to a chronicle you may edit (131): `chronicleId`, `name`, `selector`, optional `areaOverride`, `capture`, `enabled`. Capture for the layer starts from now; earlier history is not copied. |
 | `list_products` | read | The weather and imagery products you may sample: `id`, `title`, `kind`, `units`, `coverage`, `latest` (newest frame or complete run) and `health` (`ok`, or `unavailable` with the reason); optional `category` (052). |
 | `sample_weather` | read | Product values at `lon`/`lat` or a `place` (needs a token), `time` `latest`, `now`, ISO or an offset (`-PT1H`, `+PT6H`), each with `validTime`, `localTime`, `ageMinutes`, `run`, `coverage` and `status`; plus `hazards`: NWS alerts covering the point (`automated: false`) and ProbSevere objects within 50 km (`automated: true`). A status other than `ok` is unknown, never clear (052). |
 | `weather_forecast` | read | A 3-hourly point forecast to 120 h (`hours`) from the stored GFS and HRRR runs: temperature, wind, gusts, precipitation per step and HRRR smoke, with each provider's `run` and `status` (052). For a place it adds provider `nws` (053): the official NWS gridpoint forecast to 72 h with precipitation probability (`popPct`) and sky cover, `coverage: place`, its `updatedAt`, and `status` `stale` once it is more than 6 hours old. |
@@ -813,6 +819,27 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
   `F` cannot be judged) and information credibility (`1` confirmed … `6` cannot be judged); default to `F6` rather
   than guess. A link in an evidence item is never fetched by Foresignal: it is a pointer, not verified content.
 
+### Chronicles
+
+- **A chronicle is a recording, not a query.** While it is active it copies what its layers match into its own
+  storage; `get_chronicle_state` answers "what had we recorded by then" from that copy, long after global retention
+  removed the source rows. Quote the moment (`at`) with what you report, and say so when a `CAPTURE_GAP` or
+  `BEFORE_CAPTURE` caveat applies: a gap means versions were lost to global retention before capture, never that
+  nothing happened.
+- **Capture modes thin on purpose.** `downsampled` keeps one version per entity per interval (plus every event
+  version), `events-only` keeps first appearances, significant changes, reappearances, tombstones and trigger edges,
+  `rollup-only` keeps only counts, and `frames` every Nth raster frame. Do not read a gap between two downsampled
+  points as the entity standing still. At the size cap, full and downsampled layers fall back to events-only and the
+  thread says so (`cap-fallback`).
+- **Create sparingly and check the cost.** Prefer a chronicle the analysis cycles proposed (the owner accepts it) to a
+  new one. Before `create_chronicle` with `activate: true`, read the projected storage (`GET /v1/chronicles/{id}/estimate`
+  after creating it proposed); keep layers narrow (sources and kinds, an area) and prefer `downsampled` for tracks.
+- **Cite thread items by their object.** A thread item carries the reference (`alert:…`, `finding:…`,
+  `situation:…`, `record:…@seq`) and the snapshot kept when it happened; cite the reference and say when the object
+  itself is gone and you are quoting the snapshot.
+- **Chronicles are work products.** They are private until shared, carry a TLP label, and their exports print it;
+  apply the collaboration rules above.
+
 ### Vocabulary
 
 - A **watch** is a trigger rule: conditions on sources, kinds, payload fields and geofences. When a record matches, the watch raises an **alert**, which can be acknowledged, resolved or snoozed.
@@ -820,8 +847,10 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 - An **object reference** (`ObjectRef`, prompt 129) names any object as `{type}:{id}`; a record's is
   `record:{sourceId}/{externalId}` (with `@{seq}` for one version).
 - A **principal** (prompt 130) is the person, agent or service behind a token. A **work product** (investigation,
-  workspace, saved search, note, attachment, evidence item, shared tag) has an owner, an access list and a **TLP**
-  label (`CLEAR`, `GREEN`, `AMBER`, `AMBER+STRICT`, `RED`); without access it is invisible.
+  workspace, chronicle, saved search, note, attachment, evidence item, shared tag) has an owner, an access list and a
+  **TLP** label (`CLEAR`, `GREEN`, `AMBER`, `AMBER+STRICT`, `RED`); without access it is invisible.
+- A **chronicle** (prompt 131) is a named monitoring thread whose layers record their own history while it is active;
+  `chronicle:{id}` (or `CHR-yyyy-nnnn`) names it.
 
 ### Citing
 
@@ -1034,6 +1063,8 @@ OpenClaw skill in `integrations/openclaw/foresignal/` packages the same knowledg
 | Verdicts, operator relations, set a workspace's focus | `agent` (focus: the workspace's owner or an editor) |
 | `whoami`, shared-with-me, tags, comments, attachments, evidence items, saved searches | `read` (a token; work products also need their access-list role) |
 | Share a work product, change its access list, create groups | `agent` (and the owner's or an editor's role) | |
+| Read chronicles, their threads and replay | `read` (a token, and the chronicle's viewer role) | |
+| Create chronicles, add layers, change their lifecycle | `agent` (and the owner's or an editor's role) | |
 | Push records into a custom source | the source's ingest key (`eik_…`) | the source (admin) |
 | Channels, sources, credentials, LLM providers, tokens, settings | `admin` | never an agent |
 

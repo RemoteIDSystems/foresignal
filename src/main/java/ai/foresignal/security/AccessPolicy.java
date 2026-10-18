@@ -637,6 +637,37 @@ public class AccessPolicy {
                 rule(HttpMethod.DELETE, "/v1/saved-searches/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/saved-searches/*/results", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
 
+                // ---- Chronicles (prompt 131): reads, the thread and its read cursor need a token at read scope
+                // (the controller checks the viewer role); creating, changing, layers, the lifecycle, suggestions and
+                // exports are agent operations (the controller checks editor or owner). Each 131 route has its own
+                // rule, so the 134 chronicle-network routes under /v1/chronicles/{id}/ keep falling to admin until
+                // they are built. ----
+                rule(HttpMethod.GET, "/v1/chronicles", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/chronicles", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/chronicles/suggest", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/chronicles/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PATCH, "/v1/chronicles/*", AccessRequirement.AGENT),
+                rule(HttpMethod.DELETE, "/v1/chronicles/*", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/chronicles/*/layers", AccessRequirement.AGENT),
+                rule(HttpMethod.PATCH, "/v1/chronicles/*/layers/*", AccessRequirement.AGENT),
+                rule(HttpMethod.DELETE, "/v1/chronicles/*/layers/*", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/chronicles/*/activate", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/chronicles/*/pause", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/chronicles/*/resume", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/chronicles/*/stop", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/chronicles/*/archive", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/chronicles/*/restore", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/chronicles/*/estimate", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/chronicles/*/export", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/chronicles/*/thread", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/chronicles/*/thread/read", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/chronicles/*/state", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/chronicles/*/tiles/**", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/chronicles/*/frames", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/chronicles/*/tracks/*/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/chronicles/*/series", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/chronicles/*/summary", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+
                 // ---- Objects, relations, annotations and workspaces (prompt 129): object reads, graph queries, the
                 // context summary, precision, sensor discovery and deep links are reads; annotations and workspaces are
                 // read-scope writes that the controllers hold to a token (verdicts and workspace metadata changes check

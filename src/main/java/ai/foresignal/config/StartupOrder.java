@@ -169,5 +169,12 @@ public final class StartupOrder {
      */
     public static final int RELATIONS = 41;
 
+    /**
+     * Chronicle capture (prompt 131): its change-bus subscriber, the situation and alert listeners and the capture loop
+     * start after every structure they read (situations, intel, relations); capture reads {@code record_version} from
+     * each chronicle's durable cursor, so starting late loses nothing.
+     */
+    public static final int CHRONICLES = 42;
+
     private StartupOrder() {}
 }

@@ -97,6 +97,7 @@ public class ExportJobService {
     private final Clock clock;
 
     private final Map<String, ReadRestriction> restrictions = new ConcurrentHashMap<>();
+    private final Map<String, CustomExport> customs = new ConcurrentHashMap<>();
     private final Set<String> canceled = ConcurrentHashMap.newKeySet();
 
     /** Creates the service. */
@@ -170,6 +171,99 @@ public class ExportJobService {
         jobs.save(job);
         enqueue(job.getId(), caller.restriction());
         return job;
+    }
+
+    /**
+     * Submits an export whose rows a {@link CustomExport} writes (prompt 131: chronicle storage), with the decision
+     * already taken by the caller (sources allowed, excluded and for personal use). The job is saved {@code QUEUED}
+     * and runs on the worker after the transaction commits, like {@link #submit}.
+     *
+     * @param format the wire format recorded on the job (for example {@code geoparquet} or {@code json-bundle})
+     * @param spec the job's spec, stored as given
+     * @param decision the license decision
+     * @param caller the caller
+     * @param export writes the file
+     * @return the queued job
+     * @throws ForesignalException {@code 409 EXPORT_QUOTA} when the export directories are full
+     */
+    @Transactional
+    public ExportJobEntity submitCustom(String format, Map<String, Object> spec, ExportLicenceService.Decision decision,
+            Caller caller, CustomExport export) {
+        checkQuota();
+        Instant now = clock.instant();
+        ExportJobEntity job = new ExportJobEntity(Ulids.next(now), ExportJobEntity.EXPORT, format, now);
+        job.setPrincipal(caller.principal());
+        job.setPersonalUse(!decision.personalUseSources().isEmpty());
+        job.setExpiresAt(now.plus(properties.ttl()));
+        job.setSpec(new LinkedHashMap<>(spec));
+        job.setPlan(basePlan(decision));
+        job.setLicenceSummary(licenses.summary(decision, Map.of()));
+        job.setDir(store.dirOf(job).toString());
+        jobs.save(job);
+        customs.put(job.getId(), export);
+        worker.submit(() -> runCustom(job.getId()));
+        return job;
+    }
+
+    /** Runs the custom export job {@code id} on this thread (the worker calls this). */
+    void runCustom(String id) {
+        ExportJobEntity job = jobs.findById(id).orElse(null);
+        CustomExport export = customs.remove(id);
+        if (job == null || job.terminal()) {
+            return;
+        }
+        if (canceled.remove(id)) {
+            finish(job, ExportJobEntity.CANCELLED, null);
+            return;
+        }
+        if (export == null) {
+            finish(job, ExportJobEntity.FAILED, "The job lost its caller context (restart); submit it again.");
+            return;
+        }
+        long start = System.nanoTime();
+        job.setStatus(ExportJobEntity.RUNNING);
+        job.setStartedAt(clock.instant());
+        job.setProgress(1);
+        jobs.save(job);
+        Path dir = store.dirOf(job);
+        Path tmp = store.tmpDir(job);
+        Path tmpFile = tmp.resolve(id + "." + export.extension());
+        try {
+            Files.createDirectories(tmp);
+            CustomExport.Result result = export.write(tmpFile, () -> canceled.contains(id));
+            if (canceled.contains(id)) {
+                throw new CanceledExport();
+            }
+            if (usedBytes() > quotaBytes()) {
+                throw new ExportLimitException("The export directories crossed the " + properties.diskQuotaGb()
+                        + " GiB quota (exports.diskQuotaGb) while writing.");
+            }
+            Path finalFile = publish(tmpFile, dir.resolve(tmpFile.getFileName()));
+            ExportStore.deleteTree(tmp);
+            long bytes = Files.size(finalFile);
+            ExportManifests.ExportFile file = new ExportManifests.ExportFile(finalFile.getFileName().toString(),
+                    export.mediaType(), bytes, ExportManifests.sha256(finalFile), result.rows());
+            ExportLicenceService.Decision decision = decision(job.getPlan());
+            Map<String, Object> summary = licenses.summary(decision, result.rowsBySource());
+            job.setWatermarkSeq(result.watermarkSeq());
+            job.setRowCount(result.rows());
+            job.setBytes(bytes);
+            job.setLicenceSummary(summary);
+            job.setManifestSha256(manifests.write(dir, job, List.of(file), result.watermarkSeq(), null, summary));
+            job.setProgress(100);
+            finish(job, ExportJobEntity.DONE, null);
+            meters.counter(ROWS_METRIC, "format", job.getFormat()).increment(result.rows());
+            Timer.builder(DURATION_METRIC).tag("format", job.getFormat()).description("Export and snapshot run time")
+                    .register(meters).record(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+        } catch (CanceledExport e) {
+            deleteQuietly(dir);
+            canceled.remove(id);
+            finish(job, ExportJobEntity.CANCELLED, null);
+        } catch (IOException | RuntimeException e) {
+            log.warn("Custom export job {} failed", id, e);
+            deleteQuietly(dir);
+            finish(job, ExportJobEntity.FAILED, e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+        }
     }
 
     /** {@code 403} when {@code includePrivate} is asked without admin. */
@@ -604,7 +698,7 @@ public class ExportJobService {
     public void failInterrupted() {
         try {
             for (ExportJobEntity job : jobs.findByStatusIn(List.of(ExportJobEntity.QUEUED, ExportJobEntity.RUNNING))) {
-                if (!restrictions.containsKey(job.getId())) {
+                if (!restrictions.containsKey(job.getId()) && !customs.containsKey(job.getId())) {
                     deleteQuietly(store.dirOf(job).resolve("tmp"));
                     finish(job, ExportJobEntity.FAILED, "Interrupted by a restart; submit it again.");
                 }

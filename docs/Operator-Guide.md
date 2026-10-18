@@ -6980,7 +6980,8 @@ Every object has a reference of the form `{type}:{id}`: `record:{sourceId}/{exte
 `alert:{id}`, `investigation:{id}`, `place:{id}`, `view:{id}`, `watchlist:{id}`, `source:{id}`,
 `sensor:{kind}:{id}`, `workspace:{id}` and `annotation:{id}`, and since prompt 130 `principal:{id or handle}`,
 `group:{id}`, `tag:{id}`, `attachment:{id}`, `evidence-item:{id}` and `saved-search:{id}`. `GET /v1/contract` (read)
-lists the types, the relation types, the confidence labels and the client kinds with the contract version (`1.1`).
+lists the types, the relation types, the confidence labels and the client kinds with the contract version (`1.2`
+since prompt 131 added `chronicle:{id}`).
 
 In a URL path the reference is one segment, so its `/` is written `%2F`
 (`GET /v1/objects/record:usgs-quakes%2Fus7000abcd`). Foresignal's Tomcat connector passes encoded slashes through for
@@ -7109,8 +7110,8 @@ analyst's read catalog), `annotate` (read for notes, agent for verdicts) and `se
 Foresignal can serve several named people and agents on one instance without becoming a user directory. Everyone
 works through a **principal** that holds scoped tokens; there are no passwords. Records and analytic objects stay
 readable per scope as before; **work products** (investigations, workspaces, saved searches, notes, attachments,
-evidence items, shared tags, and the chronicles and reports of later prompts) get an owner, an access list and a TLP
-label.
+evidence items, shared tags, chronicles (prompt 131) and the reports of later prompts) get an owner, an access list and
+a TLP label.
 
 ### Principals and their tokens
 
@@ -7263,3 +7264,132 @@ and personal notifications never appear in the device inbox or on the `notificat
 
 `whoami`, `list_shared_with_me`, `tag_objects` and `comment` (read) and `share_object` (agent). `annotate` follows the
 same comment rules, and `create_investigation` and `add_to_investigation` respect ownership and the editor role.
+
+## Chronicles (prompt 131)
+
+A **chronicle** is a named monitoring thread that records its own history: "Middle East air and sea, from today". It
+has **layers** (what to capture), a chronological **thread** (what happened, with an unread count per person) and a
+**replay** of exactly what it captured. Global retention never removes a chronicle's copy: only the chronicle's own
+`retention` or its deletion does. A chronicle is a 130 work product: it has an owner, an access list and a TLP label,
+and without a role it answers `404 UNKNOWN_CHRONICLE`. Each chronicle owns a 129 workspace for the client's layout;
+access to the chronicle gives the same access to the workspace.
+
+### Creating one
+
+`POST /v1/chronicles` (any authenticated token) takes `name`, `description`, `visibility` (default `private`), `tlp`
+(default the instance's), `area` (a place or a geometry; it bounds records, saved views, watchlists, findings, raster
+products and alerts, and applies to entities, situations and series only where a layer sets its own), `retention`
+(`forever`, the default, or an ISO-8601 duration of at least `PT1H`), `sizeCapBytes`, links to situations,
+hypothesis sets, investigations and attention topics, `fromWorkspaceId` (take the area and layers from a 129
+workspace) and up to 100 `layers`. A new chronicle inherits the strictest TLP of its linked investigations and of the
+workspace it was made from. It starts `proposed`; nothing is captured until `POST /v1/chronicles/{id}/activate`.
+`POST /v1/chronicles/suggest` drafts a chronicle (layers, capture modes and its storage estimate) from a `situationId`,
+or from an `area` and a `topic`, deterministically and without an LLM; it creates nothing. Display ids (`CHR-2026-0007`) work in every chronicle path.
+
+A layer has a `selector` and a `capture` mode. Selectors: `records` (sources, kinds and payload conditions),
+`saved-view`, `watchlist`, `entities`, `situations`, `findings`, `series`, `raster-products` and `alerts`. Add, change
+and remove layers with `POST`, `PATCH` and `DELETE /v1/chronicles/{id}/layers[/{layerId}]` (editor). A layer applies
+from the seq at which it was added or changed; it never rewrites what was already captured, and every edit writes a
+`layer-edit` thread item.
+
+### Capture modes
+
+| Mode | What is kept |
+|---|---|
+| `full` | every matching version |
+| `downsampled` | one version per entity per `interval` (default 60 s), plus every event version |
+| `events-only` | versions persisted as FIRST, SIGNIFICANT, REAPPEAR, TOMBSTONE or TRIGGER_EDGE |
+| `latest-per-interval` | the latest version per entity per `interval` bucket |
+| `rollup-only` | counts per region and hour, no records |
+| `frames` | every `everyNthFrame`-th raster frame, by reference; the first frame is always kept |
+
+Intervals run from 1 second to 31 days. Choose `events-only` or `downsampled` for busy TRACK sources (aircraft,
+vessels): they keep the story (first sightings, significant changes, reappearances, edges) at a fraction of the rows.
+
+**How capture works.** An active chronicle's capture loop wakes on the change bus (polling every `poll-interval`, 2 s)
+and always reads `record_version` by seq, in chunks of `chunk-seqs` (10,000), so a burst is never lost. Its position
+is the chronicle's own cursor, `chronicle.cursor.{id}`, which joins retention's consumer clamp like every durable
+consumer: global retention waits for an active chronicle until it has captured, and a stopped or paused chronicle
+holds nothing back. A chronicle that falls more than two windows behind is released like any lagging consumer; what
+retention removed before capture becomes a `capture-gap` thread item, so a gap is shown, never silently skipped.
+Versions are copied into the chronicle's own partition of `chronicle_version`; frames are pinned so raster retention
+keeps them while the chronicle needs them.
+
+**Backfill.** `POST /v1/chronicles/{id}/activate {"backfill": {"from": "2026-10-01T00:00:00Z"}}` also copies the
+matching history that global retention still holds, with each layer's capture mode, marked `backfilled`. A
+`backfill` thread item reports the counts and the caveats: what retention had already removed, and ranges that
+overlap downsampled track history.
+
+### Storage estimates and the size cap
+
+`GET /v1/chronicles/{id}/estimate` projects each layer's rows and bytes per day from the last 24 hours of global
+history (alerts layers from the last 7 days of their rules' alerts), applying the capture mode's share. The area and
+payload conditions are not applied, so the figure is an upper bound and says so in its basis. Read it before
+activating a chronicle with busy TRACK layers in `full` mode.
+
+Every chronicle has a size cap: `sizeCapBytes`, else the app setting `chronicle.defaultCapGb` (20 GB). Bytes are
+counted per captured row. At 90% the chronicle's `capState` becomes `warning`, a `cap-warning` thread item is written
+and the owner gets `chronicle.cap_warning` in the inbox. At 100% it becomes `exceeded`, a `cap-fallback` item is
+written, and `full` and `downsampled` layers fall back to `events-only` (shown as each layer's `effectiveCapture`)
+until you raise the cap or remove layers. Capture never stops silently.
+
+### Stop, archive or delete
+
+| Action | What happens | Reversible |
+|---|---|---|
+| `POST …/pause` / `…/resume` | capture stops and restarts; the paused span is a visible gap | yes |
+| `POST …/stop` | capture ends at the current watermark (`captureToSeq`); the history stays readable and replayable | no (create a new chronicle to continue) |
+| `POST …/archive` (202) | a stopped chronicle is written to a cold package under `${FORESIGNAL_DATA_DIR}/archive/chronicles/` (`manifest.json` and gzip JSON Lines of versions, series and rollups), verified, and its database partition dropped; the thread stays | yes: `POST …/restore` (202) reloads every row and returns it to `stopped` |
+| `DELETE /v1/chronicles/{id}?confirm={displayId}` | drops the captured history, the thread, the layers, the workspace and the access list (owner only) | no |
+
+Any other transition answers `409 CHRONICLE_STATE_INVALID`; deleting without the display id answers
+`409 CHRONICLE_CONFIRMATION_REQUIRED`. Every transition writes a `status-change` thread item. The chronicle's own
+retention (hourly, `retention-scheduled`) removes a stopped chronicle's captured history once `retention` has passed
+since it stopped, and records `historyExpiredAt`; the thread and the definition stay. The archive package is JSON
+Lines rather than GeoParquet; use `POST …/export` when you want GeoParquet.
+
+### The thread
+
+`GET /v1/chronicles/{id}/thread` (`types`, `after`, `cursor`, `limit`) lists, oldest first, alerts, findings, situation
+changes, hypothesis band changes, forecast resolutions, first appearances (capped at `first-appearances-per-hour`, 20,
+per layer per hour), layer edits, capture gaps, cap warnings and fallbacks, status changes and backfills, each with
+its object envelope. `unreadCount` is the caller's own; `POST …/thread/read` marks items read. The SSE topic
+`chronicle` of `/v1/events/stream` carries `chronicle.item` and `chronicle.status` under the same access rules.
+Private data is captured, but only callers with private access see it in the thread and the replay.
+
+### Replay
+
+- `GET …/state?at=` : per layer, the latest captured version of each entity at that moment, with caveats (capture
+  gaps, archived history, the cap fallback);
+- `GET …/tiles/{z}/{x}/{y}.mvt?at=` : the same state as vector tiles;
+- `GET …/frames` : the pinned raster frames; `GET …/tracks/{sourceId}/{externalId}` : one entity's captured track;
+- `GET …/series` : the captured series points (sampled every `series-sample-interval`, 15 min, for computed series);
+- `GET …/summary` : layer counts over time, top entities, links, storage and gaps.
+
+A replay shows what the chronicle **captured**, not everything Foresignal knew: a `downsampled` layer replays the
+kept versions only.
+
+### Proposals
+
+Foresignal proposes a chronicle when a situation turns `active` with severity warning or above, or when a hypothesis
+set opens on a theme no set of the last 30 days had; the 128 proposer can also propose one (`propose_chronicle`). A
+proposal creates a chronicle in status `proposed` (no capture), owned by the analyst profile's owner (else the
+instance owner), who gets `chronicle.proposed` in the inbox; accept it with `POST …/activate`. When the profile's
+`allowedActions` include `propose_chronicle` and the benchmark gate passes, the cycles may activate proposals on their
+own: at most `chronicle.autoActivatePerDay` (2) per UTC day, each with its cap lowered to
+`chronicle.autoActivateCapGb` (5 GB). Beyond that the chronicle stays proposed for a person to accept. A situation is
+never proposed twice.
+
+### Sharing, export and MCP
+
+Share a chronicle like any work product (`POST /v1/objects/chronicle:{id}/share`); a viewer reads its thread, replay
+and workspace and may export, but not change it. `POST /v1/chronicles/{id}/export` (`format`: `geoparquet`, `gpkg` or
+`json-bundle`; optional `layers`, `from`, `to`) queues a 111 export job of the captured history (202, with
+`Foresignal-TLP`); sources the caller may not read are left out and `LOCAL_ONLY` data never leaves. MCP:
+`list_chronicles`, `get_chronicle_thread` and `get_chronicle_state` (read), and `create_chronicle` and
+`add_chronicle_layer` (agent).
+
+**Settings.** App settings `chronicle.defaultCapGb` (20), `chronicle.autoActivatePerDay` (2) and
+`chronicle.autoActivateCapGb` (5); deployment properties under `foresignal.chronicles`: `auto-start`, `poll-interval`
+(2 s), `chunk-seqs` (10,000), `first-appearances-per-hour` (20), `series-sample-interval` (15 min),
+`retention-scheduled` and `async-jobs`.

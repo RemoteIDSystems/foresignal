@@ -33,7 +33,7 @@ public final class CycleOutputTools {
     /** The proposal types the proposer may record (102 pipeline). */
     public static final List<String> PROPOSALS = List.of(AnalystActions.PROPOSE_HYPOTHESIS_SET,
             AnalystActions.PROPOSE_INDICATOR, AnalystActions.PROPOSE_WATCH, AnalystActions.PROPOSE_QUESTION,
-            AnalystActions.PROPOSE_SITUATION_MERGE);
+            AnalystActions.PROPOSE_SITUATION_MERGE, AnalystActions.PROPOSE_CHRONICLE);
 
     private static final TypeReference<LinkedHashMap<String, Object>> MAP = new TypeReference<>() {};
 
@@ -117,6 +117,14 @@ public final class CycleOutputTools {
                 json.valueToTree(object(merge(common, Map.of("situationId", Map.of("type", "string"),
                         "intoId", Map.of("type", "string"), "reason", Map.of("type", "string"))),
                         List.of("situationId", "intoId")))));
+        out.add(new ToolSpec(AnalystActions.PROPOSE_CHRONICLE, "Propose a chronicle (a monitoring thread that records its"
+                + " own history) for an emerging situation (situationId) or an area with a topic; Foresignal builds the"
+                + " layers, capture modes and storage estimate.", json.valueToTree(object(merge(common, Map.of(
+                        "situationId", Map.of("type", "string"),
+                        "area", Map.of("type", "object", "description", "ChronicleArea: geometry, placeIds, regionCodes,"
+                                + " bufferKm"),
+                        "topic", Map.of("type", "string", "description", "An attention topic id or keywords"),
+                        "name", Map.of("type", "string"))), List.of()))));
         return out;
     }
 

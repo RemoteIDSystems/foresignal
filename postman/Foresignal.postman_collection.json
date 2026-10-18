@@ -11284,7 +11284,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('chronicleId', j.id); pm.collectionVariables.set('chronicleDisplayId', j.displayId);",
+                  "}"
                 ]
               }
             }
@@ -11325,7 +11328,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Middle East war 2026\",\n  \"description\": \"Conflict, military movements, airspace, jamming and the linked situation.\",\n  \"visibility\": \"private\",\n  \"tlp\": \"AMBER\",\n  \"area\": {\n    \"regionCodes\": [\n      \"IL\",\n      \"LB\",\n      \"SY\",\n      \"IQ\",\n      \"IR\",\n      \"YE\",\n      \"SA\"\n    ],\n    \"geometry\": {\n      \"type\": \"Polygon\",\n      \"coordinates\": [\n        [\n          [\n            32.0,\n            12.0\n          ],\n          [\n            60.0,\n            12.0\n          ],\n          [\n            60.0,\n            38.0\n          ],\n          [\n            32.0,\n            38.0\n          ],\n          [\n            32.0,\n            12.0\n          ]\n        ]\n      ]\n    },\n    \"bufferKm\": 50\n  },\n  \"retention\": \"forever\",\n  \"sizeCapBytes\": 21474836480,\n  \"situationIds\": [\n    \"{{situationId}}\"\n  ],\n  \"hypothesisSetIds\": [],\n  \"topicIds\": [],\n  \"layers\": [\n    {\n      \"name\": \"Conflict events\",\n      \"selector\": {\n        \"type\": \"records\",\n        \"sources\": [\n          \"acled\",\n          \"ucdp-ged\"\n        ],\n        \"kinds\": [\n          \"conflict-event\"\n        ]\n      },\n      \"capture\": {\n        \"mode\": \"full\"\n      }\n    },\n    {\n      \"name\": \"Military aircraft\",\n      \"selector\": {\n        \"type\": \"records\",\n        \"sources\": [\n          \"adsblol\"\n        ],\n        \"kinds\": [\n          \"aircraft\"\n        ],\n        \"conditions\": [\n          {\n            \"path\": \"military\",\n            \"op\": \"==\",\n            \"value\": true\n          }\n        ]\n      },\n      \"capture\": {\n        \"mode\": \"downsampled\",\n        \"interval\": \"PT60S\"\n      }\n    },\n    {\n      \"name\": \"Vessels in the Gulf and the Red Sea\",\n      \"selector\": {\n        \"type\": \"records\",\n        \"sources\": [\n          \"aisstream\"\n        ],\n        \"kinds\": [\n          \"vessel\"\n        ]\n      },\n      \"areaOverride\": {\n        \"geometry\": {\n          \"type\": \"MultiPolygon\",\n          \"coordinates\": [\n            [\n              [\n                [\n                  32.0,\n                  12.0\n                ],\n                [\n                  44.0,\n                  12.0\n                ],\n                [\n                  44.0,\n                  30.0\n                ],\n                [\n                  32.0,\n                  30.0\n                ],\n                [\n                  32.0,\n                  12.0\n                ]\n              ]\n            ],\n            [\n              [\n                [\n                  47.0,\n                  23.0\n                ],\n                [\n                  57.0,\n                  23.0\n                ],\n                [\n                  57.0,\n                  31.0\n                ],\n                [\n                  47.0,\n                  31.0\n                ],\n                [\n                  47.0,\n                  23.0\n                ]\n              ]\n            ]\n          ]\n        }\n      },\n      \"capture\": {\n        \"mode\": \"downsampled\",\n        \"interval\": \"PT120S\"\n      }\n    },\n    {\n      \"name\": \"NOTAMs, TFRs and GPS jamming\",\n      \"selector\": {\n        \"type\": \"records\",\n        \"sources\": [\n          \"faa-notam\",\n          \"faa-tfr\",\n          \"gpsjam-daily\"\n        ]\n      },\n      \"capture\": {\n        \"mode\": \"events-only\"\n      }\n    },\n    {\n      \"name\": \"Situation and members\",\n      \"selector\": {\n        \"type\": \"situations\",\n        \"situationIds\": [\n          \"{{situationId}}\"\n        ]\n      },\n      \"capture\": {\n        \"mode\": \"full\"\n      }\n    }\n  ],\n  \"activate\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -11384,7 +11387,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"situationId\": \"{{situationId}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -11467,7 +11470,7 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/merge-patch+json"
               }
             ],
             "url": {
@@ -11495,7 +11498,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"description\": \"Regional war monitoring, 2026\",\n  \"sizeCapBytes\": 32212254720,\n  \"retention\": \"forever\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -11521,7 +11524,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/chronicles/{{chronicleId}}?confirm=",
+              "raw": "{{baseUrl}}/v1/chronicles/{{chronicleId}}?confirm={{chronicleDisplayId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -11533,7 +11536,7 @@
               "query": [
                 {
                   "key": "confirm",
-                  "value": "",
+                  "value": "{{chronicleDisplayId}}",
                   "description": "Confirmation: the chronicle's display id",
                   "disabled": false
                 }
@@ -11560,7 +11563,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('chronicleLayerId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -11603,7 +11609,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Energy prices\",\n  \"selector\": {\n    \"type\": \"series\",\n    \"refs\": [\n      \"series:eia-steo/BREPUUS\"\n    ]\n  },\n  \"capture\": {\n    \"mode\": \"full\"\n  },\n  \"enabled\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -11634,11 +11640,11 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/merge-patch+json"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/chronicles/{{chronicleId}}/layers/{{layerId}}",
+              "raw": "{{baseUrl}}/v1/chronicles/{{chronicleId}}/layers/{{chronicleLayerId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -11647,7 +11653,7 @@
                 "chronicles",
                 "{{chronicleId}}",
                 "layers",
-                "{{layerId}}"
+                "{{chronicleLayerId}}"
               ],
               "query": []
             },
@@ -11664,7 +11670,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"capture\": {\n    \"mode\": \"downsampled\",\n    \"interval\": \"PT120S\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -11690,7 +11696,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/chronicles/{{chronicleId}}/layers/{{layerId}}",
+              "raw": "{{baseUrl}}/v1/chronicles/{{chronicleId}}/layers/{{chronicleLayerId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -11699,7 +11705,7 @@
                 "chronicles",
                 "{{chronicleId}}",
                 "layers",
-                "{{layerId}}"
+                "{{chronicleLayerId}}"
               ],
               "query": [
                 {
@@ -11774,7 +11780,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"backfill\": {\n    \"from\": \"2026-10-10T00:00:00Z\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -12116,7 +12122,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"format\": \"geoparquet\",\n  \"layers\": [],\n  \"from\": null,\n  \"to\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -12245,7 +12251,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"upToId\": 0\n}",
               "options": {
                 "raw": {
                   "language": "json"

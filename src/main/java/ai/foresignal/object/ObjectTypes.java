@@ -10,7 +10,7 @@ import java.util.Set;
 public final class ObjectTypes {
 
     /** Contract version in force. */
-    public static final String CONTRACT_VERSION = "1.1";
+    public static final String CONTRACT_VERSION = "1.2";
 
     /** Workspace context schema version (Client-Contract §5). */
     public static final int CONTEXT_SCHEMA_VERSION = 1;
@@ -47,15 +47,16 @@ public final class ObjectTypes {
     public static final String ATTACHMENT = "attachment";
     public static final String EVIDENCE_ITEM = "evidence-item";
     public static final String SAVED_SEARCH = "saved-search";
+    public static final String CHRONICLE = "chronicle";
 
     /**
-     * Every object type in force, in contract order: the 23 types of prompt 129 and the six collaboration types of
-     * prompt 130 (contract 1.1).
+     * Every object type in force, in contract order: the 23 types of prompt 129, the six collaboration types of
+     * prompt 130 (contract 1.1) and {@code chronicle} of prompt 131 (contract 1.2).
      */
     public static final List<String> ALL = List.of(RECORD, ENTITY, CANONICAL_EVENT, INTEL_EVENT, SITUATION, FINDING,
             PRECURSOR, BASE_RATE, HYPOTHESIS_SET, HYPOTHESIS, INDICATOR, QUESTION, FORECAST, ASSESSMENT, ALERT,
             INVESTIGATION, PLACE, VIEW, WATCHLIST, SOURCE, SENSOR, WORKSPACE, ANNOTATION, PRINCIPAL, GROUP, TAG,
-            ATTACHMENT, EVIDENCE_ITEM, SAVED_SEARCH);
+            ATTACHMENT, EVIDENCE_ITEM, SAVED_SEARCH, CHRONICLE);
 
     private static final Set<String> ALL_SET = Set.copyOf(ALL);
 

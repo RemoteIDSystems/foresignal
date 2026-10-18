@@ -122,6 +122,13 @@ foresignal:
   # SavedSearchService.notifyDue() (prompt 130).
   collab:
     saved-search-scheduled: false
+  # Chronicle capture, its listeners and its own retention do not run on their own in tests (prompt 131); the ITs call
+  # ChronicleCaptureService.catchUp(), ChronicleSignals.poll() and ChronicleRetentionJob.run(). Backfills, archives
+  # and restores run on the request thread, so they are finished when the request returns.
+  chronicles:
+    auto-start: false
+    retention-scheduled: false
+    async-jobs: false
 
 logging:
   level:

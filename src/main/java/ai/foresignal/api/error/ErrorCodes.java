@@ -753,6 +753,27 @@ public final class ErrorCodes {
     /** 409: an evidence item still cites the attachment (130). */
     public static final String ATTACHMENT_IN_USE = "ATTACHMENT_IN_USE";
 
+    /** 404: no chronicle has that id or display id, or the caller may not see it (131). */
+    public static final String UNKNOWN_CHRONICLE = "UNKNOWN_CHRONICLE";
+
+    /** 404: the chronicle has no layer with that id (131). */
+    public static final String UNKNOWN_CHRONICLE_LAYER = "UNKNOWN_CHRONICLE_LAYER";
+
+    /** 409: the size cap is below the bytes the chronicle already holds (131). */
+    public static final String CHRONICLE_CAP_EXCEEDED = "CHRONICLE_CAP_EXCEEDED";
+
+    /** 409: the lifecycle transition is not allowed from the chronicle's status (131). */
+    public static final String CHRONICLE_STATE_INVALID = "CHRONICLE_STATE_INVALID";
+
+    /** 400: a chronicle layer's selector, area or capture mode is invalid (131). */
+    public static final String CHRONICLE_LAYER_INVALID = "CHRONICLE_LAYER_INVALID";
+
+    /** 400: deleting a chronicle needs {@code confirm} equal to its display id (131). */
+    public static final String CHRONICLE_CONFIRMATION_REQUIRED = "CHRONICLE_CONFIRMATION_REQUIRED";
+
+    /** 412: the chronicle changed since the version in {@code If-Match} (131). */
+    public static final String CHRONICLE_VERSION_STALE = "CHRONICLE_VERSION_STALE";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}
