@@ -58,8 +58,8 @@ import tools.jackson.databind.json.JsonMapper;
  *       are recomputed, and {@code canonical.created|merged|flagged} goes to the {@code evidence} SSE topic.
  * </ol>
  *
- * <p>Families whose rule is {@code match: "story"} ({@code news-story}, prompt 133) are handed to the
- * {@link StoryFamilyHandler} on this same cursor.
+ * <p>Families whose rule is {@code match: "story"} ({@code news-story}, prompt 133; {@code social-narrative}, prompt
+ * 136) are handed to their {@link StoryFamilyHandler} on this same cursor.
  *
  * <p>Observations are never modified: the resolver reads {@code record_version} and writes only its own
  * tables (MEM-1).
@@ -96,7 +96,7 @@ public class EvidenceResolver implements ChangeListener, DisposableBean, ai.fore
     private final Clock clock;
     private final boolean autoStart;
 
-    private volatile StoryFamilyHandler storyHandler;
+    private volatile List<StoryFamilyHandler> storyHandlers = List.of();
     private volatile Subscription subscription;
     private volatile Thread thread;
     private volatile boolean running;
@@ -122,12 +122,21 @@ public class EvidenceResolver implements ChangeListener, DisposableBean, ai.fore
     }
 
     /**
-     * Installs the resolver of {@code story} families (prompt 133, {@code news-story}); without one their versions are
-     * skipped.
+     * Installs a resolver of {@code story} families (prompt 133, {@code news-story}), replacing the installed ones;
+     * without one their versions are skipped.
+     */
+    public void setStoryHandler(StoryFamilyHandler storyHandler) {
+        this.storyHandlers = storyHandler == null ? List.of() : List.of(storyHandler);
+    }
+
+    /**
+     * Installs the resolvers of {@code story} families (prompt 133 {@code news-story}, prompt 136
+     * {@code social-narrative}); each family goes to the first handler that {@linkplain StoryFamilyHandler#handles
+     * handles} it.
      */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
-    public void setStoryHandler(StoryFamilyHandler storyHandler) {
-        this.storyHandler = storyHandler;
+    public void setStoryHandlers(List<StoryFamilyHandler> handlers) {
+        this.storyHandlers = handlers == null ? List.of() : List.copyOf(handlers);
     }
 
     /** Starts the subscriber and the catch-up thread once the application is ready (unless disabled). */
@@ -234,10 +243,13 @@ public class EvidenceResolver implements ChangeListener, DisposableBean, ai.fore
             return;
         }
         if (StoryFamilyHandler.STORY_MATCH.equals(rule.match())) {
-            StoryFamilyHandler handler = storyHandler;
-            if (handler != null) {
-                handler.process(rule, new StoryFamilyHandler.Observation(row.seq(), row.sourceId(), row.externalId(),
-                        row.kind(), row.version(), row.eventTime(), row.observedAt(), row.payload()));
+            for (StoryFamilyHandler handler : storyHandlers) {
+                if (handler.handles(rule.family())) {
+                    handler.process(rule, new StoryFamilyHandler.Observation(row.seq(), row.sourceId(),
+                            row.externalId(), row.kind(), row.version(), row.eventTime(), row.observedAt(),
+                            row.payload()));
+                    break;
+                }
             }
             return;
         }

@@ -145,7 +145,7 @@ class ReportControllersIT extends ReportItSupport {
         assertThat(objects.find(ai.foresignal.object.ObjectRef.parse("report:" + id),
                 new ResolveContext(stranger.caller(), null))).isEmpty();
         assertThat(ObjectTypes.ALL).contains(ObjectTypes.REPORT, ObjectTypes.REMOTE);
-        assertThat(ObjectTypes.CONTRACT_VERSION).isEqualTo("1.4"); // 133 added news-story and outlet
+        assertThat(ObjectTypes.CONTRACT_VERSION).isEqualTo("1.5"); // 133 added news-story and outlet, 136 narrative and claim
 
         assertThat(call(eve.bearer(), delete("/v1/reports/" + id)).getStatus()).isEqualTo(403);
         assertThat(call(jo.bearer(), delete("/v1/reports/" + id)).getStatus()).isEqualTo(204);

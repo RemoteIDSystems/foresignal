@@ -206,7 +206,88 @@ class EventSchemaConformanceTest {
             // 135: SocialTopic sends SocialEvents.velocityBody (from the finding) and the platformStateBody control event.
             entry(ai.foresignal.social.SocialEvents.VELOCITY, EventSchemaConformanceTest::socialVelocityEvents),
             entry(ai.foresignal.social.SocialEvents.PLATFORM_STATE,
-                    EventSchemaConformanceTest::socialPlatformStateEvents));
+                    EventSchemaConformanceTest::socialPlatformStateEvents),
+            // 136: SocialTopic sends the bodies NarrativeService, MediaReuseDetector and CoordinationRunner build.
+            entry(ai.foresignal.social.narrative.NarrativeVocabulary.EVENT_EMERGED,
+                    () -> narrativeEvents(ai.foresignal.social.narrative.NarrativeVocabulary.EVENT_EMERGED)),
+            entry(ai.foresignal.social.narrative.NarrativeVocabulary.EVENT_UPDATED,
+                    () -> narrativeEvents(ai.foresignal.social.narrative.NarrativeVocabulary.EVENT_UPDATED)),
+            entry(ai.foresignal.social.narrative.NarrativeVocabulary.EVENT_CLAIM,
+                    EventSchemaConformanceTest::claimExtractedEvents),
+            entry(ai.foresignal.social.narrative.NarrativeVocabulary.EVENT_MEDIA_REUSE,
+                    EventSchemaConformanceTest::mediaReuseEvents),
+            entry(ai.foresignal.social.narrative.NarrativeVocabulary.EVENT_COORDINATION,
+                    EventSchemaConformanceTest::coordinationEvents));
+
+    /** A narrative row as the narrative store reads it (prompt 136). */
+    static ai.foresignal.social.narrative.NarrativeStore.Narrative narrativeRow() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        Map<String, Object> platform = new java.util.LinkedHashMap<>();
+        platform.put("platform", "bluesky");
+        platform.put("posts", 3);
+        platform.put("uniqueAuthors", 2);
+        platform.put("firstObservedAt", at.toString());
+        platform.put("earliestPostRef", "record:bluesky-jetstream/bluesky%3Aa1");
+        return new ai.foresignal.social.narrative.NarrativeStore.Narrative("01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+                "Reported explosion and fire in Aden", "claims", null, null, null, null, 0, List.of("red-sea"),
+                List.of(), List.of(), List.of("YE"), List.of("en"), List.of(platform), at, at.plusSeconds(120), 3, 2,
+                2, 1.0, null, List.of(), List.of(), List.of(), "unassessed", "emerging", null, null, null, "CLEAR",
+                null, false, null, 0, at, at);
+    }
+
+    /** {@code narrative.emerged} and {@code narrative.updated} as {@code NarrativeService.narrativeBody} builds them. */
+    static List<JsonNode> narrativeEvents(String event) {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:05:00Z");
+        Map<String, Object> summary = ai.foresignal.social.narrative.NarrativeViews.summary(narrativeRow());
+        return List.of(toTree(ai.foresignal.social.narrative.NarrativeService.narrativeBody(event, summary,
+                event.endsWith("updated") ? List.of("state", "postCount") : List.of(), at)));
+    }
+
+    /** {@code claim.extracted} as {@code NarrativeService.claimBody} builds it. */
+    static List<JsonNode> claimExtractedEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:05:00Z");
+        Map<String, Object> place = new java.util.LinkedHashMap<>();
+        place.put("ref", null);
+        place.put("name", "Aden");
+        place.put("geom", Map.of("type", "Point", "coordinates", List.of(45.03, 12.78)));
+        place.put("precision", "locality");
+        place.put("confidence", 0.9);
+        place.put("regionCode", "YE");
+        ai.foresignal.social.narrative.NarrativeStore.Claim claim =
+                new ai.foresignal.social.narrative.NarrativeStore.Claim("01JA8Q3V7S2K9W4T6Y1B5N0M3D",
+                        "01JA8Q3V7S2K9W4T6Y1B5N0M3C", "explosion|asserted|aden", "explosion", "conflict", "asserted",
+                        false, place, 45.03, 12.78, "YE", List.of(), Map.of("from", at.toString(), "precision",
+                        "minute"), null, 3, 2, at, "deterministic", "01JA8Q3V7S2K9W4T6Y1B5N0M3E", 0.8, "unassessed",
+                        null, "account:bluesky:k", "F", 6, "CLEAR", at, at);
+        return List.of(toTree(ai.foresignal.social.narrative.NarrativeService.claimBody(
+                ai.foresignal.social.narrative.NarrativeViews.claim(claim), at)));
+    }
+
+    /** {@code media.reuse} as {@code MediaReuseDetector.body} builds it. */
+    static List<JsonNode> mediaReuseEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:05:00Z");
+        ai.foresignal.social.narrative.NarrativeStore.Fingerprint fp =
+                new ai.foresignal.social.narrative.NarrativeStore.Fingerprint("01JA8Q3V7S2K9W4T6Y1B5N0M3F",
+                        "f8f8f0cee0f4a84f06370a22038f63f0b36e2ed596621e1d33e6b39c4e9c9b22", 100,
+                        at.minusSeconds(86_400L * 1000), "record:x/x%3A1", "x:1", 2, List.of("x"), List.of(), null,
+                        List.of(), at, at);
+        return List.of(toTree(ai.foresignal.social.narrative.MediaReuseDetector.body("01JA8Q3V7S2K9W4T6Y1B5N0M3G",
+                fp, narrativeRow(), new ai.foresignal.social.narrative.MediaReuseDetector.Reuse("earlier", null), at)));
+    }
+
+    /** {@code coordination.detected} as {@code CoordinationRunner.body} builds it. */
+    static List<JsonNode> coordinationEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:05:00Z");
+        ai.foresignal.social.narrative.CoordinationDetector.Indicator sig =
+                new ai.foresignal.social.narrative.CoordinationDetector.Indicator(0.5, 0.1, 1e-9, 1e-7, 80, true);
+        ai.foresignal.social.narrative.CoordinationDetector.Indicator none =
+                ai.foresignal.social.narrative.CoordinationDetector.Indicator.unavailable(80);
+        ai.foresignal.social.narrative.CoordinationDetector.Indicators ind =
+                new ai.foresignal.social.narrative.CoordinationDetector.Indicators("01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+                        at.minusSeconds(86_400), at, sig, sig, none, none);
+        return List.of(toTree(ai.foresignal.social.narrative.CoordinationRunner.body("01JA8Q3V7S2K9W4T6Y1B5N0M3G", ind,
+                at)));
+    }
 
     /** {@code social.velocity} payloads as {@code VelocityDetector} and {@code SocialEvents} build them (prompt 135). */
     static List<JsonNode> socialVelocityEvents() {

@@ -4,7 +4,8 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * The resolver of a canonical-event family whose rule is {@code match: "story"} (prompt 133: {@code news-story}):
+ * The resolver of a canonical-event family whose rule is {@code match: "story"} (prompt 133: {@code news-story};
+ * prompt 136: {@code social-narrative}):
  * text clusters rather than places and times, so the {@link EvidenceResolver} hands their versions to this SPI on its
  * own cursor instead of matching them itself. The handler writes the 116 tables through {@link EvidenceStore} (events,
  * links, evidence groups) and its own tables; it never modifies an observation (MEM-1).
@@ -13,6 +14,15 @@ public interface StoryFamilyHandler {
 
     /** The match name of the families this handler resolves. */
     String STORY_MATCH = "story";
+
+    /**
+     * Whether this handler resolves a family (prompt 136: several story families, one handler each).
+     *
+     * @param family the family name
+     */
+    default boolean handles(String family) {
+        return true;
+    }
 
     /**
      * Resolves one version, exactly once per seq (the handler skips a version at or below the seq it already linked).

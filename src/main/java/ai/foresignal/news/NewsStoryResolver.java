@@ -87,6 +87,11 @@ public class NewsStoryResolver implements StoryFamilyHandler {
     }
 
     @Override
+    public boolean handles(String family) {
+        return FAMILY.equals(family);
+    }
+
+    @Override
     public void process(CanonicalRules.FamilyRule rule, Observation obs) {
         CanonicalRules.Story params = rule.story() == null ? CanonicalRules.Story.DEFAULT : rule.story();
         Map<String, Object> p = obs.payload() == null ? Map.of() : obs.payload();

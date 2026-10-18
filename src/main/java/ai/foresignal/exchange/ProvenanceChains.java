@@ -31,6 +31,9 @@ import org.springframework.stereotype.Component;
  *       cites, then its owner on this instance;</li>
  *   <li>a local evidence item ({@code evidence-item:{id}}): the chains of the reports and received material it cites,
  *       then its creator.</li>
+ *   <li>a social narrative ({@code narrative:{id}}, prompt 136): this instance's narrative clusterer as its origin, so
+ *       a claim that returns through news, reports or other analysts is recognized as circular; a claim
+ *       ({@code claim:{id}}) carries the chain of its narrative.</li>
  * </ul>
  * Other references have no chain. Chains are followed at most {@value #MAX_DEPTH} deep and never loop.
  */
@@ -47,6 +50,7 @@ public class ProvenanceChains {
     private final EvidenceItemRepository evidenceItems;
     private final AccessResolver access;
     private final PrincipalRepository principals;
+    private volatile ai.foresignal.social.narrative.NarrativeStore narratives;
 
     /** Creates the component. */
     public ProvenanceChains(FederationIdentity identity, ReceivedObjectRepository receivedObjects,
@@ -61,10 +65,16 @@ public class ProvenanceChains {
         this.principals = principals;
     }
 
+    /** Installs the narrative store (prompt 136), so narratives and claims carry chains. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setNarratives(ai.foresignal.social.narrative.NarrativeStore narratives) {
+        this.narratives = narratives;
+    }
+
     /** True when {@code ref} names a product that can carry a chain. */
     public static boolean chained(String ref) {
         return ref != null && (ref.startsWith("remote:") || ref.startsWith("report:")
-                || ref.startsWith("evidence-item:"));
+                || ref.startsWith("evidence-item:") || ref.startsWith("narrative:") || ref.startsWith("claim:"));
     }
 
     /**
@@ -127,6 +137,18 @@ public class ProvenanceChains {
             }
             String owner = access.record(clean).map(ShareableObjectEntity::getOwner).orElse(null);
             add(out, entry(handle(owner), clean, out.isEmpty() ? "origin" : "author", r.getCreatedAt()));
+            return;
+        }
+        if (clean.startsWith("claim:") && narratives != null) {
+            narratives.claim(clean.substring("claim:".length())).ifPresent(c -> collect("narrative:" + c.narrativeId(),
+                    depth + 1, visited, out));
+            return;
+        }
+        if (clean.startsWith("narrative:") && narratives != null) {
+            narratives.narrative(clean.substring("narrative:".length())).ifPresent(n -> {
+                String id = n.mergedInto() == null ? n.id() : n.mergedInto();
+                add(out, entry("system", "narrative:" + id, "origin", n.createdAt()));
+            });
             return;
         }
         if (clean.startsWith("evidence-item:")) {

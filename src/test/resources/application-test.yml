@@ -135,6 +135,7 @@ foresignal:
   social:
     scheduled: false
     default-enable: false
+    narratives-scheduled: false
 
 logging:
   level:

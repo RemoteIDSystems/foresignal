@@ -215,7 +215,7 @@ class NewsControllersIT {
     @DisplayName("contract 1.4 lists news-story and outlet, and both resolve as objects")
     void contract() throws Exception {
         JsonNode contract = body(call(read, get("/v1/contract")));
-        assertThat(contract.get("contractVersion").asString()).isEqualTo("1.4");
+        assertThat(contract.get("contractVersion").asString()).isEqualTo(ObjectTypes.CONTRACT_VERSION);
         assertThat(contract.get("objectTypes").toString()).contains("news-story").contains("outlet");
         assertThat(ObjectTypes.ALL).contains(ObjectTypes.NEWS_STORY, ObjectTypes.OUTLET);
         MockHttpServletResponse story = call(read, get("/v1/objects/news-story:" + storyId));

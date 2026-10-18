@@ -5974,7 +5974,9 @@ channel back with `PUT /v1/channels/{channelId}` (a `PUT` replaces the channel),
 Discovery finds patterns nobody wrote a rule for and says how often each would turn up by chance. Three detectors run
 (and, since prompt 126, the `forecast` detector of "Outlooks and indices", whose exceedances are findings too; since
 prompt 127 the impact projector of "Impact projection" writes `projected-impact` findings; since prompt 133 the coverage
-job of "News coverage and media bias" writes `coverage-blindspot` and `coverage-divergence` findings)
+job of "News coverage and media bias" writes `coverage-blindspot` and `coverage-divergence` findings; since prompt 135
+the social jobs write `social-velocity` findings, and since prompt 136 the narrative jobs of "Narratives and claims"
+write `media-reuse` and `social-coordination` findings)
 on their own schedule, deterministically and without an LLM; what they find is an **analytic finding**
 (`GET /v1/analytics/findings`), also published as a record of the DERIVED source `foresignal-analytics` (kind
 `analytic-finding`), so ordinary rules can alert on findings (`kind=analytic-finding`, `severity == significant`) and
@@ -6997,8 +6999,9 @@ Every object has a reference of the form `{type}:{id}`: `record:{sourceId}/{exte
 `alert:{id}`, `investigation:{id}`, `place:{id}`, `view:{id}`, `watchlist:{id}`, `source:{id}`,
 `sensor:{kind}:{id}`, `workspace:{id}` and `annotation:{id}`, and since prompt 130 `principal:{id or handle}`,
 `group:{id}`, `tag:{id}`, `attachment:{id}`, `evidence-item:{id}` and `saved-search:{id}`. `GET /v1/contract` (read)
-lists the types, the relation types, the confidence labels and the client kinds with the contract version (`1.4`
-since prompt 133 added `news-story:{id}`, whose id is the story's canonical event id, and `outlet:{id}`; `1.3` added
+lists the types, the relation types, the confidence labels and the client kinds with the contract version (`1.5`
+since prompt 136 added `narrative:{id}` (its id is the narrative's canonical event id) and `claim:{id}`; `1.4` since
+prompt 133 added `news-story:{id}`, whose id is the story's canonical event id, and `outlet:{id}`; `1.3` added
 `report:{id}` and `remote:{instanceId}/{type}:{id}` in prompt 132; `1.2` added `chronicle:{id}` in prompt 131).
 
 In a URL path the reference is one segment, so its `/` is written `%2F`
@@ -8156,7 +8159,8 @@ against the cap). X's Developer Policy asks for deleted content to be removed wi
 notifications see them; sinks, federation, share links, feeds and exports without `personalUse` do not. X, Reddit,
 YouTube, Threads and Instagram records are `FORBIDDEN` for redistribution: your own use only (109's table). Every post
 is evidence of class `social`, with the originator `social:{platform}:{authorKey}`; reposts and quotes keep the
-original's originator, so a thousand reposts are one evidence group, never a thousand confirmations.
+original's originator, so a thousand reposts are one evidence group, never a thousand confirmations. Prompt 136 groups
+posts into narratives and extracts their claims (see [Narratives and claims](#narratives-and-claims-prompt-136)).
 
 ### Reading volume and coverage
 
@@ -8195,9 +8199,218 @@ healthy for the whole window and the region's trailing 8-week mean is at least `
 absence and downward findings stay silent.
 
 **Streams.** The `social` topic of `/v1/events/stream` (cursor key `o`) carries `social.velocity` and
-`social.platform.state`. Problem codes: `404 UNKNOWN_PLATFORM`, `BUDGET_EXCEEDED` (the X cap) and `409 PLATFORM_DISABLED`,
+`social.platform.state`, and since prompt 136 the narrative events (see
+[Narratives and claims](#narratives-and-claims-prompt-136)). Problem codes: `404 UNKNOWN_PLATFORM`, `BUDGET_EXCEEDED` (the X cap) and `409 PLATFORM_DISABLED`,
 reserved for the targeted searches of prompt 137 when no requested platform is enabled.
 
 **Settings.** App settings `social.languages`, `social.minRegionBaseline` (20) and `social.velocity`
 (`{"minRatio": 5, "minUniqueAuthors": 20, "dedupHours": 6}`); deployment properties `foresignal.social.scheduled`
 (true; the hourly close, velocity, flush and daily deletion jobs) and `foresignal.social.default-enable` (true).
+
+## Narratives and claims (prompt 136)
+
+Posts become the units analysts reason with: **narratives** (posts that say the same thing), structured **claims**
+(what, where, when and who), shared **media fingerprints**, the **propagation** of a narrative across reposts,
+platforms and news, and **coordination indicators**. Four rules hold throughout:
+
+- **Claims are reports, not facts.** A claim's status describes how it relates to independent evidence (prompt 137
+  sets it); nothing here marks a claim true or false. Until 137 compares a narrative, its status and its claims'
+  statuses are `unassessed`.
+- **Earliest observed, not originator.** Foresignal records the earliest post it observed on each platform; it never
+  says who started a narrative.
+- **Indicators, not labels.** Coordination is a set of statistics on a narrative against null models, never a label on
+  an account ("bot", "troll", "state actor").
+- **Deterministic first.** Clustering, places, entities, fingerprints and propagation are deterministic; the optional
+  LLM extraction proposes claims for large narratives but never sets a status or a count.
+
+### Reading narratives
+
+A narrative is a 116 canonical event of the family `social-narrative` (`intel/canonical-rules.json`), and each member
+post is an observation of it. The `NarrativeClusterer` 1.0.0 runs on the evidence resolver's cursor:
+
+- a post that **reposts or quotes** a member joins that member's narrative;
+- otherwise, among narratives whose latest member is within 72 hours of the post, it joins one where a member **links
+  the same URL** (canonical URL, tracking parameters removed), then one where a member uses the **same image** (the
+  same image URL, or a media fingerprint), then the most similar by **text** among those sharing an attention topic, a
+  resolved place or region, or an entity: the post's text embedding (027) against the narrative's centroid at a cosine
+  of 0.85 when both exist under one model, else the token MinHash Jaccard against the central member and the latest
+  50 members at 0.6;
+- otherwise it starts a narrative.
+
+A post collected by two sources joins once. Each member keeps why it joined (`linkReason`: `seed`, `repost`, `quote`,
+`text`, `link` or `media`), its evidence group and its centrality. A narrative's title is, deterministically, the most
+central member's text cut to 140 characters, and once two or more claims exist a summary of the three most supported
+claim types and the top claim's place ("Reported explosion and fire in Aden").
+
+**Origin counts.** The evidence groups of a narrative count **independent origins**: members that repost, quote or link
+one original post, link one external URL, or share a media fingerprint first seen in one post are one group, rooted at
+that origin; posts of one account are one group; every other author posting their own words is a group of their own.
+So 50,000 posts that descend from three reports count as three. Next to `postCount` and `uniqueAuthors`, a narrative
+shows `evidenceGroupCount` and **`originConcentration`**, the share of posts in the three largest groups: near 1, the
+volume traces back to a handful of origins; low, many authors are saying it in their own words.
+
+**State and velocity.** `velocity` is the posts in the last closed hour over the median hourly posts of the 24 hours
+before it (null for a narrative younger than two hours). `state` is `emerging` while the narrative is younger than six
+hours or its velocity is 5 or more, `active` while posting continues, `fading` after 24 hours of silence or a velocity
+under 0.5, and `dormant` after 72 hours of silence; the hourly pass moves states and records every change in the
+history. Narrative merges and splits follow the situation rules (118): `POST /v1/social/narratives/{id}/merge
+{"narrativeIds": [...], "reason"}` (agent) moves members, evidence links, claims and edges into the surviving
+narrative and marks the others `mergedInto`; `POST /v1/social/narratives/{id}/split {"postRefs": [...], "reason"}`
+(agent, 201) moves the chosen member posts, with the reposts and quotes of them, into a new narrative; both histories
+record it. A one-post narrative whose image turns out to be identical to one in an active narrative is merged into it
+automatically (`linkReason` `media`).
+
+**Linked news and situations.** A narrative links the 133 news stories whose articles a member links, and stories in
+its window sharing a topic or region whose title tokens overlap its title (Jaccard 0.5); its situations are those
+stories' situations. Text-derived regions of every post are counted into 135's `social_coverage`; they never become a
+post's geometry.
+
+| Call | What it does |
+|---|---|
+| `GET /v1/social/narratives?topic&situationId&place&status&state&platform&since&cursor&limit` (read) | Narratives newest activity first (`place` is a 036 place id or a 040 region code) |
+| `GET /v1/social/narratives/{id}` (read) | The narrative with its envelope, claims, media fingerprints, coordination block, linked stories and situations, and history; 404 `UNKNOWN_NARRATIVE` |
+| `GET /v1/social/narratives/{id}/posts?platform&evidenceGroup` (read) | Member posts newest first; restricted tokens see only their sources. A post whose record expired or was deleted comes back without text (`deleted: true`): the narrative outlives its posts |
+| `GET /v1/social/narratives/{id}/propagation` (read) | The propagation graph (below) |
+| `GET /v1/social/narratives/{id}/timeline?interval` (read) | Posts and unique authors per platform per `PT5M`, `PT15M`, `PT1H` or `P1D` |
+
+Narratives (and claims) are 129 objects (contract 1.5): `narrative:{id}` and `claim:{id}` resolve to envelopes,
+take relations, notes and verdicts, and can be added to workspaces and chronicles. Narratives are public content,
+labeled `CLEAR`.
+
+### Claims
+
+The deterministic `ClaimExtractor` 1.0.0 reads every member post:
+
+- **What:** the event terms of `intel/social/claim-lexicon.json` (23 types: explosion, strike, drone, missile, gunfire,
+  fire, smoke, flood, earthquake, outage, blackout, internet-down, closure, blockade, seizure, evacuation, protest,
+  collapse, spill, crash, gnss-jamming, cyberattack, outbreak), in English, Arabic, Hebrew, Persian, Russian,
+  Ukrainian, French, Spanish, German and Turkish, each mapped to a 119 signal family. Terms match on folded text and
+  word boundaries (Arabic proclitics and Hebrew prefix letters allowed); a term ending in `*` matches inflected forms
+  (`взрыв*`).
+- **Polarity:** `denied` when a denial marker ("denied", "fake", "نفى", "опроверг…") appears or a negation stands
+  within three words before the term; `questioned` with a question marker or a closing question mark; else
+  `asserted`. `hedged` with "reportedly", "unconfirmed", "якобы" and the like.
+- **Where:** place names from your 036 places (with their aliases), 040 countries and admin-1 regions, populated places
+  of the 040 gazetteer with at least 15,000 inhabitants, and the lexicon's aliases in other scripts, longest match
+  first. An operator place wins; among gazetteer candidates the most populous wins, with a confidence that falls with
+  ambiguity (`0.9 ×` its share of the candidates' population, at least 0.2; 0.9 for an unambiguous name). The place
+  carries its `precision` (`point`, `locality`, `admin1`, `country`), confidence and region code.
+- **Who:** 098 entities by multi-word name or alias and by IMO and MMSI numbers, named 104 facilities, and the
+  organization named as the actor.
+- **When:** "just now", "N minutes/hours ago", "last night", "this morning", "today", "yesterday" and their
+  equivalents, relative to the post's creation time (in UTC: the poster's timezone is unknown).
+
+A narrative's claims aggregate its posts' claims by type, polarity and place: `supportCount` (posts),
+`evidenceGroupCount` (independent origins among them), `firstObservedAt`, the earliest event time, the most named
+actor, and `confidence`, which is **extraction confidence only** (how clearly the text states it), never a probability
+that it happened. `GET /v1/social/claims?narrativeId&situationId&type&status&bbox&since&cursor&limit` and
+`GET /v1/social/claims/{id}` (read; 404 `UNKNOWN_CLAIM`) list them; MCP `get_claims`. Draw a claim's place in a
+"reported" style, never as an observed event.
+
+**Claims as evidence.** Each claim is a 125 evidence item with an Admiralty grade. Its source reliability is that of
+the account or channel of its earliest supporting post: `F` (cannot be judged) by default, `E` once that account or
+channel has at least 10 claims assessed by 137 with at least 70% corroborated, `D` at 85% or more. An operator
+override wins: the app setting `social.sourceReliability` is a JSON object from `account:{platform}:{authorKey}` (the
+author key shown on the post) or `channel:{platform}:{channel}` to a letter A–F. Information credibility follows the
+claim's status: 6 while unassessed, pending or without coverage, 2 corroborated, 5 unobserved, 4 contradicted. Add a
+claim to a hypothesis set as evidence with `"source": "social-claim"` and `"ref": "claim:{id}"`; its provenance chain
+starts at the narrative, so the same narrative coming back through a report or another analyst counts once (134).
+
+**Optional LLM extraction.** With a chat provider, a narrative of at least `social.llmClaimMinPosts` (50) posts or 5
+evidence groups, and again once it has doubled, is read by the `claim-extraction` role (template
+`claim-extraction-system@1.0.0`, `GET /v1/prompt-templates/claim-extraction-system`): the 20 most central member texts
+go to the model as data, never as instructions (sources the provider may not receive are left out), and it answers
+claim tuples in a JSON schema. Types outside the lexicon are dropped, places are resolved through the gazetteer (a place
+it does not know is kept as a name without geometry), and the counts are deterministic: the model never sets a status,
+a count or a grade. These claims carry `extraction: llm` and a manifest naming the template. At most
+`social.llmClaimsPerDay` (20) narratives a UTC day are read, on top of the provider's own token budget; a refusal skips
+the run.
+
+### Media fingerprints and what reuse findings can show
+
+For each post image (and video thumbnail) Foresignal fetches the image over HTTPS through the outbound URL policy
+(public addresses only, the address pinned, redirects refused, Foresignal's own User-Agent), inspects and decodes it
+through the 043 ImageGuard (PNG, JPEG or TIFF; size and pixel limits), computes its **PDQ** hash (Meta's open
+perceptual hash: 256 bits and a 0–100 quality) and discards the image, unless the app setting `social.keepMedia` is on
+(off by default; the image is then stored content-addressed in the 043 media store under the post's retention). A
+hash within Hamming distance 31 of a stored one (PDQ's recommended threshold) is another use of that fingerprint;
+hashes of quality below 50 are kept but never matched. Fingerprinting runs from a queue every minute, outside the
+evidence cursor, and gives up an image after three failed fetches.
+
+A **`media-reuse`** finding (119) is written when a fingerprint attached to a narrative was first seen at least seven
+days before the narrative began (`earlier`), or was attached to an earlier narrative in a different place (`elsewhere`:
+both have regions and they do not overlap). It names both narratives, their dates and places, and emits `media.reuse`.
+
+What a reuse finding **can** show: this picture, or one PDQ cannot tell from it, was posted earlier, or somewhere
+else, among the posts Foresignal fingerprinted. What it **cannot** show: where or when the picture was taken, whether it
+was edited, or that it is new when no match exists. Foresignal only knows media it has fingerprinted, since the store's
+start; every finding and every match carries the `REFERENCE_WINDOW` caveat with that date. PDQ also matches near
+copies of different scenes with the same composition (a city skyline at night), so read the earlier post before
+drawing anything from a match.
+
+- `GET /v1/social/media/{fingerprintId}` (read; 404 `UNKNOWN_FINGERPRINT`): the hash, quality, first sighting and
+  post, uses (the latest 100), platforms, narratives and reuse findings.
+- `POST /v1/social/media/match` (read, token required): a multipart `file` (checked by ImageGuard; `415
+  IMAGE_REJECTED` for a type it refuses, `413` when it is too large; the upload is not stored) or `{"pdq": "…"}`, with
+  `maxDistance` (0–63, default 31) and `limit`; MCP `match_media` takes a hash.
+
+### Propagation, origin concentration and descent share
+
+`PropagationTracer` 1.0.0 builds each narrative's graph whenever it is refreshed and keeps the full edge list for the
+narrative's lifetime. Nodes are posts, linked 133 news articles and agency records that posts link; edges are
+`repost`, `quote`, `reply`, `link`, `text-match` (to the member a post's text matched when it joined), `media-match`
+and `cross-platform` (to each platform's first 20 posts from the earliest earlier post on another platform sharing a
+URL, a fingerprint or near-identical text, MinHash Jaccard 0.8), each with its time delta.
+
+The graph reports the **earliest observed post per platform**, the platforms in first-observed order, the **first news
+pickup** (the earliest article of a linked story, with its delay after the first post; negative when the news came
+first), the **median repost delay** and the **descent share**: the share of posts and articles reachable from the
+members of the three largest evidence groups. Read the two shares together: a descent share near 1 with a high origin
+concentration means the narrative is mostly amplification of a few reports, however many posts it has; a low descent
+share means it grew from many independent starts. A graph of more than 500 nodes is summarized (`summarised: true`)
+by collapsing each evidence group into one node with its member count and merging edges with counts; the response
+gives the totals. Its provenance chain starts at the narrative.
+
+### Coordination indicators and their limits
+
+Every day at 05:10 UTC `CoordinationDetector` 1.0.0 looks at each narrative active in the last 24 hours (its latest
+2,000 posts) and computes four statistics against null models:
+
+- **synchrony**: the share of distinct authors who posted near-identical text (MinHash Jaccard 0.9) within 60 seconds
+  of another author, against the same narrative with its post times shuffled 200 times;
+- **text duplication**: the share of distinct authors in the largest near-duplicate cluster, against the day's other
+  narratives (their median and robust spread);
+- **account-age skew**: the share of authors whose account was created within 30 days of their post, where the
+  platform provides creation dates, against the platform's share among authors of posts on the same topics over the
+  last 30 days (exact binomial tail);
+- **co-repost bursts**: the share of reposting authors in a pair that reposted the same five or more posts within 10
+  minutes of each other, against a degree-preserving null (repost targets permuted across repost events, 200 times).
+
+Each indicator gives its value, null expectation, p-value (from a normal approximation to the shuffled distribution,
+so values smaller than one in 200 are representable), the Benjamini–Hochberg q-value across all of the day's
+narratives and `available` (false when the platform gives no creation dates or there are too few authors or reposts).
+When at least two indicators have q below 0.01, a **`social-coordination`** finding says "coordinated-amplification
+indicators present" and `coordination.detected` is emitted; the narrative's `coordination` block and
+`coordinationIndicatorsPresent` show it.
+
+What the indicators **cannot** say: which accounts coordinated, whether they are automated, or who directed them. Real
+events produce bursts too (many people posting their own words at once is not synchrony), shared templates and
+quote-tweets of a viral post raise duplication, a platform's new users skew account ages, and fan communities repost
+together. The finding is a reason to look at the narrative, never a verdict on any account, and Foresignal never
+labels one.
+
+### API, events and settings
+
+- MCP: `list_narratives`, `get_narrative`, `get_claims` and `match_media` (read; also in the analyst's read catalog).
+- SSE topic `social` of `/v1/events/stream` (cursor key `o`): `narrative.emerged`, `narrative.updated` (when a state,
+  status or count crosses a band, or on a merge or split), `claim.extracted`, `media.reuse` and
+  `coordination.detected`, next to 135's `social.velocity` and `social.platform.state`.
+- AccessPolicy: the reads are read scope, image matching needs a token, merge and split are agent operations.
+- Problem codes: `404 UNKNOWN_NARRATIVE`, `404 UNKNOWN_CLAIM`, `404 UNKNOWN_FINGERPRINT`, `415 IMAGE_REJECTED`.
+- App settings: `social.keepMedia` (false), `social.llmClaimMinPosts` (50), `social.llmClaimsPerDay` (20) and
+  `social.sourceReliability` (`{}`). Deployment property `foresignal.social.narratives-scheduled` (true; off in tests)
+  runs the minute job (refreshing narratives that grew past 100 posts, which refresh in batches rather than on every
+  post, and draining the image queue), the hourly state and LLM passes and the daily coordination pass.
+- Tables (Hibernate, captured by prompt 144): `social_narrative`, `social_narrative_member`, `social_narrative_log`,
+  `social_claim`, `media_fingerprint`, `media_use`, `social_media_queue` and `social_propagation_edge`. Narratives,
+  claims and fingerprints are intelligence tables: they are kept when the posts behind them expire.

@@ -1,6 +1,6 @@
 {
   "version": "1.1.0",
-  "description": "Canonical-event rules (prompt 116): which event-class kinds the EvidenceResolver links, and how observations of one family are matched to the same real-world event. Families are tried in order; an input may restrict a kind with 'where'. Tolerances reuse prompt 099's corroboration rules where they exist. A family with match 'story' (news-story, prompt 133) is clustered by the news story resolver: title embedding cosine against the story centroid, else normalized-title token Jaccard, within windowHours of the story's latest article and sharing a topic or region.",
+  "description": "Canonical-event rules (prompt 116): which event-class kinds the EvidenceResolver links, and how observations of one family are matched to the same real-world event. Families are tried in order; an input may restrict a kind with 'where'. Tolerances reuse prompt 099's corroboration rules where they exist. A family with match 'story' (news-story, prompt 133) is clustered by the news story resolver: title embedding cosine against the story centroid, else normalized-title token Jaccard, within windowHours of the story's latest article and sharing a topic or region. The social-narrative family (prompt 136) is clustered by the narrative clusterer: a post joins a narrative when it reposts or quotes a member, or, within windowHours of the narrative's latest member and sharing a topic, place, region or entity, when its text embedding cosine with the centroid reaches minCosine (without embeddings its token MinHash Jaccard reaches minJaccard) or it shares a link or media fingerprint with a member; wireJaccard is the near-identical text threshold of cross-platform propagation edges.",
   "minLinkConfidence": 0.5,
   "families": [
     {
@@ -58,6 +58,13 @@
       "match": "story",
       "maxDtSeconds": 172800,
       "story": {"minCosine": 0.82, "windowHours": 48, "minJaccard": 0.6, "wireJaccard": 0.9}
+    },
+    {
+      "family": "social-narrative",
+      "inputs": [{"kind": "social-post"}],
+      "match": "story",
+      "maxDtSeconds": 259200,
+      "story": {"minCosine": 0.85, "windowHours": 72, "minJaccard": 0.6, "wireJaccard": 0.8}
     }
   ],
   "hazardTypes": {

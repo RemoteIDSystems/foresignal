@@ -496,6 +496,19 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/social/volume", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/social/posts", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/social/posts/*/*", AccessRequirement.READ),
+                // Prompt 136: narratives, claims and fingerprints are reads; merge and split are agent; image matching
+                // needs a token (an upload).
+                rule(HttpMethod.GET, "/v1/social/narratives", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/social/narratives/*", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/social/narratives/*/posts", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/social/narratives/*/propagation", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/social/narratives/*/timeline", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/social/narratives/*/merge", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/social/narratives/*/split", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/social/claims", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/social/claims/*", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/social/media/match", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/social/media/*", AccessRequirement.READ),
 
                 // ---- Evidence identity, observability and manifests (prompt 116) ----
                 // Canonical events, the coverage layer and prompt templates are reads; manifests and their

@@ -858,6 +858,18 @@ public final class ErrorCodes {
     /** 409: the social platform adapter is disabled, so the operation cannot use it (135). */
     public static final String PLATFORM_DISABLED = "PLATFORM_DISABLED";
 
+    /** 404: no narrative with this id (136). */
+    public static final String UNKNOWN_NARRATIVE = "UNKNOWN_NARRATIVE";
+
+    /** 404: no claim with this id (136). */
+    public static final String UNKNOWN_CLAIM = "UNKNOWN_CLAIM";
+
+    /** 404: no media fingerprint with this id (136). */
+    public static final String UNKNOWN_FINGERPRINT = "UNKNOWN_FINGERPRINT";
+
+    /** 415 (413 when too large): the image was refused by the 043 ImageGuard (136, media matching). */
+    public static final String IMAGE_REJECTED = "IMAGE_REJECTED";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

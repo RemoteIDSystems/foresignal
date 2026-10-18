@@ -191,6 +191,7 @@ public class SocialViews {
             long[] last = keys.get(limit - 1);
             next = encode(last[0] + "|" + last[1]);
         }
+        fillNarratives(items);
         return new Page(items, next);
     }
 
@@ -214,7 +215,30 @@ public class SocialViews {
         if (rows.isEmpty()) {
             throw new NotFoundException(ErrorCodes.NOT_FOUND, "No stored post " + platform + " " + postId + ".");
         }
+        fillNarratives(rows);
         return rows.get(0);
+    }
+
+    /** Fills {@code narrativeIds} (prompt 136) from the narrative members of the posts' records. */
+    private void fillNarratives(List<Map<String, Object>> views) {
+        if (views.isEmpty()) {
+            return;
+        }
+        Map<String, Map<String, Object>> byMember = new LinkedHashMap<>();
+        for (Map<String, Object> v : views) {
+            byMember.put(v.get("sourceId") + "/" + v.get("externalId"), v);
+        }
+        try {
+            jdbc.query("SELECT id, narrative_id FROM social_narrative_member WHERE id IN (:ids)",
+                    new MapSqlParameterSource("ids", byMember.keySet()), rs -> {
+                        Map<String, Object> v = byMember.get(rs.getString("id"));
+                        if (v != null) {
+                            v.put("narrativeIds", List.of(rs.getString("narrative_id")));
+                        }
+                    });
+        } catch (RuntimeException e) {
+            // narratives are optional for post views
+        }
     }
 
     private static void appendFilter(StringBuilder sql, MapSqlParameterSource p, PostFilter filter) {

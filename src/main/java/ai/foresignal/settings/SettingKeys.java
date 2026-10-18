@@ -352,6 +352,27 @@ public final class SettingKeys {
      */
     public static final String SOCIAL_VELOCITY = "social.velocity";
 
+    /**
+     * Whether fingerprinted post images are kept (prompt 136, {@code social.keepMedia}); false. When true the image is
+     * stored content-addressed in the 043 media store under its post's retention; otherwise only the PDQ hash stays.
+     */
+    public static final String SOCIAL_KEEP_MEDIA = "social.keepMedia";
+
+    /**
+     * The posts a narrative needs before the optional LLM claim extraction runs on it (prompt 136,
+     * {@code social.llmClaimMinPosts}); 50. A narrative with five or more evidence groups qualifies whatever its size.
+     */
+    public static final String SOCIAL_LLM_CLAIM_MIN_POSTS = "social.llmClaimMinPosts";
+
+    /** The LLM claim extractions run per UTC day (prompt 136, {@code social.llmClaimsPerDay}); 20. */
+    public static final String SOCIAL_LLM_CLAIMS_PER_DAY = "social.llmClaimsPerDay";
+
+    /**
+     * Operator overrides of claim source reliability (prompt 136, {@code social.sourceReliability}): a JSON object from
+     * {@code account:{platform}:{authorKey}} or {@code channel:{platform}:{channel}} to an Admiralty letter A–F.
+     */
+    public static final String SOCIAL_SOURCE_RELIABILITY = "social.sourceReliability";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -371,7 +392,8 @@ public final class SettingKeys {
                     CHRONICLE_DEFAULT_CAP_GB, CHRONICLE_AUTO_ACTIVATE_PER_DAY, CHRONICLE_AUTO_ACTIVATE_CAP_GB,
                     CHRONICLE_THREAD_CURSORS, EXCHANGE_MAX_PACKAGE_MB, EXCHANGE_ALLOW_GREEN_LINKS,
                     MEDIA_RELIABILITY_MAP, NETWORK_MIN_SHARED_KEYS, NETWORK_FEDERATED, SOCIAL_LANGUAGES,
-                    SOCIAL_MIN_REGION_BASELINE, SOCIAL_VELOCITY);
+                    SOCIAL_MIN_REGION_BASELINE, SOCIAL_VELOCITY, SOCIAL_KEEP_MEDIA, SOCIAL_LLM_CLAIM_MIN_POSTS,
+                    SOCIAL_LLM_CLAIMS_PER_DAY, SOCIAL_SOURCE_RELIABILITY);
 
     private SettingKeys() {}
 }

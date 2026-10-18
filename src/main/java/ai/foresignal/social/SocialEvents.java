@@ -61,6 +61,20 @@ public class SocialEvents {
     }
 
     /**
+     * Emits a logged event of the {@code social} topic (prompt 136: {@code narrative.emerged},
+     * {@code narrative.updated}, {@code claim.extracted}, {@code media.reuse}, {@code coordination.detected}): written to
+     * {@code social_event_log} and sent to live subscribers after the transaction commits.
+     *
+     * @param event the event name
+     * @param body the full body, {@code event} first
+     * @param privateEvent true when built from a private source
+     */
+    public void emit(String event, Map<String, Object> body, boolean privateEvent) {
+        SocialEventLogEntity saved = logs.save(new SocialEventLogEntity(event, body, privateEvent, clock.instant()));
+        ForecastEvents.afterCommit(() -> topic.publish(saved));
+    }
+
+    /**
      * Emits {@code social.platform.state} ({@code SocialPlatformStateEvent}).
      *
      * @param platformId the adapter
