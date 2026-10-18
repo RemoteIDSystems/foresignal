@@ -430,6 +430,21 @@ public class ObservabilityService {
      */
     SourceEstimate declared(String sourceId, String family, Place place, List<String> placeRegions, String band,
             Instant at) {
+        ExternalCoverage external = declarations.externalCoverage();
+        ExternalCoverage.Declared bound = null;
+        if (external != null) {
+            try {
+                bound = external.coverage(sourceId, family);
+            } catch (RuntimeException e) {
+                bound = null;
+            }
+        }
+        if (bound != null) {
+            // Prompt 138: a bound EDP stream's manifest coverage, low confidence until it can be measured.
+            double p = bound.p(place);
+            return new SourceEstimate(sourceId, family, place.regionCode(), null, band, null, null, p, p, p, 0,
+                    DECLARED, "low", null, null);
+        }
         DeclaredObservability declaration = declarations.declared(sourceId);
         Set<String> kinds = declarations.kindsOf(family);
         DeclaredObservability.KindObservability kind = null;

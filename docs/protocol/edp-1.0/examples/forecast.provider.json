@@ -1,0 +1,36 @@
+{
+  "$comment": [
+    "A minimal provider of forecast items (EDP 1.0): a prediction market or forecasting site. Documentation only.",
+    "Target forecast (prompt 138) records each item as a forecast of the external forecaster edp:ext-market-odds-example/odds (type external) on a ledger question: the question its questionRef names, or the one its question.externalId is linked to with POST /v1/external/sources/ext-market-odds-example/question-links {streamId, externalQuestionId, questionId, orientation}.",
+    "A forecast is recorded on the first item, on a move of at least 0.02 and otherwise daily; made_at is when Foresignal recorded it, never before receipt. External forecasters are scored like every forecaster and join the ensemble only after 30 resolved linked questions."
+  ],
+  "manifest": {
+    "protocol": "foresignal-edp/1.0",
+    "source": {
+      "id": "market-odds-example",
+      "name": "Market odds (example)",
+      "publisher": {"name": "Example Markets"},
+      "licence": {"redistribution": "local-only"},
+      "access": {"route": "official", "fragility": "low"},
+      "originator": {"id": "example-markets", "class": "crowd"}
+    },
+    "transport": {"push": true},
+    "streams": [
+      {"id": "odds", "mode": "atomic", "itemType": "forecast", "kind": "market-forecast", "suggestedBindings": [{"target": "forecast"}]}
+    ]
+  },
+  "batch": {
+    "protocol": "foresignal-edp/1.0",
+    "sentAt": "2026-10-18T06:00:00Z",
+    "items": [
+      {"stream": "odds", "type": "forecast", "id": "strait-closure:2026-10-18T06", "observedAt": "2026-10-18T06:00:00Z", "madeAt": "2026-10-18T06:00:00Z", "question": {"externalId": "strait-closure-2026q4", "title": "Will the strait close to commercial traffic before 2027?", "closeTime": "2026-12-31T23:59:00Z"}, "probability": 0.12},
+      {"stream": "odds", "type": "forecast", "id": "q-ref:2026-10-18T06", "observedAt": "2026-10-18T06:00:00Z", "madeAt": "2026-10-18T06:00:00Z", "questionRef": "01JA8Q3V7S2K9W4T6Y1B5N0M3Q", "quantiles": {"p05": 10, "p25": 18, "p50": 24, "p75": 31, "p95": 45}}
+    ]
+  },
+  "bindings": [
+    {"streamId": "odds", "target": "forecast"}
+  ],
+  "questionLinks": [
+    {"streamId": "odds", "externalQuestionId": "strait-closure-2026q4", "questionId": "LEDGER-QUESTION-ID", "orientation": "same"}
+  ]
+}

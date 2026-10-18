@@ -398,6 +398,12 @@ public final class SettingKeys {
      */
     public static final String SOCIAL_TRACK_RECORD = "social.trackRecord";
 
+    /**
+     * The external binding router's durable cursor (prompt 138; joins the consumer clamp of retention): the last seq
+     * whose EDP records the enabled bindings were applied to.
+     */
+    public static final String EXTERNAL_BINDING_CURSOR = "external.binding.cursor";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -419,7 +425,7 @@ public final class SettingKeys {
                     MEDIA_RELIABILITY_MAP, NETWORK_MIN_SHARED_KEYS, NETWORK_FEDERATED, SOCIAL_LANGUAGES,
                     SOCIAL_MIN_REGION_BASELINE, SOCIAL_VELOCITY, SOCIAL_KEEP_MEDIA, SOCIAL_LLM_CLAIM_MIN_POSTS,
                     SOCIAL_LLM_CLAIMS_PER_DAY, SOCIAL_SOURCE_RELIABILITY, SOCIAL_COMPARE, SOCIAL_ATTENTION_GAP,
-                    SOCIAL_CUES, SOCIAL_TRACK_RECORD);
+                    SOCIAL_CUES, SOCIAL_TRACK_RECORD, EXTERNAL_BINDING_CURSOR);
 
     private SettingKeys() {}
 }

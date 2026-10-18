@@ -318,6 +318,11 @@ foresignal:
     validation-budget: 2s
     # Overall timeout of one manifest or items-page fetch.
     manifest-fetch-timeout: 30s
+  external:
+    bindings:
+      # External data bindings (138, docs/External-Data-Protocol.md §5): the binding router applies enabled bindings
+      # to EDP records on its durable cursor external.binding.cursor (a retention consumer). Off in tests.
+      auto-start: true
   mcp:
     # The MCP server (025, docs/Agent-Guide.md): streamable HTTP at /mcp.
     enabled: ${FORESIGNAL_MCP_ENABLED:true}

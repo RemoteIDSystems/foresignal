@@ -121,6 +121,22 @@ public final class EdpDescriptorBuilder {
                 presentation(b, stream, tileProperties);
             }
         }
+        // Prompt 138: a document stream that may carry social posts or articles also declares the kinds its social and
+        // news bindings write under this provider (hidden from layer lists), so the converted records keep its
+        // provenance, egress and privacy.
+        for (String derived : derivedKinds(manifest)) {
+            if (!layerKinds.contains(derived) && !atomicKinds.contains(derived)) {
+                b.kind(derived);
+                atomicKinds.add(derived);
+            }
+            if (SOCIAL_POST_KIND.equals(derived)) {
+                b.kindRetention(derived, RETENTION.get("social"));
+                volatileFields.add("engagement");
+                volatileFields.add("observedAt");
+            } else {
+                b.kindRetention(derived, ai.foresignal.source.formats.news.NewsArticles.RETENTION);
+            }
+        }
         atomicKinds.removeAll(layerKinds);
         atomicKinds.forEach(b::hiddenKind);
         volatileFields.add(EdpItemMapper.PAYLOAD_TIMES);
@@ -140,6 +156,33 @@ public final class EdpDescriptorBuilder {
         }
         b.searchFields(search.toArray(String[]::new));
         return b.build();
+    }
+
+    /** The 135 social post kind a {@code social} binding writes (prompt 138). */
+    public static final String SOCIAL_POST_KIND = "social-post";
+
+    /** The 133 news article kind a {@code news} binding writes (prompt 138). */
+    public static final String NEWS_ARTICLE_KIND = "news-article";
+
+    /**
+     * The kinds bindings write under the provider (prompt 138): {@code social-post} for a document stream declaring
+     * {@code documentType} {@code social-post} or none, {@code news-article} for one declaring {@code article} or none.
+     */
+    public static Set<String> derivedKinds(EdpManifestModel manifest) {
+        Set<String> out = new LinkedHashSet<>();
+        for (EdpManifestModel.Stream stream : manifest.streams()) {
+            if (!"document".equals(stream.itemType())) {
+                continue;
+            }
+            String type = stream.documentType();
+            if (type == null || "social-post".equals(type)) {
+                out.add(SOCIAL_POST_KIND);
+            }
+            if (type == null || "article".equals(type)) {
+                out.add(NEWS_ARTICLE_KIND);
+            }
+        }
+        return out;
     }
 
     /** The credential fields of a pull auth style; all optional, so approval never needs them first. */

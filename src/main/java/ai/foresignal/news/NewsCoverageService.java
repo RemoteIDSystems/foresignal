@@ -371,7 +371,7 @@ public class NewsCoverageService {
             return null;
         }
         String source = r.substring(0, slash);
-        if (!NewsArticles.isNewsSource(source)) {
+        if (!NewsArticles.writesNewsArticles(source)) {
             return null;
         }
         String external = r.substring(slash + 1);

@@ -79,6 +79,14 @@ public class ExternalSourcesController {
         this.json = json;
     }
 
+    private ai.foresignal.inbound.edp.binding.ExternalBindingRepository bindings;
+
+    /** Injects the binding rows (prompt 138) whose counts the stream views report. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setBindings(ai.foresignal.inbound.edp.binding.ExternalBindingRepository bindings) {
+        this.bindings = bindings;
+    }
+
     // ---------- protocol ----------
 
     /** {@code getEdpProtocol}. */
@@ -313,8 +321,8 @@ public class ExternalSourcesController {
         return out;
     }
 
-    /** The {@code ExternalSource} view. */
-    Map<String, Object> view(ExternalSourceEntity ext) {
+    /** The {@code ExternalSource} view (also the MCP {@code get_external_source} result, prompt 138). */
+    public Map<String, Object> view(ExternalSourceEntity ext) {
         EdpManifestModel manifest = manifests.model(ext);
         EdpStats stats = status.read(ext);
         Map<String, Object> out = new LinkedHashMap<>();
@@ -354,7 +362,8 @@ public class ExternalSourcesController {
             entry.put("items", s == null ? 0 : s.items());
             entry.put("rejected", s == null ? 0 : s.rejected());
             entry.put("lastItemAt", s == null ? null : s.lastItemAt());
-            entry.put("bindings", 0);
+            entry.put("bindings", bindings == null ? 0
+                    : bindings.countBySourceIdAndStreamId(ext.getSourceId(), stream.id()));
             streams.add(entry);
             if (!stream.atomic() && stream.presentation() != null) {
                 presentation.put(stream.id(), stream.presentation());

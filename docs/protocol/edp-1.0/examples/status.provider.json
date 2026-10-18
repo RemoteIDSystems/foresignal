@@ -1,0 +1,29 @@
+{
+  "$comment": [
+    "Status items (EDP 1.0): report breakage instead of sending empty data. Documentation only.",
+    "Without stream a status is the source's health; with stream, that stream's. health is ok, degraded, blocked, layout-changed or geo-restricted. A status item never becomes a record, and a non-ok status during a snapshot keeps that snapshot from deleting anything."
+  ],
+  "manifest": {
+    "protocol": "foresignal-edp/1.0",
+    "source": {
+      "id": "dashboard-counts-example",
+      "name": "Dashboard counts (example)",
+      "publisher": {"name": "Example OSINT Lab"},
+      "licence": {"redistribution": "unknown"},
+      "access": {"route": "scrape", "fragility": "high"},
+      "originator": {"id": "example-osint-lab", "class": "aggregator"}
+    },
+    "transport": {"push": true},
+    "streams": [
+      {"id": "transits", "mode": "atomic", "itemType": "observation", "kind": "transit-count", "unit": "vessels/day", "geometry": "none"}
+    ]
+  },
+  "batch": {
+    "protocol": "foresignal-edp/1.0",
+    "sentAt": "2026-10-18T06:00:00Z",
+    "items": [
+      {"type": "status", "health": "degraded", "message": "upstream dashboard slow; retrying"},
+      {"stream": "transits", "type": "status", "health": "layout-changed", "message": "tanker column missing since 2026-10-18"}
+    ]
+  }
+}

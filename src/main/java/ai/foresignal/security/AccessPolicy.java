@@ -29,6 +29,9 @@ import org.springframework.util.AntPathMatcher;
  * {@code /compat/**} paths are outside {@code /v1}, so without their explicit rules they would be
  * open.
  *
+ * <p>Prompt 138 adds the external bindings ({@code admin}) and question links ({@code read} to list, {@code agent} to
+ * link and unlink).
+ *
  * <p>Prompt 033 adds {@code /v1/actions/*} as open (the capability is the credential, rate limited
  * in the controller), the inbox and presence paths (read, always authenticated; {@code GET
  * /v1/clients} admin) and the escalation policies (agent).
@@ -247,6 +250,15 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/external/sources/*/snapshots/*/allow", AccessRequirement.ADMIN),
                 rule(null, "/v1/external/registration-tokens", AccessRequirement.ADMIN),
                 rule(null, "/v1/external/registration-tokens/*", AccessRequirement.ADMIN),
+                // Prompt 138: bindings are admin; question links are read (list) and agent (link, unlink).
+                rule(HttpMethod.GET, "/v1/external/sources/*/bindings", AccessRequirement.ADMIN),
+                rule(HttpMethod.POST, "/v1/external/sources/*/bindings", AccessRequirement.ADMIN),
+                rule(HttpMethod.POST, "/v1/external/sources/*/bindings/accept-suggested", AccessRequirement.ADMIN),
+                rule(null, "/v1/external/bindings/*", AccessRequirement.ADMIN),
+                rule(HttpMethod.POST, "/v1/external/bindings/*/preview", AccessRequirement.ADMIN),
+                rule(HttpMethod.GET, "/v1/external/sources/*/question-links", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/external/sources/*/question-links", AccessRequirement.AGENT),
+                rule(HttpMethod.DELETE, "/v1/external/question-links/*", AccessRequirement.AGENT),
 
                 // ---- Open informational endpoints ----
                 rule(HttpMethod.GET, "/v1/system", AccessRequirement.OPEN),

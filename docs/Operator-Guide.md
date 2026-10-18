@@ -2236,8 +2236,10 @@ approve it again, and the response lists those changes in `breakingChanges`.
   health and in `pull.lastError`.
 
 Layer streams become ordinary map layers (their `presentation` hints appear on the provider and in
-the kind's TileJSON); atomic streams are stored, searchable and usable in rules, but kept out of the
-default tile layer list until prompt 138 binds them. `status` items change the provider's health
+the kind's TileJSON); atomic streams are stored, searchable and usable in rules, kept out of the
+default tile layer list, and do nothing analytic until you bind them (see
+[Binding external streams](#binding-external-streams-prompt-138)); `streams[].bindings` counts each
+stream's bindings. `status` items change the provider's health
 without creating records. Snapshot streams remove entities only after a complete, validated snapshot
 of the same scope; a snapshot that would remove more than half of a scope is held and the provider
 turns degraded.
@@ -2250,6 +2252,274 @@ A push answers `200` with `accepted`, `rejected` (each item's index, stream, id,
 `GET /v1/external/sources/{id}` shows per-stream counts and the last validation errors.
 `POST /v1/external/validate` (agent) checks a manifest and sample items without storing anything,
 for provider developers and CI.
+
+## Binding external streams (prompt 138)
+
+An approved provider's items are stored, searchable and usable in rules from the first push, but an atomic item does
+nothing analytic on its own: it never enters a series, a canonical event, the social or news pipeline, hypothesis
+evidence, an indicator or a forecast until you **bind** its stream. A binding connects one stream of one provider to
+one destination (its **target**), with a target configuration and an optional filter. Bindings work on layer streams
+too (a layer of `event` items can join a canonical-event family), and provenance always travels: every bound item
+keeps its provider, stream and originator.
+
+| Call | What it does |
+|---|---|
+| `GET /v1/external/sources/{sourceId}/bindings` (admin) | The provider's bindings with state and counts |
+| `POST /v1/external/sources/{sourceId}/bindings` (admin) | Create a binding (`ExternalBindingInput`); 201 |
+| `POST /v1/external/sources/{sourceId}/bindings/accept-suggested` (admin) | Create the bindings the manifest suggests; 201 |
+| `GET`, `PUT`, `DELETE /v1/external/bindings/{bindingId}` (admin) | Read, replace or delete one |
+| `POST /v1/external/bindings/{bindingId}/preview` (admin) | What it would do over the last 100 items, without side effects |
+| `GET /v1/external/sources/{sourceId}/question-links` (read) | The provider's question links |
+| `POST /v1/external/sources/{sourceId}/question-links` (agent) | Link a provider question to a ledger question; 201 |
+| `DELETE /v1/external/question-links/{linkId}` (agent) | Remove a question link; 204 |
+
+A binding body has `streamId` and `target` (required), `config` (an object, per target below), `filter` (an array of
+017 conditions `{path, op, value}` on the item, ANDed, at most 20; an item's `properties` are top-level paths next to
+its type's own fields such as `value`, `seriesKey`, `text` or `url`), `enabled` (default true) and `backfill` (default
+true). A binding answers with its `id`, `sourceId`, `state` (`active`, `disabled`, `backfilling` or `error`),
+`applied` (how many record versions it applied), `lastError`, `manifestSha256` (the manifest it was made for),
+`targetRef` (what it set up, such as a chronicle layer), `createdBy`, `createdAt`, `updatedAt` and `lastAppliedAt`.
+`GET /v1/external/sources/{id}` counts each stream's bindings in `streams[].bindings`.
+
+A binding is checked against its stream: each target accepts certain item types, and a mismatch is
+`400 BINDING_TARGET_INVALID`, naming the stream's item type and the target's requirement; a configuration problem
+(a missing hypothesis set, an unknown place, a bad filter operator) is the same code with one error per field.
+
+### How bindings are applied
+
+The **binding router** follows the record stream on its own durable cursor, `external.binding.cursor`, which joins
+retention's consumer clamp like every durable consumer, so version retention never deletes EDP versions the bindings
+have not seen. It reads only the versions of providers that have an enabled binding; a version belongs to a stream when
+it carries that stream's EDP provenance and the stream's kind, so records the bindings write themselves (converted
+posts and articles) are never routed again. Each enabled binding whose filter matches is applied **exactly once per
+binding and record version**: the idempotency key (binding, source, external id, version) is stored with the target's
+change in one transaction, so the router, a backfill and a restart never apply a version twice. A failure rolls the
+target's change back, records the binding's `lastError` and moves on, so one bad item never stalls the stream.
+Deployment property `foresignal.external.bindings.auto-start` (true) runs the router.
+
+**Backfill.** A new binding (and a replaced one whose stream, target, configuration or filter changed, or that you
+re-enable) backfills from stored records within retention: the newest 100,000 stored versions of its stream at or
+below the router's cursor, applied oldest first, while its state is `backfilling`; it then becomes `active`. The
+router handles everything after the cursor, and the idempotency key removes any overlap. Send `"backfill": false` to
+skip it.
+
+**Receipt is the clock.** Bindings use Foresignal's own receipt for availability, never a provider's claimed time
+alone (EXT-4): a series point's `knownAt` is the item's effective `knownAt`, `max(knownAt, receipt)`, and a forecast's
+`made_at` is the time the ledger records it, never before Foresignal received the item.
+
+### Targets
+
+**`series`** (observation streams): each `seriesKey` becomes the analysis series
+`series:ext-{id}/{kind}/{seriesKey}`, read by the 093/119 series reader like any other series (`GET
+/v1/analytics/series/data?ref=…`). A point is the latest stored version of each period `t`; its `knownAt` is the
+effective `knownAt`, so as-of reads and look-ahead guards never see a value before Foresignal had it. Daily and weekly
+series are registered in the 119 analysis-series registry (and kept by the nightly registration); monthly, quarterly,
+yearly and instant series are readable but not analyzed. Configuration, all optional: `unit` (else the stream's
+`unit`), `transform` (`none`, `log1p` or `diff`, reported as the 117 transform hint `level`, `log-level` or
+`difference` that detectors apply; values are served as delivered), `releaseLagDays` (else the stream's), `family`
+(the signal family), `seriesFamily` and `regionCode`.
+
+```json
+POST /v1/external/sources/ext-hormuz-transits/bindings
+{"streamId": "transits", "target": "series",
+ "config": {"unit": "vessels/day", "transform": "log1p", "releaseLagDays": 1, "family": "maritime", "regionCode": "OM"}}
+```
+
+**`canonical-family`** (event streams): events join a 116 canonical-event family through the evidence resolver, so EDP
+events corroborate, or are corroborated by, other sources' events. `family` is required; a bundled family takes its
+matching rule (with the overrides `maxDtSeconds` and `maxKm`), and a family the bundled rules do not know gets a
+proximity rule of 3,600 s and 25 km (overridable). Story families (`news-story`, `social-narrative`) are refused: bind
+articles with `news` and social posts with `social`. An item counts under its **originator**, never its provider: the
+item's `origin.originator`, else the manifest's `source.originator`, registered with its class and its `aggregates`,
+so an originator that republishes a built-in source joins that source's evidence group and five providers relaying one
+report count once. The item's `upstreamId` (or `upstreamEventId`) and `derivedFrom` are matched as upstream ids in the
+namespace `upstreamNamespace` (default `upstream`); set it to the namespace a built-in source uses to match its ids.
+The stream's manifest `coverage` (`area` footprint and `pDetect`, 1 when omitted) becomes a **declared**
+observability estimate of the provider for that family, low confidence, inside the footprint only, used by
+`canSeeAbsence` until Foresignal can measure the source.
+
+```json
+POST /v1/external/sources/ext-hormuz-transits/bindings
+{"streamId": "incidents", "target": "canonical-family",
+ "config": {"family": "maritime-incident", "maxDtSeconds": 7200, "maxKm": 30}}
+```
+
+**`social`** (`social-post` documents): each document becomes a 135 `social-post` record (`{platform}:{postId}`, the
+post id being the provider's item id), written under the provider so its provenance, license, egress and privacy
+travel with it, and goes through the social collector: the author key is salted as for built-in platforms, topics are
+matched, and 136 narratives and claims and 137 comparisons include it. The platform is `config.platform`, else the
+document's `properties.platform`. The collection is `import`: such posts are a sample that never feeds velocity
+baselines, unless the manifest declares the stream `"complete": true`. Properties `channel`, `links`, `hashtags`,
+`mentions` and `replyTo`, `quoteOf`, `repostOf` (`{platform?, postId, url?}`) are carried over, so reposts inherit the
+original's originator. A document whose stream id equals its platform is refused (the converted post would replace the
+provider's item).
+
+```json
+POST /v1/external/sources/ext-telegram-channels/bindings
+{"streamId": "posts", "target": "social", "config": {"platform": "telegram"}}
+```
+
+**`news`** (`article` documents): each document becomes a 133 `news-article` record (external id the SHA-256 of the
+canonical URL, written under the provider) with its outlet resolved from the URL's domain, so stories, coverage and
+blindspots include it. As everywhere in 133 no byline or author name is stored, and the text is kept only as a
+500-character summary; the provider's own item keeps the full document. `sourceCountry` (ISO 3166-1 alpha-2,
+optional) is used when the outlet is new; the item's `properties.sourceCountry` wins over it.
+
+```json
+POST /v1/external/sources/ext-article-bodies/bindings
+{"streamId": "articles", "target": "news", "config": {"sourceCountry": "GB"}}
+```
+
+**`evidence`** (feature, event, observation and document streams): matching items become evidence rows of a 125
+hypothesis set (source `record`, the item's record reference), deduplicated by 116 evidence group like every record
+reference. `hypothesisSetId` is required; `hypothesisId` rates the item against one hypothesis with `rating` (default
+`C`); the Admiralty grade `sourceReliability` (`A`–`F`) and `informationCredibility` (1–6) default to `F6`, and
+`relevance` (`H`, `M`, `L`) to `M`. 125 rows grade credibility as H, M or L, so the Admiralty grade maps to the weaker
+of its two halves (`A` or `B` and 1 or 2 give H, `C` or 3 give M, anything else L) and is kept in the row's description.
+
+```json
+POST /v1/external/sources/ext-ukmto/bindings
+{"streamId": "advisories", "target": "evidence", "filter": [{"path": "category", "op": "==", "value": "boarding"}],
+ "config": {"hypothesisSetId": "01JA8Q3V7S2K9W4T6Y1B5N0M3C", "hypothesisId": "01JA8Q3V7S2K9W4T6Y1B5N0M3D",
+            "rating": "C", "sourceReliability": "C", "informationCredibility": 3}}
+```
+
+**`indicator`** (feature, event, observation and document streams): when an item passes the filter, the 125 indicator
+`indicatorId` is marked `observed` for feature, event and observation streams (physical data, with the item as evidence
+and its ACH row), or `reported` for document streams (a report never makes an indicator observed). An indicator that is
+no longer waiting is left alone.
+
+```json
+POST /v1/external/sources/ext-oref-sirens/bindings
+{"streamId": "alerts", "target": "indicator", "filter": [{"path": "area", "op": "==", "value": "Haifa"}],
+ "config": {"indicatorId": "01JA8Q3V7S2K9W4T6Y1B5N0M3F"}}
+```
+
+**`forecast`** (forecast streams): forecast items become forecasts of the external forecaster
+`edp:{sourceId}/{streamId}` (type `external`, registered on first use) on ledger questions, scored like every
+forecaster. An item with `questionRef` names its ledger question directly; an item with `question.externalId` needs a
+**question link** (below). A forecast is recorded on the first item for a question, on a material move (a probability
+change of at least 0.02, or a quantile moving by at least 2% of the previous 5–95% range), and otherwise at least
+daily. The ledger stamps `made_at` when it records the forecast, which is never before Foresignal received the item;
+the provider's `madeAt`, the effective `madeAt` and the receipt time are kept in the forecast's `inputs.edp`. A
+probability needs a binary question and quantiles a numeric one. External forecasters join the 122 ensemble only after
+30 resolved linked questions (questions they forecast through a link or a `questionRef`), so a market earns its weight.
+No configuration.
+
+```json
+POST /v1/external/sources/ext-markets/bindings
+{"streamId": "kalshi", "target": "forecast", "config": {}}
+```
+
+**`place`** (feature, event, observation and document streams): the latest bound value or document of the stream
+becomes an attribute of the 036 place `placeId`, shown in the `external` block of `GET /v1/places/{placeId}`, keyed
+`{sourceId}/{streamId}`: the item's reference, times and, for an observation, `seriesKey`, `t`, `value`, `unit` and
+`knownAt`, for a document its type, title, the first 500 characters of its text, `url` and `publishedAt`, and for a
+feature or event its properties. The binding keeps the newest item; nothing is written to the place itself.
+
+```json
+POST /v1/external/sources/ext-river-gauges/bindings
+{"streamId": "levels", "target": "place", "filter": [{"path": "seriesKey", "op": "==", "value": "gauge-12"}],
+ "config": {"placeId": "home"}}
+```
+
+**`situation`** (feature, event and document streams): with `situationId`, matching records join that 118 situation
+as pinned `record` members (`role` `core`, the default, or `context`); with `"linker": true` instead, each record is
+offered to the 118 linker, which joins it to the best-scoring situation above its threshold and never seeds a new one.
+Give exactly one of the two.
+
+```json
+POST /v1/external/sources/ext-liveuamap/bindings
+{"streamId": "events", "target": "situation", "config": {"linker": true}}
+```
+
+**`chronicle`** (any stream): the binding adds a layer of type `external-stream` (`{sourceId, streamId, filter}`,
+named `layerName`, else "External stream {sourceId}/{streamId}") to the 131 chronicle `chronicleId`, and the
+chronicle's own capture keeps copies of the stream from then on, independent of global retention. Applying an item
+does nothing more. The same layer can be added directly with `POST /v1/chronicles/{id}/layers` and the selector
+`{"type": "external-stream", "sourceId": "…", "streamId": "…", "filter": […]}`.
+
+```json
+POST /v1/external/sources/ext-hormuz-transits/bindings
+{"streamId": "incidents", "target": "chronicle",
+ "config": {"chronicleId": "01JA8Q3V7S2K9W4T6Y1B5N0M3G", "layerName": "Hormuz incidents (provider)"}}
+```
+
+### Question links
+
+A forecast provider names its own questions (`question.externalId`). A **question link** maps one of them to a ledger
+question: `POST /v1/external/sources/{sourceId}/question-links` (agent) with `streamId` (a forecast stream),
+`externalQuestionId`, `questionId` and `orientation` (`same`, the default, or `inverse`, which records `1 − p`; only
+binary questions can be linked inverse, and quantile forecasts cannot be inverted). The link answers with its
+`forecasterId` and `lastForecastAt`. A provider question already linked is `409 QUESTION_ALREADY_LINKED`; an unknown
+question `404 UNKNOWN_QUESTION`. `DELETE /v1/external/question-links/{linkId}` stops further forecasts through the link
+(`404 UNKNOWN_QUESTION_LINK`); recorded forecasts stay.
+
+```json
+POST /v1/external/sources/ext-markets/question-links
+{"streamId": "kalshi", "externalQuestionId": "HORMUZ-CLOSE-26DEC", "questionId": "01JA8Q3V7S2K9W4T6Y1B5N0M3H",
+ "orientation": "same"}
+```
+
+### Suggested bindings, previews and changes
+
+**Suggested bindings.** A manifest may suggest bindings per stream (`suggestedBindings`, each `{target, config}`);
+`GET /v1/external/sources/{id}` shows them in the manifest. `POST …/bindings/accept-suggested` creates them in one step;
+a suggestion identical to an existing binding is skipped. A suggestion that does not validate (a target that needs
+configuration the provider cannot know, such as a hypothesis set) is created **disabled** in state `error`, with the
+problems in `lastError`, so you can complete it with a `PUT`. Every created binding stays editable.
+
+**Preview.** `POST /v1/external/bindings/{bindingId}/preview` evaluates the binding over the stream's last 100 items
+without changing anything: `evaluated`, `matched` (items that passed the filter), `effects` (per matched item its
+`itemRef`, the `action` it would take, such as `series-point`, `canonical-link`, `social-post`, `news-article`,
+`evidence-added`, `indicator-observed`, `forecast`, `place-attribute`, `situation-member` or a `skip:…` reason, and
+the `targetRef`) and `errors`. Preview a binding created with `"enabled": false` before you switch it on.
+
+**Replacing and deleting.** `PUT /v1/external/bindings/{bindingId}` replaces the stream, target, configuration,
+filter and enabled state (the same body as a create). Re-enabling a binding, or changing what it applies, backfills
+unless the body says `"backfill": false`. `DELETE /v1/external/bindings/{bindingId}` stops it; what it created
+(series points, links, posts, articles, evidence rows, forecasts, members, the chronicle layer) stays.
+
+**Breaking manifest updates.** A manifest change to streams, kinds, item types, modes, payload schemas or provider URLs
+returns the provider to `pending` (024). The bindings of every stream the update added, removed or changed are then
+**disabled**: state `disabled`, `enabled: false`, and `lastError` naming the breaking changes. Each one emits
+`external.binding.disabled` on the SSE topic `external` and a `system` notification (subtype
+`system.binding_disabled`, linking the binding) to the channels subscribed to `system`. Approve the provider again,
+check the stream with a preview, and re-enable the binding with a `PUT`.
+
+### The `external` topic, MCP and problem codes
+
+The SSE topic `external` of `/v1/events/stream` (admin scope, cursor key `x`) carries `external.source.state`
+(`sourceId`, `state`, `change`: `registered`, `approved`, `suspended`, `manifest-changed` or `deleted`, and `at`) and
+`external.binding.disabled` (`bindingId`, `sourceId`, `reason`, `at`). Its events are live only (id-less): a client
+resyncs with `GET /v1/external/sources`. The filter block `external.sourceIds` (or the query parameter
+`external.sourceId`) narrows it to some providers.
+
+MCP: `list_external_sources` and `get_external_source` (read) return provider summaries (state, access route and
+fragility, originator and what it aggregates, license redistribution, and each stream's mode, item type, kind, item
+count and bindings; `get_external_source` adds the suggested bindings), never the manifest, a cursor or a credential;
+private providers the caller may not see are left out.
+
+| Code | When |
+|---|---|
+| `404 UNKNOWN_BINDING` | no such binding |
+| `404 UNKNOWN_QUESTION_LINK` | no such question link |
+| `400 BINDING_TARGET_INVALID` | the stream's item type does not fit the target (both named), or the configuration or filter is invalid |
+| `409 QUESTION_ALREADY_LINKED` | the provider question is already linked |
+
+Tables (Hibernate, captured by prompt 144): `external_binding`, `external_binding_applied` and
+`external_question_link`; app setting `external.binding.cursor`.
+
+### Writing a provider: the kit
+
+Specialist sources live in their own projects. The provider kit is `docs/protocol/edp-1.0/`: the JSON Schemas of the
+manifest, the batch and every item type (also served at `GET /v1/external/protocol/schemas/{name}`), and
+`docs/protocol/edp-1.0/examples/`, with an annotated minimal provider per item type and a Python reference provider of
+about 60 lines that reads a CSV and serves observations by push and by pull. The examples are documentation, not part
+of the server. Validate a manifest and sample items with `POST /v1/external/validate`. `docs/Source-Catalog.md`
+("External provider ideas") lists the specialist sources Foresignal does not ship (web maps, sirens, maritime
+advisories, channels, prediction markets, market data and more), each with the stream modes and item types a provider
+would use and the binding that makes it useful.
 
 ## Streaming for frontends, tiles and asOf
 
@@ -7310,7 +7580,9 @@ workspace it was made from. It starts `proposed`; nothing is captured until `POS
 or from an `area` and a `topic`, deterministically and without an LLM; it creates nothing. Display ids (`CHR-2026-0007`) work in every chronicle path.
 
 A layer has a `selector` and a `capture` mode. Selectors: `records` (sources, kinds and payload conditions),
-`saved-view`, `watchlist`, `entities`, `situations`, `findings`, `series`, `raster-products` and `alerts`. Add, change
+`saved-view`, `watchlist`, `entities`, `situations`, `findings`, `series`, `raster-products` and `alerts`, and since
+prompt 138 `external-stream` (one stream of an EDP provider, see
+[Binding external streams](#binding-external-streams-prompt-138)). Add, change
 and remove layers with `POST`, `PATCH` and `DELETE /v1/chronicles/{id}/layers[/{layerId}]` (editor). A layer applies
 from the seq at which it was added or changed; it never rewrites what was already captured, and every edit writes a
 `layer-edit` thread item.

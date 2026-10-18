@@ -38,6 +38,7 @@ public class ObservabilityDeclarations {
     private final ObjectProvider<SourceRegistry> sources;
     private final Map<String, DeclaredObservability> bundled;
     private final Map<String, String> trackKinds;
+    private volatile ObjectProvider<ExternalCoverage> external;
 
     /** Loads the bundled declarations. */
     @Autowired
@@ -72,6 +73,21 @@ public class ObservabilityDeclarations {
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read " + RESOURCE, e);
         }
+    }
+
+    /**
+     * Injects the declared coverage of external streams bound to canonical families (prompt 138); without it no
+     * external kind or coverage is added.
+     */
+    @Autowired(required = false)
+    public void setExternal(ObjectProvider<ExternalCoverage> external) {
+        this.external = external;
+    }
+
+    /** The external coverage provider (prompt 138), or null. */
+    public ExternalCoverage externalCoverage() {
+        ObjectProvider<ExternalCoverage> provider = external;
+        return provider == null ? null : provider.getIfAvailable();
     }
 
     /** The declaration in force for {@code descriptor}: its own, else the bundled one, else null. */
@@ -118,6 +134,14 @@ public class ObservabilityDeclarations {
                 out.add(kind);
             }
         });
+        ExternalCoverage coverage = externalCoverage();
+        if (coverage != null) {
+            try {
+                out.addAll(coverage.kindsOf(family));
+            } catch (RuntimeException e) {
+                // external bindings unavailable: the bundled kinds stand
+            }
+        }
         if (out.isEmpty()) {
             out.add(family);
         }

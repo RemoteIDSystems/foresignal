@@ -66,6 +66,12 @@ public class ChronicleSelectorValidator {
                 }
                 conditions(r.conditions(), field + ".conditions");
             }
+            case ChronicleSelector.ExternalStream x -> {
+                if (!sources.contains(x.sourceId())) {
+                    throw ChronicleSelector.invalid(field + ".sourceId", "unknown source '" + x.sourceId() + "'");
+                }
+                conditions(x.filter(), field + ".filter");
+            }
             case ChronicleSelector.SavedView v -> {
                 if (views.find(v.viewId()).isEmpty()) {
                     throw ChronicleSelector.invalid(field + ".viewId", "unknown saved view '" + v.viewId() + "'");

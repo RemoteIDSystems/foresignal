@@ -1,0 +1,47 @@
+{
+  "$comment": [
+    "A minimal provider of event items (EDP 1.0). Documentation only.",
+    "A layer stream of events is a map layer as soon as the source is approved; binding it to a canonical-event family (prompt 138) makes its events corroborate, or be corroborated by, other sources' events.",
+    "Independence is counted by originator, never by provider: the manifest's originator (and what it aggregates) or an item's origin.originator. This provider relays UKMTO advisories, so it declares aggregates: [\"ukmto\"]; an item it observed itself names its own origin.",
+    "coverage is the stream's declared footprint and detection probability: a low-confidence 'declared' observability estimate for the bound family until Foresignal can measure it.",
+    "upstreamEventId (or origin.upstreamId) lets the same incident arriving through several providers form one evidence group."
+  ],
+  "manifest": {
+    "protocol": "foresignal-edp/1.0",
+    "source": {
+      "id": "gulf-incidents-example",
+      "name": "Gulf maritime incidents (example)",
+      "publisher": {"name": "Example OSINT Lab"},
+      "licence": {"redistribution": "local-only"},
+      "access": {"route": "scrape", "fragility": "high"},
+      "originator": {"id": "example-osint-lab", "class": "aggregator", "aggregates": ["ukmto"]}
+    },
+    "transport": {"push": true},
+    "streams": [
+      {
+        "id": "incidents",
+        "mode": "layer",
+        "itemType": "event",
+        "kind": "maritime-incident",
+        "geometry": "Point",
+        "payloadSchema": {"type": "object", "required": ["category"], "properties": {"category": {"type": "string"}, "vessel": {"type": ["string", "null"]}}},
+        "fields": {"title": "category", "significant": ["category"], "volatile": []},
+        "retentionClass": "event",
+        "coverage": {"area": {"type": "Polygon", "coordinates": [[[54.5, 25.0], [58.0, 25.0], [58.0, 27.5], [54.5, 27.5], [54.5, 25.0]]]}, "family": "maritime-incident", "pDetect": 0.6},
+        "suggestedBindings": [{"target": "canonical-family", "config": {"family": "maritime-incident"}}]
+      }
+    ]
+  },
+  "batch": {
+    "protocol": "foresignal-edp/1.0",
+    "sentAt": "2026-10-18T06:00:00Z",
+    "items": [
+      {"stream": "incidents", "type": "event", "id": "inc-1", "observedAt": "2026-10-18T05:41:00Z", "eventTime": "2026-10-18T04:55:00Z", "geometry": {"type": "Point", "coordinates": [56.4, 26.5]}, "upstreamEventId": "UKMTO-WARNING-031", "properties": {"category": "approach-by-small-craft", "vessel": null}, "origin": {"originator": "ukmto", "class": "agency", "upstreamId": "UKMTO-WARNING-031"}},
+      {"stream": "incidents", "type": "event", "id": "inc-2", "observedAt": "2026-10-18T05:50:00Z", "eventTime": "2026-10-18T05:30:00Z", "geometry": {"type": "Point", "coordinates": [56.1, 26.2]}, "properties": {"category": "gps-interference", "vessel": null}}
+    ]
+  },
+  "bindings": [
+    {"streamId": "incidents", "target": "canonical-family", "config": {"family": "maritime-incident", "maxDtSeconds": 7200, "maxKm": 30, "upstreamNamespace": "ukmto"}},
+    {"streamId": "incidents", "target": "indicator", "config": {"indicatorId": "INDICATOR-ID"}, "filter": [{"path": "category", "op": "==", "value": "boarding"}]}
+  ]
+}

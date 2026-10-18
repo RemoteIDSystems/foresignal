@@ -65,6 +65,17 @@ public final class NewsArticles {
     }
 
     /**
+     * True when {@code sourceId} may hold news-article records: a {@linkplain #isNewsSource news source}, or an external
+     * EDP provider ({@code ext-…}) whose {@code article} documents a {@code news} binding converts (prompt 138).
+     */
+    public static boolean writesNewsArticles(String sourceId) {
+        return isNewsSource(sourceId) || (sourceId != null && sourceId.startsWith(EXTERNAL_PREFIX));
+    }
+
+    /** The source-id prefix of external EDP providers (prompt 024). */
+    static final String EXTERNAL_PREFIX = "ext-";
+
+    /**
      * One article as the adapter or feed mapper read it.
      *
      * @param title the headline

@@ -15,6 +15,33 @@ import org.springframework.stereotype.Component;
 public class PlaceMapper {
 
     private final GeoJsonWriter geoJson = new GeoJsonWriter();
+    private volatile org.springframework.beans.factory.ObjectProvider<PlaceExternalValues> external;
+
+    /** Injects the bound external stream values (prompt 138); without them no {@code external} block is added. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setExternal(org.springframework.beans.factory.ObjectProvider<PlaceExternalValues> external) {
+        this.external = external;
+    }
+
+    /**
+     * The {@code Place} object with its {@code external} block (prompt 138): the latest values or documents of
+     * external streams bound to it, or null when none is.
+     */
+    public Map<String, Object> placeWithExternal(PlaceView p) {
+        Map<String, Object> out = place(p);
+        org.springframework.beans.factory.ObjectProvider<PlaceExternalValues> provider = external;
+        PlaceExternalValues values = provider == null ? null : provider.getIfAvailable();
+        Map<String, Object> block = null;
+        if (values != null) {
+            try {
+                block = values.latestFor(p.id());
+            } catch (RuntimeException e) {
+                block = null;
+            }
+        }
+        out.put("external", block);
+        return out;
+    }
 
     /** The {@code Place} object. */
     public Map<String, Object> place(PlaceView p) {

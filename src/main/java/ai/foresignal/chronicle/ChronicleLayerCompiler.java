@@ -125,6 +125,14 @@ public class ChronicleLayerCompiler {
                         Set.copyOf(r.kinds()), inArea.and(row -> predicate.testConditions(row.sourceId(),
                                 row.payloadMap(json))), true);
             }
+            case ChronicleSelector.ExternalStream x -> {
+                // Prompt 138: one EDP stream, by its external-id prefix, with optional conditions on item properties.
+                RecordPredicate predicate = new RecordPredicate(Set.of(x.sourceId()), Set.of(),
+                        conditions(x.filter(), List.of(x.sourceId())), null);
+                yield new CompiledLayer(chronicleId, layerId, name, selector, capture, fromSeq, Set.of(x.sourceId()),
+                        Set.of(), inArea.and(row -> x.holds(row.externalId())
+                                && predicate.testConditions(row.sourceId(), row.payloadMap(json))), true);
+            }
             case ChronicleSelector.SavedView v -> {
                 SavedViewEntity view = views.find(v.viewId()).orElseThrow(() -> new IllegalStateException(
                         "saved view " + v.viewId() + " no longer exists"));

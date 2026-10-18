@@ -597,6 +597,11 @@
         "version": "1.3.0",
         "date": "2026-10-18",
         "note": "137: listSocialComparisons, getSocialComparison, listSocialCues, createSocialCue, getSocialCue, getSocialLeadTimes, getSocialSettings and updateSocialSettings are implemented, with SocialPhysicalComparator 1.0.0 (asserted claims with a locality or finer place, admin-1 for large-area families, of narratives with at least social.compare.minGroups evidence groups or a social-velocity finding; physical evidence = canonical events and non-social findings of the family's canonical and finding families, with non-social originators, within the family tolerance and window of intel/social/social-compare.json; unobserved only when canSeeAbsence is ok over the closed window, else insufficient-coverage; contradicted by a negating agency or sensor record or a media-reuse finding; revisions until window end plus publication lag), claim and narrative statuses (credibility follows), the 122 ledger question per organic pending comparison (manual resolver resolved by the comparison: corroborated yes, unobserved or contradicted no, insufficient-coverage annulled COVERAGE_GAP) and the social-claim forecaster 1.0.0 (base rate of corroboration by claim type, platform mix, region and evidence-group band, Jeffreys prior, back-off), AttentionGapDetector 1.0.0 (attention-gap findings below the 10th percentile of the expected normalized attention of past events of the same family and severity band, only with adequate social coverage), SocialCueService (automatic cues from situation activation and escalation, significant change points, anomalies, critical alerts and canonical events with at least two evidence groups; manual cues; exact queries per language and platform from names, aliases, facilities and the claim lexicon; social.cues.maxPerDay and maxCostUsdPerCue; X spend estimated first; results stored as posts with collection cue, never baselined; optional xai-x-search backend through the 026 provider xai), lead-time statistics with a training cut-off at the 120 discovery fraction, social volume series registered with family social and their region as 120 precursor antecedents, the situation social section, the packet and assessment section social (SocialVersusObserved), indicators reported by claims and observed only from physical evidence, chronicle layers social-narratives (narrative-change and comparison-change thread items) and social-volume (sampled social: series), the notification event types social.divergence and social.attention_gap, the SSE events comparison.updated, cue.completed and attention.gap on topic social, the MCP tools compare_claim and get_social_lead_times (read, also in the analyst read catalog) and run_social_cue (agent, cost-bearing), the app settings social.compare, social.attentionGap, social.cues and social.trackRecord, the benchmark component social-physical with six social scenarios, and the error codes UNKNOWN_COMPARISON, UNKNOWN_CUE and CUE_LIMIT_REACHED. Reconciliations (additive): SocialSettings.trackRecord.overrides.account is the author key; llmClaimMinEvidenceGroups is fixed at 5; SocialCue.results omit newPosts."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-18",
+        "note": "138: listExternalBindings, createExternalBinding, acceptSuggestedBindings, getExternalBinding, updateExternalBinding, deleteExternalBinding, previewExternalBinding, listExternalQuestionLinks, createExternalQuestionLink and deleteExternalQuestionLink are implemented, with the tables external_binding, external_binding_applied and external_question_link, the BindingRouter (durable cursor external.binding.cursor, a retention consumer; exactly once per binding and record version; backfill of the newest 100,000 stored versions), the targets series (series:ext-{id}/{kind}/{seriesKey} read by the 119 SeriesReader with knownAt = effectiveKnownAt; day and week series registered in the analysis-series registry), canonical-family (the 116 EvidenceResolver under the item's or manifest's originator registered with its aggregates; stream coverage as a low-confidence declared observability estimate), social (135 social-post records under the provider, collection import, sampled unless the stream is complete), news (133 news-article records under the provider, outlet by domain), evidence (125 ACH rows; Admiralty grade mapped to H/M/L), indicator (observed for physical streams, reported for documents), forecast (external forecaster edp:{sourceId}/{streamId}; first item, a 0.02 move or daily; made_at stamped by the ledger; ensemble entry after 30 resolved linked questions), place (Place.external), situation (pinned member or the 118 linker) and chronicle (the external-stream layer selector, now implemented), the SSE topic external (admin; external.source.state and external.binding.disabled, id-less), the MCP tools list_external_sources and get_external_source (read), the system notification subtype system.binding_disabled, and the error codes UNKNOWN_BINDING, UNKNOWN_QUESTION_LINK, BINDING_TARGET_INVALID and QUESTION_ALREADY_LINKED. Reconciliations (additive): ExternalBinding gains targetRef, updatedAt and lastAppliedAt; createExternalQuestionLink documents 400 BINDING_TARGET_INVALID; EventStreamFilter gains the external block; x-foresignal-sse-topics marks external as 138; ExternalSourceStateEvent.state is deleted after a deletion."
       }
     ]
   },
@@ -12002,6 +12007,16 @@
             "schema": {
               "$ref": "#/components/schemas/SituationTheme"
             }
+          },
+          {
+            "name": "external.sourceId",
+            "in": "query",
+            "required": false,
+            "description": "external topic (138, admin): only events of this provider",
+            "schema": {
+              "type": "string"
+            },
+            "x-foresignal-prompt": "138"
           }
         ],
         "responses": {
@@ -12973,7 +12988,7 @@
           "analytics": "119",
           "forecasts": "122",
           "social": "135",
-          "external": "024",
+          "external": "138",
           "workspace": "129",
           "chronicle": "131"
         }
@@ -85361,7 +85376,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -85374,7 +85389,7 @@
         ],
         "operationId": "createExternalBinding",
         "summary": "Create a binding",
-        "description": "Binds a stream to a target (series, canonical family, social, news, evidence, indicator, forecast, place, situation, chronicle). Backfills from stored records unless `backfill` is false.\n\n**Scope:** `admin`.",
+        "description": "Binds a stream to a target (series, canonical family, social, news, evidence, indicator, forecast, place, situation, chronicle). Layer and atomic streams may be bound; the stream's item type must fit the target (400 BINDING_TARGET_INVALID names both). Backfills from stored records (the newest 100,000 versions within retention) unless `backfill` is false.\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -85439,7 +85454,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -85465,7 +85480,7 @@
         ],
         "operationId": "acceptSuggestedBindings",
         "summary": "Accept suggested bindings",
-        "description": "Creates the bindings the manifest suggests (each remains editable).\n\n**Scope:** `admin`.",
+        "description": "Creates the bindings the manifest suggests (each remains editable). Suggestions that already exist are skipped; a suggestion that does not validate (for example a target that needs configuration the provider cannot know) is created disabled in state `error` with the problems in `lastError`, for the operator to complete.\n\n**Scope:** `admin`.",
         "responses": {
           "201": {
             "description": "Created",
@@ -85513,7 +85528,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -85583,7 +85598,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -85596,7 +85611,7 @@
         ],
         "operationId": "updateExternalBinding",
         "summary": "Replace a binding",
-        "description": "Replaces target config, filter or enabled state.\n\n**Scope:** `admin`.",
+        "description": "Replaces the stream, target, config, filter or enabled state. A changed or re-enabled binding backfills unless `backfill` is false; re-enabling clears `lastError` (the way back after a breaking manifest update disabled it).\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -85661,7 +85676,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -85712,7 +85727,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -85782,7 +85797,7 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -85864,7 +85879,7 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {},
           {
@@ -85896,6 +85911,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ExternalQuestionLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BINDING_TARGET_INVALID (the stream is not a forecast stream, or orientation inverse on a question that is not binary)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
                 }
               }
             }
@@ -85943,7 +85968,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -86006,7 +86031,7 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "138",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "security": [
           {
             "bearerToken": []
@@ -87863,6 +87888,30 @@
             "status": 415,
             "prompt": "136",
             "note": "matchMedia: the upload was refused by the 043 ImageGuard (not a PNG, JPEG or TIFF, a type mismatch, too many pixels or a truncated header); 413 when the file is over the guard's size limit"
+          },
+          {
+            "code": "UNKNOWN_BINDING",
+            "status": 404,
+            "prompt": "138",
+            "note": "getExternalBinding, updateExternalBinding, deleteExternalBinding, previewExternalBinding: no binding has that id"
+          },
+          {
+            "code": "UNKNOWN_QUESTION_LINK",
+            "status": 404,
+            "prompt": "138",
+            "note": "deleteExternalQuestionLink: no question link has that id"
+          },
+          {
+            "code": "BINDING_TARGET_INVALID",
+            "status": 400,
+            "prompt": "138",
+            "note": "createExternalBinding, updateExternalBinding, createExternalQuestionLink: the stream's item type does not fit the target (both are named), the stream is unknown, or the target configuration or filter is invalid (each problem in errors)"
+          },
+          {
+            "code": "QUESTION_ALREADY_LINKED",
+            "status": 409,
+            "prompt": "138",
+            "note": "createExternalQuestionLink: the provider question of that stream is already linked"
           }
         ]
       },
@@ -100789,6 +100838,19 @@
                   "type": "string"
                 },
                 "maxItems": 50
+              }
+            }
+          },
+          "external": {
+            "type": "object",
+            "description": "Filter for the `external` topic (138; admin scope)",
+            "properties": {
+              "sourceIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Only these providers"
               }
             }
           }
@@ -166342,6 +166404,28 @@
               "createdAt": {
                 "type": "string",
                 "format": "date-time"
+              },
+              "targetRef": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "What the binding set up once (the chronicle layer of a chronicle binding, chronicle:{id}/layers/{layerId})"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "lastAppliedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "config": {
+                "type": "object",
+                "additionalProperties": true
               }
             },
             "required": [

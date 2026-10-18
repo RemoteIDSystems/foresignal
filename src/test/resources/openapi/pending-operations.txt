@@ -1,13 +1,3 @@
-listExternalBindings 138
-createExternalBinding 138
-acceptSuggestedBindings 138
-getExternalBinding 138
-updateExternalBinding 138
-deleteExternalBinding 138
-previewExternalBinding 138
-listExternalQuestionLinks 138
-createExternalQuestionLink 138
-deleteExternalQuestionLink 138
 runSourceDoctor 140
 listSourceDoctorReports 140
 getDoctorReport 140

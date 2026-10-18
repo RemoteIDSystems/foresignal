@@ -223,7 +223,33 @@ class EventSchemaConformanceTest {
                     EventSchemaConformanceTest::comparisonEvents),
             entry(ai.foresignal.social.correlation.CorrelationVocabulary.EVENT_CUE, EventSchemaConformanceTest::cueEvents),
             entry(ai.foresignal.social.correlation.CorrelationVocabulary.EVENT_GAP,
-                    EventSchemaConformanceTest::attentionGapEvents));
+                    EventSchemaConformanceTest::attentionGapEvents),
+            // 138: ExternalTopic sends ExternalEvent.payload() on topic external.
+            entry(ai.foresignal.inbound.edp.ExternalEvent.SOURCE_STATE, EventSchemaConformanceTest::externalStateEvents),
+            entry(ai.foresignal.inbound.edp.ExternalEvent.BINDING_DISABLED,
+                    EventSchemaConformanceTest::bindingDisabledEvents));
+
+    /** {@code external.source.state} as {@code ExternalEvent.sourceState} builds it (prompt 138). */
+    static List<JsonNode> externalStateEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-18T06:00:00Z");
+        List<JsonNode> out = new ArrayList<>();
+        for (String change : List.of("registered", "approved", "suspended", "manifest-changed")) {
+            out.add(toTree(ai.foresignal.inbound.edp.ExternalEvent.sourceState(
+                    ai.foresignal.inbound.edp.ExternalSourceChangedEvent.of("ext-hormuz-transits", "active", change, at))
+                    .payload()));
+        }
+        out.add(toTree(ai.foresignal.inbound.edp.ExternalEvent.sourceState(
+                ai.foresignal.inbound.edp.ExternalSourceChangedEvent.of("ext-hormuz-transits", null, "deleted", at))
+                .payload()));
+        return out;
+    }
+
+    /** {@code external.binding.disabled} as {@code ExternalEvent.bindingDisabled} builds it (prompt 138). */
+    static List<JsonNode> bindingDisabledEvents() {
+        return List.of(toTree(ai.foresignal.inbound.edp.ExternalEvent.bindingDisabled("01JA8Q3V7S2K9W4T6Y1B5N0M3C",
+                "ext-hormuz-transits", "breaking manifest update: stream transits kind changed",
+                java.time.Instant.parse("2026-10-18T06:00:00Z")).payload()));
+    }
 
     /** A comparison row (prompt 137). */
     static ai.foresignal.social.correlation.ComparisonStore.Comparison comparisonRow(String status) {

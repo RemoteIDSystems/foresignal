@@ -571,6 +571,7 @@ public class ChronicleCaptureService implements ChangeListener, DisposableBean, 
             return;
         }
         boolean firstKind = selector instanceof ChronicleSelector.Records
+                || selector instanceof ChronicleSelector.ExternalStream
                 || selector instanceof ChronicleSelector.SavedView || selector instanceof ChronicleSelector.Watchlist
                 || selector instanceof ChronicleSelector.Entities;
         if (firstKind && reason == PersistReason.FIRST && properties.firstAppearancesPerHour() > 0) {

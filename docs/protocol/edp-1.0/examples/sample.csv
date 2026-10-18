@@ -1,0 +1,5 @@
+series_key,period,value,known_at
+tanker,2026-10-15,31,2026-10-16T06:00:00Z
+tanker,2026-10-16,28,2026-10-17T06:00:00Z
+cargo,2026-10-15,44,
+cargo,2026-10-16,47,

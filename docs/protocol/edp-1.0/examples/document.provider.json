@@ -1,0 +1,37 @@
+{
+  "$comment": [
+    "A minimal provider of document items (EDP 1.0): social posts from a channel Foresignal has no built-in adapter for. Documentation only.",
+    "Target social (prompt 138) turns each social-post document into a 135 social-post record {platform}:{id} under this provider, with collection import: a sample that never feeds velocity baselines unless the stream declares complete: true. Narratives, claims and the social-versus-physical comparison (136, 137) then include them.",
+    "properties.platform (or the binding's config.platform) names the network; repostOf/quoteOf/replyTo let reposts inherit the original's originator, so amplification never adds evidence.",
+    "An article document (documentType article, with a url) bound with target news joins 133 stories and coverage; no byline is stored."
+  ],
+  "manifest": {
+    "protocol": "foresignal-edp/1.0",
+    "source": {
+      "id": "channel-posts-example",
+      "name": "Public channel posts (example)",
+      "publisher": {"name": "Operator"},
+      "licence": {"redistribution": "local-only"},
+      "access": {"route": "unofficial-api", "fragility": "medium"},
+      "originator": {"id": "channel-posts-example", "class": "social"},
+      "private": false
+    },
+    "transport": {"push": true},
+    "streams": [
+      {"id": "posts", "mode": "atomic", "itemType": "document", "kind": "channel-post", "documentType": "social-post", "retentionClass": "social", "suggestedBindings": [{"target": "social", "config": {"platform": "telegram"}}]},
+      {"id": "articles", "mode": "atomic", "itemType": "document", "kind": "linked-article", "documentType": "article", "suggestedBindings": [{"target": "news"}]}
+    ]
+  },
+  "batch": {
+    "protocol": "foresignal-edp/1.0",
+    "sentAt": "2026-10-18T06:00:00Z",
+    "items": [
+      {"stream": "posts", "type": "document", "id": "examplechannel-4512", "observedAt": "2026-10-18T05:58:00Z", "documentType": "social-post", "text": "Large fire reported near the port this morning", "url": "https://t.me/examplechannel/4512", "author": {"handle": "examplechannel", "name": "Example channel", "accountId": "100200300"}, "language": "en", "publishedAt": "2026-10-18T05:41:00Z", "media": [{"type": "image", "url": "https://example.org/4512.jpg"}], "engagement": {"views": 1200}, "properties": {"platform": "telegram", "channel": "examplechannel"}, "origin": {"originator": "examplechannel", "class": "social"}},
+      {"stream": "articles", "type": "document", "id": "a-77", "observedAt": "2026-10-18T05:59:00Z", "documentType": "article", "title": "Fire at the port", "text": "A fire broke out at the container terminal ...", "url": "https://news.example.org/2026/10/18/port-fire", "language": "en", "publishedAt": "2026-10-18T05:50:00Z"}
+    ]
+  },
+  "bindings": [
+    {"streamId": "posts", "target": "social", "config": {"platform": "telegram"}},
+    {"streamId": "articles", "target": "news", "config": {"sourceCountry": "NL"}}
+  ]
+}

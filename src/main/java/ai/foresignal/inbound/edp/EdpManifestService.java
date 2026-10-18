@@ -29,6 +29,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -76,6 +78,7 @@ public class EdpManifestService implements DynamicSourceFactory {
     private final JsonMapper json;
     private final Clock clock;
     private final Map<String, EdpManifestValidator.ManifestCheck> checks = new ConcurrentHashMap<>();
+    private ApplicationEventPublisher events;
 
     /** Creates the service. */
     public EdpManifestService(EdpManifestValidator validator, ExternalSourceRepository externals,
@@ -116,6 +119,21 @@ public class EdpManifestService implements DynamicSourceFactory {
      * @param ingestKey the plaintext key
      */
     public record Registered(ExternalSourceEntity source, String ingestKey) {}
+
+    /**
+     * Injects the application event publisher that carries {@link ExternalSourceChangedEvent}s (prompt 138); without
+     * one no lifecycle event is published.
+     */
+    @Autowired(required = false)
+    public void setEvents(ApplicationEventPublisher events) {
+        this.events = events;
+    }
+
+    private void publish(ExternalSourceChangedEvent event) {
+        if (events != null) {
+            events.publishEvent(event);
+        }
+    }
 
     // ---------- registration ----------
 
@@ -184,6 +202,12 @@ public class EdpManifestService implements DynamicSourceFactory {
         SourceAdapter adapter = model.pull() == null ? null : pullAdapters.create(descriptor);
         CustomSourceService.Created created = customSources.createExternal(row, descriptor, adapter, options.approve());
         log.info("Registered EDP provider {} via {} ({})", sourceId, options.via(), ext.getState());
+        publish(ExternalSourceChangedEvent.of(sourceId, ext.getState(), ExternalSourceChangedEvent.REGISTERED,
+                clock.instant()));
+        if (options.approve()) {
+            publish(ExternalSourceChangedEvent.of(sourceId, ext.getState(), ExternalSourceChangedEvent.APPROVED,
+                    clock.instant()));
+        }
         return new Registered(ext, created.ingestKey());
     }
 
@@ -202,7 +226,9 @@ public class EdpManifestService implements DynamicSourceFactory {
             throw new ForesignalException(HttpStatus.BAD_REQUEST, ErrorCodes.SOURCE_MISMATCH,
                     "The manifest describes '" + model.sourceId() + "', not '" + sourceId + "'.");
         }
-        List<String> breaking = breakingChanges(model(ext), model);
+        EdpManifestModel previous = model(ext);
+        List<String> breaking = breakingChanges(previous, model);
+        Set<String> changedStreams = changedStreams(previous, model);
         String text = json.writeValueAsString(manifest);
         ext.setManifest(text, sha256(text));
         ext.setUpdatedAt(clock.instant());
@@ -220,6 +246,8 @@ public class EdpManifestService implements DynamicSourceFactory {
             sources.setDynamicEnabled(sourceId, false);
         }
         log.info("Updated the manifest of {} ({} breaking change(s))", sourceId, breaking.size());
+        publish(new ExternalSourceChangedEvent(sourceId, ext.getState(), ExternalSourceChangedEvent.MANIFEST_CHANGED,
+                breaking, breaking.isEmpty() ? Set.of() : changedStreams, clock.instant()));
         return new Updated(ext, breaking);
     }
 
@@ -240,6 +268,8 @@ public class EdpManifestService implements DynamicSourceFactory {
         ext.setUpdatedAt(clock.instant());
         externals.save(ext);
         sources.setDynamicEnabled(sourceId, true);
+        publish(ExternalSourceChangedEvent.of(sourceId, ext.getState(), ExternalSourceChangedEvent.APPROVED,
+                clock.instant()));
         return ext;
     }
 
@@ -251,6 +281,8 @@ public class EdpManifestService implements DynamicSourceFactory {
         ext.setUpdatedAt(clock.instant());
         externals.save(ext);
         sources.setDynamicEnabled(sourceId, false);
+        publish(ExternalSourceChangedEvent.of(sourceId, ext.getState(), ExternalSourceChangedEvent.SUSPENDED,
+                clock.instant()));
         return ext;
     }
 
@@ -269,6 +301,7 @@ public class EdpManifestService implements DynamicSourceFactory {
         status.forget(sourceId);
         recordLimiter.forget(sourceId);
         checks.remove(ext.getManifestSha256());
+        publish(ExternalSourceChangedEvent.of(sourceId, null, ExternalSourceChangedEvent.DELETED, clock.instant()));
     }
 
     /** Records when an item was last accepted (outside the request transaction). */
@@ -399,6 +432,29 @@ public class EdpManifestService implements DynamicSourceFactory {
             changes.add("transport.search.url changed");
         }
         return changes;
+    }
+
+    /**
+     * The stream ids a manifest update added, removed or changed in a breaking way (kind, item type, mode, update
+     * style, geometry or payload schema), for disabling the bindings made for them (prompt 138). Pure.
+     */
+    public static Set<String> changedStreams(EdpManifestModel before, EdpManifestModel after) {
+        Set<String> out = new java.util.TreeSet<>();
+        for (EdpManifestModel.Stream b : before.streams()) {
+            EdpManifestModel.Stream a = after.stream(b.id());
+            if (a == null || !Objects.equals(b.kind(), a.kind()) || !Objects.equals(b.itemType(), a.itemType())
+                    || !Objects.equals(b.mode(), a.mode()) || !Objects.equals(b.update(), a.update())
+                    || !Objects.equals(b.geometry(), a.geometry())
+                    || !Objects.equals(b.payloadSchema(), a.payloadSchema())) {
+                out.add(b.id());
+            }
+        }
+        for (EdpManifestModel.Stream a : after.streams()) {
+            if (before.stream(a.id()) == null) {
+                out.add(a.id());
+            }
+        }
+        return out;
     }
 
     private static void compare(List<String> changes, String stream, String field, Object before, Object after) {

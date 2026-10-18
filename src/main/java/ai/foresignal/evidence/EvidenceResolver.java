@@ -253,21 +253,58 @@ public class EvidenceResolver implements ChangeListener, DisposableBean, ai.fore
             }
             return;
         }
+        link(row, rule, originators.resolve(row.sourceId()), originators.upstreamRefs(row.sourceId()));
+    }
+
+    /**
+     * Links one EDP record a {@code canonical-family} binding routes here (prompt 138) into {@code rule}'s family,
+     * counted under {@code originator} (the item's {@code origin.originator}, else the manifest's, registered with its
+     * {@code aggregates}), so the provider never adds an evidence group of its own. Exactly once per version, like
+     * the cursor path; runs in its own transaction.
+     *
+     * @param seq the version's seq
+     * @param sourceId the provider
+     * @param externalId the record
+     * @param kind the record kind
+     * @param version the record version, or null
+     * @param eventTime the event time, else the observation time
+     * @param observedAt the observation time
+     * @param lon the representative longitude, or null
+     * @param lat the representative latitude, or null
+     * @param payload the payload
+     * @param rule the family rule (the bundled family's, with the binding's overrides)
+     * @param originator the originator the observation counts under
+     * @param refs the upstream references to match on
+     * @return the canonical event the observation is linked to, or null when it was already processed
+     */
+    public synchronized String resolveBound(long seq, String sourceId, String externalId, String kind, Integer version,
+            Instant eventTime, Instant observedAt, Double lon, Double lat, Map<String, Object> payload,
+            CanonicalRules.FamilyRule rule, Originator originator, UpstreamRefs refs) {
+        VersionRow row = new VersionRow(seq, sourceId, externalId, kind, version, eventTime, observedAt, lon, lat,
+                payload == null ? Map.of() : payload);
+        return transactions.execute(status -> link(row, rule, originator, refs));
+    }
+
+    /**
+     * Links one version of a proximity, identifier, cell-day, outage or hazard family.
+     *
+     * @return the canonical event id, or null when the version was already processed
+     */
+    private String link(VersionRow row, CanonicalRules.FamilyRule rule, Originator originator, UpstreamRefs refs) {
         Instant now = clock.instant();
-        Originator originator = originators.resolve(row.sourceId());
-        ObservationFacts facts = FactsExtractor.extract(rule, originators.upstreamRefs(row.sourceId()), rules,
+        ObservationFacts facts = FactsExtractor.extract(rule, refs, rules,
                 row.sourceId(), row.externalId(), row.seq(), row.version(), row.eventTime(), row.observedAt(),
                 row.lon(), row.lat(), row.payload());
         List<EvidenceStore.StoredLink> existing = store.linksOf(row.sourceId(), row.externalId());
         if (!existing.isEmpty()) {
             EvidenceStore.StoredLink link = existing.get(0);
             if (link.facts().seq() >= row.seq()) {
-                return; // already processed: exactly once across rewinds and restarts
+                return null; // already processed: exactly once across rewinds and restarts
             }
             boolean revised = link.revised() || revised(link.facts(), facts);
             store.updateLink(link.id(), facts, originator, revised, now);
             refresh(link.canonicalEventId(), rule, now, false, List.of());
-            return;
+            return link.canonicalEventId();
         }
         Map<String, EvidenceMatcher.Match> matches = matches(rule, facts);
         double minimum = minLinkConfidence();
@@ -282,7 +319,7 @@ public class EvidenceResolver implements ChangeListener, DisposableBean, ai.fore
             reason.put("upstreamIdMatch", false);
             store.insertLink(id, facts, originator, 1.0, reason, now);
             refresh(id, rule, now, true, List.of());
-            return;
+            return id;
         }
         List<String> targets = new ArrayList<>(matches.keySet());
         String survivor = oldest(targets);
@@ -300,6 +337,7 @@ public class EvidenceResolver implements ChangeListener, DisposableBean, ai.fore
         EvidenceMatcher.Match chosen = matches.getOrDefault(survivor, best);
         store.insertLink(survivor, facts, originator, chosen.confidence(), chosen.reason(), now);
         refresh(survivor, rule, now, false, merged);
+        return survivor;
     }
 
     /** The best match of {@code facts} against each candidate event, keyed by event id. */

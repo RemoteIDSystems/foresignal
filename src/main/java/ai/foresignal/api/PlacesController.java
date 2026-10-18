@@ -79,7 +79,7 @@ public class PlacesController {
     @GetMapping("/v1/places/{placeId}")
     @Operation(operationId = "getPlace", tags = "Places")
     public Map<String, Object> getPlace(@PathVariable String placeId) {
-        return mapper.place(places.get(placeId));
+        return mapper.placeWithExternal(places.get(placeId));
     }
 
     /** {@code updatePlace}: re-materializes the rules that use it. */

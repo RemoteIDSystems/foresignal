@@ -72,6 +72,7 @@ public class OriginatorRegistry {
 
     private volatile Object lastOverride;
     private volatile Model merged;
+    private final Map<String, Originator> external = new java.util.concurrent.ConcurrentHashMap<>();
 
     /** Creates the registry and loads the bundled file. */
     @Autowired
@@ -146,7 +147,7 @@ public class OriginatorRegistry {
         Model model = model();
         SourceDescriptor descriptor = descriptor(sourceId);
         if (descriptor != null && descriptor.originator() != null && !descriptor.originator().isBlank()) {
-            Originator declared = model.originators.get(descriptor.originator());
+            Originator declared = declared(model, descriptor.originator());
             return declared != null ? declared
                     : new Originator(descriptor.originator(), Originator.DEFAULT_CLASS, null, List.of(), null, List.of());
         }
@@ -155,7 +156,7 @@ public class OriginatorRegistry {
             return Originator.defaultFor(sourceId);
         }
         String id = SOURCE_PLACEHOLDER.equals(mapping.originator()) ? sourceId : mapping.originator();
-        Originator known = model.originators.get(id);
+        Originator known = declared(model, id);
         if (known != null) {
             return known;
         }
@@ -171,13 +172,50 @@ public class OriginatorRegistry {
         if (id == null) {
             return Optional.empty();
         }
-        Originator declared = model().originators.get(id);
+        Originator declared = declared(model(), id);
         if (declared == null && id.startsWith(SOCIAL_PREFIX) && id.length() > SOCIAL_PREFIX.length()) {
             return Optional.of(new Originator(id, "social", id, List.of(),
                     "social account or post (prompt 135); reposts and quotes inherit the original's originator",
                     List.of()));
         }
         return Optional.ofNullable(declared);
+    }
+
+    /**
+     * Registers an originator an external (EDP) provider declares (prompt 138): the manifest's
+     * {@code source.originator} with its class and {@code aggregates}, or an item-level {@code origin.originator}. A
+     * provider never redefines an originator the bundled registry or the operator's setting declares (a provider
+     * naming {@code usgs-anss} relays USGS and stays in its group); a later registration of the same external id
+     * replaces the earlier one.
+     *
+     * @return the originator in force for that id
+     */
+    public Originator registerExternal(Originator originator) {
+        if (originator == null || originator.id() == null || originator.id().isBlank()) {
+            return originator;
+        }
+        Originator curated = model().originators.get(originator.id());
+        if (curated != null) {
+            return curated;
+        }
+        external.put(originator.id(), originator);
+        return originator;
+    }
+
+    /** The originators external providers registered (prompt 138), sorted by id. */
+    public List<Originator> externalOriginators() {
+        List<Originator> out = new ArrayList<>(external.values());
+        out.sort(Comparator.comparing(Originator::id));
+        return out;
+    }
+
+    /** A declared originator: the registry's (bundled and setting), else an external provider's. */
+    private Originator declared(Model model, String id) {
+        if (id == null) {
+            return null;
+        }
+        Originator curated = model.originators.get(id);
+        return curated != null ? curated : external.get(id);
     }
 
     /** The prefix of per-account social originators (prompt 135). */
@@ -227,7 +265,7 @@ public class OriginatorRegistry {
             if (target.equals(b.id()) || target.equals(b.independenceGroup())) {
                 return true;
             }
-            Originator next = model().originators.get(target);
+            Originator next = declared(model(), target);
             if (next != null && aggregates(next, b, depth + 1, seen)) {
                 return true;
             }

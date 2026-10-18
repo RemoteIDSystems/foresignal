@@ -142,6 +142,7 @@ public class AnalysisSeriesRegistrar {
         candidates.addAll(ruleGroups(now));
         candidates.addAll(newsCoverage(now));
         candidates.addAll(socialVolume(now));
+        candidates.addAll(externalSeries(now));
         List<String> skipped = new ArrayList<>();
         Map<String, List<Map<String, Object>>> defaults = defaultWatchPairs(candidates, skipped);
         Map<String, AnalysisSeriesEntity> existing = new HashMap<>();
@@ -366,6 +367,28 @@ public class AnalysisSeriesRegistrar {
                     out.add(new Candidate(ref.format(), "day", families.familyOfRecord(null, kind).orElse(null),
                             region, rs.getDouble("total")));
                 });
+        return out;
+    }
+
+    /** The series of external (EDP) streams bound with target {@code series} (prompt 138), when present. */
+    @org.springframework.beans.factory.annotation.Autowired
+    private ObjectProvider<ai.foresignal.analytics.series.ExternalSeriesSource> externalSeries;
+
+    /** The candidates of bound external series (prompt 138): hour, day and week series of enabled bindings. */
+    List<Candidate> externalSeries(Instant now) {
+        ai.foresignal.analytics.series.ExternalSeriesSource source = externalSeries == null ? null
+                : externalSeries.getIfAvailable();
+        if (source == null) {
+            return List.of();
+        }
+        List<Candidate> out = new ArrayList<>();
+        try {
+            for (ai.foresignal.analytics.series.ExternalSeriesSource.Candidate c : source.candidates(now)) {
+                out.add(new Candidate(c.ref(), c.frequency(), c.family(), c.regionCode(), c.volume()));
+            }
+        } catch (RuntimeException e) {
+            log.warn("External series candidates could not be read: {}", e.toString());
+        }
         return out;
     }
 

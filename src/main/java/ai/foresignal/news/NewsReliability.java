@@ -73,7 +73,7 @@ public class NewsReliability {
      * unknown.
      */
     public String grade(String sourceId, String externalId) {
-        if (!NewsArticles.isNewsSource(sourceId) || externalId == null) {
+        if (!NewsArticles.writesNewsArticles(sourceId) || externalId == null) {
             return null;
         }
         NewsStoryStore.Article a = store.article(sourceId, externalId).orElse(null);

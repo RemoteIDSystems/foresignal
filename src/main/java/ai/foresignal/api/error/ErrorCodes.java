@@ -879,6 +879,21 @@ public final class ErrorCodes {
     /** 429: the daily cue limit {@code social.cues.maxPerDay} is reached (137). */
     public static final String CUE_LIMIT_REACHED = "CUE_LIMIT_REACHED";
 
+    /** 404: no external binding with this id (138). */
+    public static final String UNKNOWN_BINDING = "UNKNOWN_BINDING";
+
+    /** 404: no external question link with this id (138). */
+    public static final String UNKNOWN_QUESTION_LINK = "UNKNOWN_QUESTION_LINK";
+
+    /**
+     * 400: a binding or question link does not fit its stream or target: the stream's item type and the target's
+     * requirement are named, with each configuration problem (138).
+     */
+    public static final String BINDING_TARGET_INVALID = "BINDING_TARGET_INVALID";
+
+    /** 409: the provider question is already linked to a ledger question (138). */
+    public static final String QUESTION_ALREADY_LINKED = "QUESTION_ALREADY_LINKED";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

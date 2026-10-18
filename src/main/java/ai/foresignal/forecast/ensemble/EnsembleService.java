@@ -264,10 +264,18 @@ public class EnsembleService {
                 continue;
             }
             if ("external".equals(forecaster.getType())) {
-                if (resolved == null) {
-                    resolved = resolvedCounts();
+                ExternalForecasterCounts linked = externalCounts == null ? null : externalCounts.getIfAvailable();
+                int count;
+                if (linked != null && linked.handles(forecaster.getId())) {
+                    // Prompt 138: an EDP forecaster earns its place on resolved linked questions only.
+                    count = linked.resolvedLinked(forecaster.getId());
+                } else {
+                    if (resolved == null) {
+                        resolved = resolvedCounts();
+                    }
+                    count = resolved.getOrDefault(forecaster.getId(), 0);
                 }
-                if (resolved.getOrDefault(forecaster.getId(), 0) < externalMin) {
+                if (count < externalMin) {
                     continue;
                 }
             }
@@ -302,6 +310,10 @@ public class EnsembleService {
             return false;
         }
     }
+
+    /** The resolved linked questions of EDP forecasters (prompt 138), when present. */
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.beans.factory.ObjectProvider<ExternalForecasterCounts> externalCounts;
 
     private Map<String, Integer> resolvedCounts() {
         Map<String, Integer> out = new LinkedHashMap<>();

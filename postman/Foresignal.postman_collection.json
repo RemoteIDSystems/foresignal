@@ -16950,6 +16950,12 @@
                   "value": "",
                   "description": "situations topic (118): only events of situations of this theme",
                   "disabled": true
+                },
+                {
+                  "key": "external.sourceId",
+                  "value": "",
+                  "description": "external topic (138, admin): only events of this provider",
+                  "disabled": true
                 }
               ]
             },
@@ -19746,7 +19752,7 @@
               ],
               "query": []
             },
-            "description": "Binds a stream to a target (series, canonical family, social, news, evidence, indicator, forecast, place, situation, chronicle). Backfills from stored records unless `backfill` is false.\n\n**Scope:** `admin`.\n\noperationId: `createExternalBinding`",
+            "description": "Binds a stream to a target (series, canonical family, social, news, evidence, indicator, forecast, place, situation, chronicle). Layer and atomic streams may be bound; the stream's item type must fit the target (400 BINDING_TARGET_INVALID names both). Backfills from stored records (the newest 100,000 versions within retention) unless `backfill` is false.\n\n**Scope:** `admin`.\n\noperationId: `createExternalBinding`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -19804,7 +19810,7 @@
               ],
               "query": []
             },
-            "description": "Creates the bindings the manifest suggests (each remains editable).\n\n**Scope:** `admin`.\n\noperationId: `acceptSuggestedBindings`",
+            "description": "Creates the bindings the manifest suggests (each remains editable). Suggestions that already exist are skipped; a suggestion that does not validate (for example a target that needs configuration the provider cannot know) is created disabled in state `error` with the problems in `lastError`, for the operator to complete.\n\n**Scope:** `admin`.\n\noperationId: `acceptSuggestedBindings`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -19902,7 +19908,7 @@
               ],
               "query": []
             },
-            "description": "Replaces target config, filter or enabled state.\n\n**Scope:** `admin`.\n\noperationId: `updateExternalBinding`",
+            "description": "Replaces the stream, target, config, filter or enabled state. A changed or re-enabled binding backfills unless `backfill` is false; re-enabling clears `lastError` (the way back after a breaking manifest update disabled it).\n\n**Scope:** `admin`.\n\noperationId: `updateExternalBinding`",
             "auth": {
               "type": "bearer",
               "bearer": [

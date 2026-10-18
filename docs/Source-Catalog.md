@@ -683,35 +683,36 @@ These are structured feeds that rarely appear in OSINT globe projects. Reference
 
 ## External provider ideas (EDP)
 
-Foresignal ships none of these. Each fits the [External Data Protocol](External-Data-Protocol.md) as a separate provider project (any language, any host); the operator registers the ones they want. Providers that reuse a built-in kind (`aircraft`, `vessel`, `air-raid-alert`, `conflict-event`, `social-post`…) join that kind's layers, rules and analysis automatically.
+Foresignal ships none of these. Each fits the [External Data Protocol](External-Data-Protocol.md) as a separate provider project (any language, any host); the operator registers the ones they want. Providers that reuse a built-in kind (`aircraft`, `vessel`, `air-raid-alert`, `conflict-event`, `social-post`…) join that kind's layers, rules and analysis automatically. The provider kit is in `docs/protocol/edp-1.0/` (the JSON Schemas) and `docs/protocol/edp-1.0/examples/` (one minimal annotated provider per item type and a ~60-line Python reference provider that serves a CSV by push and pull), and bindings are built (prompt 138: `series`, `canonical-family`, `social`, `news`, `evidence`, `indicator`, `forecast`, `place`, `situation`, `chronicle`), so an atomic stream does nothing until the operator binds it.
 
 | Idea | Streams (mode, item type, kind) | Useful binding (138) | Notes for provider authors |
 |---|---|---|---|
 | FlightRadar24 (official API or web feed) | layer, `feature`, `aircraft` | — (fused with other aircraft) | official API needs a subscription; web feed is unofficial |
-| MarineTraffic, VesselFinder, MyShipTracking, ShipXplorer | layer, `feature`, `vessel` | — | official APIs where offered, else web endpoints |
-| readsb `aircraft.json` mirrors | layer, `feature`, `aircraft` | — | redistribution terms unclear; mirrors may block datacentre IPs |
+| MarineTraffic, VesselFinder, MyShipTracking, ShipXplorer | layer, `feature`, `vessel` | — (fused with other vessels) | official APIs where offered, else web endpoints |
+| readsb `aircraft.json` mirrors | layer, `feature`, `aircraft` | — (fused with other aircraft) | redistribution terms unclear; mirrors may block datacentre IPs |
 | Liveuamap | layer, `event`, `conflict-event` | `canonical-family` (conflict) | official API (key) or the public map (Cloudflare Turnstile) |
 | OREF sirens (Israel Home Front Command) | layer, `event`, `air-raid-alert` | `canonical-family` | geo-restricted; usually needs a proxy in Israel |
 | UKMTO advisories | layer, `event`, `maritime-incident` | `canonical-family` | site blocks some automated clients |
 | Hormuz transit dashboards | atomic, `observation` | `series` | dashboard data queries; fragile |
 | NUFORC reports | layer, `event`, `uap-report` | — | scraping |
 | Broadcastify feed status and listener counts | atomic, `observation` | `series` (listener spikes are an event signal) | premium API or scraping |
-| TinyGS | layer, `feature` / `event` | — | web client endpoints; no published API terms; `api.tinygs.com/v1/satellitesWorldmap` answered 403 `MISSING_CLIENT_TIMESTAMP` to non-browser clients (verified 2026-10, not built in 077) |
-| TxDOT ITS cameras (GEV's `its.txdot.gov/its/DistrictIts/GetCctvStatusListByDistrict` and `GetCctvSnapshotByIcdId`), other unofficial camera loaders, camera frame snapshots | layer, `feature` with `media` | — | the ITS web map's internal endpoints; no published terms (not built into 072) |
+| TinyGS | layer, `feature` / `event` | `place` (latest station or packet near a place), `chronicle` | web client endpoints; no published API terms; `api.tinygs.com/v1/satellitesWorldmap` answered 403 `MISSING_CLIENT_TIMESTAMP` to non-browser clients (verified 2026-10, not built in 077) |
+| TxDOT ITS cameras (GEV's `its.txdot.gov/its/DistrictIts/GetCctvStatusListByDistrict` and `GetCctvSnapshotByIcdId`), other unofficial camera loaders, camera frame snapshots | layer, `feature` with `media` | `place` (latest camera and frame link at a place) | the ITS web map's internal endpoints; no published terms (not built into 072) |
 | InciWeb extra routes (GEV's `POST https://inciweb.wildfire.gov/api/single-publication/` index and incident-page scraping) | layer, `event` | `canonical-family` (fire) | undocumented index and HTML pages; `inciweb-incidents` (075) reads the RSS feed only |
 | Telegram channels | atomic, `document` (`social-post`) | `social` | Telegram's terms prohibit scraping since 2026-02-03; MTProto clients (TDLib, Boost licence) use the operator's own account; a `transport.search` endpoint enables cues |
 | Facebook pages and groups, TikTok | atomic, `document` (`social-post`) | `social` | no official public-content route |
-| Article bodies and bylines | atomic, `document` (`article`) | `news` | upstream site terms; article metadata (GDELT ArtList and outlet feeds) is built in since prompt 133 (`gdelt-articles`, `news-feed-*`), bodies and bylines never are |
-| Kalshi, Polymarket | atomic, `observation` (prices) and `forecast` | `series`, `forecast` | **Prompt 093 §8.** Neither is built into Foresignal; they fit EDP (024) as external providers, and 138 binds their `forecast` items to ledger questions as scored external forecasters. Verified 2026-10: Kalshi market-data reads work without auth and use dollar and fixed-point strings (`yes_bid_dollars`, `volume_fp`), but its Developer Agreement and Data Terms restrict collecting and storing data without written consent. Polymarket's gamma API is not technically blocked (the catalogue's old JA3 note is wrong). |
-| Metaculus community predictions | atomic, `forecast` | `forecast` | terms restrict AI/ML and commercial use without permission |
-| VIEWS conflict forecasts | atomic, `forecast` and `observation` | `forecast`, `series` | confirm the data licence |
+| Article bodies and bylines | atomic, `document` (`article`) | `news` | upstream site terms; article metadata (GDELT ArtList and outlet feeds) is built in since prompt 133 (`gdelt-articles`, `news-feed-*`), bodies and bylines never are; the `news` binding stores no byline and keeps a 500-character summary (the provider's own item keeps the full document) |
+| GDELT URL metadata (per-article page metadata beyond ArtList: canonical URL, `og:title`/`og:description`, publisher, language) | atomic, `document` (`article`), kind e.g. `news-url` | `news` | `gdelt-articles` (133) already stores ArtList metadata; fetching the article pages is the provider's responsibility under each site's terms |
+| Kalshi, Polymarket | atomic, `observation` (prices) and `forecast` | `series`, `forecast` (question links map market ids to ledger questions) | **Prompt 093 §8.** Neither is built into Foresignal; they fit EDP (024) as external providers, and 138 binds their `forecast` items to ledger questions as scored external forecasters. Verified 2026-10: Kalshi market-data reads work without auth and use dollar and fixed-point strings (`yes_bid_dollars`, `volume_fp`), but its Developer Agreement and Data Terms restrict collecting and storing data without written consent. Polymarket's gamma API is not technically blocked (the catalogue's old JA3 note is wrong). |
+| Metaculus community predictions | atomic, `forecast` | `forecast` (question links) | terms restrict AI/ML and commercial use without permission |
+| VIEWS conflict forecasts | atomic, `forecast` and `observation` | `forecast` (question links), `series` | confirm the data licence |
 | CME settlements, ICE end-of-day | atomic, `observation` | `series` | personal, non-commercial use; automated access restricted; ICE needs a subscription |
 | Yahoo Finance, CNN Fear & Greed | atomic, `observation` | `series` | unofficial endpoints |
 | Google Trends | atomic, `observation` | `series` | official API is a closed alpha; web endpoints are unofficial |
 | Electricity Maps | atomic, `observation` | `series` | API key, commercial terms |
-| NewsGuard, Ad Fontes ratings | — | operator CSV import into 133 | proprietary ratings; or a provider that emits the CSV |
+| NewsGuard, Ad Fontes ratings | none: the provider emits the operator CSV (`domain,dimension,value,label,licence,attribution`) | operator CSV import into 133 (ratings are imported, not bound) | proprietary ratings; or a provider that emits the CSV |
 | Shodan saved queries | atomic, `observation` (counts) and layer `feature` (exposed services) | `series` | API key |
-| Windy webcams | layer, `feature` with `media` | — | API key |
+| Windy webcams | layer, `feature` with `media` | `place` (latest webcam and frame link at a place) | API key |
 | Argo ocean floats (GDAC / ERDDAP) | atomic, `observation` (temperature and salinity profiles by region) | `series` | public data; low volume |
 | GCN and IGWN multi-messenger alerts (gravitational waves, neutrinos, GRBs) | layer, `event` | `canonical-family` | public Kafka/JSON notices; rare, high-value events |
 | Local RF occupancy and interference (operator's SDRs) | atomic, `observation` per band and site | `series`; declared coverage feeds observability | the operator's own receivers |

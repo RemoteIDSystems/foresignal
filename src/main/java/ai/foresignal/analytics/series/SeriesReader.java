@@ -172,7 +172,9 @@ public class SeriesReader {
             }
         }
         List<SeriesValue> points = switch (ref.type()) {
-            case SERIES -> PORTWATCH.equals(ref.sourceId()) ? portWatchPoints(ref, meta, start, end, asOf)
+            case SERIES -> external(ref.sourceId()) != null
+                    ? regularize(frequency, external(ref.sourceId()).points(ref, meta, start, end, asOf))
+                    : PORTWATCH.equals(ref.sourceId()) ? portWatchPoints(ref, meta, start, end, asOf)
                     : seriesPoints(ref, meta, start, end, asOf);
             case ROLLUP -> rollupPoints(ref, start, end, asOf);
             case RULE -> rulePoints(ref, start, end, asOf);
@@ -200,7 +202,21 @@ public class SeriesReader {
 
     // ------------------------------------------------------------------------- series:
 
+    /** The series of external (EDP) streams bound with target {@code series} (prompt 138), when present. */
+    @org.springframework.beans.factory.annotation.Autowired
+    private ObjectProvider<ExternalSeriesSource> externalSeries;
+
+    /** The external series source answering for {@code sourceId}, or null. */
+    private ExternalSeriesSource external(String sourceId) {
+        ExternalSeriesSource source = externalSeries == null ? null : externalSeries.getIfAvailable();
+        return source != null && source.handles(sourceId) ? source : null;
+    }
+
     private Meta seriesMeta(SeriesRef ref) {
+        ExternalSeriesSource external = external(ref.sourceId());
+        if (external != null) {
+            return external.meta(ref).orElseThrow(() -> notFound(ref));
+        }
         if (PORTWATCH.equals(ref.sourceId())) {
             List<String> names = jdbc.query("SELECT payload->>'chokepoint' FROM record_head WHERE source_id = :source"
                     + " AND kind = :kind AND external_id LIKE :prefix ESCAPE '\\' LIMIT 1",

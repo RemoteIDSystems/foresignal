@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import org.locationtech.jts.geom.Geometry;
@@ -234,6 +235,31 @@ public class SituationLinker implements ChangeListener, DisposableBean, IngestSt
             from = to;
             storeCursor(from);
         }
+    }
+
+    /**
+     * Offers one record version to the linker outside the cursor (prompt 138: a {@code situation} binding with
+     * {@code linker: true}): the version is read as a {@code record} input (never a seed) and joins the best-scoring
+     * situation above the link threshold, or nothing.
+     *
+     * @param sourceId the record's source
+     * @param externalId the record's external id
+     * @param seq the version's seq
+     * @return the decision, or empty when the version cannot be read
+     */
+    public synchronized Optional<Decision> consider(String sourceId, String externalId, long seq) {
+        Optional<LinkerInput> input = reader.resolve(SituationMemberTypes.RECORD, sourceId + "/" + externalId, seq);
+        if (input.isEmpty()) {
+            return Optional.empty();
+        }
+        LinkerInput in = input.get();
+        if (in.seedEligible()) {
+            in = new LinkerInput(in.seq(), in.memberType(), in.ref(), in.sourceId(), in.externalId(), in.version(),
+                    in.kind(), in.signalFamily(), in.severity(), in.title(), in.typeTitle(), in.observedAt(), in.geom(),
+                    in.regionCodes(), in.regionName(), in.entityIds(), in.text(), in.theme(), in.themeSource(), false,
+                    in.role(), in.evidenceRefs(), in.embeddingDocId());
+        }
+        return Optional.of(decide(in, new Live()));
     }
 
     // ------------------------------------------------------------------------- the procedure

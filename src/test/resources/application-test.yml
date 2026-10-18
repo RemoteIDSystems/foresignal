@@ -91,6 +91,11 @@ foresignal:
     auto-start: false
   observability:
     scheduled: false
+  # The external binding router (138) does not run on its own in tests; BindingRouterIT calls BindingRouter.catchUp(),
+  # and new bindings backfill inline.
+  external:
+    bindings:
+      auto-start: false
   # The CFTC COT backfill tick does not run on its own in tests; CotBackfillIT calls CotBackfillService.tick() (117).
   backfill:
     scheduled: false

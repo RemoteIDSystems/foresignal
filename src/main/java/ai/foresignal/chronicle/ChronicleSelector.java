@@ -53,12 +53,15 @@ public sealed interface ChronicleSelector {
     /** {@code social-volume}: 135 social volume series by topic, place or entity. */
     String SOCIAL_VOLUME = "social-volume";
 
-    /** The variants implemented (131, plus the two social layers of 137). */
-    List<String> TYPES = List.of(RECORDS, SAVED_VIEW, WATCHLIST, ENTITIES, SITUATIONS, FINDINGS, SERIES,
-            RASTER_PRODUCTS, ALERTS, SOCIAL_NARRATIVES, SOCIAL_VOLUME);
+    /** {@code external-stream}: one stream of an EDP provider with optional 017 conditions (prompt 138). */
+    String EXTERNAL_STREAM = "external-stream";
 
-    /** The variants a later prompt adds (138 external streams). */
-    List<String> LATER_TYPES = List.of("external-stream");
+    /** The variants implemented (131, the two social layers of 137 and the external stream of 138). */
+    List<String> TYPES = List.of(RECORDS, SAVED_VIEW, WATCHLIST, ENTITIES, SITUATIONS, FINDINGS, SERIES,
+            RASTER_PRODUCTS, ALERTS, SOCIAL_NARRATIVES, SOCIAL_VOLUME, EXTERNAL_STREAM);
+
+    /** The variants a later prompt adds: none since prompt 138. */
+    List<String> LATER_TYPES = List.of();
 
     /** Most items in one list. */
     int MAX_ITEMS = 200;
@@ -110,6 +113,51 @@ public sealed interface ChronicleSelector {
             }
             out.put("conditions", c);
             return out;
+        }
+    }
+
+    /**
+     * One stream of an external (EDP) provider (prompt 138): the provider's records whose external id starts with
+     * {@code {streamId}:}, with optional 017 conditions on the item properties.
+     *
+     * @param sourceId the provider ({@code ext-…})
+     * @param streamId the stream id
+     * @param filter the 017 conditions, ANDed
+     */
+    record ExternalStream(String sourceId, String streamId, List<TriggerCondition> filter)
+            implements ChronicleSelector {
+
+        /** Copies the list. */
+        public ExternalStream {
+            filter = filter == null ? List.of() : List.copyOf(filter);
+        }
+
+        @Override
+        public String type() {
+            return EXTERNAL_STREAM;
+        }
+
+        @Override
+        public Map<String, Object> toMap() {
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("type", EXTERNAL_STREAM);
+            out.put("sourceId", sourceId);
+            out.put("streamId", streamId);
+            List<Map<String, Object>> c = new ArrayList<>();
+            for (TriggerCondition t : filter) {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("path", t.path());
+                m.put("op", t.op());
+                m.put("value", t.value());
+                c.add(m);
+            }
+            out.put("filter", c);
+            return out;
+        }
+
+        /** True when {@code externalId} belongs to the stream. */
+        public boolean holds(String externalId) {
+            return externalId != null && externalId.startsWith(streamId + ":");
         }
     }
 
@@ -451,6 +499,7 @@ public sealed interface ChronicleSelector {
             case SOCIAL_NARRATIVES -> members(node, field, Set.of("type", "topicIds", "placeIds", "regionCodes",
                     "situationIds", "statuses", "keepPostText"));
             case SOCIAL_VOLUME -> members(node, field, Set.of("type", "scopes", "platforms", "metrics"));
+            case EXTERNAL_STREAM -> members(node, field, Set.of("type", "sourceId", "streamId", "filter"));
             default -> members(node, field, Set.of("type", "ruleIds", "tags"));
         }
         return switch (type) {
@@ -481,6 +530,8 @@ public sealed interface ChronicleSelector {
             case RASTER_PRODUCTS -> new RasterProducts(strings(node, "productIds", field, true));
             case SOCIAL_NARRATIVES -> socialNarratives(node, field);
             case SOCIAL_VOLUME -> socialVolume(node, field);
+            case EXTERNAL_STREAM -> new ExternalStream(required(node, "sourceId", field),
+                    required(node, "streamId", field), conditions(node.get("filter"), field + ".filter"));
             default -> {
                 List<String> rules = strings(node, "ruleIds", field, false);
                 for (String id : rules) {

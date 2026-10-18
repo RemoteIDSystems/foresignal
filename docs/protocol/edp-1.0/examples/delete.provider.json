@@ -1,0 +1,29 @@
+{
+  "$comment": [
+    "Delete items (EDP 1.0): the only explicit way to remove an entity besides absence from a complete snapshot of its scope (§3.2). Documentation only.",
+    "A delete tombstones {stream}:{id}; observedAt and properties are optional and kept for audit. A tombstone ends an entity's state; it is never evidence that something did not happen."
+  ],
+  "manifest": {
+    "protocol": "foresignal-edp/1.0",
+    "source": {
+      "id": "checkpoints-example",
+      "name": "Road checkpoints (example)",
+      "publisher": {"name": "Example Monitor"},
+      "licence": {"redistribution": "unknown"},
+      "access": {"route": "other", "fragility": "medium"},
+      "originator": {"id": "example-monitor", "class": "crowd"}
+    },
+    "transport": {"push": true},
+    "streams": [
+      {"id": "checkpoints", "mode": "layer", "itemType": "feature", "kind": "road-checkpoint", "geometry": "Point"}
+    ]
+  },
+  "batch": {
+    "protocol": "foresignal-edp/1.0",
+    "sentAt": "2026-10-18T06:00:00Z",
+    "items": [
+      {"stream": "checkpoints", "type": "feature", "id": "cp-9", "observedAt": "2026-10-18T05:00:00Z", "geometry": {"type": "Point", "coordinates": [35.2, 31.8]}, "properties": {"status": "open"}},
+      {"stream": "checkpoints", "type": "delete", "id": "cp-4", "observedAt": "2026-10-18T05:30:00Z", "properties": {"reason": "removed"}}
+    ]
+  }
+}

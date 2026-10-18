@@ -1,0 +1,46 @@
+{
+  "$comment": [
+    "A minimal provider of feature items (EDP 1.0): the current state of entities. Documentation only.",
+    "Reusing a built-in kind (vessel, aircraft, ...) makes the features join that kind's layers, rules and fusion; the payload should then follow the built-in kind's payload. This example uses its own kind.",
+    "update: snapshot with snapshotScope means a complete snapshot of one region removes only that region's absent entities (EDP §3.2); nothing else ever deletes."
+  ],
+  "manifest": {
+    "protocol": "foresignal-edp/1.0",
+    "source": {
+      "id": "harbor-cams-example",
+      "name": "Harbor cameras (example)",
+      "publisher": {"name": "Example Port Watch"},
+      "licence": {"id": "CC0-1.0", "redistribution": "allowed"},
+      "access": {"route": "official", "fragility": "low"},
+      "originator": {"id": "example-port-watch", "class": "operator"}
+    },
+    "transport": {"push": true},
+    "streams": [
+      {
+        "id": "cameras",
+        "mode": "layer",
+        "itemType": "feature",
+        "kind": "harbor-camera",
+        "geometry": "Point",
+        "update": "snapshot",
+        "snapshotScope": "region",
+        "payloadSchema": {"type": "object", "required": ["name"], "properties": {"name": {"type": "string"}, "region": {"type": "string"}, "online": {"type": "boolean"}, "imageUrl": {"type": "string"}}},
+        "fields": {"title": "name", "significant": ["name", "online"], "volatile": []},
+        "ttl": "PT1H",
+        "presentation": {"color": "#1971c2", "icon": "camera", "tileProperties": ["name"]},
+        "suggestedBindings": [{"target": "place", "config": {}}]
+      }
+    ]
+  },
+  "batch": {
+    "protocol": "foresignal-edp/1.0",
+    "sentAt": "2026-10-18T06:00:00Z",
+    "snapshot": {"id": "snap-2026-10-18T06", "stream": "cameras", "scope": "north", "page": 1, "final": true},
+    "items": [
+      {"stream": "cameras", "type": "feature", "id": "cam-1", "observedAt": "2026-10-18T05:59:00Z", "geometry": {"type": "Point", "coordinates": [4.48, 51.9]}, "properties": {"name": "Pier 1", "region": "north", "online": true, "imageUrl": "https://example.org/cam-1.jpg"}}
+    ]
+  },
+  "bindings": [
+    {"streamId": "cameras", "target": "place", "config": {"placeId": "PLACE-ID-OF-THE-PORT"}, "filter": [{"path": "online", "op": "==", "value": true}]}
+  ]
+}
