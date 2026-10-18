@@ -8114,17 +8114,19 @@ Social collection follows your 117 attention topics. Add a `social` block to a t
 ```json
 "social": {"mode": "standing",
            "terms": {"en": ["Strait of Hormuz", "Hormuz tanker"], "fa": ["تنگه هرمز"]},
-           "hashtags": ["Hormuz"], "excludeTerms": {"en": ["hormuz restaurant"]},
-           "accounts": [{"platform": "bluesky-jetstream", "id": "did:plc:…"}],
-           "channels": [{"platform": "reddit", "id": "geopolitics"}],
+           "hashtags": ["Hormuz"], "exclude": ["hormuz restaurant"],
+           "accounts": [{"platform": "bluesky", "handle": "example.bsky.social"}],
+           "channels": [{"type": "subreddit", "id": "geopolitics"}],
            "platforms": [], "placeIds": [], "regionCodes": ["IR", "OM"], "entityRefs": []}
 ```
 
 - `mode` `standing` collects and counts continuously; `cue-only` is kept for the targeted searches of prompt 137.
-- `terms` per language (at most 50 each) match case- and diacritic-insensitively on word boundaries (Arabic and Hebrew
-  prefixes such as و and ה are allowed; Chinese and Japanese match anywhere); `hashtags` (at most 30) match tags;
-  `excludeTerms` drop a post that would otherwise match. `accounts` (at most 100) and `channels` (at most 100) also
-  feed the adapters' follow lists; `platforms` limits the topic to some platforms (empty: all).
+- `terms` per language (at most 50 in total) match case- and diacritic-insensitively on word boundaries (Arabic and
+  Hebrew prefixes such as و and ה are allowed; Chinese and Japanese match anywhere); `hashtags` (at most 30) match
+  tags; `exclude` terms drop a post that would otherwise match. `accounts` (at most 100, `{platform, handle}`) and
+  `channels` (at most 100, `{type, id}` with type `subreddit`, `mastodon-instance`, `mastodon-hashtag` or
+  `youtube-channel`) also feed the adapters' follow lists; `platforms` limits the topic to some networks (`bluesky`,
+  `mastodon`, `reddit`, `youtube`, `x`, `threads`, `instagram`; empty: all).
 - `placeIds`, `regionCodes` and `entityRefs` make the topic's posts count for those places, regions and 098 entities
   too, so `GET /v1/social/volume?place=` works without a separate topic.
 

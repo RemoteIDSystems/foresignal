@@ -879,8 +879,8 @@ never adds an evidence group (SOC-1). License entries (`provenance/licences.json
 Reddit, YouTube, Threads and Instagram, `LOCAL_ONLY` for Bluesky and Mastodon (the operator's own use; never
 federation, share links, sinks or exports).
 
-**Matching and counting.** Enabled attention topics with a `social` block (terms per language ≤ 50, hashtags ≤ 30,
-accounts ≤ 100, channels ≤ 100, exclude terms, platforms, `placeIds`, `regionCodes`, `entityRefs`, mode `standing` or
+**Matching and counting.** Enabled attention topics with a `social` block (terms per language, ≤ 50 in total; hashtags ≤ 30;
+accounts ≤ 100; channels ≤ 100; exclude terms; platforms, `placeIds`, `regionCodes`, `entityRefs`, mode `standing` or
 `cue-only`) build one Aho–Corasick index (case- and diacritic-folded, word boundaries per script, Arabic and Hebrew
 proclitics allowed, unspaced scripts matched anywhere). A matching post is stored; every post on a whole-platform stream
 (Jetstream) is counted for the platform-language denominator. Hourly volume per topic, place and entity × platform ×
