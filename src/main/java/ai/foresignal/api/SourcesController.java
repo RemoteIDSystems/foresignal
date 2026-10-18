@@ -109,6 +109,10 @@ public class SourcesController {
     private ai.foresignal.reference.RegionTaggingService regionTagging;
     private final Clock clock;
 
+    /** The adapter doctor's reports (prompt 140), for {@code lastDoctorReport}; null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.doctor.DoctorService doctor;
+
     /** Creates the controller. */
     public SourcesController(
             SourceRegistry registry,
@@ -162,6 +166,7 @@ public class SourcesController {
                 .filter(v -> visibility.visible(v.sourceId(), caller, RequestPrincipal.of(request).orElse(null)))
                 .sorted(Comparator.comparing(v -> v.sourceId()))
                 .map(HealthMapper::health)
+                .map(withDoctor(latestDoctorReports()))
                 .toList();
     }
 
@@ -293,7 +298,24 @@ public class SourcesController {
     @Operation(operationId = "getSourceHealth", tags = "Sources")
     public SourceHealthDto getSourceHealth(@PathVariable String sourceId, HttpServletRequest request) {
         requireVisible(sourceId, request);
-        return HealthMapper.health(health.health(sourceId));
+        return withDoctor(latestDoctorReport(sourceId)).apply(HealthMapper.health(health.health(sourceId)));
+    }
+
+    /** The newest doctor report of every source (140); empty without the doctor. */
+    private java.util.Map<String, ai.foresignal.doctor.DoctorReportSummary> latestDoctorReports() {
+        return doctor == null ? java.util.Map.of() : doctor.latestPerSource();
+    }
+
+    /** The newest doctor report of one source (140), as a one-entry map; empty without one. */
+    private java.util.Map<String, ai.foresignal.doctor.DoctorReportSummary> latestDoctorReport(String sourceId) {
+        return doctor == null ? java.util.Map.of()
+                : doctor.latest(sourceId).map(r -> java.util.Map.of(sourceId, r)).orElse(java.util.Map.of());
+    }
+
+    /** Sets {@code lastDoctorReport} from {@code reports} (140). */
+    private static Function<SourceHealthDto, SourceHealthDto> withDoctor(
+            java.util.Map<String, ai.foresignal.doctor.DoctorReportSummary> reports) {
+        return dto -> reports.containsKey(dto.sourceId()) ? dto.withLastDoctorReport(reports.get(dto.sourceId())) : dto;
     }
 
     /**
@@ -374,7 +396,7 @@ public class SourcesController {
                         sources.effectiveRetention(sourceId),
                         sources.downsampleIntervalOverride(sourceId),
                         sources.egressOverride(sourceId)),
-                HealthMapper.health(health.health(sourceId)));
+                withDoctor(latestDoctorReport(sourceId)).apply(HealthMapper.health(health.health(sourceId))));
     }
 
     private static FetchStatus fetchStatus(String value) {

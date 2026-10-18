@@ -37,6 +37,7 @@ import java.util.Map;
  * @param frameAgeSeconds product sources: age of the newest frame, or null
  * @param details adapter-specific details (063), omitted when there are none
  * @param spentUsdThisMonth paid adapters: US dollars spent this calendar month (135), omitted for free sources
+ * @param lastDoctorReport the newest adapter-doctor report's summary (140), or null when the doctor never ran
  */
 public record SourceHealthDto(
         String sourceId,
@@ -65,4 +66,30 @@ public record SourceHealthDto(
         Instant newestFrameAt,
         Long frameAgeSeconds,
         @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> details,
-        @JsonInclude(JsonInclude.Include.NON_NULL) Double spentUsdThisMonth) {}
+        @JsonInclude(JsonInclude.Include.NON_NULL) Double spentUsdThisMonth,
+        ai.foresignal.doctor.DoctorReportSummary lastDoctorReport) {
+
+    /** A health view without a doctor report (the members before prompt 140). */
+    public SourceHealthDto(String sourceId, HealthStatus status, String statusReason, Instant lastAttemptAt,
+            Instant lastSuccessAt, Instant lastErrorAt, String lastError, Integer lastHttpStatus, int consecutiveFailures,
+            int lastRecordsSeen, int lastRecordsChanged, double errorRateLastHour, Instant backoffUntil, BudgetDto budget,
+            long budgetUsedToday, Long budgetRemainingToday, long refusedLastHour, long requestsLastHour,
+            long bytesLastHour, CoverageDto coverage, StorageDto storage, Instant lastDataAt,
+            Double budgetHoursRemaining, Instant newestFrameAt, Long frameAgeSeconds, Map<String, Object> details,
+            Double spentUsdThisMonth) {
+        this(sourceId, status, statusReason, lastAttemptAt, lastSuccessAt, lastErrorAt, lastError, lastHttpStatus,
+                consecutiveFailures, lastRecordsSeen, lastRecordsChanged, errorRateLastHour, backoffUntil, budget,
+                budgetUsedToday, budgetRemainingToday, refusedLastHour, requestsLastHour, bytesLastHour, coverage,
+                storage, lastDataAt, budgetHoursRemaining, newestFrameAt, frameAgeSeconds, details, spentUsdThisMonth,
+                null);
+    }
+
+    /** A copy with {@code report} as {@code lastDoctorReport} (140). */
+    public SourceHealthDto withLastDoctorReport(ai.foresignal.doctor.DoctorReportSummary report) {
+        return new SourceHealthDto(sourceId, status, statusReason, lastAttemptAt, lastSuccessAt, lastErrorAt, lastError,
+                lastHttpStatus, consecutiveFailures, lastRecordsSeen, lastRecordsChanged, errorRateLastHour,
+                backoffUntil, budget, budgetUsedToday, budgetRemainingToday, refusedLastHour, requestsLastHour,
+                bytesLastHour, coverage, storage, lastDataAt, budgetHoursRemaining, newestFrameAt, frameAgeSeconds,
+                details, spentUsdThisMonth, report);
+    }
+}

@@ -257,7 +257,18 @@ public final class HealthEvaluator {
      * of the earlier reports or below.
      */
     static Optional<String> coverageDrop(HealthSnapshot h) {
-        List<CoverageSample> ring = h.recentCoverage();
+        return coverageDrop(h.recentCoverage());
+    }
+
+    /**
+     * The "coverage dropped" reason (Core-Data-Model §14) for a ring of coverage reports, oldest first: the newest
+     * report's receivers or expected count at half the median of the earlier ones or below. Also used by the adapter
+     * doctor's {@code COVERAGE_DROPPED} rule (prompt 140).
+     */
+    public static Optional<String> coverageDrop(List<CoverageSample> ring) {
+        if (ring == null) {
+            return Optional.empty();
+        }
         if (ring.size() < COVERAGE_MIN_HISTORY + 1) {
             return Optional.empty();
         }

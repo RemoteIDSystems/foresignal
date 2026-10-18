@@ -894,6 +894,12 @@ public final class ErrorCodes {
     /** 409: the provider question is already linked to a ledger question (138). */
     public static final String QUESTION_ALREADY_LINKED = "QUESTION_ALREADY_LINKED";
 
+    /** 409: a doctor run for this source is in progress or ran within the last 10 minutes (140). */
+    public static final String DOCTOR_BUSY = "DOCTOR_BUSY";
+
+    /** 404: no adapter-doctor report with this id (140). */
+    public static final String UNKNOWN_DOCTOR_REPORT = "UNKNOWN_DOCTOR_REPORT";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

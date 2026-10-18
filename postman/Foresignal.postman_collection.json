@@ -46008,7 +46008,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"probe\": true,\n  \"llm\": \"auto\",\n  \"detail\": \"compact\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -46086,7 +46086,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                  "pm.test('status is 200/202', () => pm.expect([200, 202]).to.include(pm.response.code));"
                 ]
               }
             }
@@ -46112,7 +46112,7 @@
               ],
               "query": []
             },
-            "description": "One doctor report; patches are always labelled \"proposed, not applied\".\n\n**Scope:** `agent`.\n\noperationId: `getDoctorReport`",
+            "description": "One doctor report; patches are always labeled \"proposed, not applied\". 202 with `DoctorRunAccepted` while the run is still in progress.\n\n**Scope:** `agent`.\n\noperationId: `getDoctorReport`",
             "auth": {
               "type": "bearer",
               "bearer": [

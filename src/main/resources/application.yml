@@ -165,6 +165,11 @@ foresignal:
     # situation, finding and alert buses. Manual cues run on a virtual thread (cues-async). Off in tests.
     correlation-scheduled: true
     cues-async: true
+  # Adapter doctor (prompt 140): automatic runs on health transitions (format change, coverage drop, parse error),
+  # off the publishing thread. The LLM joins automatic runs only with the app setting doctor.autoLlm (default false).
+  doctor:
+    auto-enabled: true
+    auto-async: true
   # Discovery (119): analysis-series auto-registration (02:00 UTC), change points (03:00 and :20), unexplained moves
   # (04:00), co-occurrence (05:00) and the live event-study poll (every minute). Off in tests.
   analytics:

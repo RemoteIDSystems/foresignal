@@ -220,6 +220,9 @@ tasks.processResources {
     }
 }
 
+// The adapter doctor's packaged fixtures and adapter sources (prompt 140); see the script.
+apply(from = "gradle/doctor-resources.gradle.kts")
+
 tasks.bootJar {
     archiveFileName = "foresignal.jar"
 }

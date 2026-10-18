@@ -231,11 +231,69 @@ raster context and render a tile. The object base URLs follow the test base URL 
 
 For the maintenance agent (prompt 140) or a person, when an adapter starts failing or its diagnostics show skipped features:
 
-1. **Probe.** Run the source's probe (`ProbeService`, `POST /v1/sources/{sourceId}/probe` once 013 lands) to capture the raw response without ingesting it.
-2. **Diff against the fixture.** Compare the probe body with the recorded fixture: document shape, new, renamed or retyped keys, units, timestamps, headers (validators, rate limits). The `UpstreamFormatException` snippet usually names the change.
-3. **Update the parser** for the new shape, keeping the time base fixed (rule 13) and the payload allowlisted (rule 8). Update `fieldSpecs` for any new key.
+1. **Run the adapter doctor.** `POST /v1/sources/{sourceId}/doctor` (or the MCP tool `diagnose_source`) probes the upstream once, compares the response's structure with the recorded fixture and names what changed (see "Adapter doctor" below). Health often has a report already: `lastDoctorReport` on `GET /v1/sources/{sourceId}/health`, written by an automatic run. For the raw response itself, run the probe (`ProbeService`, `POST /v1/sources/{sourceId}/probe`), which captures it without ingesting it.
+2. **Diff against the fixture.** The doctor's structure diff lists added, removed, renamed and retyped paths, emptied arrays, and content-type or delimiter changes. Compare the probe body with the recorded fixture for anything it cannot see: units, timestamps, headers (validators, rate limits). The `UpstreamFormatException` snippet usually names the change.
+3. **Update the parser** for the new shape, keeping the time base fixed (rule 13) and the payload allowlisted (rule 8). Update `fieldSpecs` for any new key. A patch the doctor proposed is a starting point to review, never a finished fix.
 4. **Refresh the fixture and README.** Recapture with the identifiable User-Agent, trim it the same way, rebuild the derived fixtures, and record the new capture date and what changed.
 5. **Run the contract test** (`FieldSpecContract`, `SnapshotContract`, the parser test) and the adapter test, then record the change in the Completion Report.
+
+### Adapter doctor (prompt 140)
+
+The doctor (`ai.foresignal.doctor`) answers "what changed upstream, and how could the parser be fixed?". It probes the live upstream through the normal budgeted client, extracts the structure of the probe body and of the adapter's fixture, diffs the two, and runs deterministic rules. Then, only when enabled and a chat provider is assigned, it asks the LLM to explain the change and propose a parser patch as text. **Everything except the explanation works without an LLM. A patch is never applied.**
+
+**How fixtures feed it.** The Gradle task `packageDoctorResources` (`gradle/doctor-resources.gradle.kts`, wired into `processResources`) copies `src/test/resources/fixtures/**` into the jar under `META-INF/foresignal/fixtures/{sourceId}/`:
+
+- Each file is capped at 256 KB. A larger JSON file has its largest arrays halved until it fits, so it stays a valid document. A larger CSV or TSV file keeps its header and the first 500 rows (fewer if still too large), and a JSON Lines file keeps whole lines. Any other file over the cap is skipped with a log line and listed under `skipped` in `fixtures-index.json`. Large rasters (GRIB2, NetCDF, compressed archives) are therefore usually not packaged.
+- `fixtures-index.json` lists each source's packaged files with their size, original size, SHA-256 and whether they were truncated. It also records the capture date, taken from the first line of the fixture `README.md` that mentions the date or the capture and contains a `yyyy-MM-dd` date, and whether the README says `synthetic: true`.
+- **The fixture compared** is the source's primary data file. READMEs and helper files are left out, and so is any file whose name marks an edge case or a deliberate break (`edge`, `error`, `not-a`, `invalid`, `malformed`, `empty`, `broken`, `bad`, `e2e`, `revised`, `updated`, `changed`, `format-change`, `truncated`, `garbage`, `html`, or a status such as `404`). Among the rest it prefers a file whose extension fits the probe's format, then the largest. For USGS this is `all_day.geojson`.
+
+So **keep the main capture current**, write the capture date into the README, and give hand-made edge cases names that say so. A stale primary fixture makes every later upstream change look like a fresh break. A fixture with an unmarked name can be picked as the reference.
+
+**Adapter source.** The same task copies `src/main/java/ai/foresignal/source/adapters/**/*.java` into `META-INF/foresignal/adapter-src/`, with `adapter-src-index.json` (adapter package → files). A source id resolves to its files by the package-per-adapter convention: the package of the source's adapter class. Two kinds of file are left out and listed as `excluded`: files ported from third-party code (an origin header naming the project they came from, see §9) and anything resembling key material. Their adapters get diagnosed without parser source. Only Foresignal's own MIT code ships.
+
+**"Paths the parser reads"** is a heuristic: a static scan of the adapter source for string literals (split on `.`, `/` and `@`, so `"/properties/mag"` counts for `mag`), matched against the last name of each changed path. Findings that rely on it carry `heuristic: true` and say so in their evidence. A parser that builds field names at run time defeats it, so declare field names as literals.
+
+**Structure extraction.** JSON becomes a path tree with `[]` for arrays (`features[].properties.mag`), with types, presence ratios, up to 3 examples of at most 80 characters, and array lengths. CSV and TSV give the delimiter, the header columns (or `colN`), and each column's inferred type and null ratio. XML is parsed with DTDs and external entities refused and gives element and `@attribute` paths. Binary bodies give the magic bytes, a kind (zip, gzip, png, grib2, netcdf, …) and ZIP entry names. An HTML page where data was expected is recognized and its `<title>` kept. The diff pairs a removed path with an added path under the same parent as a rename candidate, when their types are compatible and either their names are similar (snake↔camel equal, or normalized Levenshtein ≥ 0.6) or their value distributions overlap. Each candidate gets a score.
+
+**Reading findings.** Each finding has a code, a severity (`info`, `warning`, `critical`), evidence, an optional path and a suggested action. The report's status is `BROKEN` with any critical finding, `DEGRADED_INFO` with any warning, and `OK` otherwise.
+
+| Code | Meaning | What to do |
+|---|---|---|
+| `AUTH_FAILED` | 401 or 403 without a data body | Check the credentials (`PUT /v1/sources/{id}/credentials`) and whether the key expired or lost a permission |
+| `UA_BLOCKED` | 451, or 403 with a block page | Contact the upstream or join its key or feeder program. **Never spoof the User-Agent** (§7) |
+| `ENDPOINT_MOVED` | 404 or 410, or a 301/308 to another host | Find the current URL in the upstream's documentation, update the adapter, refresh the fixture |
+| `RATE_LIMITED` | 429, or a backoff in force | Raise the interval or lower the budget; the evidence compares the budget with observed usage |
+| `UPSTREAM_ERROR` | The probe answered 5xx, or 3 or more consecutive fetches did | Wait and watch the upstream's status; the adapter needs no change yet |
+| `HTML_INSTEAD_OF_DATA` | A login wall, maintenance page, captcha or other HTML page | Open it in a browser, wait out maintenance, or move to the official API. **Foresignal never solves captchas** |
+| `EMPTY_RESULT` | Structure intact, zero items | Check params and the upstream; declare `zeroResultsNormal` if empty is legitimate (then the finding is info) |
+| `FIELD_RENAMED` | A rename candidate scoring ≥ 0.7 on a path the parser reads | Read the new name in the parser, refresh the fixture, re-run the contract test |
+| `FIELD_REMOVED` | A removed path the parser reads, not explained by a rename | Find the replacement in the upstream's changelog, or tolerate the absence |
+| `TYPE_CHANGED` | A path's types no longer overlap (critical when the parser reads it) | Accept the new type in the parser |
+| `FORMAT_CHANGED` | Content type, delimiter or overall format changed, or columns reordered | Check whether the old format is still offered; otherwise adapt the parser |
+| `PARSER_REJECTS` | The parser threw `UpstreamFormatException` on the probe; the snippet is included | Follow the snippet, adjust the parser, refresh the fixture |
+| `COVERAGE_DROPPED` | Coverage fell to half the median of the recent reports (Core-Data-Model §14) | Check the receivers or stations and the area params before suspecting the parser |
+| `NO_CHANGE_DETECTED` | No other finding: the probe matched the fixture and parsed | Read the fetch history and the budget if health still complains |
+| `PROBE_SKIPPED_BUDGET` | No probe: the budget was spent or a backoff was in force | Diagnosed from health and history only; run again later |
+
+**Running it.**
+
+- `POST /v1/sources/{sourceId}/doctor`: admin, always authenticated (it can spend LLM budget). The body is `DoctorOptions {probe (default true), llm: auto|on|off (default auto), detail: compact|full (default compact)}`. The run is synchronous up to 90 s and returns the report; a longer run answers `202` with `Location: /v1/doctor/reports/{reportId}`, and that URL answers `202` until the report exists.
+- One run per source per 10 minutes, never two at once: `409 DOCTOR_BUSY`. A probe still spends the source's request budget, manual runs included.
+- `GET /v1/sources/{sourceId}/doctor/reports` (agent, newest first, `cursor` and `limit`) and `GET /v1/doctor/reports/{reportId}` (agent; `404 UNKNOWN_DOCTOR_REPORT`).
+- Source health carries `lastDoctorReport` (`id`, `status`, top finding, `createdAt`).
+- **Automatic runs:** when a source turns `degraded` or `failing` with a format-change, coverage-dropped or parse-error reason, the doctor runs with `trigger=AUTO`, a probe, and `llm=off`. The LLM runs automatically only when the operator sets `doctor.autoLlm` to true (NFR-13). Automatic runs happen at most once per source per `doctor.autoCooldown` (default 6 h). A `BROKEN` automatic report publishes a `system` notification, subtype `system.doctor_broken`: "{source}: {top finding} — {suggested action}", linking the report.
+- Reports are kept 90 days. **No raw upstream body is stored.** The body is held in memory (at most 1 MB) for the run only. A report keeps the findings (a `PARSER_REJECTS` snippet included), the structure diff (paths, types and capped examples of changed paths), the probe summary (status, content type, size, redacted URL, duration), the fixture compared, and the LLM output.
+
+**The LLM step.** It uses the 026 `chat` role, purpose `doctor`, at low effort; it is budgeted and metered by the provider's governed client. It works with local Ollama and OpenAI-compatible models. Compact context stays within about 6k tokens: the descriptor summary, the findings, the diff, up to 2 KB of probe excerpt around the first divergent path, and the parser files, trimmed to their parse methods when over 400 lines. Full context allows about 30k tokens and 8 KB of excerpt. Upstream-derived content sits inside a fixed-delimiter untrusted-data block (the delimiters are stripped from the content first). No tools are offered, and the answer is parsed as data. When the provider may not receive the source's data under `EgressPolicy`, the excerpt and examples are withheld. A failure, a 60 s timeout, a budget refusal or no provider leaves the deterministic report intact, with `llm.status` (`off`, `no-provider`, `budget-refused`, `timeout`, `failed`) saying why.
+
+**Applying a proposed patch by hand.** The patch in `llm.patch` is labeled **"proposed, not applied"** everywhere. `patchApplies` means the diff applied cleanly, in memory, to the packaged copy of that file (every context line matched). `sanityChecks.bracesBalanced` and `sanityChecks.classNameUnchanged` are text checks on the patched copy. Nothing was compiled, loaded or written, and a patch for a file outside the adapter source catalog is refused. To use one:
+
+1. Read the diff first: the model may be wrong. Save `unifiedDiff` to a file. The report's `file` is relative to `src/main/java/ai/foresignal/source/adapters/`; if the diff has no `---`/`+++` headers, add `--- a/{file}` and `+++ b/{file}`. Then apply it in a checkout with `git apply --directory=src/main/java/ai/foresignal/source/adapters patch.diff` from the repository root, or `patch -p1 < patch.diff` inside that folder.
+2. Recapture the fixture and update its README (step 4 above), so the next doctor run compares against the new shape.
+3. Update the parser contract test and the `fieldSpecs`, compile with `./gradlew compileJava compileTestJava`, and run the adapter's tests.
+4. Open a merge request for human review.
+
+The CLI command `foresignal sources doctor <id>` arrives with prompt 141.
 
 ## 11. Map tiles: `aggBelowZoom` and tile properties
 

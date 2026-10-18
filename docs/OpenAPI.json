@@ -602,6 +602,11 @@
         "version": "1.3.0",
         "date": "2026-10-18",
         "note": "138: listExternalBindings, createExternalBinding, acceptSuggestedBindings, getExternalBinding, updateExternalBinding, deleteExternalBinding, previewExternalBinding, listExternalQuestionLinks, createExternalQuestionLink and deleteExternalQuestionLink are implemented, with the tables external_binding, external_binding_applied and external_question_link, the BindingRouter (durable cursor external.binding.cursor, a retention consumer; exactly once per binding and record version; backfill of the newest 100,000 stored versions), the targets series (series:ext-{id}/{kind}/{seriesKey} read by the 119 SeriesReader with knownAt = effectiveKnownAt; day and week series registered in the analysis-series registry), canonical-family (the 116 EvidenceResolver under the item's or manifest's originator registered with its aggregates; stream coverage as a low-confidence declared observability estimate), social (135 social-post records under the provider, collection import, sampled unless the stream is complete), news (133 news-article records under the provider, outlet by domain), evidence (125 ACH rows; Admiralty grade mapped to H/M/L), indicator (observed for physical streams, reported for documents), forecast (external forecaster edp:{sourceId}/{streamId}; first item, a 0.02 move or daily; made_at stamped by the ledger; ensemble entry after 30 resolved linked questions), place (Place.external), situation (pinned member or the 118 linker) and chronicle (the external-stream layer selector, now implemented), the SSE topic external (admin; external.source.state and external.binding.disabled, id-less), the MCP tools list_external_sources and get_external_source (read), the system notification subtype system.binding_disabled, and the error codes UNKNOWN_BINDING, UNKNOWN_QUESTION_LINK, BINDING_TARGET_INVALID and QUESTION_ALREADY_LINKED. Reconciliations (additive): ExternalBinding gains targetRef, updatedAt and lastAppliedAt; createExternalQuestionLink documents 400 BINDING_TARGET_INVALID; EventStreamFilter gains the external block; x-foresignal-sse-topics marks external as 138; ExternalSourceStateEvent.state is deleted after a deletion."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-18",
+        "note": "140: runSourceDoctor, listSourceDoctorReports and getDoctorReport are implemented, with the adapter doctor: fixtures packaged into the jar under META-INF/foresignal/fixtures/ (256 KB per file; JSON cut to a valid prefix, CSV to 500 rows; fixtures-index.json with capture dates and SHA-256) and adapter sources under META-INF/foresignal/adapter-src/ (package-per-adapter index; files ported from third-party code excluded), StructureExtractor (JSON path trees with presence ratios, CSV/TSV columns, XML through a DTD-refusing DOM factory, binary magic and ZIP entries, HTML titles), StructureDiff (added, removed, retyped, presence drops of 50 points, emptied arrays, reordered columns, delimiter and content-type changes, size ratio, rename candidates by snake-camel equality, Levenshtein similarity 0.6 or value distribution, always under the same parent), deterministic findings (AUTH_FAILED, UA_BLOCKED, ENDPOINT_MOVED, RATE_LIMITED, UPSTREAM_ERROR, HTML_INSTEAD_OF_DATA, EMPTY_RESULT, FIELD_RENAMED, FIELD_REMOVED, TYPE_CHANGED, FORMAT_CHANGED, PARSER_REJECTS, COVERAGE_DROPPED, NO_CHANGE_DETECTED, PROBE_SKIPPED_BUDGET; parser reads by a static literal scan, marked heuristic), the table doctor_report (retained 90 days; no raw upstream body), one run per source per 10 minutes (DOCTOR_BUSY), the optional LLM step (026 chat role, purpose doctor, low effort, template doctor-system@1.0.0, compact context of 6k tokens or full of 30k, upstream content in a delimited untrusted block, no tools, lenient JSON extraction, 60 s timeout; the proposed patch validated in memory by an in-house unified-diff applier with brace and class-name checks, never written, compiled or applied, labeled proposed, not applied), automatic runs on degraded or failing health with a format-change, coverage-dropped or parse-error reason (LLM only with doctor.autoLlm, cool-off doctor.autoCooldown 6 h), the system notification subtype system.doctor_broken, SourceHealth.lastDoctorReport, the MCP tools diagnose_source (admin, cost-bearing) and get_doctor_report (agent), the app settings doctor.autoLlm and doctor.autoCooldown, and the error codes DOCTOR_BUSY and UNKNOWN_DOCTOR_REPORT. Reconciliations (additive): StructureDiff.format gains text; DoctorReport.probe gains skipReason, records, requests and error; DoctorReport.fixture gains truncated; DoctorReport.llm gains contextTokens, detail and error; ProposedPatch gains error; getDoctorReport answers 202 with DoctorRunAccepted while the run is in progress."
       }
     ]
   },
@@ -79923,7 +79928,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "140",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -80016,7 +80021,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "140",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/doctor/reports/{reportId}": {
@@ -80026,7 +80031,7 @@
         ],
         "operationId": "getDoctorReport",
         "summary": "Get a doctor report",
-        "description": "One doctor report; patches are always labelled \"proposed, not applied\".\n\n**Scope:** `agent`.",
+        "description": "One doctor report; patches are always labeled \"proposed, not applied\". 202 with `DoctorRunAccepted` while the run is still in progress.\n\n**Scope:** `agent`.",
         "parameters": [
           {
             "name": "reportId",
@@ -80046,6 +80051,24 @@
                 "schema": {
                   "$ref": "#/components/schemas/DoctorReport"
                 }
+              }
+            }
+          },
+          "202": {
+            "description": "The run is still in progress; poll again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorRunAccepted"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "`/v1/doctor/reports/{reportId}`"
               }
             }
           },
@@ -80087,7 +80110,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "140",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/.well-known/oauth-protected-resource": {
@@ -87912,6 +87935,18 @@
             "status": 409,
             "prompt": "138",
             "note": "createExternalQuestionLink: the provider question of that stream is already linked"
+          },
+          {
+            "code": "DOCTOR_BUSY",
+            "status": 409,
+            "prompt": "140",
+            "note": "runSourceDoctor and the MCP tool diagnose_source: a doctor run for the source is in progress, or one ran within the last 10 minutes"
+          },
+          {
+            "code": "UNKNOWN_DOCTOR_REPORT",
+            "status": 404,
+            "prompt": "140",
+            "note": "getDoctorReport: no doctor report has that id"
           }
         ]
       },
@@ -158643,7 +158678,8 @@
               "tsv",
               "xml",
               "binary",
-              "html"
+              "html",
+              "text"
             ]
           },
           "fixtureFile": {
@@ -158863,6 +158899,13 @@
           "label": {
             "type": "string",
             "const": "proposed, not applied"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the patch does not apply, or why its file was refused (not in the adapter source catalog)"
           }
         },
         "required": [
@@ -158931,7 +158974,8 @@
                     "type": [
                       "string",
                       "null"
-                    ]
+                    ],
+                    "description": "ok, http-error, parse-error or failed (no response)"
                   },
                   "httpStatus": {
                     "type": [
@@ -158964,6 +159008,41 @@
                       "integer",
                       "null"
                     ]
+                  },
+                  "skipReason": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "budget",
+                      "backoff",
+                      "no-upstream",
+                      "not-requested",
+                      null
+                    ],
+                    "description": "Why no probe was sent (budget and backoff give the finding PROBE_SKIPPED_BUDGET)"
+                  },
+                  "records": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "description": "Records the adapter parsed from the probe (at most 100 counted)"
+                  },
+                  "requests": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "description": "Upstream requests the probe made"
+                  },
+                  "error": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "The request failure, redacted"
                   }
                 },
                 "required": [
@@ -158992,6 +159071,10 @@
                   },
                   "sha256": {
                     "type": "string"
+                  },
+                  "truncated": {
+                    "type": "boolean",
+                    "description": "True when the packaged fixture was cut to the 256 KB cap"
                   }
                 },
                 "required": [
@@ -159086,6 +159169,24 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "contextTokens": {
+                    "type": "integer",
+                    "description": "Estimated tokens of the context sent (4 characters a token)"
+                  },
+                  "detail": {
+                    "type": "string",
+                    "enum": [
+                      "compact",
+                      "full"
+                    ]
+                  },
+                  "error": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Why the LLM step gave no answer, when it did not"
                   }
                 },
                 "required": [

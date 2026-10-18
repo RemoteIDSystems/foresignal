@@ -268,6 +268,8 @@ EXTRA_HEADERS = {
 }
 
 BODIES = {
+  # 140: the adapter doctor; llm auto adds an explanation and a proposed (never applied) patch when a chat provider is assigned.
+  "runSourceDoctor": {"probe": True, "llm": "auto", "detail": "compact"},
   # 108: raster exports (MBTiles/PMTiles take WebMercatorQuad only; a COG in WebMercatorQuad is EPSG:3857) and the place pack
   "createProductExport": {"format": "pmtiles", "frameKey": "latest", "bbox": [-98.6, 29.6, -96.9, 31.0], "minZoom": 4, "maxZoom": 7,
                           "tms": "WebMercatorQuad"},

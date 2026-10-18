@@ -93,6 +93,9 @@ import org.springframework.util.AntPathMatcher;
  * ownership), discoverability and grant or decline ({@code agent}), network salts ({@code admin}) and the peer sketch
  * inbox ({@link AccessRequirement#PEER}).
  *
+ * <p>Prompt 140 adds the adapter doctor: {@code POST /v1/sources/{id}/doctor} ({@code admin}, always authenticated,
+ * because a run can spend LLM budget) and the doctor reports ({@code agent}).
+ *
  * <p>Prompt 025 adds {@code /mcp} and {@code /mcp/**} (the MCP server, also outside {@code /v1}):
  * {@code read}, with per-tool scope checks inside the server ({@code McpToolRegistry}).
  */
@@ -330,6 +333,11 @@ public class AccessPolicy {
                 // The CFTC COT history backfill (prompt 117) spends the source's budget: admin.
                 rule(HttpMethod.POST, "/v1/sources/cftc-cot/backfill", AccessRequirement.ADMIN),
                 rule(HttpMethod.POST, "/v1/sources/*/probe", AccessRequirement.ADMIN),
+                // The adapter doctor (prompt 140): a run probes the upstream and may spend LLM budget, so it is admin
+                // and always authenticated; its reports are agent reads (before the sources READ rule).
+                rule(HttpMethod.POST, "/v1/sources/*/doctor", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/sources/*/doctor/reports", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/doctor/reports/*", AccessRequirement.AGENT),
                 rule(HttpMethod.PUT, "/v1/sources/*", AccessRequirement.ADMIN),
                 // The provenance log exposes redacted URLs, ETags and body hashes: admin (013).
                 rule(HttpMethod.GET, "/v1/sources/*/fetches", AccessRequirement.ADMIN),

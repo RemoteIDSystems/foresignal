@@ -404,6 +404,15 @@ public final class SettingKeys {
      */
     public static final String EXTERNAL_BINDING_CURSOR = "external.binding.cursor";
 
+    /**
+     * Whether automatic adapter-doctor runs may call the LLM (prompt 140, {@code doctor.autoLlm}); false by default, so
+     * no LLM call happens without an explicit operator opt-in (NFR-13).
+     */
+    public static final String DOCTOR_AUTO_LLM = "doctor.autoLlm";
+
+    /** The shortest interval between two automatic doctor runs of one source (prompt 140, {@code doctor.autoCooldown}); 6 h. */
+    public static final String DOCTOR_AUTO_COOLDOWN = "doctor.autoCooldown";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -425,7 +434,8 @@ public final class SettingKeys {
                     MEDIA_RELIABILITY_MAP, NETWORK_MIN_SHARED_KEYS, NETWORK_FEDERATED, SOCIAL_LANGUAGES,
                     SOCIAL_MIN_REGION_BASELINE, SOCIAL_VELOCITY, SOCIAL_KEEP_MEDIA, SOCIAL_LLM_CLAIM_MIN_POSTS,
                     SOCIAL_LLM_CLAIMS_PER_DAY, SOCIAL_SOURCE_RELIABILITY, SOCIAL_COMPARE, SOCIAL_ATTENTION_GAP,
-                    SOCIAL_CUES, SOCIAL_TRACK_RECORD, EXTERNAL_BINDING_CURSOR);
+                    SOCIAL_CUES, SOCIAL_TRACK_RECORD, EXTERNAL_BINDING_CURSOR, DOCTOR_AUTO_LLM,
+                    DOCTOR_AUTO_COOLDOWN);
 
     private SettingKeys() {}
 }

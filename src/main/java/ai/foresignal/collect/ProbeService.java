@@ -94,6 +94,47 @@ public class ProbeService {
         if (window < 1 || window > MAX_SECONDS) {
             throw ValidationException.forField("seconds", "must be between 1 and " + MAX_SECONDS);
         }
+        return capture(registration, cap, window).result();
+    }
+
+    /**
+     * What a probe captured, for the adapter doctor (prompt 140): the API view plus the raw recorded exchanges, whose
+     * response headers (a redirect's {@code Location}) the API view leaves out. Held in memory only, never stored.
+     *
+     * @param result the API view of the probe
+     * @param exchanges the recorded exchanges, credentials redacted, bodies capped at the probe's {@code maxBytes}
+     */
+    public record Capture(ProbeResult result, List<RecordedExchange> exchanges) {
+
+        /** Copies the list. */
+        public Capture {
+            exchanges = exchanges == null ? List.of() : List.copyOf(exchanges);
+        }
+    }
+
+    /**
+     * Probes {@code sourceId} exactly as {@link #probe} does, and also returns the recorded exchanges (prompt 140).
+     *
+     * @param maxBytes the body cap, {@value #MIN_MAX_BYTES}..{@value #MAX_MAX_BYTES}
+     * @param seconds the stream capture window, 1..{@value #MAX_SECONDS}
+     * @throws ai.foresignal.api.error.NotFoundException (404) for an unknown source
+     * @throws ValidationException (400) for an out-of-range argument
+     * @throws ConflictException (409) {@code NOT_SUPPORTED_FOR_MODE} for push and derived sources
+     * @throws BudgetExceededProblem (429) when the budget refused the request
+     */
+    public Capture capture(String sourceId, int maxBytes, int seconds) {
+        SourceRegistry.Registration registration = registry.get(sourceId);
+        if (maxBytes < MIN_MAX_BYTES || maxBytes > MAX_MAX_BYTES) {
+            throw ValidationException.forField(
+                    "maxBytes", "must be between " + MIN_MAX_BYTES + " and " + MAX_MAX_BYTES);
+        }
+        if (seconds < 1 || seconds > MAX_SECONDS) {
+            throw ValidationException.forField("seconds", "must be between 1 and " + MAX_SECONDS);
+        }
+        return capture(registration, maxBytes, seconds);
+    }
+
+    private Capture capture(SourceRegistry.Registration registration, int cap, int window) {
         SourceDescriptor descriptor = registration.descriptor();
         SourceAdapter adapter = registration.adapterIfPresent().orElse(null);
         if (descriptor.mode() == Mode.POLLING && adapter instanceof PollingAdapter polling) {
@@ -104,7 +145,7 @@ public class ProbeService {
         }
         throw new ConflictException(
                 ConflictException.NOT_SUPPORTED_FOR_MODE,
-                "'" + sourceId + "' is a " + descriptor.mode().wireValue()
+                "'" + descriptor.id() + "' is a " + descriptor.mode().wireValue()
                         + " source; it has no upstream to probe.");
     }
 
@@ -165,7 +206,7 @@ public class ProbeService {
         return new ProbeResult(descriptor.id(), requests(recorder, DEFAULT_MAX_BYTES), previews, parseError);
     }
 
-    private ProbeResult probePolling(SourceDescriptor descriptor, PollingAdapter adapter, int maxBytes) {
+    private Capture probePolling(SourceDescriptor descriptor, PollingAdapter adapter, int maxBytes) {
         RequestRecorder recorder = new RequestRecorder(maxBytes, RequestRecorder.DEFAULT_MAX_EXCHANGES);
         DefaultFetchContext ctx = contexts.forFetch(descriptor, recorder);
         Duration timeout =
@@ -182,10 +223,11 @@ public class ProbeService {
             }
             parseError = health.errorMessage(descriptor.id(), e);
         }
-        return new ProbeResult(descriptor.id(), requests(recorder, maxBytes), previews, parseError);
+        return new Capture(new ProbeResult(descriptor.id(), requests(recorder, maxBytes), previews, parseError),
+                recorder.exchanges());
     }
 
-    private ProbeResult probeStreaming(
+    private Capture probeStreaming(
             SourceDescriptor descriptor, StreamingAdapter adapter, int maxBytes, Duration window) {
         RequestRecorder recorder = new RequestRecorder(maxBytes, RequestRecorder.DEFAULT_MAX_EXCHANGES);
         DefaultStreamContext ctx = contexts.forStream(descriptor, recorder, DefaultStreamContext.Callbacks.none());
@@ -215,7 +257,9 @@ public class ProbeService {
                 }
             }
         }
-        return new ProbeResult(descriptor.id(), requests(recorder, maxBytes), previews(sink.records()), parseError);
+        return new Capture(
+                new ProbeResult(descriptor.id(), requests(recorder, maxBytes), previews(sink.records()), parseError),
+                recorder.exchanges());
     }
 
     private static List<ProbeResult.Request> requests(RequestRecorder recorder, int maxBytes) {

@@ -96,6 +96,11 @@ foresignal:
   external:
     bindings:
       auto-start: false
+  # The adapter doctor (140) does not run on its own in tests, so no health transition probes an upstream in the
+  # background; DoctorAutoRunIT switches it on, synchronously, in its own context.
+  doctor:
+    auto-enabled: false
+    auto-async: false
   # The CFTC COT backfill tick does not run on its own in tests; CotBackfillIT calls CotBackfillService.tick() (117).
   backfill:
     scheduled: false
