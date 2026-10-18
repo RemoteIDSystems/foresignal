@@ -16,12 +16,20 @@ spring:
         # Lets the ingest writer's JDBC batches become multi-row inserts. Also
         # applies to the Testcontainers @ServiceConnection URL.
         reWriteBatchedInserts: true
+  flyway:
+    # Flyway owns the schema (prompt 144, Architecture §25): db/migration/V{n}__{description}.sql, additive by
+    # default, one migration per change, never edit an applied one. V1__baseline.sql is the full schema.
+    locations: classpath:db/migration
+    # A development database created before 1.0 (Hibernate ddl-auto=update plus bootstrap code) has no history
+    # table: it is adopted at version 1 WITHOUT running V1, and a warning says to compare it with
+    # scripts/db/dump-schema.sh or recreate the volume. An empty database runs V1.
+    baseline-on-migrate: true
+    baseline-version: 1
   jpa:
-    # Hibernate owns the schema during development, except the partitioned
-    # record_version, whose DDL HistorySchemaInitializer owns. Flyway is
-    # introduced only in production hardening (prompt 144).
+    # Hibernate only checks the entities against the Flyway-built schema; it never changes it. FORESIGNAL_JPA_DDL_AUTO=none
+    # skips the check (an escape hatch for a validation false positive, to be reported; never update or create).
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${FORESIGNAL_JPA_DDL_AUTO:validate}
     open-in-view: false
     properties:
       hibernate:
@@ -30,8 +38,8 @@ spring:
           time_zone: UTC
         order_inserts: true
         hbm2ddl:
-          # Makes Hibernate see the partitioned record_version as an existing
-          # table instead of trying to create it.
+          # Makes validation see the partitioned record_version and chronicle_version
+          # parents as existing tables.
           extra_physical_table_types: PARTITIONED TABLE
   threads:
     virtual:

@@ -25,7 +25,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Verifies the guarantee {@link IntegrationTest} advertises: every test method starts with empty
- * tables, while the schema and its indexes survive.
+ * tables, while the schema, its indexes, every partition child and Flyway's history survive.
  *
  * <p>Method order is fixed because two of these tests are a pair: the first writes rows, the second
  * asserts they are gone.
@@ -237,5 +237,33 @@ class DatabaseCleanerIT {
         new DatabaseCleaner(jdbc, none.getBeanProvider(IngestStateReset.class), settingService).clean();
 
         assertThat(appSettings.count()).isZero();
+    }
+
+    @Test
+    @Order(13)
+    @DisplayName("Flyway's history table is never listed and its rows survive cleaning (prompt 144)")
+    void flywayHistorySurvivesCleaning() {
+        Long before = jdbc.queryForObject("select count(*) from " + DatabaseCleaner.FLYWAY_HISTORY_TABLE, Long.class);
+        assertThat(before).isNotNull().isGreaterThan(0L);
+
+        cleaner.clean();
+
+        assertThat(cleaner.foresignalTables()).doesNotContain(DatabaseCleaner.FLYWAY_HISTORY_TABLE);
+        assertThat(jdbc.queryForObject("select count(*) from " + DatabaseCleaner.FLYWAY_HISTORY_TABLE, Long.class))
+                .isEqualTo(before);
+        assertThat(jdbc.queryForObject(
+                        "select count(*) from " + DatabaseCleaner.FLYWAY_HISTORY_TABLE
+                                + " where version = '1' and success",
+                        Long.class))
+                .isEqualTo(1L);
+    }
+
+    @Test
+    @Order(14)
+    @DisplayName("partition children of chronicle_version are skipped too; only the parent is listed")
+    void chroniclePartitionChildrenAreSkipped() {
+        assertThat(cleaner.foresignalTables())
+                .contains("chronicle_version")
+                .noneMatch(name -> name.startsWith("chronicle_version_"));
     }
 }

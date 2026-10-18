@@ -5,11 +5,11 @@ import ai.foresignal.store.history.HistoryDdl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
 /**
- * Every statement that defines chronicle storage, kept in one place so prompt 144 can move them into the Flyway
- * baseline unchanged (prompt 131; Core-Data-Model §9 assigns partitioned history to bootstrap SQL).
+ * The shape of chronicle storage and its leaf DDL (prompt 131). Since prompt 144 the Flyway baseline
+ * ({@code db/migration/V1__baseline.sql}) creates the partitioned parent and its four partitioned indexes; this class keeps
+ * the per-chronicle leaf DDL, which runs at activation and deletion (dynamic partition management, Architecture §25).
  *
  * <pre>
  * chronicle_version                    PARTITION BY LIST (chronicle_id)
@@ -40,27 +40,6 @@ public final class ChronicleDdl {
 
     /** Every column, in order. */
     public static final List<HistoryDdl.Column> COLUMNS = columns();
-
-    /** Creates the parent. */
-    public static final String CREATE_PARENT = "CREATE TABLE IF NOT EXISTS " + TABLE + " ("
-            + "chronicle_id varchar(26) NOT NULL, layer_id varchar(26) NOT NULL, "
-            + HistoryDdl.COLUMNS.stream().map(HistoryDdl.Column::definition).collect(Collectors.joining(", "))
-            + ", backfilled boolean NOT NULL DEFAULT false, bucket_start timestamptz,"
-            + " captured_at timestamptz NOT NULL DEFAULT now(),"
-            + " PRIMARY KEY (chronicle_id, layer_id, seq)) PARTITION BY LIST (chronicle_id)";
-
-    /** Applies a later column addition in place; a no-op when every column exists. */
-    public static final String ADD_MISSING_COLUMNS = "ALTER TABLE " + TABLE + " "
-            + HistoryDdl.COLUMNS.stream().map(c -> "ADD COLUMN IF NOT EXISTS " + c.definition())
-                    .collect(Collectors.joining(", "));
-
-    /** The four partitioned indexes. */
-    public static final List<String> CREATE_INDEXES = List.of(
-            "CREATE INDEX IF NOT EXISTS chronicle_version_seq_idx ON " + TABLE + " (seq)",
-            "CREATE INDEX IF NOT EXISTS chronicle_version_layer_observed_idx ON " + TABLE + " (layer_id, observed_at)",
-            "CREATE INDEX IF NOT EXISTS chronicle_version_geom_gist ON " + TABLE + " USING GIST (geom)",
-            "CREATE INDEX IF NOT EXISTS chronicle_version_source_external_seq_idx ON " + TABLE
-                    + " (source_id, external_id, seq)");
 
     /** The attached leaves with the chronicle id each one holds. */
     public static final String SELECT_LEAVES = """

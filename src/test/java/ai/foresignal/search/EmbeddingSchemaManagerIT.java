@@ -3,7 +3,6 @@ package ai.foresignal.search;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import ai.foresignal.config.VectorExtensionInitializer;
 import ai.foresignal.test.IntegrationTest;
 import ai.foresignal.test.PostgisContainers;
 import ai.foresignal.testsupport.search.SearchItSupport;
@@ -52,10 +51,8 @@ class EmbeddingSchemaManagerIT extends SearchItSupport {
     }
 
     @Test
-    @DisplayName("the base DDL is idempotent: tsv, GIN, GiST and btree indexes exist after repeated runs")
-    void baseIdempotent() {
-        schema.ensureBase();
-        schema.ensureBase();
+    @DisplayName("the Flyway baseline holds the base DDL: tsv, GIN, GiST and btree indexes exist")
+    void baseFromBaseline() {
         assertThat(columnExists("tsv")).isTrue();
         assertThat(indexExists("embedding_document_tsv_gin")).isTrue();
         assertThat(indexExists("embedding_document_geom_gist")).isTrue();
@@ -95,7 +92,7 @@ class EmbeddingSchemaManagerIT extends SearchItSupport {
     }
 
     @Test
-    @DisplayName("without pgvector (plain PostGIS image) the extension check is non-fatal and slots are refused")
+    @DisplayName("without pgvector (plain PostGIS image) the extension probe is non-fatal and slots are refused")
     void missingExtensionIsNonFatal() {
         try (PostgreSQLContainer plain = new PostgreSQLContainer(PostgisContainers.POSTGIS_IMAGE)) {
             plain.start();
@@ -103,7 +100,7 @@ class EmbeddingSchemaManagerIT extends SearchItSupport {
                     new DriverManagerDataSource(plain.getJdbcUrl(), plain.getUsername(), plain.getPassword());
 
             SemanticCapability missing = new SemanticCapability();
-            new VectorExtensionInitializer(dataSource, missing).initialize();
+            new VectorExtensionProbe(dataSource, missing).probe();
 
             assertThat(missing.available()).isFalse();
             assertThat(missing.reason()).contains("pgvector").contains("Text search keeps working");

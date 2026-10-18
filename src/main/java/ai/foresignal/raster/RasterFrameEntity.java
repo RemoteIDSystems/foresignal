@@ -15,10 +15,10 @@ import org.locationtech.jts.geom.MultiPolygon;
 /**
  * One stored frame (table {@code raster_frame}, Weather-Imagery-Design §2.3).
  *
- * <p>This entity exists so Hibernate owns the table's DDL; the raster code writes and reads it with
+ * <p>This entity maps the table (created by the Flyway baseline, validated by Hibernate); the raster code writes and reads it with
  * native SQL ({@link RasterFrameQueries}), because commits are upserts and retention deletes in
  * bulk. The {@code (product_id, valid_time DESC)} index and the GiST index on {@code footprint} are
- * created by {@code SpatialIndexInitializer}, since JPA cannot express either.
+ * in the Flyway baseline ({@code db/migration/V1__baseline.sql}), since JPA cannot express either.
  *
  * <p>{@code frame_id} is time-based and immutable: {@code 20261010T143240Z} for an observation,
  * {@code 2026101012Z-f006} for a forecast step. {@code sha256} hashes the <em>decoded</em> content,

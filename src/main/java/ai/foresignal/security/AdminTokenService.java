@@ -173,6 +173,7 @@ public class AdminTokenService implements InitializingBean {
                 """
 
                 {}
+                  Foresignal (foresignal.ai), unrelated to foresignal.com
                   FORESIGNAL ADMIN TOKEN - shown once, store it securely
                   Generated because: {}
 

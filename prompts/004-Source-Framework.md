@@ -6,7 +6,7 @@
 ## Context
 
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, and `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump.
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/design-history/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, and `docs/design-history/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump.
 - **Previous Completion Report:** read `completion-reports/003-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
@@ -97,7 +97,7 @@ Implement as specified in Architecture §4.1, using Java records where possible:
 
 ## v1.2 data-model and platform additions (authoritative)
 
-These supersede anything above that conflicts with them. **Read `docs/Core-Data-Model.md` §2 (time contract), §3 (ingest input) and §5.1 (policy settings and validation), plus its "004 Source Framework" bullets under *Per-prompt changes*, and implement them exactly.** `docs/Core-Data-Model.md` is authoritative for the data model wherever `docs/Architecture.md` §4–§11 disagree.
+These supersede anything above that conflicts with them. **Read `docs/design-history/Core-Data-Model.md` §2 (time contract), §3 (ingest input) and §5.1 (policy settings and validation), plus its "004 Source Framework" bullets under *Per-prompt changes*, and implement them exactly.** `docs/design-history/Core-Data-Model.md` is authoritative for the data model wherever `docs/Architecture.md` §4–§11 disagree.
 
 ### A. Ingest input and descriptor (Core-Data-Model §2, §3)
 
@@ -124,7 +124,7 @@ These supersede anything above that conflicts with them. **Read `docs/Core-Data-
   - adds `effectiveIngestPolicy(id)` and `effectiveRetention(id)`
 - **Javadoc:** `RecordSink.accept` may block. Write adapter rules 7–13 from Core-Data-Model §3 into the SPI package Javadoc.
 
-### B. Weather and imagery hooks (docs/Weather-Imagery-Design.md §2, §10.1)
+### B. Weather and imagery hooks (docs/design-history/Weather-Imagery-Design.md §2, §10.1)
 
 Add these hooks now, so later prompts don't need to refactor the SPI:
 

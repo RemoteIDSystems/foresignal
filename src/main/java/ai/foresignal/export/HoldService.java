@@ -165,7 +165,7 @@ public class HoldService {
     @Transactional
     public void delete(String id) {
         HoldEntity hold = get(id);
-        jdbc.update("DELETE FROM " + ExportSchemaInitializer.HELD_TABLE + " WHERE hold_id = :id",
+        jdbc.update("DELETE FROM " + HeldVersionsTable.NAME + " WHERE hold_id = :id",
                 new MapSqlParameterSource("id", id));
         holds.delete(hold);
     }
@@ -264,14 +264,14 @@ public class HoldService {
     /** Held rows and approximate bytes of one hold. */
     public Counts counts(String holdId) {
         return jdbc.queryForObject("SELECT count(*) AS n, coalesce(sum(pg_column_size(h.*)), 0) AS b FROM "
-                        + ExportSchemaInitializer.HELD_TABLE + " h WHERE h.hold_id = :id",
+                        + HeldVersionsTable.NAME + " h WHERE h.hold_id = :id",
                 new MapSqlParameterSource("id", holdId), (rs, i) -> new Counts(rs.getLong("n"), rs.getLong("b")));
     }
 
     /** Held rows and bytes over every hold, for {@code /v1/system}. */
     public Counts totals() {
         return jdbc.queryForObject("SELECT count(*) AS n, coalesce(pg_total_relation_size('"
-                        + ExportSchemaInitializer.HELD_TABLE + "'), 0) AS b FROM " + ExportSchemaInitializer.HELD_TABLE,
+                        + HeldVersionsTable.NAME + "'), 0) AS b FROM " + HeldVersionsTable.NAME,
                 new MapSqlParameterSource(), (rs, i) -> new Counts(rs.getLong("n"), rs.getLong("b")));
     }
 
@@ -287,7 +287,7 @@ public class HoldService {
                 "SELECT source_id, external_id, kind, seq, version, observed_at, received_at, event_time, valid_until,"
                         + " ingested_at, tombstone, persist_reason, prev_seq, history_tier, batch_id,"
                         + " payload::text AS payload, ST_AsGeoJSON(geom) AS geometry"
-                        + " FROM " + ExportSchemaInitializer.HELD_TABLE
+                        + " FROM " + HeldVersionsTable.NAME
                         + " WHERE hold_id = :id AND seq > :after ORDER BY seq LIMIT " + (size + 1),
                 new MapSqlParameterSource("id", holdId).addValue("after", after == null ? -1L : after),
                 (rs, i) -> {

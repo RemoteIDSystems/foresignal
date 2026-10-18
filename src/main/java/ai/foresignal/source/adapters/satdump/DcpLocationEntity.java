@@ -8,7 +8,7 @@ import java.time.Instant;
 
 /**
  * A DCP (Data Collection Platform) location (prompt 107): the DCS address to a position, loaded from the
- * operator's {@code dcp_locations.csv}. Hibernate manages the table ({@code ddl-auto=update}).
+ * operator's {@code dcp_locations.csv}. The Flyway baseline creates the table; Hibernate validates it.
  */
 @Entity
 @Table(name = "dcp_location")

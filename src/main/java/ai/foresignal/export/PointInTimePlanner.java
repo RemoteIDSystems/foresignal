@@ -151,7 +151,7 @@ public class PointInTimePlanner {
         MapSqlParameterSource params = new MapSqlParameterSource("s", s);
         List<OffsetDateTime> found = jdbc.queryForList("SELECT ingested_at FROM ("
                 + " (SELECT seq, ingested_at FROM record_version WHERE seq <= :s ORDER BY seq DESC LIMIT 1)"
-                + " UNION ALL (SELECT seq, ingested_at FROM " + ExportSchemaInitializer.HELD_TABLE
+                + " UNION ALL (SELECT seq, ingested_at FROM " + HeldVersionsTable.NAME
                 + " WHERE seq <= :s ORDER BY seq DESC LIMIT 1)) x ORDER BY seq DESC LIMIT 1", params, OffsetDateTime.class);
         if (!found.isEmpty() && found.getFirst() != null) {
             return found.getFirst().toInstant();

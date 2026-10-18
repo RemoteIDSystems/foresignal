@@ -16,7 +16,7 @@ import java.util.Objects;
  * 040 region during one ISO week (Monday, UTC). Counts only, never raw rows; each row keeps its source's license and
  * egress. Primary key {@code (family, region_code, week_start, source)}.
  *
- * <p>Written only through SQL by {@link ReferenceHistoryWriter}; the entity exists so Hibernate owns the table.
+ * <p>Written only through SQL by {@link ReferenceHistoryWriter}; the entity maps the table so Hibernate validates it against the Flyway schema.
  */
 @Entity
 @Table(name = "reference_history", indexes = {

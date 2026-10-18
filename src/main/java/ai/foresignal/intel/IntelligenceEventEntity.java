@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.locationtech.jts.geom.Geometry;
@@ -58,7 +59,8 @@ public class IntelligenceEventEntity {
     private Point centroid;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "region_tags", nullable = false, columnDefinition = "jsonb default '[]'::jsonb")
+    @ColumnDefault("'[]'::jsonb")
+    @Column(name = "region_tags", nullable = false, columnDefinition = "jsonb")
     private List<String> regionTags = new ArrayList<>();
 
     @Column(name = "confidence")

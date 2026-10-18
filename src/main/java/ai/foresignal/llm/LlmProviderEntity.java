@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -45,7 +46,8 @@ public class LlmProviderEntity {
 
     /** {@code effort}, {@code maxTokens}, {@code temperature}, {@code extraHeaders}, {@code local}. */
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "options", nullable = false, columnDefinition = "jsonb default '{}'::jsonb")
+    @ColumnDefault("'{}'::jsonb")
+    @Column(name = "options", nullable = false, columnDefinition = "jsonb")
     private Map<String, Object> options = new LinkedHashMap<>();
 
     @Column(name = "secret_ciphertext")

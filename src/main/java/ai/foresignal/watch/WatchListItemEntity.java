@@ -14,7 +14,7 @@ import org.hibernate.type.SqlTypes;
 
 /**
  * One watchlist item (prompt 036, table {@code watch_list_item}): a normalized value, unique per
- * list. Hibernate owns the DDL; {@link WatchlistService} reads and writes the rows with native SQL in
+ * list. Flyway creates the table and Hibernate validates it; {@link WatchlistService} reads and writes the rows with native SQL in
  * bulk.
  */
 @Entity

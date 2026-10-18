@@ -29,11 +29,10 @@ import org.springframework.test.context.ActiveProfiles;
  * the trigger engine writes its durable cursor ({@code app_setting 'trigger.cursor'}) when it
  * reloads, and so does the region tag worker ({@code 'region.cursor'}, prompt 040).
  *
- * <p>The <em>schema</em>, however, persists for the whole run. The test profile uses
- * {@code ddl-auto: update}, not {@code create-drop}: one container is shared by every context, and
- * dropping the schema when one context closed would take the tables and the GiST indexes created by
- * {@code SchemaBootstrap} away from contexts still in use. Cleaning rows while leaving the schema
- * alone is what keeps that safe.
+ * <p>The <em>schema</em>, however, persists for the whole run. Flyway builds it from {@code db/migration} when the
+ * first context starts (prompt 144), and Hibernate only validates it ({@code ddl-auto: validate}); one container is
+ * shared by every context, so nothing may drop the schema while contexts are still in use. Cleaning rows while leaving
+ * the schema and {@code flyway_schema_history} alone is what keeps that safe.
  *
  * <p>Every integration test gets MockMvc (checkpoint 041). Ten shared test configurations were used both with and
  * without {@code @AutoConfigureMockMvc}, and each combination was a separate cached context: 48 contexts in all,

@@ -8,6 +8,7 @@ import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -40,7 +41,8 @@ public class InvestigationEntity {
     private String summary;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "tags", nullable = false, columnDefinition = "jsonb default '[]'::jsonb")
+    @ColumnDefault("'[]'::jsonb")
+    @Column(name = "tags", nullable = false, columnDefinition = "jsonb")
     private List<String> tags = new ArrayList<>();
 
     @Column(name = "workspace_id", length = 26)

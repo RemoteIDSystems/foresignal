@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -36,7 +37,8 @@ public class NotificationChannelEntity {
     private String type;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "config", nullable = false, columnDefinition = "jsonb default '{}'::jsonb")
+    @ColumnDefault("'{}'::jsonb")
+    @Column(name = "config", nullable = false, columnDefinition = "jsonb")
     private Map<String, Object> config = new LinkedHashMap<>();
 
     @Column(name = "secret_ciphertext")
@@ -47,7 +49,8 @@ public class NotificationChannelEntity {
 
     /** Subset of {@code alert}, {@code briefing}, {@code system}. */
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "events", nullable = false, columnDefinition = "jsonb default '[]'::jsonb")
+    @ColumnDefault("'[]'::jsonb")
+    @Column(name = "events", nullable = false, columnDefinition = "jsonb")
     private List<String> events = new ArrayList<>();
 
     /** Rules feeding the channel; null means every rule. */

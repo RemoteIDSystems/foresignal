@@ -21,8 +21,8 @@ import org.locationtech.jts.geom.MultiPolygon;
  *
  * <p>{@code area} is derived on every save ({@link PlaceGeometry}): the geography buffer of a point or
  * route, the fixed polygon itself, split at the antimeridian, at most 10,000 vertices. It is what
- * rules, views, filters and the weather AOI use. A GiST index on it is created by
- * {@code SpatialIndexInitializer} (prompt 144 moves it to Flyway).
+ * rules, views, filters and the weather AOI use. A GiST index on it is in the Flyway
+ * baseline.
  */
 @Entity
 @Table(name = "place")

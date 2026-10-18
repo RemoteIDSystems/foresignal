@@ -8,8 +8,8 @@ import jakarta.persistence.Table;
 /**
  * Per-minute LLM accounting for one provider ({@code llm_usage}, Architecture §7.1).
  *
- * <p>Written by {@link LlmUsageMeter} with native upserts; the entity exists so Hibernate owns the
- * table. {@code refused} counts calls the budget declined.
+ * <p>Written by {@link LlmUsageMeter} with native upserts; the entity maps the table so Hibernate
+ * validates it against the Flyway schema. {@code refused} counts calls the budget declined.
  */
 @Entity
 @Table(name = "llm_usage")

@@ -8,13 +8,13 @@
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–139).
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/design-history/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/design-history/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–139).
 - **Previous Completion Report:** read `completion-reports/112-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
-- `docs/Gap-Analysis.md` §6 row "Out-of-tree plugins, federation, edge relay"; §9 (re-serving OpenSky/ACLED/aisstream "to peers or sinks" rejected)
-- `docs/Core-Data-Model.md` §2 (time contract, `observedAtMode`), §3 (ingest input), §4 (hashing; `volatileFields` are excluded from the hash), §10 (ChangeBus, LiveBus, SSE events `change`/`live`/`reset`/`resync`, client contract), §12 (`/v1/changes`), §13 (consumer clamp)
+- `docs/design-history/Gap-Analysis.md` §6 row "Out-of-tree plugins, federation, edge relay"; §9 (re-serving OpenSky/ACLED/aisstream "to peers or sinks" rejected)
+- `docs/design-history/Core-Data-Model.md` §2 (time contract, `observedAtMode`), §3 (ingest input), §4 (hashing; `volatileFields` are excluded from the hash), §10 (ChangeBus, LiveBus, SSE events `change`/`live`/`reset`/`resync`, client contract), §12 (`/v1/changes`), §13 (consumer clamp)
 - Completion Reports of 003 (`InstallIdService`), 004 (`registerDynamic`, `Mode.STREAMING`), 010 (streaming supervisor), 014 (`/v1/changes`, `410 RESYNC_REQUIRED`), 015 (SSE lanes, `reset`), 023 (restricted tokens), 035 (outbound URL policy), 039 (private flag), 084 (compact mesh profile, duty cycle), 101 (`intelligence_event`), 109 (`LicenceEgressGuard` `FEDERATION`, per-record `originLicence`, JWKS and `JwsVerifier`), 110 (Sink SPI, CHANGE_FEED cursors)
 
 ## Objective
@@ -121,7 +121,7 @@ Let Foresignal instances share data with each other safely. A new `foresignal-pe
 ## Guardrails (mandatory)
 
 1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 124, 139, 142, 143, 144) and in the sanctioned narrow runs of 007–009.
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/design-history/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

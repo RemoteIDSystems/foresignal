@@ -10,7 +10,7 @@ import org.locationtech.jts.geom.MultiPolygon;
  * A country boundary (table {@code ref_country}, prompt 040), loaded from Natural Earth admin-0 by the
  * {@link ReferenceDataLoader}. Features sharing an ISO2 code (France and Clipperton, for example) are
  * merged. {@code geom_simple} is {@code ST_SimplifyPreserveTopology(geom, 0.01)}. Both have GiST indexes
- * ({@code SpatialIndexInitializer}). Written only by the loader's staging swap.
+ * (Flyway baseline). Written only by the loader's staging swap.
  */
 @Entity
 @Table(name = "ref_country")

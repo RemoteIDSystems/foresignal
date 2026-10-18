@@ -8,14 +8,14 @@
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–139).
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/design-history/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/design-history/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–139).
 - **Previous Completion Report:** read `completion-reports/018-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
-- `docs/Core-Data-Model.md` §13 (retention, authoritative), §1 (I1, I6, I7), §8 (`seq_clock`, `fetch_log`), §9 (`PartitionManager`), §10.2 (resume floor), §15 (storage visibility, `/v1/system.history`), §16 (binds, NTP), and *Per-prompt changes* → "016 Retention Settings System" (= 019)
-- `docs/Weather-Imagery-Design.md` §2.4 ("Per-kind record retention"; row 016 of §10.1 = 019)
-- `docs/Gap-Analysis.md` §6 (readiness, watchdog, capabilities, OpenTelemetry rows) and §8.A item 9 ("extend 016" = 019)
+- `docs/design-history/Core-Data-Model.md` §13 (retention, authoritative), §1 (I1, I6, I7), §8 (`seq_clock`, `fetch_log`), §9 (`PartitionManager`), §10.2 (resume floor), §15 (storage visibility, `/v1/system.history`), §16 (binds, NTP), and *Per-prompt changes* → "016 Retention Settings System" (= 019)
+- `docs/design-history/Weather-Imagery-Design.md` §2.4 ("Per-kind record retention"; row 016 of §10.1 = 019)
+- `docs/design-history/Gap-Analysis.md` §6 (readiness, watchdog, capabilities, OpenTelemetry rows) and §8.A item 9 ("extend 016" = 019)
 - `docs/Architecture.md` §11, §7.2 (admin token rotation); `docs/Product-Charter.md` FR-17 (as amended by Core-Data-Model §13), FR-30, FR-32–FR-34, NFR-11
 - `docs/OpenAPI.json`: operations tagged `Settings` and `System`; schemas `RetentionSettings`, `RetentionRunResult`, `CorsSettings`, `SettingsBundle`, `ImportReport`, `SystemInfo`, `AdminTokenResponse`
 - Completion Reports of 007 (`PartitionManager.drop`), 009 (`HeadPurge`/`PurgeSpec`), 014 (purge horizon and `410 RESYNC_REQUIRED`), 015 (reset floor), 017 (alert lifecycle)
@@ -113,7 +113,7 @@ Hourly `@Scheduled`, initial delay 5 min, disabled in the test profile; `runRete
 ## Guardrails (mandatory)
 
 1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 124, 139, 142, 143, 144) and in the sanctioned narrow runs of 007–009.
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/design-history/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

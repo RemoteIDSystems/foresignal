@@ -1,5 +1,7 @@
 # Foresignal Weather & Imagery subsystem: final design (replaces roadmap prompt 058)
 
+> Historical design input, folded into Architecture.md v2.0 on 2026-10-18.
+
 Prepared 2026-10-10. Nothing in the repo was modified.
 
 I read these files:

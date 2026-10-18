@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -67,14 +68,16 @@ public class AnalystProfileEntity {
     private boolean allowActions;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "allowed_actions", nullable = false, columnDefinition = "jsonb default '[]'::jsonb")
+    @ColumnDefault("'[]'::jsonb")
+    @Column(name = "allowed_actions", nullable = false, columnDefinition = "jsonb")
     private List<String> allowedActions = new ArrayList<>();
 
     @Column(name = "max_auto_actions_per_day", nullable = false)
     private int maxAutoActionsPerDay = 5;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "channel_ids", nullable = false, columnDefinition = "jsonb default '[]'::jsonb")
+    @ColumnDefault("'[]'::jsonb")
+    @Column(name = "channel_ids", nullable = false, columnDefinition = "jsonb")
     private List<String> channelIds = new ArrayList<>();
 
     @Column(name = "notify_min_priority", length = 8, nullable = false)

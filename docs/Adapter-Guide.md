@@ -2,7 +2,9 @@
 
 How to write, test and repair a source adapter. Every adapter prompt after 011 follows this guide, and the adapter-maintenance agent (prompt 140) uses its repair procedure. The worked example throughout is `usgs-earthquakes` (`ai.foresignal.source.adapters.usgs`), the reference adapter built in prompt 011.
 
-Authorities: Architecture §4.2 (adapter rules 1–6), Core-Data-Model §2–§5 (rules 7–13, time contract, hashing, ingest policies), and `docs/Conventions.md`, which wins over this guide where they disagree.
+Authorities: [Architecture](Architecture.md) (the adapter rules, the data model and the Flyway regime) and [Conventions](Conventions.md), which wins over this guide where they disagree.
+
+**Section references to the design inputs.** This guide cites the v1.2 design documents by section: "Core-Data-Model §n" is [`docs/design-history/Core-Data-Model.md`](design-history/Core-Data-Model.md) (rules 7–13, the time contract, hashing and ingest policies are its §2–§5) and "Weather-Imagery-Design §n" is [`docs/design-history/Weather-Imagery-Design.md`](design-history/Weather-Imagery-Design.md). Both are historical design input, folded into Architecture.md v2.0 on 2026-10-18; the section numbers still locate the rule, and Architecture.md is the current statement of it.
 
 ## 1. Package layout
 
@@ -26,7 +28,7 @@ src/test/resources/fixtures/usgs-earthquakes/
 
 ## 2. Adapter rules
 
-From Architecture §4.2:
+From Architecture, "Adapter rules":
 
 1. Self-contained: one package per adapter (adapter, parser, DTOs). No cross-adapter imports.
 2. Network access only through `ctx.http()`; never build an `HttpClient`. `UpstreamClientIsTheOnlyHttpClientTest` enforces this.
@@ -342,10 +344,10 @@ rule validation lists it in a warning.
   so none needed a change.
 
 **The entity registry (098) reuses `entityKeys` and adds two descriptor fields.** The registry resolves
-records to canonical entities deterministically; it recognises eight key types: `airframe`, `icao24`,
+records to canonical entities deterministically; it recognizes eight key types: `airframe`, `icao24`,
 `registration`, `imo`, `mmsi`, `norad`, `cospar` and `callsign`. Beyond the five identity fields above,
 an aircraft-registration source declares `airframe` (the payload must also carry `mfrMdlCode` and
-`serial`), a space catalogue declares `norad` and `cospar`, and a callsign-carrying source declares the
+`serial`), a space catalog declares `norad` and `cospar`, and a callsign-carrying source declares the
 domain with `.entityKeyPrefix("callsign", "air" | "sea" | "ham")` (a bare callsign defaults to `air`
 and is rejected on its own). Copy payload values onto the entity with
 `.entityAttribute("payloadField", "attributeName")` (for example manufacturer and model); only
@@ -573,10 +575,10 @@ adapter state and keys records by `identifier`.
 
 **Cancellation is a version, not a tombstone.** `msgType = Cancel`, or the profile's cancellation rule (tsunami: an
 `event` containing "cancel" or a VTEC action `CAN`), sets `state: cancelled`; `Update` sets `updated`; otherwise
-`active`. The cancelled record keeps its thread id and expires through its own `validUntil`, and a rule on `state`
+`active` (`cancelled` is the persisted payload value, spelled as stored). The canceled record keeps its thread id and expires through its own `validUntil`, and a rule on `state`
 sees the change as SIGNIFICANT.
 
-**Never close on absence.** A CAP or alert feed that drops a message has not cancelled it: the record expires at its
+**Never close on absence.** A CAP or alert feed that drops a message has not canceled it: the record expires at its
 `expires`. The one exception is a feed that is by definition the complete active set and was received in full and
 parsed without error: `nhc-cyclones` tombstones a storm that leaves `CurrentStorms.json` (with `LiveIdSet`, section 7).
 A source that relies on a TTL instead (`gdacs`, 48 h from receipt) lets unlisted events expire.
@@ -904,7 +906,7 @@ the way the AIVDM codec is `ai.foresignal.codec.ais`, and it is the template for
 
 ## 25. Reference datasets (prompt 094)
 
-A **reference dataset** is a slow-changing catalogue Foresignal polls weekly and versioned by comparing whole
+A **reference dataset** is a slow-changing catalog Foresignal polls weekly and versioned by comparing whole
 runs. The power plants, airports, cables, volcanoes, ports, park boundaries, launch sites and nuclear
 facilities are the family; `world-port-index` and `ourairports` feed 099.
 
@@ -949,11 +951,11 @@ facilities are the family; `world-port-index` and `ourairports` feed 099.
   are not ingested, keeps the old validators, so the next run re-reads the file.
 - **Fixture READMEs** note `synthetic: true` when a capture needs a key or is trimmed; recapture at 143.
 
-## Licence terms and reliability (prompt 109)
+## License terms and reliability (prompt 109)
 
 A `SourceDescriptor` may set `licenceTerms` (`ai.foresignal.provenance.LicenceTerms`) next to the
-free-text `licence`/`termsUrl`. When `licenceTerms` is null and `licence` matches a catalogue id or
-alias (see `src/main/resources/provenance/licences.json`), the terms are derived from the catalogue; the
+free-text `licence`/`termsUrl` (identifiers keep their published spelling). When `licenceTerms` is null and `licence` matches a catalog id or
+alias (see `src/main/resources/provenance/licences.json`), the terms are derived from the catalog; the
 registry warns when neither resolves. The required fields are `id`, `name`, `commercialUse`
 (`ALLOWED | FORBIDDEN | UNKNOWN`), `shareAlike`, `attributionRequired`, `redistribution`
 (`ALLOWED | LOCAL_ONLY | FORBIDDEN | UNKNOWN`), `attributionText` and `termsUrl`.
@@ -962,5 +964,55 @@ Set `reliability` (an Admiralty grade `A`–`F`, default `F`) and, for a DERIVED
 (the source ids it is built from; its terms are the most restrictive of theirs). A local receiver
 (readsb/978, `local-ais`, `local-aprs`, `*-local`, the decoders) defaults to `LOCAL_ONLY`, and a record
 whose `posSource` is `MLAT` is `LOCAL_ONLY` per record however its source is configured. The fallback
-for an unresolved licence is the restrictive `unknown` terms, so an operator must set terms before a
+for an unresolved license is the restrictive `unknown` terms, so an operator must set terms before a
 new source can be re-served.
+
+## 26. Schema changes (Flyway)
+
+Since prompt 144 the database schema belongs to Flyway. Hibernate no longer creates or alters tables: the
+application runs with `spring.jpa.hibernate.ddl-auto=validate`, and the schema an empty database receives is
+exactly what the migrations under `src/main/resources/db/migration/` build, starting with the baseline
+`V1__baseline.sql`. Most adapters never touch the schema: records, payloads, adapter state and settings live in
+existing tables. Read this section when an adapter, or anything else, needs a new table, column or index.
+
+**Conventions for every migration:**
+
+- **Name:** `V{n}__{description}.sql` in `src/main/resources/db/migration/`, where `{n}` is the next unused
+  version (`V2`, `V3`, …) and `{description}` is a few words joined by underscores, for example
+  `V2__add_gbfs_station_capacity.sql`.
+- **Additive by default:** add tables, nullable columns, columns with a default, and indexes. A destructive
+  change (dropping or renaming a column or table, narrowing a type, adding `NOT NULL` without a default) needs a
+  stated reason and a data migration in the same file.
+- **One migration per change:** each schema change gets its own file, committed with the entity or code change
+  that needs it.
+- **Never edit an applied migration.** Once a migration has run anywhere, it is history: Flyway checksums it, and
+  an edited file fails validation on every database that applied the old one. Correct a mistake with a new
+  migration.
+- **Entity and migration move together.** With `ddl-auto=validate`, an entity field, table or column type that
+  the migrations do not create makes startup fail with a schema-validation error. That is the intended guard:
+  write the migration in the same change as the entity. The partitioned `record_version` parent validates
+  because `hibernate.hbm2ddl.extra_physical_table_types: PARTITIONED TABLE` stays configured.
+- **Extensions:** the baseline creates `postgis` and `vector` (pgvector). A migration needing another extension
+  creates it with `CREATE EXTENSION IF NOT EXISTS`; on an external PostgreSQL where Foresignal's role is not a
+  superuser, a superuser must create it first, exactly as for the baseline's two.
+
+**Dynamic DDL that stays outside migrations.** Some DDL depends on data or time and cannot be a fixed migration.
+It is confined to these places:
+
+| Owner | What it creates at run time |
+|---|---|
+| `PartitionManager` (`ai.foresignal.store.history`) | **The leaf partitions of `record_version`**: create, attach, detach and drop. The baseline holds only the partitioned parent and its two tier children, with no leaves and no DEFAULT partition; `HistoryPartitionBootstrap` runs `ensureAhead()` after the Flyway initializer and before the EntityManagerFactory, and the writer and retention keep leaves ahead from then on. Never add a leaf in a migration. |
+| `HistoryDownsampler` (`ai.foresignal.retention`) | the rewrite of a downsampled leaf |
+| `ChronicleDdl` (`ai.foresignal.chronicle`) | the per-chronicle leaves of `chronicle_version` |
+| `EmbeddingSchemaManager` and the reindex job (`ai.foresignal.search`) | the embedding vector slots and their HNSW indexes, at the configured dimension |
+| `ReferenceDataLoader` | staging tables for bulk loads |
+| `GeoPackageWriter`, `MbtilesWriter` | SQLite export files, not PostgreSQL |
+
+`NoBootstrapDdlTest` scans `src/main/java` for `CREATE TABLE`, `CREATE INDEX` and `ALTER TABLE` literals and
+fails on any outside this allowlist, so a new table or index cannot slip in as Java DDL: it goes in a migration.
+
+**Tests.** Integration tests run Flyway on the Testcontainers database, so a missing migration fails the
+integration tests the same way it fails startup. `DatabaseCleaner` leaves `flyway_schema_history` alone and skips
+partition children. To compare a Flyway-built schema with another database, use `scripts/db/dump-schema.sh`
+(`pg_dump --schema-only`) on both and diff the output; `FlywaySchemaParityIT` automates that comparison for the
+baseline.

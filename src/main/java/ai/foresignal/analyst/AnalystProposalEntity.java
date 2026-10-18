@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -38,7 +39,8 @@ public class AnalystProposalEntity {
     private String rationale;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "citations", nullable = false, columnDefinition = "jsonb default '[]'::jsonb")
+    @ColumnDefault("'[]'::jsonb")
+    @Column(name = "citations", nullable = false, columnDefinition = "jsonb")
     private List<String> citations = new ArrayList<>();
 
     @Column(name = "status", length = 16, nullable = false)

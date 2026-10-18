@@ -20,7 +20,7 @@ import org.hibernate.type.SqlTypes;
  *       the source (kept on the {@link #ALL_KINDS} row only); 0 when it never has.
  * </ul>
  *
- * <p>Written only through native SQL by the store; the entity exists so Hibernate owns the table.
+ * <p>Written only through native SQL by the store; the entity maps the table so Hibernate validates it against the Flyway schema.
  */
 @Entity
 @Table(name = "retention_state")

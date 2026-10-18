@@ -164,8 +164,18 @@ tink = "1.23.0"
 # com.dylibso.chicory:wasm 1.7.5 (same project and license). No WASI module is added: plugins get no WASI imports.
 chicory = "1.7.5"
 
+# Flyway (144): flyway-database-postgresql, the PostgreSQL support module Flyway 10+ needs beside flyway-core, Apache-2.0.
+# 12.4.0 is the flyway.version the Spring Boot 4.1.1 BOM manages (spring-boot-dependencies-4.1.1.pom); verified on Maven
+# Central 2026-10-18 (org/flywaydb/flyway-database-postgresql/12.4.0, parent POM license Apache License 2.0). Pinned to the
+# BOM version so the module always matches the flyway-core the starter brings.
+flyway = "12.4.0"
+
+
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
+# Schema migrations (144): the Boot 4 Flyway starter (spring-boot-flyway + spring-boot-starter-jdbc), version from the
+# Spring Boot BOM.
+spring-boot-starter-flyway = { module = "org.springframework.boot:spring-boot-starter-flyway" }
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
 spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
@@ -269,6 +279,8 @@ sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbc" }
 lingua = { module = "com.github.pemistahl:lingua", version.ref = "lingua" }
 # WASM parser plugins (141): the Chicory interpreter (brings com.dylibso.chicory:wasm).
 chicory-runtime = { module = "com.dylibso.chicory:runtime", version.ref = "chicory" }
+# Flyway PostgreSQL support (144).
+flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
 
 # --- Test; versions from the Testcontainers BOM where unspecified ---
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }

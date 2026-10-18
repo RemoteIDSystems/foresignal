@@ -1,31 +1,34 @@
 # Foresignal — Roadmap
 
-One ordered list of prompts that takes Foresignal from an empty repository to a production-ready release.
+One ordered list of prompts that took Foresignal from an empty repository to a production-ready release. **All 144 prompts are done.** Version 1.0.0 is code-complete; the full test run, the runtime verification and the `v1.0.0` tag are pending the owner (§2).
 
-- **Companion docs:** [Executive Summary](Executive-Summary.md), [Product Charter](Product-Charter.md), [Architecture](Architecture.md), [OpenAPI spec](OpenAPI.json), [Source Catalog](Source-Catalog.md).
-- **v1.2 design inputs:**
-  - [Core Data Model](Core-Data-Model.md) is authoritative for ingest, history, live state, triggers, SSE, asOf and retention.
-  - [Weather & Imagery Design](Weather-Imagery-Design.md) is authoritative for rasters, weather and SatDump.
-  - [Gap Analysis](Gap-Analysis.md) covers client, output, input and platform gaps, verified.
-- **v1.3 design input:** [Intelligence Design](Intelligence-Design.md) is authoritative for the intelligence layer: situations, discovery (change points, event studies, co-occurrence, precursors), base rates and analogs, rolling hypotheses, the forecast ledger, outlooks and indices, impact projection and analysis cycles (prompts 116–139).
-- **v1.3 contracts:** [Client Contract](Client-Contract.md) is authoritative for object references, relations, workspaces and deep links (prompt 129, the frontends). [Invariants](Invariants.md) indexes the invariants every checkpoint verifies.
+- **Companion docs:** [Executive Summary](Executive-Summary.md), [Product Charter](Product-Charter.md), [Architecture](Architecture.md), [OpenAPI spec](OpenAPI.json), [Source Catalog](Source-Catalog.md), [Runtime Verification](Runtime-Verification.md), [Release Notes v1.0.0](Release-Notes-v1.0.0.md).
+- **Authoritative design:** the [Product Charter](Product-Charter.md) and the [Architecture](Architecture.md) (v2.0), with the [Intelligence Design](Intelligence-Design.md) for the intelligence layer (prompts 116–139), the [Client Contract](Client-Contract.md) for object references, relations, workspaces and deep links (prompt 129, the frontends), and the [Invariants](Invariants.md) index of the invariants every checkpoint verifies.
+- **Design history:** the v1.2 design inputs were folded into the Architecture v2.0 on 2026-10-18 and archived under [design-history/](design-history/):
+  - [Core Data Model](design-history/Core-Data-Model.md): ingest, history, live state, triggers, SSE, asOf and retention.
+  - [Weather & Imagery Design](design-history/Weather-Imagery-Design.md): rasters, weather and SatDump.
+  - [Gap Analysis](design-history/Gap-Analysis.md): client, output, input and platform gaps.
   - The ChatGPT, Grok and Gemini architecture reviews are folded into the items below.
 
 ## 1. Process
 
-0. **API-first.** `docs/OpenAPI.json` is the complete target API, authored before implementation (each operation tagged with the prompt that implements it and `planned` or `implemented`). Clients are built in parallel against it; prompts implement it and amend it only with recorded deviations (Conventions "API-first").
+0. **API-first.** `docs/OpenAPI.json` is the complete target API, authored before implementation (each operation tagged with the prompt that implements it and `planned` or `implemented`). Clients are built in parallel against it; prompts implement it and amend it only with recorded deviations (Conventions "API-first"). Since v1.0.0 the spec is frozen at `docs/api/v1.0.0/OpenAPI.json`, and `./gradlew checkApiCompat` (oasdiff) reports breaking changes against it.
 1. Each unit of work is a prompt in `/prompts`, named `NNN-<Prompt-Description>.md`.
 2. Claude Code runs them in order, either one at a time or unattended with `prompts/000-Run-Sequence.md`.
 3. Each prompt starts by reading the earlier Completion Reports and adapting to what was actually built.
 4. Each prompt ends by writing `/completion-reports/NNN-CR-<Prompt-Description>.md` with the implementation commit hash.
-5. **Checkpoint prompts** (marked ✅ below) run the test suite built so far and fix failures before the next feature work. Prompt 142 does the final full regression and enforces ≥ 90% coverage.
+5. **Checkpoint prompts** (marked ✅ below) were planned to run the test suite built so far and fix failures before the next feature work, with prompt 142 doing the final full regression and enforcing ≥ 90% coverage. See §2 for what actually ran.
 6. **Collect early.** After 022 (the core milestone), deploy a collecting instance on the bench server with the event-class sources enabled and the analytic retention defaults (`docs/Conventions.md`), and upgrade it as the build continues. History cannot be backfilled from live feeds, and the intelligence block (116–139) is far more useful on weeks of real history. Reference-history imports (121) supply the long outside view.
 
 ## 2. Guardrails (in every prompt)
 
-1. **Tests:** feature prompts write unit and integration tests targeting ≥ 90% line coverage but **do not run them**. Tests run only in the checkpoint prompts (012, 022, 041, 057, 097, 124, 139) and the final full run (142), plus the **sanctioned narrow runs** of 007, 008 and 009 (each runs only its own listed test classes once, because everything else builds on partitioning, hashing and the writer). Every checkpoint also verifies the invariants registry. **022's performance smoke and 143's capacity and soak results are gates:** if NFR-2 throughput, SSE memory or the storage projection fails, the run stops for the owner (000 stop conditions).
+1. **Tests.** The policy changed during the build:
+   - **001–097:** feature prompts wrote unit and integration tests targeting ≥ 90% line coverage but did not run them. The checkpoints ran the whole suite and fixed it until green: 012 (1,577 tests), 022 (2,699), 041 (4,669), 057 (5,682) and 097 (8,084). The sanctioned narrow runs of 007, 008 and 009 each ran only their own listed test classes once, because everything else builds on partitioning, hashing and the writer.
+   - **098–123:** tests written and not run, awaiting checkpoint 124.
+   - **Owner directive of 2026-10-17:** no tests are run for any prompt, including the checkpoints 124, 139 and 142 and prompts 143–144. Each of them compiles only and records that tests were deferred. The performance smoke, the capacity and soak gates of 143, and the full suite with coverage (`./gradlew test jacocoTestReport jacocoTestCoverageVerification`) are the owner's to run at code-complete.
 2. **Finish with Compile → Commit → Push.** Compile with `./gradlew compileJava compileTestJava`, commit, push to `origin main`, and put the commit hash in the Completion Report.
-3. **Hibernate only during development.** Schema changes go through Hibernate (`ddl-auto=update`) plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns (partitioned history). **No Flyway until prompt 144.**
+3. **Schema ownership.** Until 143, schema changes went through Hibernate (`ddl-auto=update`) plus the bootstrap SQL that the [Core Data Model](design-history/Core-Data-Model.md) §9 assigned (partitioned history). From 144 the schema is owned by Flyway (`src/main/resources/db/migration/V1__baseline.sql` and later `V{n}__{description}.sql` migrations, additive by default, never edited once applied), and Hibernate only validates (`ddl-auto=validate`).
+4. **No CI configuration** is added to the repository; the proposed pipeline is in [CI Proposal](CI-Proposal.md).
 
 ## 3. Completion Report template
 
@@ -56,13 +59,13 @@ One ordered list of prompts that takes Foresignal from an empty repository to a 
 
 ## 4. The list
 
-Legend: ✅ checkpoint.
+Legend: ✅ checkpoint. "Done (report: Partial)" means the prompt was implemented and its Completion Report lists parts that could not be built or verified; "compile-only" means the prompt ran under the owner directive of 2026-10-17 (§2).
 
 ### Foundation and core pipeline
 
 | # | Prompt | Scope | Status |
 |---|---|---|---|
-| 001 | Project-Scaffold | Build, wrapper, app skeleton, Docker, licence, test base | Done |
+| 001 | Project-Scaffold | Build, wrapper, app skeleton, Docker, license, test base | Done |
 | 002 | Persistence-Model | Entities, SchemaBootstrap, settings, durations, DB cleaner | Done |
 | 003 | Security-And-Secrets | Bootstrap token, AccessPolicy (fail-closed), cipher, install id, version, ProblemDetail, CORS | Done |
 | 004 | Source-Framework | SPI with v1.2 ingest input, descriptor (tier, time base, policies), DERIVED/PUSH modes, `LAN_URL`/`INBOX_PATH`, `InvalidInputException` | Done |
@@ -88,125 +91,125 @@ Legend: ✅ checkpoint.
 | 019 | Retention-Settings-System | Partition-based retention, kind retention, HeadPurge, consumer clamp, readiness groups, watchdog, capabilities, system history | Done |
 | 020 | OpenAPI-Conformance | Served spec, drift test, event schemas + OAS webhooks, required lint, Postman sync | Done |
 | 021 | End-To-End-Milestone | E2E incl. touches, asOf and channels; Operator Guide (remote access, mDNS, backups, NTP, storage) | Done |
-| 022 | ✅ Checkpoint-Milestone | Run and fix all tests from 001–021 | Ready |
+| 022 | ✅ Checkpoint-Milestone | Run and fix all tests from 001–021 | Done |
 
 ### Platform, agents and intelligence services
 
 | # | Prompt | Scope | Status |
 |---|---|---|---|
-| 023 | Scoped-API-Tokens | Scopes, stream tickets, restricted tokens, device metadata and pairing code, alwaysAuthenticated, trusted proxies, audit log, private gate | Ready |
-| 024 | Inbound-Webhooks-And-Custom-Sources | Custom PUSH sources on v1.2, IngestFormat SPI (alertmanager, cloudevents, cap, mapping), ntfy/Gotify-compatible publish | Ready |
-| 025 | MCP-Server | Tools with scopes, output shaping, `set_alert_status`, legacy SSE flag | Ready |
-| 026 | LLM-Providers | Anthropic SDK, OpenAI-compatible, Ollama; roles, budgets, usage, health | Ready |
-| 027 | Embeddings-And-Semantic-Search | pgvector DB image, worker, zero-downtime dual-index reindex, `/v1/search` | Ready |
-| 028 | Ask-Foresignal | Tool loop, verified citations, threads, proposed actions, streaming | Ready |
-| 029 | Scheduled-Briefings | Digest and LLM briefings, `GET /v1/digest`, HTML renditions | Ready |
-| 030 | Alert-Enrichment | LLM context on alerts, enrichment wait | Ready |
-| 031 | Web-Push | VAPID, RFC 8291, PushTransport SPI, UnifiedPush | Ready |
-| 032 | Native-Mobile-Push | APNs (visible + Notification Service Extension) and FCM v1 transports, `/v1/push/devices` | Ready |
-| 033 | Actionable-Notifications-And-Inbox | Signed actions, confirm page, `/v1/notifications` with read cursors, presence deferral, escalation | Ready |
-| 034 | Agent-Integrations | OpenClaw skill, MCP client configs, cookbooks (Home Assistant, Node-RED, Grafana, Open WebUI, Shortcuts/Tasker, PyTAK, n8n) | Ready |
-| 035 | Access-Perimeter | Restricted-token enforcement, anonymous profile, feed keys, per-client limits, outbound URL policy (SSRF) | Ready |
-| 036 | Places-Views-And-Watchlists | Places (point/polygon/route), places AOI, saved views, watchlists with CSV import, moving-anchor "near me" | Ready |
-| 037 | Time-Travel-And-Tracks | asOf tiles, `/track`, frames, `/timeline`, MCP `get_state_at`/`get_track` | Ready |
-| 038 | Stats-Rollups-And-Glance | `activity_rollup`, `/v1/stats/*`, `/v1/glance`, metric projections | Ready |
-| 039 | Private-Sources-And-Personal-Location | Private enforcement everywhere; OwnTracks, OsmAnd/Traccar, Overland, GPSLogger; per-entity export and purge | Ready |
-| 040 | Gazetteer-And-Region-Tagging | GeoNames/Natural Earth, `{{near.*}}`, country/admin1 filters | Ready |
-| 041 | ✅ Checkpoint-Platform | Run and fix all tests from 001–040 | Ready |
+| 023 | Scoped-API-Tokens | Scopes, stream tickets, restricted tokens, device metadata and pairing code, alwaysAuthenticated, trusted proxies, audit log, private gate | Done |
+| 024 | Inbound-Webhooks-And-Custom-Sources | Custom PUSH sources on v1.2, IngestFormat SPI (alertmanager, cloudevents, cap, mapping), ntfy/Gotify-compatible publish | Done |
+| 025 | MCP-Server | Tools with scopes, output shaping, `set_alert_status`, legacy SSE flag | Done |
+| 026 | LLM-Providers | Anthropic SDK, OpenAI-compatible, Ollama; roles, budgets, usage, health | Done |
+| 027 | Embeddings-And-Semantic-Search | pgvector DB image, worker, zero-downtime dual-index reindex, `/v1/search` | Done |
+| 028 | Ask-Foresignal | Tool loop, verified citations, threads, proposed actions, streaming | Done |
+| 029 | Scheduled-Briefings | Digest and LLM briefings, `GET /v1/digest`, HTML renditions | Done |
+| 030 | Alert-Enrichment | LLM context on alerts, enrichment wait | Done |
+| 031 | Web-Push | VAPID, RFC 8291, PushTransport SPI, UnifiedPush | Done |
+| 032 | Native-Mobile-Push | APNs (visible + Notification Service Extension) and FCM v1 transports, `/v1/push/devices` | Done |
+| 033 | Actionable-Notifications-And-Inbox | Signed actions, confirm page, `/v1/notifications` with read cursors, presence deferral, escalation | Done |
+| 034 | Agent-Integrations | OpenClaw skill, MCP client configs, cookbooks (Home Assistant, Node-RED, Grafana, Open WebUI, Shortcuts/Tasker, PyTAK, n8n) | Done |
+| 035 | Access-Perimeter | Restricted-token enforcement, anonymous profile, feed keys, per-client limits, outbound URL policy (SSRF) | Done |
+| 036 | Places-Views-And-Watchlists | Places (point/polygon/route), places AOI, saved views, watchlists with CSV import, moving-anchor "near me" | Done |
+| 037 | Time-Travel-And-Tracks | asOf tiles, `/track`, frames, `/timeline`, MCP `get_state_at`/`get_track` | Done |
+| 038 | Stats-Rollups-And-Glance | `activity_rollup`, `/v1/stats/*`, `/v1/glance`, metric projections | Done |
+| 039 | Private-Sources-And-Personal-Location | Private enforcement everywhere; OwnTracks, OsmAnd/Traccar, Overland, GPSLogger; per-entity export and purge | Done |
+| 040 | Gazetteer-And-Region-Tagging | GeoNames/Natural Earth, `{{near.*}}`, country/admin1 filters | Done |
+| 041 | ✅ Checkpoint-Platform | Run and fix all tests from 001–040 | Done |
 
 ### Weather, imagery and SatDump
 
 | # | Prompt | Scope | Status |
 |---|---|---|---|
-| 042 | Raster-Products-Core | ProductSpec registry, frames, `.fsg` codec, FrameStore, raster-frame records, `/v1/products` | Ready |
-| 043 | Media-Store-And-Image-Guard | Content-addressed media, ImageGuard, thumbnails, `/v1/media` | Ready |
-| 044 | History-Downsampling | Track-leaf rewrite-and-swap, asOf widening | Ready |
-| 045 | Raster-Tiles-And-Styles | Grid defs, renderer, styles and legends, TileJSON, `/image`, `/loop`, render queue, external catalogue | Ready |
-| 046 | Radar-And-Satellite-Rasters | NetCDF-Java, MRMS, GOES-East ABI | Ready |
-| 047 | Severe-Weather-Record-Sources | `nws-alerts`, `mrms-probsevere`, `spc-outlooks`, `awc-metars` | Ready |
-| 048 | Lightning-And-Fire | GOES GLM, GOES FDC, HMS smoke and fire | Ready |
-| 049 | SatDump-Station-Core | Station source (`/api` + inbox), passes, RF statistics, thumbnails, xRIT geostationary frames | Ready |
-| 050 | Map-Client-Access | Tile keys, CORS set, Caddy `web` profile, frontend recipes | Ready |
-| 051 | Model-Grids-And-Wind | GFS/HRRR (God's Eye View port), wind fields, barbs, timeline | Ready |
-| 052 | Sampling-And-Place-Weather | DERIVED runtime, `/sample`, `/series`, `/stats`, wx-places, radar cells, MCP weather tools | Ready |
-| 053 | MRMS-Second-Wave-And-Gridpoints | Rotation, QPE, FFG, NWS gridpoints, SPC storm reports | Ready |
-| 054 | SatDump-Polar-Overlays | GeoTIFF reader, footprints, Orekit swath, remote ingest | Ready |
-| 055 | Static-Maps-And-Notification-Attachments | MapRenderer, `/v1/maps/static`, channel attachments | Ready |
-| 056 | Weather-Intelligence | Alert weather context, briefing "weather at places", Ask tools | Ready |
-| 057 | ✅ Checkpoint-Weather | Run and fix all tests from 001–056 | Ready |
+| 042 | Raster-Products-Core | ProductSpec registry, frames, `.fsg` codec, FrameStore, raster-frame records, `/v1/products` | Done |
+| 043 | Media-Store-And-Image-Guard | Content-addressed media, ImageGuard, thumbnails, `/v1/media` | Done |
+| 044 | History-Downsampling | Track-leaf rewrite-and-swap, asOf widening | Done |
+| 045 | Raster-Tiles-And-Styles | Grid defs, renderer, styles and legends, TileJSON, `/image`, `/loop`, render queue, external catalog | Done |
+| 046 | Radar-And-Satellite-Rasters | NetCDF-Java, MRMS, GOES-East ABI | Done |
+| 047 | Severe-Weather-Record-Sources | `nws-alerts`, `mrms-probsevere`, `spc-outlooks`, `awc-metars` | Done |
+| 048 | Lightning-And-Fire | GOES GLM, GOES FDC, HMS smoke and fire | Done |
+| 049 | SatDump-Station-Core | Station source (`/api` + inbox), passes, RF statistics, thumbnails, xRIT geostationary frames | Done |
+| 050 | Map-Client-Access | Tile keys, CORS set, Caddy `web` profile, frontend recipes | Done |
+| 051 | Model-Grids-And-Wind | GFS/HRRR (God's Eye View port), wind fields, barbs, timeline | Done |
+| 052 | Sampling-And-Place-Weather | DERIVED runtime, `/sample`, `/series`, `/stats`, wx-places, radar cells, MCP weather tools | Done |
+| 053 | MRMS-Second-Wave-And-Gridpoints | Rotation, QPE, FFG, NWS gridpoints, SPC storm reports | Done |
+| 054 | SatDump-Polar-Overlays | GeoTIFF reader, footprints, Orekit swath, remote ingest | Done |
+| 055 | Static-Maps-And-Notification-Attachments | MapRenderer, `/v1/maps/static`, channel attachments | Done |
+| 056 | Weather-Intelligence | Alert weather context, briefing "weather at places", Ask tools | Done |
+| 057 | ✅ Checkpoint-Weather | Run and fix all tests from 001–056 | Done |
 
 ### Interop and integration
 
 | # | Prompt | Scope | Status |
 |---|---|---|---|
-| 058 | Map-Styles-Feeds-And-KML | MapLibre styles and sprites, Atom/JSON Feed, KML NetworkLink/`gx:Track` | Ready |
-| 059 | Mapping-Profiles-And-Device-Presets | RecordMapping, preview, LLM-suggested drafts, presets (Ecowitt, WU, AIS-catcher, ChirpStack/TTS, airrohr, GMC) | Ready |
-| 060 | MQTT-Channel-And-HA-Discovery | `mqtt` channel, retained topics, LWT, Home Assistant discovery | Ready |
-| 061 | Interactive-Chat-Commands | Telegram and Matrix two-way commands; Charter amendment | Ready |
+| 058 | Map-Styles-Feeds-And-KML | MapLibre styles and sprites, Atom/JSON Feed, KML NetworkLink/`gx:Track` | Done |
+| 059 | Mapping-Profiles-And-Device-Presets | RecordMapping, preview, LLM-suggested drafts, presets (Ecowitt, WU, AIS-catcher, ChirpStack/TTS, airrohr, GMC) | Done |
+| 060 | MQTT-Channel-And-HA-Discovery | `mqtt` channel, retained topics, LWT, Home Assistant discovery | Done |
+| 061 | Interactive-Chat-Commands | Telegram and Matrix two-way commands; Charter amendment | Done |
 
 ### Sources
 
 | # | Prompt | Sources | Status |
 |---|---|---|---|
-| 062 | Aircraft-Adapters | `adsblol-mil`, adsb.lol global or regional, `opensky-states` | Ready |
-| 063 | AISStream-Adapter | `aisstream` | Ready |
-| 064 | Space-Adapters | `celestrak-gp` (+`active`, SOCRATES, CelesTrak-compatible `gp.php`, Orekit predicted passes), `launch-library`, optional `spacetrack-tip` | Ready |
-| 065 | FIRMS-Adapter | `nasa-firms` | Ready |
-| 066 | GDELT-Events-Adapter | `gdelt-events` | Ready |
-| 067 | Hazard-Adapters | `nhc-cyclones`, `gdacs`, `tsunami-warnings`, shared CAP 1.2 parser | Ready |
-| 068 | IODA-Outages-Adapter | `ioda-outages` | Ready |
-| 069 | Local-Receivers | Socket transport + codec SPI, readsb v2 (978, stats), station health, Davis/Ecowitt local | Ready |
-| 070 | Transit-GTFS-RT | `transit-*` + ServiceAlerts + MobilityData catalogue | Ready |
-| 071 | GBFS-Bikeshare | `gbfs-*` | Ready |
-| 072 | CCTV-Catalogs | `cctv-*` | Ready |
-| 073 | Generic-Feature-And-Feed-Kits | ArcGIS/OGC API Features/WFS families; RSS/Atom/GeoRSS/JSON Feed family | Ready |
-| 074 | Road-Events-And-Work-Zones | Open511, WZDx, DATEX II / Digitraffic | Ready |
-| 075 | Fire-Perimeters-Radio-Cyclone-Cones | `nifc-perimeters`, `inciweb-incidents`, `cwfis-*`, `radio-browser`, `nhc-cyclone-cones` | Ready |
-| 076 | Cyber-Feeds | `cisa-kev`, `abusech-*`, `nvd-cves` (EPSS), `ct-domain-watch` | Ready |
-| 077 | Space-Weather-And-Ground-Stations | SWPC split, DONKI, JPL fireballs and close approaches, SatNOGS, TinyGS, SondeHub, `local-sonde` | Ready |
-| 078 | Environment-Sensors | OpenAQ, Safecast, EPA RadNet, NDBC, Sensor.Community, AirNow, local air quality | Ready |
-| 079 | Hydrology-And-Coast | USGS water (OGC API), NWPS gauges and flood categories, SNOTEL, USDM, CO-OPS tides | Ready |
-| 080 | Rail-And-Supplemental-Aircraft | `amtraker`, `digitraffic-rail`, `airplaneslive-mil`, `adsbfi-region-*` | Ready |
-| 081 | Conflict-Sources | `deepstate-frontline`, `alerts-in-ua`, `ua-air-raid-siren`, `acled`, `ucdp-ged` | Ready |
-| 082 | Radio-Sources | `pskreporter-ft8`, `kiwisdr`, `openmhz-systems`, `aprs-is`, `local-aprs` (Direwolf KISS) | Ready |
-| 083 | Mesh-Sources | `meshtastic-mqtt` (Mesh.md rules), `meshtastic-map`, `meshtastic-local`, `meshcore-local` | Ready |
-| 084 | Mesh-Radio-Channels | Meshtastic and MeshCore outbound, compact profile, duty cycle, report grammar | Ready |
-| 085 | Keyless-AIS | `ais-kystverket`, `ais-digitraffic`, `local-ais` (AIS-catcher), shared AIVDM codec | Ready |
-| 086 | Local-RF-Decoders | ACARS/VDL2/HFDL (metadata only), radiosonde_auto_rx, gpsd sentinel, Remote ID, rsudp, SAME | Ready |
-| 087 | Aviation-Safety | `faa-tfr`, `faa-nas-status`, `awc-sigmets`, PIREP/G-AIRMET/CWA, UAS facility maps and restrictions | Ready |
-| 088 | Maritime-Intelligence | `nga-msi-warnings`, IMF PortWatch (chokepoints and ports), `gfw-events`, USCG Local Notices to Mariners | Ready |
-| 089 | CAP-Alerts-And-International-Seismic | CAP family (WMO register), MeteoAlarm, WPC ERO, EMSC WebSocket + FDSN, USGS ShakeMap | Ready |
-| 090 | Disasters-And-Humanitarian | EONET, ReliefWeb, UNHCR, WHO DON, Copernicus EMS, HANS/GeoNet volcano levels, OpenFEMA, travel advisories | Ready |
-| 091 | Sanctions-And-Filings | OFAC SDN, UK OFSI, UN, SEC 8-K | Ready |
-| 092 | Internet-Measurement | Cloudflare Radar (outages, BGP), RIPE Atlas, gpsjam daily, status pages, optional RIS Live | Ready |
-| 093 | Energy-And-Markets-Series | EIA petroleum and EIA-930, ERCOT, GIE AGSI, Ember, grid frequency, GB carbon intensity; prediction markets evaluated and excluded | Ready |
-| 094 | Reference-Datasets | WRI power plants, OurAirports, submarine cables, GVP volcanoes, World Port Index, NPS boundaries, PeeringDB, spaceports, nuclear facilities | Ready |
-| 095 | Citizen-Science-And-Signals | iNaturalist, eBird, CDC NWSS, Wikipedia edit surge | Ready |
-| 096 | Satellite-Scenes-STAC | Earth Search STAC footprints and links (Sentinel/Landsat) | Ready |
-| 097 | ✅ Checkpoint-Sources | Run and fix all tests from 001–096 | Ready |
+| 062 | Aircraft-Adapters | `adsblol-mil`, adsb.lol global or regional, `opensky-states` | Done |
+| 063 | AISStream-Adapter | `aisstream` | Done |
+| 064 | Space-Adapters | `celestrak-gp` (+`active`, SOCRATES, CelesTrak-compatible `gp.php`, Orekit predicted passes), `launch-library`, optional `spacetrack-tip` | Done |
+| 065 | FIRMS-Adapter | `nasa-firms` | Done (report: Partial) |
+| 066 | GDELT-Events-Adapter | `gdelt-events` | Done |
+| 067 | Hazard-Adapters | `nhc-cyclones`, `gdacs`, `tsunami-warnings`, shared CAP 1.2 parser | Done |
+| 068 | IODA-Outages-Adapter | `ioda-outages` | Done |
+| 069 | Local-Receivers | Socket transport + codec SPI, readsb v2 (978, stats), station health, Davis/Ecowitt local | Done |
+| 070 | Transit-GTFS-RT | `transit-*` + ServiceAlerts + MobilityData catalog | Done |
+| 071 | GBFS-Bikeshare | `gbfs-*` | Done |
+| 072 | CCTV-Catalogs | `cctv-*` | Done |
+| 073 | Generic-Feature-And-Feed-Kits | ArcGIS/OGC API Features/WFS families; RSS/Atom/GeoRSS/JSON Feed family | Done |
+| 074 | Road-Events-And-Work-Zones | Open511, WZDx, DATEX II / Digitraffic | Done |
+| 075 | Fire-Perimeters-Radio-Cyclone-Cones | `nifc-perimeters`, `inciweb-incidents`, `cwfis-*`, `radio-browser`, `nhc-cyclone-cones` | Done |
+| 076 | Cyber-Feeds | `cisa-kev`, `abusech-*`, `nvd-cves` (EPSS), `ct-domain-watch` | Done |
+| 077 | Space-Weather-And-Ground-Stations | SWPC split, DONKI, JPL fireballs and close approaches, SatNOGS, TinyGS, SondeHub, `local-sonde` | Done |
+| 078 | Environment-Sensors | OpenAQ, Safecast, EPA RadNet, NDBC, Sensor.Community, AirNow, local air quality | Done |
+| 079 | Hydrology-And-Coast | USGS water (OGC API), NWPS gauges and flood categories, SNOTEL, USDM, CO-OPS tides | Done |
+| 080 | Rail-And-Supplemental-Aircraft | `amtraker`, `digitraffic-rail`, `airplaneslive-mil`, `adsbfi-region-*` | Done |
+| 081 | Conflict-Sources | `deepstate-frontline`, `alerts-in-ua`, `ua-air-raid-siren`, `acled`, `ucdp-ged` | Done |
+| 082 | Radio-Sources | `pskreporter-ft8`, `kiwisdr`, `openmhz-systems`, `aprs-is`, `local-aprs` (Direwolf KISS) | Done |
+| 083 | Mesh-Sources | `meshtastic-mqtt` (Mesh.md rules), `meshtastic-map`, `meshtastic-local`, `meshcore-local` | Done |
+| 084 | Mesh-Radio-Channels | Meshtastic and MeshCore outbound, compact profile, duty cycle, report grammar | Done |
+| 085 | Keyless-AIS | `ais-kystverket`, `ais-digitraffic`, `local-ais` (AIS-catcher), shared AIVDM codec | Done |
+| 086 | Local-RF-Decoders | ACARS/VDL2/HFDL (metadata only), radiosonde_auto_rx, gpsd sentinel, Remote ID, rsudp, SAME | Done |
+| 087 | Aviation-Safety | `faa-tfr`, `faa-nas-status`, `awc-sigmets`, PIREP/G-AIRMET/CWA, UAS facility maps and restrictions | Done |
+| 088 | Maritime-Intelligence | `nga-msi-warnings`, IMF PortWatch (chokepoints and ports), `gfw-events`; USCG Local Notices to Mariners and `gfw-sar-detections` not built | Done |
+| 089 | CAP-Alerts-And-International-Seismic | CAP family (WMO register), MeteoAlarm, WPC ERO, EMSC WebSocket + FDSN, USGS ShakeMap | Done |
+| 090 | Disasters-And-Humanitarian | EONET, ReliefWeb, UNHCR, WHO DON, Copernicus EMS, HANS/GeoNet volcano levels, OpenFEMA, travel advisories | Done |
+| 091 | Sanctions-And-Filings | OFAC SDN, UK OFSI, UN, SEC 8-K | Done |
+| 092 | Internet-Measurement | Cloudflare Radar (outages, BGP), RIPE Atlas, gpsjam daily, status pages, optional RIS Live | Done |
+| 093 | Energy-And-Markets-Series | EIA petroleum and EIA-930, ERCOT, GIE AGSI, Ember, grid frequency, GB carbon intensity; prediction markets evaluated and excluded | Done |
+| 094 | Reference-Datasets | WRI power plants, OurAirports, submarine cables, GVP volcanoes, World Port Index, NPS boundaries, PeeringDB, spaceports, nuclear facilities | Done |
+| 095 | Citizen-Science-And-Signals | iNaturalist, eBird, CDC NWSS, Wikipedia edit surge | Done |
+| 096 | Satellite-Scenes-STAC | Earth Search STAC footprints and links (Sentinel/Landsat) | Done |
+| 097 | ✅ Checkpoint-Sources | Run and fix all tests from 001–096 | Done |
 
 ### Intelligence foundations, outputs and integration
 
 | # | Prompt | Scope | Status |
 |---|---|---|---|
-| 098 | Entity-Registry | Canonical entities, aliases, keys, confidence and validity, FAA registry without PII, `/v1/entities`, MCP | Ready |
-| 099 | Derived-Layers | GPS jamming, AIS gap, loiter, rendezvous, deception, holding patterns, emergency squawks, chokepoint course changes, military air + naval co-occurrence, aircraft fusion, corroboration, port calls, CPA | Ready |
-| 100 | Windowed-Rules-And-Anomalies | Count and absence rules, coverage-aware baselines, `anomaly` rule type | Ready |
-| 101 | Incidents-Investigations-And-Exposure | `intelligence_event` (evidence, confidence, alternatives, detector version), correlation recipes, investigations (case files), exposure | Ready |
-| 102 | Autonomous-Analyst | Scheduled LLM analyst over events and anomalies; proposes watches and intelligence events | Ready |
-| 103 | Backtesting-And-Precursor-Tests | Rule, recipe and precursor-test backtests over retained history ("does X precede Y?"); alert quality | Ready |
-| 104 | Infrastructure-Dependency-Mapping | Facility graph (power, telecom, transport, hospitals) and affected-dependency queries | Ready |
-| 105 | Weather-Models-And-Storm-Tracking | ECMWF IFS, forecast areas, TITAN-lite tracking, correlation annotators | Ready |
-| 106 | Weather-Products-Extended | Extended product list, HRRR smoke fields, HeatRisk, UV, alternate field formats | Ready |
-| 107 | SatDump-Extras | Filtered DCS/EMWIN, SatDump 2.0 hook, local GLM, EMWIN fallback, OMM feed | Ready |
-| 108 | Map-Interop-And-Offline | WMTS with Time, OGC API Tiles/EDR, MBTiles/PMTiles/COG export, Terrain-RGB, WebP, style fragments | Ready |
-| 109 | Licence-And-Provenance | Per-record licence and egress policy, attribution, reliability grades, instance signing key (JWKS, detached JWS) | Ready |
-| 110 | Outbound-Sinks | Sink SPI with cursors; MQTT retained state; CoT/TAK; readsb `aircraft.json`/SBS; NMEA AIVDM; APRS-IS serve; CloudEvents | Ready |
-| 111 | Exports-Archive-And-Offline-Packs | GeoParquet/GeoPackage/FlatGeobuf/GPX exports, `atSeq` snapshots and holds, cold archive, PMTiles packs | Ready |
-| 112 | Standards-And-Headerless-Outputs | OGC API Features, CAP output, iCalendar, share links | Ready |
-| 113 | Federation-And-Edge-Relay | Foresignal-to-Foresignal replication with provenance and loop prevention; compact intelligence messages for MeshDTN | Ready |
-| 114 | Pattern-Of-Life-And-Trip-Watch | Pattern of life, trip and commute corridor watch, kinematic CPA/ETA | Ready |
-| 115 | Exercise-Replay-And-Alert-Quality | Exercise/replay mode, alert-quality feedback tuning | Ready |
+| 098 | Entity-Registry | Canonical entities, aliases, keys, confidence and validity, FAA registry without PII, `/v1/entities`, MCP | Done |
+| 099 | Derived-Layers | GPS jamming, AIS gap, loiter, rendezvous, deception, holding patterns, emergency squawks, chokepoint course changes, military air + naval co-occurrence, aircraft fusion, corroboration, port calls, CPA | Done |
+| 100 | Windowed-Rules-And-Anomalies | Count and absence rules, coverage-aware baselines, `anomaly` rule type | Done |
+| 101 | Incidents-Investigations-And-Exposure | `intelligence_event` (evidence, confidence, alternatives, detector version), correlation recipes, investigations (case files), exposure | Done |
+| 102 | Autonomous-Analyst | Scheduled LLM analyst over events and anomalies; proposes watches and intelligence events | Done |
+| 103 | Backtesting-And-Precursor-Tests | Rule, recipe and precursor-test backtests over retained history ("does X precede Y?"); alert quality | Done |
+| 104 | Infrastructure-Dependency-Mapping | Facility graph (power, telecom, transport, hospitals) and affected-dependency queries | Done |
+| 105 | Weather-Models-And-Storm-Tracking | ECMWF IFS, forecast areas, TITAN-lite tracking, correlation annotators | Done (report: Partial) |
+| 106 | Weather-Products-Extended | Extended product list, HRRR smoke fields, HeatRisk, UV, alternate field formats | Done (report: Partial) |
+| 107 | SatDump-Extras | Filtered DCS/EMWIN, SatDump 2.0 hook, local GLM, EMWIN fallback, OMM feed | Done |
+| 108 | Map-Interop-And-Offline | WMTS with Time, OGC API Tiles/EDR, MBTiles/PMTiles/COG export, Terrain-RGB, WebP, style fragments | Done |
+| 109 | Licence-And-Provenance | Per-record license and egress policy, attribution, reliability grades, instance signing key (JWKS, detached JWS) | Done |
+| 110 | Outbound-Sinks | Sink SPI with cursors; MQTT retained state; CoT/TAK; readsb `aircraft.json`/SBS; NMEA AIVDM; APRS-IS serve; CloudEvents | Done |
+| 111 | Exports-Archive-And-Offline-Packs | GeoParquet/GeoPackage/FlatGeobuf/GPX exports, `atSeq` snapshots and holds, cold archive, PMTiles packs | Done |
+| 112 | Standards-And-Headerless-Outputs | OGC API Features, CAP output, iCalendar, share links | Done |
+| 113 | Federation-And-Edge-Relay | Foresignal-to-Foresignal replication with provenance and loop prevention; compact intelligence messages for MeshDTN | Done |
+| 114 | Pattern-Of-Life-And-Trip-Watch | Pattern of life, trip and commute corridor watch, kinematic CPA/ETA | Done |
+| 115 | Exercise-Replay-And-Alert-Quality | Exercise/replay mode, alert-quality feedback tuning | Done |
 
 ### Intelligence, collaboration and the client contract (v1.3)
 
@@ -214,40 +217,40 @@ Design: [Intelligence Design](Intelligence-Design.md); client contract: [Client 
 
 | # | Prompt | Scope | Status |
 |---|---|---|---|
-| 116 | Evidence-Identity-And-Observability | Originators, canonical events and evidence groups (independence, echo flags); time-versioned observability (capture–recapture, presence proxy, receiver range) and coverage tiles; analysis manifests and replay; retrofits 099–103 | Ready |
-| 117 | Market-And-Attention-Signals | CFTC COT (with history backfill), FRED (local-only), Wikimedia pageviews, GDELT timelines, World Bank indicators; attention topics; series metadata for event studies | Ready |
-| 118 | Situations-And-Storylines | Persistent storylines: deterministic linker, lifecycle, daily snapshots and "what changed", themes, self-refreshing briefs, merge/split, corroboration from evidence groups | Ready |
-| 119 | Change-Points-And-Event-Studies | Region rollups, `SeriesReader`, analysis-series registry, findings (`foresignal-analytics`), CUSUM and BOCPD change points, event studies, pre-event signals, unexplained moves, co-occurrence mining with FDR | Ready |
-| 120 | Precursor-Mining-And-Library | Candidates over canonical events and series, FDR, out-of-sample validation, precursor library and lifecycle, live `precursor-active` | Ready |
-| 121 | Base-Rates-And-Historical-Analogs | Reference-history imports (UCDP, ACLED, USGS, GDACS), base-rate library with intervals, reporting density, situation signatures and analog search | Ready |
-| 122 | Forecast-Ledger-And-Scoring | Questions and detectability-aware resolvers, immutable forecasts, baseline forecasters, Brier/log/RPS/CRPS, CORP calibration, bias monitor, ensemble with Platt recalibration, leak-free retrospective evaluation, ICD 203 wording | Ready |
-| 123 | Analytic-Benchmark-Harness | Planted-truth scenarios and a historical corpus; false discoveries, recall, delay, duplicate resistance, calibration; thresholds; gating of autonomous features | Ready |
-| 124 | ✅ Checkpoint-Intelligence-Foundations | Run and fix all tests from 001–123; golden statistics, determinism, no look-ahead, duplicate inflation, manifests, ledger integrity, egress, durable cursors, synthetic benchmark baseline, invariants | Ready |
-| 125 | Hypotheses-Indicators-And-ACH | Rolling hypothesis sets: priors from base rates, indicators that watch for themselves, deterministic revisions (evidence groups, detectability-scaled absence), ACH, key assumptions, speculative links, information value and collection gaps, drafting | Ready |
-| 126 | Series-Forecasts-Regional-Outlooks-And-Indices | Method-selected series forecasts, CAST-style regional 4-week outlooks with published accuracy, decomposed regional indices with weights fitted to outcomes | Ready |
-| 127 | Impact-Projection | Hazard forecasts × places × infrastructure → probabilistic impact statements, scored in the ledger | Ready |
-| 128 | Analysis-Cycles-And-Assessments | Daily/weekly/monthly cycles: deterministic packet, LLM analyst, red team, forecaster and proposer roles, ICD 203 assessments that build on the previous one, export bundles, monthly maintenance, intel board with operator vs machine | Ready |
-| 129 | Object-Graph-Workspaces-And-Annotations | Object references and envelopes, time-aware relation graph and common dependencies, annotations with verdicts and precision metrics, workspaces with live context sync and deep links, sensor discovery, `/v1/contract` | Ready |
-| 130 | Principals-Groups-Sharing-And-Collaboration | Principals and groups, notification preferences, access lists, TLP 2.0, tags, threaded comments and mentions, attachments and Admiralty-graded evidence items, investigations (owners, members, links), saved searches | Ready |
-| 131 | Chronicles | Named monitoring threads: layer bundles with capture modes, their own partitioned history, thread, replay, storage estimates and caps, lifecycle, proposals from the analysis cycles, sharing | Ready |
-| 132 | Reports-And-Intelligence-Exchange | Reports from tags, selections, investigations, chronicles and situations; publish with pinned evidence and TLP banners; send to principals; signed packages between instances; read-only links | Ready |
-| 133 | News-Coverage-And-Media-Bias | News articles (metadata only), outlet registry with licensed lean, factuality and ownership ratings, story clustering, coverage balance, blindspots and divergence in situations, hypotheses and assessments | Ready |
-| 134 | Chronicle-Network-And-Discovery | Related chronicles from privacy-preserving fingerprints (local and federated), discoverability under TLP, opaque links and clusters, access requests, evidence counted once, circular-reporting detection | Ready |
-| 135 | Social-Sources-And-Volume | Operator-enabled social adapters (Bluesky Jetstream on by default; Bluesky search, Mastodon, Reddit, YouTube, X with spend cap, Threads, Instagram hashtags; other platforms through EDP providers), posts, deletion sync, denominator-scaled volume baselines, velocity findings, social-attention observability | Ready |
-| 136 | Narratives-Claims-And-Media | Narratives counted by origin, multilingual claim extraction, claims as graded evidence, PDQ image reuse, cross-platform propagation, coordination indicators | Ready |
-| 137 | Social-Physical-Correlation | Claims versus independent physical evidence (corroborated with lead time, unobserved with adequate coverage, contradicted), attention gaps, cue-driven searches, out-of-sample lead–lag and ledger scoring | Ready |
-| 138 | External-Data-Bindings-And-Provider-Kit | Bindings for atomic EDP streams (series, canonical families, social and news pipelines, evidence, indicators, forecast questions as scored external forecasters, places, situations, chronicles), provenance and declared coverage, provider kit and the provider-ideas catalogue | Ready |
-| 139 | ✅ Checkpoint-Intelligence | Run and fix all tests from 001–138; determinism, no look-ahead, wording, egress, duplicate inflation, manifests, benchmark, collaboration and TLP, chronicle independence, exchange, news independence, chronicle-network disclosure, social independence and absence, external data (pending sources, bindings, independence, external forecasters), invariants | Ready |
+| 116 | Evidence-Identity-And-Observability | Originators, canonical events and evidence groups (independence, echo flags); time-versioned observability (capture–recapture, presence proxy, receiver range) and coverage tiles; analysis manifests and replay; retrofits 099–103 | Done |
+| 117 | Market-And-Attention-Signals | CFTC COT (with history backfill), FRED (local-only), Wikimedia pageviews, GDELT timelines, World Bank indicators; attention topics; series metadata for event studies | Done |
+| 118 | Situations-And-Storylines | Persistent storylines: deterministic linker, lifecycle, daily snapshots and "what changed", themes, self-refreshing briefs, merge/split, corroboration from evidence groups | Done |
+| 119 | Change-Points-And-Event-Studies | Region rollups, `SeriesReader`, analysis-series registry, findings (`foresignal-analytics`), CUSUM and BOCPD change points, event studies, pre-event signals, unexplained moves, co-occurrence mining with FDR | Done |
+| 120 | Precursor-Mining-And-Library | Candidates over canonical events and series, FDR, out-of-sample validation, precursor library and lifecycle, live `precursor-active` | Done |
+| 121 | Base-Rates-And-Historical-Analogs | Reference-history imports (UCDP, ACLED, USGS, GDACS), base-rate library with intervals, reporting density, situation signatures and analog search | Done |
+| 122 | Forecast-Ledger-And-Scoring | Questions and detectability-aware resolvers, immutable forecasts, baseline forecasters, Brier/log/RPS/CRPS, CORP calibration, bias monitor, ensemble with Platt recalibration, leak-free retrospective evaluation, ICD 203 wording | Done |
+| 123 | Analytic-Benchmark-Harness | Planted-truth scenarios and a historical corpus; false discoveries, recall, delay, duplicate resistance, calibration; thresholds; gating of autonomous features | Done |
+| 124 | ✅ Checkpoint-Intelligence-Foundations | Run and fix all tests from 001–123; golden statistics, determinism, no look-ahead, duplicate inflation, manifests, ledger integrity, egress, durable cursors, synthetic benchmark baseline, invariants | Done (compile-only; tests not run) |
+| 125 | Hypotheses-Indicators-And-ACH | Rolling hypothesis sets: priors from base rates, indicators that watch for themselves, deterministic revisions (evidence groups, detectability-scaled absence), ACH, key assumptions, speculative links, information value and collection gaps, drafting | Done |
+| 126 | Series-Forecasts-Regional-Outlooks-And-Indices | Method-selected series forecasts, CAST-style regional 4-week outlooks with published accuracy, decomposed regional indices with weights fitted to outcomes | Done |
+| 127 | Impact-Projection | Hazard forecasts × places × infrastructure → probabilistic impact statements, scored in the ledger | Done |
+| 128 | Analysis-Cycles-And-Assessments | Daily/weekly/monthly cycles: deterministic packet, LLM analyst, red team, forecaster and proposer roles, ICD 203 assessments that build on the previous one, export bundles, monthly maintenance, intel board with operator vs machine | Done |
+| 129 | Object-Graph-Workspaces-And-Annotations | Object references and envelopes, time-aware relation graph and common dependencies, annotations with verdicts and precision metrics, workspaces with live context sync and deep links, sensor discovery, `/v1/contract` | Done |
+| 130 | Principals-Groups-Sharing-And-Collaboration | Principals and groups, notification preferences, access lists, TLP 2.0, tags, threaded comments and mentions, attachments and Admiralty-graded evidence items, investigations (owners, members, links), saved searches | Done |
+| 131 | Chronicles | Named monitoring threads: layer bundles with capture modes, their own partitioned history, thread, replay, storage estimates and caps, lifecycle, proposals from the analysis cycles, sharing | Done |
+| 132 | Reports-And-Intelligence-Exchange | Reports from tags, selections, investigations, chronicles and situations; publish with pinned evidence and TLP banners; send to principals; signed packages between instances; read-only links | Done |
+| 133 | News-Coverage-And-Media-Bias | News articles (metadata only), outlet registry with licensed lean, factuality and ownership ratings, story clustering, coverage balance, blindspots and divergence in situations, hypotheses and assessments | Done (report: Partial) |
+| 134 | Chronicle-Network-And-Discovery | Related chronicles from privacy-preserving fingerprints (local and federated), discoverability under TLP, opaque links and clusters, access requests, evidence counted once, circular-reporting detection | Done |
+| 135 | Social-Sources-And-Volume | Operator-enabled social adapters (Bluesky Jetstream on by default; Bluesky search, Mastodon, Reddit, YouTube, X with spend cap, Threads, Instagram hashtags; other platforms through EDP providers), posts, deletion sync, denominator-scaled volume baselines, velocity findings, social-attention observability | Done (report: Partial) |
+| 136 | Narratives-Claims-And-Media | Narratives counted by origin, multilingual claim extraction, claims as graded evidence, PDQ image reuse, cross-platform propagation, coordination indicators | Done (report: Partial) |
+| 137 | Social-Physical-Correlation | Claims versus independent physical evidence (corroborated with lead time, unobserved with adequate coverage, contradicted), attention gaps, cue-driven searches, out-of-sample lead–lag and ledger scoring | Done |
+| 138 | External-Data-Bindings-And-Provider-Kit | Bindings for atomic EDP streams (series, canonical families, social and news pipelines, evidence, indicators, forecast questions as scored external forecasters, places, situations, chronicles), provenance and declared coverage, provider kit and the provider-ideas catalog | Done |
+| 139 | ✅ Checkpoint-Intelligence | Run and fix all tests from 001–138; determinism, no look-ahead, wording, egress, duplicate inflation, manifests, benchmark, collaboration and TLP, chronicle independence, exchange, news independence, chronicle-network disclosure, social independence and absence, external data (pending sources, bindings, independence, external forecasters), invariants | Done (compile-only; tests not run) |
 
 ### Maintenance, clients and hardening
 
 | # | Prompt | Scope | Status |
 |---|---|---|---|
-| 140 | Adapter-Doctor | LLM-assisted diagnosis: probe, compare with fixture, explain, propose parser fix | Ready |
-| 141 | Client-SDKs-CLI-And-Extensibility | Dart/TypeScript/Python SDK generation with SSE layer and `WorkspaceSync`, picocli CLI, MCP remote authorization (RFC 9728), plugin SPI (WASM-first), science and security formats (CZML, QuakeML, STIX), audio briefings and translation | Ready |
-| 142 | ✅ Full-Test-Run-And-Fix | Full regression, ≥ 90% coverage gate, invariants registry | Ready |
-| 143 | Runtime-Verification | Live soak on the bench server: storage, WAL, persist ratio, storms, restore drill, disk-full drill, capacity bounds, Tailscale profile, metrics drift; intelligence jobs' runtime and cost | Ready |
-| 144 | Production-Hardening | Docs consolidation into Architecture/Charter, Flyway baseline (tiered DDL, all indexes), `ddl-auto=validate`, oasdiff, release `v1.0.0` | Ready |
+| 140 | Adapter-Doctor | LLM-assisted diagnosis: probe, compare with fixture, explain, propose parser fix | Done |
+| 141 | Client-SDKs-CLI-And-Extensibility | Dart/TypeScript/Python SDK generation with SSE layer and `WorkspaceSync`, picocli CLI, MCP remote authorization (RFC 9728), plugin SPI (WASM-first), science and security formats (CZML, QuakeML, STIX), audio briefings and translation | Done |
+| 142 | ✅ Full-Test-Run-And-Fix | Full regression, ≥ 90% coverage gate, invariants registry | Done (compile-only; tests not run) |
+| 143 | Runtime-Verification | Live soak on the bench server: storage, WAL, persist ratio, storms, restore drill, disk-full drill, capacity bounds, Tailscale profile, metrics drift; intelligence jobs' runtime and cost | Done (procedure written; nothing measured) |
+| 144 | Production-Hardening | Docs consolidation into Architecture/Charter, Flyway baseline (tiered DDL, all indexes), `ddl-auto=validate`, oasdiff, release `v1.0.0` | Done (compile-only; tests and tag pending owner) |
 
 **Outside this repository:** client applications built on Foresignal have their own repositories and roadmaps:
 - the web globe and operator console
@@ -332,9 +335,9 @@ Late on 2026-10-11 the foundations checkpoint was inserted as **124**, moving th
 | 045 | 081 | 062 | 119 → v1.3 143 |
 | | | 063 | 120 → v1.3 144 |
 
-**Core-Data-Model.md labels:** 006a → 007, 007 → 008, 007b → 009, 030a → 044. Its "063" (Flyway) is now 144.
+**[Core Data Model](design-history/Core-Data-Model.md) labels:** 006a → 007, 007 → 008, 007b → 009, 030a → 044. Its "063" (Flyway) is now 144.
 
-**Weather-Imagery-Design.md labels** (its §10 list) → v1.2:
+**[Weather & Imagery Design](design-history/Weather-Imagery-Design.md) labels** (its §10 list) → v1.2:
 
 | Design | v1.2 | Design | v1.2 |
 |---|---|---|---|
@@ -352,7 +355,7 @@ Late on 2026-10-11 the foundations checkpoint was inserted as **124**, moving th
 
 Its "080" (runtime verification) is now 143, and its "081" (Flyway) is now 144.
 
-**Gap-Analysis.md labels:**
+**[Gap Analysis](design-history/Gap-Analysis.md) labels:**
 
 | Gap label | v1.2 | Gap label | v1.2 |
 |---|---|---|---|
@@ -375,5 +378,6 @@ Its "extend NNN" items apply to the renumbered prompt: translate NNN with the v1
 ## 6. API tooling
 
 - `postman/Foresignal.postman_collection.json` and `postman/Foresignal-Local.postman_environment.json` are generated from `docs/OpenAPI.json` by `scripts/generate-postman.py`. Any prompt that changes the spec regenerates them.
-- Prompt 020 adds a contract test that fails when any operation is missing from the collection, and the route-level test that keeps code and spec in step (`pending-operations.txt` lists the `planned` operations not built yet; it must be empty at 142).
-- **Parallel client development:** clients generate SDKs from `docs/OpenAPI.json` (for example `openapi-typescript` / `openapi-fetch`, or `dart-dio`) and run a mock server from it (for example `npx @stoplight/prism-cli@5 mock docs/OpenAPI.json`), filtering by `x-foresignal-status` to see what is already live. Prompt 141 later publishes official SDKs.
+- Prompt 020 adds a contract test that fails when any operation is missing from the collection, and the route-level test that keeps code and spec in step (`pending-operations.txt` lists the `planned` operations not built yet; it became empty at 141).
+- **Parallel client development:** clients generate SDKs from `docs/OpenAPI.json` (for example `openapi-typescript` / `openapi-fetch`, or `dart-dio`) and run a mock server from it (for example `npx @stoplight/prism-cli@5 mock docs/OpenAPI.json`), filtering by `x-foresignal-status` to see what is already live. Prompt 141 published the official SDKs under `sdk/` and the CLI under `cli/`.
+- **API compatibility (144):** `docs/api/v1.0.0/OpenAPI.json` is the frozen v1.0.0 spec; `./gradlew checkApiCompat` runs `oasdiff breaking` against it with a local `oasdiff` binary or the Docker image, and skips with a warning when neither is available. It is not wired to `build`.

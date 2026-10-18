@@ -17,6 +17,14 @@ RUN ./gradlew bootJar -x test --no-daemon
 # ---- Runtime stage -----------------------------------------------------------
 FROM eclipse-temurin:21-jre AS runtime
 
+# Release metadata (prompt 144). VERSION matches the Gradle project version and /v1/system.
+ARG VERSION=1.0.0
+LABEL org.opencontainers.image.title="Foresignal" \
+      org.opencontainers.image.description="Foresignal (foresignal.ai): a headless intelligence broker. Unrelated to foresignal.com." \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.url="https://foresignal.ai" \
+      org.opencontainers.image.licenses="MIT"
+
 # Prompt 054: optional GDAL for SatDump GeoTIFFs in another CRS or BigTIFF. Off by default; build with
 # --build-arg WITH_GDAL=true to install gdal-bin only (the gdalwarp program: no JNI binding, no AGPL
 # drivers). Foresignal runs it as a subprocess (foresignal.raster.gdal.enabled, default auto).
@@ -35,6 +43,8 @@ RUN groupadd --system --gid 1001 foresignal \
 
 COPY --from=build --chown=foresignal:foresignal /src/build/libs/foresignal.jar /app/foresignal.jar
 
+# Runs as the non-root foresignal user (uid 1001). docker-compose.yml also makes the root filesystem read-only:
+# the only writable paths are the /data volume (data, java.io.tmpdir, native-library extraction) and a tmpfs /tmp.
 USER foresignal
 WORKDIR /app
 VOLUME ["/data"]

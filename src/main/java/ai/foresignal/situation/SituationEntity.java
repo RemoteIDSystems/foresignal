@@ -22,8 +22,8 @@ import org.locationtech.jts.geom.Point;
  * <p>{@code version} is an optimistic lock; {@code merged_into} points at the surviving situation after a merge;
  * {@code private} is true when any member comes from a private source (039). Members are evidence; status,
  * severity and summary are inference by {@link SituationDeriver}; the brief is labeled speculation and never
- * changes either. The GiST index on {@code geom} and the GIN index on {@code region_codes} are created by
- * {@code SpatialIndexInitializer}.
+ * changes either. The GiST index on {@code geom} and the GIN index on {@code region_codes} are in the
+ * Flyway baseline.
  */
 @Entity
 @Table(name = "situation", indexes = @Index(name = "situation_status_activity_idx",

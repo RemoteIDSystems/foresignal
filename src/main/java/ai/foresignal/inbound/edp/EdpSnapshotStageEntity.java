@@ -10,7 +10,7 @@ import jakarta.persistence.Table;
 
 /**
  * One external id staged for a snapshot ({@code edp_snapshot_stage}, prompt 024). Written and read
- * with plain SQL by {@link EdpSnapshotService}; the entity exists so Hibernate owns the table.
+ * with plain SQL by {@link EdpSnapshotService}; the entity maps the table so Hibernate validates it against the Flyway schema.
  */
 @Entity
 @Table(name = "edp_snapshot_stage", indexes = @Index(name = "edp_snapshot_stage_key_idx",

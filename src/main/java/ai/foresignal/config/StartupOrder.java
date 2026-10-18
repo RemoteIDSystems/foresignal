@@ -3,8 +3,8 @@ package ai.foresignal.config;
 /**
  * The order in which background services start once the application is ready.
  *
- * <p>Schema bootstrap and partition creation happen before the {@code EntityManagerFactory}
- * ({@code SchemaBootstrap}); everything here starts on {@code ApplicationReadyEvent}, in ascending
+ * <p>Flyway migration and partition creation happen before the {@code EntityManagerFactory}
+ * ({@code SchemaConfiguration}); everything here starts on {@code ApplicationReadyEvent}, in ascending
  * order, by annotating the listener with {@code @Order(StartupOrder.X)}. The writer comes first so
  * that the trigger engine and the scheduler never submit work before anything can process it.
  * New background services register their phase here (Conventions, "Startup order").

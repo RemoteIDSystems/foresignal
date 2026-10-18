@@ -268,7 +268,7 @@ public class ExportQueryService {
                         + " AND v.external_id > " + p.text(fromExternal);
                 String union = inner.formatted("record_version");
                 if (!holds.isEmpty()) {
-                    union += " UNION ALL " + inner.formatted(ExportSchemaInitializer.HELD_TABLE)
+                    union += " UNION ALL " + inner.formatted(HeldVersionsTable.NAME)
                             + " AND v.hold_id = ANY(" + p.textArray(holds) + ")";
                 }
                 List<String> keep = new ArrayList<>();

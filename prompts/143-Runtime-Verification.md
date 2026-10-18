@@ -10,15 +10,15 @@
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–139).
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/design-history/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/design-history/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–139).
 - **Previous Completion Report:** read `completion-reports/142-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
 - `docs/Product-Charter.md` §14 (success criteria 1–8), NFR-1 to NFR-4, NFR-12
-- `docs/Core-Data-Model.md` §15 (storage metrics: `versionsPerMinute`, `persistRatio`, `triggerEdgeShare`, `projectedBytes`, `/v1/system.history`), §16 (compose settings; expected 10–15 GB/day history writes, 15–20 GB/day WAL, 3d track window ≈ 40M rows ≈ 20 GB; NTP), "Per-prompt changes" 062 (measure versions/min, persist ratio, TRIGGER_EDGE share, WAL)
-- `docs/Weather-Imagery-Design.md` §2.5 (budgets), §2.6 (memory profiles), §9 (resource budget per product, Postgres growth), §10.3 ("080": re-measure §9 per profile, live MRMS/GOES/GFS/HRRR/SatDump, stormy-day soak, cache tuning from `/v1/system`), §10.4 (items to verify at implementation)
-- `docs/Gap-Analysis.md` §8 item D.63 (restore drill, Tailscale profile check, storm scenario, readiness flip during forced catch-up, metric-name drift)
+- `docs/design-history/Core-Data-Model.md` §15 (storage metrics: `versionsPerMinute`, `persistRatio`, `triggerEdgeShare`, `projectedBytes`, `/v1/system.history`), §16 (compose settings; expected 10–15 GB/day history writes, 15–20 GB/day WAL, 3d track window ≈ 40M rows ≈ 20 GB; NTP), "Per-prompt changes" 062 (measure versions/min, persist ratio, TRIGGER_EDGE share, WAL)
+- `docs/design-history/Weather-Imagery-Design.md` §2.5 (budgets), §2.6 (memory profiles), §9 (resource budget per product, Postgres growth), §10.3 ("080": re-measure §9 per profile, live MRMS/GOES/GFS/HRRR/SatDump, stormy-day soak, cache tuning from `/v1/system`), §10.4 (items to verify at implementation)
+- `docs/design-history/Gap-Analysis.md` §8 item D.63 (restore drill, Tailscale profile check, storm scenario, readiness flip during forced catch-up, metric-name drift)
 - `docs/Source-Catalog.md` notes (adsb.lol HTTP 451 to non-browser UAs: mark failing, never spoof; OpenSky credit headers; CelesTrak 403 "not updated")
 - `docs/Operator-Guide.md` (profiles, backups, remote access), `scripts/smoke.sh`, `postman/`, the 142 Completion Report
 
@@ -139,7 +139,7 @@ Run Foresignal for real on the bench server and prove the Charter's success crit
 ## Guardrails (mandatory)
 
 1. **Tests: this is a test-run prompt.** Run the test suite as the Test run section describes, and fix failures until it passes. Fix production code, and change a test only when the test itself is wrong (record each such change in the Completion Report). Don't add features.
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/design-history/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

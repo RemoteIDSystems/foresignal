@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -84,7 +85,8 @@ public class AnalystRunEntity {
     private int claimsDowngraded;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "warnings", nullable = false, columnDefinition = "jsonb default '[]'::jsonb")
+    @ColumnDefault("'[]'::jsonb")
+    @Column(name = "warnings", nullable = false, columnDefinition = "jsonb")
     private List<String> warnings = new ArrayList<>();
 
     @Column(name = "reason", columnDefinition = "text")

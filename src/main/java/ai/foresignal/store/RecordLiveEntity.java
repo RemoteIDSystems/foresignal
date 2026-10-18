@@ -7,6 +7,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.locationtech.jts.geom.Geometry;
@@ -22,8 +23,8 @@ import org.locationtech.jts.geom.Geometry;
  *
  * <p>No index on {@code observed_at}, by design: touches must stay HOT updates. Do not add one.
  * The only secondary index is the GiST index on {@code geom}, and the table carries
- * {@code fillfactor=70} plus aggressive autovacuum settings; both are applied by
- * {@code SpatialIndexInitializer}, since JPA cannot express them.
+ * {@code fillfactor=70} plus aggressive autovacuum settings; both are declared in
+ * the Flyway baseline ({@code db/migration/V1__baseline.sql}), since JPA cannot express them.
  */
 @Entity
 @Table(name = "record_live")
@@ -61,7 +62,8 @@ public class RecordLiveEntity {
 
     /** Kinematic fields merged over the head payload on read. Never null. */
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "kinematic", nullable = false, columnDefinition = "jsonb default '{}'::jsonb")
+    @ColumnDefault("'{}'::jsonb")
+    @Column(name = "kinematic", nullable = false, columnDefinition = "jsonb")
     private Map<String, Object> kinematic = new LinkedHashMap<>();
 
     @JdbcTypeCode(SqlTypes.JSON)

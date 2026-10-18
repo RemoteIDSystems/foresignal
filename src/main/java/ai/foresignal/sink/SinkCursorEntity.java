@@ -7,6 +7,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -59,7 +60,8 @@ public class SinkCursorEntity {
     private long dropped;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "denied", columnDefinition = "jsonb default '{}'::jsonb")
+    @ColumnDefault("'{}'::jsonb")
+    @Column(name = "denied", columnDefinition = "jsonb")
     private Map<String, Object> denied = new LinkedHashMap<>();
 
     /** JPA. */

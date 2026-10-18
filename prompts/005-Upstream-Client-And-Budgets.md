@@ -6,7 +6,7 @@
 ## Context
 
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, and `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump.
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/design-history/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, and `docs/design-history/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump.
 - **Previous Completion Report:** read `completion-reports/004-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
@@ -82,7 +82,7 @@ A capture buffer used by the probe feature in prompt 008: a list of `RecordedExc
 
 ## v1.2 additions (authoritative)
 
-These supersede anything above that conflicts with them. Sources: `docs/Core-Data-Model.md` *Per-prompt changes* → 005, and `docs/Weather-Imagery-Design.md` §2 (UpstreamClient and BudgetGovernor rows).
+These supersede anything above that conflicts with them. Sources: `docs/design-history/Core-Data-Model.md` *Per-prompt changes* → 005, and `docs/design-history/Weather-Imagery-Design.md` §2 (UpstreamClient and BudgetGovernor rows).
 
 - **`FetchTrace`:** `SourceHttp` records one per request: redacted URL, status, ETag, bytes and a streaming SHA-256 of the body (no bodies kept). `FetchExecutor` (prompt 008) turns these into `fetch_log` rows.
 - **`UsageMeter.recordIngest(sourceId, IngestCounts)`:** `SourceUsageEntity` gains `records_seen`, `versions`, `live_updates`, `touches`, `late`, `skipped`, `rejected` and `version_bytes`, and the flush upsert accumulates them.

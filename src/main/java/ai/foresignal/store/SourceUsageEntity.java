@@ -62,8 +62,7 @@ public class SourceUsageEntity {
     /**
      * Observations whose time was clamped by the time contract (Core-Data-Model §2, I3).
      *
-     * <p>Declared with a database default so {@code ddl-auto=update} can add it to a table that
-     * already has rows.
+     * <p>Declared with a database default (kept in the Flyway baseline) so rows inserted without it count from zero.
      */
     @Column(name = "clamped", nullable = false, columnDefinition = "bigint default 0 not null")
     private long clamped;

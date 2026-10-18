@@ -3,14 +3,13 @@
 
 spring:
   jpa:
-    # 'update', not 'create-drop'. All integration tests share one container, and
-    # Spring's test-context cache can hold several contexts against it at once;
-    # when one context closed, create-drop would drop the schema - including the
-    # GiST indexes created by SchemaBootstrap - out from under the contexts still
-    # running. Tests get a clean slate from DatabaseCleaner truncating rows
-    # instead, which leaves the schema and its indexes in place.
+    # Flyway builds the shared container's schema once (the first context migrates it, later contexts find it
+    # current), and Hibernate validates it, as in production (prompt 144). Never create-drop: several cached
+    # contexts share the container, and dropping the schema when one closed would pull it out from under the
+    # others. Tests get a clean slate from DatabaseCleaner truncating rows, which leaves the schema, its indexes
+    # and flyway_schema_history in place.
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     open-in-view: false
 
 foresignal:

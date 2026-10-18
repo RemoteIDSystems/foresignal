@@ -13,7 +13,7 @@ import org.hibernate.type.SqlTypes;
  * One stored image (table {@code media}, Weather-Imagery-Design §2.3, prompt 043), plus
  * {@code variant_of} and {@code variant_width}, which link a thumbnail to its original.
  *
- * <p>This entity exists so Hibernate owns the table's DDL; the media code reads and writes it with
+ * <p>This entity maps the table (created by the Flyway baseline, validated by Hibernate); the media code reads and writes it with
  * native SQL ({@link MediaQueries}), because retention deletes in bulk with {@code RETURNING}.
  *
  * <p>Media is content-addressed: every store inserts a new row, and rows with the same

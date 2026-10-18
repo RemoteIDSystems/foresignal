@@ -15,8 +15,8 @@ import org.hibernate.type.SqlTypes;
  * TRACK leaf that was, or is being, rewritten into a thinned copy.
  *
  * <p>Written only with plain JDBC on the {@code PartitionManager} connection by
- * {@link HistoryDownsampler} and read by {@link DownsampleRanges}; the entity exists so Hibernate owns
- * the DDL. {@code leaf_name} is the key: a FAILED attempt is overwritten by the next one, and a leaf's
+ * {@link HistoryDownsampler} and read by {@link DownsampleRanges}; the entity maps the table so Hibernate
+ * validates it against the Flyway schema. {@code leaf_name} is the key: a FAILED attempt is overwritten by the next one, and a leaf's
  * row is removed once retention has dropped the leaf.
  */
 @Entity

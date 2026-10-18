@@ -9,7 +9,7 @@ import java.time.Instant;
 /**
  * One federated origin record (prompt 113, table {@code federation_origin}): which local peer source owns it, under
  * which local external id, and the newest origin seq applied. Written only by {@link OriginLedger}'s native upsert;
- * the entity exists so Hibernate manages the table.
+ * the entity maps the table so Hibernate validates it against the Flyway schema.
  */
 @Entity
 @Table(name = "federation_origin")

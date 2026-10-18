@@ -24,15 +24,15 @@ import org.locationtech.jts.geom.Geometry;
  * equals {@code seq} order, which makes it a reliable cursor for SSE resumption, trigger catch-up
  * and {@code /v1/changes}. It is global across history tiers.
  *
- * <p><strong>The DDL is not Hibernate's.</strong> {@code HistorySchemaInitializer} creates the
- * table, partitioned by {@code LIST (history_tier)} and then {@code RANGE (seq)}, before the
- * {@code EntityManagerFactory} exists, and Hibernate sees it as an existing table through
+ * <p><strong>The DDL is not Hibernate's.</strong> The Flyway baseline ({@code db/migration/V1__baseline.sql}) creates
+ * the table, partitioned by {@code LIST (history_tier)} and then {@code RANGE (seq)}, and Hibernate validates it as an
+ * existing table through
  * {@code hibernate.hbm2ddl.extra_physical_table_types=PARTITIONED TABLE}. The database primary key
  * is {@code (seq, history_tier)}, because a partitioned table's key must include the partition
  * key; mapping only {@code seq} as the {@code @Id} is intentional and correct, since {@code seq} is
  * unique on its own. For the same reason this class declares no unique constraint and no index:
- * the partitioned indexes are created by the initializer. Field order follows the column order of
- * that DDL, and {@code SchemaParityIT} checks the two agree.
+ * the partitioned indexes are in the baseline, and leaves are attached by the {@code PartitionManager}. Field order
+ * follows the column order of that DDL, and {@code SchemaParityIT} checks the two agree.
  *
  * <p>The entity is {@link Immutable}: Hibernate reads these rows but never writes them (invariant
  * I9). The ingest writer inserts them with native JDBC batches.

@@ -8,6 +8,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -47,7 +48,8 @@ public class PeerEntity {
     private String remoteInstanceId;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "selection", columnDefinition = "jsonb default '{}'::jsonb")
+    @ColumnDefault("'{}'::jsonb")
+    @Column(name = "selection", columnDefinition = "jsonb")
     private Map<String, Object> selection = new LinkedHashMap<>();
 
     @Column(name = "mode", length = 16, nullable = false)

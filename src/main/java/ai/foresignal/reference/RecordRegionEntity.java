@@ -11,7 +11,7 @@ import java.time.Instant;
  * The region tags of one record (table {@code record_region}, prompt 040), keyed like
  * {@code record_head}. Written only by {@link RegionTagStore} (the {@link RegionTagWorker} and lazy
  * tagging), never by the ingest writer, and part of no hash (Core-Data-Model §1 I1, §4). The indexes
- * {@code (iso2)} and {@code (iso2, admin1)} are created by {@code SpatialIndexInitializer}.
+ * {@code (iso2)} and {@code (iso2, admin1)} are in the Flyway baseline.
  * {@code tagged_lon}/{@code tagged_lat} is the representative point the tags were computed for; a mover
  * is tagged again once it is more than the retag distance from it.
  */

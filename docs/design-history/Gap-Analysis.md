@@ -1,5 +1,7 @@
 # What Foresignal is missing: clients, outputs, inputs and roadmap changes
 
+> Historical design input, folded into Architecture.md v2.0 on 2026-10-18.
+
 Every candidate was checked against `docs/Roadmap.md` (001–063), Product-Charter, Architecture, Source-Catalog and OpenAPI. Prompt numbers below are the current Roadmap numbers. New prompts get letter suffixes so nothing has to be renumbered. If the untracked `Weather-Imagery-Design.md` renumbering is adopted, map them across.
 
 **Timing matters.** Only 001–003 are built. Prompts 004–028 are "Ready" but not built, so several of the most important fixes are edits to those prompts now, not new work later.

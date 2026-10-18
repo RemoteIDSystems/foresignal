@@ -10,6 +10,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -47,7 +48,8 @@ public class ActionCapabilityEntity {
     private String action;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "params", nullable = false, columnDefinition = "jsonb default '{}'::jsonb")
+    @ColumnDefault("'{}'::jsonb")
+    @Column(name = "params", nullable = false, columnDefinition = "jsonb")
     private Map<String, Object> params;
 
     @Column(name = "channel_id")

@@ -427,7 +427,7 @@ class EntityMappingIT {
     @Test
     @DisplayName("record_head has the primary key, the (kind) index and the 093 series-point index")
     void recordHeadIndexes() {
-        // Prompt 093 added the partial series-point index (SpatialIndexInitializer); this pin was not updated.
+        // Prompt 093 added the partial series-point index; since 144 the Flyway baseline creates all three.
         assertThat(jdbc.queryForList(
                         "select indexname from pg_indexes where tablename = 'record_head' order by indexname",
                         String.class))

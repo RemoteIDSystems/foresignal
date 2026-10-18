@@ -10,7 +10,7 @@ Machine-checkable list of the rules the build must keep. Each invariant has a st
 
 Format: `| id | invariant | owner | enforced by | tests |`
 
-## Ingest, time and history (`docs/Core-Data-Model.md` §1–§9)
+## Ingest, time and history (`docs/design-history/Core-Data-Model.md` §1–§9)
 
 | Id | Invariant | Owner | Enforced by | Tests |
 |---|---|---|---|---|

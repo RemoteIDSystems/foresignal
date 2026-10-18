@@ -1,11 +1,12 @@
 package ai.foresignal.search;
 
 /**
- * Whether the database can store vectors: the pgvector extension was created at start
- * ({@code VectorExtensionInitializer}, Architecture §7.3 phase 1).
+ * Whether the database can store vectors: the pgvector extension exists, as checked at start
+ * ({@code VectorExtensionProbe}; the Flyway baseline creates the extension, Architecture §25).
  *
- * <p>pgvector is optional. When it is missing, {@link #available()} is false and {@link #reason()}
- * says why; text search keeps working and {@code GET /v1/search/status} reports the reason.
+ * <p>A database migrated from the baseline always has it. A development database adopted with
+ * {@code baseline-on-migrate} (V1 not run) may not; then {@link #available()} is false and {@link #reason()}
+ * says why, text search keeps working and {@code GET /v1/search/status} reports the reason.
  */
 public class SemanticCapability {
 
@@ -29,7 +30,7 @@ public class SemanticCapability {
     }
 
     /**
-     * Records that the extension could not be created.
+     * Records that the extension is missing.
      *
      * @param reason the explanation shown in the search status
      */

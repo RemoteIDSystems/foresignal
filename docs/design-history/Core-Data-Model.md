@@ -1,5 +1,7 @@
 # Foresignal v1.2 core data model (final)
 
+> Historical design input, folded into Architecture.md v2.0 on 2026-10-18.
+
 Status: final proposal for `docs/Architecture.md` v1.2. It replaces the refined v1.2 proposal and resolves every blocker and major issue from the skeptic round. Minor issues are taken where they are cheap. §18 maps each issue to its resolution. Section headers name the part of Architecture.md they replace or extend.
 
 Repo facts checked for this design:

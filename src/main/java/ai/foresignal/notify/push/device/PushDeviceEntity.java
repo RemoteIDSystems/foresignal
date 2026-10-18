@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -74,7 +75,8 @@ public class PushDeviceEntity {
     private String appVersion;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "filters", nullable = false, columnDefinition = "jsonb default '{}'::jsonb")
+    @ColumnDefault("'{}'::jsonb")
+    @Column(name = "filters", nullable = false, columnDefinition = "jsonb")
     private Map<String, Object> filters = new LinkedHashMap<>();
 
     @Column(name = "content_level", nullable = false, length = 16)

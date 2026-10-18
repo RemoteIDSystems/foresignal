@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.Map;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -46,7 +47,8 @@ public class InfraBuildEntity {
     private Map<String, Object> edgesByLabel;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "warnings", nullable = false, columnDefinition = "jsonb default '[]'::jsonb")
+    @ColumnDefault("'[]'::jsonb")
+    @Column(name = "warnings", nullable = false, columnDefinition = "jsonb")
     private java.util.List<String> warnings = new java.util.ArrayList<>();
 
     @Column(name = "error", columnDefinition = "text")

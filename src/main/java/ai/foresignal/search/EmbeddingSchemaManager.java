@@ -10,49 +10,27 @@ import java.util.OptionalInt;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
- * The native DDL of {@code embedding_document} (prompt 027): the parts Hibernate cannot express.
+ * The vector-slot DDL of {@code embedding_document} (prompt 027), the one part of that table that stays dynamic
+ * (Architecture §25): its width follows the configured embedding model, so the reindex creates, resets and drops slots
+ * at runtime. The rest of the table's native DDL (the generated {@code tsv} column and its GIN index, the GiST index
+ * on {@code geom} and the btree on {@code (source_id, effective_time)}) is in the Flyway baseline since prompt 144.
  *
- * <p>Runs right after Hibernate's DDL, beside {@code SpatialIndexInitializer}, and is called again by
- * the reindex. Every statement is idempotent. These are bootstrap statements that prompt 144 moves
- * into the Flyway baseline: {@link #BASE_STATEMENTS} once, and {@link #slotStatements} per slot with
- * the dimensions in force.
- *
- * <ul>
- *   <li>{@link #BASE_STATEMENTS}: the generated {@code tsv} column and its GIN index, the GiST index
- *       on {@code geom} and the btree on {@code (source_id, effective_time)}. They need no extension
- *       and always run, so text search works without pgvector.
- *   <li>Vector slots ({@link VectorSlot}): {@code embedding_<s> vector(N)}, {@code model_<s>
- *       varchar(200)} and the HNSW index {@code embedding_document_hnsw_<s>} with
- *       {@code vector_cosine_ops}. Only created when pgvector is available ({@link SemanticCapability}).
- *       Resetting a slot drops and re-adds its nullable columns, a metadata-only change; the HNSW
- *       index is built with {@code CREATE INDEX CONCURRENTLY} on an autocommit connection, so writes
- *       continue during the build.
- * </ul>
+ * <p>Vector slots ({@link VectorSlot}): {@code embedding_<s> vector(N)}, {@code model_<s> varchar(200)} and the HNSW
+ * index {@code embedding_document_hnsw_<s>} with {@code vector_cosine_ops}. Only created when pgvector is available
+ * ({@link SemanticCapability}). Resetting a slot drops and re-adds its nullable columns, a metadata-only change; the
+ * HNSW index is built with {@code CREATE INDEX CONCURRENTLY} on an autocommit connection, so writes continue during
+ * the build.
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE + 10)
-public class EmbeddingSchemaManager implements ApplicationRunner {
+public class EmbeddingSchemaManager {
 
     private static final Logger log = LoggerFactory.getLogger(EmbeddingSchemaManager.class);
 
     /** The table. */
     public static final String TABLE = "embedding_document";
-
-    /** The DDL that needs no extension. */
-    public static final List<String> BASE_STATEMENTS = List.of(
-            "ALTER TABLE embedding_document ADD COLUMN IF NOT EXISTS tsv tsvector"
-                    + " GENERATED ALWAYS AS (to_tsvector('simple', coalesce(text, ''))) STORED",
-            "CREATE INDEX IF NOT EXISTS embedding_document_tsv_gin ON embedding_document USING GIN (tsv)",
-            "CREATE INDEX IF NOT EXISTS embedding_document_geom_gist ON embedding_document USING GIST (geom)",
-            "CREATE INDEX IF NOT EXISTS embedding_document_source_time_idx"
-                    + " ON embedding_document (source_id, effective_time)");
 
     static final String SELECT_DIMENSIONS = """
             SELECT a.atttypmod FROM pg_attribute a
@@ -73,20 +51,9 @@ public class EmbeddingSchemaManager implements ApplicationRunner {
         this.capability = capability;
     }
 
-    @Override
-    public void run(ApplicationArguments args) {
-        ensureBase();
-    }
-
     /** True when pgvector is available, so slots can exist. */
     public boolean vectorsAvailable() {
         return capability.available();
-    }
-
-    /** Applies {@link #BASE_STATEMENTS}. Safe to call repeatedly. */
-    public void ensureBase() {
-        execute(BASE_STATEMENTS);
-        log.info("embedding_document full-text and spatial indexes are present");
     }
 
     /**

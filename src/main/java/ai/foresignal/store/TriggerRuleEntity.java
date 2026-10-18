@@ -40,17 +40,20 @@ public class TriggerRuleEntity {
 
     /** Source ids the rule watches; empty means any source. */
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "sources", nullable = false, columnDefinition = "jsonb default '[]'::jsonb")
+    @ColumnDefault("'[]'::jsonb")
+    @Column(name = "sources", nullable = false, columnDefinition = "jsonb")
     private List<String> sources = new ArrayList<>();
 
     /** Kinds the rule watches; empty means any kind. */
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "kinds", nullable = false, columnDefinition = "jsonb default '[]'::jsonb")
+    @ColumnDefault("'[]'::jsonb")
+    @Column(name = "kinds", nullable = false, columnDefinition = "jsonb")
     private List<String> kinds = new ArrayList<>();
 
     /** Tags copied to every alert of the rule. */
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "tags", nullable = false, columnDefinition = "jsonb default '[]'::jsonb")
+    @ColumnDefault("'[]'::jsonb")
+    @Column(name = "tags", nullable = false, columnDefinition = "jsonb")
     private List<String> tags = new ArrayList<>();
 
     @JdbcTypeCode(SqlTypes.JSON)

@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
  * Archive-then-delete for holds (prompt 111): a {@link RetentionStep} ordered before every delete
  * and drop. It copies exactly the rows this run is about to remove ({@link RetentionPlanner}: the
  * TRACK leaves step 1 drops and the STANDARD scopes and cutoffs step 2 deletes below) that fall
- * inside an active hold into {@link ExportSchemaInitializer#HELD_TABLE}, with
+ * inside an active hold into {@link HeldVersionsTable#NAME}, with
  * {@code INSERT … ON CONFLICT (hold_id, seq) DO NOTHING}, so a repeated copy is harmless.
  *
  * <p>Retention still drops leaves and deletes versions, and {@code floorSeq} and I7 are unchanged:
@@ -118,7 +118,7 @@ public class HoldCopyStep implements RetentionStep {
 
     /** Copies the rows matching {@code where} that fall inside {@code hold}. */
     private void copy(RetentionRun run, HoldEntity hold, String where, MapSqlParameterSource params) {
-        StringBuilder sql = new StringBuilder("INSERT INTO ").append(ExportSchemaInitializer.HELD_TABLE)
+        StringBuilder sql = new StringBuilder("INSERT INTO ").append(HeldVersionsTable.NAME)
                 .append(" (hold_id, ").append(COLUMNS).append(") SELECT :holdId, ")
                 .append(prefixed()).append(" FROM record_version v").append(where);
         params.addValue("holdId", hold.getId());

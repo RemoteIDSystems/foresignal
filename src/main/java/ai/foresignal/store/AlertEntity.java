@@ -19,9 +19,9 @@ import org.hibernate.type.SqlTypes;
 /**
  * One firing of one rule against one record version, with its lifecycle (prompt 017).
  *
- * <p>Hibernate owns the table; the trigger engine and the alert service write it with native SQL so
+ * <p>Hibernate maps the table (Flyway creates it); the trigger engine and the alert service write it with native SQL so
  * that {@code rev} comes from the {@code alert_rev} sequence (created by
- * {@code SpatialIndexInitializer}) on every change. The partial index on open alerts is created
+ * the Flyway baseline) on every change. The partial index on open alerts is created
  * there too, because JPA cannot express a {@code WHERE} clause.
  */
 @Entity
@@ -125,7 +125,8 @@ public class AlertEntity {
 
     /** The rule's tags at fire time. */
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "tags", nullable = false, columnDefinition = "jsonb default '[]'::jsonb")
+    @ColumnDefault("'[]'::jsonb")
+    @Column(name = "tags", nullable = false, columnDefinition = "jsonb")
     private List<String> tags = new ArrayList<>();
 
     /** Monotonic revision, bumped on every change; native writes take it from {@code alert_rev}. */

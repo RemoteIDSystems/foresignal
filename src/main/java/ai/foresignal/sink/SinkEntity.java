@@ -7,6 +7,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -29,7 +30,8 @@ public class SinkEntity {
     private boolean enabled;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "config", columnDefinition = "jsonb default '{}'::jsonb")
+    @ColumnDefault("'{}'::jsonb")
+    @Column(name = "config", columnDefinition = "jsonb")
     private Map<String, Object> config = new LinkedHashMap<>();
 
     @Column(name = "secret_ciphertext")
@@ -39,7 +41,8 @@ public class SinkEntity {
     private byte[] secretNonce;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "filter", columnDefinition = "jsonb default '{}'::jsonb")
+    @ColumnDefault("'{}'::jsonb")
+    @Column(name = "filter", columnDefinition = "jsonb")
     private Map<String, Object> filter = new LinkedHashMap<>();
 
     @Column(name = "created_at", nullable = false)

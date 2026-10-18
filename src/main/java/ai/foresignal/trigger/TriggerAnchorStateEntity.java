@@ -15,7 +15,7 @@ import org.locationtech.jts.geom.Point;
 
 /**
  * Where the reverse ("anchor side") evaluation of a moving-anchor rule last ran (prompt 036, table
- * {@code trigger_anchor_state}). Hibernate owns the DDL; {@link AnchorEvaluator} reads and writes the
+ * {@code trigger_anchor_state}). Flyway creates the table and Hibernate validates it; {@link AnchorEvaluator} reads and writes the
  * rows with native SQL.
  */
 @Entity

@@ -7,6 +7,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -35,11 +36,13 @@ public class AnalystNoteEntity {
     private String priority = "normal";
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "claims", nullable = false, columnDefinition = "jsonb default '[]'::jsonb")
+    @ColumnDefault("'[]'::jsonb")
+    @Column(name = "claims", nullable = false, columnDefinition = "jsonb")
     private List<java.util.Map<String, Object>> claims = new ArrayList<>();
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "citations", nullable = false, columnDefinition = "jsonb default '[]'::jsonb")
+    @ColumnDefault("'[]'::jsonb")
+    @Column(name = "citations", nullable = false, columnDefinition = "jsonb")
     private List<String> citations = new ArrayList<>();
 
     @Column(name = "private", nullable = false)

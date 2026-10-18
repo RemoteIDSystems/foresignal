@@ -17,7 +17,7 @@ import org.hibernate.type.SqlTypes;
 /**
  * One rule's alert-quality trend for one UTC day (prompt 115, table {@code rule_quality_daily}, retained 400 days).
  * The nightly job writes the alert, feedback and signal columns; the trigger engine adds to the suppression
- * counters as it drops matches. Hibernate owns the table; {@link RuleQualityDailyStore} writes it with native SQL.
+ * counters as it drops matches. Hibernate maps the table (Flyway creates it); {@link RuleQualityDailyStore} writes it with native SQL.
  */
 @Entity
 @Table(name = "rule_quality_daily",

@@ -1,15 +1,17 @@
 package ai.foresignal.store.history;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
- * Every statement that defines the partitioned {@code record_version}, kept in one place so prompt
- * 144 can move them into the Flyway baseline unchanged (Core-Data-Model §9).
+ * The shape of the partitioned {@code record_version} and the catalog queries the {@link PartitionManager} uses
+ * (Architecture §9, §25).
  *
- * <p>Column order and types match {@link ai.foresignal.store.RecordVersionEntity}; {@code
- * SchemaParityIT} checks the two agree. There is deliberately no unique constraint, no
- * {@code ingested_at} index, no content hash and never a DEFAULT partition.
+ * <p>Since prompt 144 the Flyway baseline ({@code db/migration/V1__baseline.sql}) creates {@code record_seq}, the
+ * parent, both tier parents and the three partitioned indexes; only leaves are created at runtime, by the
+ * {@link PartitionManager}. {@link #COLUMNS} is the column list the baseline declares, in order, and it matches
+ * {@link ai.foresignal.store.RecordVersionEntity}; {@code SchemaParityIT} checks the entity, this list and the migrated
+ * table agree. There is deliberately no unique constraint, no {@code ingested_at} index, no content hash and never a
+ * DEFAULT partition.
  */
 public final class HistoryDdl {
 
@@ -64,80 +66,6 @@ public final class HistoryDdl {
             new Column("quality", "jsonb", false),
             new Column("observer", "jsonb", false),
             new Column("valid_from", "timestamptz", false));
-
-    /** Step 1: the allocator. */
-    public static final String CREATE_SEQUENCE =
-            "CREATE SEQUENCE IF NOT EXISTS " + SEQUENCE + " INCREMENT BY 1";
-
-    /** The relkind of {@code record_version} in the current schema, or no row when absent. */
-    public static final String SELECT_RELKIND =
-            """
-            SELECT c.relkind::text FROM pg_class c
-              JOIN pg_namespace n ON n.oid = c.relnamespace
-             WHERE n.nspname = current_schema() AND c.relname = 'record_version'
-            """;
-
-    /** Whether the prompt-002 plain {@code record_version} is empty. */
-    public static final String LEGACY_VERSION_EMPTY = "SELECT NOT EXISTS (SELECT 1 FROM record_version)";
-
-    /**
-     * Whether {@code record_head} exists. Checked separately because a query naming a missing
-     * relation fails at parse time, however it is guarded.
-     */
-    public static final String HEAD_EXISTS = "SELECT to_regclass('record_head') IS NOT NULL";
-
-    /** Whether {@code record_head} is empty; only run when it exists. */
-    public static final String HEAD_EMPTY = "SELECT NOT EXISTS (SELECT 1 FROM record_head)";
-
-    /** Drops the prompt-002 tables, so Hibernate recreates the head without its old columns. */
-    public static final String DROP_LEGACY = "DROP TABLE IF EXISTS record_version, record_head CASCADE";
-
-    /** The fail-fast message for a populated prompt-002 table. */
-    public static final String LEGACY_DATA_MESSAGE =
-            "record_version holds pre-v1.2 data; run docker compose down -v and restart";
-
-    /** Step 3: the parent, partitioned by tier. */
-    public static final String CREATE_PARENT =
-            "CREATE TABLE IF NOT EXISTS "
-                    + TABLE
-                    + " ("
-                    + COLUMNS.stream().map(Column::definition).collect(Collectors.joining(", "))
-                    + ", PRIMARY KEY (seq, history_tier)) PARTITION BY LIST (history_tier)";
-
-    /** Step 3: the STANDARD parent, partitioned by seq. */
-    public static final String CREATE_STANDARD_PARENT =
-            "CREATE TABLE IF NOT EXISTS "
-                    + STANDARD_PARENT
-                    + " PARTITION OF "
-                    + TABLE
-                    + " FOR VALUES IN (0) PARTITION BY RANGE (seq)";
-
-    /** Step 3: the TRACK parent, partitioned by seq. */
-    public static final String CREATE_TRACK_PARENT =
-            "CREATE TABLE IF NOT EXISTS "
-                    + TRACK_PARENT
-                    + " PARTITION OF "
-                    + TABLE
-                    + " FOR VALUES IN (1) PARTITION BY RANGE (seq)";
-
-    /** Step 3: applies a later column addition in place; a no-op when every column exists. */
-    public static final String ADD_MISSING_COLUMNS =
-            "ALTER TABLE "
-                    + TABLE
-                    + " "
-                    + COLUMNS.stream()
-                            .map(c -> "ADD COLUMN IF NOT EXISTS " + c.definition())
-                            .collect(Collectors.joining(", "));
-
-    /** Step 4: the three partitioned indexes. */
-    public static final List<String> CREATE_INDEXES = List.of(
-            "CREATE INDEX IF NOT EXISTS record_version_source_external_seq_idx ON "
-                    + TABLE
-                    + " (source_id, external_id, seq)",
-            "CREATE INDEX IF NOT EXISTS record_version_source_observed_idx ON "
-                    + TABLE
-                    + " (source_id, observed_at)",
-            "CREATE INDEX IF NOT EXISTS record_version_geom_gist ON " + TABLE + " USING GIST (geom)");
 
     /** The attached leaves of both tier parents, with their bounds and detach state. */
     public static final String SELECT_LEAVES =

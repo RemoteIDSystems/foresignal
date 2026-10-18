@@ -31,7 +31,7 @@ import jakarta.persistence.Table;
  * <p>Prompt 119 adds region rows: resolution 2 (region-hour) and 3 (region-day) carry a {@code region_code} and
  * {@code cell = stableHash64(region_code)} ({@link RegionRollupComputer#regionCell}); see {@link RegionRollupJob}.
  *
- * <p>Written only through SQL by the rollup jobs; the entity exists so Hibernate owns the table.
+ * <p>Written only through SQL by the rollup jobs; the entity maps the table so Hibernate validates it against the Flyway schema.
  */
 @Entity
 @Table(name = "activity_rollup", indexes = {

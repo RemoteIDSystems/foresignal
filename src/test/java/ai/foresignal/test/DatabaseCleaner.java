@@ -11,9 +11,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 /**
  * Empties every Foresignal table so each test starts from a known state.
  *
- * <p>Truncating rows rather than recreating the schema is deliberate: the schema and the GiST
- * indexes from {@code SchemaBootstrap} are created once per container and must survive, because
- * several cached Spring contexts share one database.
+ * <p>Truncating rows rather than recreating the schema is deliberate: Flyway builds the schema once per container
+ * (prompt 144) and it must survive, because several cached Spring contexts share one database. Flyway's own
+ * {@code flyway_schema_history} is never truncated: emptying it would make the next context's Flyway see a non-empty
+ * schema with no history and adopt it at version 1 instead of recognizing it as migrated.
  *
  * <p>Tables are discovered from {@code information_schema} rather than listed, so an entity added
  * in a later prompt is cleaned without anyone remembering to update this class. Partitions of
@@ -34,6 +35,9 @@ public class DatabaseCleaner {
      * table in the public schema that Foresignal does not own.
      */
     static final String POSTGIS_REFERENCE_TABLE = "spatial_ref_sys";
+
+    /** Flyway's history table (the default {@code spring.flyway.table}); its rows must survive every clean. */
+    static final String FLYWAY_HISTORY_TABLE = "flyway_schema_history";
 
     /** Reset alongside the tables, since {@code record_version.seq} is not an identity column. */
     static final String RECORD_SEQUENCE = "record_seq";
@@ -93,8 +97,8 @@ public class DatabaseCleaner {
     }
 
     /**
-     * The Foresignal-owned base tables in the public schema, excluding every table that is a
-     * partition of another ({@code pg_inherits} child).
+     * The Foresignal-owned base tables in the public schema, excluding Flyway's history table and every table that
+     * is a partition of another ({@code pg_inherits} child).
      */
     List<String> foresignalTables() {
         return jdbc.queryForList(
@@ -103,7 +107,7 @@ public class DatabaseCleaner {
                   from information_schema.tables t
                  where t.table_schema = 'public'
                    and t.table_type = 'BASE TABLE'
-                   and t.table_name <> ?
+                   and t.table_name not in (?, ?)
                    and not exists (
                        select 1
                          from pg_inherits i
@@ -114,12 +118,13 @@ public class DatabaseCleaner {
                  order by t.table_name
                 """,
                 String.class,
-                POSTGIS_REFERENCE_TABLE);
+                POSTGIS_REFERENCE_TABLE,
+                FLYWAY_HISTORY_TABLE);
     }
 
     private void resetRecordSequence() {
-        // The sequence exists once the history bootstrap has run; tolerate its absence so a cleaner
-        // can run against a database that has no record_version yet.
+        // The Flyway baseline creates the sequence; tolerate its absence so a cleaner can run against a database
+        // that has not been migrated.
         Boolean present =
                 jdbc.queryForObject(
                         "select exists (select 1 from pg_sequences where schemaname = 'public' and sequencename = ?)",

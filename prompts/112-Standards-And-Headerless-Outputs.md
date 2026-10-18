@@ -8,13 +8,13 @@
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text. `docs/Invariants.md` lists the invariants each prompt must keep.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–139).
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/design-history/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/design-history/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–139).
 - **Previous Completion Report:** read `completion-reports/111-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
-- `docs/Gap-Analysis.md` §1 item 5 (clients that can't send headers), §2 row "QGIS, GDAL, GeoPandas", §3 rows "OGC API Features", "CAP 1.2 output", "iCalendar", "Share links"; §8 item D.61 ("059c"; static map snapshots are already covered by 055)
-- `docs/Core-Data-Model.md` §12 (query paths, `timeField`, record DTO, version items)
+- `docs/design-history/Gap-Analysis.md` §1 item 5 (clients that can't send headers), §2 row "QGIS, GDAL, GeoPandas", §3 rows "OGC API Features", "CAP 1.2 output", "iCalendar", "Share links"; §8 item D.61 ("059c"; static map snapshots are already covered by 055)
+- `docs/design-history/Core-Data-Model.md` §12 (query paths, `timeField`, record DTO, version items)
 - Completion Reports of 008 (`startField`/`endField`, `titleField`), 014 (formats, ETags, `title`), 017 (`RuleSqlBuilder` operators, alert lifecycle and states), 023 (restricted tokens, `clientLinks`, audit log), 029 (briefing schedule), 035 (feed keys bound to a path, anonymous profile, per-client limits), 036 (places, saved views), 037 (`/track`), 039 (private sources, precision cap), 047 (`nws-alerts`), 058 (Atom writer), 064 (`launch-library`), 087 (`faa-tfr`), 109 (licence policy, attributions, `PUBLIC_SHARE` egress), 115 (exercise flag, if built later: reserve the CAP `Exercise` status now)
 - OGC API – Features Part 1 (17-069r4) and Part 3 Filtering (19-079r2); OGC CQL2 (21-065r2) Basic CQL2 and Basic Spatial Functions; OASIS CAP 1.2 (+ XSD); RFC 5545 (iCalendar), RFC 7986 (`REFRESH-INTERVAL`); RFC 4287 (Atom)
 
@@ -128,7 +128,7 @@ Serve Foresignal through standards that existing tools already speak, and to cli
 ## Guardrails (mandatory)
 
 1. **Tests: write them, don't run them.** Write unit and integration tests for all code in this prompt, targeting ≥ 90% line coverage. **Do not execute any tests.** That means no `./gradlew test`, `build`, `check` or `jacocoTestReport`, and no IDE test runs. Tests run only in the test-run prompts (012, 022, 041, 057, 097, 124, 139, 142, 143, 144) and in the sanctioned narrow runs of 007–009.
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/design-history/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

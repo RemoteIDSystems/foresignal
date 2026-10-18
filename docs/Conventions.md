@@ -8,8 +8,8 @@ Every build prompt follows these conventions. When a prompt's text disagrees wit
 |---|---|
 | Cross-cutting build rules | this file |
 | Invariants and the tests that assert them | [Invariants](Invariants.md) |
-| Ingest, history, live state, triggers, SSE, asOf, retention | [Core Data Model](Core-Data-Model.md) |
-| Weather, imagery, SatDump | [Weather & Imagery Design](Weather-Imagery-Design.md) |
+| Ingest, history, live state, triggers, SSE, asOf, retention, schema (Flyway) | [Architecture](Architecture.md) v2.0 (folded in from the [Core Data Model](design-history/Core-Data-Model.md), now historical) |
+| Weather, imagery, SatDump | [Architecture](Architecture.md) v2.0, "Weather, rasters and imagery" (folded in from the [Weather & Imagery Design](design-history/Weather-Imagery-Design.md), now historical) |
 | Intelligence layer (098–139) | [Intelligence Design](Intelligence-Design.md) |
 | Client-facing object contract, relations, workspaces, deep links | [Client Contract](Client-Contract.md) |
 | Third-party data providers (manifest, items, push and pull, bindings) | [External Data Protocol](External-Data-Protocol.md) |
@@ -22,11 +22,11 @@ Every build prompt follows these conventions. When a prompt's text disagrees wit
 
 | Component | Convention |
 |---|---|
-| **`EgressPolicy`** (`ai.foresignal.security.EgressPolicy`) | **One** component decides whether a record may leave Foresignal on a given path: API reads, tiles, SSE, search/embeddings, LLM context, MCP, exports, sinks, federation, share links. Inputs: the source's `private` flag (039), descriptor `egress` `OPEN \| LOCAL_ONLY` (062), and licence policy (109). Prompts 026 (LLM context), 039, 062 and 109 each **extend** this single class. Never create a parallel policy class such as `LlmEgressPolicy` or `PrivateEgressPolicy`; if an earlier prompt created one, merge it into `EgressPolicy`. |
+| **`EgressPolicy`** (`ai.foresignal.security.EgressPolicy`) | **One** component decides whether a record may leave Foresignal on a given path: API reads, tiles, SSE, search/embeddings, LLM context, MCP, exports, sinks, federation, share links. Inputs: the source's `private` flag (039), descriptor `egress` `OPEN \| LOCAL_ONLY` (062), and license policy (109). Prompts 026 (LLM context), 039, 062 and 109 each **extend** this single class. Never create a parallel policy class such as `LlmEgressPolicy` or `PrivateEgressPolicy`; if an earlier prompt created one, merge it into `EgressPolicy`. |
 | **Key-in-path URLs** | Every key carried in a URL path (feed keys, tile keys, share-link keys) uses **`/v1/k/{key}/…`**. Key prefixes: `fsf_` feed (035), `fsk_` tile (050), `fss_` share (112). One filter (035) resolves them; 050 and 112 reuse it. Other credentials: ingest keys `eik_` (024, header, bearer or basic), device ingest keys `eid_` (039, in the path `/v1/ingest/{sourceId}/k/{key}/{format}`), federation peer credentials `fsp_` (113, bearer). |
 | **Pending operations** | `src/test/resources/openapi/pending-operations.txt` (created in 020) lists spec operations not yet implemented, one per line with the prompt that builds them. **Every prompt that implements a listed operation deletes its line.** Prompt 142 requires the file to be empty. |
 | **`RetentionState.purgeSeq`** | Advances **only** when retention purges heads (entities disappear without a tombstone). Routine version deletes and partition drops don't advance it. Clients get `410 RESYNC_REQUIRED` only when `after < purgeSeq`. |
-| **Startup order** | `ai.foresignal.config.StartupOrder` (009): schema → partitions → writer → trigger engine → embedding/derived workers → scheduler. New background services register their phase there. |
+| **Startup order** | `ai.foresignal.config.StartupOrder` (009): Flyway migration → partition leaves (`SchemaConfiguration`, 144) → writer → trigger engine → embedding/derived workers → scheduler. New background services register their phase there. |
 | **Shared parsers** | Format parsers shared by several adapters live under `ai.foresignal.source.formats.*`: readsb JSON, CAP 1.2, AIVDM, GeoJSON, KISS/AX.25. Adapters never import each other. |
 | **GeoJSON reading** | Use Foresignal's own Jackson 3 GeoJSON reader (`ai.foresignal.source.formats.geojson.GeoJsonReader`, producing JTS geometries with SRID 4326), **not** `jts-io-common` (it pulls in the unmaintained `json-simple`). Prompt 008 replaces any use introduced by 004 and removes the dependency. |
 | **`FetchResult` 304 factory** | `FetchResult.unchanged()` (304 / not modified). A record accessor already uses the name `notModified()`. |
@@ -34,7 +34,8 @@ Every build prompt follows these conventions. When a prompt's text disagrees wit
 | **Intelligence outputs** | Analytic outputs are typed tables **plus** records of a DERIVED source, so triggers, SSE, tiles, search and MCP work unchanged: `foresignal-intel` (intel events 101, situations 118, hypothesis sets 125), `foresignal-analytics` (`analytic-finding`, 119 onward), `foresignal-outlook` (regional outlooks and indices, 126). Signal families come from one registry (`intel/signal-families.json`, 119). Forecast questions and forecasts are ledger rows (122), not records. |
 | **External Data Protocol** | [External Data Protocol](External-Data-Protocol.md) is the contract for third-party providers; its schemas live in `docs/OpenAPI.json` (`Edp*`) and are exported to `docs/protocol/edp-1.0/` (024). Protocol changes are additive within `1.x`. Registration tokens use the prefix `fsx_`; providers authenticate pushes with ingest keys (`eik_`). |
 | **API-first (spec complete up front)** | `docs/OpenAPI.json` is the complete target API for every prompt, authored before implementation so clients can be built in parallel. Every operation carries `x-foresignal-scope`, `x-foresignal-prompt` (the prompt that implements it), optional `x-foresignal-extended-by` (later prompts that add parameters, responses or fields to it; each implements its own additions) and `x-foresignal-status` (`planned` until built, then `implemented`). A prompt **implements the operations and schemas the spec already defines for it**; where a prompt's text says "add to `docs/OpenAPI.json`", read it as "verify and reconcile". If implementation shows the spec must change, the prompt amends the spec in the same commit, records the change under "Deviations" and in the spec's `info.x-foresignal-changelog`, and never removes or renames a published operation without the deprecation path. Enums added in code must appear in the spec. On implementing an operation, set its status to `implemented` and remove it from `pending-operations.txt` (020). Regenerate Postman after any spec change. |
-| **Operator choice** | Foresignal is self-hosted software for one operator's own, non-commercial use. Built-in adapters use official APIs (paid ones off by default, with their costs shown and budgeted in money as well as calls). Fringe and specialist sources (unofficial endpoints, scraping, browsers, restrictive terms, niche feeds) are **external EDP providers** in separate projects ([External Data Protocol](External-Data-Protocol.md)); Foresignal accepts whatever the operator connects and never polices it. Licence egress flags are defaults the operator can override per source (109); deletion sync and retention are settings, not hard blocks. |
+| **Operator choice** | Foresignal is self-hosted software for one operator's own, non-commercial use. Built-in adapters use official APIs (paid ones off by default, with their costs shown and budgeted in money as well as calls). Fringe and specialist sources (unofficial endpoints, scraping, browsers, restrictive terms, niche feeds) are **external EDP providers** in separate projects ([External Data Protocol](External-Data-Protocol.md)); Foresignal accepts whatever the operator connects and never polices it. License egress flags are defaults the operator can override per source (109); deletion sync and retention are settings, not hard blocks. |
+| **Schema changes (Flyway)** | Flyway owns the schema from 144 (Architecture §25): `src/main/resources/db/migration/V{n}__{description}.sql`, additive by default, one migration per change, never edit an applied migration. Hibernate only validates (`ddl-auto=validate`), so an entity change without its migration fails startup. No Java class carries table or index DDL except the dynamic partition, vector-slot, staging and SQLite-export DDL that `NoBootstrapDdlTest` allowlists. |
 
 ## No credentials during construction
 
@@ -62,7 +63,7 @@ Adapters set retention defaults by **analytic class** through `defaultRetention`
 | `series` | `series-point`, `series-latest` | **3650 d** |
 | `state` | SAMPLED status (gauges, sensors, station health) | 365 d |
 | `track` | TRACK tier | `trackWindow` (3 d) plus 044 downsampling; never `defaultRetention` |
-| `reference` | catalogues (power plants, ports, cables, airports) | 90 d of history |
+| `reference` | catalogs (power plants, ports, cables, airports) | 90 d of history |
 | `intel` | records of `foresignal-intel`, `foresignal-analytics`, `foresignal-outlook` | 1825 d (the typed tables behind them are never auto-deleted) |
 | `social` | `social-post` (135) | 30 d, per platform (`social.postRetention`); narratives, claims, comparisons and volume series are kept as intel and series |
 
@@ -71,13 +72,13 @@ Deploy a collecting instance early (after 022) with these defaults; see `docs/Ro
 ## Intelligence conventions (prompts 098–139)
 
 - **Authority:** `docs/Intelligence-Design.md` wins over older prompt text on the intelligence layer.
-- **Evidence, inference, speculation** are separate sections in every analytic response; speculation is labelled.
+- **Evidence, inference, speculation** are separate sections in every analytic response; speculation is labeled.
 - **Detectors find, models explain:** statistical components are pure, versioned (`{name, version, params}` stored with outputs) and reproducible from stored data plus `asOfSeq`. LLM output never creates evidence or changes a deterministic score; LLM forecasts are ledger forecasts under their own forecaster ids.
 - **Numbers are the truth:** probabilities are stored as numbers; ICD 203 terms are derived by `EstimativeLanguage` (122) and linted (no term that disagrees with its number, no mixing of the two ICD term rows, never a likelihood term and a confidence level in the same sentence).
 - **No look-ahead:** live detection only uses data whose `knownAt` ≤ decision time; replays and evaluations read through `asOf`.
 - **Coverage:** absence counts only with healthy coverage; otherwise `unknown`. Thin-reporting regions carry `LOW_REPORTING_DENSITY`.
-- **No people, no accusations:** analysis covers places, events, vehicles and objects, aggregate markets and organisations' public actions. Market findings say "unusual positioning before the event", never "insider trading".
-- **Licensed data stays local:** `LOCAL_ONLY` sources (FRED, LSEG-sourced EIA prices, ACLED) are computed on but their raw values are served only to callers allowed local egress; derived standardised statistics may be shared.
+- **No people, no accusations:** analysis covers places, events, vehicles and objects, aggregate markets and organizations' public actions. Market findings say "unusual positioning before the event", never "insider trading".
+- **Licensed data stays local:** `LOCAL_ONLY` sources (FRED, LSEG-sourced EIA prices, ACLED) are computed on but their raw values are served only to callers allowed local egress; derived standardized statistics may be shared.
 - **Statistics libraries:** Apache Commons Statistics, Commons Numbers, Commons RNG, Hipparchus (Apache-2.0). No GPL libraries (Smile, Weka, JSAT, jdistlib); no Commons Math 3.x.
 - **Evidence independence:** count independent evidence groups (116 `EvidenceService`), never raw records or sources, wherever confidence, corroboration, base rates or hypothesis updates are computed.
 - **Detectability:** absence and "no event" conclusions call 116 `ObservabilityService.canSeeAbsence`; otherwise `unknown` / `LOW_DETECTABILITY`.
@@ -90,9 +91,9 @@ Deploy a collecting instance early (after 022) with these defaults; see `docs/Ro
 - **Three memories stay separate:** observations, interpretation and chronicles (Intelligence-Design §3.1); nothing downstream mutates an upstream memory.
 - **Chronicle discovery** uses keyed fingerprints only and discloses within visibility, discoverability and TLP (134).
 - **Social is reporting, not observation** (135–137): social claims never corroborate physical events or themselves, amplification never adds evidence groups, "unobserved" needs `canSeeAbsence` and attention gaps need social coverage; accounts are analysed as sources, never profiled; the social salt (`authorKey`) is stored with the secret key material.
-- **Ratings are imported, never generated:** media lean and factuality come only from declared providers with licence and date (133); no bylines or author names are stored.
+- **Ratings are imported, never generated:** media lean and factuality come only from declared providers with license and date (133); no bylines or author names are stored.
 - **Durable cursors** added by the block (`evidence.cursor`, `situation.cursor`, `stats.region.cursor`, `precursor.cursor`, `impact.cursor`, `relation.cursor`, `social.cursor`, `chronicle.cursor.{id}`) join 019's consumer clamp, including its release-after-2×-window rule with an alarm.
 
 ## Test-run prompts
 
-Feature prompts write tests but don't run them. Tests run in **012, 022, 041, 057, 097, 124, 139, 142**, in the **sanctioned narrow runs of 007, 008 and 009** (each runs only its own listed test classes once; Core-Data-Model §17), and also in **143** and **144**, which may change production code or schema ownership after 142.
+Feature prompts write tests but don't run them. Tests ran in the checkpoints **012, 022, 041, 057 and 097** and in the sanctioned narrow runs of **007, 008 and 009** (each ran only its own listed test classes once). From the owner directive of 2026-10-17, **no test is run for any prompt**, checkpoints and 142–144 included: every prompt compiles only (`./gradlew compileJava compileTestJava`), and the full suite, coverage and runtime verification run once, by the owner, when the project is declared code-complete.

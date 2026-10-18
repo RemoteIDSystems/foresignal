@@ -13,7 +13,7 @@ import java.util.UUID;
 
 /**
  * One implicit signal of one alert (prompt 115, table {@code alert_signal}): at most one row per alert and type.
- * Hibernate owns the table; {@link AlertSignalStore} writes it with native SQL.
+ * Hibernate maps the table (Flyway creates it); {@link AlertSignalStore} writes it with native SQL.
  */
 @Entity
 @Table(name = "alert_signal",

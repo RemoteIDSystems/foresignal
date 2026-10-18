@@ -10,15 +10,15 @@
 - **Project:** Foresignal, a headless intelligence broker. Java 21, Spring Boot 4.1, PostgreSQL + PostGIS, Gradle (Kotlin DSL), single module, base package `ai.foresignal`.
 - **Adapt to reality:** before starting, check the Completion Reports and the code for anything earlier prompts did differently from what this prompt assumes. Follow what was actually built, and record each adaptation under "Deviations". Older text may use pre-v1.3 prompt numbers; translate them with `docs/Roadmap.md` §5.
 - **Conventions:** `docs/Conventions.md` (shared components, key URLs, the pending-operations list, overriding defaults) applies to every prompt and wins over conflicting prompt text.
-- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–139).
+- **Authoritative docs:** `docs/Product-Charter.md`, `docs/Architecture.md`, `docs/OpenAPI.json`, `docs/Source-Catalog.md`, `docs/Roadmap.md`. **`docs/design-history/Core-Data-Model.md` (v1.2) supersedes Architecture §4–§11 wherever they conflict**, `docs/design-history/Weather-Imagery-Design.md` is authoritative for weather, imagery and SatDump, and `docs/Intelligence-Design.md` is authoritative for the intelligence layer (prompts 098–139).
 - **Previous Completion Report:** read `completion-reports/143-CR-*.md` and follow its "Notes for the next prompt".
 
 ## Read first
 
 - `docs/Architecture.md` (whole; the v1.2 note at the top and §25 "Production hardening")
-- `docs/Core-Data-Model.md` (whole, to fold in), especially §8 (tables and indexes), §9 (partitioning, `HistorySchemaInitializer`, `PartitionManager`, relkind guard, `extra_physical_table_types`), §17, and "Per-prompt changes" 063 (Flyway baseline holds the tiered DDL; `PartitionManager` stays; `HistorySchemaInitializer` removed)
-- `docs/Weather-Imagery-Design.md` (whole, to fold in), especially §2.3 (raster, media and place tables, tile-key columns, `trigger_rule`/`alert` changes, GiST on `raster_frame.footprint`) and §10.3 ("081" Flyway contents; document updates list)
-- `docs/Gap-Analysis.md` §6 row "Capabilities" (oasdiff in CI after v1.0); §8 item D.64 (Flyway indexes for the new tables; oasdiff CI against the v1.0.0 spec)
+- `docs/design-history/Core-Data-Model.md` (whole, to fold in), especially §8 (tables and indexes), §9 (partitioning, `HistorySchemaInitializer`, `PartitionManager`, relkind guard, `extra_physical_table_types`), §17, and "Per-prompt changes" 063 (Flyway baseline holds the tiered DDL; `PartitionManager` stays; `HistorySchemaInitializer` removed)
+- `docs/design-history/Weather-Imagery-Design.md` (whole, to fold in), especially §2.3 (raster, media and place tables, tile-key columns, `trigger_rule`/`alert` changes, GiST on `raster_frame.footprint`) and §10.3 ("081" Flyway contents; document updates list)
+- `docs/design-history/Gap-Analysis.md` §6 row "Capabilities" (oasdiff in CI after v1.0); §8 item D.64 (Flyway indexes for the new tables; oasdiff CI against the v1.0.0 spec)
 - `docs/Product-Charter.md` (whole), `docs/Source-Catalog.md`, `docs/Roadmap.md`, `docs/Executive-Summary.md`
 - Completion Reports 001–143, especially 002 (`SchemaBootstrap`), 007 (history schema), 019 (retention), 027 (reindex DDL), 142 and 143 (open issues)
 
@@ -31,8 +31,8 @@ Cut Foresignal over to production form and release `v1.0.0`. Fold the v1.2 desig
 ### 1. Documentation consolidation
 
 - **`docs/Architecture.md` v2.0:**
-  - Integrate `docs/Core-Data-Model.md`: replace §4–§11 with its time contract, ingest input, hashing, policies, writer, streaming sinks, tables, partitioning (Flyway-owned DDL now), distribution, triggers, query paths, retention, provenance and storage sections. Translate every prompt number to v1.2 (Roadmap §5).
-  - Integrate `docs/Weather-Imagery-Design.md` as a new "Weather, rasters and imagery" part: components, data model, storage layout, budgets, memory profiles, SatDump integration, API conventions, alerting integration and resource budget. Drop prompt breakdowns and review-resolution tables.
+  - Integrate `docs/design-history/Core-Data-Model.md`: replace §4–§11 with its time contract, ingest input, hashing, policies, writer, streaming sinks, tables, partitioning (Flyway-owned DDL now), distribution, triggers, query paths, retention, provenance and storage sections. Translate every prompt number to v1.2 (Roadmap §5).
+  - Integrate `docs/design-history/Weather-Imagery-Design.md` as a new "Weather, rasters and imagery" part: components, data model, storage layout, budgets, memory profiles, SatDump integration, API conventions, alerting integration and resource budget. Drop prompt breakdowns and review-resolution tables.
   - Add sections for everything built after the docs were written: entities (098), derived layers (099), windowed and anomaly rules (100), incidents (101), licence and provenance (109), sinks (110), exports and archive (111), standards outputs (112), federation (113), pattern of life and trips (114), exercise and alert quality (115), the intelligence layer (116–139), adapter doctor (140), SDKs, CLI, MCP OAuth and plugins (141).
   - Update §2 stack (all dependencies actually used, with licences), §3 packages (real package tree), §12 testing, §13 configuration (all env vars), §14 deployment (all compose profiles), §25 (now describes the Flyway regime), §26 reuse policy (GEV MIT, SatDump GPL reference, Meshtastic protobuf exclusion).
   - Remove the "v1.2 note" banner.
@@ -121,7 +121,7 @@ Cut Foresignal over to production form and release `v1.0.0`. Fold the v1.2 desig
 ## Guardrails (mandatory)
 
 1. **Tests: this is a test-run prompt.** Run the test suite as the Test run section describes, and fix failures until it passes. Fix production code, and change a test only when the test itself is wrong (record each such change in the Completion Report). Don't add features.
-2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
+2. **Hibernate only.** Hibernate manages the schema (`spring.jpa.hibernate.ddl-auto=update`), plus the bootstrap SQL that `docs/design-history/Core-Data-Model.md` §9 assigns for partitioned history. **Do not add Flyway, Liquibase or SQL migration files** (Flyway arrives in prompt 144).
 3. **Reuse policy.** Never copy code from ShadowBroker, Velocity or World Monitor (AGPL) or SatDump (GPL). They are reference material only. God's Eye View (MIT, `~/Documents/GitLab/gods-eye-view`) may be ported to Java if you add an origin header comment and an entry in `THIRD_PARTY_NOTICES.md`.
 4. **Stay in scope.** Implement what this prompt specifies, no more. If the docs conflict with reality (for example, a library API differs from what the docs assume), choose the approach most faithful to `docs/Architecture.md` and record it under "Deviations" in the Completion Report.
 5. **Verify versions.** When adding a dependency, confirm the version exists on Maven Central and is compatible with Spring Boot 4.1 and Java 21.

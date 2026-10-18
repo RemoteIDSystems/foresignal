@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "ai.foresignal"
-version = "0.1.0-SNAPSHOT"
+version = "1.0.0"
 
 java {
     toolchain {
@@ -48,6 +48,9 @@ extra["protobuf-java.version"] = libs.versions.protobufJava.get()
 dependencies {
     implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.boot.starter.data.jpa)
+    // Schema ownership (144): Flyway applies src/main/resources/db/migration before Hibernate validates.
+    implementation(libs.spring.boot.starter.flyway)
+    implementation(libs.flyway.database.postgresql)
     implementation(libs.spring.boot.starter.validation)
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.hibernate.spatial)
@@ -429,3 +432,39 @@ tasks.check {
 // and sdk/python/foresignal_client; checkSdkGeneration preprocesses the spec for Dart and dry-runs dart-dio.
 // Neither is wired to build or check. Tool versions: sdk/versions.properties.
 apply(from = "gradle/sdk.gradle.kts")
+
+// API compatibility gate (prompt 144, NFR-10): /v1 is additive only, so docs/OpenAPI.json must not break the frozen
+// v1.0.0 contract at docs/api/v1.0.0/OpenAPI.json. Runs `oasdiff breaking <frozen> <current> --fail-on ERR` with a
+// local `oasdiff` binary, else the pinned Docker image (tufin/oasdiff:v1.33.0, Apache-2.0, pushed 2026-10-01), else
+// skips with a warning. Not wired to build or check; the proposed CI api stage (docs/CI-Proposal.md) runs it.
+val oasdiffImage = "tufin/oasdiff:v1.33.0"
+tasks.register("checkApiCompat") {
+    group = "verification"
+    description = "Fails on breaking changes between docs/api/v1.0.0/OpenAPI.json and docs/OpenAPI.json (oasdiff)."
+    val projectDir = layout.projectDirectory.asFile
+    inputs.files("docs/api/v1.0.0/OpenAPI.json", "docs/OpenAPI.json")
+    doLast {
+        val frozen = "docs/api/v1.0.0/OpenAPI.json"
+        val current = "docs/OpenAPI.json"
+        val command: List<String>? = when {
+            onPath("oasdiff") -> listOf("oasdiff", "breaking", frozen, current, "--fail-on", "ERR")
+            onPath("docker") -> listOf(
+                "docker", "run", "--rm", "-v", "${projectDir.absolutePath}:/specs:ro", "-w", "/specs",
+                oasdiffImage, "breaking", frozen, current, "--fail-on", "ERR",
+            )
+            else -> null
+        }
+        if (command == null) {
+            logger.warn("checkApiCompat skipped: neither oasdiff nor docker is on the PATH (install oasdiff from " +
+                "https://github.com/oasdiff/oasdiff or Docker to run the API compatibility gate).")
+            return@doLast
+        }
+        val process = ProcessBuilder(command).directory(projectDir).inheritIO().start()
+        val exit = process.waitFor()
+        if (exit != 0) {
+            throw GradleException("checkApiCompat: oasdiff reported breaking changes against the frozen v1.0.0 " +
+                "contract (exit $exit). /v1 is additive only (NFR-10); breaking changes belong in /v2.")
+        }
+        logger.lifecycle("checkApiCompat: no breaking changes against $frozen")
+    }
+}

@@ -1,7 +1,7 @@
 # Foresignal Frontend Guide
 
 How map clients read Foresignal's rasters, record tiles and change streams: MapLibre GL JS, maplibre_gl
-(Flutter), flutter_map and Cesium. The rules come from `docs/Weather-Imagery-Design.md` §6 (cache policy
+(Flutter), flutter_map and Cesium. The rules come from `docs/design-history/Weather-Imagery-Design.md` §6 (cache policy
 §6.1, tiles and loops §6.3, access §6.7, SSE §6.8, recipes §6.10); the operations are in
 `docs/OpenAPI.json`.
 

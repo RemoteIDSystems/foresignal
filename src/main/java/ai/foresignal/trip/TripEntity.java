@@ -20,7 +20,7 @@ import org.locationtech.jts.geom.MultiPolygon;
  *
  * <p>The route comes from the client's own router; Foresignal never routes. {@code corridor} is
  * {@code ST_Buffer(route::geography, buffer_m)::geometry}, split at the antimeridian and materialized on every save;
- * its GiST index is created by {@code SpatialIndexInitializer}. {@code active_rule_id} names the ephemeral trigger
+ * its GiST index is in the Flyway baseline. {@code active_rule_id} names the ephemeral trigger
  * rule watching the corridor during an occurrence's window.
  */
 @Entity

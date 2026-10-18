@@ -10,13 +10,14 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
  * One audit log entry ({@code audit_event}, prompt 023).
  *
- * <p>Hibernate owns the table's schema; rows are inserted by {@link AuditService} with JDBC batches
+ * <p>Hibernate maps and validates the table (Flyway creates it); rows are inserted by {@link AuditService} with JDBC batches
  * from its bounded queue. {@code detail} never holds secrets, token values or request bodies.
  */
 @Entity
@@ -72,7 +73,8 @@ public class AuditEventEntity {
     private String remoteIp;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "detail", nullable = false, columnDefinition = "jsonb default '{}'::jsonb")
+    @ColumnDefault("'{}'::jsonb")
+    @Column(name = "detail", nullable = false, columnDefinition = "jsonb")
     private Map<String, Object> detail;
 
     protected AuditEventEntity() {
