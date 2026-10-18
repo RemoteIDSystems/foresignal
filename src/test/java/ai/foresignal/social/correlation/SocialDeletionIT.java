@@ -28,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
@@ -37,6 +38,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * narrative that cited it keeps the claim history while the post's text is gone.
  */
 @IntegrationTest
+@Import(MutableClock.TestConfig.class)
 class SocialDeletionIT {
 
     static final Instant T0 = Instant.now().truncatedTo(ChronoUnit.HOURS).minus(Duration.ofHours(3));

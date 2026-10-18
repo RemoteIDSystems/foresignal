@@ -62,7 +62,7 @@ public class NarrativeSituationLinker {
         Instant to = (last == null ? first : last).plus(Duration.ofHours(SLACK_HOURS));
         Instant from = first.minus(Duration.ofHours(SLACK_HOURS));
         return new ArrayList<>(jdbc.queryForList("SELECT id FROM situation WHERE merged_into IS NULL AND NOT private"
-                + " AND status <> 'closed' AND region_codes && ? AND signal_families && ? AND started_at <= ? AND"
+                + " AND status <> 'closed' AND region_codes && ?::text[] AND signal_families && ?::text[] AND started_at <= ? AND"
                 + " last_activity_at >= ? ORDER BY last_activity_at DESC, id LIMIT ?", String.class, r,
                 families.toArray(String[]::new), Timestamp.from(to), Timestamp.from(from), LIMIT));
     }

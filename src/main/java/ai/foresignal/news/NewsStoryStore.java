@@ -160,7 +160,7 @@ public class NewsStoryStore {
     public List<Story> candidates(Instant from, Instant to, Collection<String> topics, Collection<String> regions,
             int limit) {
         boolean any = (topics == null || topics.isEmpty()) && (regions == null || regions.isEmpty());
-        String filter = any ? "" : " AND (topic_ids && ? OR region_codes && ?)";
+        String filter = any ? "" : " AND (topic_ids && ?::text[] OR region_codes && ?::text[])";
         List<Object> args = new ArrayList<>(List.of(Timestamp.from(from), Timestamp.from(to)));
         if (!any) {
             args.add(array(topics));
@@ -219,14 +219,14 @@ public class NewsStoryStore {
     /** Stores a story's corroboration; true when it changed. */
     public boolean updateCorroboration(String id, boolean corroborated, List<String> by, Instant now) {
         return jdbc.update("UPDATE news_story SET corroborated = ?, corroborated_by = ?, updated_at = ? WHERE id = ?"
-                + " AND (corroborated IS DISTINCT FROM ? OR corroborated_by IS DISTINCT FROM ?)", corroborated,
+                + " AND (corroborated IS DISTINCT FROM ? OR corroborated_by IS DISTINCT FROM ?::text[])", corroborated,
                 array(by), Timestamp.from(now), id, corroborated, array(by)) > 0;
     }
 
     /** Stores a story's situations; true when they changed. */
     public boolean updateSituations(String id, List<String> situationIds, Instant now) {
         return jdbc.update("UPDATE news_story SET situation_ids = ?, updated_at = ? WHERE id = ? AND situation_ids IS"
-                + " DISTINCT FROM ?", array(situationIds), Timestamp.from(now), id, array(situationIds)) > 0;
+                + " DISTINCT FROM ?::text[]", array(situationIds), Timestamp.from(now), id, array(situationIds)) > 0;
     }
 
     /** Records the blindspot finding of a story. */

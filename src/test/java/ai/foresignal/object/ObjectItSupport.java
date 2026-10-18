@@ -176,6 +176,7 @@ abstract class ObjectItSupport extends AskItSupport {
         e.setRecipeId(recipe);
         e.setConfidence(0.7);
         e.setCreatedAt(now);
+        e.setUpdatedAt(now);
         IntelligenceEventEntity saved = eventRows.save(e);
         for (String m : members) {
             String[] parts = m.split("\\|");

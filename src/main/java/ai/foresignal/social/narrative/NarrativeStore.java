@@ -285,8 +285,8 @@ public class NarrativeStore {
     public List<Narrative> candidates(Instant from, Collection<String> topics, Collection<String> places,
             Collection<String> regions, Collection<String> entities, int limit) {
         return jdbc.query("SELECT " + NARRATIVE_COLUMNS + " FROM social_narrative WHERE merged_into IS NULL AND"
-                + " last_activity_at >= ? AND (topic_ids && ? OR place_refs && ? OR region_codes && ? OR entity_refs"
-                + " && ?) ORDER BY last_activity_at DESC, id LIMIT ?", (rs, i) -> narrative(rs), Timestamp.from(from),
+                + " last_activity_at >= ? AND (topic_ids && ?::text[] OR place_refs && ?::text[] OR region_codes && ?::text[] OR entity_refs"
+                + " && ?::text[]) ORDER BY last_activity_at DESC, id LIMIT ?", (rs, i) -> narrative(rs), Timestamp.from(from),
                 array(topics), array(places), array(regions), array(entities), limit);
     }
 
@@ -513,7 +513,7 @@ public class NarrativeStore {
             return out;
         }
         jdbc.query("SELECT m.narrative_id, m.id FROM social_narrative_member m JOIN social_narrative n ON n.id ="
-                + " m.narrative_id WHERE m.links && ? AND n.merged_into IS NULL AND n.last_activity_at >= ? ORDER BY"
+                + " m.narrative_id WHERE m.links && ?::text[] AND n.merged_into IS NULL AND n.last_activity_at >= ? ORDER BY"
                 + " m.created_at LIMIT ?", rs -> {
                     out.putIfAbsent(rs.getString(1), rs.getString(2));
                 }, array(links), Timestamp.from(from), limit);
@@ -531,7 +531,7 @@ public class NarrativeStore {
             return out;
         }
         jdbc.query("SELECT m.narrative_id, m.id FROM social_narrative_member m JOIN social_narrative n ON n.id ="
-                + " m.narrative_id WHERE (m.media_urls && ? OR m.fingerprints && ?) AND n.merged_into IS NULL AND"
+                + " m.narrative_id WHERE (m.media_urls && ?::text[] OR m.fingerprints && ?::text[]) AND n.merged_into IS NULL AND"
                 + " n.last_activity_at >= ? ORDER BY m.created_at LIMIT ?", rs -> {
                     out.putIfAbsent(rs.getString(1), rs.getString(2));
                 }, array(mediaUrls), array(fingerprints), Timestamp.from(from), limit);
@@ -835,9 +835,9 @@ public class NarrativeStore {
         if (inserted == 0) {
             return false;
         }
-        jdbc.update("UPDATE media_fingerprint SET use_count = use_count + 1, platforms = CASE WHEN ? IS NULL OR"
+        jdbc.update("UPDATE media_fingerprint SET use_count = use_count + 1, platforms = CASE WHEN CAST(? AS text) IS NULL OR"
                 + " platforms @> ARRAY[?]::text[] THEN platforms ELSE array_append(platforms, ?) END,"
-                + " narrative_ids = CASE WHEN ? IS NULL OR narrative_ids @> ARRAY[?]::text[] THEN narrative_ids ELSE"
+                + " narrative_ids = CASE WHEN CAST(? AS text) IS NULL OR narrative_ids @> ARRAY[?]::text[] THEN narrative_ids ELSE"
                 + " array_append(narrative_ids, ?) END, updated_at = ? WHERE id = ?", platform, platform, platform,
                 narrativeId, narrativeId, narrativeId, Timestamp.from(now), fingerprintId);
         return true;

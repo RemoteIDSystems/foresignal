@@ -63,7 +63,7 @@ public class SocialSections {
         if (situationIds.isEmpty()) {
             return List.of();
         }
-        List<String> ids = narratives.jdbc().queryForList("SELECT id FROM social_narrative WHERE situation_ids && ?"
+        List<String> ids = narratives.jdbc().queryForList("SELECT id FROM social_narrative WHERE situation_ids && ?::text[]"
                 + " AND merged_into IS NULL ORDER BY evidence_group_count DESC, last_activity_at DESC, id LIMIT ?",
                 String.class, situationIds.toArray(String[]::new), limit);
         Map<String, NarrativeStore.Narrative> rows = narratives.narratives(ids);

@@ -16,6 +16,7 @@ import ai.foresignal.search.DocInput;
 import ai.foresignal.search.EmbeddingStore;
 import ai.foresignal.search.EmbeddingWorker;
 import ai.foresignal.security.PrincipalEntity;
+import org.springframework.beans.factory.ObjectProvider;
 import ai.foresignal.security.PrincipalRepository;
 import ai.foresignal.security.Tlp;
 import ai.foresignal.security.TlpTarget;
@@ -83,7 +84,7 @@ public class EvidenceItemService {
     private final OriginatorRegistry originators;
     private final PrincipalRepository principals;
     private final PrincipalViews views;
-    private final EmbeddingWorker embeddings;
+    private final ObjectProvider<EmbeddingWorker> embeddings;
     private final EmbeddingStore embeddingStore;
     private final Clock clock;
     private final GeoJsonReader geoReader = new GeoJsonReader();
@@ -94,7 +95,7 @@ public class EvidenceItemService {
             AttachmentService attachments, InvestigationItemRepository investigationItems, AccessResolver access,
             ShareService shares, TagService tags, TagAssignmentRepository assignments, SourceRegistry sources,
             OriginatorRegistry originators, PrincipalRepository principals, PrincipalViews views,
-            EmbeddingWorker embeddings, EmbeddingStore embeddingStore, Clock clock) {
+            ObjectProvider<EmbeddingWorker> embeddings, EmbeddingStore embeddingStore, Clock clock) {
         this.items = items;
         this.attachmentRows = attachmentRows;
         this.attachments = attachments;
@@ -469,8 +470,11 @@ public class EvidenceItemService {
                     text.append("\n\n").append(a.getFilename()).append(":\n").append(a.getText());
                 }
             }
-            embeddings.embedDocument(DocInput.EVIDENCE_ITEM, e.getId(), text.toString(), e.getGeom(),
-                    e.getEventTime() == null ? e.getCreatedAt() : e.getEventTime(), null, null);
+            EmbeddingWorker worker = embeddings.getIfAvailable();
+            if (worker != null) {
+                worker.embedDocument(DocInput.EVIDENCE_ITEM, e.getId(), text.toString(), e.getGeom(),
+                        e.getEventTime() == null ? e.getCreatedAt() : e.getEventTime(), null, null);
+            }
         } catch (RuntimeException ex) {
             // A missing embedding provider or an exhausted budget leaves the item text-searchable only.
             log.info("Evidence item {} was not embedded: {}", e.getId(), ex.toString());

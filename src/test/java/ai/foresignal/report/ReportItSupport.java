@@ -100,7 +100,7 @@ public abstract class ReportItSupport extends AskItSupport {
                 + "\"regionCodes\":[\"YE\"],\"hypotheses\":["
                 + "{\"label\":\"response\",\"statement\":\"A response follows within 7 days.\",\"type\":\"outcome\","
                 + "\"prior\":0.7,\"priorBasis\":{\"type\":\"operator\",\"rationale\":\"Comparable strikes.\"}},"
-                + "{\"label\":\"none\",\"statement\":\"No response within 7 days.\",\"type\":\"outcome\","
+                + "{\"label\":\"none\",\"statement\":\"No response within 7 days.\",\"type\":\"other\","
                 + "\"prior\":0.3,\"priorBasis\":{\"type\":\"operator\",\"rationale\":\"Restraint.\"}}],"
                 + "\"indicators\":[],\"assumptions\":[]}";
         return hypotheses.create(HypothesisInputs.set(JSON.readTree(body)), "operator", "tester");

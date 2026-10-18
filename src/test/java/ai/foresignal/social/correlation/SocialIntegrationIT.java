@@ -27,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -37,6 +38,7 @@ import tools.jackson.databind.json.JsonMapper;
  * assessment section "What people are saying versus what we observe" passing the ICD 203 linter.
  */
 @IntegrationTest
+@Import(MutableClock.TestConfig.class)
 class SocialIntegrationIT {
 
     static final Instant T0 = Instant.parse("2026-10-14T06:00:00Z");

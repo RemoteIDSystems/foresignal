@@ -279,7 +279,7 @@ create table record_head (
     quality jsonb,
     search_text text,
     title varchar(256),
-    primary key (source_id, external_id)
+    primary key (external_id, source_id)
 );
 create index record_head_kind_idx on record_head (kind);
 
@@ -296,7 +296,7 @@ create table record_live (
     kinematic jsonb default '{}'::jsonb not null,
     quality jsonb,
     qa_flags smallint default 0 not null,
-    primary key (source_id, external_id)
+    primary key (external_id, source_id)
 );
 
 -- FetchLogEntity (prompt 094)
@@ -1970,7 +1970,7 @@ create table record_region (
     tagged_lon double precision not null,
     tagged_lat double precision not null,
     tagged_at timestamp(6) with time zone not null,
-    primary key (source_id, external_id)
+    primary key (external_id, source_id)
 );
 
 -- ===== inbound (prompt 024; device 039; edp/binding 138) =====
@@ -2161,7 +2161,7 @@ create table trigger_anchor_state (
     eval_seq bigint,
     eval_at timestamp(6) with time zone,
     status varchar(8) not null,
-    primary key (rule_id, anchor_source, anchor_external_id)
+    primary key (anchor_external_id, anchor_source, rule_id)
 );
 
 -- WindowStateEntity (@IdClass WindowStateEntity.Key)
@@ -2179,7 +2179,7 @@ create table window_state (
     alert_pending_since timestamp(6) with time zone,
     pending_context text,
     pending_message text,
-    primary key (rule_id, group_key)
+    primary key (group_key, rule_id)
 );
 
 -- ActivitySampleEntity (@IdClass ActivitySampleEntity.Key)
@@ -2191,7 +2191,7 @@ create table activity_sample (
     coverage_ratio double precision,
     coverage_ok boolean not null,
     flagged boolean not null,
-    primary key (bucket_start, rule_id, group_key)
+    primary key (bucket_start, group_key, rule_id)
 );
 
 -- AnomalyObservationEntity
@@ -2268,7 +2268,7 @@ create index push_device_status_idx on push_device (status, created_at);
 create table notification_read (
     device_key varchar(160) not null,
     notification_id bigint not null,
-    primary key (notification_id, device_key)
+    primary key (device_key, notification_id)
 );
 
 -- NotificationReadCursorEntity
@@ -2885,7 +2885,7 @@ create table reference_history (
     source varchar(32) not null,
     family varchar(64) not null,
     licence varchar(64) not null,
-    primary key (week_start, region_code, source, family)
+    primary key (family, region_code, source, week_start)
 );
 create index reference_history_import_idx on reference_history (import_id);
 create index reference_history_region_idx on reference_history (region_code, family);
@@ -3133,7 +3133,7 @@ create table population_h3 (
     res smallint not null,
     pop double precision not null,
     epoch smallint not null,
-    primary key (res, h3)
+    primary key (h3, res)
 );
 
 -- ===== situation (prompt 118) =====
@@ -3708,7 +3708,7 @@ create index report_send_report_idx on report_send (report_id);
 -- MediaEntity
 create table media (
     id varchar(26) not null,
-    sha256 char(64) not null,
+    sha256 varchar(64) not null,
     content_type varchar(32) not null,
     width integer not null,
     height integer not null,
@@ -4610,7 +4610,7 @@ create table forecast_series_cache (
     updated_at timestamp(6) with time zone not null,
     valid_from timestamp(6) with time zone,
     series jsonb not null,
-    primary key (provider, place_id)
+    primary key (place_id, provider)
 );
 
 -- ===== llm =====
@@ -4791,7 +4791,7 @@ create table activity_rollup (
     tombstones bigint not null,
     edges bigint not null,
     changes bigint not null,
-    primary key (resolution, bucket_start, cell, kind, source_id)
+    primary key (bucket_start, cell, kind, resolution, source_id)
 );
 create index activity_rollup_resolution_bucket_idx on activity_rollup (resolution, bucket_start);
 create index activity_rollup_source_resolution_bucket_idx on activity_rollup (source_id, resolution, bucket_start);

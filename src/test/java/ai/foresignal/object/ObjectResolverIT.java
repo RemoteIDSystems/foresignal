@@ -60,8 +60,10 @@ class ObjectResolverIT extends ObjectItSupport {
         a.setStatus("ok");
         a.setHeadline("Shipping stays disrupted");
         assessmentRows.save(a);
-        InvestigationEntity inv = investigationRows.save(new InvestigationEntity(Ulids.next(clock.instant()),
-                "INV-2026-0001", "Port closure follow-up", clock.instant()));
+        InvestigationEntity invRow = new InvestigationEntity(Ulids.next(clock.instant()),
+                "INV-2026-0001", "Port closure follow-up", clock.instant());
+        invRow.setUpdatedAt(clock.instant());
+        InvestigationEntity inv = investigationRows.save(invRow);
         places.create(JSON.readTree("{\"id\":\"aden\",\"name\":\"Aden\",\"shape\":\"point\",\"geometry\":"
                 + "{\"type\":\"Point\",\"coordinates\":[45.0,12.8]},\"radiusKm\":30}"));
         String entityId = Ulids.next(clock.instant());

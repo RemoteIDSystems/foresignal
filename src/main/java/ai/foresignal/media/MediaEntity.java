@@ -32,7 +32,7 @@ public class MediaEntity {
     @Column(name = "id", length = 26, nullable = false)
     private String id;
 
-    @Column(name = "sha256", columnDefinition = "char(64)", nullable = false)
+    @Column(name = "sha256", length = 64, nullable = false)
     private String sha256;
 
     @Column(name = "content_type", length = 32, nullable = false)

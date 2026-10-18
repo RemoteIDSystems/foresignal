@@ -166,7 +166,7 @@ public class NewsCoverageJob {
         Duration slack = Duration.ofHours(CORROBORATION_SLACK_HOURS);
         Map<String, Set<String>> originatorsOf = new TreeMap<>();
         jdbc.query("SELECT c.id, l.originator_id FROM canonical_event c JOIN observation_link l ON l.canonical_event_id"
-                        + " = c.id WHERE c.family <> ? AND c.status = 'open' AND c.region_codes && ? AND c.event_time"
+                        + " = c.id WHERE c.family <> ? AND c.status = 'open' AND c.region_codes && ?::text[] AND c.event_time"
                         + " BETWEEN ? AND ? ORDER BY c.id LIMIT 2000", rs -> {
                     originatorsOf.computeIfAbsent(rs.getString(1), k -> new LinkedHashSet<>()).add(rs.getString(2));
                 }, NewsStoryResolver.FAMILY, s.regionCodes().toArray(String[]::new),

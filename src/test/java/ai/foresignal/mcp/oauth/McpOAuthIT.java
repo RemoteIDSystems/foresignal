@@ -94,7 +94,7 @@ class McpOAuthIT {
         settings.put(SettingKeys.SERVER, new ServerSettings(base()));
         jwksCache.invalidate();
         IDP_SERVER.stubFor(get(urlEqualTo(CERTS_PATH)).willReturn(json(IDP.jwks())));
-        configure("oauth", issuer() + CERTS_PATH, null, null);
+        configure("oauth", IDP_SERVER.baseUrl() + CERTS_PATH, null, null);
     }
 
     @AfterEach
@@ -207,7 +207,7 @@ class McpOAuthIT {
     @Test
     @DisplayName("a valid agent token (scp array, EdDSA) maps to agent: write tools listed")
     void agentTokenMapsToAgent() {
-        settings.put(SettingKeys.MCP_AUTH, new McpAuthSettings("oauth", issuer(), null, issuer() + CERTS_PATH, null,
+        settings.put(SettingKeys.MCP_AUTH, new McpAuthSettings("oauth", issuer(), null, IDP_SERVER.baseUrl() + CERTS_PATH, null,
                 "scp", null));
         String jwt = IDP.token(issuer(), base() + "/mcp").expiresAt(clock.instant().plusSeconds(300))
                 .scp("foresignal:read", "foresignal:agent").signWith(IDP.ed, JWSAlgorithm.EdDSA).sign();
@@ -230,7 +230,7 @@ class McpOAuthIT {
         assertChallenge401(post(bearer(token("foresignal:read").expiresAt(clock.instant().minusSeconds(120)).sign()),
                 null, INITIALIZE), true);
         assertChallenge401(post(bearer(token("foresignal:read").hmac(new byte[32]).sign()), null, INITIALIZE), true);
-        configure("oauth", issuer() + CERTS_PATH, null, List.of("ES256"));
+        configure("oauth", IDP_SERVER.baseUrl() + CERTS_PATH, null, List.of("ES256"));
         assertChallenge401(post(bearer(token("foresignal:read").sign()), null, INITIALIZE), true);
     }
 
@@ -266,7 +266,7 @@ class McpOAuthIT {
     @Test
     @DisplayName("admin is never mappable: a stored admin mapping is ignored at runtime")
     void adminNeverMappable() throws Exception {
-        configure("oauth", issuer() + CERTS_PATH, Map.of("foresignal:admin", "admin", "foresignal:read", "read"), null);
+        configure("oauth", IDP_SERVER.baseUrl() + CERTS_PATH, Map.of("foresignal:admin", "admin", "foresignal:read", "read"), null);
         HttpResponse<String> adminOnly = post(bearer(token("foresignal:admin").sign()), null, INITIALIZE);
         assertThat(adminOnly.statusCode()).isEqualTo(403);
         assertThat(adminOnly.headers().firstValue("WWW-Authenticate").orElse("")).contains("insufficient_scope");
@@ -324,12 +324,12 @@ class McpOAuthIT {
         String apiToken = TestTokens.bearer(TestTokens.create(tokens, "mcp-oauth-reader", Scope.READ));
         assertChallenge401(post(apiToken, null, INITIALIZE), true);
 
-        configure("both", issuer() + CERTS_PATH, null, null);
+        configure("both", IDP_SERVER.baseUrl() + CERTS_PATH, null, null);
         assertThat(post(apiToken, null, INITIALIZE).statusCode()).isEqualTo(200);
         assertThat(post(bearer(token("foresignal:read").sign()), null, INITIALIZE).statusCode()).isEqualTo(200);
         assertChallenge401(post(null, null, INITIALIZE), false);
 
-        configure("token", issuer() + CERTS_PATH, null, null);
+        configure("token", IDP_SERVER.baseUrl() + CERTS_PATH, null, null);
         assertThat(post(null, null, INITIALIZE).statusCode()).as("open reads apply again").isEqualTo(200);
         HttpResponse<String> jwt = post(bearer(token("foresignal:read").sign()), null, INITIALIZE);
         assertThat(jwt.statusCode()).isEqualTo(401);
@@ -339,11 +339,12 @@ class McpOAuthIT {
     @Test
     @DisplayName("the subject gets one principal across tokens; the token is never sent to the identity provider")
     void principalAndNoPassthrough() throws Exception {
-        String jwt = token("foresignal:read").claim("preferred_username", "ada").sign();
+        String jwt = token("foresignal:read").subject("principal-oauth").claim("preferred_username", "ada").sign();
         assertThat(post(bearer(jwt), null, INITIALIZE).statusCode()).isEqualTo(200);
-        assertThat(post(bearer(token("foresignal:read").sign()), null, INITIALIZE).statusCode()).isEqualTo(200);
+        assertThat(post(bearer(token("foresignal:read").subject("principal-oauth").sign()), null, INITIALIZE)
+                .statusCode()).isEqualTo(200);
         Integer principals = jdbc.queryForObject("SELECT count(*) FROM principal WHERE handle = ?", Integer.class,
-                PrincipalService.externalHandle(issuer(), "user-1"));
+                PrincipalService.externalHandle(issuer(), "principal-oauth"));
         assertThat(principals).isEqualTo(1);
         IDP_SERVER.verify(0, anyRequestedFor(anyUrl()).withHeader("Authorization", matching(".*")));
     }

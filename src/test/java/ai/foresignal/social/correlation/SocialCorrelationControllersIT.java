@@ -30,6 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -46,6 +47,7 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code get_social_lead_times} and {@code run_social_cue}.
  */
 @IntegrationTest
+@Import(MutableClock.TestConfig.class)
 class SocialCorrelationControllersIT {
 
     static final Instant NOW = Instant.parse("2026-10-17T12:00:00Z");

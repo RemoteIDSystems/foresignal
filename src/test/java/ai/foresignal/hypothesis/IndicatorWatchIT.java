@@ -32,6 +32,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Limit;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -43,6 +44,7 @@ import tools.jackson.databind.json.JsonMapper;
  * judgment, so each branch is exercised deterministically.
  */
 @IntegrationTest
+@Import(MutableClock.TestConfig.class)
 class IndicatorWatchIT {
 
     static final Instant NOW = Instant.parse("2026-10-17T12:00:00Z");

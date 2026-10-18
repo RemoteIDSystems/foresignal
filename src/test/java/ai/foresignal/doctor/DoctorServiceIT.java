@@ -41,6 +41,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -58,6 +59,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * <p>The LLM step is off or has no provider here; {@link DoctorLlmIT} covers it.
  */
 @IntegrationTest
+@Import(MutableClock.TestConfig.class)
 class DoctorServiceIT extends WireMockSupport {
 
     static final String ID = UsgsEarthquakesAdapter.ID;

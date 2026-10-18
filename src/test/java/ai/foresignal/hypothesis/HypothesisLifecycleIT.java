@@ -23,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Limit;
 import org.springframework.jdbc.core.JdbcTemplate;
 import tools.jackson.databind.json.JsonMapper;
@@ -33,6 +34,7 @@ import tools.jackson.databind.json.JsonMapper;
  * lint and the archive after the horizon), and the band-change notification's 6-hour rate limit.
  */
 @IntegrationTest
+@Import(MutableClock.TestConfig.class)
 class HypothesisLifecycleIT {
 
     static final Instant NOW = Instant.parse("2026-10-17T12:00:00Z");

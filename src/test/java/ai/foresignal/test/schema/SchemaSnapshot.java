@@ -49,7 +49,7 @@ public record SchemaSnapshot(Set<String> columns, Set<String> constraints, Set<S
                 select c.relname || '.' || a.attname || ' ' || format_type(a.atttypid, a.atttypmod)
                        || case when a.attnotnull then ' not null' else '' end
                        || coalesce(' default ' || case when a.attgenerated = '' then pg_get_expr(d.adbin, d.adrelid) end, '')
-                       || case when a.attidentity <> '' then ' identity ' || a.attidentity else '' end
+                       || case when a.attidentity <> '' then ' identity ' || a.attidentity::text else '' end
                        || case when a.attgenerated <> '' then ' generated ' || pg_get_expr(d.adbin, d.adrelid) else '' end
                   from pg_attribute a
                   join pg_class c on c.oid = a.attrelid
@@ -59,7 +59,7 @@ public record SchemaSnapshot(Set<String> columns, Set<String> constraints, Set<S
                    and c.relname not in %s and %s
                 """.formatted(ignored, NOT_EXTENSION_OWNED), (rs, i) -> rs.getString(1)));
         Set<String> constraints = new TreeSet<>(jdbc.query("""
-                select c.relname || ' ' || con.contype || ' ' || pg_get_constraintdef(con.oid)
+                select c.relname || ' ' || con.contype::text || ' ' || pg_get_constraintdef(con.oid)
                   from pg_constraint con
                   join pg_class c on c.oid = con.conrelid
                   join pg_namespace n on n.oid = c.relnamespace

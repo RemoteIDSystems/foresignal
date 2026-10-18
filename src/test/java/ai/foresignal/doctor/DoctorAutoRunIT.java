@@ -37,6 +37,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -54,6 +55,7 @@ import org.springframework.test.web.servlet.MockMvc;
  */
 @IntegrationTest
 @TestPropertySource(properties = {"foresignal.doctor.auto-enabled=true", "foresignal.doctor.auto-async=false"})
+@Import(MutableClock.TestConfig.class)
 class DoctorAutoRunIT extends WireMockSupport {
 
     static final String ID = UsgsEarthquakesAdapter.ID;

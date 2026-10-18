@@ -93,7 +93,7 @@ public class JdbcPhysicalEvidence implements PhysicalEvidenceSource {
             if (located && !q.rule().largeArea()) {
                 sql.append(geomColumn).append(" IS NULL AND ");
             }
-            sql.append(regionColumn).append(" && ?)");
+            sql.append(regionColumn).append(" && ?::text[])");
             args.add(regions);
         }
         if (!located && regions.length == 0) {

@@ -32,6 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
@@ -41,6 +42,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * {@code outlook.published} event, and an {@code outlook-exceedance} finding when a window resolves above p95.
  */
 @IntegrationTest
+@Import(MutableClock.TestConfig.class)
 class RegionalOutlookIT {
 
     /** A Monday, 06:00 UTC. */

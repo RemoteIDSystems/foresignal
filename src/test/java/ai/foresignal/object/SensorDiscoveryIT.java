@@ -49,6 +49,7 @@ class SensorDiscoveryIT extends ObjectItSupport {
     private void enable(String sourceId) {
         SourceSettingsEntity row = sourceSettings.findById(sourceId).orElseGet(() -> new SourceSettingsEntity(sourceId));
         row.setEnabled(true);
+        row.setUpdatedAt(clock.instant());
         sourceSettings.save(row);
     }
 

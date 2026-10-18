@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
@@ -39,6 +40,7 @@ public class OutlookFamilies {
     private final List<Family> families;
 
     /** Loads the bundled families. */
+    @Autowired
     public OutlookFamilies(JsonMapper json) {
         this.families = load(json);
     }

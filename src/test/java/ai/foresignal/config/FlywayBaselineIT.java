@@ -159,9 +159,13 @@ class FlywayBaselineIT {
     @Test
     @DisplayName("ensureAhead creates leaves for both tiers after the migration, and never a DEFAULT partition")
     void partitionManagerCreatesLeavesAfterwards() {
-        JdbcTemplate db = scratch.jdbc();
+        // Own scratch: ensureAhead() attaches leaves, which must not pollute the shared `scratch` that
+        // recordVersionIsTiered() asserts is leaf-free (the class shares one migrated scratch, in any method order).
+        ScratchDatabase leaves = ScratchDatabase.recreate(jdbc, "flyway_baseline_leaves");
+        Flyway.configure().dataSource(leaves.dataSource()).locations("classpath:db/migration").load().migrate();
+        JdbcTemplate db = leaves.jdbc();
         PartitionManager partitions =
-                new PartitionManager(scratch.dataSource(), new SimpleMeterRegistry(), HistoryProperties.defaults());
+                new PartitionManager(leaves.dataSource(), new SimpleMeterRegistry(), HistoryProperties.defaults());
 
         partitions.ensureAhead();
 

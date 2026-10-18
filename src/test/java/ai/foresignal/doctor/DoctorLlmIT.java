@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -36,6 +37,7 @@ import tools.jackson.databind.json.JsonMapper;
  * (context limits, injection, lenient JSON, patches, timeout) are in {@link DoctorLlmTest}.
  */
 @IntegrationTest
+@Import(MutableClock.TestConfig.class)
 class DoctorLlmIT extends WireMockSupport {
 
     static final JsonMapper JSON = JsonMapper.builder().build();

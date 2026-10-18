@@ -43,6 +43,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -58,6 +59,7 @@ import tools.jackson.databind.json.JsonMapper;
  * private filtering, and the tool shapes.
  */
 @IntegrationTest
+@Import(MutableClock.TestConfig.class)
 class HypothesisControllersIT {
 
     static final Instant NOW = Instant.parse("2026-10-17T12:00:00Z");

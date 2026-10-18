@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
@@ -27,6 +28,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * provider has a {@code knowledgeCutoff}. Archival proposals flag sets past their horizon.
  */
 @IntegrationTest
+@Import(MutableClock.TestConfig.class)
 class MonthlyMaintenanceIT {
 
     static final Instant NOW = Instant.parse("2026-11-01T03:30:00Z");

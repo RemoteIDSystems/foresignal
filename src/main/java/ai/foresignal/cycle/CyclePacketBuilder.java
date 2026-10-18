@@ -184,7 +184,7 @@ public final class CyclePacketBuilder {
         if (cycleCadence == null || CycleVocabulary.ON_DEMAND.equals(cycleCadence)) {
             return true;
         }
-        int set = CycleVocabulary.CADENCES.indexOf(setCadence);
+        int set = setCadence == null ? -1 : CycleVocabulary.CADENCES.indexOf(setCadence);
         int cycle = CycleVocabulary.CADENCES.indexOf(cycleCadence);
         return set < 0 || cycle < 0 || set <= cycle;
     }

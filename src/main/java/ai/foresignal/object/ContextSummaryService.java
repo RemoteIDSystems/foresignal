@@ -298,7 +298,7 @@ public class ContextSummaryService {
                     items.add(activityItem(rs.getTimestamp(2).toInstant(), "finding:" + rs.getString(1), "finding",
                             rs.getString(4), rs.getString(3), rs.getString(5)));
                 }, concat(window, box));
-        jdbc.query("SELECT s.id, l.at, l.action, s.title, s.severity, s.private, s.signal_families::text"
+        jdbc.query("SELECT s.id, l.at, l.action, s.title, s.severity, s.private, to_jsonb(s.signal_families)"
                 + " FROM situation_log l JOIN situation s ON s.id = l.situation_id WHERE l.at >= ? AND l.at <= ?"
                 + " AND s.geom && " + env + " ORDER BY l.at DESC LIMIT 100", rs -> {
                     if (rs.getBoolean(6) && !context.seesPrivate()) {
