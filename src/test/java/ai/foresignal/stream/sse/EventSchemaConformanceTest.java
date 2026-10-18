@@ -217,7 +217,70 @@ class EventSchemaConformanceTest {
             entry(ai.foresignal.social.narrative.NarrativeVocabulary.EVENT_MEDIA_REUSE,
                     EventSchemaConformanceTest::mediaReuseEvents),
             entry(ai.foresignal.social.narrative.NarrativeVocabulary.EVENT_COORDINATION,
-                    EventSchemaConformanceTest::coordinationEvents));
+                    EventSchemaConformanceTest::coordinationEvents),
+            // 137: SocialTopic sends the bodies ComparisonService, SocialCueService and AttentionGapDetector build.
+            entry(ai.foresignal.social.correlation.CorrelationVocabulary.EVENT_COMPARISON,
+                    EventSchemaConformanceTest::comparisonEvents),
+            entry(ai.foresignal.social.correlation.CorrelationVocabulary.EVENT_CUE, EventSchemaConformanceTest::cueEvents),
+            entry(ai.foresignal.social.correlation.CorrelationVocabulary.EVENT_GAP,
+                    EventSchemaConformanceTest::attentionGapEvents));
+
+    /** A comparison row (prompt 137). */
+    static ai.foresignal.social.correlation.ComparisonStore.Comparison comparisonRow(String status) {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        Map<String, Object> place = new java.util.LinkedHashMap<>();
+        place.put("ref", null);
+        place.put("name", "Aden");
+        place.put("geom", Map.of("type", "Point", "coordinates", List.of(45.03, 12.78)));
+        place.put("precision", "locality");
+        place.put("confidence", 0.9);
+        place.put("regionCode", "YE");
+        return new ai.foresignal.social.correlation.ComparisonStore.Comparison("01JA8Q3V7S2K9W4T6Y1B5N0M3H",
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3D", "01JA8Q3V7S2K9W4T6Y1B5N0M3C", "explosion", "conflict", place, 45.03,
+                12.78, "YE", at.minusSeconds(21_600), at.plusSeconds(86_400), status, List.of(), Map.of("p", 0.9, "lo",
+                0.8, "hi", 0.95, "methods", List.of("declared"), "ok", true), Map.of("socialFirst", at.toString()),
+                null, List.of(), "organic", null, null, List.of("bluesky"), 2, null, 2, at.plusSeconds(172_800), null,
+                at, at);
+    }
+
+    /** {@code comparison.updated} as {@code ComparisonService.comparisonEvent} builds it. */
+    static List<JsonNode> comparisonEvents() {
+        return List.of(toTree(ai.foresignal.social.correlation.ComparisonService.comparisonEvent(
+                comparisonRow("corroborated"), "pending")), toTree(
+                ai.foresignal.social.correlation.ComparisonService.comparisonEvent(comparisonRow("pending"), null)));
+    }
+
+    /** {@code cue.completed} as {@code SocialCueService.cueEvent} builds it. */
+    static List<JsonNode> cueEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        Map<String, Object> query = new java.util.LinkedHashMap<>();
+        query.put("platform", "bluesky-search");
+        query.put("query", "\"Aden\" AND \"explosion\"");
+        query.put("language", "en");
+        query.put("estimatedCostUsd", 0.0);
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("platform", "bluesky-search");
+        result.put("posts", 4);
+        result.put("costUsd", 0.0);
+        result.put("error", null);
+        ai.foresignal.social.correlation.ComparisonStore.Cue cue = new ai.foresignal.social.correlation.ComparisonStore
+                .Cue("01JA8Q3V7S2K9W4T6Y1B5N0M3J", "finding", "finding:01JA8Q3V7S2K9W4T6Y1B5N0M3K", "platform-apis",
+                List.of(query), List.of("bluesky-search"), at.minusSeconds(21_600), at.plusSeconds(86_400), "done",
+                null, List.of(result), List.of("01JA8Q3V7S2K9W4T6Y1B5N0M3C"), java.math.BigDecimal.ZERO,
+                java.math.BigDecimal.ONE, Map.of(), "system", at, at, at.plusSeconds(60), null);
+        return List.of(toTree(ai.foresignal.social.correlation.SocialCueService.cueEvent(cue)));
+    }
+
+    /** {@code attention.gap} as {@code AttentionGapDetector.gapEvent} builds it. */
+    static List<JsonNode> attentionGapEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        ai.foresignal.social.correlation.AttentionGapDetector.Candidate c =
+                new ai.foresignal.social.correlation.AttentionGapDetector.Candidate("finding:01JA8Q3V7S2K9W4T6Y1B5N0M3K",
+                        "Outage change point", "finding:outage", "significant", "YE", at.minusSeconds(21_600));
+        return List.of(toTree(ai.foresignal.social.correlation.AttentionGapDetector.gapEvent(
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3L", c, 120.0,
+                new ai.foresignal.social.correlation.AttentionGapDetector.Attention(3, 40, List.of("bluesky")), at)));
+    }
 
     /** A narrative row as the narrative store reads it (prompt 136). */
     static ai.foresignal.social.narrative.NarrativeStore.Narrative narrativeRow() {

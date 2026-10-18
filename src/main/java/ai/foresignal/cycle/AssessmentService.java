@@ -232,7 +232,7 @@ public class AssessmentService {
         out.put("private", a.isPrivateAssessment());
         out.put("createdAt", a.getCreatedAt().toString());
         out.put("coverage", a.getNewsCoverage());
-        out.put("social", null);
+        out.put("social", a.getSocial());
         return out;
     }
 

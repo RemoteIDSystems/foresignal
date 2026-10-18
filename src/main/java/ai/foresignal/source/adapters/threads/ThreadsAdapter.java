@@ -1,5 +1,6 @@
 package ai.foresignal.source.adapters.threads;
 
+import ai.foresignal.social.CueRequests;
 import ai.foresignal.social.QuotaLedger;
 import ai.foresignal.social.SocialCollector;
 import ai.foresignal.social.SocialPlatformSettings;
@@ -24,6 +25,7 @@ import ai.foresignal.source.spi.UpstreamResponse;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -118,6 +120,9 @@ public class ThreadsAdapter implements PollingAdapter {
         Instant now = ctx.now();
         QuotaLedger quotas = runtime.quotas();
         SocialCollector collector = runtime.collector();
+        for (CueRequests.Request r : runtime.drainCues(ID)) {
+            cue(ctx, runtime, token.strip(), r, out);
+        }
         for (SocialQueries.Query q : SocialQueries.window(SocialQueries.forNetwork(runtime.index(),
                 SocialVocabulary.THREADS), ctx.state(), QUERIES_PER_RUN)) {
             if (SocialQueries.ACCOUNT.equals(q.kind())) {
@@ -158,6 +163,50 @@ public class ThreadsAdapter implements PollingAdapter {
             }
         }
         return FetchResult.of(new ArrayList<>(out.values()));
+    }
+
+    /**
+     * Runs one 137 cue query: {@code keyword_search} (RECENT, KEYWORD) with the exact query since the window start
+     * within the rolling 2,200-query quota, posts after the window end dropped; posts are stored with
+     * {@code collection = cue} and counted as sampled (never baselined).
+     */
+    void cue(FetchContext ctx, SocialRuntime runtime, String token, CueRequests.Request r,
+            Map<String, NormalizedRecord> out) {
+        int found = 0;
+        String error = null;
+        QuotaLedger quotas = runtime.quotas();
+        try {
+            if (quotas != null && quotas.used(ID, "queries", DAY) + 1 > QUERIES_PER_DAY) {
+                error = "BUDGET_EXCEEDED: 2,200 queries in the last 24 hours";
+            } else {
+                long since = Math.max(MIN_SINCE, r.from().getEpochSecond());
+                JsonNode data = get(ctx, URI.create(base + "/keyword_search?q=" + enc(r.query())
+                        + "&search_type=RECENT&search_mode=KEYWORD&fields=" + enc(FIELDS) + "&since=" + since + "&limit="
+                        + Math.max(1, Math.min(100, r.maxResults())) + "&access_token=" + enc(token))).get("data");
+                if (quotas != null) {
+                    quotas.record(ID, "queries", null, 1);
+                }
+                if (data != null && data.isArray()) {
+                    for (JsonNode item : data) {
+                        SocialPost post = post(item);
+                        if (post == null || (post.createdAt() != null && r.to() != null
+                                && post.createdAt().isAfter(r.to()))) {
+                            continue;
+                        }
+                        SocialCollector.Observation obs = runtime.collector().observe(
+                                post.withCollection(SocialVocabulary.COLLECTION_CUE, r.cueId()), ID,
+                                SocialVocabulary.SAMPLED);
+                        if (obs.record() != null) {
+                            out.put(obs.record().externalId(), obs.record());
+                        }
+                        found++;
+                    }
+                }
+            }
+        } catch (AdapterException | RuntimeException e) {
+            error = e.getMessage() == null ? e.toString() : e.getMessage();
+        }
+        runtime.reportCue(new CueRequests.Result(r.cueId(), ID, r.query(), found, BigDecimal.ZERO, error));
     }
 
     /** The post of a keyword-search item. */

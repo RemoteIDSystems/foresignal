@@ -1364,8 +1364,8 @@ the failure is announced as a `system` event to your *other* channels. `429` ans
 
 Common fields: `events` (`alert`, `briefing`, `system`, and the opt-in events of later prompts such as
 `situation.activated`, `situation.escalated`, `finding.significant`, `forecast.resolved`,
-`forecast.resolution_needed`, `hypothesis.band_changed`, `indicator.observed`, `assumption.broken` and
-`assessment.published`; default `["alert"]`), `ruleIds` (null for
+`forecast.resolution_needed`, `hypothesis.band_changed`, `indicator.observed`, `assumption.broken`,
+`assessment.published`, `social.divergence` and `social.attention_gap`; default `["alert"]`), `ruleIds` (null for
 every rule), `minSeverity`, `titleTemplate` and `bodyTemplate` (the trigger placeholders plus
 `{{severity}}`, `{{summary}}`, `{{url}}`, `{{ruleName}}` and `{{message}}`; `{{observedAt|local}}`
 prints `2026-05-01 07:00 CDT` in the channel timezone and `{{observedAt|ago}}` prints `3 min ago`),
@@ -5976,7 +5976,8 @@ Discovery finds patterns nobody wrote a rule for and says how often each would t
 prompt 127 the impact projector of "Impact projection" writes `projected-impact` findings; since prompt 133 the coverage
 job of "News coverage and media bias" writes `coverage-blindspot` and `coverage-divergence` findings; since prompt 135
 the social jobs write `social-velocity` findings, and since prompt 136 the narrative jobs of "Narratives and claims"
-write `media-reuse` and `social-coordination` findings)
+write `media-reuse` and `social-coordination` findings, and since prompt 137 the attention-gap detector of "Social
+versus physical" writes `attention-gap` findings)
 on their own schedule, deterministically and without an LLM; what they find is an **analytic finding**
 (`GET /v1/analytics/findings`), also published as a record of the DERIVED source `foresignal-analytics` (kind
 `analytic-finding`), so ordinary rules can alert on findings (`kind=analytic-finding`, `severity == significant`) and
@@ -8123,7 +8124,7 @@ Social collection follows your 117 attention topics. Add a `social` block to a t
            "platforms": [], "placeIds": [], "regionCodes": ["IR", "OM"], "entityRefs": []}
 ```
 
-- `mode` `standing` collects and counts continuously; `cue-only` is kept for the targeted searches of prompt 137.
+- `mode` `standing` collects and counts continuously; `cue-only` collects only the targeted searches (cues) of prompt 137.
 - `terms` per language (at most 50 in total) match case- and diacritic-insensitively on word boundaries (Arabic and
   Hebrew prefixes such as و and ה are allowed; Chinese and Japanese match anywhere); `hashtags` (at most 30) match
   tags; `exclude` terms drop a post that would otherwise match. `accounts` (at most 100, `{platform, handle}`) and
@@ -8201,7 +8202,7 @@ absence and downward findings stay silent.
 **Streams.** The `social` topic of `/v1/events/stream` (cursor key `o`) carries `social.velocity` and
 `social.platform.state`, and since prompt 136 the narrative events (see
 [Narratives and claims](#narratives-and-claims-prompt-136)). Problem codes: `404 UNKNOWN_PLATFORM`, `BUDGET_EXCEEDED` (the X cap) and `409 PLATFORM_DISABLED`,
-reserved for the targeted searches of prompt 137 when no requested platform is enabled.
+raised by `POST /v1/social/cues` (prompt 137) when no requested platform is enabled and search-capable.
 
 **Settings.** App settings `social.languages`, `social.minRegionBaseline` (20) and `social.velocity`
 (`{"minRatio": 5, "minUniqueAuthors": 20, "dedupHours": 6}`); deployment properties `foresignal.social.scheduled`
@@ -8214,8 +8215,8 @@ Posts become the units analysts reason with: **narratives** (posts that say the 
 platforms and news, and **coordination indicators**. Four rules hold throughout:
 
 - **Claims are reports, not facts.** A claim's status describes how it relates to independent evidence (prompt 137
-  sets it); nothing here marks a claim true or false. Until 137 compares a narrative, its status and its claims'
-  statuses are `unassessed`.
+  sets it, see [Social versus physical](#social-versus-physical-prompt-137)); nothing here marks a claim true or
+  false. Until 137 compares a narrative, its status and its claims' statuses are `unassessed`.
 - **Earliest observed, not originator.** Foresignal records the earliest post it observed on each platform; it never
   says who started a narrative.
 - **Indicators, not labels.** Coordination is a set of statistics on a narrative against null models, never a label on
@@ -8309,7 +8310,8 @@ that it happened. `GET /v1/social/claims?narrativeId&situationId&type&status&bbo
 
 **Claims as evidence.** Each claim is a 125 evidence item with an Admiralty grade. Its source reliability is that of
 the account or channel of its earliest supporting post: `F` (cannot be judged) by default, `E` once that account or
-channel has at least 10 claims assessed by 137 with at least 70% corroborated, `D` at 85% or more. An operator
+channel has at least 10 claims assessed by 137 with at least 70% corroborated, `D` at 85% or more (the three numbers
+are the `trackRecord` member of `PUT /v1/settings/social`, app setting `social.trackRecord`). An operator
 override wins: the app setting `social.sourceReliability` is a JSON object from `account:{platform}:{authorKey}` (the
 author key shown on the post) or `channel:{platform}:{channel}` to a letter A–F. Information credibility follows the
 claim's status: 6 while unassessed, pending or without coverage, 2 corroborated, 5 unobserved, 4 contradicted. Add a
@@ -8414,3 +8416,176 @@ labels one.
 - Tables (Hibernate, captured by prompt 144): `social_narrative`, `social_narrative_member`, `social_narrative_log`,
   `social_claim`, `media_fingerprint`, `media_use`, `social_media_queue` and `social_propagation_edge`. Narratives,
   claims and fingerprints are intelligence tables: they are kept when the posts behind them expire.
+
+## Social versus physical (prompt 137)
+
+Prompt 137 compares what people say with what Foresignal observes. Significant claims are tested against independent
+physical evidence in the same place and window, with sensor coverage taken into account; significant physical events
+that drew far less discussion than similar past events are reported; physical findings cue targeted, budgeted social
+searches; and the predictive value of social signals is measured out of sample. Four rules hold throughout:
+
+- **Two worlds, tracked separately.** A narrative never corroborates itself and never counts as an independent
+  evidence group for the physical event it describes. Situations count narratives as social evidence groups, apart from
+  their physical corroboration, and a hypothesis indicator is `observed` only from physical evidence.
+- **Absence needs detectability.** "No corresponding change observed" is said only where the 116 `canSeeAbsence` check
+  holds for the claim's family, place and window; otherwise the answer is `insufficient-coverage`. An attention gap
+  likewise needs adequate social coverage of the region (135).
+- **Lead times are measured, not assumed.** A kind of social signal is said to lead the physical world only from
+  out-of-sample precursor tests (120) and ledger scores (122). A single case is an observed lead time, never
+  predictive value.
+- **No accusations.** Social activity before an event is reported as timing ("discussion accelerated 47 minutes before
+  the first AIS anomaly"), never as foreknowledge.
+
+### Comparisons and what their statuses mean
+
+`SocialPhysicalComparator` 1.0.0 compares the claims of **significant narratives**: those with at least
+`social.compare.minGroups` (3) evidence groups, or a `social-velocity` finding on one of their topics or places. A claim
+is compared when it is asserted (denied and questioned claims are not), has a signal family other than `attention`, and
+names a place of `point` or `locality` precision (`admin1` too for the large-area families: seismic, severe weather,
+outages, internet measurement, GNSS interference, cyber and health).
+
+For each such claim a **comparison** holds the claim's place and family, a **window** around the claim time (the
+claim's own event time when it states one, else its earliest supporting post): 6 hours before to 24 hours after by
+default, per family in `intel/social/social-compare.json` (earthquakes 2 h before and 12 h after, severe weather 12 h
+and 36 h, health 7 and 14 days), the matching **physical evidence**, the **detectability**, the **lead times** and the
+manifest. Physical evidence is every canonical event (116) of the family's canonical families and every non-social
+finding (119) of its signal families, with a non-social originator, inside the window and within the family's distance
+tolerance of the claim's place (conflict 25 km, fires 15 km, earthquakes 150 km, outages 75 km and so on; evidence
+without a geometry, and evidence of a large-area family, match by region).
+
+| Status | Means | Does not mean |
+|---|---|---|
+| `corroborated` | at least one non-social evidence group matches the claim in place and window | that every detail of the claim is right |
+| `unobserved` | nothing matched, the window has closed, and coverage could have seen it (`canSeeAbsence` ok) | that the claim is false: sensors miss things, and a claim may be about something no family observes |
+| `contradicted` | an agency or sensor record explicitly reports normal conditions for the place and time (the family's negating records, for example a status page reporting normal service), or the claim's image is a `media-reuse` finding | that anyone lied |
+| `insufficient-coverage` | nothing matched and coverage could not have seen it | anything about the claim |
+| `pending` | the window is still open and nothing matched yet | anything yet |
+
+A narrative's status follows its comparisons: `pending` while none is final, the agreeing final status, otherwise
+`mixed` (an `insufficient-coverage` claim does not split a narrative whose other claims agree); a claim's information
+credibility follows its status (136). Comparisons are re-evaluated every 15 minutes as late evidence arrives, until the
+window has closed plus the family's publication lag (24 hours by default, 7 days for conflict, 14 days for health);
+every status change, and every change of the matching evidence, is a revision with its reason and manifest. A
+corroborated comparison carries the signed lead of the first post over the first physical, official (agency) and news
+observation, in seconds; positive means social came first.
+
+| Call | What it does |
+|---|---|
+| `GET /v1/social/comparisons?status&situationId&narrativeId&claimId&family&region&since&cursor&limit` (read) | Comparisons, newest evaluation first |
+| `GET /v1/social/comparisons/{id}` (read) | One comparison with every revision; 404 `UNKNOWN_COMPARISON` |
+
+A comparison opened as `pending` from an organically found narrative also opens a binary **ledger question** (122),
+category `social`: "Independent confirmation of {claim type} at {place} within {window}?". Its `manual` resolver is
+the comparison itself: `corroborated` resolves it yes, `unobserved` or `contradicted` no, and `insufficient-coverage`
+annuls it (`COVERAGE_GAP`). The **`social-claim`** forecaster 1.0.0 forecasts it when it opens, from the base rate of
+corroboration among decided comparisons of the same claim type, platform mix, region and evidence-group band under a
+Jeffreys Beta(½, ½) prior, backing off to coarser cells below five decided comparisons. Its scorecard shows how far
+claims of each kind can be trusted. Cue-found claims open no question: they were found by looking for the event that
+would confirm them.
+
+### Attention gaps
+
+`AttentionGapDetector` 1.0.0 runs hourly on `significant` non-social findings (or `notable`, with
+`social.attentionGap.minSeverity`), situation escalations and critical alerts. Their **attention** is the posts
+attributed to their region on the complete-stream platforms in the `windowHours` (6) after them, normalized by the
+region's trailing 8-week baseline for those hours. The **expected attention** comes from past events of the same family
+and severity band in the trailing `lookbackDays` (365): a log-normal fit when at least five exist, else the empirical
+distribution of the region's past events of that family, with its median as the expectation. When the attention is
+below the `percentile` (10th) of that distribution **and** social observability is ok for the region and window, an
+`attention-gap` finding records the expected and observed posts and the platforms covered, and `attention.gap` is
+emitted. Without adequate coverage nothing is recorded (the log says `LOW_SOCIAL_COVERAGE`): silence where nobody is
+listening says nothing. An attention gap describes discussion, not importance.
+
+### Cues and their costs
+
+A **cue** is a targeted search around a physical event: the place's names and aliases (036 places, 040 regions, the
+claim lexicon's aliases in other scripts), nearby facilities (104) and entities (098), the event terms of its families
+from the claim lexicon in the region's languages (`intel/social/region-languages.json`; English always), and your extra
+terms. One query per language and platform is run on the enabled search-capable platforms (`bluesky-search`, `reddit`,
+`x`, `threads`), each in that platform's syntax; the cue records every exact query.
+
+- **Automatic cues** (`social.cues.triggers`): a situation activated or escalated, a `significant` finding of a listed
+  type (by default change points in outage, internet, vessel, flight and fire series), an anomaly, a critical alert,
+  and a canonical event of a listed family with at least two evidence groups. A trigger is cued at most once a day.
+- **Manual cues:** `POST /v1/social/cues` (agent, always authenticated) with a `placeId`, `regionCode`, `bbox`,
+  `entityRef` or `situationId`, optional `terms`, `families` and `platforms`, a `window` and a `maxCostUsd`; it answers
+  202 with the queued cue. `409 PLATFORM_DISABLED` when no requested platform is enabled and search-capable,
+  `429 CUE_LIMIT_REACHED` (with `Retry-After`) at the daily limit, `429 BUDGET_EXCEEDED` when the cost cap or the X
+  monthly cap leaves no room. MCP `run_social_cue`.
+- `GET /v1/social/cues?status&since` and `GET /v1/social/cues/{id}` (read; 404 `UNKNOWN_CUE`) show the trigger, the
+  queries, the status (`queued`, `running`, `done`, `failed`, `budget-refused`), the posts found per platform, the
+  narratives they joined and the cost; `cue.completed` is emitted when a cue ends.
+
+**Costs.** At most `social.cues.maxPerDay` (50) cues run per UTC day, automatic and manual together. Bluesky, Reddit and
+Threads cost nothing but their own quotas (Threads' 2,200 queries a day included). X bills every post read: each X query
+is estimated before it is sent (50 results × the post-read price, $0.25 at $0.005 a post), must fit the
+cue's cap (`maxCostUsdPerCue`, $1.00) and the platform's monthly cap, and is charged from the answer. The optional
+**`xai-x-search`** backend (`social.cues.xaiXSearch.enabled`, off by default) asks the 026 LLM provider with id `xai`
+(an `openai-compatible` provider with base URL `https://api.x.ai/v1` and your xAI key) through `POST /responses` with
+the `x_search` tool limited to the cue's dates; it keeps only the cited post links, never the model's text, spends the
+provider's token budget and is billed per post fetched ($5 per 1,000 as of 2026-09-21).
+
+**What cue results are.** The adapters store what a cue finds as posts with `collection = cue` and the cue id. They
+join narratives and are compared like any posts, but they are a **targeted sample**: they are counted as sampled
+collection, so they never feed baselines or region coverage, their comparisons record `foundBy: cue`, and lead-time
+statistics keep them apart from organic narratives. **A cue never corroborates its own trigger**: a cue-found claim whose
+only match is the event that cued the search carries the caveat `CUE_TRIGGER_MATCH`, opens no ledger question, and
+nothing a cue finds is ever counted as evidence for the trigger. Cue-found narratives never raise cues of their own.
+
+### Reading lead times
+
+`GET /v1/social/lead-times?claimType&platform&region&foundBy&since` (read; MCP `get_social_lead_times`) groups the
+corroborated comparisons by claim type, platform, region and `foundBy` and gives, per group, the median and
+interquartile lead of the first post over physical, news and official first observation, with counts. The **training
+cut-off** splits the comparisons by evaluation time at the 120 discovery fraction (two thirds): only comparisons
+evaluated after it are out of sample, and only `outOfSampleOverPhysical` supports a statement that a kind of social
+signal leads. Assessments state a lead only for groups with at least five out-of-sample comparisons.
+
+Social volume series (135) are registered in the 119 analysis-series registry with family `social` and their region
+(a topic's first region, a place's country), so the 120 miner pairs them, as antecedents only, with the physical series
+of their region. Benjamini–Hochberg control and later-period validation apply unchanged, and survivors appear in the
+precursor library with `family = social`.
+
+### In analysis
+
+- **Situations (118).** `GET /v1/situations/{id}` carries a `social` section: the top narratives linked to the
+  situation (status, velocity, origin concentration, observed lead time, `foundBy`), their evidence groups counted
+  apart from physical corroboration, the attention gap, and whether social coverage of its regions is adequate.
+  Narratives link to situations by place, family and time: an open situation sharing a region (or its country) with
+  the narrative's claims, carrying one of their signal families and active within a day of the narrative.
+- **Hypotheses (125).** A compared claim marks a waiting indicator of the same family in a set linked to the
+  narrative's situation (or sharing its region) `reported`: no probability moves, and the indicator keeps waiting. When
+  the comparison is corroborated the indicator becomes `observed` from the matching physical evidence; when it is
+  `unobserved` under adequate coverage the indicator becomes `absent`, weighted by the detection probability, so
+  hypotheses that require the claimed event lose support.
+- **Assessments (128).** Packets and assessments carry `social` ("What people are saying versus what we observe",
+  section id `social-versus-observed`): narratives by status, notable narratives, attention gaps, out-of-sample lead
+  times only, media reuse and coordination findings. The section is deterministic and passes the ICD 203 lint.
+- **Chronicles (131).** Layer `social-narratives` (topics, places, regions, situations, statuses, `keepPostText`)
+  writes `narrative-change` and `comparison-change` thread items whose snapshots keep the narrative, its claim
+  summaries and the comparison, so the history survives the posts; post text is kept only with `keepPostText`. Layer
+  `social-volume` (scopes, platforms, metrics) samples the `social:` series like computed series.
+- **Notifications (018).** `social.divergence` (a comparison of a narrative at or above the velocity threshold became
+  `unobserved` or `contradicted`) and `social.attention_gap`, off by default: add them to a channel's `events`.
+
+### Settings, events and problem codes
+
+`GET /v1/settings/social` and `PUT /v1/settings/social` (admin) read and replace one `SocialSettings` document over the
+`social.*` app settings: `languages`, `minRegionBaseline`, `velocity`, `llmClaimMinPosts` (`llmClaimMinEvidenceGroups`
+is fixed at 5), `keepMedia`, `trackRecord` (`minAssessed` 10, `gradeEShare` 0.7, `gradeDShare` 0.85, and the
+overrides, keyed by platform and author key or channel), `compare` (`minGroups`, `defaultWindow`, `familyWindows` with
+`before`, `after`, `toleranceKm` and `publicationLag`), `attentionGap` and `cues`. Members left out return to their
+defaults; changes apply to the next evaluation, and final comparisons keep their status.
+
+- SSE topic `social`: `comparison.updated`, `cue.completed` and `attention.gap`, next to the 135 and 136 events.
+- MCP: `compare_claim` and `get_social_lead_times` (read; also in the analyst's read catalog), `run_social_cue`
+  (agent, cost-bearing).
+- Problem codes: `404 UNKNOWN_COMPARISON`, `404 UNKNOWN_CUE`, `429 CUE_LIMIT_REACHED`, `429 BUDGET_EXCEEDED`,
+  `409 PLATFORM_DISABLED`.
+- Deployment properties `foresignal.social.correlation-scheduled` (true; off in tests: the 15-minute comparisons and
+  cue passes, the hourly attention-gap and canonical cue passes, and the cue triggers on the situation, finding and
+  alert buses) and `foresignal.social.cues-async` (true: a manual cue runs at once on a virtual thread).
+- Tables (Hibernate, captured by prompt 144): `social_comparison`, `social_comparison_revision` and `social_cue`;
+  assessments gain the column `social`.
+- The benchmark component `social-physical` covers six scenarios: a planted narrative with no physical event under
+  adequate and thin coverage, a planted event with organic discussion and with silence, a reused image, and a cue loop.

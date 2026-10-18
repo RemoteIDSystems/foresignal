@@ -1,5 +1,6 @@
 package ai.foresignal.source.adapters.bluesky;
 
+import ai.foresignal.social.CueRequests;
 import ai.foresignal.social.SocialCollector;
 import ai.foresignal.social.SocialPlatformSettings;
 import ai.foresignal.social.SocialPost;
@@ -20,6 +21,7 @@ import ai.foresignal.source.spi.PollingAdapter;
 import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.UpstreamFormatException;
 import ai.foresignal.source.spi.UpstreamResponse;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -140,6 +142,9 @@ public class BlueskySearchAdapter implements PollingAdapter {
         }
         Map<String, NormalizedRecord> out = new LinkedHashMap<>();
         SocialCollector collector = runtime.collector();
+        for (CueRequests.Request r : runtime.drainCues(ID)) {
+            cue(ctx, runtime, base, headers, r, out);
+        }
         for (SocialQueries.Query q : SocialQueries.window(SocialQueries.forNetwork(runtime.index(),
                 SocialVocabulary.BLUESKY), ctx.state(), QUERIES_PER_RUN)) {
             if (SocialQueries.ACCOUNT.equals(q.kind())) {
@@ -189,6 +194,38 @@ public class BlueskySearchAdapter implements PollingAdapter {
             }
         }
         return FetchResult.of(new ArrayList<>(out.values()));
+    }
+
+    /**
+     * Runs one 137 cue query: {@code searchPosts} with the exact query since the window start, posts after the window
+     * end dropped; posts are stored with {@code collection = cue} and counted as sampled (never baselined).
+     */
+    void cue(FetchContext ctx, SocialRuntime runtime, String base, Map<String, String> headers, CueRequests.Request r,
+            Map<String, NormalizedRecord> out) {
+        int found = 0;
+        String error = null;
+        try {
+            String url = base + "/xrpc/app.bsky.feed.searchPosts?q=" + enc(r.query()) + "&sort=latest&limit="
+                    + Math.max(1, Math.min(PAGE, r.maxResults())) + "&since=" + enc(r.from().toString());
+            JsonNode posts = get(ctx, URI.create(url), headers).get("posts");
+            if (posts != null && posts.isArray()) {
+                for (JsonNode view : posts) {
+                    SocialPost post = BlueskyRecords.fromPostView(view, SocialVocabulary.COLLECTION_CUE);
+                    if (post == null || (post.createdAt() != null && r.to() != null && post.createdAt().isAfter(r.to()))) {
+                        continue;
+                    }
+                    SocialCollector.Observation obs = runtime.collector().observe(
+                            post.withCollection(SocialVocabulary.COLLECTION_CUE, r.cueId()), ID, SocialVocabulary.SAMPLED);
+                    if (obs.record() != null) {
+                        out.put(obs.record().externalId(), obs.record());
+                    }
+                    found++;
+                }
+            }
+        } catch (AdapterException | RuntimeException e) {
+            error = e.getMessage() == null ? e.toString() : e.getMessage();
+        }
+        runtime.reportCue(new CueRequests.Result(r.cueId(), ID, r.query(), found, BigDecimal.ZERO, error));
     }
 
     /** The session token when credentials are set (renewed hourly), else null. */

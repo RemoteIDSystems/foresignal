@@ -160,6 +160,11 @@ foresignal:
     # Narratives (prompt 136): the minute job refreshes grown narratives and fingerprints queued post images; hourly
     # states and the optional LLM claim extraction; daily (05:10 UTC) coordination indicators. Off in tests.
     narratives-scheduled: true
+    # Social versus physical (prompt 137): every 15 minutes the comparisons of significant narratives, queued cues and
+    # cue narratives; hourly (at :25) attention gaps and canonical-event cue triggers; the cue triggers listen to the
+    # situation, finding and alert buses. Manual cues run on a virtual thread (cues-async). Off in tests.
+    correlation-scheduled: true
+    cues-async: true
   # Discovery (119): analysis-series auto-registration (02:00 UTC), change points (03:00 and :20), unexplained moves
   # (04:00), co-occurrence (05:00) and the live event-study poll (every minute). Off in tests.
   analytics:

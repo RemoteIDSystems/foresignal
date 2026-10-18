@@ -40,7 +40,11 @@ import tools.jackson.databind.json.JsonMapper;
  *   <li>{@code series}: the {@code series-point} records of {@code series:} refs ({@code rollup:} and {@code rule:}
  *       refs are sampled instead, see {@link ChronicleSeriesSampler});</li>
  *   <li>{@code raster-products}: the {@code raster-frame} records of the products;</li>
- *   <li>{@code alerts}: not record-backed; the alert listener of {@link ChronicleCaptureService} feeds them.</li>
+ *   <li>{@code alerts}: not record-backed; the alert listener of {@link ChronicleCaptureService} feeds them;</li>
+ *   <li>{@code social-narratives} (137): not record-backed; narrative and comparison changes are written as thread
+ *       items by the 137 chronicle writer;</li>
+ *   <li>{@code social-volume} (137): not record-backed; its {@code social:} series are sampled by
+ *       {@link ChronicleSeriesSampler}.</li>
  * </ul>
  *
  * <p>The area (the layer's override, else the chronicle's) applies to records, saved views, watchlists, findings and
@@ -185,6 +189,10 @@ public class ChronicleLayerCompiler {
             }
             case ChronicleSelector.Alerts a -> new CompiledLayer(chronicleId, layerId, name, selector, capture, fromSeq,
                     Set.of(), Set.of(), row -> false, false);
+            case ChronicleSelector.SocialNarratives n -> new CompiledLayer(chronicleId, layerId, name, selector,
+                    capture, fromSeq, Set.of(), Set.of(), row -> false, false);
+            case ChronicleSelector.SocialVolume v -> new CompiledLayer(chronicleId, layerId, name, selector, capture,
+                    fromSeq, Set.of(), Set.of(), row -> false, false);
         };
     }
 

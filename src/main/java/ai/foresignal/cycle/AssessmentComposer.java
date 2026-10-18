@@ -84,6 +84,17 @@ public final class AssessmentComposer {
      *     blindspot stories, divergence findings), or null to leave the section out
      */
     public static Composed compose(Inputs in, Map<String, Object> newsCoverage) {
+        return compose(in, newsCoverage, null);
+    }
+
+    /**
+     * Composes the assessment with the social section (prompt 137).
+     *
+     * @param newsCoverage the news Coverage section, or null
+     * @param social the {@code SocialVersusObserved} section, or null to leave "What people are saying versus what we
+     *     observe" out
+     */
+    public static Composed compose(Inputs in, Map<String, Object> newsCoverage, Map<String, Object> social) {
         boolean onDemand = CycleVocabulary.ON_DEMAND.equals(in.cadence());
         boolean llmJudgments = in.analyst() != null && !in.analyst().judgments().isEmpty();
         List<Map<String, Object>> bluf = llmJudgments ? in.analyst().judgments() : deterministicBluf(in.packet());
@@ -143,6 +154,12 @@ public final class AssessmentComposer {
         if (newsCoverage != null) {
             sections.add(section("news-coverage", "Coverage", newsCoverageMarkdown(newsCoverage), "deterministic",
                     newsCoverage));
+        }
+        if (social != null) {
+            String socialMarkdown = ai.foresignal.social.correlation.SocialSections.markdown(social);
+            lint.addAll(ai.foresignal.social.correlation.SocialSections.lint(socialMarkdown));
+            sections.add(section("social-versus-observed", "What people are saying versus what we observe",
+                    socialMarkdown, "deterministic", social));
         }
         sections.add(section("speculation", "Speculation", speculationMarkdown(in, bluf), "deterministic", null));
         sections.add(section("sources", "Sources, coverage and caveats", sourcesMarkdown(in, citations.size()),

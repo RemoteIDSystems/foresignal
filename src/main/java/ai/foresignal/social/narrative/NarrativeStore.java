@@ -685,7 +685,8 @@ public class NarrativeStore {
                             + " place = CAST(? AS jsonb), place_lon = ?, place_lat = ?, region_code = ?, entity_refs = ?,"
                             + " event_time = CAST(? AS jsonb), actor = ?, support_count = ?, evidence_group_count = ?,"
                             + " first_observed_at = ?, manifest_id = ?, confidence = ?, source_key = ?,"
-                            + " source_reliability = ?, information_credibility = ?, updated_at = ? WHERE id = ?",
+                            + " source_reliability = ?, information_credibility = CASE status WHEN 'corroborated' THEN 2"
+                            + " WHEN 'contradicted' THEN 4 WHEN 'unobserved' THEN 5 ELSE ? END, updated_at = ? WHERE id = ?",
                     c.type(), c.signalFamily(), c.polarity(), c.hedged(), jsonOrNull(c.place()), c.lon(), c.lat(),
                     c.regionCode(), array(c.entityRefs()), jsonOrNull(c.eventTime()), clip(c.actor(), 200),
                     c.supportCount(), c.evidenceGroupCount(), Timestamp.from(c.firstObservedAt()), c.manifestId(),
@@ -706,6 +707,33 @@ public class NarrativeStore {
                 c.sourceReliability(), c.informationCredibility(), c.tlp(), Timestamp.from(c.createdAt()),
                 Timestamp.from(c.updatedAt()));
         return Map.entry(c.id(), true);
+    }
+
+    /**
+     * Sets a claim's 137 status and comparison; its information credibility follows the status (prompt 137).
+     *
+     * @return true when a row changed
+     */
+    public boolean updateClaimStatus(String claimId, String status, String comparisonId, Instant now) {
+        return jdbc.update("UPDATE social_claim SET status = ?, comparison_id = ?, information_credibility = ?,"
+                + " updated_at = ? WHERE id = ? AND (status IS DISTINCT FROM ? OR comparison_id IS DISTINCT FROM ?)",
+                status, comparisonId, SocialEvidenceGrades.credibility(status), Timestamp.from(now), claimId, status,
+                comparisonId) > 0;
+    }
+
+    /**
+     * Adds situations linked by place, family and time (prompt 137) to a narrative's {@code situation_ids}.
+     *
+     * @return true when a row changed
+     */
+    public boolean addSituations(String narrativeId, Collection<String> situationIds, Instant now) {
+        if (situationIds == null || situationIds.isEmpty()) {
+            return false;
+        }
+        return jdbc.update("UPDATE social_narrative SET situation_ids = (SELECT array_agg(DISTINCT x ORDER BY x) FROM"
+                + " unnest(COALESCE(situation_ids, '{}'::text[]) || ?) AS x), updated_at = ? WHERE id = ? AND NOT"
+                + " (COALESCE(situation_ids, '{}'::text[]) @> ?)", array(situationIds), Timestamp.from(now),
+                narrativeId, array(situationIds)) > 0;
     }
 
     /** Deletes a narrative's claims of one extraction whose keys are no longer derived. */

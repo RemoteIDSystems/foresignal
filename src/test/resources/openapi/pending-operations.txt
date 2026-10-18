@@ -1,11 +1,3 @@
-listSocialComparisons 137
-getSocialComparison 137
-listSocialCues 137
-createSocialCue 137
-getSocialCue 137
-getSocialLeadTimes 137
-getSocialSettings 137
-updateSocialSettings 137
 listExternalBindings 138
 createExternalBinding 138
 acceptSuggestedBindings 138

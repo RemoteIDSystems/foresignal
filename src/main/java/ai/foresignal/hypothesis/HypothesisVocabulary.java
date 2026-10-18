@@ -106,6 +106,12 @@ public final class HypothesisVocabulary {
     public static final List<String> INDICATOR_STATES = List.of(PENDING, EMERGING, OBSERVED, ABSENT, UNKNOWN_COVERAGE,
             RETIRED, REPORTED);
 
+    /**
+     * The states in which an indicator still waits for physical evidence: pending, emerging and {@code reported} (a
+     * social claim reported it, prompt 137; only physical evidence observes it).
+     */
+    public static final List<String> WAITING_STATES = List.of(PENDING, EMERGING, REPORTED);
+
     /** The credibility and relevance grades. */
     public static final List<String> GRADES = List.of("H", "M", "L");
 

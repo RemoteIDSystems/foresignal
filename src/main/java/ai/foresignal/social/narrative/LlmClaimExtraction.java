@@ -356,7 +356,8 @@ public class LlmClaimExtraction {
             String sourceKey = first == null ? null : first.sourceKey();
             int[] record = store.trackRecord(sourceKey);
             String reliability = SocialEvidenceGrades.reliability(record[0], record[1],
-                    SocialEvidenceGrades.override(overrides, sourceKey));
+                    SocialEvidenceGrades.override(overrides, sourceKey), SocialEvidenceGrades.thresholds(
+                            settings.get(SettingKeys.SOCIAL_TRACK_RECORD, Map.class).orElse(null)));
             ClaimExtractor.Place place = t.place();
             NarrativeStore.Claim claim = new NarrativeStore.Claim(Ulids.next(now), n.id(), t.key(), t.type(),
                     ClaimLexicon.bundled().type(t.type()).signalFamily(), t.polarity(), t.hedged(),

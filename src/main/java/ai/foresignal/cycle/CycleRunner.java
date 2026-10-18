@@ -208,6 +208,10 @@ public class CycleRunner {
         if (ctx != null && ctx.privateAllowed() && packet.privateInput()) {
             seen.set(true);
         }
+        Map<String, Object> social = social(scope, run);
+        if (social != null) {
+            packet.stored().put("social", social);
+        }
         run.setPacket(packet.stored());
         runs.save(run);
         reviewDue(run, packet);
@@ -272,7 +276,7 @@ public class CycleRunner {
         Map<String, Object> newsCoverage = newsCoverage(state, situation, run);
         AssessmentComposer.Composed composed = AssessmentComposer.compose(new AssessmentComposer.Inputs(title, cadence,
                 run.getPeriodStart(), run.getPeriodEnd(), situation == null ? null : situation.getTitle(), packet,
-                state, analyst, redTeam, outcomes, prev), newsCoverage);
+                state, analyst, redTeam, outcomes, prev), newsCoverage, social);
         boolean privateAssessment = packet.privateInput() || state.anyPrivate() || seen.get();
         AssessmentEntity a = new AssessmentEntity(Ulids.next(clock.instant()), cadence, run.getPeriodStart(),
                 run.getPeriodEnd(), clock.instant());
@@ -307,6 +311,7 @@ public class CycleRunner {
         a.setLintWarnings(composed.lintWarnings());
         a.setPrivateAssessment(privateAssessment);
         a.setNewsCoverage(newsCoverage);
+        a.setSocial(social);
         a.setManifestId(manifest(run, cycle, packet, outcomes, model, effort, providerId, templates));
         assessments.save(a);
 
@@ -326,6 +331,32 @@ public class CycleRunner {
     }
 
     private ai.foresignal.news.NewsCoverageService newsCoverageService;
+
+    private ai.foresignal.social.correlation.SocialSections socialSections;
+
+    /** Installs the social sections (prompt 137: "What people are saying versus what we observe"). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setSocialSections(ai.foresignal.social.correlation.SocialSections socialSections) {
+        this.socialSections = socialSections;
+    }
+
+    /** The {@code SocialVersusObserved} section of a run (its scope's situations, else every active narrative). */
+    private Map<String, Object> social(CycleScope scope, CycleRunEntity run) {
+        ai.foresignal.social.correlation.SocialSections sections = socialSections;
+        if (sections == null) {
+            return null;
+        }
+        try {
+            List<String> ids = new ArrayList<>(scope.situationIds());
+            if (run.getSituationId() != null && !ids.contains(run.getSituationId())) {
+                ids.add(run.getSituationId());
+            }
+            return sections.versusObserved(ids, run.getPeriodStart(), run.getPeriodEnd());
+        } catch (RuntimeException e) {
+            log.debug("No social section for cycle run {}: {}", run.getId(), e.toString());
+            return null;
+        }
+    }
 
     /** Installs the news coverage (prompt 133: the assessment's deterministic Coverage section). */
     @org.springframework.beans.factory.annotation.Autowired(required = false)

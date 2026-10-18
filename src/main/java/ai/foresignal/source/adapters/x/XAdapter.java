@@ -1,6 +1,7 @@
 package ai.foresignal.source.adapters.x;
 
 import ai.foresignal.collect.BudgetExceededException;
+import ai.foresignal.social.CueRequests;
 import ai.foresignal.social.SocialCollector;
 import ai.foresignal.social.SocialPlatformSettings;
 import ai.foresignal.social.SocialPost;
@@ -181,15 +182,22 @@ public class XAdapter implements PollingAdapter {
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
         SocialRuntime runtime = runtime();
         String bearer = ctx.credentials() == null ? null : ctx.credentials().get("bearerToken");
-        if (runtime == null || bearer == null || bearer.isBlank()) {
+        if (runtime == null) {
             return FetchResult.of(List.of());
+        }
+        Map<String, NormalizedRecord> cueOut = new LinkedHashMap<>();
+        for (CueRequests.Request r : runtime.drainCues(ID)) {
+            cue(ctx, runtime, bearer, r, cueOut);
+        }
+        if (bearer == null || bearer.isBlank()) {
+            return FetchResult.of(new ArrayList<>(cueOut.values()));
         }
         SocialPlatformSettings settings = runtime.settings(ID);
         String mode = settings.mode() == null ? "counts" : settings.mode();
         boolean full = settings.option("fullArchive", false);
         Map<String, String> headers = Map.of("Authorization", "Bearer " + bearer.strip(), "Accept",
                 "application/json");
-        Map<String, NormalizedRecord> out = new LinkedHashMap<>();
+        Map<String, NormalizedRecord> out = new LinkedHashMap<>(cueOut);
         Instant now = ctx.now();
         try {
             for (TopicQuery q : queries(runtime.index())) {
@@ -287,6 +295,79 @@ public class XAdapter implements PollingAdapter {
         if (newest != null) {
             ctx.state().put(sinceKey, newest);
         }
+    }
+
+    /**
+     * Runs one 137 cue request. Posts another backend already found ({@code xai-x-search}) are stored as they are.
+     * Otherwise a recent search with the exact query over the window (clipped to the recent-search week): the call is
+     * estimated first and refused when it would exceed the request's cost cap or the monthly cap (SOC-4), then charged
+     * per post returned. Posts are stored with {@code collection = cue} and counted as sampled (never baselined).
+     */
+    void cue(FetchContext ctx, SocialRuntime runtime, String bearer, CueRequests.Request r,
+            Map<String, NormalizedRecord> out) {
+        int found = 0;
+        BigDecimal cost = BigDecimal.ZERO;
+        String error = null;
+        try {
+            if (!r.posts().isEmpty()) {
+                for (SocialPost post : r.posts()) {
+                    SocialCollector.Observation obs = runtime.collector().observe(
+                            post.withCollection(SocialVocabulary.COLLECTION_CUE, r.cueId()), ID, SocialVocabulary.SAMPLED);
+                    if (obs.record() != null) {
+                        out.put(obs.record().externalId(), obs.record());
+                    }
+                    found++;
+                }
+            } else if (bearer == null || bearer.isBlank()) {
+                error = "PLATFORM_DISABLED: no bearer token";
+            } else {
+                SocialPlatformSettings settings = runtime.settings(ID);
+                int max = Math.max(10, Math.min(100, r.maxResults()));
+                BigDecimal estimate = XSpend.estimateSearch(settings, max);
+                if (r.maxCostUsd() != null && estimate.compareTo(r.maxCostUsd()) > 0) {
+                    error = "BUDGET_EXCEEDED: estimate " + estimate + " USD over the cue's cap " + r.maxCostUsd();
+                } else {
+                    reserve(runtime, settings, estimate);
+                    Instant now = ctx.now();
+                    Instant floor = now.minus(Duration.ofDays(7)).plus(Duration.ofMinutes(5));
+                    Instant start = r.from().isBefore(floor) ? floor : r.from();
+                    Instant end = r.to() == null || r.to().isAfter(now.minusSeconds(30)) ? null : r.to();
+                    URI uri = URI.create(base + "/2/tweets/search/recent?query=" + enc(r.query()) + "&max_results=" + max
+                            + "&start_time=" + enc(start.toString()) + (end == null || !end.isAfter(start) ? ""
+                            : "&end_time=" + enc(end.toString())) + "&" + fieldsParam(settings) + "=" + enc(POST_FIELDS)
+                            + "&expansions=" + enc("author_id,attachments.media_keys,geo.place_id") + "&user.fields="
+                            + enc(USER_FIELDS));
+                    Map<String, String> headers = Map.of("Authorization", "Bearer " + bearer.strip(), "Accept",
+                            "application/json");
+                    UpstreamResponse resp = ctx.http().get(uri, headers);
+                    JsonNode root;
+                    try {
+                        root = ok(resp, uri);
+                    } catch (AdapterException e) {
+                        charge(runtime, BigDecimal.ZERO);
+                        throw e;
+                    }
+                    Long count = SocialJson.number(SocialJson.at(root, "meta"), "result_count");
+                    int returned = root.get("data") != null && root.get("data").isArray() ? root.get("data").size() : 0;
+                    cost = XSpend.estimateSearch(settings, count == null ? returned : count.intValue());
+                    charge(runtime, cost);
+                    for (SocialPost post : XPosts.posts(root, SocialVocabulary.COLLECTION_CUE)) {
+                        SocialCollector.Observation obs = runtime.collector().observe(
+                                post.withCollection(SocialVocabulary.COLLECTION_CUE, r.cueId()), ID,
+                                SocialVocabulary.SAMPLED);
+                        if (obs.record() != null) {
+                            out.put(obs.record().externalId(), obs.record());
+                        }
+                        found++;
+                    }
+                }
+            }
+        } catch (Capped e) {
+            error = "BUDGET_EXCEEDED: " + e.getMessage();
+        } catch (AdapterException | RuntimeException e) {
+            error = e.getMessage() == null ? e.toString() : e.getMessage();
+        }
+        runtime.reportCue(new CueRequests.Result(r.cueId(), ID, r.query(), found, cost, error));
     }
 
     /** Daily lookup of stored posts; those X answers as not found are tombstoned. */

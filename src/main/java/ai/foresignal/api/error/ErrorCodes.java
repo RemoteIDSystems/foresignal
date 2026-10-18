@@ -870,6 +870,15 @@ public final class ErrorCodes {
     /** 415 (413 when too large): the image was refused by the 043 ImageGuard (136, media matching). */
     public static final String IMAGE_REJECTED = "IMAGE_REJECTED";
 
+    /** 404: no social–physical comparison with this id (137). */
+    public static final String UNKNOWN_COMPARISON = "UNKNOWN_COMPARISON";
+
+    /** 404: no social cue with this id (137). */
+    public static final String UNKNOWN_CUE = "UNKNOWN_CUE";
+
+    /** 429: the daily cue limit {@code social.cues.maxPerDay} is reached (137). */
+    public static final String CUE_LIMIT_REACHED = "CUE_LIMIT_REACHED";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

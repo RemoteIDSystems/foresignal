@@ -132,7 +132,8 @@ public class AnalystRunner {
             "get_information_value", "list_collection_gaps", "get_series_forecast", "get_outlook", "get_index",
             "list_projected_impacts", "get_impact_rate", "get_assessment", "list_assessments", "get_intel_board",
             "get_object", "get_related", "list_news_stories", "get_news_story", "get_outlet", "get_social_volume",
-            "search_social_posts", "list_narratives", "get_narrative", "get_claims", "match_media");
+            "search_social_posts", "list_narratives", "get_narrative", "get_claims", "match_media", "compare_claim",
+            "get_social_lead_times");
 
     /**
      * The read catalog the analyst and the analysis-cycle roles (prompt 128) may use: the 028 read tools and the
@@ -140,7 +141,8 @@ public class AnalystRunner {
      * {@code get_related}), the news tools of prompt 133 ({@code list_news_stories}, {@code get_news_story},
      * {@code get_outlet}), the social tools of prompt 135 ({@code get_social_volume}, {@code search_social_posts}) and
      * the narrative tools of prompt 136 ({@code list_narratives}, {@code get_narrative}, {@code get_claims},
-     * {@code match_media}).
+     * {@code match_media}) and the comparison tools of prompt 137 ({@code compare_claim},
+     * {@code get_social_lead_times}).
      */
     public static Set<String> readToolNames() {
         return READ_TOOL_NAMES;

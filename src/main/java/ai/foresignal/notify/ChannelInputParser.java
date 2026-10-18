@@ -182,7 +182,8 @@ public class ChannelInputParser {
                         errors.add(new FieldError("events", "supported events are alert, briefing, system, analyst.note,"
                                 + " situation.activated, situation.escalated, finding.significant, forecast.resolved,"
                                 + " forecast.resolution_needed, hypothesis.band_changed, indicator.observed,"
-                                + " assumption.broken and assessment.published"));
+                                + " assumption.broken, assessment.published, social.divergence and"
+                                + " social.attention_gap"));
                     } else if (!events.contains(event)) {
                         events.add(event);
                     }

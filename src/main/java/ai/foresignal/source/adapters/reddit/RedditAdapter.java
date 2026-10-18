@@ -1,5 +1,6 @@
 package ai.foresignal.source.adapters.reddit;
 
+import ai.foresignal.social.CueRequests;
 import ai.foresignal.social.QuotaLedger;
 import ai.foresignal.social.SocialCollector;
 import ai.foresignal.social.SocialPlatformSettings;
@@ -27,6 +28,7 @@ import ai.foresignal.source.spi.UpstreamResponse;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -152,6 +154,9 @@ public class RedditAdapter implements PollingAdapter {
         String api = override != null ? override : API;
         Map<String, NormalizedRecord> out = new LinkedHashMap<>();
         Instant now = ctx.now();
+        for (CueRequests.Request r : runtime.drainCues(ID)) {
+            cue(ctx, runtime, api, headers, r, out);
+        }
         try {
             List<String> channels = channels(runtime.index(), settings);
             for (String sub : SocialQueries.window(channels.stream().map(c -> new SocialQueries.Query("channel", c,
@@ -195,6 +200,41 @@ public class RedditAdapter implements PollingAdapter {
             ctx.log().info("{}: the query rate is spent for this minute; the run stops here", ID);
         }
         return FetchResult.of(new ArrayList<>(out.values()));
+    }
+
+    /**
+     * Runs one 137 cue query: {@code /search} with the exact query, newest first over the past week, posts outside the
+     * window dropped; posts are stored with {@code collection = cue} and counted as sampled (never baselined).
+     */
+    void cue(FetchContext ctx, SocialRuntime runtime, String api, Map<String, String> headers, CueRequests.Request r,
+            Map<String, NormalizedRecord> out) {
+        int found = 0;
+        String error = null;
+        try {
+            JsonNode listing = get(ctx, runtime, URI.create(api + "/search?q=" + enc(r.query()) + "&sort=new&t=week&limit="
+                    + Math.max(1, Math.min(100, r.maxResults()))), headers);
+            JsonNode children = SocialJson.at(listing, "data", "children");
+            if (children != null && children.isArray()) {
+                for (JsonNode child : children) {
+                    SocialPost post = post(child.get("data"), SocialVocabulary.COLLECTION_CUE);
+                    if (post == null || post.createdAt() == null || post.createdAt().isBefore(r.from())
+                            || (r.to() != null && post.createdAt().isAfter(r.to()))) {
+                        continue;
+                    }
+                    SocialCollector.Observation obs = runtime.collector().observe(
+                            post.withCollection(SocialVocabulary.COLLECTION_CUE, r.cueId()), ID, SocialVocabulary.SAMPLED);
+                    if (obs.record() != null) {
+                        out.put(obs.record().externalId(), obs.record());
+                    }
+                    found++;
+                }
+            }
+        } catch (RateSpent e) {
+            error = "RATE_LIMITED";
+        } catch (AdapterException | RuntimeException e) {
+            error = e.getMessage() == null ? e.toString() : e.getMessage();
+        }
+        runtime.reportCue(new CueRequests.Result(r.cueId(), ID, r.query(), found, BigDecimal.ZERO, error));
     }
 
     /** The subreddits polled: the platform channels and the topics' subreddit channels. */

@@ -292,7 +292,10 @@ public class AnalysisSeriesRegistrar {
                     MIN_SOCIAL_HOURS)) {
                 SeriesRef ref = SeriesRef.social(s.scopeType() + ":" + s.scopeId(), s.platform(), "posts", null);
                 SeriesRef.parse(ref.format());
-                out.add(new Candidate(ref.format(), "hour", "attention", null, s.posts()));
+                // Prompt 137: family "social" and the scope's region, so 120 pairs the series with the physical
+                // series of its region as precursor candidates (social series are antecedents only).
+                out.add(new Candidate(ref.format(), "hour", SOCIAL_FAMILY, socialRegion(s.scopeType(), s.scopeId()),
+                        s.posts()));
                 platforms.add(s.platform());
             }
             for (String platform : platforms) {
@@ -305,6 +308,40 @@ public class AnalysisSeriesRegistrar {
             log.debug("No social volume series: {}", e.toString());
         }
         return out;
+    }
+
+    /** The family of social volume series (prompt 137): precursor candidates with {@code family = social}. */
+    public static final String SOCIAL_FAMILY = "social";
+
+    /** The attention topics, for the region of topic-scoped social series (prompt 137). */
+    @org.springframework.beans.factory.annotation.Autowired
+    private ObjectProvider<ai.foresignal.attention.AttentionTopicRepository> socialTopics;
+
+    /**
+     * The 040 region of a social scope (prompt 137): a topic's first region, a place's country, else null (an
+     * entity, or a scope without a region).
+     */
+    String socialRegion(String scopeType, String scopeId) {
+        try {
+            if (ai.foresignal.social.SocialVocabulary.SCOPE_TOPIC.equals(scopeType)) {
+                ai.foresignal.attention.AttentionTopicRepository repo = socialTopics == null ? null
+                        : socialTopics.getIfAvailable();
+                if (repo == null) {
+                    return null;
+                }
+                return repo.findById(scopeId).map(t -> t.getRegionCodes() == null || t.getRegionCodes().isEmpty()
+                        ? null : t.getRegionCodes().get(0)).orElse(null);
+            }
+            if (ai.foresignal.social.SocialVocabulary.SCOPE_PLACE.equals(scopeType)) {
+                List<String> rows = jdbc.queryForList("SELECT c.iso2 FROM ref_country c, place p WHERE p.id = :id AND"
+                        + " ST_Intersects(c.geom, ST_PointOnSurface(p.geom)) LIMIT 1",
+                        new MapSqlParameterSource("id", scopeId), String.class);
+                return rows.isEmpty() ? null : rows.get(0);
+            }
+        } catch (RuntimeException e) {
+            log.debug("No region for social scope {}:{}: {}", scopeType, scopeId, e.toString());
+        }
+        return null;
     }
 
     /** The days of rows a news-coverage series needs to be registered (prompt 133). */

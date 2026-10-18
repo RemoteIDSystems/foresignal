@@ -212,8 +212,18 @@ public final class CandidateGenerator {
         return out;
     }
 
-    /** True when two series share a region (other than {@code ZZ}), a family or a topic. */
+    /**
+     * True when two series share a region (other than {@code ZZ}), a family or a topic. Social series (prompt 137,
+     * family {@code social}) are antecedents only, paired with the non-social, non-attention series of their region.
+     */
     static boolean related(SeriesInfo a, SeriesInfo b) {
+        if ("social".equals(b.family())) {
+            return false;
+        }
+        if ("social".equals(a.family())) {
+            return a.region() != null && !"ZZ".equals(a.region()) && a.region().equals(b.region())
+                    && !"attention".equals(b.family());
+        }
         boolean region = a.region() != null && !"ZZ".equals(a.region()) && a.region().equals(b.region());
         boolean family = a.family() != null && a.family().equals(b.family());
         boolean topic = a.topic() != null && a.topic().equals(b.topic());

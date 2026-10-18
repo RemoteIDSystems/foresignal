@@ -136,6 +136,8 @@ foresignal:
     scheduled: false
     default-enable: false
     narratives-scheduled: false
+    correlation-scheduled: false
+    cues-async: false
 
 logging:
   level:

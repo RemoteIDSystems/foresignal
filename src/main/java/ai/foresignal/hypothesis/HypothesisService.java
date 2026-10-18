@@ -1013,6 +1013,37 @@ public class HypothesisService {
     }
 
     /**
+     * Records that social claims report what a waiting indicator watches for (prompt 137): the indicator moves from
+     * {@code pending} or {@code emerging} to {@code reported} and keeps the claim as its evidence. Nothing is revised:
+     * a report is not an observation, so no probability moves (indicators are {@code observed} only from physical
+     * evidence), and the indicator keeps waiting for its watch rule, its {@code expected_by} judgment and the claim's
+     * comparison.
+     *
+     * @param indicatorId the indicator
+     * @param evidenceMap the claim evidence ({@code source = social-claim}, {@code ref = claim:…}, {@code comparisonId})
+     * @return true when the indicator moved to {@code reported}
+     */
+    @Transactional
+    public boolean reported(String indicatorId, Map<String, Object> evidenceMap) {
+        IndicatorEntity probe = indicators.findById(indicatorId).orElse(null);
+        if (probe == null) {
+            return false;
+        }
+        HypothesisSetEntity set = locked(probe.getSetId());
+        IndicatorEntity i = indicators.findById(indicatorId).orElse(probe);
+        if (!set.active() || !(HypothesisVocabulary.PENDING.equals(i.getState())
+                || HypothesisVocabulary.EMERGING.equals(i.getState()))) {
+            return false;
+        }
+        Instant now = clock.instant();
+        i.setState(HypothesisVocabulary.REPORTED, now);
+        i.setObservedEvidence(new LinkedHashMap<>(evidenceMap));
+        i.touch(now);
+        indicators.saveAndFlush(i);
+        return true;
+    }
+
+    /**
      * Records that an indicator did not appear by {@code expected_by} while the sources that would have seen it were
      * healthy and detectability sufficed: the indicator moves to {@code absent} and the updater applies its absence
      * LRs scaled by {@code pDetect} ({@code indicator-absent}).

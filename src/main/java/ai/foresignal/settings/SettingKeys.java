@@ -373,6 +373,31 @@ public final class SettingKeys {
      */
     public static final String SOCIAL_SOURCE_RELIABILITY = "social.sourceReliability";
 
+    /**
+     * The social–physical comparison settings (prompt 137, {@code social.compare}): a JSON object
+     * {@code {minGroups: 3, defaultWindow: {before: "6h", after: "24h"}, familyWindows: {family: {before, after,
+     * toleranceKm, publicationLag}}}} merged over {@code intel/social/social-compare.json}.
+     */
+    public static final String SOCIAL_COMPARE = "social.compare";
+
+    /**
+     * The attention-gap settings (prompt 137, {@code social.attentionGap}): {@code {minSeverity: "significant",
+     * percentile: 10, lookbackDays: 365, windowHours: 6}}.
+     */
+    public static final String SOCIAL_ATTENTION_GAP = "social.attentionGap";
+
+    /**
+     * The cue settings (prompt 137, {@code social.cues}): {@code {enabled, triggers, maxPerDay: 50,
+     * maxCostUsdPerCue: 1.00, platforms, xaiXSearch: {enabled: false, maxResults: 20}}}.
+     */
+    public static final String SOCIAL_CUES = "social.cues";
+
+    /**
+     * The track-record grading of claim sources (prompt 137, {@code social.trackRecord}): {@code {minAssessed: 10,
+     * gradeEShare: 0.7, gradeDShare: 0.85}}; the overrides live in {@code social.sourceReliability}.
+     */
+    public static final String SOCIAL_TRACK_RECORD = "social.trackRecord";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -393,7 +418,8 @@ public final class SettingKeys {
                     CHRONICLE_THREAD_CURSORS, EXCHANGE_MAX_PACKAGE_MB, EXCHANGE_ALLOW_GREEN_LINKS,
                     MEDIA_RELIABILITY_MAP, NETWORK_MIN_SHARED_KEYS, NETWORK_FEDERATED, SOCIAL_LANGUAGES,
                     SOCIAL_MIN_REGION_BASELINE, SOCIAL_VELOCITY, SOCIAL_KEEP_MEDIA, SOCIAL_LLM_CLAIM_MIN_POSTS,
-                    SOCIAL_LLM_CLAIMS_PER_DAY, SOCIAL_SOURCE_RELIABILITY);
+                    SOCIAL_LLM_CLAIMS_PER_DAY, SOCIAL_SOURCE_RELIABILITY, SOCIAL_COMPARE, SOCIAL_ATTENTION_GAP,
+                    SOCIAL_CUES, SOCIAL_TRACK_RECORD);
 
     private SettingKeys() {}
 }

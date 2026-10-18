@@ -509,6 +509,14 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/social/claims/*", AccessRequirement.READ),
                 rule(HttpMethod.POST, "/v1/social/media/match", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/social/media/*", AccessRequirement.READ),
+                // Prompt 137: comparisons, cues and lead times are reads; a manual cue is an agent operation
+                // (it spends platform budgets); /v1/settings/social falls under /v1/settings/** (admin).
+                rule(HttpMethod.GET, "/v1/social/comparisons", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/social/comparisons/*", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/social/cues", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/social/cues/*", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/social/cues", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/social/lead-times", AccessRequirement.READ),
 
                 // ---- Evidence identity, observability and manifests (prompt 116) ----
                 // Canonical events, the coverage layer and prompt templates are reads; manifests and their

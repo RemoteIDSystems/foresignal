@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "description": "Social-physical comparison rules (prompt 137, SocialPhysicalComparator 1.0.0). For each 119 signal family a claim can carry: the comparison window around the claim time (before, after; ISO-8601 or shorthand durations), the distance within which physical evidence matches (toleranceKm), the publication lag after the window during which late evidence still revises the comparison (publicationLag), whether admin-1 claim places are precise enough (largeArea), the 116 canonical-event families whose events count as physical evidence (canonicalFamilies), the 119 signal families whose non-social findings count (findingFamilies), and the agency or sensor records that explicitly negate a claim (negations: records of a kind whose payload field holds one of the values, located within toleranceKm in the window). The operator setting social.compare (familyWindows) is merged over these rows. Social originators never count as physical evidence (SOC-1).",
+  "defaults": {
+    "before": "6h",
+    "after": "24h",
+    "toleranceKm": 50,
+    "publicationLag": "24h",
+    "largeArea": false
+  },
+  "families": {
+    "conflict": {"toleranceKm": 25, "publicationLag": "7d", "canonicalFamilies": ["conflict"], "findingFamilies": ["conflict"]},
+    "fire": {"toleranceKm": 15, "publicationLag": "12h", "canonicalFamilies": ["fire"], "findingFamilies": ["fire"]},
+    "seismic": {"before": "2h", "after": "12h", "toleranceKm": 150, "publicationLag": "6h", "largeArea": true, "canonicalFamilies": ["seismic", "disaster"], "findingFamilies": ["seismic"]},
+    "weather-severe": {"before": "12h", "after": "36h", "toleranceKm": 100, "publicationLag": "24h", "largeArea": true, "canonicalFamilies": ["weather-alert", "disaster"], "findingFamilies": ["weather-severe"]},
+    "outage": {"toleranceKm": 75, "publicationLag": "12h", "largeArea": true, "canonicalFamilies": ["outage"], "findingFamilies": ["outage"],
+      "negations": [{"kind": "service-status", "field": "indicator", "values": ["none"]}]},
+    "internet-measurement": {"toleranceKm": 200, "publicationLag": "12h", "largeArea": true, "canonicalFamilies": ["outage"], "findingFamilies": ["internet-measurement"]},
+    "aviation-ops": {"toleranceKm": 50, "publicationLag": "6h", "canonicalFamilies": [], "findingFamilies": ["aviation-ops"]},
+    "nav-warning": {"toleranceKm": 100, "publicationLag": "24h", "canonicalFamilies": [], "findingFamilies": ["nav-warning", "ais-behaviour"]},
+    "ais-behaviour": {"toleranceKm": 100, "publicationLag": "24h", "canonicalFamilies": [], "findingFamilies": ["ais-behaviour"]},
+    "gnss-interference": {"toleranceKm": 150, "publicationLag": "24h", "largeArea": true, "canonicalFamilies": [], "findingFamilies": ["gnss-interference"]},
+    "cyber": {"toleranceKm": 0, "publicationLag": "7d", "largeArea": true, "canonicalFamilies": [], "findingFamilies": ["cyber"]},
+    "health": {"before": "7d", "after": "14d", "toleranceKm": 200, "publicationLag": "14d", "largeArea": true, "canonicalFamilies": [], "findingFamilies": ["health"]}
+  }
+}

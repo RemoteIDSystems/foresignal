@@ -103,6 +103,10 @@ public class AssessmentEntity {
     @Column(name = "news_coverage")
     private Map<String, Object> newsCoverage;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "social")
+    private Map<String, Object> social;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -332,5 +336,15 @@ public class AssessmentEntity {
     /** Sets the news Coverage section (prompt 133). */
     public void setNewsCoverage(Map<String, Object> newsCoverage) {
         this.newsCoverage = newsCoverage;
+    }
+
+    /** The "What people are saying versus what we observe" section (prompt 137), or null. */
+    public Map<String, Object> getSocial() {
+        return social;
+    }
+
+    /** Sets the social section (prompt 137). */
+    public void setSocial(Map<String, Object> social) {
+        this.social = social;
     }
 }

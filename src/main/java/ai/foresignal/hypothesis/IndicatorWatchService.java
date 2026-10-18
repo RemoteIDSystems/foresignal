@@ -532,8 +532,7 @@ public class IndicatorWatchService implements AlertListener, FindingListener {
         if (finding == null || finding.getPrecursorId() == null) {
             return;
         }
-        for (IndicatorEntity indicator : indicators.findByStateIn(List.of(HypothesisVocabulary.PENDING,
-                HypothesisVocabulary.EMERGING))) {
+        for (IndicatorEntity indicator : indicators.findByStateIn(HypothesisVocabulary.WAITING_STATES)) {
             if (!"precursor".equals(indicator.signalType())
                     || !finding.getPrecursorId().equals(JsonValues.text(indicator.getSignal(), "precursorId"))) {
                 continue;
@@ -558,8 +557,7 @@ public class IndicatorWatchService implements AlertListener, FindingListener {
      * absent (with full detectability: the resolution is certain) otherwise.
      */
     public void questionResolved(String questionId, String outcome) {
-        for (IndicatorEntity indicator : indicators.findByStateIn(List.of(HypothesisVocabulary.PENDING,
-                HypothesisVocabulary.EMERGING))) {
+        for (IndicatorEntity indicator : indicators.findByStateIn(HypothesisVocabulary.WAITING_STATES)) {
             Map<String, Object> question = JsonValues.child(indicator.getSignal(), "question");
             if (!"question".equals(indicator.signalType()) || question == null
                     || !questionId.equals(JsonValues.text(question, "questionId"))) {

@@ -30,7 +30,7 @@ public final class BenchmarkInputs {
     /** The benchmarked components (each a {@code ComponentBenchmark}). */
     public static final List<String> COMPONENTS = List.of("change-point", "anomaly", "event-study", "co-occurrence",
             "evidence", "canonical-linking", "precursor", "situation-linker", "forecaster:base-rate",
-            "forecaster:analog", "forecaster:precursor", "forecaster:ensemble");
+            "forecaster:analog", "forecaster:precursor", "forecaster:ensemble", "social-physical");
 
     /** A 040 region code. */
     public static final Pattern REGION = Pattern.compile("^[A-Z]{2}(-[A-Z0-9]{1,3})?$");

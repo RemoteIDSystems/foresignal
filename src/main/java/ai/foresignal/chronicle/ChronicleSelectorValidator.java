@@ -110,6 +110,10 @@ public class ChronicleSelectorValidator {
             case ChronicleSelector.Alerts a -> {
                 // Rule ids are checked for shape; a rule may be created after the layer.
             }
+            case ChronicleSelector.SocialNarratives n -> exist("situation", n.situationIds(), field + ".situationIds");
+            case ChronicleSelector.SocialVolume v -> {
+                // Scopes are checked for shape; a topic, place or entity may gain volume after the layer.
+            }
         }
     }
 

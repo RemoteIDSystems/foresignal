@@ -39,6 +39,30 @@ public class SituationViews {
         this.newsCoverage = newsCoverage;
     }
 
+    private ai.foresignal.social.correlation.SocialSections socialSections;
+
+    /** Installs the social section of situations (prompt 137). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setSocialSections(ai.foresignal.social.correlation.SocialSections socialSections) {
+        this.socialSections = socialSections;
+    }
+
+    /**
+     * The social section of a situation (prompt 137: narratives, social evidence groups counted apart from physical
+     * corroboration, attention gap, coverage), or null without the social layer.
+     */
+    public Map<String, Object> social(SituationEntity situation) {
+        ai.foresignal.social.correlation.SocialSections s = socialSections;
+        if (s == null) {
+            return null;
+        }
+        try {
+            return s.situation(situation.getId(), situation.getRegionCodes());
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     /** The news coverage section of a situation (prompt 133), or null without news members or the news layer. */
     public Map<String, Object> coverage(String situationId) {
         ai.foresignal.news.NewsCoverageService c = newsCoverage;
@@ -65,6 +89,7 @@ public class SituationViews {
         Map<String, Object> out = SituationMapper.full(situation, members, result, families.size(), List.of(),
                 clock.instant());
         out.put("coverage", coverage(situation.getId()));
+        out.put("social", social(situation));
         return out;
     }
 

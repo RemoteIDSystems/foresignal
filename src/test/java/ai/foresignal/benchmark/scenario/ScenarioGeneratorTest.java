@@ -379,12 +379,14 @@ class ScenarioGeneratorTest {
     }
 
     @Test
-    @DisplayName("scenario types: ten synthetic scenarios with the spec's wire names")
+    @DisplayName("scenario types: ten synthetic scenarios plus the six social scenarios of 137, with wire names")
     void types() {
-        assertThat(ScenarioType.SYNTHETIC).hasSize(10).doesNotContain(ScenarioType.HISTORICAL);
+        assertThat(ScenarioType.SYNTHETIC).hasSize(16).doesNotContain(ScenarioType.HISTORICAL);
         assertThat(ScenarioType.SYNTHETIC.stream().map(ScenarioType::wire)).containsExactly("null-seasonal",
                 "step-change", "spike", "coverage-outage", "duplicate-echo", "late-revision", "common-driver",
-                "true-precursor", "base-rate-drift", "pre-event-move");
+                "true-precursor", "base-rate-drift", "pre-event-move", "social-planted-covered", "social-planted-thin",
+                "social-event-discussed", "social-event-silent", "social-reused-image", "social-cue-loop");
+        assertThat(ScenarioType.SOCIAL).hasSize(6);
         assertThat(ScenarioType.SUITE_VERSION).isEqualTo("bench-scenarios 1.0.0");
     }
 }

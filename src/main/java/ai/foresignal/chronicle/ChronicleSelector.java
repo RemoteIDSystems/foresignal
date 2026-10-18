@@ -47,12 +47,18 @@ public sealed interface ChronicleSelector {
     /** {@code alerts}: alerts by rule ids or tags. */
     String ALERTS = "alerts";
 
-    /** The variants this prompt implements. */
-    List<String> TYPES = List.of(RECORDS, SAVED_VIEW, WATCHLIST, ENTITIES, SITUATIONS, FINDINGS, SERIES,
-            RASTER_PRODUCTS, ALERTS);
+    /** {@code social-narratives}: 137 narratives, claims and comparisons by topic, place, region or situation. */
+    String SOCIAL_NARRATIVES = "social-narratives";
 
-    /** The variants later prompts add (137 social, 138 external streams). */
-    List<String> LATER_TYPES = List.of("social-narratives", "social-volume", "external-stream");
+    /** {@code social-volume}: 135 social volume series by topic, place or entity. */
+    String SOCIAL_VOLUME = "social-volume";
+
+    /** The variants implemented (131, plus the two social layers of 137). */
+    List<String> TYPES = List.of(RECORDS, SAVED_VIEW, WATCHLIST, ENTITIES, SITUATIONS, FINDINGS, SERIES,
+            RASTER_PRODUCTS, ALERTS, SOCIAL_NARRATIVES, SOCIAL_VOLUME);
+
+    /** The variants a later prompt adds (138 external streams). */
+    List<String> LATER_TYPES = List.of("external-stream");
 
     /** Most items in one list. */
     int MAX_ITEMS = 200;
@@ -286,6 +292,134 @@ public sealed interface ChronicleSelector {
     }
 
     /**
+     * Social narratives (prompt 137): narratives, claims and comparisons whose narrative matches the topics, places,
+     * regions or situations (any list empty matches anything) and whose status is listed (empty: any). Thread items keep
+     * their history after the posts expire; member post text only when {@code keepPostText}.
+     *
+     * @param topicIds attention topics
+     * @param placeIds 036 places
+     * @param regionCodes 040 regions
+     * @param situationIds 118 situations
+     * @param statuses narrative statuses
+     * @param keepPostText keep the central post text in the snapshots
+     */
+    record SocialNarratives(List<String> topicIds, List<String> placeIds, List<String> regionCodes,
+            List<String> situationIds, List<String> statuses, boolean keepPostText) implements ChronicleSelector {
+
+        /** Copies the lists. */
+        public SocialNarratives {
+            topicIds = topicIds == null ? List.of() : List.copyOf(topicIds);
+            placeIds = placeIds == null ? List.of() : List.copyOf(placeIds);
+            regionCodes = regionCodes == null ? List.of() : List.copyOf(regionCodes);
+            situationIds = situationIds == null ? List.of() : List.copyOf(situationIds);
+            statuses = statuses == null ? List.of() : List.copyOf(statuses);
+        }
+
+        @Override
+        public String type() {
+            return SOCIAL_NARRATIVES;
+        }
+
+        @Override
+        public Map<String, Object> toMap() {
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("type", SOCIAL_NARRATIVES);
+            out.put("topicIds", topicIds);
+            out.put("placeIds", placeIds);
+            out.put("regionCodes", regionCodes);
+            out.put("situationIds", situationIds);
+            out.put("statuses", statuses);
+            out.put("keepPostText", keepPostText);
+            return out;
+        }
+
+        /**
+         * True when a narrative matches.
+         *
+         * @param topics its topics
+         * @param places its 036 place refs or ids
+         * @param regions its regions
+         * @param situations its situations
+         * @param status its status
+         */
+        public boolean takes(List<String> topics, List<String> places, List<String> regions, List<String> situations,
+                String status) {
+            if (!statuses.isEmpty() && !statuses.contains(status)) {
+                return false;
+            }
+            boolean scoped = !topicIds.isEmpty() || !placeIds.isEmpty() || !regionCodes.isEmpty()
+                    || !situationIds.isEmpty();
+            if (!scoped) {
+                return true;
+            }
+            for (String p : places) {
+                String id = p.startsWith("place:") ? p.substring(6) : p;
+                if (placeIds.contains(id) || placeIds.contains(p)) {
+                    return true;
+                }
+            }
+            for (String r : regions) {
+                if (regionCodes.contains(r) || (r.length() > 2 && regionCodes.contains(r.substring(0, 2)))) {
+                    return true;
+                }
+            }
+            return topics.stream().anyMatch(topicIds::contains) || situations.stream().anyMatch(situationIds::contains);
+        }
+    }
+
+    /**
+     * Social volume series (prompt 137).
+     *
+     * @param scopes {@code [type, id]} pairs: {@code topic}, {@code place} or {@code entity}
+     * @param platforms networks; empty for every network
+     * @param metrics {@code posts}, {@code uniqueAuthors}, {@code reposts}, {@code engagement}; empty for posts
+     */
+    record SocialVolume(List<List<String>> scopes, List<String> platforms, List<String> metrics)
+            implements ChronicleSelector {
+
+        /** The networks sampled when none is named. */
+        public static final List<String> ALL_PLATFORMS = List.of("bluesky", "mastodon", "reddit", "youtube", "x",
+                "threads", "instagram");
+
+        /** The metrics. */
+        public static final List<String> METRICS = List.of("posts", "uniqueAuthors", "reposts", "engagement");
+
+        /** Copies the lists. */
+        public SocialVolume {
+            scopes = scopes == null ? List.of() : List.copyOf(scopes);
+            platforms = platforms == null ? List.of() : List.copyOf(platforms);
+            metrics = metrics == null ? List.of() : List.copyOf(metrics);
+        }
+
+        @Override
+        public String type() {
+            return SOCIAL_VOLUME;
+        }
+
+        @Override
+        public Map<String, Object> toMap() {
+            List<Map<String, Object>> s = new ArrayList<>();
+            for (List<String> scope : scopes) {
+                s.add(ordered("type", scope.get(0), "id", scope.get(1)));
+            }
+            return ordered("type", SOCIAL_VOLUME, "scopes", s, "platforms", platforms, "metrics", metrics);
+        }
+
+        /** The {@code social:} series refs sampled: every scope × platform × metric. */
+        public List<String> refs() {
+            List<String> out = new ArrayList<>();
+            for (List<String> scope : scopes) {
+                for (String platform : platforms.isEmpty() ? ALL_PLATFORMS : platforms) {
+                    for (String metric : metrics.isEmpty() ? List.of("posts") : metrics) {
+                        out.add("social:" + scope.get(0) + ":" + scope.get(1) + "/" + platform + "/" + metric);
+                    }
+                }
+            }
+            return out;
+        }
+    }
+
+    /**
      * Parses a selector's shape.
      *
      * @param node the body
@@ -314,6 +448,9 @@ public sealed interface ChronicleSelector {
             case FINDINGS -> members(node, field, Set.of("type", "findingTypes", "families"));
             case SERIES -> members(node, field, Set.of("type", "refs"));
             case RASTER_PRODUCTS -> members(node, field, Set.of("type", "productIds"));
+            case SOCIAL_NARRATIVES -> members(node, field, Set.of("type", "topicIds", "placeIds", "regionCodes",
+                    "situationIds", "statuses", "keepPostText"));
+            case SOCIAL_VOLUME -> members(node, field, Set.of("type", "scopes", "platforms", "metrics"));
             default -> members(node, field, Set.of("type", "ruleIds", "tags"));
         }
         return switch (type) {
@@ -342,6 +479,8 @@ public sealed interface ChronicleSelector {
                     strings(node, "families", field, false));
             case SERIES -> new Series(strings(node, "refs", field, true));
             case RASTER_PRODUCTS -> new RasterProducts(strings(node, "productIds", field, true));
+            case SOCIAL_NARRATIVES -> socialNarratives(node, field);
+            case SOCIAL_VOLUME -> socialVolume(node, field);
             default -> {
                 List<String> rules = strings(node, "ruleIds", field, false);
                 for (String id : rules) {
@@ -354,6 +493,66 @@ public sealed interface ChronicleSelector {
                 yield new Alerts(rules, strings(node, "tags", field, false));
             }
         };
+    }
+
+    /** Parses a {@code social-narratives} selector. */
+    private static SocialNarratives socialNarratives(JsonNode node, String field) {
+        List<String> regions = strings(node, "regionCodes", field, false);
+        for (String r : regions) {
+            if (!r.matches("^[A-Z]{2}(-[A-Z0-9]{1,3})?$")) {
+                throw invalid(field + ".regionCodes", "'" + r + "' is not a 040 region code");
+            }
+        }
+        List<String> statuses = strings(node, "statuses", field, false);
+        List<String> allowed = List.of("unassessed", "pending", "corroborated", "unobserved", "contradicted", "mixed",
+                "insufficient-coverage");
+        for (String s : statuses) {
+            if (!allowed.contains(s)) {
+                throw invalid(field + ".statuses", "'" + s + "' is not a narrative status; one of " + allowed);
+            }
+        }
+        JsonNode keep = node.get("keepPostText");
+        if (keep != null && !keep.isNull() && !keep.isBoolean()) {
+            throw invalid(field + ".keepPostText", "must be a boolean");
+        }
+        return new SocialNarratives(strings(node, "topicIds", field, false), strings(node, "placeIds", field, false),
+                regions, ulids(strings(node, "situationIds", field, false), field + ".situationIds"), statuses,
+                keep != null && keep.isBoolean() && keep.asBoolean());
+    }
+
+    /** Parses a {@code social-volume} selector. */
+    private static SocialVolume socialVolume(JsonNode node, String field) {
+        JsonNode scopes = node.get("scopes");
+        if (scopes == null || !scopes.isArray() || scopes.isEmpty()) {
+            throw invalid(field + ".scopes", "is required (at least one {type, id})");
+        }
+        if (scopes.size() > MAX_ITEMS) {
+            throw invalid(field + ".scopes", "holds more than " + MAX_ITEMS + " items");
+        }
+        List<List<String>> out = new ArrayList<>();
+        for (JsonNode scope : scopes) {
+            String type = scope != null && scope.isObject() && scope.hasNonNull("type") ? scope.get("type").asString()
+                    : null;
+            String id = scope != null && scope.isObject() && scope.hasNonNull("id") ? scope.get("id").asString() : null;
+            if (type == null || !List.of("topic", "place", "entity").contains(type) || id == null || id.isBlank()
+                    || id.length() > 200) {
+                throw invalid(field + ".scopes", "each scope needs type (topic, place or entity) and an id");
+            }
+            out.add(List.of(type, id.strip()));
+        }
+        List<String> platforms = strings(node, "platforms", field, false);
+        for (String p : platforms) {
+            if (!p.matches("^[a-z0-9][a-z0-9-]{0,31}$")) {
+                throw invalid(field + ".platforms", "'" + p + "' is not a network id");
+            }
+        }
+        List<String> metrics = strings(node, "metrics", field, false);
+        for (String m : metrics) {
+            if (!SocialVolume.METRICS.contains(m)) {
+                throw invalid(field + ".metrics", "'" + m + "' is not one of " + SocialVolume.METRICS);
+            }
+        }
+        return new SocialVolume(out, platforms, metrics);
     }
 
     /** A selector from its stored map. */

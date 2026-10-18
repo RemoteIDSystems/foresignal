@@ -520,12 +520,18 @@ public class NarrativeViews {
 
     // ------------------------------------------------------------------------- cursors
 
-    static String encode(Instant at, String id) {
+    /** The cursor of a page position {@code (at, id)} (also used by the 137 views). */
+    public static String encode(Instant at, String id) {
         String raw = ChronoUnit.MICROS.between(Instant.EPOCH, at) + "|" + id;
         return Base64.getUrlEncoder().withoutPadding().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
     }
 
-    static Object[] decode(String cursor) {
+    /**
+     * The page position of a cursor, {@code [Timestamp, id]}, or null for none.
+     *
+     * @throws ValidationException 400 {@code INVALID_CURSOR}
+     */
+    public static Object[] decode(String cursor) {
         if (cursor == null || cursor.isBlank()) {
             return null;
         }

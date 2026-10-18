@@ -18,7 +18,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * Samples the {@code rollup:} and {@code rule:} refs of active chronicles' series layers (prompt 131): those series are
+ * Samples the {@code rollup:} and {@code rule:} refs of active chronicles' series layers (prompt 131), and the
+ * {@code social:} refs of {@code social-volume} layers (prompt 137): those series are
  * computed (activity rollups, anomaly rule samples), not records, so the capture loop cannot copy their versions.
  * Every {@code foresignal.chronicles.series-sample-interval} (15 min by default) each such ref is read through the 119
  * {@link SeriesReader} from the last captured period (at most a day before the chronicle started) to now, and each
@@ -64,10 +65,15 @@ public class ChronicleSeriesSampler {
         Instant now = clock.instant();
         for (ChronicleIndex.Entry e : index.entries()) {
             for (CompiledLayer layer : e.layers()) {
-                if (!(layer.selector() instanceof ChronicleSelector.Series s)) {
+                List<String> refs;
+                if (layer.selector() instanceof ChronicleSelector.Series s) {
+                    refs = s.refs();
+                } else if (layer.selector() instanceof ChronicleSelector.SocialVolume v) {
+                    refs = v.refs();
+                } else {
                     continue;
                 }
-                for (String text : s.refs()) {
+                for (String text : refs) {
                     String key = layer.layerId() + '\u0001' + text;
                     Instant last = lastSampled.get(key);
                     if (!force && last != null && last.plus(properties.seriesSampleInterval()).isAfter(now)) {

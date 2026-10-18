@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "description": "Languages social cues search in for a country (prompt 137, SocialCueService): ISO 3166-1 alpha-2 code to BCP 47 primary subtags, limited to the languages of the claim lexicon (en, ar, he, fa, ru, uk, fr, es, de, tr, zh). English is always added. A country not listed searches in English only; admin-1 codes use their country.",
+  "regions": {
+    "AE": ["ar"], "BH": ["ar"], "DZ": ["ar", "fr"], "EG": ["ar"], "IQ": ["ar"], "JO": ["ar"], "KW": ["ar"],
+    "LB": ["ar", "fr"], "LY": ["ar"], "MA": ["ar", "fr"], "OM": ["ar"], "PS": ["ar", "he"], "QA": ["ar"],
+    "SA": ["ar"], "SD": ["ar"], "SY": ["ar"], "TN": ["ar", "fr"], "YE": ["ar"], "IL": ["he", "ar"],
+    "IR": ["fa"], "AF": ["fa"], "TR": ["tr"], "CY": ["tr"], "RU": ["ru"], "BY": ["ru"], "KZ": ["ru"],
+    "UA": ["uk", "ru"], "MD": ["ru"], "GE": ["ru"], "AM": ["ru"], "AZ": ["ru", "tr"], "FR": ["fr"], "BE": ["fr", "de"],
+    "CH": ["de", "fr"], "LU": ["fr", "de"], "DE": ["de"], "AT": ["de"], "ES": ["es"], "MX": ["es"],
+    "AR": ["es"], "CO": ["es"], "VE": ["es"], "PE": ["es"], "CL": ["es"], "CU": ["es"], "EC": ["es"],
+    "BO": ["es"], "GT": ["es"], "HN": ["es"], "NI": ["es"], "PY": ["es"], "UY": ["es"], "PA": ["es"], "CR": ["es"],
+    "SV": ["es"], "DO": ["es"], "CN": ["zh"], "TW": ["zh"], "HK": ["zh"], "MO": ["zh"], "SG": ["zh"],
+    "SN": ["fr"], "ML": ["fr"], "NE": ["fr"], "BF": ["fr"], "CI": ["fr"], "CD": ["fr"], "HT": ["fr"], "TD": ["fr", "ar"]
+  }
+}

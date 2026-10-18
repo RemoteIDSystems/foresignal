@@ -82,8 +82,8 @@ public class HypothesisScheduler {
      */
     public int checkExpected() {
         Instant now = clock.instant();
-        List<IndicatorEntity> due = indicators.findByStateInAndExpectedByLessThanEqual(List.of(
-                HypothesisVocabulary.PENDING, HypothesisVocabulary.EMERGING), now, Limit.of(BATCH));
+        List<IndicatorEntity> due = indicators.findByStateInAndExpectedByLessThanEqual(
+                HypothesisVocabulary.WAITING_STATES, now, Limit.of(BATCH));
         int n = 0;
         for (IndicatorEntity i : due) {
             HypothesisSetEntity set = service.find(i.getSetId()).orElse(null);

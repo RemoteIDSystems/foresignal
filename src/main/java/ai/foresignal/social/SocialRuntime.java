@@ -83,6 +83,36 @@ public class SocialRuntime {
         return stored;
     }
 
+    private CueRequests cues;
+
+    /** Installs the 137 cue hand-off (absent in hand-built test runtimes unless set). */
+    @Autowired(required = false)
+    public void setCues(CueRequests cues) {
+        this.cues = cues;
+    }
+
+    /** The 137 cue hand-off, or null. */
+    public CueRequests cues() {
+        return cues;
+    }
+
+    /**
+     * Drains an adapter's cue requests (prompt 137).
+     *
+     * @param sourceId the adapter
+     * @return the requests, empty without the hand-off
+     */
+    public java.util.List<CueRequests.Request> drainCues(String sourceId) {
+        return cues == null ? java.util.List.of() : cues.drain(sourceId);
+    }
+
+    /** Reports a cue request's result (no-op without the hand-off). */
+    public void reportCue(CueRequests.Result result) {
+        if (cues != null) {
+            cues.report(result);
+        }
+    }
+
     /** Records that deletion sync ran (no-op without the service). */
     public void deletionRan(String platformId, Instant at) {
         if (platforms != null) {

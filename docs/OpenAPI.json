@@ -592,6 +592,11 @@
         "version": "1.3.0",
         "date": "2026-10-18",
         "note": "136: listNarratives, getNarrative, listNarrativePosts, getNarrativePropagation, getNarrativeTimeline, mergeNarratives, splitNarrative, listClaims, getClaim, getMediaFingerprint and matchMedia are implemented, with the 116 canonical-event family social-narrative (NarrativeClusterer 1.0.0: repost, quote, shared link, shared media or text joins; text by embedding cosine 0.85 or token MinHash Jaccard 0.6 within 72 h and a shared topic, place, region or entity; evidence groups by origin), merge and split with history (118 rules), the deterministic ClaimExtractor 1.0.0 (intel/social/claim-lexicon.json: 23 claim types in English, Arabic, Hebrew, Persian, Russian, Ukrainian, French, Spanish, German and Turkish; negation, denial, question and hedge markers; gazetteer places with ambiguity confidence; entities by name, IMO and MMSI; time expressions), the optional LLM role claim-extraction (template claim-extraction-system@1.0.0, daily cap social.llmClaimsPerDay), claims graded as 125 evidence items (source social-claim; reliability F, E or D from the 137 track record, operator overrides in social.sourceReliability; credibility from status), MediaFingerprinter 1.0.0 (a Java port of Meta's PDQ, fetched through the outbound URL policy and the 043 ImageGuard, multi-index Hamming search at distance 31, images kept only with social.keepMedia), the media-reuse finding with the REFERENCE_WINDOW caveat, PropagationTracer 1.0.0 (edges kept per narrative, summarized to 500 nodes), CoordinationDetector 1.0.0 (synchrony, text duplication, account-age skew and co-repost bursts against null models, Benjamini-Hochberg across the day's narratives) and the social-coordination finding, contract 1.5 (object types narrative and claim), the SSE events narrative.emerged, narrative.updated, claim.extracted, media.reuse and coordination.detected on topic social, SocialPost.narrativeIds filled, the MCP tools list_narratives, get_narrative, get_claims and match_media (read, also in the analyst read catalog), the app settings social.keepMedia, social.llmClaimMinPosts, social.llmClaimsPerDay and social.sourceReliability, and the error codes UNKNOWN_NARRATIVE, UNKNOWN_CLAIM, UNKNOWN_FINGERPRINT and IMAGE_REJECTED. Reconciliations (additive): ClaimPlace gains regionCode; Contract.contractVersion example 1.5; narrative and claim provenance chains start at the narrative (origin narrative:{id}) so 134 circular-reporting detection recognizes them."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-18",
+        "note": "137: listSocialComparisons, getSocialComparison, listSocialCues, createSocialCue, getSocialCue, getSocialLeadTimes, getSocialSettings and updateSocialSettings are implemented, with SocialPhysicalComparator 1.0.0 (asserted claims with a locality or finer place, admin-1 for large-area families, of narratives with at least social.compare.minGroups evidence groups or a social-velocity finding; physical evidence = canonical events and non-social findings of the family's canonical and finding families, with non-social originators, within the family tolerance and window of intel/social/social-compare.json; unobserved only when canSeeAbsence is ok over the closed window, else insufficient-coverage; contradicted by a negating agency or sensor record or a media-reuse finding; revisions until window end plus publication lag), claim and narrative statuses (credibility follows), the 122 ledger question per organic pending comparison (manual resolver resolved by the comparison: corroborated yes, unobserved or contradicted no, insufficient-coverage annulled COVERAGE_GAP) and the social-claim forecaster 1.0.0 (base rate of corroboration by claim type, platform mix, region and evidence-group band, Jeffreys prior, back-off), AttentionGapDetector 1.0.0 (attention-gap findings below the 10th percentile of the expected normalized attention of past events of the same family and severity band, only with adequate social coverage), SocialCueService (automatic cues from situation activation and escalation, significant change points, anomalies, critical alerts and canonical events with at least two evidence groups; manual cues; exact queries per language and platform from names, aliases, facilities and the claim lexicon; social.cues.maxPerDay and maxCostUsdPerCue; X spend estimated first; results stored as posts with collection cue, never baselined; optional xai-x-search backend through the 026 provider xai), lead-time statistics with a training cut-off at the 120 discovery fraction, social volume series registered with family social and their region as 120 precursor antecedents, the situation social section, the packet and assessment section social (SocialVersusObserved), indicators reported by claims and observed only from physical evidence, chronicle layers social-narratives (narrative-change and comparison-change thread items) and social-volume (sampled social: series), the notification event types social.divergence and social.attention_gap, the SSE events comparison.updated, cue.completed and attention.gap on topic social, the MCP tools compare_claim and get_social_lead_times (read, also in the analyst read catalog) and run_social_cue (agent, cost-bearing), the app settings social.compare, social.attentionGap, social.cues and social.trackRecord, the benchmark component social-physical with six social scenarios, and the error codes UNKNOWN_COMPARISON, UNKNOWN_CUE and CUE_LIMIT_REACHED. Reconciliations (additive): SocialSettings.trackRecord.overrides.account is the author key; llmClaimMinEvidenceGroups is fixed at 5; SocialCue.results omit newPosts."
       }
     ]
   },
@@ -83601,7 +83606,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "137",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/social/comparisons/{comparisonId}": {
@@ -83681,7 +83686,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "137",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/social/cues": {
@@ -83804,7 +83809,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "137",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "post": {
         "tags": [
@@ -83911,7 +83916,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "137",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -83992,7 +83997,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "137",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/social/lead-times": {
@@ -84119,7 +84124,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "137",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/settings/social": {
@@ -84169,7 +84174,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "137",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -84237,7 +84242,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "137",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/external/protocol": {
@@ -163408,7 +163413,8 @@
           "llmClaimMinEvidenceGroups": {
             "type": "integer",
             "minimum": 1,
-            "default": 5
+            "default": 5,
+            "description": "Evidence groups that make a narrative eligible for LLM claim extraction whatever its size; fixed at 5 in this release (a PUT with another value is refused)"
           },
           "keepMedia": {
             "type": "boolean",
@@ -163453,7 +163459,7 @@
                         "string",
                         "null"
                       ],
-                      "description": "Handle"
+                      "description": "Author key (`authorKey` of the account, as posts expose it; 136 keys overrides by author key, not handle)"
                     },
                     "channel": {
                       "type": [

@@ -53,6 +53,58 @@ public final class SocialEvidenceGrades {
         return "F";
     }
 
+    /**
+     * The track-record thresholds ({@code social.trackRecord}, prompt 137).
+     *
+     * @param minAssessed assessed claims before the record moves the reliability
+     * @param eShare the corroborated share that earns {@code E}
+     * @param dShare the corroborated share that earns {@code D}
+     */
+    public record Thresholds(int minAssessed, double eShare, double dShare) {
+
+        /** The defaults: 10, 70%, 85%. */
+        public static final Thresholds DEFAULT = new Thresholds(MIN_ASSESSED, E_SHARE, D_SHARE);
+    }
+
+    /** The thresholds of a stored {@code social.trackRecord} object (defaults for missing members). */
+    public static Thresholds thresholds(Map<?, ?> stored) {
+        if (stored == null) {
+            return Thresholds.DEFAULT;
+        }
+        return new Thresholds((int) number(stored.get("minAssessed"), MIN_ASSESSED),
+                number(stored.get("gradeEShare"), E_SHARE), number(stored.get("gradeDShare"), D_SHARE));
+    }
+
+    private static double number(Object v, double fallback) {
+        return v instanceof Number n ? n.doubleValue() : fallback;
+    }
+
+    /**
+     * The source reliability under the given thresholds.
+     *
+     * @param assessed claims of the source assessed by 137
+     * @param corroborated of them, corroborated
+     * @param override the operator override (A–F), or null
+     * @param t the thresholds
+     */
+    public static String reliability(int assessed, int corroborated, String override, Thresholds t) {
+        if (override != null && override.matches("^[A-F]$")) {
+            return override;
+        }
+        Thresholds th = t == null ? Thresholds.DEFAULT : t;
+        if (assessed < th.minAssessed() || assessed <= 0) {
+            return "F";
+        }
+        double share = (double) corroborated / assessed;
+        if (share >= th.dShare()) {
+            return "D";
+        }
+        if (share >= th.eShare()) {
+            return "E";
+        }
+        return "F";
+    }
+
     /** The override for a source key in the operator's map, or null. */
     public static String override(Map<?, ?> overrides, String sourceKey) {
         if (overrides == null || sourceKey == null) {

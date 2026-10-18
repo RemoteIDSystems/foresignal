@@ -167,8 +167,10 @@ public class SocialCollector {
                 regionCodes.add(region);
             }
         }
+        boolean cue = SocialVocabulary.COLLECTION_CUE.equals(p.collection());
         if (first) {
-            for (String region : regionCodes) {
+            // A cue is a targeted sample (137): it never adds to region coverage, which social observability baselines.
+            for (String region : cue ? Set.<String>of() : regionCodes) {
                 accumulator.coverage(p.platform(), region, at);
             }
             amplify(p, at, collectionType);

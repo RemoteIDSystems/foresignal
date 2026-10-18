@@ -302,6 +302,7 @@ public class NarrativeService {
         List<String> situationIds = new ArrayList<>();
         linkStories(new ArrayList<>(links), title, new ArrayList<>(topics), new ArrayList<>(regions), first, last,
                 storyIds, situationIds);
+        linkSituations(claims, new ArrayList<>(regions), first, last, situationIds);
         Double velocity = velocity(current, first, now);
         String state = state(first, last, velocity, now);
         Set<String> fingerprints = new LinkedHashSet<>();
@@ -343,6 +344,42 @@ public class NarrativeService {
                 events.emit(NarrativeVocabulary.EVENT_UPDATED, narrativeBody(NarrativeVocabulary.EVENT_UPDATED,
                         NarrativeViews.summary(after), changed, now), false);
             }
+        }
+    }
+
+    private ai.foresignal.social.correlation.NarrativeSituationLinker situationLinker;
+
+    /** Installs the 137 linker of narratives to situations by place, family and time. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setSituationLinker(ai.foresignal.social.correlation.NarrativeSituationLinker situationLinker) {
+        this.situationLinker = situationLinker;
+    }
+
+    /** Adds the situations the 137 linker finds by place, claim family and time to {@code situationIds}. */
+    void linkSituations(List<NarrativeStore.Claim> claims, List<String> regions, Instant first, Instant last,
+            List<String> situationIds) {
+        ai.foresignal.social.correlation.NarrativeSituationLinker linker = situationLinker;
+        if (linker == null || first == null) {
+            return;
+        }
+        try {
+            Set<String> families = new LinkedHashSet<>();
+            Set<String> claimRegions = new LinkedHashSet<>(regions);
+            for (NarrativeStore.Claim c : claims) {
+                if (c.signalFamily() != null) {
+                    families.add(c.signalFamily());
+                }
+                if (c.regionCode() != null) {
+                    claimRegions.add(c.regionCode());
+                }
+            }
+            for (String id : linker.situations(new ArrayList<>(claimRegions), new ArrayList<>(families), first, last)) {
+                if (!situationIds.contains(id)) {
+                    situationIds.add(id);
+                }
+            }
+        } catch (RuntimeException e) {
+            log.debug("Situation linking by place and family failed: {}", e.toString());
         }
     }
 
@@ -612,6 +649,8 @@ public class NarrativeService {
             }
         }
         Map<?, ?> overrides = settings.get(SettingKeys.SOCIAL_SOURCE_RELIABILITY, Map.class).orElse(Map.of());
+        SocialEvidenceGrades.Thresholds grading = SocialEvidenceGrades.thresholds(
+                settings.get(SettingKeys.SOCIAL_TRACK_RECORD, Map.class).orElse(null));
         String manifestId = aggs.isEmpty() ? null : manifest(NarrativeVocabulary.EXTRACTOR,
                 NarrativeVocabulary.EXTRACTOR_VERSION, Map.of("lexicon", ClaimLexicon.bundled().version()),
                 narrativeId, null);
@@ -621,7 +660,7 @@ public class NarrativeService {
             keys.add(e.getKey());
             int[] record = store.trackRecord(a.sourceKey);
             String reliability = SocialEvidenceGrades.reliability(record[0], record[1],
-                    SocialEvidenceGrades.override(overrides, a.sourceKey));
+                    SocialEvidenceGrades.override(overrides, a.sourceKey), grading);
             NarrativeStore.Claim claim = new NarrativeStore.Claim(Ulids.next(now), narrativeId, e.getKey(), a.type,
                     a.signalFamily, a.polarity, a.hedged, a.place, a.lon(), a.lat(), a.regionCode(),
                     new ArrayList<>(a.entities), a.eventTime(), a.actor(), a.support, a.groups.size(), a.firstAt,

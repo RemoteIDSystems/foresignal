@@ -219,9 +219,9 @@ public class IndicatorEntity {
         this.state = value;
     }
 
-    /** True while the indicator still waits for its signal. */
+    /** True while the indicator still waits for its signal (pending, emerging or reported by social claims). */
     public boolean waiting() {
-        return HypothesisVocabulary.PENDING.equals(state) || HypothesisVocabulary.EMERGING.equals(state);
+        return HypothesisVocabulary.WAITING_STATES.contains(state);
     }
 
     /** The watch rule, or null. */

@@ -75,6 +75,15 @@
     "forecaster:ensemble": [
       {"scenario": "null-seasonal", "metric": "skill", "comparator": "ge", "pass": -0.02, "warn": -0.05, "note": "Brier skill against the base-rate forecaster"},
       {"scenario": "base-rate-drift", "metric": "skill", "comparator": "ge", "pass": -0.02, "warn": -0.05, "note": "Brier skill against the base-rate forecaster"}
+    ],
+    "social-physical": [
+      {"scenario": "social-planted-covered", "metric": "correctStatusShare", "comparator": "eq", "pass": 1.0, "note": "a planted narrative with no physical event under adequate coverage is unobserved (SOC-2)"},
+      {"scenario": "social-planted-thin", "metric": "correctStatusShare", "comparator": "eq", "pass": 1.0, "note": "the same narrative under thin coverage is insufficient-coverage, never unobserved (SOC-2)"},
+      {"scenario": "social-event-discussed", "metric": "correctStatusShare", "comparator": "eq", "pass": 1.0, "note": "a discussed physical event corroborates the claim; social evidence alone never does (SOC-1)"},
+      {"scenario": "social-event-discussed", "metric": "falseGapShare", "comparator": "le", "pass": 0.05, "warn": 0.15, "note": "organic discussion at the usual level is not an attention gap"},
+      {"scenario": "social-event-silent", "metric": "gapRecall", "comparator": "ge", "pass": 0.95, "warn": 0.8, "note": "silence after a significant event under adequate coverage is an attention gap"},
+      {"scenario": "social-reused-image", "metric": "correctStatusShare", "comparator": "eq", "pass": 1.0, "note": "a claim whose image was first seen earlier or elsewhere is contradicted"},
+      {"scenario": "social-cue-loop", "metric": "uncaveatedTriggerMatches", "comparator": "eq", "pass": 0, "note": "a cue-found claim matching only its own trigger always carries CUE_TRIGGER_MATCH (SOC-3)"}
     ]
   },
   "gating": {
