@@ -7413,7 +7413,7 @@ owner, an access list and a TLP label, and without a role it answers `404 UNKNOW
 | `situation-brief` | `situation` | bottom line, members, map, timeline, linked hypotheses and forecasts, coverage |
 | `investigation-summary` | `investigation` | the items, evidence, timeline and coverage |
 | `chronicle-recap` | `chronicle` | the thread over the time window, capture gaps and cap fallbacks as caveats |
-| `weekly-assessment` | none (the latest weekly assessment) | the assessment's judgments, hypotheses and forecasts |
+| `weekly-assessment` | `assessmentId` (a 128 assessment) | the assessment's key judgments, sections and citations |
 | `custom` | `selection`, `tag` or `workspace` | the objects, a map and a timeline |
 
 Block types: `markdown`, `bluf`, `objects`, `map`, `timeline`, `hypotheses`, `forecasts`, `evidence`, `coverage`,
