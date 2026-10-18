@@ -132,7 +132,8 @@ public final class CycleInputs {
         if (enabledNode != null && !enabledNode.isNull() && !enabledNode.isBoolean()) {
             errors.add(new FieldError("enabled", "must be a boolean"));
         }
-        boolean enabled = enabledNode == null || enabledNode.isNull() || enabledNode.asBoolean();
+        boolean enabled = enabledNode == null || enabledNode.isNull()
+                || (enabledNode.isBoolean() && enabledNode.asBoolean());
         if (!errors.isEmpty()) {
             throw new ValidationException("The analysis cycle is not valid.", errors);
         }
