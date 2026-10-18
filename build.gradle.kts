@@ -130,6 +130,8 @@ dependencies {
     implementation(libs.flatgeobuf)
     // Social post language detection (135): Lingua, restricted to social.languages.
     implementation(libs.lingua)
+    // Out-of-tree WASM parser plugins (141): the Chicory interpreter, no WASI.
+    implementation(libs.chicory.runtime)
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.testcontainers.bom))

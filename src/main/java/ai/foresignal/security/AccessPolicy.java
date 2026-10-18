@@ -96,6 +96,9 @@ import org.springframework.util.AntPathMatcher;
  * <p>Prompt 140 adds the adapter doctor: {@code POST /v1/sources/{id}/doctor} ({@code admin}, always authenticated,
  * because a run can spend LLM budget) and the doctor reports ({@code agent}).
  *
+ * <p>Prompt 141 adds the plugin operations ({@code GET}/{@code PUT /v1/plugins} and {@code /v1/plugins/{name}}) as
+ * explicit {@code admin} rules.
+ *
  * <p>Prompt 025 adds {@code /mcp} and {@code /mcp/**} (the MCP server, also outside {@code /v1}):
  * {@code read}, with per-tool scope checks inside the server ({@code McpToolRegistry}).
  */
@@ -322,6 +325,9 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/llm/providers/*/test", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),
                 rule(null, "/v1/llm/**", AccessRequirement.ADMIN),
                 rule(null, "/v1/custom-sources/**", AccessRequirement.ADMIN),
+                // ---- Plugins (prompt 141): out-of-tree WASM parsers; listing, switching and enabling are admin ----
+                rule(null, "/v1/plugins", AccessRequirement.ADMIN),
+                rule(null, "/v1/plugins/*", AccessRequirement.ADMIN),
                 // ---- Mappings (prompt 059): the LLM draft spends budget, so it is always authenticated ----
                 rule(HttpMethod.POST, "/v1/mappings/suggest", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),
                 rule(null, "/v1/mappings/**", AccessRequirement.ADMIN),

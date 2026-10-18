@@ -1,0 +1,6 @@
+# Build for plain WebAssembly (no WASI imports) and keep the module's memory under the host's 64 MB cap.
+[build]
+target = "wasm32-unknown-unknown"
+
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "link-arg=--max-memory=67108864"]

@@ -1,0 +1,7 @@
+{
+  "name": "geojson-passthrough",
+  "version": "0.1.0",
+  "abi": 1,
+  "kind": "parser",
+  "sha256": "232eeeefab43a723a76b0a15f8d1e8b67f8bf9aae0cfa2a7ffa8ba7c70d8f6f8"
+}

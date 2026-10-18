@@ -80314,7 +80314,7 @@
         ],
         "operationId": "listPlugins",
         "summary": "List plugins",
-        "description": "Whether plugins are enabled and the plugins found on disk with their hash state.\n\n**Scope:** `admin`.",
+        "description": "Whether plugins are enabled and the plugins found on disk with their hash state. Discovery reads and hashes `${FORESIGNAL_DATA_DIR}/plugins/{name}/plugin.wasm` and `plugin.json` but never runs a plugin.\n\n**Scope:** `admin`.",
         "responses": {
           "200": {
             "description": "Plugins",
@@ -80354,7 +80354,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -80362,7 +80362,7 @@
         ],
         "operationId": "updatePluginSettings",
         "summary": "Enable or disable plugins",
-        "description": "Settings `plugins` (`enabled=false` by default).\n\n**Scope:** `admin`.",
+        "description": "Settings `plugins` (`enabled=false` by default). While off, no plugin runs whatever its own state, every `wasm-feed` fetch fails with a `plugins are disabled` health reason, and no plugin can be enabled (`409 PLUGINS_DISABLED`).\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -80384,6 +80384,16 @@
               }
             }
           },
+          "400": {
+            "description": "Validation failed (`enabled` missing)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Missing or invalid token",
             "content": {
@@ -80412,7 +80422,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/plugins/{name}": {
@@ -80484,7 +80494,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -80492,7 +80502,7 @@
         ],
         "operationId": "updatePlugin",
         "summary": "Enable or disable a plugin",
-        "description": "Enables a plugin after the admin reviewed its sha256 (must match the file), or disables it. ABI v1 parsers run in Chicory with no WASI imports, 64 MB memory, 5 s timeout and 16 MB output.\n\n**Scope:** `admin`.",
+        "description": "Enables a plugin after the admin reviewed its sha256 (must match the file), or disables it. ABI v1 parsers run in Chicory with no WASI imports, 64 MB memory, 5 s timeout and 16 MB output. Enabling needs plugins on (`409 PLUGINS_DISABLED`), `sha256` in the body (`400`), a `plugin.wasm` that hashes to it and to the hash `plugin.json` declares (`409 PLUGIN_HASH_MISMATCH`), and a module that loads: valid WebAssembly, importing nothing but `env.foresignal_log(i32, i32, i32)` and exporting `memory`, `alloc`, `dealloc` and `foresignal_parse` (`400`). The approval is bound to that hash: if the file later changes, the plugin stops running (state `hash-mismatch`) until it is reviewed and enabled again. Disabling always works, also while plugins are off.\n\n**Scope:** `admin`.",
         "parameters": [
           {
             "name": "name",
@@ -80584,7 +80594,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/fdsnws/event/1/query": {
@@ -87947,6 +87957,24 @@
             "status": 404,
             "prompt": "140",
             "note": "getDoctorReport: no doctor report has that id"
+          },
+          {
+            "code": "UNKNOWN_PLUGIN",
+            "status": 404,
+            "prompt": "141",
+            "note": "getPlugin, updatePlugin: no plugin directory with that name under ${FORESIGNAL_DATA_DIR}/plugins/ (or the name is not a valid plugin name)"
+          },
+          {
+            "code": "PLUGIN_HASH_MISMATCH",
+            "status": 409,
+            "prompt": "141",
+            "note": "updatePlugin: the reviewed sha256 does not match plugin.wasm, or plugin.json declares another hash than the file has"
+          },
+          {
+            "code": "PLUGINS_DISABLED",
+            "status": 409,
+            "prompt": "141",
+            "note": "updatePlugin: a plugin cannot be enabled while the plugins setting is off"
           }
         ]
       },
@@ -159464,26 +159492,31 @@
           },
           "abi": {
             "type": "integer",
-            "const": 1
+            "const": 1,
+            "description": "Always 1, the only ABI this host runs; a manifest declaring another is in state `error`"
           },
           "kind": {
             "type": "string",
-            "const": "parser"
+            "const": "parser",
+            "description": "Always `parser`, the only kind of ABI v1; a manifest declaring another is in state `error`"
           },
           "sha256": {
             "type": "string",
             "pattern": "^[0-9a-f]{64}$",
-            "description": "Declared in plugin.json"
+            "description": "Declared in plugin.json; the file's own hash when the manifest is invalid (empty when neither is known)"
           },
           "actualSha256": {
             "type": "string",
-            "pattern": "^[0-9a-f]{64}$"
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "The SHA-256 of plugin.wasm as read now; absent when the file is missing"
           },
           "hashMatches": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "True when the declared and actual hashes are equal"
           },
           "enabled": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "True when the admin enabled this plugin (an approval bound to a SHA-256 is stored)"
           },
           "state": {
             "type": "string",
@@ -159492,13 +159525,15 @@
               "enabled",
               "hash-mismatch",
               "error"
-            ]
+            ],
+            "description": "`error`: the manifest or module is invalid; `hash-mismatch`: the file does not hash to the declared SHA-256, or to the approved one; `enabled`: enabled, plugins on, hashes match and the module loads; `disabled`: otherwise"
           },
           "error": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Why the plugin will not load or run, or null"
           },
           "sourceIds": {
             "type": "array",
@@ -159512,7 +159547,8 @@
               "string",
               "null"
             ],
-            "format": "date-time"
+            "format": "date-time",
+            "description": "When its current module was last loaded to run (since this process started), or null"
           }
         },
         "required": [

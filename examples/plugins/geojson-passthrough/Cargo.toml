@@ -1,0 +1,25 @@
+[package]
+name = "geojson-passthrough"
+version = "0.1.0"
+edition = "2021"
+# serde_json 1.0.151 declares rust-version 1.71.
+rust-version = "1.71"
+description = "Foresignal plugin ABI v1 example: a GeoJSON FeatureCollection to records, values copied verbatim"
+license = "MIT"
+publish = false
+
+[lib]
+# A plain WebAssembly module (no WASI): build with --target wasm32-unknown-unknown.
+crate-type = ["cdylib"]
+
+[dependencies]
+# Versions verified on crates.io on 2026-10-18 and pinned exactly; both are MIT OR Apache-2.0.
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = { version = "=1.0.151", features = ["raw_value"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

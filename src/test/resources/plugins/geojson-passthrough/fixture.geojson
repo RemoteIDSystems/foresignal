@@ -1,0 +1,30 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {"generated": 1760774400000, "title": "Synthetic stations, \"plugin\" fixture [141]"},
+  "features": [
+    {
+      "type": "Feature",
+      "id": "st-1",
+      "geometry": {"type": "Point", "coordinates": [-75.6972, 45.4215]},
+      "properties": {"name": "Ottawa \"Parliament\" {gauge}", "level": 2.5, "observedAt": "2026-10-18T06:00:00Z"}
+    },
+    {
+      "type": "Feature",
+      "id": 42,
+      "geometry": {"type": "Point", "coordinates": [-79.3832, 43.6532]},
+      "properties": {"name": "Toronto [harbor]", "level": -0.25, "tags": ["coast", "lake"]}
+    },
+    {
+      "type": "Feature",
+      "geometry": {"type": "Point", "coordinates": [-73.5673, 45.5017]},
+      "properties": {"name": "Montreal (no id)"}
+    },
+    {
+      "type": "Feature",
+      "id": "st-4",
+      "geometry": null,
+      "properties": null
+    }
+  ],
+  "bbox": [-79.3832, 43.6532, -73.5673, 45.5017]
+}
