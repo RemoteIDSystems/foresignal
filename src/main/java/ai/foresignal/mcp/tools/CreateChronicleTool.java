@@ -54,7 +54,9 @@ public class CreateChronicleTool implements ForesignalMcpTool {
             "hypothesisSetIds", JsonSchemas.stringArray("Linked hypothesis sets.", 200),
             "investigationIds", JsonSchemas.stringArray("Linked investigations.", 200),
             "topicIds", JsonSchemas.stringArray("Linked attention topics.", 200),
-            "layers", Map.of("type", "array", "items", LAYER, "maxItems", 100),
+            "layers", Map.of("type", "array", "description",
+                    "Layers to monitor: sources and kinds with conditions, saved searches or workspaces.",
+                    "items", LAYER, "maxItems", 100),
             "fromWorkspaceId", string("A workspace whose layers, area and filters become chronicle layers."),
             "activate", JsonSchemas.bool("Start capture at once.", false)), "name");
 

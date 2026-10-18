@@ -2,6 +2,7 @@ package ai.foresignal.mcp.tools;
 
 import static ai.foresignal.mcp.JsonSchemas.bool;
 import static ai.foresignal.mcp.JsonSchemas.enumeration;
+import static ai.foresignal.mcp.JsonSchemas.object;
 import static ai.foresignal.mcp.JsonSchemas.openObject;
 import static ai.foresignal.mcp.JsonSchemas.props;
 import static ai.foresignal.mcp.JsonSchemas.string;
@@ -31,7 +32,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Component
 public class CreateHypothesisSetTool implements ForesignalMcpTool {
 
-    static final Map<String, Object> INPUT = openObject("A HypothesisSetInput.", props(
+    static final Map<String, Object> INPUT = object(props(
             "question", string("The key question.", 1, 300),
             "description", string("What the set is about."),
             "kind", enumeration("exclusive (priors sum to 1 with exactly one 'other') or independent.", null,

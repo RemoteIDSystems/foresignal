@@ -44,7 +44,12 @@ public abstract class NetworkItSupport extends ReportItSupport {
 
     /** An active chronicle of {@code owner} with the quakes layer. */
     protected ChronicleEntity active(Person owner, String name) {
-        ChronicleEntity c = chronicles.create(node("{'name':'" + name + "','layers':[" + LAYER + "]}"),
+        // Set the name via put() rather than string interpolation: node() turns ' into ", so a name
+        // with an apostrophe (e.g. "Alice's secret front") would otherwise produce invalid JSON.
+        tools.jackson.databind.node.ObjectNode body =
+                (tools.jackson.databind.node.ObjectNode) node("{'name':'x','layers':[" + LAYER + "]}");
+        body.put("name", name);
+        ChronicleEntity c = chronicles.create(body,
                 owner.caller(), ChronicleVocabulary.ORIGIN_OPERATOR, null);
         return chronicles.activate(c.getId(), null, owner.caller(), false);
     }
