@@ -40,7 +40,10 @@ import tools.jackson.databind.json.JsonMapper;
  *   <li>{@code analytic-finding} records (119 onward) of severity notable or higher;
  *   <li>alerts (017) whose rule carries the tag {@code situation} or whose severity is critical (exercise alerts
  *       and alerts on situation records never);
- *   <li>{@code rule-windows} {@code anomaly} records (100) classified {@code activity-up} or {@code activity-down}.
+ *   <li>{@code rule-windows} {@code anomaly} records (100) classified {@code activity-up} or {@code activity-down};
+ *   <li>{@code news-story} records of {@code foresignal-intel} (133), as {@code context} record members of family
+ *       {@code attention} with their stories' region codes and titles: situations show their coverage, but news never
+ *       seeds or escalates a situation on its own.
  * </ul>
  *
  * <p>Only the stored observations are read; nothing is written (MEM-1). Regions come from the 040
@@ -56,6 +59,9 @@ public class LinkerInputReader {
 
     /** The analytic-finding record kind (119). */
     public static final String FINDING_KIND = "analytic-finding";
+
+    /** The news-story record kind of {@code foresignal-intel} (133). */
+    public static final String NEWS_STORY_KIND = "news-story";
 
     /** The alert tag that sends an alert to the linker whatever its severity. */
     public static final String SITUATION_TAG = "situation";
@@ -110,8 +116,9 @@ public class LinkerInputReader {
     public List<LinkerInput> read(long from, long to) {
         List<LinkerInput> out = new ArrayList<>();
         for (VersionRow row : versions("WHERE seq > ? AND seq <= ? AND tombstone = false AND persist_reason <> 8"
-                + " AND (kind IN (?, ?) OR (source_id = ? AND kind = ?)) ORDER BY seq", from, to, INTEL_KIND,
-                FINDING_KIND, WindowEngine.SOURCE_ID, WindowEngine.ANOMALY_KIND)) {
+                + " AND (kind IN (?, ?) OR (source_id = ? AND kind = ?) OR (source_id = ? AND kind = ?)) ORDER BY seq",
+                from, to, INTEL_KIND, FINDING_KIND, WindowEngine.SOURCE_ID, WindowEngine.ANOMALY_KIND,
+                SituationRecordPublisher.SOURCE_ID, NEWS_STORY_KIND)) {
             LinkerInput input = fromVersion(row, true);
             if (input != null) {
                 out.add(input);
@@ -209,6 +216,9 @@ public class LinkerInputReader {
         if (FINDING_KIND.equals(row.kind())) {
             return finding(row, linkerOnly);
         }
+        if (NEWS_STORY_KIND.equals(row.kind()) && SituationRecordPublisher.SOURCE_ID.equals(row.sourceId())) {
+            return newsStory(row);
+        }
         return linkerOnly ? null : record(row);
     }
 
@@ -284,6 +294,26 @@ public class LinkerInputReader {
                 row.sourceId(), row.externalId(), row.version(), row.kind(), "activity-anomaly", "info", title,
                 name, row.observedAt(), row.geom(), codes, null, Set.of(), title, theme,
                 theme == null ? null : "table", false, "context", List.of(), null);
+    }
+
+    /** A news story (133): a context record member placed by its stories' regions, never a seed. */
+    private LinkerInput newsStory(VersionRow row) {
+        Map<String, Object> p = row.payload();
+        Set<String> codes = new TreeSet<>();
+        for (String code : strings(p.get("regionCodes"))) {
+            if (REGION_CODE.matcher(code).matches()) {
+                codes.add(code);
+            }
+        }
+        String text = text(p);
+        ThemeTable.Theme theme = themes.forText(row.kind(), text, row.sourceId());
+        String title = text(p, "title");
+        List<RecordRef> evidence = List.of(new RecordRef(row.sourceId(), row.externalId(), null));
+        return new LinkerInput(row.seq(), SituationMemberTypes.RECORD, row.sourceId() + "/" + row.externalId(),
+                row.sourceId(), row.externalId(), row.version(), row.kind(), "attention", "info",
+                title == null ? "News story " + row.externalId() : title, "News story", row.observedAt(), row.geom(),
+                codes, null, Set.of(), text, theme.theme(), theme.source(), false, "context", evidence,
+                DocInput.recordId(row.sourceId(), row.externalId()));
     }
 
     private LinkerInput record(VersionRow row) {

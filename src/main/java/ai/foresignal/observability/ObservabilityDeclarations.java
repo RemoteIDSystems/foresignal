@@ -128,7 +128,10 @@ public class ObservabilityDeclarations {
     public List<String> eventFamilies() {
         List<String> out = new ArrayList<>();
         for (CanonicalRules.FamilyRule rule : rules.families()) {
-            out.add(rule.family());
+            // Story families (news, prompt 133) cluster reports, not detections of a physical event.
+            if (!"story".equals(rule.match())) {
+                out.add(rule.family());
+            }
         }
         return out;
     }

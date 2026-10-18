@@ -30274,7 +30274,7 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/merge-patch+json"
               }
             ],
             "url": {
@@ -30303,7 +30303,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"type\": \"national\",\n  \"ownerOrg\": \"Example Media Group\",\n  \"aggregates\": [\n    \"ap\",\n    \"reuters\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -30456,7 +30456,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"licenceAcknowledged\": true,\n  \"enabled\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -30487,7 +30487,7 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "text/csv"
               }
             ],
             "url": {
@@ -30523,10 +30523,10 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "domain,dimension,value,label,licence,attribution\nexample-news.com,lean,-1,lean-left,CC BY 4.0,Example ratings project\nexample-news.com,factuality,4,,CC BY 4.0,Example ratings project\n",
               "options": {
                 "raw": {
-                  "language": "json"
+                  "language": "text"
                 }
               }
             }

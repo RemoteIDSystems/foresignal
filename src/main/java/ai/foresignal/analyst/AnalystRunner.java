@@ -131,12 +131,13 @@ public class AnalystRunner {
             "get_benchmark_status", "list_hypothesis_sets", "get_hypothesis_set", "get_ach_matrix",
             "get_information_value", "list_collection_gaps", "get_series_forecast", "get_outlook", "get_index",
             "list_projected_impacts", "get_impact_rate", "get_assessment", "list_assessments", "get_intel_board",
-            "get_object", "get_related");
+            "get_object", "get_related", "list_news_stories", "get_news_story", "get_outlet");
 
     /**
      * The read catalog the analyst and the analysis-cycle roles (prompt 128) may use: the 028 read tools and the
-     * intelligence tools of prompts 118–128, and the object tools of prompt 129 ({@code get_object},
-     * {@code get_related}).
+     * intelligence tools of prompts 118–128, the object tools of prompt 129 ({@code get_object},
+     * {@code get_related}) and the news tools of prompt 133 ({@code list_news_stories}, {@code get_news_story},
+     * {@code get_outlet}).
      */
     public static Set<String> readToolNames() {
         return READ_TOOL_NAMES;

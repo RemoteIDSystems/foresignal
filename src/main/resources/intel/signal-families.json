@@ -110,6 +110,18 @@
     },
     {
       "match": {
+        "findingType": "coverage-blindspot"
+      },
+      "family": "attention"
+    },
+    {
+      "match": {
+        "findingType": "coverage-divergence"
+      },
+      "family": "attention"
+    },
+    {
+      "match": {
         "intelEventType": "maritime-disruption"
       },
       "family": "ais-behaviour"
@@ -297,6 +309,24 @@
     {
       "match": {
         "sourceId": "gdelt-timelines"
+      },
+      "family": "attention"
+    },
+    {
+      "match": {
+        "sourceId": "gdelt-articles"
+      },
+      "family": "attention"
+    },
+    {
+      "match": {
+        "kind": "news-article"
+      },
+      "family": "attention"
+    },
+    {
+      "match": {
+        "kind": "news-story"
       },
       "family": "attention"
     },

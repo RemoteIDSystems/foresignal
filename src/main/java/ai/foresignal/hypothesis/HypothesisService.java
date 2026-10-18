@@ -315,7 +315,9 @@ public class HypothesisService {
         }
         List<Map<String, Object>> hyps = new ArrayList<>();
         for (HypothesisEntity h : hypotheses.findBySetIdOrderByPositionAscIdAsc(set.getId())) {
-            hyps.add(HypothesisViews.hypothesis(h, previous.get(h.getId()), since));
+            Map<String, Object> view = HypothesisViews.hypothesis(h, previous.get(h.getId()), since);
+            view.put("newsCoverage", newsCoverage(h));
+            hyps.add(view);
         }
         out.put("hypotheses", hyps);
         if (full) {
@@ -1673,6 +1675,31 @@ public class HypothesisService {
     private static void requireUnresolved(HypothesisSetEntity set) {
         if (HypothesisVocabulary.SET_RESOLVED.equals(set.getStatus())) {
             throw new ConflictException(ErrorCodes.HYPOTHESIS_SET_RESOLVED, "The set is resolved.");
+        }
+    }
+
+    private ai.foresignal.news.NewsCoverageService newsCoverageService;
+
+    /** Installs the news coverage of supporting evidence (prompt 133: {@code Hypothesis.newsCoverage}). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setNewsCoverageService(ai.foresignal.news.NewsCoverageService newsCoverageService) {
+        this.newsCoverageService = newsCoverageService;
+    }
+
+    /**
+     * The lean and state-affiliation balance of a hypothesis's supporting news evidence, with the
+     * {@code SKEWED_COVERAGE} caveat when skewed (prompt 133); null without supporting news evidence.
+     */
+    private Map<String, Object> newsCoverage(HypothesisEntity h) {
+        ai.foresignal.news.NewsCoverageService service = newsCoverageService;
+        if (service == null) {
+            return null;
+        }
+        try {
+            return service.hypothesisSupport(h.getSetId(), h.getId()).coverage();
+        } catch (RuntimeException e) {
+            log.debug("No news coverage for hypothesis {}: {}", h.getId(), e.toString());
+            return null;
         }
     }
 }

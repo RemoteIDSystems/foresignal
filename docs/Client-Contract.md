@@ -1,6 +1,6 @@
 # Foresignal — Client Contract (v1)
 
-How applications built on Foresignal name, fetch, relate, annotate and share focus on the same objects. It is the reference for every frontend (3D globe, 2D map, analyst workstation, satellite and RF consoles, mobile, embedded widgets) and for agents. Prompt 129 implements it, prompt 130 adds collaboration (principals, access lists, TLP, tags, comment threads, attachments, evidence items and saved searches), prompt 131 adds chronicles (monitoring threads with their own recorded history), prompt 132 adds reports and the exchange of signed intelligence packages between instances, and prompt 141's SDKs ship helpers for it. `GET /v1/contract` reports the versions in force.
+How applications built on Foresignal name, fetch, relate, annotate and share focus on the same objects. It is the reference for every frontend (3D globe, 2D map, analyst workstation, satellite and RF consoles, mobile, embedded widgets) and for agents. Prompt 129 implements it, prompt 130 adds collaboration (principals, access lists, TLP, tags, comment threads, attachments, evidence items and saved searches), prompt 131 adds chronicles (monitoring threads with their own recorded history), prompt 132 adds reports and the exchange of signed intelligence packages between instances, prompt 133 adds news coverage (stories and the outlets that publish them), and prompt 141's SDKs ship helpers for it. `GET /v1/contract` reports the versions in force.
 
 ---
 
@@ -39,11 +39,12 @@ Grammar: `{type}:{id}`. Ids are opaque to clients; compare references as strings
 | `group`, `tag`, `attachment`, `evidence-item`, `saved-search` | ULID | `evidence-item:01J…` | 130 |
 | `chronicle` | ULID (display id `CHR-yyyy-nnnn` also accepted) | `chronicle:01J…` | 131 |
 | `report` | ULID (display id `RPT-yyyy-nnnn` also accepted) | `report:01J…` | 132 |
-| `news-story`, `outlet` | ULID / id | `news-story:01J…` | 133 |
+| `news-story` | ULID: the story's 116 canonical event id | `news-story:01J…` | 133 |
+| `outlet` | registry id (a ULID; a merged outlet resolves to its survivor) | `outlet:01J…` | 133 |
 | `narrative`, `claim`, `social-comparison` | ULID | `narrative:01J…` | 136, 137 |
 | `remote` | `{instanceId}/{type}:{id}`, read-only material received from another instance | `remote:fs-eu-1/report:01J…` | 132 |
 
-A type is accepted from the prompt that owns it on: `GET /v1/contract` lists the types in force (contract 1.3: the 23 types of prompt 129, the six of prompt 130, `chronicle` of prompt 131, and `report` and `remote` of prompt 132; prompts 133–137 add theirs with a contract minor version bump). Unknown types and malformed ids are rejected with `400 OBJECT_REF_INVALID`. A reference to an object that does not exist, did not exist at `asOf`, or that the caller may not see is `404 UNKNOWN_OBJECT`: private and unshared objects are invisible, not forbidden.
+A type is accepted from the prompt that owns it on: `GET /v1/contract` lists the types in force (contract 1.4: the 23 types of prompt 129, the six of prompt 130, `chronicle` of prompt 131, `report` and `remote` of prompt 132, and `news-story` and `outlet` of prompt 133; prompts 134–137 add theirs with a contract minor version bump). Unknown types and malformed ids are rejected with `400 OBJECT_REF_INVALID`. A reference to an object that does not exist, did not exist at `asOf`, or that the caller may not see is `404 UNKNOWN_OBJECT`: private and unshared objects are invisible, not forbidden.
 
 ## 3. Object envelope
 
@@ -260,9 +261,18 @@ A report is a work product (§10): owned by its creator, `private` by default, w
 
 ## 13. News coverage display (prompt 133)
 
-- Show an outlet's lean and factuality **with the provider and date** of each rating and the consensus; when providers disagree, show the spread.
-- Show a story's coverage balance (left, center, right, unrated), state-affiliated share and blindspot flag; link to the articles (outbound links only).
-- Treat coverage as context, not truth: a blindspot or skew is a caveat on evidence, never a verdict.
+News stories are clusters of articles about one event (a story is a 116 canonical event, its articles are the observations); outlets are the registry of publishers with ratings imported from declared providers. Coverage describes **reporting**, never what happened.
+
+- **Reads** (all read scope): `GET /v1/news/stories?topic&region&situationId&since&blindspot&cursor&limit` (`blindspot` is `left`, `right` or `any`), `GET /v1/news/stories/{id}` (`404 UNKNOWN_STORY`), `GET /v1/news/articles?story&outlet&since&cursor&limit`, `GET /v1/media/outlets?q&country&type&bucket&cursor&limit` and `GET /v1/media/outlets/{id}` (`404 UNKNOWN_OUTLET`). `news-story:{id}` and `outlet:{id}` refs resolve to envelopes whose `links.self` points at these. Provider settings, rating imports and outlet edits are admin operations, not client views. Articles of sources outside a restricted token's sources are left out, and spatially restricted tokens see no articles.
+- **Story detail** groups the articles **by outlet** (`outlets[]`: the outlet, its `articles` and their `evidenceGroupId`), followed by the linked `situations` and `canonicalEvents` (the story's own event and the non-news events that corroborate it) as envelopes. Render each article as an outbound link with its title, domain and dates; Foresignal keeps no article body, no byline and no image, and a client must not fetch or show them as if they were Foresignal's. An outlet the registry does not know shows with `id: null` and its domain as its name.
+- **Ratings:** show each rating **per provider with its license (`licence`), attribution and date (`ratedAt`)**, next to the consensus per dimension (`median`, `nProviders`, `disagreement`, lean `bucket`, and the `providers` breakdown). Lean runs from −2 (left) to +2 (right) and factuality from 1 to 5; provider-specific axes (`{provider}:{axis}`) are their own dimensions, never folded into lean. When providers disagree (`disagreement` above zero), show the spread, not just the median. An outlet without ratings is `unrated`; say so rather than placing it at the center.
+- **`LOCAL_ONLY` ratings** (from providers whose license forbids redistribution) come back with `valueNorm`, `valueRaw` and `label` set to null, and the consensus recomputed from the open providers, on paths that may not carry local-only data (share links, feeds, sinks, federation). Show such a rating as withheld with its provider; never fill the gap.
+- **Coverage statistics** (a story's `coverage`): article and evidence-group counts by lean bucket (`left`, `center`, `right`, `unrated`), by country, outlet type and factuality band, `coverageBalance` (shares of evidence groups), `stateAffiliatedShare`, `nRated`, `blindspot`, `corroborated`, `skewed` and `caveats`. Show balance in **evidence groups, not articles**: thirty reprints of one wire story are one group.
+- **Blindspot:** `left` or `right` names the side the coverage **comes from** (at least 75% of the rated evidence groups, with at least 8 rated); a `right` blindspot is a story the left barely covers. Below 8 rated groups there is no blindspot, whatever the shares. Label it as a property of the coverage, with the counts beside it.
+- **Syndicated** articles (`syndicated: true`) are reprints of a wire story counted in the wire's evidence group; mark them so a list of thirty headlines does not read as thirty sources.
+- **Corroboration** (`corroborated`, and a situation's `corroboratedShare`) comes only from non-news evidence (a sensor-network or agency observation of a nearby event in time); coverage never decides it.
+- **Where coverage appears:** the Situation response's `coverage` member (null without news members), the dossier's top-level `coverage` (`include=coverage`, on by default; `{status: ok | unavailable, stats}` for situations and news stories, null for other types), a hypothesis's `newsCoverage` (the coverage of its news support, with `SKEWED_COVERAGE` when skewed), an assessment's top-level `coverage` (`situations[{situationId, coverage}]`, `blindspotStoryIds`, `divergenceFindingIds`) and a report's coverage block.
+- **Never show coverage as truth:** a blindspot, a skew or a lean is a caveat on evidence, never a verdict on the event or on an outlet. Show the caveats (`COVERAGE_BLINDSPOT`, `SKEWED_COVERAGE`, `MOSTLY_UNRATED_OUTLETS`, and `COVERAGE_NOT_TRUTH` on coverage findings) where the numbers appear. Never show authors or bylines; Foresignal does not store them.
 
 ## 14. Display rules for scores and confidence
 
@@ -287,5 +297,5 @@ A report is a work product (§10): owned by its creator, `private` by default, w
 
 ## 17. Versioning
 
-- `GET /v1/contract` → `{contractVersion, objectTypes, relationTypes, contextSchemaVersion, deepLinkVersion}` (today `1.3`, the 32 types of §2 owned by prompts up to 132, the 15 relation types of §4, `1`, `1`).
+- `GET /v1/contract` → `{contractVersion, objectTypes, relationTypes, contextSchemaVersion, deepLinkVersion}` (today `1.4`, the 34 types of §2 owned by prompts up to 133, the 15 relation types of §4, `1`, `1`).
 - Within `/v1`, changes are additive (new types, relation types, optional context fields). Removing or renaming anything requires a new major contract version and a deprecation period announced through `Deprecation` headers.

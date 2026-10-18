@@ -17,12 +17,15 @@ import java.util.Set;
  *   <li><b>moderate</b>: at least one observed indicator of credibility M or H;</li>
  *   <li><b>low</b>: otherwise.</li>
  * </ul>
- * A broken linchpin assumption lowers the level one step (so it also rules out high). Pure.
+ * A broken linchpin assumption lowers the level one step (so it also rules out high). Since 1.1.0 (prompt 133),
+ * supporting news evidence that is skewed ({@code SKEWED_COVERAGE}: at least 75% from one lean bucket or from
+ * state-affiliated outlets) <em>and</em> has no non-news corroboration lowers it one step more; skewed coverage with
+ * corroboration changes nothing (coverage describes reporting, never truth). Pure.
  */
 public final class ConfidenceAssessor {
 
     /** The assessor version. */
-    public static final String VERSION = "1.0.0";
+    public static final String VERSION = "1.1.0";
 
     /** The reporting-density caveat of 121. */
     public static final String LOW_REPORTING_DENSITY = "LOW_REPORTING_DENSITY";
@@ -49,15 +52,26 @@ public final class ConfidenceAssessor {
      * @param evidenceQuality an evidence-quality note, or null
      * @param coverage a coverage note, or null
      * @param forecasterAgreement agreement between ledger forecasters (1 − spread), or null
+     * @param skewedUncorroboratedNews true when the supporting news evidence is skewed and nothing outside the news
+     *     corroborates it (prompt 133)
      */
     public record Inputs(List<Observed> observed, boolean brokenLinchpin, boolean lowReportingDensity,
-            String evidenceQuality, String coverage, Double forecasterAgreement) {
+            String evidenceQuality, String coverage, Double forecasterAgreement, boolean skewedUncorroboratedNews) {
 
         /** Copies the list. */
         public Inputs {
             observed = observed == null ? List.of() : List.copyOf(observed);
         }
+
+        /** Inputs without a news-coverage judgment (the 1.0.0 inputs). */
+        public Inputs(List<Observed> observed, boolean brokenLinchpin, boolean lowReportingDensity,
+                String evidenceQuality, String coverage, Double forecasterAgreement) {
+            this(observed, brokenLinchpin, lowReportingDensity, evidenceQuality, coverage, forecasterAgreement, false);
+        }
     }
+
+    /** The coverage caveat of prompt 133. */
+    public static final String SKEWED_COVERAGE = "SKEWED_COVERAGE";
 
     /**
      * The assessment.
@@ -111,6 +125,12 @@ public final class ConfidenceAssessor {
             rule = rule + "; lowered to " + lowered + " by a broken linchpin assumption";
             level = lowered;
         }
+        if (in.skewedUncorroboratedNews()) {
+            String lowered = HypothesisVocabulary.lower(level);
+            rule = rule + "; lowered to " + lowered + " because the supporting news coverage is skewed and nothing"
+                    + " outside the news corroborates it";
+            level = lowered;
+        }
         Map<String, Object> basis = new LinkedHashMap<>();
         basis.put("observedIndicators", in.observed().size());
         basis.put("families", families.size());
@@ -120,6 +140,7 @@ public final class ConfidenceAssessor {
         basis.put("reportingDensity", in.lowReportingDensity() ? LOW_REPORTING_DENSITY : "ok");
         basis.put("forecasterAgreement", in.forecasterAgreement());
         basis.put("brokenLinchpin", in.brokenLinchpin());
+        basis.put("newsCoverage", in.skewedUncorroboratedNews() ? SKEWED_COVERAGE : "ok");
         basis.put("rule", rule);
         basis.put("assessor", "ConfidenceAssessor " + VERSION);
         return new Assessment(level, basis);

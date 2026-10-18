@@ -269,9 +269,10 @@ public class CycleRunner {
                 : "Situation assessment: " + situation.getTitle();
         AssessmentComposer.Previous prev = previous == null ? null : new AssessmentComposer.Previous(previous.getId(),
                 previous.getCreatedAt(), previous.getBluf(), snapshotOf(previous));
+        Map<String, Object> newsCoverage = newsCoverage(state, situation, run);
         AssessmentComposer.Composed composed = AssessmentComposer.compose(new AssessmentComposer.Inputs(title, cadence,
                 run.getPeriodStart(), run.getPeriodEnd(), situation == null ? null : situation.getTitle(), packet,
-                state, analyst, redTeam, outcomes, prev));
+                state, analyst, redTeam, outcomes, prev), newsCoverage);
         boolean privateAssessment = packet.privateInput() || state.anyPrivate() || seen.get();
         AssessmentEntity a = new AssessmentEntity(Ulids.next(clock.instant()), cadence, run.getPeriodStart(),
                 run.getPeriodEnd(), clock.instant());
@@ -305,6 +306,7 @@ public class CycleRunner {
         a.setCitations(composed.citations());
         a.setLintWarnings(composed.lintWarnings());
         a.setPrivateAssessment(privateAssessment);
+        a.setNewsCoverage(newsCoverage);
         a.setManifestId(manifest(run, cycle, packet, outcomes, model, effort, providerId, templates));
         assessments.save(a);
 
@@ -321,6 +323,38 @@ public class CycleRunner {
         delivery.deliver(a, cycle == null ? List.of() : cycle.getChannelIds(),
                 cycle == null ? "normal" : cycle.getNotifyMinPriority());
         return ctx == null ? providerId : ctx.providerId();
+    }
+
+    private ai.foresignal.news.NewsCoverageService newsCoverageService;
+
+    /** Installs the news coverage (prompt 133: the assessment's deterministic Coverage section). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setNewsCoverageService(ai.foresignal.news.NewsCoverageService newsCoverageService) {
+        this.newsCoverageService = newsCoverageService;
+    }
+
+    /** The news Coverage section of an assessment: its situation (on demand) or the top situations of the state. */
+    private Map<String, Object> newsCoverage(CycleState state, SituationEntity situation, CycleRunEntity run) {
+        ai.foresignal.news.NewsCoverageService service = newsCoverageService;
+        if (service == null) {
+            return null;
+        }
+        List<String> ids = new ArrayList<>();
+        if (situation != null) {
+            ids.add(situation.getId());
+        }
+        for (Map<String, Object> s : state.situations()) {
+            Object id = s.get("id");
+            if (id != null && !ids.contains(id.toString()) && ids.size() < 10) {
+                ids.add(id.toString());
+            }
+        }
+        try {
+            return service.assessmentCoverage(ids, run.getPeriodStart(), run.getPeriodEnd());
+        } catch (RuntimeException e) {
+            log.debug("No news coverage for cycle run {}: {}", run.getId(), e.toString());
+            return null;
+        }
     }
 
     private static RoleOutcome withProvider(RoleOutcome outcome, RoleContext ctx, String role) {

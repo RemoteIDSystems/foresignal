@@ -655,6 +655,97 @@
       "notes": "US Energy Information Administration; EIA-930 compiles balancing-authority submissions (ERCOT among them), and its petroleum spot prices are sourced from Refinitiv"
     },
     {
+      "id": "ap",
+      "class": "media",
+      "independenceGroup": "ap",
+      "domains": ["apnews.com", "ap.org"],
+      "notes": "Associated Press (news agency, prompt 133): its reprints are one evidence group"
+    },
+    {
+      "id": "reuters",
+      "class": "media",
+      "independenceGroup": "reuters",
+      "domains": ["reuters.com"],
+      "notes": "Reuters (news agency, prompt 133): its reprints are one evidence group"
+    },
+    {
+      "id": "afp",
+      "class": "media",
+      "independenceGroup": "afp",
+      "domains": ["afp.com"],
+      "notes": "Agence France-Presse (news agency, prompt 133): its reprints are one evidence group"
+    },
+    {
+      "id": "dpa",
+      "class": "media",
+      "independenceGroup": "dpa",
+      "domains": ["dpa.com"],
+      "notes": "Deutsche Presse-Agentur (news agency, prompt 133): its reprints are one evidence group"
+    },
+    {
+      "id": "efe",
+      "class": "media",
+      "independenceGroup": "efe",
+      "domains": ["efe.com"],
+      "notes": "Agencia EFE (news agency, prompt 133): its reprints are one evidence group"
+    },
+    {
+      "id": "ansa",
+      "class": "media",
+      "independenceGroup": "ansa",
+      "domains": ["ansa.it"],
+      "notes": "ANSA (news agency, prompt 133): its reprints are one evidence group"
+    },
+    {
+      "id": "xinhua",
+      "class": "media",
+      "independenceGroup": "xinhua",
+      "domains": ["xinhuanet.com", "news.cn"],
+      "notes": "Xinhua News Agency (news agency, prompt 133): its reprints are one evidence group"
+    },
+    {
+      "id": "tass",
+      "class": "media",
+      "independenceGroup": "tass",
+      "domains": ["tass.com", "tass.ru"],
+      "notes": "TASS (news agency, prompt 133): its reprints are one evidence group"
+    },
+    {
+      "id": "kyodo",
+      "class": "media",
+      "independenceGroup": "kyodo",
+      "domains": ["kyodonews.net"],
+      "notes": "Kyodo News (news agency, prompt 133): its reprints are one evidence group"
+    },
+    {
+      "id": "yonhap",
+      "class": "media",
+      "independenceGroup": "yonhap",
+      "domains": ["yna.co.kr"],
+      "notes": "Yonhap News Agency (news agency, prompt 133): its reprints are one evidence group"
+    },
+    {
+      "id": "pti",
+      "class": "media",
+      "independenceGroup": "pti",
+      "domains": ["ptinews.com"],
+      "notes": "Press Trust of India (news agency, prompt 133): its reprints are one evidence group"
+    },
+    {
+      "id": "ani",
+      "class": "media",
+      "independenceGroup": "ani",
+      "domains": ["aninews.in"],
+      "notes": "Asian News International (news agency, prompt 133): its reprints are one evidence group"
+    },
+    {
+      "id": "anadolu",
+      "class": "media",
+      "independenceGroup": "anadolu",
+      "domains": ["aa.com.tr"],
+      "notes": "Anadolu Agency (news agency, prompt 133): its reprints are one evidence group"
+    },
+    {
       "id": "wikidata",
       "class": "crowd",
       "independenceGroup": "wikimedia",
@@ -911,9 +1002,21 @@
     "fred-series": "fred",
     "wikimedia-pageviews": "wikidata",
     "gdelt-timelines": "gdelt",
+    "gdelt-articles": "gdelt",
+    "media-ratings": "foresignal",
     "worldbank-indicators": "world-bank"
   },
   "patterns": {
+    "news-feed-*": {
+      "originator": "$source",
+      "class": "media",
+      "notes": "Outlet feeds of the news-feed family (prompt 133); stories group them by outlet and wire"
+    },
+    "op-news-feed-*": {
+      "originator": "$source",
+      "class": "media",
+      "notes": "Operator overlay outlet feeds (prompt 133)"
+    },
     "cap-*": {
       "originator": "$source",
       "class": "agency",

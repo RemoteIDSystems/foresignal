@@ -231,7 +231,7 @@ public class AssessmentService {
         out.put("footer", CycleVocabulary.FOOTER);
         out.put("private", a.isPrivateAssessment());
         out.put("createdAt", a.getCreatedAt().toString());
-        out.put("coverage", null);
+        out.put("coverage", a.getNewsCoverage());
         out.put("social", null);
         return out;
     }

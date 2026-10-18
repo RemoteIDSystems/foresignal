@@ -140,6 +140,7 @@ public class AnalysisSeriesRegistrar {
         candidates.addAll(seriesPoints(now));
         candidates.addAll(portWatch(now));
         candidates.addAll(ruleGroups(now));
+        candidates.addAll(newsCoverage(now));
         List<String> skipped = new ArrayList<>();
         Map<String, List<Map<String, Object>>> defaults = defaultWatchPairs(candidates, skipped);
         Map<String, AnalysisSeriesEntity> existing = new HashMap<>();
@@ -239,6 +240,35 @@ public class AnalysisSeriesRegistrar {
     }
 
     // ------------------------------------------------------------------------- candidates
+
+    /**
+     * The daily news-coverage series of topics and situations (prompt 133, {@code rollup:news/{scope}/{bucket}}) with
+     * at least {@value #MIN_NEWS_DAYS} days of rows in the lookback, volume = their evidence groups.
+     */
+    List<Candidate> newsCoverage(Instant now) {
+        List<Candidate> out = new ArrayList<>();
+        try {
+            jdbc.query("SELECT scope_id, bucket, count(*) AS days, sum(evidence_groups) AS total FROM news_coverage_daily"
+                            + " WHERE day >= :since GROUP BY scope_id, bucket HAVING count(*) >= :min",
+                    new MapSqlParameterSource().addValue("since", Timestamp.from(now.minus(LOOKBACK)))
+                            .addValue("min", MIN_NEWS_DAYS),
+                    rs -> {
+                        try {
+                            SeriesRef ref = SeriesRef.news(rs.getString("scope_id"), rs.getString("bucket"));
+                            SeriesRef.parse(ref.format());
+                            out.add(new Candidate(ref.format(), "day", "attention", null, rs.getDouble("total")));
+                        } catch (RuntimeException e) {
+                            log.debug("Skipping news coverage series: {}", e.toString());
+                        }
+                    });
+        } catch (RuntimeException e) {
+            log.debug("No news coverage series: {}", e.toString());
+        }
+        return out;
+    }
+
+    /** The days of rows a news-coverage series needs to be registered (prompt 133). */
+    public static final int MIN_NEWS_DAYS = 14;
 
     List<Candidate> regionDayRollups(Instant now) {
         List<Candidate> out = new ArrayList<>();

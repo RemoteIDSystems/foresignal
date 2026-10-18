@@ -807,6 +807,21 @@ public final class ErrorCodes {
      */
     public static final String PACKAGE_LOOP = "PACKAGE_LOOP";
 
+    /** 404: no news story with this id (133). */
+    public static final String UNKNOWN_STORY = "UNKNOWN_STORY";
+
+    /** 404: no media outlet with this id (133). */
+    public static final String UNKNOWN_OUTLET = "UNKNOWN_OUTLET";
+
+    /**
+     * 409: a rating provider cannot be enabled or imported before an admin acknowledged its license (133); AllSides
+     * and MBFC are off until the operator records their own rights.
+     */
+    public static final String PROVIDER_LICENCE_NOT_ACKNOWLEDGED = "PROVIDER_LICENCE_NOT_ACKNOWLEDGED";
+
+    /** 400: a ratings import is malformed (unknown provider, bad CSV or JSON, no usable row) (133). */
+    public static final String RATINGS_IMPORT_INVALID = "RATINGS_IMPORT_INVALID";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

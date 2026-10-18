@@ -1,13 +1,3 @@
-listNewsStories 133
-getNewsStory 133
-listNewsArticles 133
-listMediaOutlets 133
-getMediaOutlet 133
-updateMediaOutlet 133
-listMediaProviders 133
-getMediaProvider 133
-updateMediaProvider 133
-importMediaRatings 133
 listRelatedChronicles 134
 setChronicleDiscoverability 134
 dismissChronicleLink 134

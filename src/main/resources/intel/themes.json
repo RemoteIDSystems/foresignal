@@ -17,7 +17,9 @@
     "precursor-active": "mixed",
     "forecast-exceedance": "mixed",
     "outlook-exceedance": "mixed",
-    "projected-impact": "infrastructure"
+    "projected-impact": "infrastructure",
+    "coverage-blindspot": "mixed",
+    "coverage-divergence": "mixed"
   },
   "tags": {
     "maritime": "maritime",

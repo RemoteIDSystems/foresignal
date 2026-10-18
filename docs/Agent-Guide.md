@@ -216,9 +216,9 @@ certainty. A `coverage-drop` classification is a receiver problem, not activity.
 Tools: `list_intel_events` and `get_intel_event` (read), `get_exposure` (read); `create_intel_event`,
 `update_intel_event_status`, `create_investigation` and `add_to_investigation` (agent). An event
 response separates `evidence` (the pinned members), `inference` (type, severity, confidence,
-geometry) and `speculation` (alternatives and any narrative, labelled). **Cite members** by their
+geometry) and `speculation` (alternatives and any narrative, labeled). **Cite members** by their
 `source/externalId@seq`; do not present the confidence as a probability (it is an uncalibrated
-`confidenceMethod=event-scorer-1.0.0` score) and keep anything under `speculation` labelled as such.
+`confidenceMethod=event-scorer-1.0.0` score) and keep anything under `speculation` labeled as such.
 An `unknown` coverage state or a `coverage-drop` is missing data, never evidence of absence.
 
 ### Autonomous analyst (prompt 102)
@@ -626,7 +626,7 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `list_views` | read | Saved views (named record filters); `detail=long` adds their conditions and projection (036). |
 | `get_view_records` | read | The current records of a saved view by `viewId` or slug; a view that names a place or watchlist needs a token (036). |
 | `create_view` | agent | Create a saved view from a `view` (`SavedViewInput`) (036). |
-| `create_share_link` | agent | Create an expiring, path-bound share link (`/v1/k/{key}`, readable without a token) to one `record`, `alert`, `view`, `track`, `briefing-run` or `export` (`targetType`, `targetRef`, optional `fieldMask`, `precisionM`, `expiresAt` ≤ 30 days, `maxUses`); the key is returned once. Records whose licence does not allow redistribution are removed (such a target is refused) and private sources never leave (112). |
+| `create_share_link` | agent | Create an expiring, path-bound share link (`/v1/k/{key}`, readable without a token) to one `record`, `alert`, `view`, `track`, `briefing-run` or `export` (`targetType`, `targetRef`, optional `fieldMask`, `precisionM`, `expiresAt` ≤ 30 days, `maxUses`); the key is returned once. Records whose license does not allow redistribution are removed (such a target is refused) and private sources never leave (112). |
 | `list_watchlists` | agent | Watchlists with identity (`icao24`, `registration`, `callsign`, `mmsi`, `imo`, `custom`) and item counts (036). |
 | `get_watchlist` | agent | One watchlist with its first items (036). |
 | `add_to_watchlist` | agent | Add or update `items` (`{value, label, notes, tags}`), validated for the list's identity; effective on each entity's next observation (036). |
@@ -651,7 +651,7 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `list_satellite_passes` | read | Passes of the operator's SatDump ground stations, newest AOS first: optional `station`, `since`, `status` (`receiving`, `recorded`, `decoded`, `failed`), `limit` ≤ 50; compact items, `detail=long` for full payloads with the RF statistics (049). |
 | `get_satellite_pass` | read | One pass by `id` (`{station}:{satKey}:{aosEpochMinute}`, or the item id `satdump-{station}:…`): metadata plus the first composite's 256 px thumbnail as image content with a text caption (049). |
 | `get_track` | read | The simplified path of one entity (`sourceId`, `externalId`) between `from` and `to` (same time forms; default the last 6 h), `maxPoints` ≤ 500 (100 with `detail=short`, which stays within 4 KB): segments of `[lon, lat, epochSeconds]` plus a summary with `distanceKm`, `durationSeconds`, `bbox`, `maxSpeedKmh`, `segments` and `approximate` (037). |
-| `get_series` | read | The energy and markets series catalogue (source id, series id, name, unit, frequency and point count), or, given a `source` and `series`, that series' points newest-first with `period`, `periodStart`, `periodEnd`, `value`, `unit` and `status`; compact output carries a `*_total` count and a `truncated` flag (093). |
+| `get_series` | read | The energy and markets series catalog (source id, series id, name, unit, frequency and point count), or, given a `source` and `series`, that series' points newest-first with `period`, `periodStart`, `periodEnd`, `value`, `unit` and `status`; compact output carries a `*_total` count and a `truncated` flag (093). |
 | `list_attention_topics` | read | The operator's attention topics (117): `id`, `name`, `gdeltQuery`, `wikiArticles`, `keywords`, `regionCodes`, `themes` and `enabled`; `enabled` filters. Enabled topics drive the series `gdelt.{topicId}.vol`, `gdelt.{topicId}.tone` and `wiki.{project}.{article}`; read them with `get_series`. Market series (`cot.*`, `fred.*`, `wb.*`) carry `family`, `transform` and `releaseLagDays` in their catalog entry; `fred-series` values are `LOCAL_ONLY`. |
 | `list_situations` | read | Situations (118), persistent storylines, by latest activity: `status`, `theme`, `region`, `since`, `q`, `limit`, `cursor`. Each item has `status`, `severity`, `signalFamilies`, `memberCount`, `corroborationShare` and the deterministic `summary`. Private situations appear only for callers with private access. |
 | `get_situation` | read | One situation (`id`): `evidence` (members grouped by signal family, each with its `joinReason` and `corroboration`, plus the roll-up), `inference` (status, severity, summary and their basis) and `speculation` (the optional LLM brief, labeled). Present the evidence first, quote `corroborationShare`, and say so when `UNCORROBORATED_ONLY` is among the `caveats`; never present the brief as evidence. |
@@ -659,9 +659,9 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `create_situation` | agent | Creates a situation from `title`, `theme`, optional `regionCodes`, `topicIds` and `members` (`memberType`, `ref`, `seq` for records and anomalies, `role`); members are verified by seq. Status, severity and summary are derived. |
 | `link_to_situation` | agent | Adds a member to a situation (`situationId`, `memberType`, `ref`, `seq`, `role`, optional `moveFromSituationId`); the join reason records you. Use it for evidence the linker missed; never to add an LLM conclusion. |
 | `merge_situations` | agent | Merges two situations that are one storyline (`situationId`, `intoId`, `reason`); the older keeps its id. |
-| `list_findings` | read | Analytic findings (119), newest first: `type` (`change-point`, `pre-event-signal`, `unexplained-move`, `co-occurrence`, `precursor-active`, since 126 `forecast-exceedance` and `outlook-exceedance`, and since 127 `projected-impact`), `severity`, `status`, `region`, `ref` (a series reference), `since`, `situationId`, `limit`, `cursor`. Every finding carries its `baseRate` (how often something this strong happens by chance, and how that was measured) and its `caveats`. |
+| `list_findings` | read | Analytic findings (119), newest first: `type` (`change-point`, `pre-event-signal`, `unexplained-move`, `co-occurrence`, `precursor-active`, since 126 `forecast-exceedance` and `outlook-exceedance`, since 127 `projected-impact`, and since 133 `coverage-blindspot` and `coverage-divergence`), `severity`, `status`, `region`, `ref` (a series reference), `since`, `situationId`, `limit`, `cursor`. Every finding carries its `baseRate` (how often something this strong happens by chance, and how that was measured) and its `caveats`. |
 | `get_finding` | read | One finding (`findingId`): `evidence` (series references and pinned members), `inference` (detector name, version and parameters, statistics, base rate, deterministic explanation) and `caveats`. **Always quote the base rate and the caveats with any claim you make from a finding.** A finding says how unusual a pattern is, not why it happened. **Never call a pre-event signal or an unexplained move evidence of wrongdoing, insider trading or advance knowledge:** say "unusual movement before the event" and give the coincidence baseline. Say `DAILY_RESOLUTION_ONLY` aloud for market findings: daily data cannot see intraday trading. |
-| `get_series_data` | read | A series through the series reader (119): `ref` is `series:{sourceId}/{seriesId}`, `rollup:{hour|day}/{sourceId|*}/{kind}/{region}` (`*`: every source, canonical events counted once) or `rule:{ruleId}/{groupKey}`; optional `from`, `to` and `asOf` (only points known by then). Points carry `knownAt` and `coverageOk`; `gaps` lists periods without data or coverage, which are unknown, never zero. Raw values of `LOCAL_ONLY` series may be withheld (`valuesWithheld`). |
+| `get_series_data` | read | A series through the series reader (119): `ref` is `series:{sourceId}/{seriesId}`, `rollup:{hour|day}/{sourceId|*}/{kind}/{region}` (`*`: every source, canonical events counted once), `rule:{ruleId}/{groupKey}` or, since 133, `rollup:news/{topicId|situationId}/{bucket}` (daily news evidence groups first seen per UTC day, bucket `left`, `center`, `right`, `unrated` or `state`); optional `from`, `to` and `asOf` (only points known by then). Points carry `knownAt` and `coverageOk`; `gaps` lists periods without data or coverage, which are unknown, never zero. Raw values of `LOCAL_ONLY` series may be withheld (`valuesWithheld`). |
 | `list_analysis_series` | read | The analysis-series registry the detectors run on (`family`, `region`, `enabled`): frequency, detectors, family, region and event-study `watchPairs`. |
 | `run_event_study` | agent | A batch event study (`selector`, `target`, `from`, `to`, optional `asOf` and `name`) as a 103 job of type `event-study`; read the result with `get_backtest`: per-event abnormal paths, CAAR per window, standardized, Corrado rank and placebo tests and caveats (`FEW_EVENTS`, `LAGGED_PUBLICATION`, `DAILY_RESOLUTION_ONLY`). One queued or running job per token. |
 | `upsert_analysis_series` | agent | Registers a series as an operator row (`ref`, `enabled`, `detectors`, `frequency`, `family`, `regionCode`, `watchPairs` of `{eventFamily, regionCodes, minEffect, releaseLagDays}`); auto-registration never removes it. |
@@ -690,7 +690,7 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `get_outlook` | read | A regional count outlook (126): `region` and `family` (`conflict:battles`, `conflict:explosions-remote`, `conflict:violence-civilians`, `conflict:protests`, `outage`, `weather-severe`, `seismic:m4.5`) give the six 4-week windows with quantiles and ledger questions, past windows with their actual counts, and `skill`; without both, a page of the latest outlooks (`limit`). **Always quote the skill (`label`, `n`, `intervalCoverageP10P90`) and the `LOW_REPORTING_DENSITY` and `LOW_DETECTABILITY` flags with the numbers;** with `label: insufficient` say the outlook's accuracy is not yet measured. |
 | `get_index` | read | A regional index (126): `indexId`, optional `region`, `from`, `to`; without `indexId`, the definitions. Each value has its decomposition (component raw value, normalized value, weight, contribution), the floors applied and the 24-hour and 7-day deltas; the definition has `weightsOrigin` (`default`, `fitted`, `operator`) and the latest out-of-sample `skill`. **An index is a composite on a 0–100 scale, never a probability:** never word it with likelihood terms. |
 | `fit_index` | agent | Starts a weight fit of an index (`indexId`) as a 103 job of type `index-fit`: a regularized NB regression of the next four weeks' target count on the components, with rolling-origin validation, the out-of-sample skill against the seasonal-naive outlook and per-component significance. The weights are only **proposed** (`index.weights_proposed`); applying them is `POST /v1/indices/{id}/weights` unless the index sets `autoApplyFittedWeights`. 409 `FORECAST_MODEL_NOT_READY` while the component series do not exist. |
-| `list_projected_impacts` | read | Projected impacts of hazard forecasts (127), highest probability first within each hazard: `hazardType`, `region`, `since`, `minProbability`, `limit`, `cursor`; with `findingId`, one projection in full. Each has `pHazard` (the producer's published probability), `pConditional` (the historical rate, with `n`), `pImpact` and its `interval`, the exposed assets, the dependency paths with their weakest-edge labels, the skipped pairs and the ledger question. **Every projection is modelled; heuristic links may be wrong; it is not an official warning: say so, and quote the interval and n with the number.** |
+| `list_projected_impacts` | read | Projected impacts of hazard forecasts (127), highest probability first within each hazard: `hazardType`, `region`, `since`, `minProbability`, `limit`, `cursor`; with `findingId`, one projection in full. Each has `pHazard` (the producer's published probability), `pConditional` (the historical rate, with `n`), `pImpact` and its `interval`, the exposed assets, the dependency paths with their weakest-edge labels, the skipped pairs and the ledger question. **Every projection is modeled; heuristic links may be wrong; it is not an official warning: say so, and quote the interval and n with the number.** |
 | `get_impact_rate` | read | The conditional rate of a built-in pair (127): `hazardClass`, `impactFamily`, optional `regionClass` (default: every continent class). `status: insufficient` (n < 20) means no rate: never assume one. |
 | `get_assessment` | read | One analysis assessment (128) by `assessmentId`, or the latest (of a `cadence`: `daily`, `weekly`, `monthly`, `on-demand`): the bottom line of typed, cited key judgments (each probability a number with its derived ICD 203 term, confidence in a separate statement), what changed since the previous one, and its sections and markdown. **Read the latest assessment before answering questions about situations, and cite it as `assessment:ID`.** Judgments with `textOrigin: llm` were written by a model and validated; speculation is in its own section. |
 | `list_assessments` | read | Assessments newest first (128): `cadence`, `situationId`, `since`, `limit`; id, period, status and headline. |
@@ -714,6 +714,9 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `get_report` | read, always authenticated | One report (`reportId` or its display id `RPT-yyyy-nnnn`) with its ordered blocks (key judgments with ICD 203 terms, pinned objects, maps, timelines, hypothesis and forecast snapshots, graded evidence, caveats, sources); `markdown: true` adds the latest published revision as Markdown, TLP banner included (132). |
 | `draft_report` | agent, cost-bearing with `narrative` | Builds and stores a deterministic report draft (132) from a `source` (`selection` with `refs`, or `tag`, `investigation`, `chronicle`, `situation`, `workspace` with `ref`) and a `template` (`situation-brief`, `investigation-summary`, `chronicle-recap`, `weekly-assessment` with `assessmentId`, `custom`). `narrative: true` adds an LLM narrative block labeled `llm` whose citations were verified. Nothing is published or sent. |
 | `send_report` | agent | Sends a published report to principals (ids or handles) and groups on this instance (132), with an optional `message` and the recipients' own `channels`; each recipient gets viewer access and `report.received`. The report's TLP label is checked for every recipient (`TLP_VIOLATION` names the rule). |
+| `list_news_stories` | read | News stories (133), newest activity first: clusters of articles about one event, wire reprints counted once. Filters `topic`, `region`, `situationId`, `since`, `blindspot` (`left`, `right`, `any`), `cursor`, `limit` ≤ 100. Each story has its deterministic title, article, outlet and evidence-group counts, coverage balance by outlet lean (in evidence groups), state-affiliated share, `blindspot`, `corroborated` and the situations it belongs to. Coverage describes reporting, never truth. |
+| `get_news_story` | read | One story (`storyId`, also as `news-story:{id}`; the id is the story's canonical event id) (133): articles grouped by outlet (outbound links only; no bodies or bylines) with each outlet's ratings per provider and consensus, the coverage statistics, and the linked situations and canonical events (the story's own and the non-news events that corroborate it). Articles of sources outside your restriction are left out. |
+| `get_outlet` | read | One news outlet (133) by `outletId` or by a `domain` it publishes on (`reuters.com`): type, country, owner and parent organization, Wikidata item, the wires it syndicates, its ratings per provider (lean −2…+2, factuality 1…5, state affiliation, ownership type and provider axes) with each provider's license, attribution and date, and the consensus per dimension with the provider breakdown and `disagreement`. Ratings are imported from declared providers, never generated. |
 | `list_products` | read | The weather and imagery products you may sample: `id`, `title`, `kind`, `units`, `coverage`, `latest` (newest frame or complete run) and `health` (`ok`, or `unavailable` with the reason); optional `category` (052). |
 | `sample_weather` | read | Product values at `lon`/`lat` or a `place` (needs a token), `time` `latest`, `now`, ISO or an offset (`-PT1H`, `+PT6H`), each with `validTime`, `localTime`, `ageMinutes`, `run`, `coverage` and `status`; plus `hazards`: NWS alerts covering the point (`automated: false`) and ProbSevere objects within 50 km (`automated: true`). A status other than `ok` is unknown, never clear (052). |
 | `weather_forecast` | read | A 3-hourly point forecast to 120 h (`hours`) from the stored GFS and HRRR runs: temperature, wind, gusts, precipitation per step and HRRR smoke, with each provider's `run` and `status` (052). For a place it adds provider `nws` (053): the official NWS gridpoint forecast to 72 h with precipitation probability (`popPct`) and sky cover, `coverage: place`, its `updatedAt`, and `status` `stale` once it is more than 6 hours old. |
@@ -774,7 +777,7 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
   regions are not evidence of calm.
 - **An index is not a probability.** Report an index as a value on its 0–100 scale with its largest contributions
   and its `weightsOrigin`, never with an ICD 203 term. Fitted weights are proposals until someone applies them.
-- **Projected impacts are modelled, not warnings.** Say "modelled; heuristic links may be wrong; not an official
+- **Projected impacts are modeled, not warnings.** Say "modeled; heuristic links may be wrong; not an official
   warning" with every projection, give `pImpact` with its interval and the `n` behind the conditional rate, and point to
   the agency's own warning for action. A forecast cone or a categorical risk is never a probability: do not turn one
   into a percentage.
@@ -864,6 +867,48 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
   you use it, never count it as local evidence or as an independent confirmation, and copy an item into a local
   investigation only when the operator asks (the copy is logged and keeps its origin).
 
+### News coverage
+
+- **Coverage describes reporting, never truth.** A news story is a cluster of articles about one event (a 116
+  canonical event whose observations are the articles), and its coverage statistics say who reported it, not whether
+  it happened or what is right. Never present a lean, a blindspot or a skew as a verdict on the event or on an outlet;
+  coverage findings carry the caveat `COVERAGE_NOT_TRUTH`, quote it.
+- **Ratings are imported, never generated.** An outlet's lean (−2 left … +2 right), factuality (1…5) and the other
+  dimensions come only from declared providers (Wikidata, The Partisan Web, operator-imported AllSides, Media
+  Bias/Fact Check or the operator's own rows). Never infer, estimate or assign a rating yourself. Quote a rating with
+  its provider and date, and give the consensus with `nProviders` and `disagreement`; when providers disagree, say so.
+  An `unrated` outlet is unknown, not centrist. A rating whose values are null was withheld (`LOCAL_ONLY` provider on
+  that path); say it is withheld rather than guessing it.
+- **Count evidence groups, not articles.** Thirty reprints of one wire story are one evidence group (`wire:{originator}`,
+  the reprints flagged `syndicated`); an outlet's own reporting is its own group. Coverage balance, blindspots and skew
+  are all computed in evidence groups, and so is any count you report: "three independent outlets", not "thirty
+  articles".
+- **Blindspots name where coverage comes from.** `blindspot: right` means at least 75% of the rated evidence groups come
+  from right-leaning outlets (with at least 8 rated), so it is a story the left barely covers; `left` is the mirror.
+  Fewer than 8 rated groups never make a blindspot. `MOSTLY_UNRATED_OUTLETS` says the balance rests on few ratings.
+- **Skewed support lowers confidence.** `SKEWED_COVERAGE` marks coverage where at least 75% of the rated groups come
+  from one bucket, or 75% of all groups from state-affiliated outlets (at least 3 groups). A hypothesis's
+  `newsCoverage` describes its news support (ACH rows rated `C` or `CC` whose evidence is news articles); when that
+  support is skewed and nothing outside the news corroborates it, the confidence assessor (1.1.0) lowers the
+  hypothesis's confidence one step and says so in `basis.newsCoverage`. Mention it when you report the confidence.
+- **Corroboration comes only from non-news evidence.** A story is `corroborated` when a non-news canonical event in
+  the same region within 24 hours of its articles has a sensor-network or agency observation; a situation's
+  `corroboratedShare` is the share of its stories that are. More coverage never corroborates anything: treat an
+  uncorroborated story as reported, not observed.
+- **Where coverage appears.** `list_news_stories`, `get_news_story` and `get_outlet` (read scope, also in the read
+  catalog the autonomous analyst and the analysis-cycle roles use); the situation's `coverage` member (stories are
+  `context` members of a situation and never seed or escalate one); the dossier's top-level `coverage`; a hypothesis's
+  `newsCoverage`; the assessment's deterministic Coverage section and `coverage` member (`blindspotStoryIds`,
+  `divergenceFindingIds`); and a report's coverage block.
+- **Series and findings.** Daily coverage per attention topic or situation is a series:
+  `rollup:news/{topicId|situationId}/{bucket}` (`left`, `center`, `right`, `unrated`, `state`; evidence groups first
+  seen that UTC day) in `get_series_data`, registered for the detectors once it has 14 days of rows. Two finding types
+  come from coverage: `coverage-blindspot` (once per story with a blindspot) and `coverage-divergence` (one bucket of a
+  topic at least 3 SD above its 28-day baseline on the last complete day while the others are not). Both describe
+  reporting patterns; quote their caveats as with every finding.
+- **No people.** Foresignal keeps no article body, byline or image: cite the article by its link and outlet, and never
+  attribute a story to a named journalist.
+
 
 ### Vocabulary
 
@@ -879,6 +924,9 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 - A **report** (prompt 132) is an analyst work product published as immutable revisions; `report:{id}` (or
   `RPT-yyyy-nnnn`) names it. A **remote** reference (`remote:{instanceId}/{type}:{id}`) names read-only material
   received from another instance in a signed package.
+- A **news story** (prompt 133) is a cluster of articles about one event; `news-story:{id}` names it, and its id is the
+  story's canonical event id. An **outlet** (`outlet:{id}`) is a publisher in the outlet registry, with ratings
+  imported from declared providers.
 
 ### Citing
 
@@ -968,7 +1016,7 @@ With a frontier provider (Anthropic, an OpenAI-compatible API), the records the 
 
 **Reading it.** `new`, `changed`, `removed` and `edges` are real changes; `routine` versions (samples, keyframes, heartbeats) only refresh history and are not news. `active` counts entities observed in the window, including ones that were only re-observed without a new version. Cite notable records as `[source:externalId@seq]` with the `seq` given (it is the persisted head version). Use `limit` (1–20) for notable records per kind, and `source`, `kind` and `bbox` to narrow everything; `includeHealth=false` drops the health section.
 
-**Handling `gap`.** `gap: true` means `sinceSeq` is older than what retention still holds for a source in scope (`gapReason` says which floor): versions before the floor were deleted, so the counts are a lower bound. Tell the user the window is incomplete, and resynchronise state from `GET /v1/records` if you keep a local copy. Deltas (`previous`) are `null` whenever the previous window reaches below the floor.
+**Handling `gap`.** `gap: true` means `sinceSeq` is older than what retention still holds for a source in scope (`gapReason` says which floor): versions before the floor were deleted, so the counts are a lower bound. Tell the user the window is incomplete, and resynchronize state from `GET /v1/records` if you keep a local copy. Deltas (`previous`) are `null` whenever the previous window reaches below the floor.
 
 **Private sources** are counted but never listed for a caller who may not see them, and naming one in `source` is a `400` (unknown source).
 
@@ -1095,6 +1143,7 @@ OpenClaw skill in `integrations/openclaw/foresignal/` packages the same knowledg
 | Create chronicles, add layers, change their lifecycle | `agent` (and the owner's or an editor's role) | |
 | Read reports and received packages; create, edit and publish reports | `read` (a token, and the report's viewer or editor role; received packages: a named recipient) | |
 | Draft reports, send them, build exchange packages | `agent` (and the report's editor role; a narrative needs an LLM provider) | |
+| Read news stories, articles and outlets | `read` | providers, rating imports and outlet edits (admin) |
 | Push records into a custom source | the source's ingest key (`eik_…`) | the source (admin) |
 | Channels, sources, credentials, LLM providers, tokens, settings | `admin` | never an agent |
 

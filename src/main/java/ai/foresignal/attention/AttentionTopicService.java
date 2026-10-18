@@ -195,8 +195,8 @@ public class AttentionTopicService {
     }
 
     /**
-     * Writes the enabled topics into the {@code topics} parameter of {@code gdelt-timelines} and
-     * {@code wikimedia-pageviews}, keeping their other stored parameters. A source whose parameter already holds
+     * Writes the enabled topics into the {@code topics} parameter of {@code gdelt-timelines},
+     * {@code gdelt-articles} (prompt 133) and {@code wikimedia-pageviews}, keeping their other stored parameters. A source whose parameter already holds
      * exactly these entries is not written.
      */
     @Transactional
@@ -217,6 +217,7 @@ public class AttentionTopicService {
             }
         }
         writeTopics(GdeltTimelineAdapter.ID, gdelt);
+        writeTopics(ai.foresignal.source.adapters.gdelt.GdeltArticlesAdapter.ID, gdelt);
         writeTopics(WikimediaPageviewsAdapter.ID, wiki);
     }
 

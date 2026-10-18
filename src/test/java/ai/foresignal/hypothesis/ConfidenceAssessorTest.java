@@ -10,7 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * {@code ConfidenceAssessor} 1.0.0 (prompt 125 §4.7): each rule of high, moderate and low, and the one-step downgrade
+ * {@code ConfidenceAssessor} 1.1.0 (prompt 125 §4.7, prompt 133): each rule of high, moderate and low, and the one-step downgrade
  * of a broken linchpin.
  */
 class ConfidenceAssessorTest {
@@ -69,5 +69,21 @@ class ConfidenceAssessorTest {
         assertThat(assess(List.of(), true, false).level()).isEqualTo("low");
         assertThat(HypothesisVocabulary.lower("high")).isEqualTo("moderate");
         assertThat(HypothesisVocabulary.lower("low")).isEqualTo("low");
+    }
+
+    @Test
+    @DisplayName("133: skewed news support without non-news corroboration lowers confidence one step; nothing else does")
+    void skewedNewsSupport() {
+        List<Observed> two = List.of(obs("airspace", "H", "A"), obs("naval", "M", "B"));
+        Assessment high = ConfidenceAssessor.assess(new Inputs(two, false, false, null, null, null, false));
+        assertThat(high.level()).isEqualTo("high");
+        assertThat(high.basis()).containsEntry("newsCoverage", "ok");
+        Assessment lowered = ConfidenceAssessor.assess(new Inputs(two, false, false, null, null, null, true));
+        assertThat(lowered.level()).isEqualTo("moderate");
+        assertThat(lowered.basis()).containsEntry("newsCoverage", ConfidenceAssessor.SKEWED_COVERAGE);
+        assertThat(lowered.basis().get("rule").toString()).contains("skewed");
+        Assessment both = ConfidenceAssessor.assess(new Inputs(two, true, false, null, null, null, true));
+        assertThat(both.level()).as("linchpin and skew: two steps").isEqualTo("low");
+        assertThat(ConfidenceAssessor.VERSION).isEqualTo("1.1.0");
     }
 }

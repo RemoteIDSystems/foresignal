@@ -15,18 +15,21 @@ import java.util.regex.Pattern;
  *       chokepoint transits, {@code series:imf-portwatch-chokepoints/{portId}});
  *   <li>{@code rollup:{hour|day}/{sourceId}/{kind}/{region|cell:h3}}: activity rollup rows, by 040 region (resolutions
  *       2 and 3) or by H3 cell (resolutions 0 and 1); {@code sourceId} {@code *} is the cross-source event count;
- *   <li>{@code rule:{ruleId}/{groupKey}}: the 100 anomaly rule's {@code activity_sample} rows of one group.
+ *   <li>{@code rule:{ruleId}/{groupKey}}: the 100 anomaly rule's {@code activity_sample} rows of one group;
+ *   <li>{@code rollup:news/{topicId|situationId}/{bucket}}: the daily news coverage of an attention topic or a
+ *       situation in one bucket ({@code left}, {@code center}, {@code right}, {@code unrated}, {@code state}), in
+ *       evidence groups (prompt 133).
  * </ul>
  *
  * @param type the reference type
  * @param sourceId the source ({@code series}, {@code rollup}), or null
- * @param seriesId the series id ({@code series}), or null
+ * @param seriesId the series id ({@code series}), or the topic or situation id ({@code news}), or null
  * @param resolution {@code hour} or {@code day} ({@code rollup}), or null
  * @param kind the record kind ({@code rollup}), or null
  * @param region the 040 region code ({@code rollup} by region), or null
  * @param cell the H3 address ({@code rollup} by cell), or null
  * @param ruleId the anomaly rule ({@code rule}), or null
- * @param groupKey the rule group ({@code rule}), or null
+ * @param groupKey the rule group ({@code rule}), or the coverage bucket ({@code news}), or null
  */
 public record SeriesRef(Type type, String sourceId, String seriesId, String resolution, String kind, String region,
         String cell, UUID ruleId, String groupKey) {
@@ -38,8 +41,15 @@ public record SeriesRef(Type type, String sourceId, String seriesId, String reso
         /** {@code rollup:} */
         ROLLUP,
         /** {@code rule:} */
-        RULE
+        RULE,
+        /** {@code rollup:news/} (prompt 133) */
+        NEWS
     }
+
+    /** The news coverage buckets of {@code rollup:news/} references (prompt 133). */
+    public static final List<String> NEWS_BUCKETS = List.of("left", "center", "right", "unrated", "state");
+
+    private static final Pattern NEWS_SCOPE = Pattern.compile("^([a-z0-9-]{3,48}|[0-9A-HJKMNP-TV-Z]{26})$");
 
     /** The cross-source pseudo source of rollup references. */
     public static final String ALL_SOURCES = "*";
@@ -62,6 +72,11 @@ public record SeriesRef(Type type, String sourceId, String seriesId, String reso
     /** The reference of an H3 cell rollup. */
     public static SeriesRef cellRollup(String resolution, String sourceId, String kind, String cell) {
         return new SeriesRef(Type.ROLLUP, sourceId, null, resolution, kind, null, cell, null, null);
+    }
+
+    /** The reference of a daily news-coverage series (prompt 133). */
+    public static SeriesRef news(String scopeId, String bucket) {
+        return new SeriesRef(Type.NEWS, null, scopeId, "day", null, null, null, null, bucket);
     }
 
     /** The reference of an anomaly rule group. */
@@ -99,6 +114,15 @@ public record SeriesRef(Type type, String sourceId, String seriesId, String reso
             }
             case "rollup" -> {
                 String[] parts = rest.split("/", -1);
+                if (parts.length == 3 && "news".equals(parts[0])) {
+                    if (!NEWS_SCOPE.matcher(parts[1]).matches()) {
+                        throw invalid(value, "names no attention topic or situation id");
+                    }
+                    if (!NEWS_BUCKETS.contains(parts[2])) {
+                        throw invalid(value, "has a coverage bucket other than " + NEWS_BUCKETS);
+                    }
+                    return news(parts[1], parts[2]);
+                }
                 if (parts.length != 4) {
                     throw invalid(value, "must be rollup:{hour|day}/{sourceId}/{kind}/{region|cell:h3}");
                 }
@@ -146,6 +170,7 @@ public record SeriesRef(Type type, String sourceId, String seriesId, String reso
             case ROLLUP -> "rollup:" + resolution + "/" + sourceId + "/" + kind + "/"
                     + (cell != null ? "cell:" + cell : region);
             case RULE -> "rule:" + ruleId + "/" + groupKey;
+            case NEWS -> "rollup:news/" + seriesId + "/" + groupKey;
         };
     }
 

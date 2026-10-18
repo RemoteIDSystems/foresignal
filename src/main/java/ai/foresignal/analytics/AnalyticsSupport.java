@@ -93,6 +93,7 @@ public class AnalyticsSupport {
             case ROLLUP -> ref.kind() + " count in " + (ref.region() != null ? ref.region() : "cell " + ref.cell())
                     + (ref.allSources() ? "" : " (" + ref.sourceId() + ")");
             case RULE -> "anomaly rule " + ref.ruleId() + " group " + ref.groupKey();
+            case NEWS -> ref.groupKey() + " news coverage of " + ref.seriesId();
         };
     }
 

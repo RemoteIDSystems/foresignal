@@ -572,6 +572,11 @@
         "version": "1.3.0",
         "date": "2026-10-17",
         "note": "132: listReports, createReport, draftReport, getReport, updateReport, deleteReport, createReportBlock, updateReportBlock, deleteReportBlock, publishReport, retractReport, listReportRevisions, getReportRendition, sendReport, createReportShareLink, openReportShareLink, createExchangePackage, getExchangePackage, downloadExchangePackage, receiveExchangePackage, receiveExchangeReceipt, importExchangePackage, listReceivedPackages, getReceivedPackage, getReceivedPackageRendition, acknowledgeReceivedPackage, listSentPackages are implemented, with reports as a shareable type (owner, authors as editors, access list, TLP inherited from the strictest cited input; contract 1.3: object types report and remote), deterministic drafts from a selection, tag, investigation, chronicle, situation or workspace (templates situation-brief, investigation-summary, chronicle-recap, weekly-assessment, custom) with an optional labeled llm narrative block (verified citations, estimative-language lint), immutable published revisions with pinned references, stored snapshots, 055 maps as attachments, regenerated 109 sources blocks and 116 manifests, Markdown and HTML renditions with the TLP banner and the automated-analysis footer, same-instance sends with per-recipient TLP checks, report share links (CLEAR, or GREEN with exchange.allowGreenLinks), signed intelligence packages (detached JWS over manifest.json with the instance key; private and LOCAL_ONLY material reduced to counts; chronicle extracts bounded by exchange.maxPackageMb) delivered to 113 peers or downloaded, verified and imported read-only as remote: references for their named recipients (RED only to them), receipts, acknowledgements and loop prevention, the me events report.received, package.received and report.retracted, the MCP tools list_reports, get_report (read), draft_report and send_report (agent), and the app settings exchange.maxPackageMb and exchange.allowGreenLinks. Reconciliations (additive): PeerCreate and PeerUpdate gain exchangeKey and Peer gains exchangeKeySet (the fsp_ key the remote instance issued to this one, for exchange delivery); PackageManifest gains title; the map ReportBlock gains caveat; ReportBundle gains missing and attachments[].attachmentId; createExchangePackage and receiveExchangePackage gain 409 responses and the peer operations 401; the 409 responses name REPORT_NOT_PUBLISHED, PACKAGE_NOT_READY, PACKAGE_ALREADY_IMPORTED and PACKAGE_LOOP."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-17",
+        "note": "133: listNewsStories, getNewsStory, listNewsArticles, listMediaOutlets, getMediaOutlet, updateMediaOutlet, listMediaProviders, getMediaProvider, updateMediaProvider and importMediaRatings are implemented, with the gdelt-articles source (GDELT DOC 2.0 ArtList per attention topic, metadata only, sharing hostPacing 5 s with gdelt-timelines), the news-feed-* outlet feeds (073 feed kit, item mapper news-article), news-article records keyed by the SHA-256 of the canonical URL, the media outlet registry (unknown domains added as unrated; wires mapped to their own originators), ratings only from declared providers (wikidata CC0, partisan-web CC BY 4.0, allsides and mbfc off and LOCAL_ONLY, operator imports) with license, date and egress, the consensus per dimension (median, disagreement, lean bucket), the 116 canonical-event family news-story (title-embedding cosine 0.82 or token Jaccard 0.6 within 48 h, wire reprints one evidence group with syndicated members), CoverageAnalyzer 1.0.0 (balance by lean, country, outlet type and factuality; state-affiliated share; blindspot at 75% of at least 8 rated evidence groups; SKEWED_COVERAGE), corroboration by non-news evidence groups, news-story records of foresignal-intel read by the situation linker as context members, the finding types coverage-blindspot and coverage-divergence, daily series rollup:news/{topicId|situationId}/{bucket} in the analysis-series registry, the coverage member of situations, dossiers and assessments, Hypothesis.newsCoverage with the confidence step-down (ConfidenceAssessor 1.1.0) for skewed news support without non-news corroboration, media.reliabilityMap for news evidence reliability, contract 1.4 (object types news-story and outlet), the MCP tools list_news_stories, get_news_story and get_outlet (read), and the error codes UNKNOWN_STORY, UNKNOWN_OUTLET, PROVIDER_LICENCE_NOT_ACKNOWLEDGED and RATINGS_IMPORT_INVALID. Reconciliations (additive): MediaOutletPatch gains aggregates (the wires an outlet syndicates); the dossier include value coverage fills the top-level coverage member; SeriesRef accepts rollup:news/."
       }
     ]
   },
@@ -78804,7 +78809,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "133",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/news/stories/{storyId}": {
@@ -78884,7 +78889,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "133",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/news/articles": {
@@ -79004,7 +79009,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "133",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/media/outlets": {
@@ -79140,7 +79145,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "133",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/media/outlets/{outletId}": {
@@ -79220,7 +79225,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "133",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "patch": {
         "tags": [
@@ -79309,7 +79314,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "133",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/media/providers": {
@@ -79362,7 +79367,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "133",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/media/providers/{providerId}": {
@@ -79440,7 +79445,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "133",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -79546,7 +79551,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "133",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/media/ratings/import": {
@@ -79724,7 +79729,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "133",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/sources/{sourceId}/doctor": {
@@ -87378,7 +87383,7 @@
             "code": "SERIES_REF_INVALID",
             "status": 400,
             "prompt": "119",
-            "note": "getAnalyticsSeriesData, upsertAnalysisSeries, deleteAnalysisSeries, listFindings, createEventStudy: the series reference is not series:{sourceId}/{seriesId}, rollup:{hour|day}/{sourceId|*}/{kind}/{region|cell:h3} or rule:{ruleId}/{groupKey}"
+            "note": "getAnalyticsSeriesData, upsertAnalysisSeries, deleteAnalysisSeries, listFindings, createEventStudy: the series reference is not series:{sourceId}/{seriesId}, rollup:{hour|day}/{sourceId|*}/{kind}/{region|cell:h3}, rule:{ruleId}/{groupKey} or rollup:news/{topicId|situationId}/{left|center|right|unrated|state} (133)"
           },
           {
             "code": "SERIES_NOT_FOUND",
@@ -87727,6 +87732,30 @@
             "status": 409,
             "prompt": "130",
             "note": "deleteAttachment: an evidence item still cites the attachment"
+          },
+          {
+            "code": "UNKNOWN_STORY",
+            "status": 404,
+            "prompt": "133",
+            "note": "getNewsStory: no news story has that id"
+          },
+          {
+            "code": "UNKNOWN_OUTLET",
+            "status": 404,
+            "prompt": "133",
+            "note": "getMediaOutlet, updateMediaOutlet: no media outlet has that id (a merged outlet answers with its survivor)"
+          },
+          {
+            "code": "PROVIDER_LICENCE_NOT_ACKNOWLEDGED",
+            "status": 409,
+            "prompt": "133",
+            "note": "updateMediaProvider, importMediaRatings: the provider's license has not been acknowledged by an admin, so it cannot be enabled or imported (AllSides and MBFC start off)"
+          },
+          {
+            "code": "RATINGS_IMPORT_INVALID",
+            "status": 400,
+            "prompt": "133",
+            "note": "importMediaRatings: unknown provider, malformed CSV or JSON, rows missing for an operator, AllSides or MBFC import, or no usable row"
           }
         ]
       },
@@ -98960,7 +98989,7 @@
       "SeriesRef": {
         "type": "string",
         "pattern": "^(series|rollup|rule|social):.+$",
-        "description": "Series reference (Intelligence-Design §4.3): `series:{sourceId}/{seriesId}` (093/117 series; `series:imf-portwatch-chokepoints/{portId}` for PortWatch daily transits), `rollup:{hour|day}/{sourceId|*}/{kind}/{region|cell:h3}` (activity rollups; `*` is the cross-source event count with canonical events counted once) or `rule:{ruleId}/{groupKey}` (100 anomaly rule samples); `social:` arrives with 135",
+        "description": "Series reference (Intelligence-Design §4.3): `series:{sourceId}/{seriesId}` (093/117 series; `series:imf-portwatch-chokepoints/{portId}` for PortWatch daily transits), `rollup:{hour|day}/{sourceId|*}/{kind}/{region|cell:h3}` (activity rollups; `*` is the cross-source event count with canonical events counted once) `rule:{ruleId}/{groupKey}` (100 anomaly rule samples) or `rollup:news/{topicId|situationId}/{bucket}` (133: daily news coverage in evidence groups by lean bucket left, center, right, unrated or state); `social:` arrives with 135",
         "example": "series:cftc-cot/067651.disagg.mm_net"
       },
       "TimeRange": {
@@ -147620,7 +147649,7 @@
         "properties": {
           "contractVersion": {
             "type": "string",
-            "example": "1.3"
+            "example": "1.4"
           },
           "objectTypes": {
             "type": "array",
@@ -157727,6 +157756,13 @@
               "type": "string"
             },
             "description": "Merge these outlets (and their domains and ratings) into this one"
+          },
+          "aggregates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Wire originators this outlet syndicates (empty: any wire); used to group reprints (133)"
           }
         }
       },

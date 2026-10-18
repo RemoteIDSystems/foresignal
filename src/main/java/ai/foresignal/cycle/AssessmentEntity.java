@@ -99,6 +99,10 @@ public class AssessmentEntity {
     @Column(name = "private", nullable = false)
     private boolean privateAssessment;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "news_coverage")
+    private Map<String, Object> newsCoverage;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -318,5 +322,15 @@ public class AssessmentEntity {
     /** Creation time. */
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    /** The deterministic news Coverage section (prompt 133), or null. */
+    public Map<String, Object> getNewsCoverage() {
+        return newsCoverage;
+    }
+
+    /** Sets the news Coverage section (prompt 133). */
+    public void setNewsCoverage(Map<String, Object> newsCoverage) {
+        this.newsCoverage = newsCoverage;
     }
 }

@@ -242,10 +242,19 @@ public class CanonicalRules {
      * @param startFields interval start fields of {@code outage}
      * @param endFields interval end fields of {@code outage}
      * @param typeFields hazard type fields of {@code hazard}
+     * @param story the clustering parameters of a {@code story} family (prompt 133), or null
      */
     public record FamilyRule(String family, List<Input> inputs, String match, double maxDtSeconds, double maxKm,
             Attribute attribute, Bands bands, double cellDegrees, List<String> countryFields, List<String> asnFields,
-            List<String> startFields, List<String> endFields, List<String> typeFields) {
+            List<String> startFields, List<String> endFields, List<String> typeFields, Story story) {
+
+        /** A rule without story parameters (the families of prompt 116). */
+        public FamilyRule(String family, List<Input> inputs, String match, double maxDtSeconds, double maxKm,
+                Attribute attribute, Bands bands, double cellDegrees, List<String> countryFields,
+                List<String> asnFields, List<String> startFields, List<String> endFields, List<String> typeFields) {
+            this(family, inputs, match, maxDtSeconds, maxKm, attribute, bands, cellDegrees, countryFields, asnFields,
+                    startFields, endFields, typeFields, null);
+        }
 
         /** The time tolerance used for {@code TIMESTAMP_CONFLICT} (3 × this), seconds; one day when undeclared. */
         public double timeTolerance() {
@@ -276,12 +285,33 @@ public class CanonicalRules {
                 bands = new Bands(b.get("prefix") == null ? "" : String.valueOf(b.get("prefix")),
                         number(b.get("start"), 0), number(b.get("step"), 1), number(b.get("end"), 10));
             }
+            Story story = null;
+            if (m.get("story") instanceof Map<?, ?> st) {
+                story = new Story(number(st.get("minCosine"), Story.DEFAULT.minCosine()),
+                        number(st.get("windowHours"), Story.DEFAULT.windowHours()),
+                        number(st.get("minJaccard"), Story.DEFAULT.minJaccard()),
+                        number(st.get("wireJaccard"), Story.DEFAULT.wireJaccard()));
+            }
             return new FamilyRule(String.valueOf(m.get("family")), List.copyOf(inputs),
                     m.get("match") == null ? "proximity" : String.valueOf(m.get("match")),
                     number(m.get("maxDtSeconds"), 0), number(m.get("maxKm"), 0), attribute, bands,
                     number(m.get("cellDegrees"), 0.1), strings(m.get("countryFields")), strings(m.get("asnFields")),
-                    strings(m.get("startFields")), strings(m.get("endFields")), strings(m.get("typeFields")));
+                    strings(m.get("startFields")), strings(m.get("endFields")), strings(m.get("typeFields")), story);
         }
+    }
+
+    /**
+     * The clustering parameters of a {@code story} family (prompt 133).
+     *
+     * @param minCosine the least cosine between an article's title embedding and the story centroid (0.82)
+     * @param windowHours how long after a story's latest article another may join (48)
+     * @param minJaccard the least normalized-title token Jaccard without embeddings (0.6)
+     * @param wireJaccard the least title Jaccard of a wire reprint (0.9)
+     */
+    public record Story(double minCosine, double windowHours, double minJaccard, double wireJaccard) {
+
+        /** The prompt's defaults. */
+        public static final Story DEFAULT = new Story(0.82, 48, 0.6, 0.9);
     }
 
     private static List<?> list(Object value) {

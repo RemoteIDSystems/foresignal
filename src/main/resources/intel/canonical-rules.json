@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "description": "Canonical-event rules (prompt 116): which event-class kinds the EvidenceResolver links, and how observations of one family are matched to the same real-world event. Families are tried in order; an input may restrict a kind with 'where'. Tolerances reuse prompt 099's corroboration rules where they exist.",
+  "version": "1.1.0",
+  "description": "Canonical-event rules (prompt 116): which event-class kinds the EvidenceResolver links, and how observations of one family are matched to the same real-world event. Families are tried in order; an input may restrict a kind with 'where'. Tolerances reuse prompt 099's corroboration rules where they exist. A family with match 'story' (news-story, prompt 133) is clustered by the news story resolver: title embedding cosine against the story centroid, else normalized-title token Jaccard, within windowHours of the story's latest article and sharing a topic or region.",
   "minLinkConfidence": 0.5,
   "families": [
     {
@@ -51,6 +51,13 @@
       "inputs": [{"kind": "nws-alert"}, {"kind": "cap-alert"}, {"kind": "tsunami-warning"}],
       "match": "identifier",
       "maxDtSeconds": 86400
+    },
+    {
+      "family": "news-story",
+      "inputs": [{"kind": "news-article"}],
+      "match": "story",
+      "maxDtSeconds": 172800,
+      "story": {"minCosine": 0.82, "windowHours": 48, "minJaccard": 0.6, "wireJaccard": 0.9}
     }
   ],
   "hazardTypes": {

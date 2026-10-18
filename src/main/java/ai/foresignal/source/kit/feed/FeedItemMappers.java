@@ -11,12 +11,14 @@ import java.util.stream.Collectors;
  *
  * <ul>
  *   <li>{@code inciweb} ({@link InciwebItemMapper}, prompt 075): InciWeb's structured item descriptions.
+ *   <li>{@code news-article} ({@link NewsArticleItemMapper}, prompt 133): an outlet feed's items as
+ *       {@code news-article} records.
  * </ul>
  */
 public final class FeedItemMappers {
 
     /** Every reviewed mapper. */
-    public static final List<FeedItemMapper> REVIEWED = List.of(new InciwebItemMapper());
+    public static final List<FeedItemMapper> REVIEWED = List.of(new InciwebItemMapper(), new NewsArticleItemMapper());
 
     private static final Map<String, FeedItemMapper> BY_NAME = REVIEWED.stream()
             .collect(Collectors.toUnmodifiableMap(FeedItemMapper::name, Function.identity()));

@@ -230,6 +230,16 @@ public class EgressPolicy {
             java.util.EnumSet.of(EgressPath.SINK, EgressPath.SINK_SERVE_LAN, EgressPath.SINK_PUSH);
 
     /**
+     * True when data marked {@code LOCAL_ONLY} that is not a record (prompt 133: media ratings of paid or
+     * non-commercial providers) may be served on {@code path}: the same paths a {@code LOCAL_ONLY} source's records may
+     * take ({@link #LOCAL_ONLY_PATHS}: this instance's own API, MCP, SSE, tiles, notifications, LLM context, exports and
+     * archives), never share links, feeds, sinks or federation.
+     */
+    public boolean allowsLocalOnlyData(EgressPath path) {
+        return path != null && LOCAL_ONLY_PATHS.contains(path);
+    }
+
+    /**
      * True when {@code sourceId}'s descriptor declares {@code egress: LOCAL_ONLY} (prompt 062, EGR-2): its
      * records are served to this instance's own API clients and notifications, never re-served. An
      * unregistered source counts as local-only (fail closed). Prompt 109 adds the operator override.

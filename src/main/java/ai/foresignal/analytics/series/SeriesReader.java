@@ -141,6 +141,7 @@ public class SeriesReader {
             case SERIES -> seriesMeta(ref);
             case ROLLUP -> rollupMeta(ref);
             case RULE -> ruleMeta(ref).meta();
+            case NEWS -> newsMeta(ref);
         };
     }
 
@@ -174,6 +175,7 @@ public class SeriesReader {
                     : seriesPoints(ref, meta, start, end, asOf);
             case ROLLUP -> rollupPoints(ref, start, end, asOf);
             case RULE -> rulePoints(ref, start, end, asOf);
+            case NEWS -> newsPoints(ref, start, end, asOf);
         };
         long asOfSeq = asOf == null ? seqClock.seqAt(jdbc, clock.instant()) : seqClock.seqAt(jdbc, asOf);
         boolean localOnly = false;
@@ -312,6 +314,54 @@ public class SeriesReader {
             }
         }
         return new ArrayList<>(byStart.values());
+    }
+
+    // ------------------------------------------------------------------------- rollup:news/ (prompt 133)
+
+    private Meta newsMeta(SeriesRef ref) {
+        Integer rows = jdbc.queryForObject("SELECT count(*) FROM (SELECT 1 FROM news_coverage_daily WHERE scope_id ="
+                + " :scope AND bucket = :bucket LIMIT 1) x", new MapSqlParameterSource().addValue("scope",
+                ref.seriesId()).addValue("bucket", ref.groupKey()), Integer.class);
+        if (rows == null || rows == 0) {
+            throw notFound(ref);
+        }
+        boolean topic = !ref.seriesId().matches("^[0-9A-HJKMNP-TV-Z]{26}$");
+        return new Meta(SeriesFrequency.DAY, "evidence groups", "attention", "count", "log-level", 0, null,
+                topic ? ref.seriesId() : null, Set.of(ai.foresignal.source.formats.news.NewsArticles.GDELT_SOURCE));
+    }
+
+    /**
+     * The daily news coverage of a topic or situation in one bucket: evidence groups first seen that UTC day. Days
+     * from the scope's first computed day to the last computed one are covered (a day without a row is 0); a day is
+     * known at its close.
+     */
+    private List<SeriesValue> newsPoints(SeriesRef ref, Instant from, Instant to, Instant asOf) {
+        Map<Instant, Long> values = new TreeMap<>();
+        Instant[] range = new Instant[2];
+        jdbc.query("SELECT day, evidence_groups FROM news_coverage_daily WHERE scope_id = :scope AND bucket = :bucket"
+                + " ORDER BY day", new MapSqlParameterSource().addValue("scope", ref.seriesId()).addValue("bucket",
+                ref.groupKey()), rs -> {
+                    Instant day = rs.getTimestamp("day").toInstant();
+                    values.put(day, rs.getLong("evidence_groups"));
+                    range[0] = range[0] == null ? day : range[0];
+                    range[1] = day;
+                });
+        List<SeriesValue> out = new ArrayList<>();
+        if (range[0] == null) {
+            return out;
+        }
+        Instant now = clock.instant();
+        for (Instant t = SeriesFrequency.DAY.floor(from); t.isBefore(to); t = SeriesFrequency.DAY.next(t)) {
+            Instant end = SeriesFrequency.DAY.next(t);
+            if (t.isBefore(range[0]) || t.isAfter(range[1]) || end.isAfter(now)) {
+                continue;
+            }
+            if (asOf != null && end.isAfter(asOf)) {
+                continue;
+            }
+            out.add(new SeriesValue(t, end, (double) values.getOrDefault(t, 0L), end, true, null, null, null));
+        }
+        return out;
     }
 
     // ------------------------------------------------------------------------- rollup:

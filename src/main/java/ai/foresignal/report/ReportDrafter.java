@@ -102,12 +102,17 @@ public class ReportDrafter {
     private final JdbcTemplate jdbc;
     private final java.time.Clock clock;
 
+    /** The news coverage of situations (prompt 133), or none. */
+    private final ObjectProvider<ai.foresignal.news.NewsCoverageService> newsCoverage;
+
     /** Creates the drafter. */
     public ReportDrafter(ReportService reports, ReportSnapshots snapshots, AccessResolver access,
             SituationService situations, InvestigationService investigations, ChronicleService chronicles,
             ChronicleEventRepository chronicleEvents, TagService tags, WorkspaceService workspaces,
             AssessmentService assessments, RelationService relations, ObjectProvider<ReportNarrativeWriter> narrative,
-            JdbcTemplate jdbc, java.time.Clock clock) {
+            JdbcTemplate jdbc, java.time.Clock clock,
+            ObjectProvider<ai.foresignal.news.NewsCoverageService> newsCoverage) {
+        this.newsCoverage = newsCoverage;
         this.reports = reports;
         this.snapshots = snapshots;
         this.access = access;
@@ -254,7 +259,7 @@ public class ReportDrafter {
             out.add(map("Map", List.of(), null, List.of(e.getMinX(), e.getMinY(), e.getMaxX(), e.getMaxY())));
         }
         linkedBlocks(out, setRefs, questionRefs);
-        out.add(coverage(List.of()));
+        out.add(coverage(List.of(), List.of(s.getId())));
         if (s.getStartedAt() != null) {
             Map<String, Object> w = new LinkedHashMap<>();
             w.put("start", s.getStartedAt().toString());
@@ -336,7 +341,7 @@ public class ReportDrafter {
         if (!setRefs.isEmpty() || !questionRefs.isEmpty()) {
             out.blocks.add(0, bluf(setRefs, questionRefs, caller));
         }
-        out.add(coverage(List.of()));
+        out.add(coverage(List.of(), List.of()));
         return out;
     }
 
@@ -465,7 +470,7 @@ public class ReportDrafter {
             questionRefs = questionRefs.subList(0, MAX_LINKED);
         }
         linkedBlocks(out, setRefs, questionRefs);
-        out.add(coverage(caveats));
+        out.add(coverage(caveats, c.getSituationIds()));
         out.area = areaGeometry;
         if (c.getStartedAt() != null) {
             Map<String, Object> w = new LinkedHashMap<>();
@@ -598,7 +603,11 @@ public class ReportDrafter {
                     + " are left out.");
             caveats.add(caveat);
         }
-        out.add(coverage(caveats));
+        List<String> selectedSituations = new ArrayList<>();
+        for (String r : situationRefs) {
+            selectedSituations.add(r.substring("situation:".length()));
+        }
+        out.add(coverage(caveats, selectedSituations));
         return out;
     }
 
@@ -840,16 +849,49 @@ public class ReportDrafter {
         return block("evidence", null, Map.of("items", items), ReportVocabulary.DETERMINISTIC);
     }
 
-    static Map<String, Object> coverage(List<Map<String, Object>> caveats) {
+    /**
+     * The coverage block (prompts 116, 133): the given caveats, then the news coverage statistics of the situations in
+     * scope ({@code CoverageAnalyzer}) with their caveats ({@code COVERAGE_BLINDSPOT}, {@code SKEWED_COVERAGE}, …),
+     * {@code NO_NEWS_COVERAGE} when none of them has news members, and {@code MEDIA_COVERAGE_UNAVAILABLE} only when the
+     * news layer is absent.
+     */
+    Map<String, Object> coverage(List<Map<String, Object>> caveats, java.util.Collection<String> situationIds) {
         List<Map<String, Object>> all = new ArrayList<>(caveats);
-        Map<String, Object> media = new LinkedHashMap<>();
-        media.put("code", "MEDIA_COVERAGE_UNAVAILABLE");
-        media.put("text", "Media-coverage statistics (prompt 133) are not part of this draft; absence of reporting is"
-                + " not evidence of absence.");
-        all.add(media);
+        List<Map<String, Object>> stats = new ArrayList<>();
+        ai.foresignal.news.NewsCoverageService service = newsCoverage == null ? null : newsCoverage.getIfAvailable();
+        if (service == null) {
+            Map<String, Object> media = new LinkedHashMap<>();
+            media.put("code", "MEDIA_COVERAGE_UNAVAILABLE");
+            media.put("text", "Media-coverage statistics are not available on this instance; absence of reporting is"
+                    + " not evidence of absence.");
+            all.add(media);
+        } else if (situationIds != null && !situationIds.isEmpty()) {
+            try {
+                stats.addAll(service.reportCoverage(situationIds));
+            } catch (RuntimeException e) {
+                // coverage is context; a failure leaves it out
+            }
+            for (Map<String, Object> st : stats) {
+                for (Object o : ReportBlocks.asList(st.get("caveats"))) {
+                    if (o instanceof Map<?, ?> c && c.get("code") != null) {
+                        Map<String, Object> caveat = new LinkedHashMap<>();
+                        caveat.put("code", String.valueOf(c.get("code")));
+                        caveat.put("text", String.valueOf(c.get("text")));
+                        all.add(caveat);
+                    }
+                }
+            }
+            if (stats.isEmpty()) {
+                Map<String, Object> none = new LinkedHashMap<>();
+                none.put("code", "NO_NEWS_COVERAGE");
+                none.put("text", "No situation in this report has news coverage; absence of reporting is not evidence"
+                        + " of absence.");
+                all.add(none);
+            }
+        }
         Map<String, Object> fields = new LinkedHashMap<>();
         fields.put("caveats", all);
-        fields.put("coverage", List.of());
+        fields.put("coverage", stats);
         return block("coverage", null, fields, ReportVocabulary.DETERMINISTIC);
     }
 

@@ -382,8 +382,17 @@ public class RevisionWriter {
                     reliability(i)));
         }
         Double agreement = agreement(set);
+        Map<String, Boolean> skewed = new java.util.HashMap<>();
+        HypothesisEntity leading = null;
+        for (HypothesisEntity h : hyps) {
+            skewed.put(h.getId(), skewedUncorroborated(set.getId(), h.getId()));
+            if (leading == null || h.getProbability() > leading.getProbability()) {
+                leading = h;
+            }
+        }
         ConfidenceAssessor.Assessment setLevel = ConfidenceAssessor.assess(new ConfidenceAssessor.Inputs(all,
-                brokenLinchpin, lowDensity, null, null, agreement));
+                brokenLinchpin, lowDensity, null, null, agreement,
+                leading != null && Boolean.TRUE.equals(skewed.get(leading.getId()))));
         set.setConfidence(setLevel.level());
         for (HypothesisEntity h : hyps) {
             List<ConfidenceAssessor.Observed> bearing = new ArrayList<>();
@@ -396,15 +405,53 @@ public class RevisionWriter {
                 }
             }
             ConfidenceAssessor.Assessment a = ConfidenceAssessor.assess(new ConfidenceAssessor.Inputs(bearing,
-                    brokenLinchpin, lowDensity, null, null, agreement));
+                    brokenLinchpin, lowDensity, null, null, agreement, Boolean.TRUE.equals(skewed.get(h.getId()))));
             h.setConfidence(a.level());
             h.setConfidenceBasis(a.basis());
+        }
+    }
+
+    private ai.foresignal.news.NewsCoverageService newsCoverage;
+    private ai.foresignal.news.NewsReliability newsReliability;
+
+    /**
+     * Installs the news layer (prompt 133): the coverage of each hypothesis's supporting news evidence and the outlet
+     * reliability of news-article observations.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setNews(ai.foresignal.news.NewsCoverageService newsCoverage,
+            ai.foresignal.news.NewsReliability newsReliability) {
+        this.newsCoverage = newsCoverage;
+        this.newsReliability = newsReliability;
+    }
+
+    /** True when a hypothesis's supporting news evidence is skewed and has no non-news corroboration (133). */
+    private boolean skewedUncorroborated(String setId, String hypothesisId) {
+        ai.foresignal.news.NewsCoverageService service = newsCoverage;
+        if (service == null) {
+            return false;
+        }
+        try {
+            return service.hypothesisSupport(setId, hypothesisId).skewedUncorroborated();
+        } catch (RuntimeException e) {
+            return false;
         }
     }
 
     private String reliability(IndicatorEntity indicator) {
         Map<String, Object> evidence = indicator.getObservedEvidence();
         Object source = evidence == null ? null : evidence.get("sourceId");
+        ai.foresignal.news.NewsReliability news = newsReliability;
+        if (news != null && source != null && evidence.get("externalId") != null) {
+            try {
+                String grade = news.grade(source.toString(), evidence.get("externalId").toString());
+                if (grade != null) {
+                    return grade;
+                }
+            } catch (RuntimeException e) {
+                // fall back to the source grade
+            }
+        }
         CredibilityService service = credibility.getIfAvailable();
         if (source == null || service == null) {
             return null;

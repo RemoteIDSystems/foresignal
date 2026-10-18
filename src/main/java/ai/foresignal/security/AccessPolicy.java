@@ -473,6 +473,16 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/attention/topics", AccessRequirement.AGENT),
                 rule(HttpMethod.PUT, "/v1/attention/topics/*", AccessRequirement.AGENT),
                 rule(HttpMethod.DELETE, "/v1/attention/topics/*", AccessRequirement.AGENT),
+                // Prompt 133: news stories and articles, the outlet registry (read); outlet edits, provider updates and
+                // imports (admin). Reading the providers is admin by the 043 rows above.
+                rule(HttpMethod.GET, "/v1/news/stories", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/news/stories/*", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/news/articles", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/media/outlets", AccessRequirement.READ),
+                rule(HttpMethod.GET, "/v1/media/outlets/*", AccessRequirement.READ),
+                rule(HttpMethod.PATCH, "/v1/media/outlets/*", AccessRequirement.ADMIN),
+                rule(HttpMethod.PUT, "/v1/media/providers/*", AccessRequirement.ADMIN),
+                rule(HttpMethod.POST, "/v1/media/ratings/import", AccessRequirement.ADMIN),
 
                 // ---- Evidence identity, observability and manifests (prompt 116) ----
                 // Canonical events, the coverage layer and prompt templates are reads; manifests and their

@@ -183,6 +183,16 @@ RAW_BODIES = {
   "updateChronicleLayer": ("application/merge-patch+json", json.dumps({"capture": {"mode": "downsampled",
                                                                                    "interval": "PT120S"}}, indent=2),
                            "json"),
+  # 133: an outlet merge patch (registry facts only; ratings are never edited here), a provider update (enabling
+  # needs the admin's license acknowledgement) and an operator ratings CSV.
+  "updateMediaOutlet": ("application/merge-patch+json", json.dumps({"type": "national", "ownerOrg": "Example Media"
+                                                                    " Group", "aggregates": ["ap", "reuters"]},
+                                                                   indent=2), "json"),
+  "updateMediaProvider": ("application/json", json.dumps({"licenceAcknowledged": True, "enabled": True}, indent=2),
+                          "json"),
+  "importMediaRatings": ("text/csv", "domain,dimension,value,label,licence,attribution\n"
+                         "example-news.com,lean,-1,lean-left,CC BY 4.0,Example ratings project\n"
+                         "example-news.com,factuality,4,,CC BY 4.0,Example ratings project\n", "text"),
   "ntfyPublish": ("text/plain", "Backup finished on pve1", "text"),
   "ntfyPublishPut": ("text/plain", "Disk usage above 90% on nas", "text"),
   # 036: a watchlist CSV import (header value[,label,notes,tags]; tags separated by ;).

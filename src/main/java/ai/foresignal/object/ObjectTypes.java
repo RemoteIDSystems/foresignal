@@ -10,7 +10,7 @@ import java.util.Set;
 public final class ObjectTypes {
 
     /** Contract version in force. */
-    public static final String CONTRACT_VERSION = "1.3";
+    public static final String CONTRACT_VERSION = "1.4";
 
     /** Workspace context schema version (Client-Contract §5). */
     public static final int CONTEXT_SCHEMA_VERSION = 1;
@@ -50,16 +50,19 @@ public final class ObjectTypes {
     public static final String CHRONICLE = "chronicle";
     public static final String REPORT = "report";
     public static final String REMOTE = "remote";
+    public static final String NEWS_STORY = "news-story";
+    public static final String OUTLET = "outlet";
 
     /**
      * Every object type in force, in contract order: the 23 types of prompt 129, the six collaboration types of
      * prompt 130 (contract 1.1), {@code chronicle} of prompt 131 (contract 1.2), and {@code report} and
-     * {@code remote} (read-only material received from another instance) of prompt 132 (contract 1.3).
+     * {@code remote} (read-only material received from another instance) of prompt 132 (contract 1.3), and
+     * {@code news-story} and {@code outlet} of prompt 133 (contract 1.4).
      */
     public static final List<String> ALL = List.of(RECORD, ENTITY, CANONICAL_EVENT, INTEL_EVENT, SITUATION, FINDING,
             PRECURSOR, BASE_RATE, HYPOTHESIS_SET, HYPOTHESIS, INDICATOR, QUESTION, FORECAST, ASSESSMENT, ALERT,
             INVESTIGATION, PLACE, VIEW, WATCHLIST, SOURCE, SENSOR, WORKSPACE, ANNOTATION, PRINCIPAL, GROUP, TAG,
-            ATTACHMENT, EVIDENCE_ITEM, SAVED_SEARCH, CHRONICLE, REPORT, REMOTE);
+            ATTACHMENT, EVIDENCE_ITEM, SAVED_SEARCH, CHRONICLE, REPORT, REMOTE, NEWS_STORY, OUTLET);
 
     private static final Set<String> ALL_SET = Set.copyOf(ALL);
 

@@ -69,6 +69,28 @@ public class IntelEventService {
     private final JsonMapper json;
     private final Clock clock;
 
+    /** Outlet reliability of news-article members (prompt 133), or null when the news layer is absent. */
+    private ai.foresignal.news.NewsReliability newsReliability;
+
+    /** Installs the outlet reliability of news-article members (prompt 133: {@code media.reliabilityMap}). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setNewsReliability(ai.foresignal.news.NewsReliability newsReliability) {
+        this.newsReliability = newsReliability;
+    }
+
+    /** The reliability of a member: the outlet grade of a news article, else null (the scorer's default). */
+    private Double memberReliability(String sourceId, String externalId) {
+        ai.foresignal.news.NewsReliability r = newsReliability;
+        if (r == null) {
+            return null;
+        }
+        try {
+            return r.reliability(sourceId, externalId);
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     /** Creates the service. */
     public IntelEventService(IntelligenceEventRepository events, IntelEventMemberRepository members,
             IntelEventLogRepository logs, RecordQueryService records, HealthService health, IntelEventBus bus,
@@ -452,7 +474,8 @@ public class IntelEventService {
                     ai.foresignal.evidence.EvidenceService.recordKey(member.getSourceId(), member.getExternalId()));
             EventScorer.MemberView view = new EventScorer.MemberView(member.getSignalFamily(),
                     member.getWeight() == null ? EventScorer.DEFAULT_RELIABILITY : member.getWeight(),
-                    member.getSourceId(), healthy, null, key == null || !key.linked() ? null : key.key(),
+                    member.getSourceId(), healthy, memberReliability(member.getSourceId(), member.getExternalId()),
+                    key == null || !key.linked() ? null : key.key(),
                     key == null ? null : key.root());
             views.add(view);
             refs.add(ai.foresignal.evidence.RecordRef.format(member.getSourceId(), member.getExternalId(),

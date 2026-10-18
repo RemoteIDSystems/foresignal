@@ -153,6 +153,28 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.derive.DerivedRecords derivedRecords;
 
+    /** Outlet reliability of news-article members (prompt 133), or null when the news layer is absent. */
+    private ai.foresignal.news.NewsReliability newsReliability;
+
+    /** Installs the outlet reliability of news-article members (prompt 133: {@code media.reliabilityMap}). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setNewsReliability(ai.foresignal.news.NewsReliability newsReliability) {
+        this.newsReliability = newsReliability;
+    }
+
+    /** The reliability of a member: the outlet grade of a news article, else null (the scorer's default). */
+    private Double memberReliability(String sourceId, String externalId) {
+        ai.foresignal.news.NewsReliability r = newsReliability;
+        if (r == null) {
+            return null;
+        }
+        try {
+            return r.reliability(sourceId, externalId);
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     /** Creates the engine. */
     public CorrelationEngine(ChangeBus changeBus, JdbcTemplate jdbc, JsonMapper json, AppSettingService settings,
             RecipeRegistry recipes, IntelligenceEventRepository events, IntelEventMemberRepository members,
@@ -1222,7 +1244,8 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
         boolean healthy = health(row.sourceId()) == HealthStatus.HEALTHY;
         ai.foresignal.evidence.EvidenceService.GroupKey key =
                 evidenceKeys.get(ai.foresignal.evidence.EvidenceService.recordKey(row.sourceId(), row.externalId()));
-        return new EventScorer.MemberView(family, weight, row.sourceId(), healthy, null,
+        return new EventScorer.MemberView(family, weight, row.sourceId(), healthy,
+                memberReliability(row.sourceId(), row.externalId()),
                 key == null || !key.linked() ? null : key.key(), key == null ? null : key.root());
     }
 

@@ -72,8 +72,18 @@ public final class AssessmentComposer {
     public record Composed(List<Map<String, Object>> bluf, String headline, List<Map<String, Object>> sections,
             String markdown, List<String> citations, List<String> lintWarnings, boolean llmContributed) {}
 
-    /** Composes the assessment. */
+    /** Composes the assessment without a news Coverage section. */
     public static Composed compose(Inputs in) {
+        return compose(in, null);
+    }
+
+    /**
+     * Composes the assessment.
+     *
+     * @param newsCoverage the deterministic news Coverage section (prompt 133: how each top situation is covered,
+     *     blindspot stories, divergence findings), or null to leave the section out
+     */
+    public static Composed compose(Inputs in, Map<String, Object> newsCoverage) {
         boolean onDemand = CycleVocabulary.ON_DEMAND.equals(in.cadence());
         boolean llmJudgments = in.analyst() != null && !in.analyst().judgments().isEmpty();
         List<Map<String, Object>> bluf = llmJudgments ? in.analyst().judgments() : deterministicBluf(in.packet());
@@ -130,6 +140,10 @@ public final class AssessmentComposer {
             sections.add(section("forecasts", "Forecasts", forecastsMarkdown(in, true), "deterministic",
                     forecastData));
         }
+        if (newsCoverage != null) {
+            sections.add(section("news-coverage", "Coverage", newsCoverageMarkdown(newsCoverage), "deterministic",
+                    newsCoverage));
+        }
         sections.add(section("speculation", "Speculation", speculationMarkdown(in, bluf), "deterministic", null));
         sections.add(section("sources", "Sources, coverage and caveats", sourcesMarkdown(in, citations.size()),
                 "deterministic", Map.of("coverage", in.packet().stored().getOrDefault("coverage", Map.of()))));
@@ -150,6 +164,62 @@ public final class AssessmentComposer {
         md.append("---\n\n*").append(CycleVocabulary.FOOTER).append("*\n");
         boolean llm = llmJudgments || (in.redTeam() != null && !in.redTeam().notes().isEmpty());
         return new Composed(bluf, headline, sections, md.toString(), List.copyOf(citations), lint, llm);
+    }
+
+    /**
+     * The markdown of the news Coverage section (prompt 133): each situation's balance, state-affiliated share,
+     * blindspot and corroborated share, then the blindspot stories and divergence findings. Coverage describes
+     * reporting, never truth.
+     */
+    @SuppressWarnings("unchecked")
+    static String newsCoverageMarkdown(Map<String, Object> coverage) {
+        StringBuilder md = new StringBuilder("*Coverage describes how events are reported, not whether they happened.*"
+                + "\n\n");
+        List<Object> situations = coverage.get("situations") instanceof List<?> l ? (List<Object>) l : List.of();
+        if (situations.isEmpty()) {
+            md.append("No situation in scope has news coverage.\n\n");
+        } else {
+            md.append("| Situation | Left | Center | Right | Unrated | State-affiliated | Blindspot | Corroborated |\n")
+                    .append("|---|---|---|---|---|---|---|---|\n");
+            for (Object o : situations) {
+                if (!(o instanceof Map<?, ?> s) || !(s.get("coverage") instanceof Map<?, ?> c)) {
+                    continue;
+                }
+                Map<?, ?> balance = c.get("coverageBalance") instanceof Map<?, ?> b ? b : Map.of();
+                md.append("| `situation:").append(s.get("situationId")).append("` | ")
+                        .append(pct(balance.get("left"))).append(" | ").append(pct(balance.get("center"))).append(" | ")
+                        .append(pct(balance.get("right"))).append(" | ").append(pct(balance.get("unrated")))
+                        .append(" | ").append(pct(c.get("stateAffiliatedShare"))).append(" | ")
+                        .append(c.get("blindspot") == null ? "none" : c.get("blindspot")).append(" | ")
+                        .append(pct(c.get("corroboratedShare"))).append(" |\n");
+            }
+            md.append('\n');
+        }
+        List<Object> blindspots = coverage.get("blindspotStoryIds") instanceof List<?> l ? (List<Object>) l
+                : List.of();
+        if (!blindspots.isEmpty()) {
+            md.append("Blindspot stories: ");
+            List<String> refs = new ArrayList<>();
+            for (Object id : blindspots) {
+                refs.add("`news-story:" + id + "`");
+            }
+            md.append(String.join(", ", refs)).append(".\n\n");
+        }
+        List<Object> divergences = coverage.get("divergenceFindingIds") instanceof List<?> l ? (List<Object>) l
+                : List.of();
+        if (!divergences.isEmpty()) {
+            md.append("Coverage divergences: ");
+            List<String> refs = new ArrayList<>();
+            for (Object id : divergences) {
+                refs.add("`finding:" + id + "`");
+            }
+            md.append(String.join(", ", refs)).append(".\n");
+        }
+        return md.toString();
+    }
+
+    private static String pct(Object share) {
+        return share instanceof Number n ? Math.round(n.doubleValue() * 100) + "%" : "n/a";
     }
 
     /** The deterministic bottom line: the top changes of the period. */

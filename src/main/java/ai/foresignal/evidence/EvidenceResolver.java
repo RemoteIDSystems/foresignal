@@ -58,6 +58,9 @@ import tools.jackson.databind.json.JsonMapper;
  *       are recomputed, and {@code canonical.created|merged|flagged} goes to the {@code evidence} SSE topic.
  * </ol>
  *
+ * <p>Families whose rule is {@code match: "story"} ({@code news-story}, prompt 133) are handed to the
+ * {@link StoryFamilyHandler} on this same cursor.
+ *
  * <p>Observations are never modified: the resolver reads {@code record_version} and writes only its own
  * tables (MEM-1).
  */
@@ -93,6 +96,7 @@ public class EvidenceResolver implements ChangeListener, DisposableBean, ai.fore
     private final Clock clock;
     private final boolean autoStart;
 
+    private volatile StoryFamilyHandler storyHandler;
     private volatile Subscription subscription;
     private volatile Thread thread;
     private volatile boolean running;
@@ -115,6 +119,15 @@ public class EvidenceResolver implements ChangeListener, DisposableBean, ai.fore
         this.transactions = transactions;
         this.clock = clock;
         this.autoStart = autoStart;
+    }
+
+    /**
+     * Installs the resolver of {@code story} families (prompt 133, {@code news-story}); without one their versions are
+     * skipped.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setStoryHandler(StoryFamilyHandler storyHandler) {
+        this.storyHandler = storyHandler;
     }
 
     /** Starts the subscriber and the catch-up thread once the application is ready (unless disabled). */
@@ -218,6 +231,14 @@ public class EvidenceResolver implements ChangeListener, DisposableBean, ai.fore
     void process(VersionRow row) {
         CanonicalRules.FamilyRule rule = rules.familyOf(row.kind(), row.payload());
         if (rule == null) {
+            return;
+        }
+        if (StoryFamilyHandler.STORY_MATCH.equals(rule.match())) {
+            StoryFamilyHandler handler = storyHandler;
+            if (handler != null) {
+                handler.process(rule, new StoryFamilyHandler.Observation(row.seq(), row.sourceId(), row.externalId(),
+                        row.kind(), row.version(), row.eventTime(), row.observedAt(), row.payload()));
+            }
             return;
         }
         Instant now = clock.instant();

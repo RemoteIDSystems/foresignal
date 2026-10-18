@@ -24,11 +24,32 @@ public class SituationViews {
     private final CorroborationRollup rollup;
     private final Clock clock;
 
+    private ai.foresignal.news.NewsCoverageService newsCoverage;
+
     /** Creates the component. */
     public SituationViews(SituationService service, CorroborationRollup rollup, Clock clock) {
         this.service = service;
         this.rollup = rollup;
         this.clock = clock;
+    }
+
+    /** Installs the news coverage of situations (prompt 133: the {@code coverage} section). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setNewsCoverage(ai.foresignal.news.NewsCoverageService newsCoverage) {
+        this.newsCoverage = newsCoverage;
+    }
+
+    /** The news coverage section of a situation (prompt 133), or null without news members or the news layer. */
+    public Map<String, Object> coverage(String situationId) {
+        ai.foresignal.news.NewsCoverageService c = newsCoverage;
+        if (c == null) {
+            return null;
+        }
+        try {
+            return c.situationCoverage(situationId);
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     /** The full {@code Situation}. */
@@ -41,7 +62,10 @@ public class SituationViews {
                 families.add(member.getSignalFamily());
             }
         }
-        return SituationMapper.full(situation, members, result, families.size(), List.of(), clock.instant());
+        Map<String, Object> out = SituationMapper.full(situation, members, result, families.size(), List.of(),
+                clock.instant());
+        out.put("coverage", coverage(situation.getId()));
+        return out;
     }
 
     /** The {@code SituationPage} of a list result. */

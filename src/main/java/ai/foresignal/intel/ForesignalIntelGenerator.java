@@ -69,6 +69,9 @@ public class ForesignalIntelGenerator implements DerivedGenerator {
     /** The hypothesis-set records (prompt 125), or null when the hypothesis layer is absent. */
     private ai.foresignal.hypothesis.HypothesisSetRecordPublisher hypothesisSets;
 
+    /** The news-story records (prompt 133), or null when the news layer is absent. */
+    private ai.foresignal.news.NewsStoryRecordPublisher newsStories;
+
     /** Creates the generator. */
     public ForesignalIntelGenerator(IntelligenceEventRepository events, IntelEventMemberRepository members) {
         this.events = events;
@@ -87,16 +90,23 @@ public class ForesignalIntelGenerator implements DerivedGenerator {
         this.hypothesisSets = hypothesisSets;
     }
 
+    /** Injects the news-story record publisher (prompt 133: kind {@code news-story} of this source). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setNewsStories(ai.foresignal.news.NewsStoryRecordPublisher newsStories) {
+        this.newsStories = newsStories;
+    }
+
     /** The descriptor (analytic retention class {@code intel}: 1825 days, Conventions "Analytic retention"). */
     public static SourceDescriptor buildDescriptor() {
         return SourceDescriptor.builder(ID)
                 .name("Intelligence events (derived)")
                 .description("Typed, located, time-bounded intelligence findings and their members, situations"
-                        + " (prompt 118) and hypothesis sets (prompt 125), as ordinary records so rules, SSE, tiles and"
+                        + " (prompt 118), hypothesis sets (prompt 125) and news stories (prompt 133), as ordinary records so rules, SSE, tiles and"
                         + " search use them unchanged. Private events, situations and sets are not published as"
                         + " records.")
                 .kinds(KIND, ai.foresignal.situation.SituationRecordPublisher.KIND,
-                        ai.foresignal.hypothesis.HypothesisSetRecordPublisher.KIND)
+                        ai.foresignal.hypothesis.HypothesisSetRecordPublisher.KIND,
+                        ai.foresignal.news.NewsStoryRecordPublisher.KIND)
                 .embedFields("title", "summary")
                 .attribution("Derived by Foresignal from stored versions")
                 .licence("derived")
@@ -137,6 +147,9 @@ public class ForesignalIntelGenerator implements DerivedGenerator {
         if (hypothesisSets != null) {
             hypothesisSets.reconcile(ownHeads);
         }
+        if (newsStories != null) {
+            newsStories.reconcile(ownHeads);
+        }
     }
 
     @Override
@@ -146,6 +159,9 @@ public class ForesignalIntelGenerator implements DerivedGenerator {
         }
         if (hypothesisSets != null) {
             hypothesisSets.onTick(now, ctx);
+        }
+        if (newsStories != null) {
+            newsStories.onTick(now, ctx);
         }
         boolean full = watermark == null;
         Set<String> seen = new HashSet<>();

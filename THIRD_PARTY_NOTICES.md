@@ -620,6 +620,62 @@ scientific colormaps. Each style's `notice` field names its origin.
   run to produce the extract. It is **not linked, bundled or invoked** by Foresignal; the optional
   `WITH_OSMIUM=true` image only documents the operator's own use.
 
+## News and media-rating data providers (prompt 133)
+
+None of this data is bundled: Foresignal fetches or imports it at run time, keeps each rating's provider, license,
+attribution and date beside it, and returns the attribution with every rating it serves
+(`GET /v1/media/outlets`, `/v1/media/providers`). Per-source details are in
+[`docs/Source-Catalog.md`](docs/Source-Catalog.md), "News and media ratings (prompt 133, v1.3)".
+
+### GDELT
+
+- **Data:** news article metadata (title, link, outlet domain, language, source country, time) from the GDELT DOC 2.0
+  API (`mode=ArtList`), source `gdelt-articles` (prompt 133); the same API's timelines feed `gdelt-timelines`
+  (prompt 117), and the GDELT 2.0 event export feeds `gdelt-events` (prompt 066). No article body, byline or image is
+  fetched.
+- **License:** GDELT's open terms: unrestricted use and redistribution, with a citation of the GDELT Project and a
+  link to it (<https://www.gdeltproject.org/about.html#termsofuse>).
+- **Attribution:** "The GDELT Project (https://www.gdeltproject.org/)", carried by the descriptors of `gdelt-articles`
+  and `gdelt-timelines` (and, without the trailing slash, `gdelt-events`).
+
+### Wikidata
+
+- **Data:** outlet facts (official website, country, owner, parent organization, instance of) and political
+  alignment (P1387), queried from the Wikidata Query Service (<https://query.wikidata.org/sparql>) by the `wikidata`
+  rating provider.
+- **License:** CC0 1.0 Universal (<https://creativecommons.org/publicdomain/zero/1.0/>). No attribution is required;
+  Foresignal credits it anyway: "Wikidata (CC0)".
+
+### The Partisan Web
+
+- **Data:** the outlet rating files `organisations/*.md` of <https://github.com/stockHuman/tpw-data>, read by the
+  `partisan-web` rating provider; Foresignal stores ratings derived from their front matter (social and governmental
+  bias, factual sourcing, editorial, pseudoscience, conspiracy and messaging scores, state ownership tags). The
+  `ownership` field is not imported.
+- **License:** Creative Commons Attribution 4.0 International (<https://creativecommons.org/licenses/by/4.0/>), the
+  repository's `LICENSE` file, confirmed 2026-10-17. The README badge reads CC BY 4.0 but links to CC BY-SA 4.0; the
+  `LICENSE` file is the one followed.
+- **Attribution (required):** "The Partisan Web (github.com/stockHuman/tpw-data), CC BY 4.0", stored with every
+  derived rating. Changes made: values rescaled to Foresignal's dimensions (lean −2..+2, factuality 1..5).
+
+### AllSides (operator import only)
+
+- **Data:** AllSides media bias ratings, present only if the operator imports them from their own copy (provider
+  `allsides`, disabled by default). Foresignal fetches nothing from allsides.com.
+- **License:** reported as CC BY-NC 4.0 (<https://creativecommons.org/licenses/by-nc/4.0/>), **not confirmed**:
+  allsides.com refused automated reads (HTTP 403) on 2026-10-17. Non-commercial use only if that license holds; the
+  ratings stay `LOCAL_ONLY` unless the operator records permission.
+- **Attribution (required):** "AllSides Media Bias Ratings by AllSides.com".
+
+### Media Bias/Fact Check (operator import only)
+
+- **Data:** Media Bias/Fact Check ratings, present only if the operator imports them from their own export (provider
+  `mbfc`, disabled by default). Access is the operator's own paid subscription (MBFC data API through RapidAPI,
+  <https://mediabiasfactcheck.com/mbfcs-data-api>); Foresignal does not call the API.
+- **License:** the Media Bias/Fact Check API terms and RapidAPI's terms, which exclude redistribution. The ratings are
+  always `LOCAL_ONLY` and are never redistributed.
+- **Attribution:** "Media Bias/Fact Check".
+
 ## webp-imageio (Java library, bundled)
 
 - **Library:** `com.github.usefulness:webp-imageio` 0.10.0 (Apache-2.0), an ImageIO plugin that encodes and

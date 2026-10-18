@@ -296,6 +296,18 @@ public class ReportRenderer {
                                 .append(oneLine(String.valueOf(c.get("text")))).append('\n');
                     }
                 }
+                // Prompt 133: news coverage statistics (describe reporting, never truth).
+                for (Object o : ReportBlocks.asList(b.get("coverage"))) {
+                    if (o instanceof Map<?, ?> st && st.get("coverageBalance") instanceof Map<?, ?> bal) {
+                        out.append("- News coverage (evidence groups): left ").append(percent(bal.get("left")))
+                                .append(", center ").append(percent(bal.get("center"))).append(", right ")
+                                .append(percent(bal.get("right"))).append(", unrated ")
+                                .append(percent(bal.get("unrated"))).append("; state-affiliated ")
+                                .append(percent(st.get("stateAffiliatedShare"))).append("; blindspot ")
+                                .append(st.get("blindspot") == null ? "none" : cell(st.get("blindspot")))
+                                .append('\n');
+                    }
+                }
                 out.append('\n');
             }
             case "attachments" -> {

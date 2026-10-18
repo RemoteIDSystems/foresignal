@@ -117,6 +117,21 @@ public class DossierService {
         this.clock = clock;
     }
 
+    /** The {@code include} values: the sections plus {@code coverage} (prompt 133, the top-level member). */
+    public static final List<String> INCLUDES = List.of("overview", "imagery", "forecast", "impacts", "related",
+            "timeline", "analysis", "coverage");
+
+    private ai.foresignal.news.NewsCoverageService newsCoverage;
+    private ai.foresignal.news.NewsStoryStore newsStories;
+
+    /** Installs the news coverage (prompt 133: the dossier's {@code coverage} member). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setNewsCoverage(ai.foresignal.news.NewsCoverageService newsCoverage,
+            ai.foresignal.news.NewsStoryStore newsStories) {
+        this.newsCoverage = newsCoverage;
+        this.newsStories = newsStories;
+    }
+
     /** The requested sections of an {@code include} list (all when empty). */
     public static List<String> includes(List<String> include) {
         if (include == null || include.isEmpty()) {
@@ -124,8 +139,8 @@ public class DossierService {
         }
         List<String> out = new ArrayList<>();
         for (String s : include) {
-            if (!SECTIONS.contains(s)) {
-                throw ValidationException.forField("include", "'" + s + "' is not one of " + SECTIONS);
+            if (!INCLUDES.contains(s)) {
+                throw ValidationException.forField("include", "'" + s + "' is not one of " + INCLUDES);
             }
             if (!out.contains(s)) {
                 out.add(s);
@@ -147,7 +162,9 @@ public class DossierService {
         ObjectEnvelope envelope = objects.get(ref, context);
         Map<String, Object> sections = new LinkedHashMap<>();
         for (String section : includes(include)) {
-            sections.put(section, section(section, envelope, facets, context));
+            if (!"coverage".equals(section)) {
+                sections.put(section, section(section, envelope, facets, context));
+            }
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("ref", envelope.ref());
@@ -156,8 +173,35 @@ public class DossierService {
         out.put("generatedAt", clock.instant());
         out.put("sections", sections);
         out.put("truncated", false);
-        out.put("coverage", null);
+        out.put("coverage", include == null || include.isEmpty() || include.contains("coverage")
+                ? coverage(envelope.ref()) : null);
         cap(out);
+        return out;
+    }
+
+    /**
+     * The dossier's coverage member (prompt 133): a situation's or news story's coverage statistics with
+     * {@code status} {@code ok}, {@code unavailable} when it has no news coverage; null for other types.
+     */
+    Map<String, Object> coverage(String ref) {
+        ObjectRef parsed = ObjectRef.parse(ref);
+        if (!ObjectTypes.SITUATION.equals(parsed.type()) && !ObjectTypes.NEWS_STORY.equals(parsed.type())) {
+            return null;
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        Map<String, Object> stats = null;
+        try {
+            if (ObjectTypes.SITUATION.equals(parsed.type()) && newsCoverage != null) {
+                stats = newsCoverage.situationCoverage(parsed.id());
+            } else if (newsStories != null) {
+                stats = newsStories.story(parsed.id()).map(ai.foresignal.news.NewsStoryStore.Story::coverage)
+                        .orElse(null);
+            }
+        } catch (RuntimeException e) {
+            log.debug("No news coverage for {}: {}", ref, e.toString());
+        }
+        out.put("status", stats == null || stats.isEmpty() ? "unavailable" : "ok");
+        out.put("stats", stats == null || stats.isEmpty() ? null : stats);
         return out;
     }
 

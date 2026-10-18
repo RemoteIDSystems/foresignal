@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
 public final class FeedSpecValidator {
 
     /** A built-in feed spec id. */
-    public static final Pattern ID_PATTERN = Pattern.compile("^(?:feed|status)-[a-z0-9]+(-[a-z0-9]+)*$");
+    public static final Pattern ID_PATTERN = Pattern.compile("^(?:feed|status|news-feed)-[a-z0-9]+(-[a-z0-9]+)*$");
 
     /** An operator overlay spec id. */
     public static final Pattern OVERLAY_ID_PATTERN = Pattern.compile("^op-[a-z0-9]+(-[a-z0-9]+)*$");
@@ -128,6 +128,16 @@ public final class FeedSpecValidator {
         }
         if (spec.itemMapper() != null && FeedItemMappers.of(spec.itemMapper()) == null) {
             p.add("itemMapper: '" + spec.itemMapper() + "' is not a reviewed mapper");
+        }
+        boolean newsId = spec.id() != null && ai.foresignal.source.formats.news.NewsArticles.isNewsSource(spec.id());
+        boolean newsMapper = NewsArticleItemMapper.NAME.equals(spec.itemMapper());
+        if (newsId != newsMapper) {
+            p.add("itemMapper: the news-feed-* (and op-news-feed-*) outlet feeds and only they use the '"
+                    + NewsArticleItemMapper.NAME + "' mapper (prompt 133)");
+        }
+        if (newsMapper && spec.kind() != null && !ai.foresignal.source.formats.news.NewsArticles.KIND
+                .equals(spec.kind())) {
+            p.add("kind: an outlet feed writes news-article records, but was '" + spec.kind() + "'");
         }
         Duration interval = duration("interval", spec.interval(), FeedSourceSpec.DEFAULT_INTERVAL, p);
         Duration minInterval = duration("minInterval", spec.minInterval(), FeedSourceSpec.MIN_INTERVAL, p);

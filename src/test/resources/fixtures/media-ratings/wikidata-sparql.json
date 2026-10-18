@@ -1,0 +1,894 @@
+{
+ "head": {
+  "vars": [
+   "item",
+   "site",
+   "align",
+   "inst",
+   "owner",
+   "ownerLabel",
+   "parent",
+   "parentLabel",
+   "iso"
+  ]
+ },
+ "results": {
+  "bindings": [
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://www.reuters.com/"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q130879"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q192283"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1141267"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Thomson Reuters"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1141267"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Thomson Reuters"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "GB"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://www.reuters.com/"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q130879"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q4830453"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1141267"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Thomson Reuters"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1141267"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Thomson Reuters"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "GB"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://foxnews.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q186068"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q561068"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q166419"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Fox Broadcasting Company"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q185278"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "News Corporation"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "US"
+    },
+    "align": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q76074"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://foxnews.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q186068"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7892363"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q166419"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Fox Broadcasting Company"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q185278"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "News Corporation"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "US"
+    },
+    "align": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q76074"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://foxnews.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q186068"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q561068"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q166419"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Fox Broadcasting Company"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q5476713"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "21st Century Fox"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "US"
+    },
+    "align": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q76074"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://foxnews.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q186068"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7892363"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q166419"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Fox Broadcasting Company"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q5476713"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "21st Century Fox"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "US"
+    },
+    "align": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q76074"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://foxnews.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q186068"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q561068"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q166419"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Fox Broadcasting Company"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q60238941"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Fox Corporation"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "US"
+    },
+    "align": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q76074"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://foxnews.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q186068"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7892363"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q166419"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Fox Broadcasting Company"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q60238941"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Fox Corporation"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "US"
+    },
+    "align": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q76074"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://www.bbc.co.uk/"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q747860"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q186165"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q9531"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "British Broadcasting Corporation"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "GB"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "http://www.bbc.co.uk/"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q6670790"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q15416"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "http://www.reuters.com/"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q22343541"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1153191"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://www.rt.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q111033569"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q43229"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q22868"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "RT"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q15294742"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Rossiya Segodnya"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "RU"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://www.rt.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q111033569"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q2001305"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q22868"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "RT"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q15294742"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Rossiya Segodnya"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "RU"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "http://www.bbc.co.uk/"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q124066719"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q7889"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://bbc.co.uk"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q9531"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1126006"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q910019"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Department for Digital, Culture, Media and Sport"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "GB"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://bbc.co.uk"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q9531"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q141255352"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q910019"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Department for Digital, Culture, Media and Sport"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "GB"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://www.theguardian.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q11148"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q11032"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q2665980"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Guardian Media Group"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q2665980"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Guardian Media Group"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "GB"
+    },
+    "align": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q737014"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://www.theguardian.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q11148"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1110794"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q2665980"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Guardian Media Group"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q2665980"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Guardian Media Group"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "GB"
+    },
+    "align": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q737014"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://www.rt.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q22868"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q35127"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q111288811"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "ANO TV-Novosti"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q821172"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "RIA Novosti"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "RU"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://www.rt.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q22868"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1254874"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q111288811"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "ANO TV-Novosti"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q821172"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "RIA Novosti"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "RU"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://www.rt.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q22868"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1616075"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q111288811"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "ANO TV-Novosti"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q821172"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "RIA Novosti"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "RU"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://www.rt.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q22868"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q4201315"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q111288811"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "ANO TV-Novosti"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q821172"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "RIA Novosti"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "RU"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://www.rt.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q22868"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q35127"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q111288811"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "ANO TV-Novosti"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q15294742"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Rossiya Segodnya"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "RU"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://www.rt.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q22868"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1254874"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q111288811"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "ANO TV-Novosti"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q15294742"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Rossiya Segodnya"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "RU"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://www.rt.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q22868"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q1616075"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q111288811"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "ANO TV-Novosti"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q15294742"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Rossiya Segodnya"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "RU"
+    }
+   },
+   {
+    "site": {
+     "type": "uri",
+     "value": "https://www.rt.com"
+    },
+    "item": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q22868"
+    },
+    "inst": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q4201315"
+    },
+    "parent": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q111288811"
+    },
+    "parentLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "ANO TV-Novosti"
+    },
+    "owner": {
+     "type": "uri",
+     "value": "http://www.wikidata.org/entity/Q15294742"
+    },
+    "ownerLabel": {
+     "xml:lang": "en",
+     "type": "literal",
+     "value": "Rossiya Segodnya"
+    },
+    "iso": {
+     "type": "literal",
+     "value": "RU"
+    }
+   }
+  ]
+ }
+}

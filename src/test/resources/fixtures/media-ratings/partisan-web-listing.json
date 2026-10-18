@@ -1,0 +1,30 @@
+[
+ {
+  "name": "_TEMPLATE.md",
+  "path": "organisations/_TEMPLATE.md",
+  "html_url": "https://github.com/stockhuman/tpw-data/blob/master/organisations/_TEMPLATE.md",
+  "download_url": "{{BASE}}/raw/organisations/_TEMPLATE.md",
+  "type": "file"
+ },
+ {
+  "name": "afp.md",
+  "path": "organisations/afp.md",
+  "html_url": "https://github.com/stockhuman/tpw-data/blob/master/organisations/afp.md",
+  "download_url": "{{BASE}}/raw/organisations/afp.md",
+  "type": "file"
+ },
+ {
+  "name": "example-left.md",
+  "path": "organisations/example-left.md",
+  "html_url": "https://github.com/stockhuman/tpw-data/blob/master/organisations/example-left.md",
+  "download_url": "{{BASE}}/raw/organisations/example-left.md",
+  "type": "file"
+ },
+ {
+  "name": "elsewhere.md",
+  "path": "organisations/elsewhere.md",
+  "html_url": "https://example.org/elsewhere.md",
+  "download_url": "https://example.org/elsewhere.md",
+  "type": "file"
+ }
+]

@@ -1,0 +1,19 @@
+{
+  "version": "1.0.0",
+  "description": "News agencies (wires) seeded into the media outlet registry (prompt 133): registry facts only (name, domains, country, type wire and the 116 originator each maps to), never ratings. Lean, factuality, ownership and state affiliation come only from the declared rating providers. The operator edits or merges these through PATCH /v1/media/outlets/{id}.",
+  "outlets": [
+    {"name": "Associated Press", "domains": ["apnews.com", "ap.org"], "country": "US", "languages": ["en", "es"], "originator": "ap"},
+    {"name": "Reuters", "domains": ["reuters.com"], "country": "GB", "languages": ["en"], "originator": "reuters"},
+    {"name": "Agence France-Presse", "domains": ["afp.com"], "country": "FR", "languages": ["fr", "en", "es", "pt", "de", "ar"], "originator": "afp"},
+    {"name": "Deutsche Presse-Agentur", "domains": ["dpa.com"], "country": "DE", "languages": ["de", "en"], "originator": "dpa"},
+    {"name": "Agencia EFE", "domains": ["efe.com"], "country": "ES", "languages": ["es", "en"], "originator": "efe"},
+    {"name": "ANSA", "domains": ["ansa.it"], "country": "IT", "languages": ["it", "en"], "originator": "ansa"},
+    {"name": "Xinhua News Agency", "domains": ["xinhuanet.com", "news.cn"], "country": "CN", "languages": ["zh", "en"], "originator": "xinhua"},
+    {"name": "TASS", "domains": ["tass.com", "tass.ru"], "country": "RU", "languages": ["ru", "en"], "originator": "tass"},
+    {"name": "Kyodo News", "domains": ["kyodonews.net"], "country": "JP", "languages": ["ja", "en"], "originator": "kyodo"},
+    {"name": "Yonhap News Agency", "domains": ["yna.co.kr"], "country": "KR", "languages": ["ko", "en"], "originator": "yonhap"},
+    {"name": "Press Trust of India", "domains": ["ptinews.com"], "country": "IN", "languages": ["en"], "originator": "pti"},
+    {"name": "Asian News International", "domains": ["aninews.in"], "country": "IN", "languages": ["en"], "originator": "ani"},
+    {"name": "Anadolu Agency", "domains": ["aa.com.tr"], "country": "TR", "languages": ["tr", "en"], "originator": "anadolu"}
+  ]
+}

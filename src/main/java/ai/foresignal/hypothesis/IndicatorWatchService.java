@@ -251,7 +251,8 @@ public class IndicatorWatchService implements AlertListener, FindingListener {
                 }
                 spec.put("window", window);
             }
-            default -> throw invalid("signal.series", "a rule: reference is watched through changePoint: true");
+            default -> throw invalid("signal.series", "a rule: or rollup:news/ reference is watched through"
+                    + " changePoint: true");
         }
         return spec;
     }

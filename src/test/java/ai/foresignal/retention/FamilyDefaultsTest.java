@@ -526,6 +526,12 @@ class FamilyDefaultsTest {
                     new ai.foresignal.source.adapters.gdelt.GdeltTimelineAdapter("").descriptor(), "series")),
             Map.entry("WorldBankIndicatorsAdapter", new Entry(
                     new ai.foresignal.source.adapters.worldbank.WorldBankIndicatorsAdapter("").descriptor(), "series")),
+            // Prompt 133: news articles are bulk-event (90 d; the story aggregates are kept). media-ratings writes no
+            // records (it is the budgeted path of the rating imports); its declared kind is checked as reference.
+            Map.entry("GdeltArticlesAdapter", new Entry(
+                    new ai.foresignal.source.adapters.gdelt.GdeltArticlesAdapter("").descriptor(), "bulk-event")),
+            Map.entry("MediaRatingsAdapter", new Entry(
+                    new ai.foresignal.source.adapters.media.MediaRatingsAdapter().descriptor(), "reference")),
             Map.entry("WikimediaPageviewsAdapter", new Entry(
                     new ai.foresignal.source.adapters.wikimedia.WikimediaPageviewsAdapter("").descriptor(),
                     "bulk-event")),

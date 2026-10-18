@@ -1,0 +1,49 @@
+{
+ "articles": [
+  {
+   "url": "https://apnews.com/article/hormuz-tanker-seized-1a2b3c?utm_source=rss&utm_medium=feed",
+   "url_mobile": "",
+   "title": "Iran seizes oil tanker in the Strait of Hormuz, US Navy says",
+   "seendate": "20261016T120000Z",
+   "socialimage": "https://apnews.com/img/tanker.jpg",
+   "domain": "apnews.com",
+   "language": "English",
+   "sourcecountry": "United States"
+  },
+  {
+   "url": "https://WWW.Example-Times.com/world/2026/10/16/iran-seizes-tanker.html#comments",
+   "url_mobile": "",
+   "title": "Iran seizes oil tanker in the Strait of Hormuz, US Navy says",
+   "seendate": "20261016T121500Z",
+   "socialimage": "",
+   "domain": "example-times.com",
+   "language": "English",
+   "sourcecountry": "United States"
+  },
+  {
+   "url": "https://www.example-herald.co.uk/news/tanker?fbclid=XYZ&id=42",
+   "url_mobile": "",
+   "title": "Tanker seized near Hormuz as tensions rise",
+   "seendate": "20261016T123000Z",
+   "socialimage": "",
+   "domain": "example-herald.co.uk",
+   "language": "English",
+   "sourcecountry": "United Kingdom"
+  },
+  {
+   "url": "not a url",
+   "title": "Broken entry",
+   "seendate": "20261016T123000Z",
+   "domain": "x",
+   "language": "English",
+   "sourcecountry": "France"
+  },
+  {
+   "url": "https://example.ru/news/1",
+   "title": "Missing date",
+   "domain": "example.ru",
+   "language": "Russian",
+   "sourcecountry": "Russia"
+  }
+ ]
+}

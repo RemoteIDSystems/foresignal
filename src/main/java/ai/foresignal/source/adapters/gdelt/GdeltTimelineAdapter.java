@@ -43,7 +43,9 @@ import org.springframework.stereotype.Component;
  * stored bucket plus one 15-minute step (at most {@value #MAX_TIMESPAN_MINUTES} minutes, three days; the first run
  * asks for {@value #FIRST_TIMESPAN}). GDELT allows one request every 5 seconds: the adapter keeps at least
  * {@link #SPACING} between the starts of its requests ({@link RequestSpacing}), on top of the {@code perMinute 10}
- * budget. A run covers at most {@value #TOPICS_PER_RUN} topics (two requests each, within the per-minute budget);
+ * budget. Since prompt 133 the descriptor also sets {@code hostPacing} 5 s, so {@code UpstreamClient}'s shared
+ * {@code HostPacer} keeps this source and {@code gdelt-articles} serial on {@code api.gdeltproject.org} (one request
+ * every 5 seconds across both). A run covers at most {@value #TOPICS_PER_RUN} topics (two requests each, within the per-minute budget);
  * more topics are taken round-robin over the following runs.
  *
  * <p>Records: {@code gdelt.{topicId}.vol} (value = matching article count per step; {@code extra.total} = all
@@ -254,6 +256,7 @@ public class GdeltTimelineAdapter implements PollingAdapter {
                                         + " {\"id\", \"query\"} per entry", List.of(), false, List.of()))
                         .interval(Duration.ofMinutes(15), Duration.ofMinutes(30))
                         .defaultBudget(Budget.of(10, 1000))
+                        .hostPacing(SPACING)
                         .fetchTimeout(Duration.ofMinutes(3))
                         .observedAtMode(ObservedAtMode.RECEIVED))
                 .kind(SeriesPoint.KIND)

@@ -314,6 +314,13 @@ public final class SettingKeys {
      */
     public static final String EXCHANGE_ALLOW_GREEN_LINKS = "exchange.allowGreenLinks";
 
+    /**
+     * How a news outlet's factuality consensus maps to a 109 source reliability grade for {@code news-article} evidence
+     * (prompt 133, {@code media.reliabilityMap}): a JSON object from factuality band ({@code "1"}…{@code "5"},
+     * {@code "unrated"}) to grade ({@code A}…{@code F}); default 5 → A, 4 → B, 3 → C, 2 → D, 1 → E, unrated → F.
+     */
+    public static final String MEDIA_RELIABILITY_MAP = "media.reliabilityMap";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -331,7 +338,8 @@ public final class SettingKeys {
                     ANALYSIS_FORECASTS_QUESTION_SERIES, IMPACT_CURSOR, IMPACT_MIN_PROBABILITY,
                     IMPACT_QUESTION_MIN_PROBABILITY, IMPACT_ASSET_BUFFER_KM, RELATION_CURSOR,
                     CHRONICLE_DEFAULT_CAP_GB, CHRONICLE_AUTO_ACTIVATE_PER_DAY, CHRONICLE_AUTO_ACTIVATE_CAP_GB,
-                    CHRONICLE_THREAD_CURSORS, EXCHANGE_MAX_PACKAGE_MB, EXCHANGE_ALLOW_GREEN_LINKS);
+                    CHRONICLE_THREAD_CURSORS, EXCHANGE_MAX_PACKAGE_MB, EXCHANGE_ALLOW_GREEN_LINKS,
+                    MEDIA_RELIABILITY_MAP);
 
     private SettingKeys() {}
 }

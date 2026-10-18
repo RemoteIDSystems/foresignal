@@ -62,7 +62,8 @@ public class FindingService {
     /** Every finding type of the spec's {@code listFindings} filter. */
     public static final List<String> TYPES = List.of("change-point", "pre-event-signal", "unexplained-move",
             "co-occurrence", "precursor-active", "forecast-exceedance", "outlook-exceedance", "projected-impact",
-            "social-velocity", "media-reuse", "social-coordination", "attention-gap");
+            "coverage-blindspot", "coverage-divergence", "social-velocity", "media-reuse", "social-coordination",
+            "attention-gap");
 
     /** The statuses. */
     public static final List<String> STATUSES = List.of("open", "superseded", "dismissed");

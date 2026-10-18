@@ -5008,7 +5008,8 @@ versions are kept for `max(retention.provenance, the largest version window)`. `
 **Reliability.** Unless a descriptor sets its own grade, official agencies (US federal public domain and the
 open government licenses) get `B`, your own receivers and other built-in providers `C`, community and
 news-derived feeds (GDELT, Wikipedia surge) `D`, and custom, peer and DERIVED sources `F`. Override it per
-source with `PUT /v1/sources/{id}` `{"reliability": "A"}`; `null` reverts to the default.
+source with `PUT /v1/sources/{id}` `{"reliability": "A"}`; `null` reverts to the default. A news article used as
+evidence takes the grade of its outlet's factuality instead (`media.reliabilityMap`, prompt 133).
 
 **Licence-filtered reads.** Clients send `Foresignal-Licence-Policy: no-nc, no-sa, redistributable` (or
 `licencePolicy=`). A token's `licencePolicy` is a floor a request may add to but never loosen; set it at
@@ -5844,8 +5845,8 @@ PUT /v1/sources/fred-series
 
 **Attention topics.** A topic names what you want to watch: `GET /v1/attention/topics` lists them, `POST` creates
 one, `PUT /v1/attention/topics/{id}` replaces it and `DELETE` removes it (stored series stay). Enabled topics are
-written into the `topics` parameter of `wikimedia-pageviews` and `gdelt-timelines` on every change, so enable those
-two sources as well. Five examples ship disabled: `red-sea-shipping`, `strait-of-hormuz`,
+written into the `topics` parameter of `wikimedia-pageviews`, `gdelt-timelines` and, since prompt 133,
+`gdelt-articles` on every change, so enable the ones you want as well. Five examples ship disabled: `red-sea-shipping`, `strait-of-hormuz`,
 `gulf-energy-infrastructure`, `taiwan-strait` and `ukraine-front`; enable one with a `PUT` that sets
 `"enabled": true`. A topic has an id (`a-z`, `0-9` and `-`, 3 to 48 characters), a name, up to 20 Wikipedia articles
 (`{"project": "en.wikipedia", "article": "Strait_of_Hormuz"}`), up to 30 keywords (the situation linker uses them),
@@ -5856,7 +5857,11 @@ with `OR` in parentheses (`("Red Sea" OR "Bab el-Mandeb") (tanker OR Houthi)`); 
 Foresignal checks the characters (balanced quotes and parentheses, no control characters) and, when you create a
 topic while `gdelt-timelines` is enabled, makes one budgeted test call; a query GDELT does not answer with a
 timeline is refused with `400 TOPIC_INVALID`. GDELT allows one request every 5 seconds, so a run covers at most five
-topics (two requests each, 5 seconds apart) and takes the rest in turn on the next runs.
+topics (two requests each, 5 seconds apart) and takes the rest in turn on the next runs. Since prompt 133
+`gdelt-timelines` and `gdelt-articles` both declare a 5-second `hostPacing`, so they share one gate on
+`api.gdeltproject.org` and together never start more than one request every 5 seconds; a request that cannot start
+within 30 s is skipped (`host-pacing`) and retried on a later run (see
+[News coverage and media bias](#news-coverage-and-media-bias-prompt-133)).
 
 **Wikipedia's User-Agent policy** asks for contact details. Foresignal's User-Agent always carries the project URL;
 set `contactEmail` with `PUT /v1/settings/server` and it is appended as `; contact=…` for every upstream. If
@@ -5916,8 +5921,8 @@ least two independent evidence groups (116: re-reports of one originator never c
 `"status": "active"`. A situation without a new core member for `dormancyWindow` (7 days) goes `dormant`; a new core
 member within `reopenWindow` (30 days) makes it `active` again; 90 days dormant closes it. `closed` is final: a new
 situation starts instead. Severity is the highest core-member severity unless you override it
-(`"severityOverride": "critical"`, `null` clears it). Anomalies join as `context` members: they never drive status
-or severity.
+(`"severityOverride": "critical"`, `null` clears it). Anomalies, and since prompt 133 news stories, join as `context`
+members: they never drive status or severity.
 
 **Tuning.** The settings are app settings without their own endpoint (like 116's): `situation.linkThreshold`
 (0.45; lower links more, higher splits storylines), `situation.dormancyWindow` (`7d`) and `situation.reopenWindow`
@@ -5967,7 +5972,8 @@ channel back with `PUT /v1/channels/{channelId}` (a `PUT` replaces the channel),
 
 Discovery finds patterns nobody wrote a rule for and says how often each would turn up by chance. Three detectors run
 (and, since prompt 126, the `forecast` detector of "Outlooks and indices", whose exceedances are findings too; since
-prompt 127 the impact projector of "Impact projection" writes `projected-impact` findings)
+prompt 127 the impact projector of "Impact projection" writes `projected-impact` findings; since prompt 133 the coverage
+job of "News coverage and media bias" writes `coverage-blindspot` and `coverage-divergence` findings)
 on their own schedule, deterministically and without an LLM; what they find is an **analytic finding**
 (`GET /v1/analytics/findings`), also published as a record of the DERIVED source `foresignal-analytics` (kind
 `analytic-finding`), so ordinary rules can alert on findings (`kind=analytic-finding`, `severity == significant`) and
@@ -6418,10 +6424,11 @@ you could not have seen is not evidence.
   swing the set from 10% to 90% in an afternoon;
 - while the set is active, probabilities stay between 2% and 98%.
 
-Confidence is recomputed with every revision by rule (`ConfidenceAssessor` 1.0.0). It is `high` only with two or more
+Confidence is recomputed with every revision by rule (`ConfidenceAssessor` 1.1.0). It is `high` only with two or more
 credible (M or H) observed indicators from two or more families, sources graded A or B by 109, and no region of thin
 reporting (`LOW_REPORTING_DENSITY`). It is `moderate` with at least one credible observed indicator, and `low`
-otherwise. A broken linchpin assumption lowers it one step. Confidence rates the evidence; it says nothing about which
+otherwise. A broken linchpin assumption lowers it one step. Since prompt 133, supporting news evidence whose coverage is skewed
+(`SKEWED_COVERAGE`) and has no non-news corroboration lowers it one step more. Confidence rates the evidence; it says nothing about which
 answer is right.
 
 **The ACH matrix is an audit trail.** `GET /v1/hypotheses/sets/{id}/matrix` lists the evidence against the hypotheses,
@@ -6898,6 +6905,10 @@ page, JSON by default) and `GET /v1/assessments?cadence&since` (read). A cycle a
 8. **Sources, coverage and caveats**: failing and degraded sources, low-density regions, finding caveats, what the
    LLM did not see, and the outcome of every role.
 
+Since prompt 133 a deterministic **Coverage** section (id `news-coverage`) follows Forecasts when a situation in scope
+has news coverage, and the assessment's top-level `coverage` lists each situation's coverage statistics, the stories
+with a blindspot and the coverage-divergence findings (see "News coverage and media bias").
+
 "What we cannot see" lists the collection gaps, with the analyst's comment when there is one. Every text says where it
 came from (`textOrigin`: `deterministic`, `llm` or `mixed`), every probability is a number with its derived term, and
 the footer reads: "Automated analysis. Probabilities use ICD 203 terms; evidence is cited; speculation is labelled.
@@ -6981,8 +6992,9 @@ Every object has a reference of the form `{type}:{id}`: `record:{sourceId}/{exte
 `alert:{id}`, `investigation:{id}`, `place:{id}`, `view:{id}`, `watchlist:{id}`, `source:{id}`,
 `sensor:{kind}:{id}`, `workspace:{id}` and `annotation:{id}`, and since prompt 130 `principal:{id or handle}`,
 `group:{id}`, `tag:{id}`, `attachment:{id}`, `evidence-item:{id}` and `saved-search:{id}`. `GET /v1/contract` (read)
-lists the types, the relation types, the confidence labels and the client kinds with the contract version (`1.3`
-since prompt 132 added `report:{id}` and `remote:{instanceId}/{type}:{id}`; `1.2` added `chronicle:{id}` in prompt 131).
+lists the types, the relation types, the confidence labels and the client kinds with the contract version (`1.4`
+since prompt 133 added `news-story:{id}`, whose id is the story's canonical event id, and `outlet:{id}`; `1.3` added
+`report:{id}` and `remote:{instanceId}/{type}:{id}` in prompt 132; `1.2` added `chronicle:{id}` in prompt 131).
 
 In a URL path the reference is one segment, so its `/` is written `%2F`
 (`GET /v1/objects/record:usgs-quakes%2Fus7000abcd`). Foresignal's Tomcat connector passes encoded slashes through for
@@ -7418,9 +7430,11 @@ owner, an access list and a TLP label, and without a role it answers `404 UNKNOW
 
 Block types: `markdown`, `bluf`, `objects`, `map`, `timeline`, `hypotheses`, `forecasts`, `evidence`, `coverage`,
 `attachments` and `sources`. Every block says where its text came from (`author`, `deterministic` or `llm`), and a
-probability in a judgment carries its ICD 203 term. The `coverage` block lists caveats: `CAPTURE_GAP` from a
-chronicle, `UNRESOLVED_REFERENCES` for objects that no longer resolve, and `MEDIA_COVERAGE_UNAVAILABLE` until media
-coverage exists. `"narrative": true` adds a labeled LLM narrative block, whose citations are verified against the
+probability in a judgment carries its ICD 203 term. The `coverage` block lists caveats (`CAPTURE_GAP` from a
+chronicle, `UNRESOLVED_REFERENCES` for objects that no longer resolve) and, since prompt 133, the news coverage
+statistics of the situations in scope with their caveats (`COVERAGE_BLINDSPOT`, `SKEWED_COVERAGE`,
+`MOSTLY_UNRATED_OUTLETS`): `NO_NEWS_COVERAGE` when none of those situations has news, and `MEDIA_COVERAGE_UNAVAILABLE`
+only when the news layer is absent (see [News coverage and media bias](#news-coverage-and-media-bias-prompt-133)). `"narrative": true` adds a labeled LLM narrative block, whose citations are verified against the
 report's objects; it needs an agent token (`403 INSUFFICIENT_SCOPE` otherwise) and a chat provider
 (`409 LLM_NOT_CONFIGURED`). Edit with `PATCH /v1/reports/{id}` (merge patch) and `POST`, `PATCH` and
 `DELETE /v1/reports/{id}/blocks[/{blockId}]`; send the version you hold in `If-Match` (or `version`), and a stale one
@@ -7486,3 +7500,350 @@ objects are addressed as `remote:{instanceId}/{type}:{id}`: they are read-only, 
 
 **Settings.** App settings `exchange.maxPackageMb` (200) and `exchange.allowGreenLinks` (`false`). Sent and received
 packages are stored under `${FORESIGNAL_DATA_DIR}/exchange/`; include it in your backups.
+
+## News coverage and media bias (prompt 133)
+
+Foresignal collects news article **metadata** (never an article body, a byline or an image), groups the articles that
+report one event into a **story**, and counts how that story was covered: by how many independent evidence groups,
+from outlets of which lean, factuality, country, type and ownership. That shows where coverage is lopsided, where only
+one side of the press reports something, and where a hypothesis rests on reporting from one corner. Two rules hold
+throughout:
+
+- **Ratings are imported, never generated (NEWS-1).** An outlet's lean, factuality, state affiliation and ownership
+  come only from declared rating providers, each with its license; no model or heuristic writes a rating.
+- **Coverage describes reporting, never truth.** A story covered only by the right is not false, and one covered by
+  everyone is not true. Whether something happened is decided by non-news evidence (see "Corroboration" below).
+
+### Where articles come from
+
+**`gdelt-articles`** (polling, disabled by default like every source) reads the GDELT DOC 2.0 API for your 117
+attention topics. Enabled topics are written into its `topics` parameter on every change, exactly as for
+`gdelt-timelines` and `wikimedia-pageviews`, so a topic with a GDELT query is all it needs. For each topic a run sends
+one request:
+
+```text
+GET https://api.gdeltproject.org/api/v2/doc/doc?query={the topic's GDELT query}&mode=ArtList&format=json
+    &maxrecords=250&sort=DateDesc&timespan={time since the topic's last run}
+```
+
+The timespan is at least 15 minutes and at most one day (the first run asks for one day). A run reads at most 10
+topics and takes the rest round-robin on later runs. The default interval is 30 minutes (at least 15), the budget 10
+requests a minute and 1,000 a day. **Pacing:** GDELT allows one request every 5 seconds per client, and answers a
+faster client with a plain-text HTTP 429 ("Please limit requests to one every 5 seconds…"). `gdelt-articles` and
+`gdelt-timelines` both declare a 5-second `hostPacing`, so the two share one gate on `api.gdeltproject.org` and
+together never start more than one request every 5 seconds; a request that cannot start within 30 s is skipped
+(reason `host-pacing`) and the topic is read on a later run. Enabling both sources therefore slows each of them down.
+
+Only the ArtList answer is fetched (title, link, domain, language, source country, the time GDELT saw the article);
+the article itself and its image are never requested. An article found for several topics in one run is one record
+with every topic. The records are kept 90 days (the bulk-event class). GDELT's terms ask for citation and a link
+(the source's `attribution`); the source is `OPEN`, and its originator is `gdelt`.
+
+**Outlet feeds (`news-feed-*`).** No outlet feed is bundled, because outlets' terms differ. You add the RSS or Atom
+feeds of outlets whose terms you have read through the 073 feed-kit operator overlay. Turn the overlay on with the
+deployment property `foresignal.kits.operator-specs.enabled=true` (environment `FORESIGNAL_KITS_OPERATORSPECS_ENABLED=true`),
+then put a JSON file holding an array of specs in `${FORESIGNAL_DATA_DIR}/kits/feeds/` (every `*.json` file there is
+read at startup, in name order; specs are never accepted over the API). An outlet feed's id starts with
+`op-news-feed-`, and it must name the reviewed item mapper `news-article` (only these feeds may use it):
+
+```json
+[
+  {"id": "op-news-feed-example-world", "name": "Example Times: world news",
+   "url": "https://www.example-times.com/world/rss.xml", "itemMapper": "news-article",
+   "observedAt": "published", "language": "en", "interval": "15m",
+   "budget": {"perMinute": 2, "perDay": 200},
+   "license": "Example Times terms: headlines and links for personal use",
+   "attribution": "Example Times", "homepage": "https://www.example-times.com/",
+   "termsUrl": "https://www.example-times.com/terms"}
+]
+```
+
+Restart, then enable it like any source (`PUT /v1/sources/op-news-feed-example-world {"enabled": true}`). The startup
+check lists every problem with its field (the id pattern `^op-[a-z0-9]+(-[a-z0-9]+)*$`, https only, the overlay URL
+must pass the outbound URL policy, `license` and `attribution` required, a `kind` other than `news-article` refused,
+an interval of at least 5 minutes). The kind is always `news-article` and the retention 90 days unless the spec sets
+`retention`. Each item becomes the same record `gdelt-articles` writes; its `seenAt` is the record's observation time
+(the spec's `observedAt`: `published` or `updated`), else the item's published or updated time, and an item with no
+date at all is skipped. The language is the item's, else the feed's, else the spec's; the source country stays empty
+(the outlet registry supplies it); the feed summary (at most 500 characters) and the first image enclosure, as a link
+only, are kept. **Authors are dropped** (NEWS-2: no bylines are stored). The `license` text goes through the 109
+license catalog like any descriptor license, so terms it does not recognize keep the records local. The bundled
+`news-feed-*` family is empty; outlet feeds of both families are their own 116 originator (`$source`, class media).
+
+**The `news-article` record.** `externalId` is the lower-case hex SHA-256 of the article's **canonical URL** (scheme and
+host lower-cased, default port, user info and fragment dropped, tracking parameters such as `utm_*`, `fbclid`, `gclid`,
+`msclkid`, `mc_cid`, `igshid`, `ref`, `smid`, `ocid`, `at_*` and `share` removed, other query parameters kept in
+order), so one article seen by GDELT and by the outlet's own feed is one record. The payload holds `title` (at most
+500 characters), `url` (canonical), `domain` (the host without `www.`), `outletId` (GDELT resolves it on fetch; feed
+records leave it null for the registry), `language` (ISO 639), `sourceCountry` (ISO 3166 alpha-2), `seenAt`,
+`publishedAt`, `topicIds`, `summary` (feed summaries only) and `imageUrl` (a link, never fetched). `observedAt` is
+`seenAt` and `eventTime` is `publishedAt`, else `seenAt`. Titles are embedded (027) when an embedding model is set
+up; story clustering uses those vectors. Article text is untrusted data, never instructions.
+
+**`media-ratings`** writes no records: it is the budgeted upstream path (30 requests a minute, 1,000 a day, 16 MB per
+response) of the Wikidata and Partisan Web imports below. Like every built-in source it starts disabled, and the
+scheduled imports (Wikidata daily, The Partisan Web weekly) run only while both this source and the provider are
+enabled, so nothing contacts `query.wikidata.org` or GitHub until you enable `media-ratings`. An explicit
+`POST /v1/media/ratings/import?provider=wikidata` by an admin runs whenever the provider's license is acknowledged,
+and always uses this source's budget. To stop a provider, disable it (`PUT /v1/media/providers/wikidata
+{"enabled": false}`).
+
+### The outlet registry
+
+Every article belongs to an **outlet**, found from its domain: exactly, else through its parent domains
+(`edition.cnn.com` → `cnn.com`), following merges. An unknown domain is registered as an `unrated` outlet of type
+`other`, with the country and language its article gave. Outlet types are `wire`, `national`, `regional`, `local`,
+`public-broadcaster`, `state-affiliated`, `aggregator`, `blog`, `official` and `other`.
+
+Thirteen news agencies are seeded once from `media/wires.json` as type `wire`, each mapped to its own 116 originator:
+Associated Press (`ap`), Reuters (`reuters`), Agence France-Presse (`afp`), Deutsche Presse-Agentur (`dpa`), Agencia
+EFE (`efe`), ANSA (`ansa`), Xinhua (`xinhua`), TASS (`tass`), Kyodo (`kyodo`), Yonhap (`yonhap`), Press Trust of
+India (`pti`), Asian News International (`ani`) and Anadolu (`anadolu`). The file holds registry facts only, never
+ratings.
+
+- `GET /v1/media/outlets?q&country&type&bucket&cursor&limit` (read) lists outlets with their consensus per
+  dimension; `bucket` is `left`, `center`, `right` or `unrated`.
+- `GET /v1/media/outlets/{id}` (read) adds every rating with its provider, license, attribution and date;
+  404 `UNKNOWN_OUTLET`.
+- `PATCH /v1/media/outlets/{id}` (admin, JSON merge patch) changes `name`, `type`, `ownerOrg`, `parentOrg`,
+  `wikidataQid`, `domains`, `aggregates` and `mergeOutletIds`. Ratings are not patchable: any other member is a 400,
+  because ratings come only from providers.
+
+**`aggregates`** lists the wires (their originator ids) an outlet syndicates; empty means any wire. It decides which
+reprints count as the wire's story (below). **Merging** duplicates (`"mergeOutletIds": ["01J…"]`) moves their domains
+and ratings to the outlet you patch; where the survivor already has a rating from the same provider and dimension,
+the survivor's is kept. A merged id keeps resolving to its survivor.
+
+```json
+PATCH /v1/media/outlets/01JB8Q6Z3V9K2M4N7P1R5T8W0X
+{"type": "regional", "aggregates": ["ap", "reuters"], "mergeOutletIds": ["01JB8Q70A1B2C3D4E5F6G7H8J9"]}
+```
+
+### What the ratings mean
+
+| Dimension | Scale | Meaning |
+|---|---|---|
+| `lean` | −2 … +2 | −2 left, −1 lean-left, 0 center, +1 lean-right, +2 right |
+| `factuality` | 1 … 5 | how reliably the outlet reports facts (5 highest) |
+| `reliability` | as the provider gives it | a provider's overall reliability score |
+| `state-affiliation` | 1 | 1 marks state media |
+| `ownership-type` | label | for example `public-broadcaster`, `state-media`, `news-agency` |
+| `{provider}:{axis}` | as published | a provider's own axis, such as `partisan-web:governmental`; never forced into `lean` |
+
+**Consensus.** For each outlet and dimension Foresignal stores the **median** of the enabled providers' values,
+`nProviders` (providers with a rating, label-only ones included), `disagreement` (the largest value minus the
+smallest) and, for `lean`, a **bucket**: `center` while |median| < 0.75, else `left` (−0.75 and below) or `right`
+(+0.75 and above); an outlet without a lean consensus is `unrated`. The consensus is recomputed after every import and
+whenever a provider is enabled or disabled or its egress changes. Every response carries the per-provider breakdown
+next to the median, so a disagreement of 2 or more (one provider says center, another right) is visible rather than
+averaged away; read it before trusting a bucket. Factuality bands for coverage counts are the median rounded to 1–5.
+
+**Local-only ratings.** A `LOCAL_ONLY` rating (AllSides without your recorded permission, MBFC always, operator rows
+under restrictive terms) is shown on this instance's API, MCP, SSE, tiles, notifications, LLM, exports and archive.
+On paths that may not carry local-only data (share links, feeds, sinks, federation) its value is withheld and the
+consensus is recomputed from the `OPEN` providers only. Coverage counts use every enabled provider, local-only ones
+included, because they are derived counts, never the ratings themselves.
+
+### Rating providers and their licenses
+
+| Provider | License | Egress | Default |
+|---|---|---|---|
+| `wikidata` | CC0 1.0 | `OPEN` | enabled, license acknowledged |
+| `partisan-web` | CC BY 4.0 (the `LICENSE` file of `github.com/stockHuman/tpw-data`, checked 2026-10-17; its README badge says CC BY 4.0 but links CC BY-SA 4.0) | `OPEN` | enabled, license acknowledged |
+| `allsides` | reported as CC BY-NC 4.0, **not confirmed**: allsides.com refused automated reads (HTTP 403) on 2026-10-17; confirm it yourself | `LOCAL_ONLY` unless you record permission | disabled |
+| `mbfc` | Media Bias/Fact Check API terms (paid, through RapidAPI with your own key; the terms exclude redistribution) | always `LOCAL_ONLY` | disabled |
+| `operator` | declared on each row you import | `OPEN` for a recognizable open license (CC0, CC BY, CC BY-SA, ODbL, PDDL, public domain, US government), `LOCAL_ONLY` otherwise (NC, ND, proprietary, unknown) | enabled, license acknowledged |
+
+`GET /v1/media/providers` and `GET /v1/media/providers/{id}` (admin) show each provider's state: `enabled`,
+`licence`, `licenceUrl`, `attribution`, `licenceAcknowledged` with `acknowledgedBy` and `acknowledgedAt`, `egress`,
+`permissionRecorded`, `credentialSet`, the last import and `ratingsCount`. Enabling a provider, or importing for it,
+before an admin has acknowledged its license is `409 PROVIDER_LICENCE_NOT_ACKNOWLEDGED`; withdrawing the
+acknowledgement disables the provider.
+
+- **Wikidata** (daily at 03:40 UTC while enabled, or `POST /v1/media/ratings/import?provider=wikidata`): registry
+  outlets not asked in the last 30 days, at most 200 per run and 20 domains per SPARQL query to
+  `https://query.wikidata.org/sparql`, are looked up by their official website (P856). Where several items match, a
+  news class wins (news agency, newspaper, daily or online newspaper, news website, public broadcaster, state media,
+  periodical), then the item with most facts, then the lowest QID. Registry facts: the QID, the country (when still
+  unknown), owner (P127) and parent organization (P749) names, and the type (news agency → `wire`, public
+  broadcaster → `public-broadcaster`, state media → `state-affiliated`) while it is still `other`. Ratings: `lean` from
+  political alignment (P1387: far-left and left-wing −2, center-left −1, centrism and radical centrism 0, center-right
+  +1, right-wing, far-right and right-wing extremism +2; an unmapped alignment is kept as a label without a value;
+  several give their median), `state-affiliation` 1 for state media, and `ownership-type`.
+- **The Partisan Web** (weekly, Monday 04:10 UTC while enabled, or `?provider=partisan-web`): the repository's
+  organization files, read from `raw.githubusercontent.com`. `bias_social` (−10…10) becomes `lean` (value ÷ 5);
+  `fact_sourcing` (0…10) becomes `factuality` (1 + 4 × value ÷ 10); `bias_governmental` (authoritarian–libertarian,
+  relative to the country) becomes `partisan-web:governmental` as published, and the editorial, pseudoscience,
+  conspiracy, message and ideological fields become their own `partisan-web:` axes; the tags `state-owned` and
+  `state-sponsored` give `state-affiliation` 1. A file still at the template's defaults gives no rating, and the
+  `ownership` field is never imported (it may name people). The data was last pushed on 2021-10-09 (about 70 files):
+  read its ratings as five years old.
+
+### Enabling AllSides or MBFC with your own rights
+
+Foresignal never downloads AllSides or MBFC data. If you hold the rights to use their ratings, you import them
+yourself:
+
+1. **Acknowledge the license and enable the provider** (admin):
+
+   ```json
+   PUT /v1/media/providers/allsides
+   {"licenceAcknowledged": true, "enabled": true}
+   ```
+
+2. **AllSides only, when you have its permission to redistribute:** `{"permissionRecorded": true}` makes its ratings
+   `OPEN`. Without it they stay `LOCAL_ONLY`. Recording permission is your statement, not Foresignal's check.
+
+3. **MBFC only:** store your RapidAPI key with `{"apiKey": "…"}` (write-only and encrypted; the provider then shows
+   `credentialSet: true`; a blank value removes it). **The live MBFC API is not called.** Its endpoint could not be
+   verified while this was built (the RapidAPI listing could not be read), and Foresignal does not call an API it
+   cannot verify. The key is kept for a future verified client; until then MBFC ratings come from the export you
+   retrieve with your own subscription, imported as below. MBFC ratings are always `LOCAL_ONLY`.
+
+4. **Import your rows** (admin) as CSV with the header `domain,dimension,value,label,licence,attribution` (`license`
+   is accepted for `licence`; `url` is optional), as JSON `{"rows": [...]}` with the same members, or as a multipart
+   `file`:
+
+   ```sh
+   curl -X POST "http://foresignal.local:8080/v1/media/ratings/import?provider=allsides" \
+     -H "Authorization: Bearer $ADMIN" -F file=@allsides-ratings.csv
+   ```
+
+   ```text
+   domain,dimension,value,label,licence,attribution
+   apnews.com,lean,,Center,,
+   foxnews.com,lean,,Right,,
+   ```
+
+   A number is the normalized value (`lean` −2…2 and `factuality` 1…5 are checked). Labels are mapped: AllSides
+   Left −2, Lean Left −1, Center 0, Lean Right +1, Right +2 (Mixed is kept as a label); MBFC Extreme Left and Left −2,
+   Left-Center −1, Least Biased and Center 0, Right-Center +1, Right and Extreme Right +2; factual reporting Very High
+   5, High 4, Mostly Factual 3.5, Mixed 2.5, Low 2, Very Low 1. MBFC's Pro-Science, Conspiracy-Pseudoscience,
+   Questionable and Satire are not left–right positions and go to `mbfc:category`. At most 50,000 rows and 20 MB.
+   The answer counts `imported`, `updated`, `rejected` and `outletsCreated`, and lists up to 100 refused rows with
+   their row number and reason; an import without one usable row is `400 RATINGS_IMPORT_INVALID`.
+
+**Your own ratings** go through the `operator` provider (the default of `POST /v1/media/ratings/import`), and every
+row must declare its `licence` and `attribution`; the license decides the row's egress as in the table above.
+
+### Why ratings are never generated
+
+A rating is a judgment about an outlet. A model asked to rate outlets would reproduce whatever its training data
+believed, with no license, no date and no one accountable for it, and a heuristic tuned on coverage would rate outlets
+by what they report, which makes the coverage statistics circular. So nothing in Foresignal writes a rating: not the
+LLM roles, not the analyst, not the coverage job. An outlet no provider rates stays `unrated`, and coverage built
+mostly on such outlets says so (`MOSTLY_UNRATED_OUTLETS`). To rate an outlet yourself, import an `operator` row with
+your own license and attribution: it is then your rating, labeled as yours.
+
+### Stories and syndication
+
+Articles are clustered into **stories** by the 116 evidence resolver's `news-story` family (`intel/canonical-rules.json`
+1.1.0): a story is a canonical event and each article an observation of it.
+
+- An article joins a story when its title embedding has a cosine of at least 0.82 with the story's centroid (the mean
+  of its members' vectors, same model), or, without vectors, when its normalized title shares at least 60% of its
+  tokens (Jaccard) with the story's title or one of its latest 50 member titles. Candidate stories had an article in
+  the last 48 hours and share a topic or a region with the article (the regions are the attention topics' region
+  codes); an article with neither may join any story in the window. The best score wins, ties go to the older story.
+- The title is the most central article's (highest mean similarity to the others; ties to the earliest).
+- **Evidence groups, not articles.** Near-identical titles (Jaccard 0.9 or more) from different outlets are reprints.
+  A reprint cluster that includes the wire's own article becomes the group `wire:{originator}` with every reprint from
+  an outlet that syndicates that wire (its `aggregates` names it or is empty), flagged `syndicated`; without the wire's
+  own article, outlets that name a common wire form that wire's group; otherwise the cluster is one group of unknown
+  origin. Every other article is its own outlet's group (`outlet:{id}`). **Thirty newspapers printing one AP story are
+  one evidence group**, and the story is flagged `ECHO`; a story with one group is `SINGLE_ORIGINATOR`.
+- **Corroboration** (every 10 minutes, stories active in the last 3 days): a story is `corroborated` when a non-news
+  canonical event shares one of its regions within 24 hours of its articles and has an observation from a
+  sensor-network or agency originator. Coverage never decides corroboration: an earthquake is corroborated by
+  seismometers, not by how many outlets reported it.
+
+Stories are published as `foresignal-intel` records of kind `news-story` carrying derived counts only (title, topics,
+regions, counts, coverage balance, blindspot, state-affiliated share, corroborated), never a rating, so ordinary rules
+can watch them. Article rows are pruned after 90 days; stories keep their aggregates.
+
+- `GET /v1/news/stories?topic&region&situationId&since&blindspot&cursor&limit` (read; `blindspot` is `left`, `right`
+  or `any`; `region` a 040 code), newest activity first.
+- `GET /v1/news/stories/{id}` (read; 404 `UNKNOWN_STORY`): the articles grouped by outlet with each outlet's ratings
+  and consensus, the coverage statistics, and the linked situations and canonical events.
+- `GET /v1/news/articles?story&outlet&since&cursor&limit` (read), newest first.
+
+A restricted token sees no articles of sources outside its `sources` restriction, and a token restricted by `bbox` or
+`area`, or by `kinds` that leave out `news-article`, sees no articles at all; story counts are derived and stay
+visible.
+
+### Reading blindspots
+
+`CoverageAnalyzer` 1.0.0 counts each story's (and each topic's, situation's and hypothesis's) **evidence groups** by
+lean bucket, country, outlet type and factuality band, with their shares (`coverageBalance`), the share from
+state-affiliated outlets (type `state-affiliated` or a state-affiliation consensus of 0.5 or more), `nRated` and the
+article counts for reference. Every share and threshold uses evidence groups, never articles, so syndication cannot
+manufacture a blindspot.
+
+- **`blindspot: right`** means at least 75% of the **rated** evidence groups come from right-leaning outlets: a story
+  the left barely covers. `left` is the mirror image. The value names the side the coverage comes from.
+- **At least 8 rated groups** are needed before a blindspot is called. Seven outlets from one side say little about
+  the other side's silence, and unrated outlets are left out of the denominator.
+- **`skewed`** (caveat `SKEWED_COVERAGE`) needs only 3 groups: at least 75% of the rated groups from one bucket
+  (center included), or at least 75% of all groups from state-affiliated outlets.
+- **`MOSTLY_UNRATED_OUTLETS`** when more than half the groups come from outlets no enabled provider rates: the buckets
+  then describe the minority of the coverage.
+- **`corroborated`** comes from non-news evidence only (above), never from the coverage counts.
+
+A blindspot describes **who reported**, not **what is true**. It may mean one side ignores a real event, that the
+other side's reporting of it is the error, or that the providers rate few outlets in that country. Read it with the
+per-provider disagreement and `nRated`, and check corroboration before drawing anything from it.
+
+### Coverage in analysis
+
+- **Situations (118).** News stories join situations as `context` members of family `attention`: they show a
+  situation's coverage but never seed, activate or escalate it. `GET /v1/situations/{id}` carries `coverage` (the
+  coverage statistics of its stories, with `corroboratedShare`, the share of them corroborated), null when it has no
+  news members.
+- **Dossiers (129).** `GET /v1/objects/{ref}/dossier` fills the top-level `coverage` (`status` `ok` or `unavailable`,
+  and the statistics) for `situation:` and `news-story:` references, and leaves it null for other types; `coverage` is part of the
+  default `include`, so name it when you narrow the sections.
+- **Hypotheses (125).** `newsCoverage` on each hypothesis gives the statistics of the live ACH rows rated `C` or `CC`
+  for it whose references are news articles (one row per evidence group), with the `SKEWED_COVERAGE` caveat when
+  skewed. `ConfidenceAssessor` 1.1.0 lowers the set's confidence **one step** when that support is skewed **and** has
+  no non-news corroboration (no supporting non-news row and no corroborated story); `basis.newsCoverage` says why.
+  Skewed but corroborated support changes nothing. An indicator can watch a `rollup:news/…` series with
+  `changePoint: true`.
+- **Assessments (128).** A deterministic **Coverage** section (id `news-coverage`) follows Forecasts when a situation
+  in scope has news, and the assessment's top-level `coverage` lists each situation's statistics, the stories with a
+  blindspot (`blindspotStoryIds`) and the divergence findings (`divergenceFindingIds`).
+- **Reports (132).** The `coverage` block carries the situations' statistics and their caveats; `NO_NEWS_COVERAGE`
+  when none of the situations in scope has news, and `MEDIA_COVERAGE_UNAVAILABLE` only when the news layer is absent.
+- **Reliability (109).** When a news article is evidence (intelligence-event scoring, indicator observations), its
+  reliability grade follows its outlet's factuality band through the app setting **`media.reliabilityMap`**, a JSON
+  object from band to grade. The default is `{"5": "A", "4": "B", "3": "C", "2": "D", "1": "E", "unrated": "F"}`;
+  your entries are merged over it and invalid ones ignored. The event scorer weighs the grades A 0.9, B 0.75, C 0.6,
+  D 0.45, E 0.3, and F at its default.
+
+### Findings and series
+
+The coverage job (every 10 minutes, recomputing the last 3 days) writes, into the 119 findings table, with the caveat
+`COVERAGE_NOT_TRUTH` on both:
+
+- **`coverage-blindspot`**, once per story with a blindspot (`notable`; members: the canonical event and up to 20
+  article records);
+- **`coverage-divergence`** (detector `coverage-divergence` 1.0.0): on the last complete UTC day one lean bucket of a
+  topic's coverage rose at least 3 standard deviations above its 28-day baseline (at least 14 baseline days, a
+  standard deviation of at least 1, at least 3 groups that day) while the other buckets stayed below 3. One side of
+  the press suddenly covering a topic the others do not is worth a look; it is not evidence about the topic.
+
+Both are published like other findings and reach the `analytics` SSE topic (`finding.created`), signal family
+`attention`, theme `mixed`. The daily series `rollup:news/{topicId|situationId}/{bucket}` (buckets `left`, `center`,
+`right`, `unrated` and `state`: evidence groups first seen that UTC day) are registered in the 119 analysis-series
+registry once they have 14 days of rows, so the change-point detectors and event studies can use them.
+
+### MCP and problem codes
+
+MCP read tools `list_news_stories`, `get_news_story` and `get_outlet` (also in the analyst's and the cycles' read
+catalog). Contract 1.4 adds the object types `news-story` (its id is the story's canonical event id) and `outlet`.
+
+| Code | When |
+|---|---|
+| `404 UNKNOWN_STORY` | no such story |
+| `404 UNKNOWN_OUTLET` | no such outlet |
+| `409 PROVIDER_LICENCE_NOT_ACKNOWLEDGED` | enabling a provider, or importing for it, before an admin acknowledged its license |
+| `400 RATINGS_IMPORT_INVALID` | an import with an unknown provider, a malformed body or no usable row |
