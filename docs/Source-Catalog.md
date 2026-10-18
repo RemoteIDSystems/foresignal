@@ -1123,6 +1123,7 @@ its "US-PD".
 | `rule-windows` | STANDARD | ALL | `unknown` | LOCAL_ONLY | window-state, anomaly | DERIVED | **Built in prompt 100** (`RuleWindowsGenerator`): the window state of count, absence and anomaly rules. |
 | `foresignal-intel` | STANDARD | ALL | `unknown` | LOCAL_ONLY | intelligence-event, situation, hypothesis-set, news-story | DERIVED | **Built in prompt 101** (`ForesignalIntelGenerator`): public intelligence events, with the situation (118), hypothesis-set (125) and news-story records; private ones are not published. |
 | `pattern-of-life` | STANDARD | ALL | `unknown` | LOCAL_ONLY | pol-place, pol-deviation | DERIVED | **Built in prompt 114** (`PolGenerator`): the analysis of public, opted-in subjects. |
+| `pattern-of-life-private` | STANDARD | ALL | `unknown` | LOCAL_ONLY | pol-place, pol-deviation | DERIVED | **Built in prompt 114** (`PolPrivateGenerator`): the analysis of private, opted-in subjects; private by descriptor (EGR-1). |
 | `foresignal-analytics` | STANDARD | ALL | `unknown` | LOCAL_ONLY | analytic-finding | DERIVED | **Built in prompt 119** (`ForesignalAnalyticsGenerator`): open public findings of the discovery detectors. |
 | `foresignal-outlook` | STANDARD | ALL | `unknown` | LOCAL_ONLY | regional-outlook, regional-index | DERIVED | **Built in prompt 126** (`ForesignalOutlookGenerator`): regional outlooks and index values. |
 

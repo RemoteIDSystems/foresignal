@@ -85,7 +85,15 @@ class AdapterInventoryTest {
     static final Set<String> NO_NAMED_CONTRACT = Set.of(
             "ai.foresignal.source.adapters.system",
             "ai.foresignal.source.adapters.acars",
-            "ai.foresignal.source.adapters.space.localsonde");
+            "ai.foresignal.source.adapters.space.localsonde",
+            // Social platforms are exercised by social.PlatformAdaptersTest; media-ratings by RatingProvidersTest.
+            "ai.foresignal.source.adapters.instagram",
+            "ai.foresignal.source.adapters.mastodon",
+            "ai.foresignal.source.adapters.reddit",
+            "ai.foresignal.source.adapters.threads",
+            "ai.foresignal.source.adapters.x",
+            "ai.foresignal.source.adapters.youtube",
+            "ai.foresignal.source.adapters.media");
 
     @Autowired private SourceRegistry registry;
 

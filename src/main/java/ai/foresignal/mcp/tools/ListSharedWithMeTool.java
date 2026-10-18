@@ -15,6 +15,7 @@ import ai.foresignal.mcp.ToolResult;
 import ai.foresignal.object.ObjectCaller;
 import ai.foresignal.object.ObjectCallers;
 import ai.foresignal.security.Scope;
+import ai.foresignal.security.restrict.RestrictedRead;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
@@ -25,6 +26,7 @@ import tools.jackson.databind.json.JsonMapper;
  * a group or instance-wide), newest share first, as {@code GET /v1/shared-with-me}; {@code mine: true} lists the
  * caller's own work products instead ({@code GET /v1/my}).
  */
+@RestrictedRead
 @Component
 public class ListSharedWithMeTool implements ForesignalMcpTool {
 

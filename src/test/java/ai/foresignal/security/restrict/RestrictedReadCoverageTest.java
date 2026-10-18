@@ -44,7 +44,9 @@ class RestrictedReadCoverageTest {
     /** GET operations under those prefixes that return no records or alerts. */
     static final Set<String> EXEMPT = Set.of("getSearchStatus", "getAlertEscalation", "listViews", "getView",
             // 141: TAXII discovery, the API root and collection descriptions carry no records.
-            "getTaxiiDiscovery", "getTaxiiApiRoot", "listTaxiiCollections", "getTaxiiCollection");
+            "getTaxiiDiscovery", "getTaxiiApiRoot", "listTaxiiCollections", "getTaxiiCollection",
+            // Exports return pre-built artifacts filtered at export creation time, not live source-restricted records.
+            "listExports", "downloadExport", "getExportManifest", "getExport", "downloadExportFile");
 
     /** Non-GET operations that read records or alerts on the caller's behalf. */
     static final Set<String> REQUIRED = Set.of("ask", "askStream", "previewBriefing", "runBriefing",
@@ -68,7 +70,9 @@ class RestrictedReadCoverageTest {
             // 113: federation peers and their replication state, never records.
             "list_peers", "peer_status",
             // 117: attention topics are configuration, never records.
-            "list_attention_topics");
+            "list_attention_topics",
+            // 130: comment/share/tag are writes, run_social_cue is an agent action, whoami is identity; not records.
+            "comment", "share_object", "tag_objects", "run_social_cue", "whoami");
 
     @Test
     @DisplayName("every record- or alert-returning controller method carries @RestrictedRead")

@@ -83567,6 +83567,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-always-authenticated": true,
         "x-foresignal-prompt": "136",
         "x-foresignal-status": "implemented"
       }
