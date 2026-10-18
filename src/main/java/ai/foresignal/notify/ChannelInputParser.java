@@ -32,8 +32,9 @@ import tools.jackson.databind.json.JsonMapper;
  * enum values, and unknown secret names. Config keys the type does not declare are kept, because the
  * {@code config} object is open (later prompts add {@code actions}, map attachments and so on). The
  * type's own {@link ChannelType#validate} runs last. {@code deferWhileActiveSeconds} (0–600) and
- * {@code config.actions} ({@code ChannelActionsConfig}) are validated and stored (prompt 033). Members
- * owned by later prompts ({@code acceptExercise}, {@code language}) are accepted and not stored yet.
+ * {@code config.actions} ({@code ChannelActionsConfig}) are validated and stored (prompt 033).
+ * {@code acceptExercise} (prompt 115) and {@code language} (prompt 141, a well-formed BCP 47 tag, stored
+ * canonicalized, for example {@code de} or {@code pt-BR}) are validated and stored.
  *
  * <p>Prompt 035: every {@code url} field Foresignal contacts (config or secret) and the email
  * {@code smtpHost} pass {@link OutboundUrlPolicy} profile {@code LAN_ALLOWED}; a refusal is reported
@@ -230,6 +231,14 @@ public class ChannelInputParser {
         boolean edit = bool(body, "editInPlace", true, errors);
         int deferWhileActive = integer(body, "deferWhileActiveSeconds", 0, 0, 600, errors);
         boolean acceptExercise = bool(body, "acceptExercise", false, errors);
+        String language = text(body, "language", errors);
+        if (language != null) {
+            String tag = NotificationTranslator.canonicalTag(language);
+            if (tag == null) {
+                errors.add(new FieldError("language", "must be a BCP 47 language tag, for example de or pt-BR"));
+            }
+            language = tag;
+        }
         actionsConfig(config, errors, typeId);
         if (!errors.isEmpty()) {
             if (urlRefused) {
@@ -242,7 +251,8 @@ public class ChannelInputParser {
             throw new ValidationException("The channel is not valid.", errors);
         }
         return new ChannelInput(name.strip(), typeId, config, secrets, events, ruleIds, minSeverity, titleTemplate,
-                bodyTemplate, wait, enabled, timezone, quietHours, group, cap, edit, deferWhileActive, acceptExercise);
+                bodyTemplate, wait, enabled, timezone, quietHours, group, cap, edit, deferWhileActive, acceptExercise,
+                language);
     }
 
     /**

@@ -133,6 +133,70 @@ public class FeedService {
                 urls.plain("/v1/briefings/" + briefingId), newest(entries), entries);
     }
 
+    /** The audio media store (prompt 141); absent only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.media.MediaStore media;
+
+    /**
+     * The podcast of one briefing (prompt 141, {@code getBriefingPodcast}): its runs with stored audio
+     * ({@code audio.status = ok} and a media row that still exists), newest first, each with an enclosure to
+     * {@code /v1/media/{id}} through {@link PublicUrls#api} (so a keyed request keeps its feed key).
+     *
+     * @param briefingId the briefing
+     * @param limit the most items
+     * @param seesPrivate whether runs citing private sources may appear
+     * @param urls the URLs of the request
+     * @param selfPath the canonical path of the feed
+     */
+    public PodcastFeed briefingPodcast(UUID briefingId, int limit, boolean seesPrivate, PublicUrls urls,
+            String selfPath) {
+        ServerSettings server = server();
+        List<FeedEntry> entries = new ArrayList<>();
+        List<PodcastFeed.Enclosure> enclosures = new ArrayList<>();
+        String name = null;
+        for (BriefingRunEntity run : briefings.feedRuns(briefingId, PODCAST_SCAN, seesPrivate)) {
+            name = name == null ? run.getBriefingName() : name;
+            PodcastFeed.Enclosure enclosure = enclosure(run, urls);
+            if (enclosure == null) {
+                continue;
+            }
+            entries.add(runEntry(run, server, urls));
+            enclosures.add(enclosure);
+            if (entries.size() >= limit) {
+                break;
+            }
+        }
+        String title = "Foresignal briefing audio" + (name == null ? "" : ": " + name);
+        Feed feed = new Feed(TAG_PREFIX + installId.installId() + "/briefing/" + briefingId + "/podcast", title,
+                "Audio of a Foresignal briefing's runs, newest first", urls.api(selfPath),
+                urls.plain("/v1/briefings/" + briefingId), newest(entries), entries);
+        return new PodcastFeed(feed, enclosures);
+    }
+
+    /** How many recent runs the podcast looks through for audio. */
+    static final int PODCAST_SCAN = 500;
+
+    /** The enclosure of a run with stored audio, or null. */
+    PodcastFeed.Enclosure enclosure(BriefingRunEntity run, PublicUrls urls) {
+        Map<String, Object> audio = run.getAudio();
+        if (audio == null || !"ok".equals(audio.get("status")) || !(audio.get("mediaId") instanceof String id)) {
+            return null;
+        }
+        if (media == null) {
+            return null;
+        }
+        java.util.Optional<ai.foresignal.media.MediaRow> row;
+        try {
+            row = media.find(id);
+        } catch (RuntimeException e) {
+            return null;
+        }
+        if (row.isEmpty()) {
+            return null;
+        }
+        return new PodcastFeed.Enclosure(urls.api("/v1/media/" + id), row.get().bytes(), row.get().contentType());
+    }
+
     /** One alert as an entry. */
     FeedEntry alertEntry(AlertView alert, ServerSettings server, PublicUrls urls) {
         String link = server.clientLinks() != null

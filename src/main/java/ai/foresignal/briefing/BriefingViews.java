@@ -29,7 +29,7 @@ public final class BriefingViews {
         out.put("instructions", entity.getInstructions());
         out.put("channelIds", new ArrayList<>(entity.getChannelIds()));
         out.put("maxItemsPerKind", entity.getMaxItemsPerKind());
-        out.put("audio", null);
+        out.put("audio", entity.getAudio() == null ? null : new LinkedHashMap<>(entity.getAudio()));
         out.put("createdAt", entity.getCreatedAt() == null ? null : entity.getCreatedAt().toString());
         out.put("updatedAt", entity.getUpdatedAt() == null ? null : entity.getUpdatedAt().toString());
         out.put("nextRunAt", entity.getNextRunAt() == null ? null : entity.getNextRunAt().toString());
@@ -59,6 +59,8 @@ public final class BriefingViews {
         out.put("warnings", run.getWarnings() == null ? List.of() : run.getWarnings());
         // Detached JWS over contentMarkdown's UTF-8 bytes (prompt 109); null for runs without markdown.
         out.put("signature", run.getSignature());
+        // Prompt 141: the synthesized audio (status, mediaId, format, voice, characters, truncated, error, signature).
+        out.put("audio", run.getAudio() == null ? null : new LinkedHashMap<>(run.getAudio()));
         return out;
     }
 
@@ -80,6 +82,7 @@ public final class BriefingViews {
         out.put("usage", outcome.usage());
         out.put("deliveries", 0);
         out.put("warnings", outcome.warnings());
+        out.put("audio", null);
         return out;
     }
 }

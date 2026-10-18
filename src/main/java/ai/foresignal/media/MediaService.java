@@ -81,6 +81,11 @@ public class MediaService {
         return file;
     }
 
+    /** True for a {@code role=audio} row (prompt 141). */
+    public static boolean isAudio(MediaRow row) {
+        return ai.foresignal.source.spi.MediaRole.AUDIO.wireValue().equals(row.role());
+    }
+
     /** The {@code Media} document of a row; links are absolute under {@code base}. */
     public static Map<String, Object> document(MediaRow row, String base) {
         Map<String, Object> out = new LinkedHashMap<>();
@@ -104,8 +109,11 @@ public class MediaService {
         Map<String, Object> links = new LinkedHashMap<>();
         links.put("self", self);
         links.put("meta", self + "/meta");
-        links.put("thumbnail256", self + "/thumbnail?w=" + ThumbnailService.SMALL);
-        links.put("thumbnail1024", self + "/thumbnail?w=" + ThumbnailService.LARGE);
+        if (!isAudio(row)) {
+            // Prompt 141: audio has no thumbnails.
+            links.put("thumbnail256", self + "/thumbnail?w=" + ThumbnailService.SMALL);
+            links.put("thumbnail1024", self + "/thumbnail?w=" + ThumbnailService.LARGE);
+        }
         out.put("links", links);
         return out;
     }

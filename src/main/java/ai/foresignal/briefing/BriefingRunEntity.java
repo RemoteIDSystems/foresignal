@@ -101,8 +101,23 @@ public class BriefingRunEntity {
     @Column(name = "warnings")
     private List<String> warnings = new ArrayList<>();
 
+    /** The synthesized audio of the run (prompt 141, OpenAPI {@code BriefingRun.audio}), or null. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "audio", columnDefinition = "jsonb")
+    private Map<String, Object> audio;
+
     /** For JPA. */
     protected BriefingRunEntity() {}
+
+    /** The synthesized audio of the run (prompt 141), or null when the briefing has no audio option. */
+    public Map<String, Object> getAudio() {
+        return audio;
+    }
+
+    /** Sets the synthesized audio of the run (prompt 141). */
+    public void setAudio(Map<String, Object> audio) {
+        this.audio = audio;
+    }
 
     /** A new run. */
     public BriefingRunEntity(UUID id, UUID briefingId, String briefingName, String mode, String timezone,

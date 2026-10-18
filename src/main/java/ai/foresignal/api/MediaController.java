@@ -88,6 +88,10 @@ public class MediaController {
         int width = width(w);
         ReadCaller caller = callers.resolve(request);
         MediaRow original = media.visible(mediaId, callers.excludedSources(caller));
+        if (MediaService.isAudio(original)) {
+            // Prompt 141: briefing audio has no image to scale.
+            throw ValidationException.forField("mediaId", "is audio; thumbnails exist only for images");
+        }
         MediaRow variant = thumbnails.thumbnail(original.id(), width);
         return serve(variant, publicFor(caller, original), ifNoneMatch);
     }

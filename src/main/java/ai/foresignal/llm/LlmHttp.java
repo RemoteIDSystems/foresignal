@@ -95,6 +95,16 @@ public class LlmHttp {
     }
 
     /**
+     * Sends a request and reads the body as bytes (prompt 141: synthesized speech).
+     *
+     * @throws LlmProviderException ({@code INVALID_REQUEST}) when the outbound URL policy refuses the
+     *     destination; ({@code CONNECTION}) when the provider cannot be reached or times out
+     */
+    public HttpResponse<byte[]> sendBytes(String providerId, HttpRequest request) {
+        return exchange(providerId, request, HttpResponse.BodyHandlers.ofByteArray());
+    }
+
+    /**
      * Sends a request and streams the body as lines (NDJSON or server-sent events). The caller closes
      * the stream.
      *

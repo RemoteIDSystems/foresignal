@@ -382,6 +382,7 @@ public class ChannelService {
         e.setEditInPlace(input.editInPlace());
         e.setDeferWhileActiveSeconds(input.deferWhileActiveSeconds());
         e.setAcceptExercise(input.acceptExercise());
+        e.setLanguage(input.language());
         e.setUpdatedAt(now);
     }
 

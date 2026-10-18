@@ -72,6 +72,11 @@ public class BriefingEntity {
     @Column(name = "max_items_per_kind", nullable = false)
     private int maxItemsPerKind = 5;
 
+    /** The audio option (prompt 141): {@code {voice, format}}, or null for no audio. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "audio", columnDefinition = "jsonb")
+    private Map<String, Object> audio;
+
     @Column(name = "next_run_at")
     private Instant nextRunAt;
 
@@ -102,6 +107,16 @@ public class BriefingEntity {
 
     /** For JPA. */
     protected BriefingEntity() {}
+
+    /** The audio option (prompt 141): {@code {voice, format}}, or null for no audio. */
+    public Map<String, Object> getAudio() {
+        return audio;
+    }
+
+    /** Sets the audio option (prompt 141). */
+    public void setAudio(Map<String, Object> audio) {
+        this.audio = audio;
+    }
 
     /** A new briefing with {@code id}. */
     public BriefingEntity(UUID id) {

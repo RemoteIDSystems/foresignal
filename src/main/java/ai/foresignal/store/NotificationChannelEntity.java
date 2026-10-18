@@ -104,6 +104,10 @@ public class NotificationChannelEntity {
     @Column(name = "accept_exercise", nullable = false, columnDefinition = "boolean default false")
     private boolean acceptExercise;
 
+    /** The BCP 47 language of the channel's notifications (prompt 141), or null for the default language. */
+    @Column(name = "language", length = 35)
+    private String language;
+
     /**
      * The principal that owns a personal channel (prompt 130), or null for an instance channel. Personal channels
      * take only that principal's personal notifications, never the instance's alert, briefing or system fan-out.
@@ -335,6 +339,16 @@ public class NotificationChannelEntity {
     /** Sets whether the channel receives exercise alerts (prompt 115). */
     public void setAcceptExercise(boolean acceptExercise) {
         this.acceptExercise = acceptExercise;
+    }
+
+    /** The BCP 47 language of the channel's notifications (prompt 141), or null for the default language. */
+    public String getLanguage() {
+        return language;
+    }
+
+    /** Sets the BCP 47 language of the channel's notifications (prompt 141). */
+    public void setLanguage(String language) {
+        this.language = language;
     }
 
     /** The owning principal of a personal channel (prompt 130), or null. */

@@ -77,6 +77,12 @@ import org.springframework.stereotype.Component;
  * text at once, and the delivery records {@code text-only}; a type's {@link ChannelType#followUps} are sent
  * after a successful send.
  *
+ * <p>Prompt 141: after the deferral check the message is translated for a channel whose {@code language}
+ * differs from {@code notify.defaultLanguage} ({@link NotificationTranslator}; the original with an
+ * {@code [untranslated]} marker after 8 s), and a briefing's synthesized audio is attached, or linked on types
+ * that cannot carry it ({@link AudioAttachments}). A type's {@link ChannelType#audioUpload} (Matrix) runs after a
+ * successful send.
+ *
  * <p>Outcomes: 2xx is delivered and the type's {@link ChannelType#extractRef} is stored; a partial
  * success (Apprise 424) is delivered with a warning and never retried; 429 honors
  * {@code Retry-After} and counts as an attempt at most once per 10 minutes; any other failure
@@ -99,6 +105,14 @@ public class DeliveryWorker {
     /** The map attachments of geolocated alerts (prompt 055); null only in hand-built unit tests. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private AlertMapService alertMaps;
+
+    /** Per-channel translation (prompt 141); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private NotificationTranslator translator;
+
+    /** Briefing audio attachments (prompt 141); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private AudioAttachments audioAttachments;
 
 
     private static final Logger log = LoggerFactory.getLogger(DeliveryWorker.class);
@@ -295,6 +309,14 @@ public class DeliveryWorker {
             deliveries.defer(d.getId(), deferral.get().until(), deferral.get().reason());
             return;
         }
+        if (translator != null && channel.getLanguage() != null) {
+            // Prompt 141: title and body in the channel's language; the original with a marker on failure.
+            message = translator.translate(message, channel.getLanguage());
+        }
+        if (audioAttachments != null && DeliveryKind.SEND.equals(d.getKind())) {
+            // Prompt 141: the briefing's audio, attached or linked.
+            message = audioAttachments.attach(stored, message, type);
+        }
         if (alertMaps != null) {
             // Prompt 055: the alert's map, as an image or a link; held briefly while it is being made.
             AlertMapService.Outcome map = alertMaps.attach(d, stored, message, channel, type, now);
@@ -371,14 +393,17 @@ public class DeliveryWorker {
             failed(d, channel, settings, e.getClass().getSimpleName() + ": " + e.getMessage(), now);
             return;
         }
-        if (!response.success() && message.image() != null && type.attachmentRefused(response)) {
+        if (!response.success() && (message.image() != null || message.audio() != null)
+                && type.attachmentRefused(response)) {
             // Prompt 055: the destination refused the image (ntfy 413, attachments disabled); send the text.
-            NotificationMessage.Attachment image = message.image();
+            // Prompt 141: the same for briefing audio, with a Listen link instead of the Map link.
+            NotificationMessage.Attachment image = message.image() != null ? message.image() : message.audio();
             NotificationMessage text = message.withAttachments(List.of());
             if (image.url() != null) {
-                text = AlertMapService.withLink(text, image.url());
+                text = image.isAudio() ? AudioAttachments.withLink(text, image.url())
+                        : AlertMapService.withLink(text, image.url());
             }
-            if (alertMaps != null) {
+            if (alertMaps != null && !image.isAudio()) {
                 alertMaps.refused(d);
             }
             message = text;
@@ -433,6 +458,12 @@ public class DeliveryWorker {
     /** Sends a type's follow-up requests after a successful send (prompt 055); failures are only logged. */
     private void sendFollowUps(NotificationDeliveryEntity d, ChannelType type, NotificationMessage message,
             ChannelSettings settings) {
+        try {
+            type.audioUpload(message, settings).ifPresent(upload -> sendAudioUpload(d, upload, settings));
+        } catch (RuntimeException e) {
+            log.warn("Audio upload of delivery {} failed: {}", d.getId(),
+                    Redactor.redact(e.getMessage(), settings.secrets().values()));
+        }
         for (PreparedRequest followUp : type.followUps(message, settings)) {
             try {
                 ChannelResponse response = sender.send(followUp);
@@ -443,6 +474,32 @@ public class DeliveryWorker {
                 log.warn("Follow-up request of delivery {} failed: {}", d.getId(),
                         Redactor.redact(e.getMessage(), settings.secrets().values()));
             }
+        }
+    }
+
+    /**
+     * The two-step audio send of a type (prompt 141, Matrix): the upload, then the request built from its
+     * response. Failures are logged and never fail the delivery, whose text was already sent.
+     */
+    private void sendAudioUpload(NotificationDeliveryEntity d, AudioUpload upload, ChannelSettings settings) {
+        try {
+            ChannelResponse uploaded = sender.send(upload.upload());
+            if (!uploaded.success()) {
+                log.warn("Audio upload of delivery {} answered HTTP {}", d.getId(), uploaded.status());
+                return;
+            }
+            Optional<PreparedRequest> post = upload.then().apply(uploaded);
+            if (post.isEmpty()) {
+                log.warn("Audio upload of delivery {} returned no usable content URI", d.getId());
+                return;
+            }
+            ChannelResponse posted = sender.send(post.get());
+            if (!posted.success()) {
+                log.warn("Audio message of delivery {} answered HTTP {}", d.getId(), posted.status());
+            }
+        } catch (IOException | RuntimeException e) {
+            log.warn("Audio upload of delivery {} failed: {}", d.getId(),
+                    Redactor.redact(e.getMessage(), settings.secrets().values()));
         }
     }
 

@@ -134,6 +134,25 @@ public interface ChannelType {
         return List.of();
     }
 
+    /**
+     * The largest audio attachment the type sends itself, in bytes (prompt 141: briefing audio as Telegram
+     * {@code sendAudio}/{@code sendVoice}, a Matrix {@code m.audio} event, an email attachment or an ntfy
+     * attachment); 0, the default, when the type cannot carry audio and the message gets a link instead.
+     */
+    default long audioAttachmentLimit() {
+        return 0;
+    }
+
+    /**
+     * A two-step audio send after a successful send of {@code message} (prompt 141: Matrix uploads the file to the
+     * media repository, then posts an {@code m.audio} event naming the returned {@code mxc://} URI). Empty, the
+     * default, when the type sends audio with the message itself or not at all. Failures are logged and do not
+     * fail the delivery.
+     */
+    default java.util.Optional<AudioUpload> audioUpload(NotificationMessage message, ChannelSettings settings) {
+        return java.util.Optional.empty();
+    }
+
     /** The per-channel rate limit. */
     ChannelRateLimit rateLimit();
 }

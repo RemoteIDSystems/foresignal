@@ -93,6 +93,7 @@ public class LlmMapper {
         out.put("logContent", s.logContent());
         out.put("askMaxTokens", s.askMaxTokens());
         out.put("allowPrivateLocal", s.allowPrivateLocal());
+        out.put("ttsProvider", s.ttsProvider());
         return out;
     }
 

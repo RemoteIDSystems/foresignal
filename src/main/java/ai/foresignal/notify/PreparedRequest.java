@@ -107,6 +107,8 @@ public record PreparedRequest(String method, String url, Map<String, String> hea
      * @param headers extra MIME headers
      * @param inlines images the HTML references as {@code cid:} (prompt 055), sent in a
      *     {@code multipart/related} with the HTML part
+     * @param attachments files attached to the message (prompt 141: briefing audio), sent in a
+     *     {@code multipart/mixed} after the body
      */
     public record Mail(
             String host,
@@ -120,19 +122,27 @@ public record PreparedRequest(String method, String url, Map<String, String> hea
             String text,
             String html,
             Map<String, String> headers,
-            List<Inline> inlines) implements Body {
+            List<Inline> inlines,
+            List<FileAttachment> attachments) implements Body {
 
         /** Copies. */
         public Mail {
             to = List.copyOf(to);
             headers = headers == null ? Map.of() : java.util.Collections.unmodifiableMap(new LinkedHashMap<>(headers));
             inlines = inlines == null ? List.of() : List.copyOf(inlines);
+            attachments = attachments == null ? List.of() : List.copyOf(attachments);
+        }
+
+        /** A mail without file attachments (the shape before prompt 141). */
+        public Mail(String host, int port, String tls, String username, String password, String from, List<String> to,
+                String subject, String text, String html, Map<String, String> headers, List<Inline> inlines) {
+            this(host, port, tls, username, password, from, to, subject, text, html, headers, inlines, List.of());
         }
 
         /** A mail without inline images (the 018 shape). */
         public Mail(String host, int port, String tls, String username, String password, String from, List<String> to,
                 String subject, String text, String html, Map<String, String> headers) {
-            this(host, port, tls, username, password, from, to, subject, text, html, headers, List.of());
+            this(host, port, tls, username, password, from, to, subject, text, html, headers, List.of(), List.of());
         }
     }
 
@@ -193,6 +203,15 @@ public record PreparedRequest(String method, String url, Map<String, String> hea
      * @param bytes the content
      */
     public record Inline(String contentId, String filename, String contentType, byte[] bytes) {}
+
+    /**
+     * A file attached to an email (prompt 141: briefing audio), with {@code Content-Disposition: attachment}.
+     *
+     * @param filename the file name
+     * @param contentType the media type
+     * @param bytes the content
+     */
+    public record FileAttachment(String filename, String contentType, byte[] bytes) {}
 
     /** The body as UTF-8 text for a {@link Bytes} body, an MQTT payload or a mesh payload, else null (tests, logging). */
     public String bodyText() {

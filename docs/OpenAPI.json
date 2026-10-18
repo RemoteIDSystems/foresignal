@@ -10335,7 +10335,7 @@
         ],
         "operationId": "createBriefing",
         "summary": "Create a scheduled briefing",
-        "description": "Creates a scheduled briefing. Validation: 5-field cron no more frequent than every 15 minutes, valid IANA `timezone`, existing scope ids (a private source the caller may not see is reported as unknown), `lookback` 1h–7d; scope members of later prompts (`placeIds`, `viewId`, `country`, `admin1`, `county`, `places`, `weatherProducts`) are refused with 400 until their prompt while non-empty, and a non-null `audio` until 141; channels that do not exist, are disabled or are not subscribed to `briefing` produce `warnings`, not failures; `mode=llm` is accepted without a provider (checked at run time). The creating token's scope is the briefing's owner scope: only an `admin`-owned briefing lists records of private sources, any other counts them only.\n\n**Scope:** `agent`.",
+        "description": "Creates a scheduled briefing. Validation: 5-field cron no more frequent than every 15 minutes, valid IANA `timezone`, existing scope ids (a private source the caller may not see is reported as unknown), `lookback` 1h–7d; scope members of later prompts (`placeIds`, `viewId`, `country`, `admin1`, `county`, `places`, `weatherProducts`) are refused with 400 until their prompt while non-empty, ; `audio` (141) is null or `{voice, format}` with a voice of 1–100 characters and `format` `mp3` (default) or `opus`, accepted without a `tts` provider (runs then record `audio.status` `skipped`); channels that do not exist, are disabled or are not subscribed to `briefing` produce `warnings`, not failures; `mode=llm` is accepted without a provider (checked at run time). The creating token's scope is the briefing's owner scope: only an `admin`-owned briefing lists records of private sources, any other counts them only.\n\n**Scope:** `agent`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -27550,7 +27550,7 @@
             }
           },
           "400": {
-            "description": "Unsupported width (VALIDATION_FAILED)",
+            "description": "Unsupported width, or the media is audio (141) (VALIDATION_FAILED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -27627,6 +27627,9 @@
           {
             "bearerToken": []
           }
+        ],
+        "x-foresignal-extended-by": [
+          "141"
         ]
       }
     },
@@ -81384,7 +81387,7 @@
         ],
         "operationId": "getBriefingPodcast",
         "summary": "Briefing audio podcast feed",
-        "description": "RSS 2.0 feed (058 feed writer) of the briefing's runs that have audio, each with an `<enclosure>` to the signed media. Feed keys work through `/v1/k/{key}/…`.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "RSS 2.0 feed (058 feed writer family) of the briefing's runs that have audio (`audio.status` `ok` and a media row that still exists), newest first, at most 50 items. Each `<item>` has a non-permalink `<guid>`, the run's HTML rendition as `<link>`, its plain text as `<description>`, and an `<enclosure url length type>` to the 043 media (`audio/mpeg` or `audio/ogg`), whose detached JWS is the run's `audio.signature` (109). Feed keys work through `/v1/k/{key}/briefings/{briefingId}/podcast.rss`; the enclosure URLs then carry the same key, so create the key with prefixes covering both the feed and `/v1/media/`. Same visibility as the run feeds: 404 unless the briefing is visible to the caller, runs citing private sources only behind the private gate. Strong ETag and `Last-Modified`; 304 on a match.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "briefingId",
@@ -81402,6 +81405,20 @@
             "description": "Feed",
             "content": {
               "application/rss+xml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Strong validator",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Last-Modified": {
+                "description": "Newest item",
                 "schema": {
                   "type": "string"
                 }
@@ -81458,7 +81475,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/social/platforms": {
@@ -96781,7 +96798,7 @@
               "string",
               "null"
             ],
-            "description": "BCP 47 language for notifications on this channel"
+            "description": "BCP 47 language for notifications on this channel (141), stored canonicalized (`pt-br` → `pt-BR`); null uses `notify.defaultLanguage`. When the primary language or script differs from it, title and body are translated through the 026 chat role (budget `translate`, low effort), code spans, URLs and placeholders untouched, cached 24 h; after 8 s, or on any failure, the original is sent with the title prefixed `[untranslated]`."
           }
         },
         "required": [
@@ -97088,7 +97105,7 @@
               "string",
               "null"
             ],
-            "description": "BCP 47; when it differs from `notify.defaultLanguage` title and body are translated (026 chat role, budget `translate`), cached 24 h, `[untranslated]` marker on timeout"
+            "description": "BCP 47; when it differs from `notify.defaultLanguage` (primary language or script) title and body are translated (026 chat role, budget `translate`), cached 24 h, the original with an `[untranslated]` title marker after 8 s or on failure (141)"
           },
           "ownerPrincipalId": {
             "oneOf": [
@@ -97428,6 +97445,20 @@
                 "type": "boolean",
                 "default": false,
                 "description": "Treat this provider as local for LLM egress (private-source records may be sent to it, 026/039); `ollama` is always local"
+              },
+              "ttsModel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "default": "tts-1",
+                "description": "Speech model for the `tts` role (141), sent as `model` to `{baseUrl}/audio/speech`; openai-compatible only (for example `tts-1`, `gpt-4o-mini-tts`, `kokoro`)"
+              },
+              "ttsCharactersPerDay": {
+                "type": "integer",
+                "minimum": 1000,
+                "maximum": 100000000,
+                "default": 100000,
+                "description": "Daily character budget of the `tts` role (141), per UTC day"
               }
             }
           },
@@ -97460,7 +97491,8 @@
         ],
         "x-foresignal-extended-by": [
           "026",
-          "122"
+          "122",
+          "141"
         ]
       },
       "LlmProvider": {
@@ -97637,10 +97669,18 @@
             "type": "boolean",
             "default": false,
             "description": "Allow private-source records in prompts for providers classified as local (039): Ollama or `options.local`, whose base URL resolves only to loopback or private addresses. Never for remote providers. Default false."
+          },
+          "ttsProvider": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Provider of the `tts` role (141): an enabled `openai-compatible` provider whose `/audio/speech` endpoint synthesizes audio briefings (OpenAI, Kokoro-FastAPI, openedai-speech). Budgeted by characters (`options.ttsCharactersPerDay`) and by the provider's requests per minute."
           }
         },
         "x-foresignal-extended-by": [
-          "039"
+          "039",
+          "141"
         ]
       },
       "LlmTestResult": {
@@ -98623,10 +98663,13 @@
             "oneOf": [
               {
                 "type": "object",
-                "description": "Synthesise the plain-text rendition with the 026 `tts` role after each run",
+                "description": "Synthesize the plain-text rendition with the 026 `tts` role after each run (141): at most 4,000 characters per request; longer text is split at paragraph or sentence boundaries and the MP3 parts concatenated (at most 25 requests), while `opus` is truncated to one request with a spoken note. A synthesis failure never blocks the text delivery.",
                 "properties": {
                   "voice": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The provider's voice, for example `alloy` (OpenAI) or `af_bella` (Kokoro)",
+                    "minLength": 1,
+                    "maxLength": 100
                   },
                   "format": {
                     "type": "string",
@@ -98639,7 +98682,8 @@
                 },
                 "required": [
                   "voice"
-                ]
+                ],
+                "additionalProperties": false
               },
               {
                 "type": "null"
@@ -98710,7 +98754,8 @@
           }
         ],
         "x-foresignal-extended-by": [
-          "029"
+          "029",
+          "141"
         ]
       },
       "BriefingRun": {
@@ -98814,7 +98859,7 @@
             "oneOf": [
               {
                 "type": "object",
-                "description": "Synthesised audio of the run",
+                "description": "Synthesized audio of the run (141); null when the briefing has no `audio` option",
                 "properties": {
                   "status": {
                     "type": "string",
@@ -98822,7 +98867,8 @@
                       "ok",
                       "failed",
                       "skipped"
-                    ]
+                    ],
+                    "description": "`ok` stored; `failed` provider, budget or storage failure (the text was delivered anyway); `skipped` no `tts` provider or no text"
                   },
                   "mediaId": {
                     "type": [
@@ -98852,16 +98898,45 @@
                     "type": [
                       "integer",
                       "null"
-                    ]
+                    ],
+                    "description": "Characters synthesized (the `tts` budget unit)"
                   },
                   "truncated": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "True when the text was cut to fit (always for long `opus`; MP3 beyond 25 requests)"
                   },
                   "error": {
                     "type": [
                       "string",
                       "null"
                     ]
+                  },
+                  "bytes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "description": "Size of the stored audio"
+                  },
+                  "contentType": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "audio/mpeg",
+                      "audio/ogg",
+                      null
+                    ],
+                    "description": "Media type of the stored audio"
+                  },
+                  "signature": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Detached JWS (`header..signature`, Ed25519, b64:false, `typ` the audio media type) over the audio bytes; verify against /.well-known/jwks.json (109)"
                   }
                 },
                 "required": [
@@ -101633,8 +101708,16 @@
             "type": "boolean",
             "default": false,
             "description": "108: add feed-key image links to map attachments for channels that cannot take attachments; requires an https publicBaseUrl (400 IMAGE_LINKS_REQUIRE_HTTPS)"
+          },
+          "defaultLanguage": {
+            "type": "string",
+            "default": "en",
+            "description": "141 (`notify.defaultLanguage`): BCP 47 language notifications are written in; a channel whose `language` differs gets the title and body translated"
           }
-        }
+        },
+        "x-foresignal-extended-by": [
+          "141"
+        ]
       },
       "WebhookEnvelope": {
         "type": "object",
@@ -109035,7 +109118,7 @@
       },
       "Media": {
         "type": "object",
-        "description": "A content-addressed media row (SatDump composite, thumbnail, static map)",
+        "description": "A content-addressed media row (SatDump composite, thumbnail, static map, briefing audio)",
         "properties": {
           "id": {
             "$ref": "#/components/schemas/Ulid"
@@ -109049,14 +109132,18 @@
             "enum": [
               "image/png",
               "image/jpeg",
-              "image/tiff"
+              "image/tiff",
+              "audio/mpeg",
+              "audio/ogg"
             ]
           },
           "width": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Pixels; 0 for audio"
           },
           "height": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Pixels; 0 for audio"
           },
           "bytes": {
             "type": "integer",
@@ -109068,8 +109155,10 @@
               "image",
               "thumbnail",
               "projected",
-              "map"
-            ]
+              "map",
+              "audio"
+            ],
+            "description": "`audio` (141): synthesized speech of a briefing run, expiring with the briefing-run retention; no thumbnails"
           },
           "sourceId": {
             "type": [
@@ -109161,6 +109250,9 @@
           "bytes",
           "role",
           "createdAt"
+        ],
+        "x-foresignal-extended-by": [
+          "141"
         ]
       },
       "Attachment": {

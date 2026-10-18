@@ -39,6 +39,11 @@ import tools.jackson.databind.json.JsonMapper;
  * another, so a run's state is visible while it runs and survives the scheduler's thread.
  * Notifications are published only after the completed run is committed. A failed run is stored
  * {@code failed} and not delivered.
+ *
+ * <p>Prompt 141: a briefing with an {@code audio} option has its completed run synthesized
+ * ({@link BriefingAudioService}) before delivery, so the notification carries {@code audio.mediaId} and channels
+ * can attach it. The outcome is stored on the run ({@code audio}); a synthesis failure is recorded there and the
+ * text is delivered as usual.
  */
 @Component
 public class BriefingRunner {
@@ -89,6 +94,52 @@ public class BriefingRunner {
         this.json = json;
         this.transactions = new TransactionTemplate(transactionManager);
         this.clock = clock;
+    }
+
+    /** Synthesizes audio briefings (prompt 141); resolved lazily, absent in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ObjectProvider<BriefingAudioService> audioService;
+
+    /**
+     * The run's audio (prompt 141) stored on it, when the briefing has the option; a failure of any kind is
+     * recorded as {@code audio.status=failed} and never stops the run or its delivery.
+     */
+    BriefingRunEntity audio(BriefingInput input, BriefingRunEntity run) {
+        if (input.audio() == null) {
+            return run;
+        }
+        BriefingAudioService service = audioService == null ? null : audioService.getIfAvailable();
+        Map<String, Object> outcome;
+        if (service == null) {
+            outcome = BriefingAudioService.result(BriefingAudioService.SKIPPED, input.audio());
+            outcome.put("error", "audio briefings are not available");
+        } else {
+            try {
+                outcome = service.synthesize(title(run), run.getContentMarkdown(), input.audio());
+            } catch (RuntimeException e) {
+                log.warn("Audio of briefing run {} failed", run.getId(), e);
+                outcome = BriefingAudioService.result(BriefingAudioService.FAILED, input.audio());
+                outcome.put("error", e.getClass().getSimpleName() + ": " + e.getMessage());
+            }
+        }
+        Map<String, Object> stored = outcome;
+        try {
+            return transactions.execute(status -> {
+                BriefingRunEntity row = runs.findById(run.getId()).orElse(run);
+                row.setAudio(new java.util.LinkedHashMap<>(stored));
+                return runs.saveAndFlush(row);
+            });
+        } catch (RuntimeException e) {
+            log.warn("The audio outcome of briefing run {} could not be stored", run.getId(), e);
+            run.setAudio(new java.util.LinkedHashMap<>(stored));
+            return run;
+        }
+    }
+
+    /** The notification title of a run, which is also the spoken title of its audio. */
+    static String title(BriefingRunEntity run) {
+        ZoneId zone = BriefingValidator.zone(run.getTimezone());
+        return run.getBriefingName() + " — " + DATE.format(run.getPeriodTo().atZone(zone));
     }
 
     /** Signs stored runs (prompt 109); resolved lazily, absent in hand-built unit tests. */
@@ -269,6 +320,7 @@ public class BriefingRunner {
         if (BriefingRunEntity.FAILED.equals(done.getStatus())) {
             return done;
         }
+        done = audio(input, done);
         embed(done);
         int delivered = deliver(briefing, input, done);
         if (delivered > 0) {
@@ -306,8 +358,7 @@ public class BriefingRunner {
      * @return the deliveries enqueued
      */
     int deliver(BriefingEntity briefing, BriefingInput input, BriefingRunEntity run) {
-        ZoneId zone = BriefingValidator.zone(run.getTimezone());
-        String title = run.getBriefingName() + " — " + DATE.format(run.getPeriodTo().atZone(zone));
+        String title = title(run);
         String html = links.runHtml(run.getBriefingId(), run.getId());
         String body = run.getContentMarkdown().strip() + "\n\n[Read more](" + DigestRenderer.url(html) + ")";
         Set<UUID> channelIds = Set.copyOf(input.channelIds());

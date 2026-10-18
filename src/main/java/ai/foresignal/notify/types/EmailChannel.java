@@ -67,6 +67,15 @@ public class EmailChannel extends AbstractChannelType {
         return ChannelRateLimit.perMinute(30);
     }
 
+    /** The largest audio attachment (prompt 141), within common SMTP message limits (25 MB with encoding). */
+    static final long AUDIO_MAX_BYTES = 18L * 1024 * 1024;
+
+    /** Prompt 141: briefing audio is attached to the email (plain-text mode included). */
+    @Override
+    public long audioAttachmentLimit() {
+        return AUDIO_MAX_BYTES;
+    }
+
     @Override
     public List<FieldError> validate(Map<String, Object> config, Map<String, String> secrets) {
         List<FieldError> errors = new ArrayList<>();
@@ -124,7 +133,9 @@ public class EmailChannel extends AbstractChannelType {
         PreparedRequest.Mail mail = new PreparedRequest.Mail(host, port, s.config("tls", "starttls"),
                 s.secret("username"), s.secret("password"), s.config("from", ""), s.list("to"),
                 m.title().replace('\n', ' '), text.toString(), html,
-                s.origin() == null ? Map.of() : Map.of(OriginMarker.HEADER, s.origin()), inlines);
+                s.origin() == null ? Map.of() : Map.of(OriginMarker.HEADER, s.origin()), inlines,
+                m.audio() == null ? List.of() : List.of(new PreparedRequest.FileAttachment(m.audio().filename(),
+                        m.audio().contentType(), m.audio().bytes())));
         return new PreparedRequest("SMTP", "smtp://" + host + ":" + port, Map.of(), mail);
     }
 }

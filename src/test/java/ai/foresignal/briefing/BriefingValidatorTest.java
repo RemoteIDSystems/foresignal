@@ -162,11 +162,11 @@ class BriefingValidatorTest {
                         + "\"timezone\":\"Nowhere/Land\",\"scope\":{\"sources\":[\"nope\",\"secret\"],\"kinds\":[\"x\"],"
                         + "\"bbox\":\"1,2,3\",\"ruleIds\":[\"not-a-uuid\",\"" + UUID.randomUUID() + "\"],"
                         + "\"placeIds\":[\"home\"],\"bogus\":1},\"lookback\":\"30m\",\"mode\":\"chat\","
-                        + "\"channelIds\":[\"x\"],\"maxItemsPerKind\":51,\"audio\":{\"voice\":\"a\"},\"extra\":true}"),
+                        + "\"channelIds\":[\"x\"],\"maxItemsPerKind\":51,\"audio\":{\"voice\":\"\",\"format\":\"wav\"},\"extra\":true}"),
                         Set.of("secret")));
         assertThat(fields(e)).contains("name", "schedule", "timezone", "scope.sources", "scope.kinds", "scope.bbox",
                 "scope.ruleIds[0]", "scope.ruleIds[1]", "scope.placeIds", "scope.bogus", "lookback", "mode",
-                "channelIds[0]", "maxItemsPerKind", "audio", "extra");
+                "channelIds[0]", "maxItemsPerKind", "audio.voice", "audio.format", "extra");
         assertThat(e.getErrors()).filteredOn(err -> err.field().equals("scope.sources"))
                 .extracting(FieldError::message).contains("unknown source: nope", "unknown source: secret");
         assertThat(e.getErrors()).filteredOn(err -> err.field().equals("scope.placeIds"))

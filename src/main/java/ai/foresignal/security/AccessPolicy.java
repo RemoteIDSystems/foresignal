@@ -458,6 +458,8 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/kml/**", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/alerts/feed.*", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/briefings/*/runs/feed.*", AccessRequirement.READ),
+                // Prompt 141: the briefing podcast (RSS 2.0 with audio enclosures), a read like the run feeds.
+                rule(HttpMethod.GET, "/v1/briefings/*/podcast.rss", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/triggers/*.kml", AccessRequirement.READ),
 
                 // ---- Triggers: read to list, agent to change ----

@@ -34,6 +34,7 @@ import java.util.UUID;
  * @param createdAt when created
  * @param updatedAt when last changed
  * @param acceptExercise whether the channel receives exercise alerts (prompt 115)
+ * @param language the BCP 47 language of the channel's notifications (prompt 141), or null for the default
  */
 public record NotificationChannel(
         UUID id,
@@ -56,7 +57,19 @@ public record NotificationChannel(
         int deferWhileActiveSeconds,
         Instant createdAt,
         Instant updatedAt,
-        boolean acceptExercise) {
+        boolean acceptExercise,
+        String language) {
+
+    /** A channel without a language (the shape before prompt 141). */
+    public NotificationChannel(UUID id, String name, String type, Map<String, Object> config, List<String> secretFields,
+            List<String> events, List<UUID> ruleIds, String minSeverity, String titleTemplate, String bodyTemplate,
+            int waitForEnrichmentSeconds, boolean enabled, String timezone, QuietHours quietHours,
+            int groupWindowSeconds, int backlogCap, boolean editInPlace, int deferWhileActiveSeconds,
+            Instant createdAt, Instant updatedAt, boolean acceptExercise) {
+        this(id, name, type, config, secretFields, events, ruleIds, minSeverity, titleTemplate, bodyTemplate,
+                waitForEnrichmentSeconds, enabled, timezone, quietHours, groupWindowSeconds, backlogCap, editInPlace,
+                deferWhileActiveSeconds, createdAt, updatedAt, acceptExercise, null);
+    }
 
     /** A channel that does not take exercise alerts (the shape before prompt 115). */
     public NotificationChannel(UUID id, String name, String type, Map<String, Object> config, List<String> secretFields,
@@ -76,7 +89,8 @@ public record NotificationChannel(
                 e.getRuleIds() == null ? null : List.copyOf(e.getRuleIds()), e.getMinSeverity(), e.getTitleTemplate(),
                 e.getBodyTemplate(), e.getWaitForEnrichmentSeconds(), e.isEnabled(), e.getTimezone(),
                 QuietHours.fromMap(e.getQuietHours()), e.getGroupWindowSeconds(), e.getBacklogCap(), e.isEditInPlace(),
-                e.getDeferWhileActiveSeconds(), e.getCreatedAt(), e.getUpdatedAt(), e.isAcceptExercise());
+                e.getDeferWhileActiveSeconds(), e.getCreatedAt(), e.getUpdatedAt(), e.isAcceptExercise(),
+                e.getLanguage());
     }
 
     /**

@@ -71,6 +71,15 @@ public class NtfyChannel extends AbstractChannelType {
         return SPEC;
     }
 
+    /** ntfy's default {@code attachment-file-size-limit} (15 MB). */
+    static final long AUDIO_MAX_BYTES = 15L * 1024 * 1024;
+
+    /** Prompt 141: briefing audio is sent as an attachment, like a map image. */
+    @Override
+    public long audioAttachmentLimit() {
+        return AUDIO_MAX_BYTES;
+    }
+
     @Override
     public ChannelCapabilities capabilities() {
         return new ChannelCapabilities(false, true, false);
@@ -131,9 +140,9 @@ public class NtfyChannel extends AbstractChannelType {
         }
         body = Truncator.truncate(body, BODY_MAX_BYTES, Truncator.Unit.UTF8_BYTES, Truncator.Mode.MARKDOWN, m.url());
         String url = ChannelSettings.trimSlash(s.config("serverUrl", "https://ntfy.sh")) + "/" + s.config("topic", "");
-        NotificationMessage.Attachment image = m.image();
+        NotificationMessage.Attachment image = m.image() != null ? m.image() : m.audio();
         if (image != null) {
-            // Prompt 055: PUT the image as the body with Filename; the text travels in the Message header,
+            // Prompt 055 (prompt 141: also briefing audio): PUT the file as the body with Filename; the text travels in the Message header,
             // newlines as the literal \n that ntfy turns back into newlines, non-ASCII RFC 2047 encoded.
             headers.put("Content-Type", image.contentType());
             headers.put("Filename", image.filename());

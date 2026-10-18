@@ -3,7 +3,8 @@ package ai.foresignal.source.spi;
 import java.util.Locale;
 
 /**
- * What a stored image is for (table {@code media.role}, OpenAPI {@code Media.role}, prompt 043).
+ * What a stored file is for (table {@code media.role}, OpenAPI {@code Media.role}, prompt 043; prompt 141 adds
+ * {@link #AUDIO}, the only role that is not an image).
  */
 public enum MediaRole {
 
@@ -17,7 +18,10 @@ public enum MediaRole {
     PROJECTED,
 
     /** A static map, for example a notification attachment (prompt 055). */
-    MAP;
+    MAP,
+
+    /** Synthesized speech of a briefing run (prompt 141): MP3 or Ogg Opus, never passed to the image guard. */
+    AUDIO;
 
     /** The wire and column value: the lower-case name. */
     public String wireValue() {

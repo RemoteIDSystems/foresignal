@@ -30,6 +30,10 @@ import org.springframework.stereotype.Component;
  * <p>Prompt 061: with {@code interactive: true} the channel also accepts commands from its
  * {@code allowedChats} ({@code ai.foresignal.chatops.TelegramConnector}).
  *
+ * <p>Prompt 141: a message carrying briefing audio is sent with {@code sendAudio} (MP3) or {@code sendVoice} (Ogg
+ * Opus) as multipart, captioned like a photo; its reference is stored with the {@code photo:} prefix, because
+ * its lifecycle edits also change the caption.
+ *
  * <p>Link previews are disabled with {@code link_preview_options.is_disabled}, which replaced the
  * deprecated {@code disable_web_page_preview} parameter in Bot API 7.0.
  */
@@ -45,8 +49,11 @@ public class TelegramChannel extends AbstractChannelType {
     /** Telegram's caption limit. */
     static final int CAPTION_MAX = 1024;
 
-    /** The reference prefix of a photo message (055). */
+    /** The reference prefix of a photo message (055), and of an audio or voice message (141). */
     public static final String PHOTO_REF = "photo:";
+
+    /** The Bot API's upload limit for bots (sendAudio, sendVoice), bytes. */
+    static final long AUDIO_MAX_BYTES = 50L * 1024 * 1024;
 
     private static final ChannelTypeSpec SPEC = new ChannelTypeSpec(ID, "Telegram",
             "Telegram bot message (HTML); lifecycle updates edit the original message",
@@ -90,10 +97,19 @@ public class TelegramChannel extends AbstractChannelType {
     }
 
     @Override
+    public long audioAttachmentLimit() {
+        return AUDIO_MAX_BYTES;
+    }
+
+    @Override
     public PreparedRequest render(NotificationMessage m, ChannelSettings s) {
         NotificationMessage.Attachment image = m.image();
         if (image != null) {
             return photo(m, image, s);
+        }
+        NotificationMessage.Attachment audio = m.audio();
+        if (audio != null) {
+            return audio(m, audio, s);
         }
         Map<String, Object> payload = obj(
                 "chat_id", s.config("chatId", ""),
@@ -147,6 +163,28 @@ public class TelegramChannel extends AbstractChannelType {
         return new PreparedRequest("POST", method(s, "sendPhoto"), baseHeaders(s), new PreparedRequest.Multipart(parts));
     }
 
+    /**
+     * Prompt 141: {@code sendVoice} for Ogg Opus (shown as a voice message) or {@code sendAudio} for MP3, as
+     * multipart with the same caption rule as a photo.
+     */
+    PreparedRequest audio(NotificationMessage m, NotificationMessage.Attachment audio, ChannelSettings s) {
+        boolean voice = audio.contentType() != null && audio.contentType().toLowerCase(java.util.Locale.ROOT)
+                .startsWith("audio/ogg");
+        List<PreparedRequest.Part> parts = new java.util.ArrayList<>();
+        parts.add(PreparedRequest.Part.field("chat_id", s.config("chatId", "")));
+        parts.add(new PreparedRequest.Part(voice ? "voice" : "audio", audio.filename(), audio.contentType(),
+                audio.bytes()));
+        parts.add(PreparedRequest.Part.field("caption", caption(m)));
+        parts.add(PreparedRequest.Part.field("parse_mode", "HTML"));
+        if (!voice) {
+            parts.add(PreparedRequest.Part.field("title", Truncator.truncate(m.title(), 64, Truncator.Unit.CHARS,
+                    Truncator.Mode.PLAIN, null)));
+            parts.add(PreparedRequest.Part.field("performer", "Foresignal"));
+        }
+        return new PreparedRequest("POST", method(s, voice ? "sendVoice" : "sendAudio"), baseHeaders(s),
+                new PreparedRequest.Multipart(parts));
+    }
+
     /** The photo caption: the whole text when it fits, else the bold title. */
     static String caption(NotificationMessage m) {
         String full = text(m, TEXT_MAX);
@@ -157,10 +195,10 @@ public class TelegramChannel extends AbstractChannelType {
         return Truncator.truncate(title, CAPTION_MAX, Truncator.Unit.CHARS, Truncator.Mode.HTML, null);
     }
 
-    /** The text that did not fit the photo caption, as a {@code sendMessage} (prompt 055). */
+    /** The text that did not fit the photo (prompt 055) or audio (prompt 141) caption, as a {@code sendMessage}. */
     @Override
     public List<PreparedRequest> followUps(NotificationMessage m, ChannelSettings s) {
-        if (m.image() == null) {
+        if (m.image() == null && m.audio() == null) {
             return List.of();
         }
         String full = text(m, TEXT_MAX);
@@ -178,7 +216,8 @@ public class TelegramChannel extends AbstractChannelType {
     /** The message id, as {@code photo:<id>} for a photo (its edits change the caption). */
     @Override
     public Optional<String> extractRef(ChannelResponse response) {
-        boolean photo = parse(response).map(n -> n.path("result").has("photo")).orElse(false);
+        boolean photo = parse(response).map(n -> n.path("result").has("photo") || n.path("result").has("audio")
+                || n.path("result").has("voice")).orElse(false);
         return refAt(response, "result", "message_id").map(id -> photo ? PHOTO_REF + id : id);
     }
 
