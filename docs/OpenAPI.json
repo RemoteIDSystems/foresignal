@@ -80120,7 +80120,7 @@
         ],
         "operationId": "getProtectedResourceMetadata",
         "summary": "Protected resource metadata",
-        "description": "RFC 9728 metadata for the MCP resource (same document as the `/mcp` path variant). Clients find it through `WWW-Authenticate: Bearer resource_metadata=…` on 401 from `/mcp`.\n\n**Scope:** `open` (no token).",
+        "description": "RFC 9728 metadata for the MCP resource (same document as the `/mcp` path variant). Clients find it through `WWW-Authenticate: Bearer resource_metadata=…` on 401 from `/mcp`.\n\nWhile `mcp.auth.mode` is `oauth` or `both`, `/mcp` always needs a credential (open reads do not apply there): a request without one, or with an invalid token, gets `401` with `WWW-Authenticate: Bearer resource_metadata=\"{base}/.well-known/oauth-protected-resource/mcp\", scope=\"foresignal:read\"` (plus `error=\"invalid_token\"` when a token was presented); a valid token whose scopes map to nothing, or an identity-provider token calling a tool above its mapped scope, gets `403` with `WWW-Authenticate: Bearer error=\"insufficient_scope\", scope=\"…\", resource_metadata=\"…\"`. The `scope` values are the identity-provider scopes of `mcp.auth.scopeMap` that reach the needed Foresignal scope. REST paths never accept identity-provider tokens.\n\n**Scope:** `open` (no token).",
         "responses": {
           "200": {
             "description": "Metadata",
@@ -80133,7 +80133,7 @@
             }
           },
           "404": {
-            "description": "MCP OAuth disabled (`mcp.auth.mode=token`)",
+            "description": "MCP OAuth disabled (`mcp.auth.mode=token`); code `MCP_OAUTH_DISABLED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -80148,7 +80148,7 @@
         ],
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/.well-known/oauth-protected-resource/mcp": {
@@ -80171,7 +80171,7 @@
             }
           },
           "404": {
-            "description": "MCP OAuth disabled (`mcp.auth.mode=token`)",
+            "description": "MCP OAuth disabled (`mcp.auth.mode=token`); code `MCP_OAUTH_DISABLED`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -80186,7 +80186,7 @@
         ],
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/settings/mcp-auth": {
@@ -80236,7 +80236,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -80244,7 +80244,7 @@
         ],
         "operationId": "updateMcpAuthSettings",
         "summary": "Update MCP authorization settings",
-        "description": "Replaces `mcp.auth`. `admin` can never appear in `scopeMap`; the issuer and JWKS URLs pass the 035 outbound URL policy. Applies only to `/mcp`; REST keeps Foresignal tokens.\n\n**Scope:** `admin`.",
+        "description": "Replaces `mcp.auth`. `admin` can never appear in `scopeMap` (400). With `mode` `oauth` or `both`, `issuer` is required, and `audience` too unless `server.publicBaseUrl` is set. `issuer` and `jwksUri` must be absolute http(s) URLs without query or fragment that pass the 035 outbound URL policy (`LAN_ALLOWED`; plain `http` only towards loopback, private or tailnet addresses). Applies only to `/mcp`; REST keeps Foresignal tokens.\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -80267,7 +80267,7 @@
             }
           },
           "400": {
-            "description": "Validation failed (URL_NOT_ALLOWED)",
+            "description": "Validation failed (`VALIDATION_FAILED` with field errors; `URL_NOT_ALLOWED` when an issuer or JWKS URL is refused by the outbound URL policy)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -80304,7 +80304,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/plugins": {
@@ -159337,7 +159337,8 @@
             "items": {
               "type": "string",
               "format": "uri"
-            }
+            },
+            "description": "The identity provider's issuer (`mcp.auth.issuer`); empty while none is configured"
           },
           "scopes_supported": {
             "type": "array",
@@ -159347,7 +159348,8 @@
             "example": [
               "foresignal:read",
               "foresignal:agent"
-            ]
+            ],
+            "description": "The identity-provider scopes of `mcp.auth.scopeMap` that map to `read` or `agent`, sorted"
           },
           "bearer_methods_supported": {
             "type": "array",
@@ -159367,7 +159369,8 @@
               "string",
               "null"
             ],
-            "format": "uri"
+            "format": "uri",
+            "description": "The API documentation, `{base}/docs`"
           }
         },
         "required": [
@@ -159387,14 +159390,16 @@
               "oauth",
               "both"
             ],
-            "default": "token"
+            "default": "token",
+            "description": "`token`: Foresignal tokens only (open reads apply as on REST). `oauth`: identity-provider access tokens only. `both`: either. With `oauth` or `both`, `/mcp` always needs a credential"
           },
           "issuer": {
             "type": [
               "string",
               "null"
             ],
-            "format": "uri"
+            "format": "uri",
+            "description": "Issuer identifier, compared exactly with the token's `iss`; required with `oauth` or `both`"
           },
           "audience": {
             "type": [
@@ -159425,7 +159430,12 @@
             "example": {
               "foresignal:read": "read",
               "foresignal:agent": "agent"
-            }
+            },
+            "default": {
+              "foresignal:read": "read",
+              "foresignal:agent": "agent"
+            },
+            "maxProperties": 50
           },
           "scopeClaim": {
             "type": "string",
@@ -159433,7 +159443,8 @@
               "scope",
               "scp"
             ],
-            "default": "scope"
+            "default": "scope",
+            "description": "Claim carrying the scopes; a space-separated string or an array of strings is read from either claim"
           },
           "allowedAlgs": {
             "type": "array",
@@ -159445,7 +159456,15 @@
                 "EdDSA",
                 "Ed25519"
               ]
-            }
+            },
+            "default": [
+              "RS256",
+              "ES256",
+              "EdDSA",
+              "Ed25519"
+            ],
+            "minItems": 1,
+            "description": "Accepted JWS algorithms; `none` and HMAC algorithms are never accepted"
           }
         },
         "required": [

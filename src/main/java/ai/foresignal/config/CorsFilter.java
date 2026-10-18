@@ -50,11 +50,13 @@ public class CorsFilter extends OncePerRequestFilter implements Ordered {
      * Response headers a browser may read: {@code Location}, {@code Mcp-Session-Id} (the MCP session,
      * prompt 025) and the raster headers map clients need (prompt 050): the frame time of an alias,
      * the bounds of an image, the expired-frame marker, {@code Retry-After} on {@code 503 RENDER_BUSY}
-     * and {@code 429}, {@code Link} to the current frame key, and {@code ETag}.
+     * and {@code 429}, {@code Link} to the current frame key, and {@code ETag}; and
+     * {@code WWW-Authenticate}, which carries the RFC 9728 {@code resource_metadata} a browser MCP
+     * client needs to find the identity provider (prompt 141).
      */
     static final String EXPOSED_HEADERS = "Location, Mcp-Session-Id, Foresignal-Frame-Time, Foresignal-Image-Bounds, "
             + "Foresignal-Frame-Expired, Foresignal-Attribution, Foresignal-Signature, Foresignal-Licence-Filtered, "
-            + "Retry-After, Link, ETag";
+            + "Retry-After, Link, ETag, WWW-Authenticate";
 
     /** How long a browser may cache a preflight answer: one day (prompt 050). */
     static final String MAX_AGE_SECONDS = "86400";

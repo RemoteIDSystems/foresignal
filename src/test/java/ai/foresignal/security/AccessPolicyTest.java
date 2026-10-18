@@ -546,4 +546,15 @@ class AccessPolicyTest {
         assertScope("POST", "/v1/custom-sources/custom-x/devices/0b6f2c1e-0000-4000-8000-000000000001/purge",
                 Scope.ADMIN);
     }
+
+    @Test
+    @DisplayName("141: the RFC 9728 metadata is open, the mcp.auth settings are admin, /mcp stays read")
+    void mcpRemoteAuthorization() {
+        assertOpen("GET", "/.well-known/oauth-protected-resource");
+        assertOpen("GET", "/.well-known/oauth-protected-resource/mcp");
+        assertOpen("HEAD", "/.well-known/oauth-protected-resource/mcp");
+        assertScope("GET", "/v1/settings/mcp-auth", Scope.ADMIN);
+        assertScope("PUT", "/v1/settings/mcp-auth", Scope.ADMIN);
+        assertScope("POST", "/mcp", Scope.READ);
+    }
 }

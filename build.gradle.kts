@@ -64,6 +64,11 @@ dependencies {
     implementation(libs.re2j)
     implementation(libs.mcp.core)
     implementation(libs.mcp.json.jackson3)
+    // MCP remote authorization (141): IdP access tokens on /mcp; Tink for Nimbus's Ed25519Verifier.
+    implementation(libs.nimbus.jose.jwt)
+    implementation(libs.tink) {
+        exclude(group = "com.google.protobuf", module = "protobuf-java")
+    }
     implementation(libs.anthropic.java)
     implementation(libs.commonmark)
     implementation(libs.commonmark.ext.gfm.tables)

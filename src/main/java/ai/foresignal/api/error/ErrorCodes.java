@@ -197,6 +197,12 @@ public final class ErrorCodes {
     /** 403: the token's scope is below the operation's; carries {@code requiredScope} (prompt 023). */
     public static final String INSUFFICIENT_SCOPE = "INSUFFICIENT_SCOPE";
 
+    /**
+     * 404: the RFC 9728 protected resource metadata is asked for while {@code mcp.auth.mode} is {@code token}, so
+     * {@code /mcp} accepts no identity-provider tokens (prompt 141).
+     */
+    public static final String MCP_OAUTH_DISABLED = "MCP_OAUTH_DISABLED";
+
     /** 403: the token has an endpoint restriction and no pattern matches the request (prompt 023). */
     public static final String ENDPOINT_NOT_ALLOWED = "ENDPOINT_NOT_ALLOWED";
 

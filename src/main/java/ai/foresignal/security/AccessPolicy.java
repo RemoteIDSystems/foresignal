@@ -98,6 +98,12 @@ import org.springframework.util.AntPathMatcher;
  *
  * <p>Prompt 025 adds {@code /mcp} and {@code /mcp/**} (the MCP server, also outside {@code /v1}):
  * {@code read}, with per-tool scope checks inside the server ({@code McpToolRegistry}).
+ *
+ * <p>Prompt 141 (MCP remote authorization) needs no new rule: the RFC 9728 metadata at
+ * {@code /.well-known/oauth-protected-resource} and {@code /.well-known/oauth-protected-resource/mcp} is open under
+ * the {@code /.well-known/**} entry of {@link #OPEN_PATHS}, and {@code /v1/settings/mcp-auth} is admin under
+ * {@code /v1/settings/**}. Which credential {@code /mcp} accepts ({@code mcp.auth.mode}) is decided in
+ * {@link TokenFilter} through {@link McpOAuthGate}, not here.
  */
 @Component
 public class AccessPolicy {

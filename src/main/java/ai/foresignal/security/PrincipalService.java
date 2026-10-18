@@ -70,6 +70,44 @@ public class PrincipalService {
     }
 
     /**
+     * The principal of an identity-provider subject (prompt 141, MCP remote authorization), created on first use.
+     *
+     * <p>Its handle is {@code idp-} plus the first 28 hex digits of SHA-256 over the issuer and subject, so the
+     * same person keeps one principal across tokens and restarts, and a subject of another issuer never
+     * collides with it. The display name is taken from the token on creation and not updated afterwards.
+     *
+     * @param issuer the verified {@code iss}
+     * @param subject the verified subject
+     * @param displayName a name from the token ({@code name}, {@code preferred_username}), or null
+     * @return the principal's id
+     */
+    @Transactional
+    public String forExternalSubject(String issuer, String subject, String displayName) {
+        String handle = externalHandle(issuer, subject);
+        Optional<PrincipalEntity> existing = principals.findByHandle(handle);
+        if (existing.isPresent()) {
+            return existing.get().getId();
+        }
+        String display = displayName == null || displayName.isBlank() ? subject : displayName.strip();
+        if (display.length() > 200) {
+            display = display.substring(0, 200);
+        }
+        return principals.saveAndFlush(new PrincipalEntity(Ulids.next(clock.instant()), handle, display,
+                PrincipalKind.PERSON, clock.instant())).getId();
+    }
+
+    /** The handle {@link #forExternalSubject} gives the subject {@code subject} of {@code issuer}. */
+    public static String externalHandle(String issuer, String subject) {
+        try {
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest((issuer + "\n" + subject).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return "idp-" + java.util.HexFormat.of().formatHex(digest).substring(0, 28);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is not available", e);
+        }
+    }
+
+    /**
      * The principal with id or handle {@code idOrHandle}.
      *
      * @throws ValidationException when there is none (field {@code principalId})

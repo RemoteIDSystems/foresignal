@@ -147,6 +147,18 @@ zstdJni = "1.5.7-15"
 # social.languages are loaded.
 lingua = "1.2.2"
 
+# MCP remote authorization (141): Nimbus JOSE+JWT verifies the identity provider's access tokens (RS256, ES256,
+# EdDSA/Ed25519) against its JWKS, Apache-2.0. Verified on Maven Central 2026-10-18: 10.10 is the latest release of
+# com.nimbusds:nimbus-jose-jwt (maven-metadata.xml latest/release 10.10, published 2026-09-17); Java 8 bytecode, gson
+# and jcip shaded inside, no required runtime dependencies (Tink and Bouncy Castle are optional).
+nimbusJoseJwt = "10.10"
+# Nimbus's Ed25519Verifier is built on Google Tink (com.google.crypto.tink.subtle.Ed25519Verify), an optional dependency
+# of Nimbus that must be added for EdDSA/Ed25519 tokens, Apache-2.0. 1.23.0 is the version nimbus-jose-jwt 10.10
+# declares (verified on Maven Central 2026-10-18, published 2026-07-09); 1.24.0 is two days old and not used. Like
+# Nimbus, build.gradle.kts excludes protobuf-java from it (the Ed25519 primitives do not use it, and protobuf-java
+# stays pinned above); remaining runtime dependencies: gson, jsr305 and error_prone_annotations.
+tink = "1.23.0"
+
 [libraries]
 # --- Versions managed by the Spring Boot BOM ---
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
@@ -198,6 +210,8 @@ re2j = { module = "com.google.re2j:re2j", version.ref = "re2j" }
 # The MCP server at /mcp (025): streamable HTTP and the optional legacy HTTP+SSE servlet transports.
 mcp-core = { module = "io.modelcontextprotocol.sdk:mcp-core", version.ref = "mcp" }
 mcp-json-jackson3 = { module = "io.modelcontextprotocol.sdk:mcp-json-jackson3", version.ref = "mcp" }
+nimbus-jose-jwt = { module = "com.nimbusds:nimbus-jose-jwt", version.ref = "nimbusJoseJwt" }
+tink = { module = "com.google.crypto.tink:tink", version.ref = "tink" }
 # LLM provider type `anthropic` (026): messages, streaming, models; pointed at WireMock in tests.
 anthropic-java = { module = "com.anthropic:anthropic-java", version.ref = "anthropic" }
 # Briefing HTML renditions (029): markdown to HTML, then allowlist sanitizing.
