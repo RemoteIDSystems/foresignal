@@ -7,8 +7,9 @@ import java.util.Map;
 
 /**
  * The events of the personal {@code me} SSE topic (prompt 130) and their payloads: {@code share.received}
- * ({@code ShareReceivedEvent}), {@code mention} and {@code comment.reply} ({@code CommentEvent}) and
- * {@code saved-search.matches} ({@code SavedSearchMatchesEvent}).
+ * ({@code ShareReceivedEvent}), {@code mention} and {@code comment.reply} ({@code CommentEvent}),
+ * {@code saved-search.matches} ({@code SavedSearchMatchesEvent}), and prompt 132's {@code report.received} and
+ * {@code report.retracted} ({@code ReportEvent}) and {@code package.received} ({@code PackageReceivedEvent}).
  */
 public final class MeEvents {
 
@@ -24,8 +25,18 @@ public final class MeEvents {
     /** A saved search of the principal has new matches (at most hourly). */
     public static final String SAVED_SEARCH_MATCHES = "saved-search.matches";
 
-    /** The events this prompt emits. */
-    public static final List<String> ALL = List.of(SHARE_RECEIVED, MENTION, COMMENT_REPLY, SAVED_SEARCH_MATCHES);
+    /** A report was sent to the principal on this instance (prompt 132). */
+    public static final String REPORT_RECEIVED = "report.received";
+
+    /** A signed intelligence package from another instance was imported for the principal (prompt 132). */
+    public static final String PACKAGE_RECEIVED = "package.received";
+
+    /** A report revision sent to the principal was retracted (prompt 132). */
+    public static final String REPORT_RETRACTED = "report.retracted";
+
+    /** The events of the {@code me} topic: prompt 130's four and prompt 132's three. */
+    public static final List<String> ALL = List.of(SHARE_RECEIVED, MENTION, COMMENT_REPLY, SAVED_SEARCH_MATCHES,
+            REPORT_RECEIVED, PACKAGE_RECEIVED, REPORT_RETRACTED);
 
     /**
      * The analysis cycles proposed a chronicle to its owner (prompt 131). Inbox and personal channels only: it is not
@@ -55,6 +66,8 @@ public final class MeEvents {
             case COMMENT_REPLY -> "comment-reply";
             case SAVED_SEARCH_MATCHES -> "saved-search";
             case CHRONICLE_PROPOSED, CHRONICLE_CAP_WARNING, CHRONICLE_GAP -> "chronicle";
+            case REPORT_RECEIVED, REPORT_RETRACTED -> "report";
+            case PACKAGE_RECEIVED -> "package";
             default -> "system";
         };
     }
@@ -66,6 +79,7 @@ public final class MeEvents {
             case MENTION -> "mention";
             case COMMENT_REPLY -> "comment-reply";
             case CHRONICLE_PROPOSED, CHRONICLE_CAP_WARNING, CHRONICLE_GAP -> "chronicle";
+            case REPORT_RECEIVED, REPORT_RETRACTED, PACKAGE_RECEIVED -> "report";
             default -> null;
         };
     }
@@ -138,6 +152,60 @@ public final class MeEvents {
         out.put("name", name);
         out.put("newMatches", newMatches);
         out.put("refs", refs.size() <= 20 ? refs : refs.subList(0, 20));
+        out.put("at", at);
+        return out;
+    }
+
+    /**
+     * The {@code ReportEvent} payload of {@code report.received} and {@code report.retracted} (prompt 132).
+     *
+     * @param reportRef the report reference ({@code report:{id}} or {@code remote:…})
+     * @param title the report title
+     * @param tlp the TLP label
+     * @param revision the revision, or null
+     * @param from the sender's summary, or null
+     * @param message the sender's message, or null
+     * @param reason the retraction reason, or null
+     * @param at when
+     * @return the payload
+     */
+    public static Map<String, Object> report(String reportRef, String title, String tlp, Integer revision,
+            Map<String, Object> from, String message, String reason, Instant at) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("reportRef", reportRef);
+        out.put("title", title);
+        out.put("tlp", tlp);
+        out.put("revision", revision);
+        out.put("from", from);
+        out.put("message", message);
+        out.put("reason", reason);
+        out.put("at", at);
+        return out;
+    }
+
+    /**
+     * The {@code PackageReceivedEvent} payload (prompt 132).
+     *
+     * @param receivedId the received package's id here
+     * @param packageId the package id the sender assigned
+     * @param type {@code report}, {@code investigation}, {@code chronicle-extract} or {@code evidence}
+     * @param senderInstanceId the sending instance
+     * @param title the title
+     * @param tlp the TLP label
+     * @param signatureStatus {@code valid}, {@code invalid} or {@code unknown-key}
+     * @param at when
+     * @return the payload
+     */
+    public static Map<String, Object> packageReceived(String receivedId, String packageId, String type,
+            String senderInstanceId, String title, String tlp, String signatureStatus, Instant at) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("receivedId", receivedId);
+        out.put("packageId", packageId);
+        out.put("type", type);
+        out.put("senderInstanceId", senderInstanceId);
+        out.put("title", title);
+        out.put("tlp", tlp);
+        out.put("signatureStatus", signatureStatus);
         out.put("at", at);
         return out;
     }

@@ -190,6 +190,10 @@ class EventSchemaConformanceTest {
             entry(ai.foresignal.collab.MeEvents.COMMENT_REPLY, () -> commentEvents("reply")),
             entry(ai.foresignal.collab.MeEvents.SAVED_SEARCH_MATCHES,
                     EventSchemaConformanceTest::savedSearchMatchesEvents),
+            // 132: MeTopic sends the payloads MeEvents.report and MeEvents.packageReceived build.
+            entry(ai.foresignal.collab.MeEvents.REPORT_RECEIVED, () -> reportEvents(false)),
+            entry(ai.foresignal.collab.MeEvents.REPORT_RETRACTED, () -> reportEvents(true)),
+            entry(ai.foresignal.collab.MeEvents.PACKAGE_RECEIVED, EventSchemaConformanceTest::packageReceivedEvents),
             // 131: ChronicleTopic sends ChronicleThreadService.item for thread items and the status snapshot.
             entry(ai.foresignal.chronicle.ChronicleTopic.ITEM_EVENT, EventSchemaConformanceTest::chronicleItemEvents),
             entry(ai.foresignal.chronicle.ChronicleTopic.STATUS_EVENT,
@@ -239,6 +243,28 @@ class EventSchemaConformanceTest {
                         refs, at)),
                 toTree(ai.foresignal.collab.MeEvents.savedSearchMatches("01JA8Q3V7S2K9W4T6Y1B5N0M3H", "Convoys", 1,
                         List.of("evidence-item:01JA8Q3V7S2K9W4T6Y1B5N0M3J"), at)));
+    }
+
+    /** {@code report.received} and {@code report.retracted} payloads as {@code MeEvents.report} writes them (132). */
+    static List<JsonNode> reportEvents(boolean retracted) {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        return List.of(
+                toTree(ai.foresignal.collab.MeEvents.report("report:01JA8Q3V7S2K9W4T6Y1B5N0M3C", "Red Sea weekly",
+                        "AMBER", 2, principalSummary(), retracted ? null : "Please read.",
+                        retracted ? "Superseded" : null, at)),
+                toTree(ai.foresignal.collab.MeEvents.report("report:01JA8Q3V7S2K9W4T6Y1B5N0M3D", "Port note", "RED",
+                        null, null, null, null, at)));
+    }
+
+    /** {@code package.received} payloads as {@code MeEvents.packageReceived} writes them (prompt 132). */
+    static List<JsonNode> packageReceivedEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        return List.of(
+                toTree(ai.foresignal.collab.MeEvents.packageReceived("01JA8Q3V7S2K9W4T6Y1B5N0M3E",
+                        "01JA8Q3V7S2K9W4T6Y1B5N0M3F", "report", "fs-eu-1", "Red Sea weekly", "AMBER", "valid", at)),
+                toTree(ai.foresignal.collab.MeEvents.packageReceived("01JA8Q3V7S2K9W4T6Y1B5N0M3G",
+                        "01JA8Q3V7S2K9W4T6Y1B5N0M3H", "chronicle-extract", "fs-eu-2", "CHR-2026-0001 Gulf", "GREEN",
+                        "valid", at)));
     }
 
     /** A saved thread item with an id, as the SSE topic reads it (prompt 131). */

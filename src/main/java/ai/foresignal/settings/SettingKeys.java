@@ -305,6 +305,15 @@ public final class SettingKeys {
      */
     public static final String CHRONICLE_THREAD_CURSORS = "chronicle.threadCursors";
 
+    /** The largest exchange package built or accepted, in MB (prompt 132, {@code exchange.maxPackageMb}); 200. */
+    public static final String EXCHANGE_MAX_PACKAGE_MB = "exchange.maxPackageMb";
+
+    /**
+     * Whether a report labeled TLP GREEN may go out as a read-only share link (prompt 132,
+     * {@code exchange.allowGreenLinks}); false, so only CLEAR reports get links by default.
+     */
+    public static final String EXCHANGE_ALLOW_GREEN_LINKS = "exchange.allowGreenLinks";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -322,7 +331,7 @@ public final class SettingKeys {
                     ANALYSIS_FORECASTS_QUESTION_SERIES, IMPACT_CURSOR, IMPACT_MIN_PROBABILITY,
                     IMPACT_QUESTION_MIN_PROBABILITY, IMPACT_ASSET_BUFFER_KM, RELATION_CURSOR,
                     CHRONICLE_DEFAULT_CAP_GB, CHRONICLE_AUTO_ACTIVATE_PER_DAY, CHRONICLE_AUTO_ACTIVATE_CAP_GB,
-                    CHRONICLE_THREAD_CURSORS);
+                    CHRONICLE_THREAD_CURSORS, EXCHANGE_MAX_PACKAGE_MB, EXCHANGE_ALLOW_GREEN_LINKS);
 
     private SettingKeys() {}
 }

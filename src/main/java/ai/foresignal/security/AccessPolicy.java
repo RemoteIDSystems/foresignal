@@ -80,6 +80,11 @@ import org.springframework.util.AntPathMatcher;
  * attachments, evidence items and saved searches ({@code read}, always authenticated); the access lists then decide per
  * object.
  *
+ * <p>Prompt 132 adds reports ({@code read}, always authenticated, with the report's access list deciding; sending and
+ * share links {@code agent}), the report key URL {@code GET /v1/k/*}{@code /report} ({@code open}), and exchange:
+ * packages and the sent list {@code agent}, the peer inbox and receipts {@link AccessRequirement#PEER}, imports
+ * {@code admin}, received packages {@code read} (always authenticated, per recipient).
+ *
  * <p>Prompt 025 adds {@code /mcp} and {@code /mcp/**} (the MCP server, also outside {@code /v1}):
  * {@code read}, with per-tool scope checks inside the server ({@code McpToolRegistry}).
  */
@@ -288,6 +293,8 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/k/*/geojson", AccessRequirement.OPEN),
                 rule(HttpMethod.GET, "/v1/k/*/tiles/*/*/*.mvt", AccessRequirement.OPEN),
                 rule(HttpMethod.GET, "/v1/k/*/download", AccessRequirement.OPEN),
+                // 132: a report share key serves the published HTML; the fss_ key in the path is the credential.
+                rule(HttpMethod.GET, "/v1/k/*/report", AccessRequirement.OPEN),
                 // CAP output and calendars (112): reads; feed keys reach them under their prefixes.
                 rule(HttpMethod.GET, "/v1/cap/**", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/calendars/**", AccessRequirement.READ),
@@ -667,6 +674,37 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/chronicles/*/tracks/*/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/chronicles/*/series", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/chronicles/*/summary", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+
+                // ---- Reports and exchange (prompt 132): report reads and edits are read-scope operations held to a
+                // token (the controller checks viewer, editor or owner on the report); sending, share links, building
+                // and downloading packages and the sent list are agent; the peer inbox and receipts take a peer
+                // ingest key; importing an uploaded package is admin; received packages are read per recipient. ----
+                rule(HttpMethod.GET, "/v1/reports", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/reports", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/reports/draft", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/reports/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PATCH, "/v1/reports/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.DELETE, "/v1/reports/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/reports/*/blocks", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PATCH, "/v1/reports/*/blocks/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.DELETE, "/v1/reports/*/blocks/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/reports/*/publish", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/reports/*/retract", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/reports/*/revisions", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/reports/*/rendition", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/reports/*/send", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/reports/*/share-link", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/exchange/packages", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/exchange/packages/*", AccessRequirement.AGENT),
+                rule(HttpMethod.GET, "/v1/exchange/packages/*/download", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/exchange/inbox", AccessRequirement.PEER),
+                rule(HttpMethod.POST, "/v1/exchange/receipts", AccessRequirement.PEER),
+                rule(HttpMethod.POST, "/v1/exchange/import", AccessRequirement.ADMIN),
+                rule(HttpMethod.GET, "/v1/exchange/received", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/exchange/received/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/exchange/received/*/rendition", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/exchange/received/*/acknowledge", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/exchange/sent", AccessRequirement.AGENT),
 
                 // ---- Objects, relations, annotations and workspaces (prompt 129): object reads, graph queries, the
                 // context summary, precision, sensor discovery and deep links are reads; annotations and workspaces are

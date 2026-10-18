@@ -10,6 +10,9 @@ public interface PeerRepository extends JpaRepository<PeerEntity, String> {
     /** The peer whose current ingest key hashes to {@code hash}. */
     Optional<PeerEntity> findByIngestKeyHash(String hash);
 
+    /** The peers whose verified remote instance id is {@code instanceId} (prompt 132 exchange). */
+    List<PeerEntity> findByRemoteInstanceIdOrderByIdAsc(String instanceId);
+
     /** Every peer, ordered by id. */
     List<PeerEntity> findAllByOrderByIdAsc();
 }

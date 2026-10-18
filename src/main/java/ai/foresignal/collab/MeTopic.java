@@ -25,7 +25,8 @@ import tools.jackson.databind.JsonNode;
 
 /**
  * The caller's personal {@code me} topic on {@code /v1/events/stream} (prompt 130): {@code share.received},
- * {@code mention}, {@code comment.reply} and {@code saved-search.matches} addressed to the stream's principal, with
+ * {@code mention}, {@code comment.reply}, {@code saved-search.matches} and (prompt 132) {@code report.received},
+ * {@code package.received} and {@code report.retracted} addressed to the stream's principal, with
  * the personal inbox item id as the cursor (key {@value #CURSOR_KEY}), replayed from {@code principal_inbox} after
  * {@code Last-Event-ID}. A token is required; the topic has no filter fields.
  */

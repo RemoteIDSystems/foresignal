@@ -17294,7 +17294,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));"
+                  "pm.test('status is 202', () => pm.expect([202]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('packageId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -17336,7 +17339,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"objectRef\": \"report:{{reportId}}\",\n  \"recipients\": [\n    {\n      \"instanceId\": \"fs-eu-1\",\n      \"principals\": [\n        \"jsmith\"\n      ]\n    }\n  ],\n  \"message\": \"Week 42 assessment for your desk.\",\n  \"deliver\": \"peer\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -17545,7 +17548,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"packageId\": \"{{packageId}}\",\n  \"type\": \"acknowledged\",\n  \"receiverInstanceId\": \"fs-eu-1\",\n  \"principalHandle\": \"jsmith\",\n  \"at\": \"2026-10-17T09:00:00Z\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -17562,7 +17565,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('receivedId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -17572,10 +17578,6 @@
             "header": [
               {
                 "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
                 "value": "application/json"
               }
             ],
@@ -17603,13 +17605,21 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "The package ZIP (pick it in Postman)"
+                },
+                {
+                  "key": "jwks",
+                  "type": "text",
+                  "value": "{\"keys\":[]}",
+                  "description": "The sender's JWKS (optional)"
                 }
-              }
+              ]
             }
           }
         },
@@ -39086,7 +39096,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('reportId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -39127,7 +39140,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"title\": \"Red Sea weekly\",\n  \"subtitle\": \"Shipping disruption, week 42\",\n  \"tlp\": \"AMBER\",\n  \"visibility\": \"private\",\n  \"source\": {\n    \"type\": \"tag\",\n    \"ref\": \"tag:{{tagId}}\"\n  },\n  \"template\": \"custom\",\n  \"blocks\": [\n    {\n      \"type\": \"markdown\",\n      \"markdown\": \"Analyst notes.\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -39144,7 +39157,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('reportId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -39186,7 +39202,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"source\": {\n    \"type\": \"tag\",\n    \"ref\": \"tag:{{tagId}}\"\n  },\n  \"template\": \"situation-brief\",\n  \"title\": \"Red Sea weekly\",\n  \"narrative\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -39269,7 +39285,7 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/merge-patch+json"
               }
             ],
             "url": {
@@ -39297,7 +39313,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"subtitle\": \"Shipping disruption, week 42 (rev.)\",\n  \"status\": \"review\",\n  \"version\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -39355,7 +39371,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('blockId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -39405,7 +39424,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"type\": \"bluf\",\n  \"judgments\": [\n    {\n      \"text\": \"Coalition response within 7 days.\",\n      \"probability\": 0.7,\n      \"hypothesisSetRef\": \"hypothesis-set:{{hypothesisSetId}}\",\n      \"confidence\": \"moderate\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -39436,7 +39455,7 @@
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/merge-patch+json"
               }
             ],
             "url": {
@@ -39466,7 +39485,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"title\": \"Bottom line up front\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -39616,7 +39635,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"reason\": \"Superseded by the 06:00 imagery pass.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -39802,7 +39821,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"principals\": [\n    \"{{principalId}}\"\n  ],\n  \"groups\": [\n    \"{{groupId}}\"\n  ],\n  \"channels\": [],\n  \"message\": \"Weekly report for your review.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -39862,7 +39881,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"expiresAt\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -52267,6 +52286,22 @@
     },
     {
       "key": "savedSearchId",
+      "value": ""
+    },
+    {
+      "key": "reportId",
+      "value": ""
+    },
+    {
+      "key": "blockId",
+      "value": ""
+    },
+    {
+      "key": "packageId",
+      "value": ""
+    },
+    {
+      "key": "receivedId",
       "value": ""
     },
     {

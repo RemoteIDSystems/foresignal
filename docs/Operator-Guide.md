@@ -5436,7 +5436,8 @@ File → New Calendar Subscription; in Google Calendar: Other calendars → From
 
 `POST /v1/share-links` (agent token) creates an expiring link (default 7 days, at most 30) to one `record`,
 `alert`, `view`, `track`, `briefing-run` or `export` (a workspace is shared with `POST /v1/workspaces/{id}/share`,
-see "Objects, workspaces and validation", and only while its TLP label is `CLEAR`); the `fss_` key is returned once and only its hash is stored. The link works without a token, only at `GET /v1/k/{key}` (JSON, or GeoJSON with
+see "Objects, workspaces and validation", and only while its TLP label is `CLEAR`; a published report with
+`POST /v1/reports/{id}/share-link`, see "Reports and exchange"); the `fss_` key is returned once and only its hash is stored. The link works without a token, only at `GET /v1/k/{key}` (JSON, or GeoJSON with
 `Accept: application/geo+json`), `/v1/k/{key}/geojson`, `/v1/k/{key}/tiles/{z}/{x}/{y}.mvt` (views) and
 `/v1/k/{key}/download` (exports); it is never accepted as a bearer token. Uses are counted (`maxUses`), limited to
 60 a minute per link, and audited (the first use and then at most one an hour); a revoked, expired or used-up link
@@ -6980,8 +6981,8 @@ Every object has a reference of the form `{type}:{id}`: `record:{sourceId}/{exte
 `alert:{id}`, `investigation:{id}`, `place:{id}`, `view:{id}`, `watchlist:{id}`, `source:{id}`,
 `sensor:{kind}:{id}`, `workspace:{id}` and `annotation:{id}`, and since prompt 130 `principal:{id or handle}`,
 `group:{id}`, `tag:{id}`, `attachment:{id}`, `evidence-item:{id}` and `saved-search:{id}`. `GET /v1/contract` (read)
-lists the types, the relation types, the confidence labels and the client kinds with the contract version (`1.2`
-since prompt 131 added `chronicle:{id}`).
+lists the types, the relation types, the confidence labels and the client kinds with the contract version (`1.3`
+since prompt 132 added `report:{id}` and `remote:{instanceId}/{type}:{id}`; `1.2` added `chronicle:{id}` in prompt 131).
 
 In a URL path the reference is one segment, so its `/` is written `%2F`
 (`GET /v1/objects/record:usgs-quakes%2Fus7000abcd`). Foresignal's Tomcat connector passes encoded slashes through for
@@ -7110,7 +7111,7 @@ analyst's read catalog), `annotate` (read for notes, agent for verdicts) and `se
 Foresignal can serve several named people and agents on one instance without becoming a user directory. Everyone
 works through a **principal** that holds scoped tokens; there are no passwords. Records and analytic objects stay
 readable per scope as before; **work products** (investigations, workspaces, saved searches, notes, attachments,
-evidence items, shared tags, chronicles (prompt 131) and the reports of later prompts) get an owner, an access list and
+evidence items, shared tags, chronicles (prompt 131) and reports (prompt 132)) get an owner, an access list and
 a TLP label.
 
 ### Principals and their tokens
@@ -7393,3 +7394,95 @@ and workspace and may export, but not change it. `POST /v1/chronicles/{id}/expor
 `chronicle.autoActivateCapGb` (5); deployment properties under `foresignal.chronicles`: `auto-start`, `poll-interval`
 (2 s), `chunk-seqs` (10,000), `first-appearances-per-hour` (20), `series-sample-interval` (15 min),
 `retention-scheduled` and `async-jobs`.
+
+## Reports and exchange (prompt 132)
+
+A **report** is a finished intelligence product: a titled, TLP-labeled document of ordered **blocks**, drafted from
+what Foresignal already holds, edited by people, published as a frozen revision and sent to principals on this
+instance or, as a signed **package**, to analysts on other instances. A report is a 130 work product: it has an
+owner, an access list and a TLP label, and without a role it answers `404 UNKNOWN_REPORT`. Display ids
+(`RPT-2026-0012`) work in every report path. MCP: `list_reports`, `get_report`, `draft_report` and `send_report`.
+
+### Drafting
+
+`POST /v1/reports/draft` (any authenticated token) builds a draft deterministically from a `source` and a
+`template`; `POST /v1/reports` creates one from your own blocks.
+
+| Template | Typical source | What the draft holds |
+|---|---|---|
+| `situation-brief` | `situation` | bottom line, members, map, timeline, linked hypotheses and forecasts, coverage |
+| `investigation-summary` | `investigation` | the items, evidence, timeline and coverage |
+| `chronicle-recap` | `chronicle` | the thread over the time window, capture gaps and cap fallbacks as caveats |
+| `weekly-assessment` | none (the latest weekly assessment) | the assessment's judgments, hypotheses and forecasts |
+| `custom` | `selection`, `tag` or `workspace` | the objects, a map and a timeline |
+
+Block types: `markdown`, `bluf`, `objects`, `map`, `timeline`, `hypotheses`, `forecasts`, `evidence`, `coverage`,
+`attachments` and `sources`. Every block says where its text came from (`author`, `deterministic` or `llm`), and a
+probability in a judgment carries its ICD 203 term. The `coverage` block lists caveats: `CAPTURE_GAP` from a
+chronicle, `UNRESOLVED_REFERENCES` for objects that no longer resolve, and `MEDIA_COVERAGE_UNAVAILABLE` until media
+coverage exists. `"narrative": true` adds a labeled LLM narrative block, whose citations are verified against the
+report's objects; it needs an agent token (`403 INSUFFICIENT_SCOPE` otherwise) and a chat provider
+(`409 LLM_NOT_CONFIGURED`). Edit with `PATCH /v1/reports/{id}` (merge patch) and `POST`, `PATCH` and
+`DELETE /v1/reports/{id}/blocks[/{blockId}]`; send the version you hold in `If-Match` (or `version`), and a stale one
+answers `409 REPORT_VERSION_CONFLICT`. Comments go on a block as notes on `report:{id}#{blockId}`.
+
+### Publishing and retracting
+
+`POST /v1/reports/{id}/publish` freezes a revision: the object references are pinned to the versions read (records as
+`@seq`), the map is rendered to an image (or a caveat when rendering is unavailable), the `sources` block is
+regenerated from the cited objects, and a 116 manifest is stored with the bundle's SHA-256.
+`GET /v1/reports/{id}/rendition?format=md|html|json` serves the latest revision (a draft is a labeled preview); the
+HTML prints the TLP label at the top and the bottom and the footer "Automated analysis inputs; verify before acting".
+`GET /v1/reports/{id}/revisions` lists the revisions. `POST /v1/reports/{id}/retract` with a `reason` withdraws the
+report: its key links stop working and every recipient gets `report.retracted`.
+
+### Sending on this instance
+
+`POST /v1/reports/{id}/send` (agent) takes `principals`, `groups`, optional `channels` and a `message`. Each recipient
+is checked against the TLP rules of 130, given viewer access, and told with `report.received` in the inbox, on the
+`me` topic and on their own notification preferences (category `report`). A published `CLEAR` report can also get a
+public read-only link (`POST /v1/reports/{id}/share-link`, agent), served as HTML at `GET /v1/k/{key}/report`;
+`GREEN` reports get one only with the app setting `exchange.allowGreenLinks` set to `true`, and `AMBER`, `AMBER+STRICT`
+and `RED` never do (`403 TLP_VIOLATION`). A report made stricter, returned to draft or retracted stops being served
+through its links.
+
+### Exchange packages
+
+`POST /v1/exchange/packages` (agent) builds a ZIP package of the object named by `objectRef`: a report, an
+investigation, an evidence item, a chronicle (a `chronicle-extract`, with `extract: {from, to, layers}`), or a received
+`remote:` reference to forward. `recipients` is `"*"` or a
+list of `{instanceId, principals}` (`"*"` among principals for anyone there); the 130 TLP table's last column decides
+what each label allows, with a peer's `sameOperator` standing for the owner's organization. The package carries
+`manifest.json` (type, title, sender, authors, TLP, recipients, content hashes, message and provenance chain), a
+detached Ed25519 JWS over it signed with the 109 instance key, and the content with its renditions. Data the egress
+policy keeps at home (private sources, `LOCAL_ONLY` licenses) is reduced to counts. A package larger than
+`exchange.maxPackageMb` (default 200) is refused with `413 PACKAGE_TOO_LARGE`. With `"deliver": "peer"` it is posted to
+each recipient instance that is a configured peer (`"file"` only keeps it); `GET /v1/exchange/packages/{id}/download` gives the ZIP to hand
+over by other means, and `GET /v1/exchange/sent` lists what you sent with the receipts that came back.
+
+**Setting up a peer for exchange.** Each side creates a 113 peer for the other and rotates its ingest key
+(`POST /v1/peers/{id}/ingest-key`), then gives that `fsp_` key to the other operator. Each stores the key it received
+as the peer's `exchangeKey` (`PUT /v1/peers/{id}` with `"exchangeKey": "fsp_…"`; stored encrypted, never returned,
+`exchangeKeySet` shows it is there). Deliveries go to `/v1/exchange/inbox` and receipts to `/v1/exchange/receipts`
+with that key.
+
+### Receiving
+
+A delivered or imported package is verified before anything is stored: the signature against the sender's keys (a
+JWKS pinned at import, then a sender key stored earlier, then the peer's pinned key, then the peer's JWKS), every
+content hash, and the recipients (`422 PACKAGE_RECIPIENT_UNKNOWN` when a named principal does not exist here).
+A failing signature is `400 PACKAGE_SIGNATURE_INVALID`; a package already imported is `409 PACKAGE_ALREADY_IMPORTED`; a
+package whose provenance chain already names this instance is `409 PACKAGE_LOOP`. An admin imports a package from a
+file with `POST /v1/exchange/import` (multipart `file`, and `jwks` with the sender's published JWKS to pin its keys on
+first contact).
+
+`GET /v1/exchange/received` lists what reached you (named recipients, or everyone for `"*"`; admins see every package
+except `RED` ones not addressed to them). `GET /v1/exchange/received/{id}/rendition` renders it here from the
+package's content, sanitized and always marked with its origin; the sender's own HTML is never served.
+`POST /v1/exchange/received/{id}/acknowledge` records your acknowledgement and sends a signed receipt back. Received
+objects are addressed as `remote:{instanceId}/{type}:{id}`: they are read-only, can be added to an investigation
+(audited as a copy of a received item), and can be forwarded only within their TLP. Recipients get
+`package.received`.
+
+**Settings.** App settings `exchange.maxPackageMb` (200) and `exchange.allowGreenLinks` (`false`). Sent and received
+packages are stored under `${FORESIGNAL_DATA_DIR}/exchange/`; include it in your backups.

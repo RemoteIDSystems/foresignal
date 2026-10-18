@@ -1,6 +1,6 @@
 # Foresignal — Client Contract (v1)
 
-How applications built on Foresignal name, fetch, relate, annotate and share focus on the same objects. It is the reference for every frontend (3D globe, 2D map, analyst workstation, satellite and RF consoles, mobile, embedded widgets) and for agents. Prompt 129 implements it, prompt 130 adds collaboration (principals, access lists, TLP, tags, comment threads, attachments, evidence items and saved searches), prompt 131 adds chronicles (monitoring threads with their own recorded history), and prompt 141's SDKs ship helpers for it. `GET /v1/contract` reports the versions in force.
+How applications built on Foresignal name, fetch, relate, annotate and share focus on the same objects. It is the reference for every frontend (3D globe, 2D map, analyst workstation, satellite and RF consoles, mobile, embedded widgets) and for agents. Prompt 129 implements it, prompt 130 adds collaboration (principals, access lists, TLP, tags, comment threads, attachments, evidence items and saved searches), prompt 131 adds chronicles (monitoring threads with their own recorded history), prompt 132 adds reports and the exchange of signed intelligence packages between instances, and prompt 141's SDKs ship helpers for it. `GET /v1/contract` reports the versions in force.
 
 ---
 
@@ -38,12 +38,12 @@ Grammar: `{type}:{id}`. Ids are opaque to clients; compare references as strings
 | `principal` | ULID (the handle also accepted) | `principal:jsmith` | 023, 130 |
 | `group`, `tag`, `attachment`, `evidence-item`, `saved-search` | ULID | `evidence-item:01J…` | 130 |
 | `chronicle` | ULID (display id `CHR-yyyy-nnnn` also accepted) | `chronicle:01J…` | 131 |
-| `report` | ULID (display id `RPT-yyyy-nnnn`) | `report:01J…` | 132 |
+| `report` | ULID (display id `RPT-yyyy-nnnn` also accepted) | `report:01J…` | 132 |
 | `news-story`, `outlet` | ULID / id | `news-story:01J…` | 133 |
 | `narrative`, `claim`, `social-comparison` | ULID | `narrative:01J…` | 136, 137 |
 | `remote` | `{instanceId}/{type}:{id}`, read-only material received from another instance | `remote:fs-eu-1/report:01J…` | 132 |
 
-A type is accepted from the prompt that owns it on: `GET /v1/contract` lists the types in force (contract 1.2: the 23 types of prompt 129, the six of prompt 130 and `chronicle` of prompt 131; prompts 132–137 add theirs with a contract minor version bump). Unknown types and malformed ids are rejected with `400 OBJECT_REF_INVALID`. A reference to an object that does not exist, did not exist at `asOf`, or that the caller may not see is `404 UNKNOWN_OBJECT`: private and unshared objects are invisible, not forbidden.
+A type is accepted from the prompt that owns it on: `GET /v1/contract` lists the types in force (contract 1.3: the 23 types of prompt 129, the six of prompt 130, `chronicle` of prompt 131, and `report` and `remote` of prompt 132; prompts 133–137 add theirs with a contract minor version bump). Unknown types and malformed ids are rejected with `400 OBJECT_REF_INVALID`. A reference to an object that does not exist, did not exist at `asOf`, or that the caller may not see is `404 UNKNOWN_OBJECT`: private and unshared objects are invisible, not forbidden.
 
 ## 3. Object envelope
 
@@ -79,7 +79,7 @@ Every type resolves to the same envelope (`GET /v1/objects/{ref}`, `POST /v1/obj
 - `summary` is at most 280 characters; `textOrigin` says whether it is deterministic or LLM-written (an alert's enrichment summary is `llm`).
 - `geometry` is simplified to at most 500 vertices (topology-preserving), or a point; `bbox` is the unsimplified extent.
 - `tags` lists the names of the caller's visible tags (its personal tags and the shared tags it may see, §10).
-- `tlp` is the TLP 2.0 label of a work product (§10) and `null` for data and analytic objects. A work product the caller may not see is not returned at all.
+- `tlp` is the TLP 2.0 label of a work product (§10) and of received material (`remote:`, §12), and `null` for data and analytic objects. A work product the caller may not see is not returned at all.
 - **`asOf`** (transaction time) is honored for records (the version known then, `400 ASOF_BEYOND_RETENTION` beyond the source's horizon) and situations (status and severity from the daily snapshot on or before that day). Every other type exists at `asOf` only if it was created by then and otherwise shows its current state. A record reference with `@{seq}` always resolves to that version.
 - **`actions`** list only what the **calling token** may do with this object, from the access policy and the object's state, so clients render buttons from them instead of hard-coding permissions:
 
@@ -93,7 +93,7 @@ Every type resolves to the same envelope (`GET /v1/objects/{ref}`, `POST /v1/obj
 | `acknowledge` | agent | a `firing` alert | `POST /v1/alerts/{id}/ack` |
 | `open-investigation` | agent | records, canonical events, intel events, situations, findings, alerts (not when dismissed) | `POST /v1/investigations` |
 | `delete` | admin | workspaces, annotations | `DELETE` on the object |
-| `share` | owner or editor of a work product | investigations, workspaces, chronicles, saved searches, notes, attachments, evidence items, shared tags | `POST /v1/objects/{ref}/share` (agent) |
+| `share` | owner or editor of a work product | investigations, workspaces, chronicles, reports, saved searches, notes, attachments, evidence items, shared tags | `POST /v1/objects/{ref}/share` (agent) |
 | `edit-acl` | owner or editor of a work product | the same | `PUT /v1/objects/{ref}/acl` (agent) |
 
 Anonymous callers (`openReads`) get no actions and see no work products. Principals, groups, tags and saved searches are not annotated or added to workspaces.
@@ -246,8 +246,16 @@ A chronicle is a saved, shareable monitoring thread: a bundle of **layers** over
 
 ## 12. Reports and exchange (prompt 132)
 
-- Build a report from the current selection, a tag, an investigation, a chronicle or a situation (`/v1/reports/draft`); edit blocks; publish to freeze a revision with pinned references; download Markdown, HTML or the JSON bundle.
-- Send to principals and groups here, or as a signed package to principals on other instances; received material appears under `remote:` references, read-only, with sender, authors, signature status and TLP.
+A report is a work product (§10): owned by its creator, `private` by default, with its other authors as editors, an access list and a TLP label that is never weaker than the strictest label of what it cites or the object it was built from (a request to label it lower is `403 TLP_VIOLATION`). `report:{id}` refs (also by display id, `RPT-yyyy-nnnn`) resolve to envelopes and appear in `/v1/shared-with-me`.
+
+- **Draft** from the current selection, a tag, an investigation, a chronicle, a situation or a workspace (`POST /v1/reports/draft {source, template}`; templates `situation-brief`, `investigation-summary`, `chronicle-recap`, `weekly-assessment` with `assessmentId`, `custom`). The draft is deterministic and needs no LLM: key judgments from the linked hypothesis sets' leading hypotheses and the linked questions' ensembles, a summary, a timeline, the cited objects, maps, hypothesis and forecast snapshots, graded evidence items and coverage caveats. With `narrative=true` (agent scope, a configured chat provider and budget; `409 LLM_NOT_CONFIGURED` otherwise) a narrative block labeled `textOrigin: llm` is added, whose citations were checked against the cited objects and tool results; edit or delete it like any block. Blank reports start with `POST /v1/reports`.
+- **Blocks** are ordered and typed: `markdown` (may link objects as `[[ref]]`), `bluf` (key judgments; a judgment with a probability must reference a ledger question or a hypothesis set, and its ICD 203 term is derived, never typed), `objects`, `map` (layers, area or bbox, time range), `timeline`, `hypotheses`, `forecasts`, `evidence` (Admiralty grades), `coverage` (caveats), `attachments` and `sources` (regenerated at publication from the cited sources' attribution and licenses). Every block has an `id`; comment on the report with an annotation on `report:{id}`, or on one block with an annotation on `report:{id}#{blockId}` (percent-encode `#` as `%23` in a path).
+- **Edit** with a JSON merge patch (`PATCH /v1/reports/{id}`, editors) and block operations (`POST /v1/reports/{id}/blocks?after`, `PATCH|DELETE /v1/reports/{id}/blocks/{blockId}`). `version` is the draft's optimistic lock (body `version` or `If-Match` with the ETag); a stale one is `409 REPORT_VERSION_CONFLICT`, as is any edit while the report is not `draft` or `review`.
+- **Publish** (`POST /v1/reports/{id}/publish`, editors) freezes an immutable revision as the publisher sees it: every reference is pinned (`@{seq}` for records), envelopes and snapshots are stored, maps are rendered and stored as attachments (or carry a `caveat`), and Markdown, HTML and the JSON bundle are written once. Renditions (`GET /v1/reports/{id}/rendition?format=md|html|json&revision`; `draft=true` previews the draft) carry the TLP banner at the top and bottom of every page and, when any block is machine-generated, the footer "Automated analysis inputs; verify before acting". To change a published report, set `status` back to `draft`, edit, and publish the next revision; earlier revisions never change (`GET /v1/reports/{id}/revisions`). `retract` (owner) marks a revision withdrawn and notifies everyone it was sent to (`report.retracted`).
+- **Send here** (`POST /v1/reports/{id}/send {principals, groups, channels, message}`, owner or editor, agent scope): each grantee gets the viewer role and a `report.received` notice through their own preferences; `channels` must be recipients' own personal channels. TLP is checked for every recipient; one refusal refuses the send.
+- **Read-only links** (`POST /v1/reports/{id}/share-link`, owner): a 112 key serving the latest published HTML at `/v1/k/{key}/report`, only for `CLEAR` reports (or `GREEN` when the instance allows it). A retracted or relabeled report stops being served.
+- **Send to other instances** as a signed intelligence package (`POST /v1/exchange/packages {objectRef, recipients, deliver}`; a published report, an investigation, an evidence item, a chronicle extract or received material being forwarded). `recipients` names principal handles per instance, or `*` for GREEN and CLEAR. The package's manifest is signed with the instance key (109), private and `LOCAL_ONLY` material is reduced to counts (`reductions`), and it is delivered to the instances' 113 peers or downloaded (`GET /v1/exchange/packages/{id}/download`) and handed over. A received package never goes back to an instance it came from (`409 PACKAGE_LOOP`); a forward keeps the original authors and adds the forwarder.
+- **Received material** (`GET /v1/exchange/received`, `/{id}`, `/{id}/rendition`) is read-only and visible only to its named recipients (`RED`: to them alone), or to everyone for `*`. It appears under `remote:{instanceId}/{type}:{id}` references with the sender's envelope snapshots, its renditions are rendered locally and marked with their origin, and it never enters local evidence, ledger or analytic tables; copying an item into a local investigation (an `object` item with the `remote:` ref) is a deliberate, logged act that keeps its origin and label. Show the sender, authors, signature status and TLP; acknowledge with `POST /v1/exchange/received/{id}/acknowledge`. Recipients are notified with `package.received`.
 - Never render a received report as if it were local analysis; show its origin.
 
 ## 13. News coverage display (prompt 133)
@@ -279,5 +287,5 @@ A chronicle is a saved, shareable monitoring thread: a bundle of **layers** over
 
 ## 17. Versioning
 
-- `GET /v1/contract` → `{contractVersion, objectTypes, relationTypes, contextSchemaVersion, deepLinkVersion}` (today `1.2`, the 30 types of §2 owned by prompts up to 131, the 15 relation types of §4, `1`, `1`).
+- `GET /v1/contract` → `{contractVersion, objectTypes, relationTypes, contextSchemaVersion, deepLinkVersion}` (today `1.3`, the 32 types of §2 owned by prompts up to 132, the 15 relation types of §4, `1`, `1`).
 - Within `/v1`, changes are additive (new types, relation types, optional context fields). Removing or renaming anything requires a new major contract version and a deprecation period announced through `Deprecation` headers.

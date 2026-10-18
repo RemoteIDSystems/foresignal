@@ -83,6 +83,12 @@ public class PeerEntity {
     @Column(name = "ingest_key_prefix", length = 16)
     private String ingestKeyPrefix;
 
+    @Column(name = "exchange_key_ciphertext")
+    private byte[] exchangeKeyCiphertext;
+
+    @Column(name = "exchange_key_nonce")
+    private byte[] exchangeKeyNonce;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -279,6 +285,25 @@ public class PeerEntity {
     public void setIngestKey(String hash, String prefix) {
         this.ingestKeyHash = hash;
         this.ingestKeyPrefix = prefix;
+    }
+
+    /** The encrypted exchange key (prompt 132), or null. */
+    public byte[] getExchangeKeyCiphertext() {
+        return exchangeKeyCiphertext;
+    }
+
+    /** The nonce of the encrypted exchange key, or null. */
+    public byte[] getExchangeKeyNonce() {
+        return exchangeKeyNonce;
+    }
+
+    /**
+     * Sets the encrypted exchange key (prompt 132): the {@code fsp_} ingest key the remote instance issued to this one,
+     * sent as the Bearer token of {@code POST {baseUrl}/v1/exchange/inbox} and {@code /v1/exchange/receipts}.
+     */
+    public void setExchangeKey(byte[] ciphertext, byte[] nonce) {
+        this.exchangeKeyCiphertext = ciphertext;
+        this.exchangeKeyNonce = nonce;
     }
 
     /** When the peer was created. */

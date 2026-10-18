@@ -81,7 +81,8 @@ Two Server-Sent Events endpoints push changes as they are committed (typically w
 - `GET /v1/events/stream` multiplexes topics on one connection: `topics=changes,alerts`, and
   `notifications`, `system`, `inbox`, `intel`, `evidence`, `analyst`, `situations`, `analytics`, `forecasts`,
   `hypotheses`, `assessments`, `workspace`, `me` (130: the caller's own `share.received`, `mention`,
-  `comment.reply` and `saved-search.matches`, resumable by id) and `chronicle` (131: `chronicle.item` and
+  `comment.reply` and `saved-search.matches`; 132: `report.received`, `package.received` and `report.retracted`;
+  resumable by id) and `chronicle` (131: `chronicle.item` and
   `chronicle.status` of the chronicles the caller can see, filter `chronicle.chronicleId`) as their prompts add them. Filters take the topic as a prefix
   (`changes.bbox=…`, `changes.live=false`, `alerts.minSeverity=warning`). The first event is `hello {streamId, topics,
   watermarkSeq, filterVersion}`. The filter can be swapped without reconnecting (below).
@@ -709,6 +710,10 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `get_chronicle_state` | read, always authenticated | What a chronicle recorded at a moment (131): `chronicleId`, `at`, optional `layer`, `cursor`, `limit`. Per layer, the latest captured version of each entity observed and known by then and still valid, from the chronicle's own storage (independent of global retention), with `caveats` such as `CAPTURE_GAP` and `BEFORE_CAPTURE`. |
 | `create_chronicle` | agent | Creates a chronicle you own (131): `name`, optional `description`, `visibility`, `tlp`, `area`, `retention`, `sizeCapBytes`, links (`situationIds`, `hypothesisSetIds`, `investigationIds`, `topicIds`), `layers` (selector, optional `areaOverride`, `capture`) and `activate`. It stays `proposed` (no capture) unless `activate` is true. |
 | `add_chronicle_layer` | agent | Adds a layer to a chronicle you may edit (131): `chronicleId`, `name`, `selector`, optional `areaOverride`, `capture`, `enabled`. Capture for the layer starts from now; earlier history is not copied. |
+| `list_reports` | read, always authenticated | The reports you own, author or that are shared with you (132): `status` (`draft`, `review`, `published`, `retracted`), `scope` (`mine`, `shared`, `all`), `sourceRef`, `limit`; each with its TLP label, template, source, blocks and latest published revision. |
+| `get_report` | read, always authenticated | One report (`reportId` or its display id `RPT-yyyy-nnnn`) with its ordered blocks (key judgments with ICD 203 terms, pinned objects, maps, timelines, hypothesis and forecast snapshots, graded evidence, caveats, sources); `markdown: true` adds the latest published revision as Markdown, TLP banner included (132). |
+| `draft_report` | agent, cost-bearing with `narrative` | Builds and stores a deterministic report draft (132) from a `source` (`selection` with `refs`, or `tag`, `investigation`, `chronicle`, `situation`, `workspace` with `ref`) and a `template` (`situation-brief`, `investigation-summary`, `chronicle-recap`, `weekly-assessment` with `assessmentId`, `custom`). `narrative: true` adds an LLM narrative block labeled `llm` whose citations were verified. Nothing is published or sent. |
+| `send_report` | agent | Sends a published report to principals (ids or handles) and groups on this instance (132), with an optional `message` and the recipients' own `channels`; each recipient gets viewer access and `report.received`. The report's TLP label is checked for every recipient (`TLP_VIOLATION` names the rule). |
 | `list_products` | read | The weather and imagery products you may sample: `id`, `title`, `kind`, `units`, `coverage`, `latest` (newest frame or complete run) and `health` (`ok`, or `unavailable` with the reason); optional `category` (052). |
 | `sample_weather` | read | Product values at `lon`/`lat` or a `place` (needs a token), `time` `latest`, `now`, ISO or an offset (`-PT1H`, `+PT6H`), each with `validTime`, `localTime`, `ageMinutes`, `run`, `coverage` and `status`; plus `hazards`: NWS alerts covering the point (`automated: false`) and ProbSevere objects within 50 km (`automated: true`). A status other than `ok` is unknown, never clear (052). |
 | `weather_forecast` | read | A 3-hourly point forecast to 120 h (`hours`) from the stored GFS and HRRR runs: temperature, wind, gusts, precipitation per step and HRRR smoke, with each provider's `run` and `status` (052). For a place it adds provider `nws` (053): the official NWS gridpoint forecast to 72 h with precipitation probability (`popPct`) and sky cover, `coverage: place`, its `updatedAt`, and `status` `stale` once it is more than 6 hours old. |
@@ -840,6 +845,26 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 - **Chronicles are work products.** They are private until shared, carry a TLP label, and their exports print it;
   apply the collaboration rules above.
 
+### Reports and exchange
+
+- **Draft deterministically, then edit.** `draft_report` builds the blocks from the source without a model; read the
+  draft (`get_report`), fix what is wrong with block edits (`PATCH /v1/reports/{id}/blocks/{blockId}`) and leave
+  publishing to the author unless the operator asked you to publish. Ask for `narrative: true` only when a narrative is
+  wanted: it spends LLM budget, and the block stays labeled `llm` even after edits.
+- **Key judgments carry their basis.** A judgment with a probability must reference a ledger question or a hypothesis
+  set; its ICD 203 term is derived from the number, never typed. Keep likelihood and confidence in separate sentences,
+  as everywhere else.
+- **Cite pinned versions.** A published revision pins every reference (`record:…@seq`) and stores the snapshots it
+  showed; when you quote a report, quote its revision (`RPT-2026-0012 revision 2`) and its TLP label. A retracted
+  revision is withdrawn: say so if you mention it.
+- **TLP bounds every send.** `send_report`, report links and packages are checked per recipient; a `TLP_VIOLATION`
+  names the rule. Never work around it by copying text elsewhere.
+- **Received material is not local analysis.** Packages from other instances appear under `remote:{instanceId}/…`
+  references, read-only, with their sender, authors, signature status and TLP. Say where such material came from when
+  you use it, never count it as local evidence or as an independent confirmation, and copy an item into a local
+  investigation only when the operator asks (the copy is logged and keeps its origin).
+
+
 ### Vocabulary
 
 - A **watch** is a trigger rule: conditions on sources, kinds, payload fields and geofences. When a record matches, the watch raises an **alert**, which can be acknowledged, resolved or snoozed.
@@ -847,10 +872,13 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 - An **object reference** (`ObjectRef`, prompt 129) names any object as `{type}:{id}`; a record's is
   `record:{sourceId}/{externalId}` (with `@{seq}` for one version).
 - A **principal** (prompt 130) is the person, agent or service behind a token. A **work product** (investigation,
-  workspace, chronicle, saved search, note, attachment, evidence item, shared tag) has an owner, an access list and a
+  workspace, chronicle, report, saved search, note, attachment, evidence item, shared tag) has an owner, an access list and a
   **TLP** label (`CLEAR`, `GREEN`, `AMBER`, `AMBER+STRICT`, `RED`); without access it is invisible.
 - A **chronicle** (prompt 131) is a named monitoring thread whose layers record their own history while it is active;
   `chronicle:{id}` (or `CHR-yyyy-nnnn`) names it.
+- A **report** (prompt 132) is an analyst work product published as immutable revisions; `report:{id}` (or
+  `RPT-yyyy-nnnn`) names it. A **remote** reference (`remote:{instanceId}/{type}:{id}`) names read-only material
+  received from another instance in a signed package.
 
 ### Citing
 
@@ -1065,6 +1093,8 @@ OpenClaw skill in `integrations/openclaw/foresignal/` packages the same knowledg
 | Share a work product, change its access list, create groups | `agent` (and the owner's or an editor's role) | |
 | Read chronicles, their threads and replay | `read` (a token, and the chronicle's viewer role) | |
 | Create chronicles, add layers, change their lifecycle | `agent` (and the owner's or an editor's role) | |
+| Read reports and received packages; create, edit and publish reports | `read` (a token, and the report's viewer or editor role; received packages: a named recipient) | |
+| Draft reports, send them, build exchange packages | `agent` (and the report's editor role; a narrative needs an LLM provider) | |
 | Push records into a custom source | the source's ingest key (`eik_…`) | the source (admin) |
 | Channels, sources, credentials, LLM providers, tokens, settings | `admin` | never an agent |
 

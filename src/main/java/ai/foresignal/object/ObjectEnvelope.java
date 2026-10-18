@@ -82,7 +82,7 @@ public record ObjectEnvelope(
      * This envelope with the collaboration fields of prompt 130.
      *
      * @param newTags the caller's visible tag names
-     * @param newTlp the TLP label, or null
+     * @param newTlp the TLP label, or null to keep the resolver's label (received material, prompt 132)
      * @param extraActions access-list actions appended to the existing ones
      * @return the new envelope
      */
@@ -92,7 +92,8 @@ public record ObjectEnvelope(
             all.addAll(extraActions);
         }
         return new ObjectEnvelope(ref, type, title, summary, textOrigin, status, severity, time, geometry, bbox,
-                privateObject, newTlp, newTags == null ? List.of() : List.copyOf(newTags), provenance, links,
+                privateObject, newTlp != null ? newTlp : tlp, newTags == null ? List.of() : List.copyOf(newTags),
+                provenance, links,
                 List.copyOf(all));
     }
 
@@ -120,6 +121,7 @@ public record ObjectEnvelope(
         private boolean privateObject;
         private Provenance provenance = Provenance.NONE;
         private String self;
+        private String tlp;
 
         private Builder(ObjectRef ref) {
             this.ref = ref;
@@ -193,6 +195,15 @@ public record ObjectEnvelope(
             return this;
         }
 
+        /**
+         * The TLP label set by the resolver itself, for objects whose label is not in the 130 registry (received
+         * material, prompt 132); null otherwise.
+         */
+        public Builder tlp(String value) {
+            this.tlp = value;
+            return this;
+        }
+
         /** The type-specific API path. */
         public Builder self(String path) {
             this.self = path;
@@ -209,7 +220,7 @@ public record ObjectEnvelope(
             links.put("related", "/v1/objects/" + text + "/related");
             String t = title == null || title.isBlank() ? text : title.strip();
             return new ObjectEnvelope(text, ref.type(), t, summary, textOrigin, status, severity, time, geometry,
-                    bbox, privateObject, null, List.of(), provenance, Map.copyOf(links), List.of());
+                    bbox, privateObject, tlp, List.of(), provenance, Map.copyOf(links), List.of());
         }
 
         private static String clip(String value) {

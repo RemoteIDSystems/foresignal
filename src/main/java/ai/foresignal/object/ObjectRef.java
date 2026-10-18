@@ -87,6 +87,8 @@ public record ObjectRef(String type, String id) {
             if (c <= 0 || c == id.length() - 1 || !SENSOR_KINDS.contains(id.substring(0, c))) {
                 throw invalid(field, "sensor refs are sensor:{kind}:{id} with kind one of " + SENSOR_KINDS);
             }
+        } else if (ObjectTypes.REMOTE.equals(type)) {
+            ref.checkRemote(field);
         }
         return ref;
     }
@@ -170,6 +172,56 @@ public record ObjectRef(String type, String id) {
     /** The kind-specific id of a sensor reference. */
     public String sensorId() {
         return id.substring(id.indexOf(':') + 1);
+    }
+
+    /** True for a {@code remote:{instanceId}/{type}:{id}} reference (prompt 132). */
+    public boolean isRemote() {
+        return ObjectTypes.REMOTE.equals(type);
+    }
+
+    /** The sending instance of a remote reference. */
+    public String remoteInstanceId() {
+        requireRemote();
+        return id.substring(0, id.indexOf('/'));
+    }
+
+    /** The reference on the sending instance ({@code {type}:{id}}) of a remote reference. */
+    public String remoteRef() {
+        requireRemote();
+        return id.substring(id.indexOf('/') + 1);
+    }
+
+    /**
+     * The remote reference of {@code ref} as received from {@code instanceId} (prompt 132).
+     *
+     * @param instanceId the sending instance
+     * @param ref the reference on that instance
+     * @return {@code remote:{instanceId}/{ref}}
+     */
+    public static ObjectRef remote(String instanceId, String ref) {
+        return parse(ObjectTypes.REMOTE + ":" + instanceId + "/" + ref);
+    }
+
+    private void requireRemote() {
+        if (!isRemote()) {
+            throw new IllegalStateException("not a remote reference: " + this);
+        }
+    }
+
+    private void checkRemote(String field) {
+        int slash = id.indexOf('/');
+        if (slash <= 0 || slash == id.length() - 1) {
+            throw invalid(field, "remote refs are remote:{instanceId}/{type}:{id}");
+        }
+        String inner = id.substring(slash + 1);
+        int colon = inner.indexOf(':');
+        if (colon <= 0 || colon == inner.length() - 1) {
+            throw invalid(field, "remote refs are remote:{instanceId}/{type}:{id}");
+        }
+        String innerType = inner.substring(0, colon);
+        if (!ObjectTypes.isType(innerType) || ObjectTypes.REMOTE.equals(innerType)) {
+            throw invalid(field, "a remote ref names a known object type other than remote");
+        }
     }
 
     private void requireRecord() {

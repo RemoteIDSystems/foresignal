@@ -567,6 +567,11 @@
         "version": "1.3.0",
         "date": "2026-10-17",
         "note": "131: listChronicles, createChronicle, suggestChronicle, getChronicle, updateChronicle, deleteChronicle, createChronicleLayer, updateChronicleLayer, deleteChronicleLayer, activateChronicle, pauseChronicle, resumeChronicle, stopChronicle, archiveChronicle, restoreChronicle, getChronicleEstimate, exportChronicle, getChronicleThread, markChronicleThreadRead, getChronicleState, getChronicleTile, getChronicleFrames, getChronicleTrack, getChronicleSeries and getChronicleSummary are implemented, with the SSE topic chronicle (chronicle.item, chronicle.status; cursor key k; filter chronicle.chronicleId), contract 1.2 (object type chronicle), chronicles as a shareable type (owner, visibility, access list, TLP; their workspace follows the chronicle's access), the MCP tools list_chronicles, get_chronicle_thread, get_chronicle_state (read), create_chronicle and add_chronicle_layer (agent), the 102/128 proposal type propose_chronicle, the personal notification events chronicle.proposed, chronicle.cap_warning and chronicle.gap, and the app settings chronicle.defaultCapGb, chronicle.autoActivatePerDay and chronicle.autoActivateCapGb. Reconciliations (additive): ExportJob.format gains json-bundle (the chronicle JSON bundle); updateChronicle's 412 is CHRONICLE_VERSION_STALE; x-foresignal-sse-topics lists chronicle; Problem lists UNKNOWN_CHRONICLE, UNKNOWN_CHRONICLE_LAYER (404), CHRONICLE_LAYER_INVALID, CHRONICLE_CONFIRMATION_REQUIRED (400), CHRONICLE_CAP_EXCEEDED, CHRONICLE_STATE_INVALID (409) and CHRONICLE_VERSION_STALE (412). The 134 chronicle-network operations stay planned."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-17",
+        "note": "132: listReports, createReport, draftReport, getReport, updateReport, deleteReport, createReportBlock, updateReportBlock, deleteReportBlock, publishReport, retractReport, listReportRevisions, getReportRendition, sendReport, createReportShareLink, openReportShareLink, createExchangePackage, getExchangePackage, downloadExchangePackage, receiveExchangePackage, receiveExchangeReceipt, importExchangePackage, listReceivedPackages, getReceivedPackage, getReceivedPackageRendition, acknowledgeReceivedPackage, listSentPackages are implemented, with reports as a shareable type (owner, authors as editors, access list, TLP inherited from the strictest cited input; contract 1.3: object types report and remote), deterministic drafts from a selection, tag, investigation, chronicle, situation or workspace (templates situation-brief, investigation-summary, chronicle-recap, weekly-assessment, custom) with an optional labeled llm narrative block (verified citations, estimative-language lint), immutable published revisions with pinned references, stored snapshots, 055 maps as attachments, regenerated 109 sources blocks and 116 manifests, Markdown and HTML renditions with the TLP banner and the automated-analysis footer, same-instance sends with per-recipient TLP checks, report share links (CLEAR, or GREEN with exchange.allowGreenLinks), signed intelligence packages (detached JWS over manifest.json with the instance key; private and LOCAL_ONLY material reduced to counts; chronicle extracts bounded by exchange.maxPackageMb) delivered to 113 peers or downloaded, verified and imported read-only as remote: references for their named recipients (RED only to them), receipts, acknowledgements and loop prevention, the me events report.received, package.received and report.retracted, the MCP tools list_reports, get_report (read), draft_report and send_report (agent), and the app settings exchange.maxPackageMb and exchange.allowGreenLinks. Reconciliations (additive): PeerCreate and PeerUpdate gain exchangeKey and Peer gains exchangeKeySet (the fsp_ key the remote instance issued to this one, for exchange delivery); PackageManifest gains title; the map ReportBlock gains caveat; ReportBundle gains missing and attachments[].attachmentId; createExchangePackage and receiveExchangePackage gain 409 responses and the peer operations 401; the 409 responses name REPORT_NOT_PUBLISHED, PACKAGE_NOT_READY, PACKAGE_ALREADY_IMPORTED and PACKAGE_LOOP."
       }
     ]
   },
@@ -76152,7 +76157,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "post": {
@@ -76229,7 +76234,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -76338,7 +76343,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -76427,7 +76432,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "patch": {
@@ -76555,7 +76560,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "delete": {
@@ -76627,7 +76632,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -76747,7 +76752,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -76870,7 +76875,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       },
       "delete": {
@@ -76962,7 +76967,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -77053,7 +77058,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -77109,7 +77114,7 @@
             }
           },
           "409": {
-            "description": "Not published (Conflict)",
+            "description": "Not published, or the revision is already retracted (REPORT_NOT_PUBLISHED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -77154,7 +77159,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -77256,7 +77261,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -77346,7 +77351,7 @@
             }
           },
           "409": {
-            "description": "Not yet published (Conflict)",
+            "description": "Not yet published (REPORT_NOT_PUBLISHED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -77391,7 +77396,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -77467,7 +77472,7 @@
             }
           },
           "409": {
-            "description": "Not yet published (Conflict)",
+            "description": "Not yet published, or the revision is retracted (REPORT_NOT_PUBLISHED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -77494,7 +77499,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/reports/{reportId}/share-link": {
@@ -77559,7 +77564,7 @@
             }
           },
           "409": {
-            "description": "Not yet published (Conflict)",
+            "description": "Not yet published (REPORT_NOT_PUBLISHED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -77586,7 +77591,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/k/{key}/report": {
@@ -77666,7 +77671,7 @@
         ],
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/exchange/packages": {
@@ -77747,6 +77752,16 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "The object is a report without a published revision (REPORT_NOT_PUBLISHED), or a received package would go back to an instance in its provenance chain (PACKAGE_LOOP)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -77756,7 +77771,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/exchange/packages/{packageId}": {
@@ -77827,7 +77842,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/exchange/packages/{packageId}/download": {
@@ -77879,7 +77894,7 @@
             }
           },
           "409": {
-            "description": "Package not ready (Conflict)",
+            "description": "Package not ready (PACKAGE_NOT_READY)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -77916,7 +77931,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/exchange/inbox": {
@@ -77988,6 +78003,16 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Already imported (PACKAGE_ALREADY_IMPORTED), or the package originated on or passed through this instance (PACKAGE_LOOP)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -77997,7 +78022,7 @@
         ],
         "x-foresignal-scope": "peer",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/exchange/receipts": {
@@ -78050,7 +78075,7 @@
         ],
         "x-foresignal-scope": "peer",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/exchange/import": {
@@ -78131,7 +78156,7 @@
             }
           },
           "409": {
-            "description": "Already imported (Conflict)",
+            "description": "Already imported (PACKAGE_ALREADY_IMPORTED), or the package originated on or passed through this instance (PACKAGE_LOOP)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -78168,7 +78193,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/exchange/received": {
@@ -78282,7 +78307,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -78362,7 +78387,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -78466,7 +78491,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -78546,7 +78571,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -78636,7 +78661,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "132",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/news/stories": {
@@ -98828,7 +98853,7 @@
       "ObjectRef": {
         "type": "string",
         "pattern": "^[a-z][a-z-]*:.+$",
-        "description": "Canonical object reference `{type}:{id}` (docs/Client-Contract.md §2). Record refs are `record:{sourceId}/{externalId}[@{seq}]` with the external id percent-encoded.",
+        "description": "Canonical object reference `{type}:{id}` (docs/Client-Contract.md §2). Record refs are `record:{sourceId}/{externalId}[@{seq}]` with the external id percent-encoded. Remote refs (132) are `remote:{instanceId}/{type}:{id}`: read-only material received from another instance.",
         "example": "situation:01JA8Q3V7S2K9W4T6Y1B5N0M3C"
       },
       "Tlp": {
@@ -128268,6 +128293,11 @@
               "F"
             ],
             "description": "Admiralty source reliability: A completely reliable, B usually reliable, C fairly reliable, D not usually reliable, E unreliable, F cannot be judged"
+          },
+          "exchangeKey": {
+            "type": "string",
+            "writeOnly": true,
+            "description": "The fsp_ ingest key the remote instance issued to this one (its peer row for this instance); the Bearer token of POST {baseUrl}/v1/exchange/inbox and /v1/exchange/receipts (132)"
           }
         },
         "required": [
@@ -128320,6 +128350,14 @@
               "null"
             ],
             "description": "Admin re-pin of the remote signing key; null re-pins on the next successful /info (TOFU)"
+          },
+          "exchangeKey": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "writeOnly": true,
+            "description": "Replace the exchange key; omit to keep it, empty or null to remove it (132)"
           }
         },
         "required": [
@@ -128441,6 +128479,10 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "exchangeKeySet": {
+            "type": "boolean",
+            "description": "An exchange key is stored (132)"
           }
         },
         "required": [
@@ -147578,7 +147620,7 @@
         "properties": {
           "contractVersion": {
             "type": "string",
-            "example": "1.2"
+            "example": "1.3"
           },
           "objectTypes": {
             "type": "array",
@@ -155368,6 +155410,13 @@
                       "string",
                       "null"
                     ]
+                  },
+                  "caveat": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Why the map was not rendered at publication, if it was not"
                   }
                 },
                 "required": [
@@ -156244,6 +156293,9 @@
                 "size": {
                   "type": "integer",
                   "format": "int64"
+                },
+                "attachmentId": {
+                  "$ref": "#/components/schemas/Ulid"
                 }
               },
               "required": [
@@ -156260,6 +156312,13 @@
                 "type": "null"
               }
             ]
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ObjectRef"
+            },
+            "description": "Cited references the publisher could not resolve (missing or not visible), left out of the revision"
           }
         },
         "required": [
@@ -156525,6 +156584,13 @@
             "items": {
               "$ref": "#/components/schemas/ProvenanceChainEntry"
             }
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The packaged object's title"
           }
         },
         "required": [

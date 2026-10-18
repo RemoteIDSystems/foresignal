@@ -774,6 +774,39 @@ public final class ErrorCodes {
     /** 412: the chronicle changed since the version in {@code If-Match} (131). */
     public static final String CHRONICLE_VERSION_STALE = "CHRONICLE_VERSION_STALE";
 
+    /** 404: no report has that id or display id, or the caller may not see it (132). */
+    public static final String UNKNOWN_REPORT = "UNKNOWN_REPORT";
+
+    /** 404: no exchange package (sent or received) has that id, or the caller may not see it (132). */
+    public static final String UNKNOWN_PACKAGE = "UNKNOWN_PACKAGE";
+
+    /** 400: a package's detached JWS or a content hash does not verify against the sender's key (132). */
+    public static final String PACKAGE_SIGNATURE_INVALID = "PACKAGE_SIGNATURE_INVALID";
+
+    /** 422: a package names a recipient principal that does not exist on this instance (132). */
+    public static final String PACKAGE_RECIPIENT_UNKNOWN = "PACKAGE_RECIPIENT_UNKNOWN";
+
+    /** 413: a package exceeds {@code exchange.maxPackageMb} (132). */
+    public static final String PACKAGE_TOO_LARGE = "PACKAGE_TOO_LARGE";
+
+    /** 409: the report draft changed since the version given, or the report is not a draft (132). */
+    public static final String REPORT_VERSION_CONFLICT = "REPORT_VERSION_CONFLICT";
+
+    /** 409: the operation needs a published report revision, and there is none (or it is retracted) (132). */
+    public static final String REPORT_NOT_PUBLISHED = "REPORT_NOT_PUBLISHED";
+
+    /** 409: the package is still building or failed, so it cannot be downloaded (132). */
+    public static final String PACKAGE_NOT_READY = "PACKAGE_NOT_READY";
+
+    /** 409: this instance already imported the package (132). */
+    public static final String PACKAGE_ALREADY_IMPORTED = "PACKAGE_ALREADY_IMPORTED";
+
+    /**
+     * 409: the package would loop: it originated on, or is being sent back unchanged to, an instance already in its
+     * provenance chain (132, the 113 loop-prevention rule).
+     */
+    public static final String PACKAGE_LOOP = "PACKAGE_LOOP";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

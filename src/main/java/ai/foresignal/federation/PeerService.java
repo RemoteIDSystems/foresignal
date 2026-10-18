@@ -230,6 +230,7 @@ public class PeerService implements PeerKeyAuthenticator, SmartInitializingSingl
             Encrypted encrypted = cipher.encrypt(token);
             peer.setToken(encrypted.ciphertext(), encrypted.nonce());
         }
+        setExchangeKey(peer, body);
         peer.setState(MODE_RECEIVE.equals(mode) ? STATE_RECEIVING : STATE_STOPPED);
         peers.save(peer);
         register(peer, true);
@@ -266,6 +267,7 @@ public class PeerService implements PeerKeyAuthenticator, SmartInitializingSingl
             Encrypted encrypted = cipher.encrypt(token);
             peer.setToken(encrypted.ciphertext(), encrypted.nonce());
         }
+        setExchangeKey(peer, body);
         if (body.has("pinnedKid")) {
             JsonNode kid = body.get("pinnedKid");
             peer.setPinned(kid == null || kid.isNull() || kid.asString().isBlank() ? null : kid.asString().strip(),
@@ -283,6 +285,39 @@ public class PeerService implements PeerKeyAuthenticator, SmartInitializingSingl
         register(peer, false);
         restart(PeerDescriptors.standardId(peerId));
         return peer;
+    }
+
+    /**
+     * Stores the {@code exchangeKey} of a {@code PeerCreate} or {@code PeerUpdate} body (prompt 132), encrypted: the
+     * {@code fsp_} key the remote instance issued to this one for {@code POST /v1/exchange/inbox}. An omitted key keeps
+     * the stored one; an empty string or null removes it.
+     *
+     * @throws ValidationException when the key is not an {@code fsp_} key
+     */
+    void setExchangeKey(PeerEntity peer, JsonNode body) {
+        if (body == null || !body.has("exchangeKey")) {
+            return;
+        }
+        JsonNode node = body.get("exchangeKey");
+        if (node == null || node.isNull() || node.asString().isBlank()) {
+            peer.setExchangeKey(null, null);
+            return;
+        }
+        String key = node.asString().strip();
+        if (!key.startsWith(PREFIX) || key.length() > 200) {
+            throw ValidationException.forField("exchangeKey", "must be the fsp_ ingest key the peer issued to this"
+                    + " instance");
+        }
+        Encrypted encrypted = cipher.encrypt(key);
+        peer.setExchangeKey(encrypted.ciphertext(), encrypted.nonce());
+    }
+
+    /** The decrypted exchange key of {@code peer} (prompt 132), or null when none is set. */
+    public String exchangeKey(PeerEntity peer) {
+        if (peer.getExchangeKeyCiphertext() == null || peer.getExchangeKeyNonce() == null) {
+            return null;
+        }
+        return cipher.decryptToString(new Encrypted(peer.getExchangeKeyCiphertext(), peer.getExchangeKeyNonce()));
     }
 
     /** Deletes a peer: stops replication and unregisters its sources (ownership moves at the next arrival). */
@@ -427,6 +462,7 @@ public class PeerService implements PeerKeyAuthenticator, SmartInitializingSingl
                 : peer.getReliability());
         out.put("tokenSet", peer.getTokenCiphertext() != null);
         out.put("ingestKeyPrefix", peer.getIngestKeyPrefix());
+        out.put("exchangeKeySet", peer.getExchangeKeyCiphertext() != null);
         List<String> sourceIds = new ArrayList<>();
         for (String sourceId : List.of(PeerDescriptors.standardId(peer.getId()), PeerDescriptors.trackId(peer.getId()),
                 PeerDescriptors.eventsId(peer.getId()))) {

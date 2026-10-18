@@ -20,6 +20,7 @@ class ObjectRefTest {
             String id = switch (type) {
                 case ObjectTypes.RECORD -> "adsblol-mil/ae1234";
                 case ObjectTypes.SENSOR -> "satellite:25544";
+                case ObjectTypes.REMOTE -> "fs-eu-1/report:01JA8Q3V7S2K9W4T6Y1B5N0M3C";
                 default -> "01JA8Q3V7S2K9W4T6Y1B5N0M3C";
             };
             ObjectRef ref = ObjectRef.parse(type + ":" + id);

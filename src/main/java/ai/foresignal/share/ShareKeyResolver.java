@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
  * The {@code fss_} share-link keys of {@code PathKeyFilter} (prompt 112; Conventions "Key-in-path URLs"): the 035
  * matcher picks this resolver by prefix, refuses unknown keys ({@code 401 INVALID_SHARE_KEY}) and revoked, expired
  * or exhausted ones ({@code 410 SHARE_EXPIRED}), counting both against the client's failed-credential backoff,
- * and allows only the share-link sub-paths: the key itself, {@code /geojson}, {@code /tiles/…} and
- * {@code /download} (the controller answers {@code 404} for a sub-path the target type does not have, as the
+ * and allows only the share-link sub-paths: the key itself, {@code /geojson}, {@code /tiles/…}, {@code /download}
+ * and (prompt 132) {@code /report} (the controller answers {@code 404} for a sub-path the target type does not have, as the
  * spec says). The request is not forwarded
  * ({@link #forwards()}); the share-link controller serves {@code /v1/k/{key}/…} and counts the use. The key is
  * never a bearer token ({@code TokenService} accepts only {@code fsr_}).
@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 public class ShareKeyResolver implements PathKeyResolver {
 
     /** The sub-paths after the key ({@code ""} is the key itself). */
-    static final List<String> SUB_PATHS = List.of("", "/geojson", "/tiles/", "/download");
+    static final List<String> SUB_PATHS = List.of("", "/geojson", "/tiles/", "/download", "/report");
 
     private final ShareLinkRepository links;
     private final TokenHasher hasher;

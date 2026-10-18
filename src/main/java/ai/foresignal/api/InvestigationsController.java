@@ -77,6 +77,7 @@ public class InvestigationsController {
     private final ObjectService objects;
     private final PrincipalViews views;
     private final JsonMapper json;
+    private ai.foresignal.collab.CollabAudit audit;
 
     /** Creates the controller. */
     public InvestigationsController(InvestigationService investigations, IntelVisibility visibility,
@@ -90,6 +91,12 @@ public class InvestigationsController {
         this.objects = objects;
         this.views = views;
         this.json = json;
+    }
+
+    /** Injects the collaboration audit (prompt 132: copies of received material are logged). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void setAudit(ai.foresignal.collab.CollabAudit audit) {
+        this.audit = audit;
     }
 
     private static String actor(HttpServletRequest request) {
@@ -238,6 +245,12 @@ public class InvestigationsController {
         Map<String, Object> snapshot = json.convertValue(env, Map.class);
         InvestigationItemEntity item = investigations.addObjectItem(entity.getId(), itemType,
                 env.objectRef().withoutSeq().format(), note, snapshot, env.privateObject(), actor);
+        if (ref.isRemote() && audit != null) {
+            // Prompt 132: received material enters a local investigation only by this deliberate, logged copy; the
+            // snapshot keeps its remote reference, origin and TLP.
+            audit.record(caller, "copyReceivedItem", "investigation", entity.getId(), Map.of("ref", ref.format(),
+                    "tlp", env.tlp() == null ? "" : env.tlp()));
+        }
         if (env.tlp() != null) {
             ShareableObjectEntity rec = access.record(ref(entity.getId())).orElseThrow();
             Tlp current = Tlp.fromWire(rec.getTlp());

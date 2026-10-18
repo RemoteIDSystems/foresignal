@@ -58,7 +58,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              "principalId": "principalId", "groupId": "groupId", "tagId": "tagId", "attachmentId": "attachmentId",
              "evidenceItemId": "evidenceItemId", "savedSearchId": "savedSearchId",
              # 131: chronicles and their layers.
-             "chronicleId": "chronicleId", "layerId": "chronicleLayerId"}
+             "chronicleId": "chronicleId", "layerId": "chronicleLayerId",
+             # 132: reports, their blocks, packages built here and packages received.
+             "reportId": "reportId", "blockId": "blockId", "packageId": "packageId", "receivedId": "receivedId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -168,6 +170,11 @@ RAW_BODIES = {
   "updateEvidenceItem": ("application/merge-patch+json", json.dumps({"sourceReliability": "B",
                                                                      "informationCredibility": 2}, indent=2), "json"),
   "updateSavedSearch": ("application/merge-patch+json", json.dumps({"notify": True}, indent=2), "json"),
+  # 132: a report draft's merge patch (the version is the optimistic lock) and a block's.
+  "updateReport": ("application/merge-patch+json", json.dumps({"subtitle": "Shipping disruption, week 42 (rev.)",
+                                                               "status": "review", "version": 1}, indent=2), "json"),
+  "updateReportBlock": ("application/merge-patch+json", json.dumps({"title": "Bottom line up front"}, indent=2),
+                        "json"),
   # 131: merge patches of a chronicle (send If-Match with its ETag to guard against a concurrent change) and of a
   # layer (the new definition applies from the edit's seq onward).
   "updateChronicle": ("application/merge-patch+json", json.dumps({"description": "Regional war monitoring, 2026",
@@ -205,6 +212,11 @@ RAW_BODIES = {
 # placeholders (src empty): pick the files in Postman before sending. Postman sets the boundary itself, so
 # no Content-Type header is added.
 FORMDATA_BODIES = {
+  # 132: importing a package handed over by other means (admin); jwks pins the sender's keys when it is not a peer.
+  "importExchangePackage": [
+    {"key": "file", "type": "file", "src": "", "description": "The package ZIP (pick it in Postman)"},
+    {"key": "jwks", "type": "text", "value": "{\"keys\":[]}", "description": "The sender's JWKS (optional)"},
+  ],
   # 130: an attachment upload (PNG, JPEG, PDF or UTF-8 text, CSV, JSON, GeoJSON, KML, Markdown; at most 50 MB).
   "uploadAttachment": [
     {"key": "file", "type": "file", "src": "", "description": "The document or image (pick it in Postman)"},
@@ -917,6 +929,26 @@ BODIES = {
   "suggestChronicle": {"situationId": "{{situationId}}"},
   "exportChronicle": {"format": "geoparquet", "layers": [], "from": None, "to": None},
   "markChronicleThreadRead": {"upToId": 0},
+  # 132: a report drafted from the shared tag (situation-brief template, deterministic, no LLM), a block added, the
+  # retraction, a send to a principal and a group here, a read-only link, and a signed package for a principal on
+  # another instance (delivered to its 113 peer).
+  "createReport": {"title": "Red Sea weekly", "subtitle": "Shipping disruption, week 42", "tlp": "AMBER",
+                   "visibility": "private", "source": {"type": "tag", "ref": "tag:{{tagId}}"},
+                   "template": "custom", "blocks": [{"type": "markdown", "markdown": "Analyst notes."}]},
+  "draftReport": {"source": {"type": "tag", "ref": "tag:{{tagId}}"}, "template": "situation-brief",
+                  "title": "Red Sea weekly", "narrative": False},
+  "createReportBlock": {"type": "bluf", "judgments": [
+      {"text": "Coalition response within 7 days.", "probability": 0.7,
+       "hypothesisSetRef": "hypothesis-set:{{hypothesisSetId}}", "confidence": "moderate"}]},
+  "retractReport": {"reason": "Superseded by the 06:00 imagery pass."},
+  "sendReport": {"principals": ["{{principalId}}"], "groups": ["{{groupId}}"], "channels": [],
+                 "message": "Weekly report for your review."},
+  "createReportShareLink": {"expiresAt": None},
+  "createExchangePackage": {"objectRef": "report:{{reportId}}",
+                            "recipients": [{"instanceId": "fs-eu-1", "principals": ["jsmith"]}],
+                            "message": "Week 42 assessment for your desk.", "deliver": "peer"},
+  "receiveExchangeReceipt": {"packageId": "{{packageId}}", "type": "acknowledged", "receiverInstanceId": "fs-eu-1",
+                             "principalHandle": "jsmith", "at": "2026-10-17T09:00:00Z"},
   # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
   # one nautical mile in the next hour.
   "cpaBatch": {"subject": "aisstream/244660000", "filter": {"kinds": ["vessel"], "sources": [],
@@ -982,6 +1014,12 @@ CAPTURE = {
   "uploadAttachment": "const j = pm.response.json(); pm.collectionVariables.set('attachmentId', j.id);",
   "createEvidenceItem": "const j = pm.response.json(); pm.collectionVariables.set('evidenceItemId', j.id);",
   "createSavedSearch": "const j = pm.response.json(); pm.collectionVariables.set('savedSearchId', j.id);",
+  # 132: the report (from a create or a draft), its added block, the package and an imported package.
+  "createReport": "const j = pm.response.json(); pm.collectionVariables.set('reportId', j.id);",
+  "draftReport": "const j = pm.response.json(); pm.collectionVariables.set('reportId', j.id);",
+  "createReportBlock": "const j = pm.response.json(); pm.collectionVariables.set('blockId', j.id);",
+  "createExchangePackage": "const j = pm.response.json(); pm.collectionVariables.set('packageId', j.id);",
+  "importExchangePackage": "const j = pm.response.json(); pm.collectionVariables.set('receivedId', j.id);",
   # 131: the chronicle (and its display id, the confirmation of a delete) and the added layer.
   "createChronicle": "const j = pm.response.json(); pm.collectionVariables.set('chronicleId', j.id); pm.collectionVariables.set('chronicleDisplayId', j.displayId);",
   "createChronicleLayer": "const j = pm.response.json(); pm.collectionVariables.set('chronicleLayerId', j.id);",
@@ -1391,6 +1429,7 @@ collection = {
       ("relationId", ""),
       ("principalId", ""), ("groupId", ""), ("tagId", ""), ("attachmentId", ""), ("evidenceItemId", ""),
       ("savedSearchId", ""),
+      ("reportId", ""), ("blockId", ""), ("packageId", ""), ("receivedId", ""),
       ("benchmarkRunId", ""), ("benchmarkCaseId", ""),
       ("hypothesisSetId", ""), ("hypothesisId", ""), ("indicatorId", ""), ("achEvidenceId", ""), ("assumptionId", ""),
       ("indexId", "instability"), ("outlookRegion", "YE"), ("outlookFamily", "conflict:battles"),

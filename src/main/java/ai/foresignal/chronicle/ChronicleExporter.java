@@ -137,6 +137,52 @@ public class ChronicleExporter {
         return exports.submitCustom(format, spec, decision, caller, export);
     }
 
+    /**
+     * A chronicle extract written for a 132 exchange package.
+     *
+     * @param rows the captured versions written
+     * @param includedSources the sources whose versions were written
+     * @param excludedSources the sources left out (private, {@code LOCAL_ONLY}, not redistributable or hidden from the
+     *     caller)
+     */
+    public record Extract(long rows, List<String> includedSources, List<String> excludedSources) {}
+
+    /**
+     * Writes the JSON bundle of a chronicle extract synchronously (prompt 132, {@code chronicle-extract} packages): the
+     * chronicle, its thread (without private items) and the captured versions, series points and rollups of the given
+     * layers and window, only for sources {@code sourceAllowed} accepts and the caller may read.
+     *
+     * @param c the chronicle (the caller may view it)
+     * @param caller the caller
+     * @param layerIds the layers, or empty for all
+     * @param from the window start, or null
+     * @param to the window end, or null
+     * @param sourceAllowed the egress decision per source (the 113 federation path)
+     * @param tlp the TLP label printed at the head of the bundle
+     * @param file where to write
+     * @return what was written
+     * @throws java.io.IOException when the file cannot be written
+     */
+    public Extract writeExtract(ChronicleEntity c, ObjectCaller caller, List<String> layerIds, Instant from,
+            Instant to, java.util.function.Predicate<String> sourceAllowed, String tlp, Path file)
+            throws java.io.IOException {
+        for (String id : layerIds) {
+            chronicles.layer(c.getId(), id);
+        }
+        List<String> allowed = new ArrayList<>();
+        List<String> excluded = new ArrayList<>();
+        for (String s : presentSources(c.getId(), layerIds)) {
+            if (registry.find(s).isPresent() && sourceAllowed.test(s) && caller.canRead(s)) {
+                allowed.add(s);
+            } else {
+                excluded.add(s);
+            }
+        }
+        Map<String, Object> view = chronicles.view(c, caller, true);
+        CustomExport.Result result = bundle(c, view, layerIds, from, to, allowed, tlp, false).write(file, () -> false);
+        return new Extract(result.rows(), allowed, excluded);
+    }
+
     private List<String> presentSources(String chronicleId, List<String> layerIds) {
         if (!storage.leafExists(chronicleId)) {
             return List.of();

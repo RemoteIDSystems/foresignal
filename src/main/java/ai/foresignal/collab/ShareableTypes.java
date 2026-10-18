@@ -6,8 +6,8 @@ import java.util.Set;
 
 /**
  * The object types that carry an owner, a visibility, an access list and a TLP label (prompt 130, OpenAPI
- * {@code ShareableType}, docs/Client-Contract.md §10). {@code chronicle} (131) and {@code report} (132) are listed
- * now; their prompts register their sources.
+ * {@code ShareableType}, docs/Client-Contract.md §10). {@code chronicle} (131) and {@code report} (132) register their
+ * sources in their own packages.
  */
 public final class ShareableTypes {
 
