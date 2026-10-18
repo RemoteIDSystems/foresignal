@@ -14,4 +14,14 @@ public interface QuestionResolutionListener {
      * @param outcome the resolved outcome label ({@code yes}/{@code no} for binary questions), or null for numeric ones
      */
     void questionResolved(String questionId, String outcome);
+
+    /**
+     * A question was annulled; it has no outcome and is never scored. Called once the annulling transaction has
+     * committed. The default does nothing, so a listener that only cares about outcomes is not told.
+     *
+     * @param questionId the question
+     */
+    default void questionAnnulled(String questionId) {
+        // nothing by default
+    }
 }

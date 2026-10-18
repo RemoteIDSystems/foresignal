@@ -85,6 +85,14 @@ public class BacktestJobEntity {
     @Column(name = "range_clamped")
     private Boolean rangeClamped;
 
+    /**
+     * The process that submitted or last claimed the job (prompt 142): {@link BacktestJobService#INSTANCE} of that
+     * JVM. Startup recovery fails {@code running} jobs and re-dispatches {@code queued} jobs owned by any other
+     * process. Nullable: the column arrived after prompt 141.
+     */
+    @Column(name = "worker_instance", length = 36)
+    private String workerInstance;
+
     /** JPA. */
     protected BacktestJobEntity() {}
 
@@ -243,6 +251,16 @@ public class BacktestJobEntity {
     /** Records whether the start was raised to the retained floor. */
     public void setRangeClamped(Boolean rangeClamped) {
         this.rangeClamped = rangeClamped;
+    }
+
+    /** The process that submitted or last claimed the job, or null for rows written before prompt 142. */
+    public String getWorkerInstance() {
+        return workerInstance;
+    }
+
+    /** Sets the process that owns the job. */
+    public void setWorkerInstance(String workerInstance) {
+        this.workerInstance = workerInstance;
     }
 
     /** The analysis manifest of this output (prompt 116), or null. */

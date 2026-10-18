@@ -205,4 +205,40 @@ class BacktestControllersIT {
         assertThat(result.structured().path("createdBy").asString()).isNotBlank();
         assertThat(runBacktest.inputSchema().toString()).contains("fromSeq").contains("from");
     }
+
+    @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    @Test
+    @DisplayName("restart recovery fails another process's running jobs and re-dispatches its queued ones (prompt 142)")
+    void restartRecovery() {
+        String interrupted = String.valueOf(backtests.createBacktest(json.readTree("{\"type\":\"quality\"}"),
+                new MockHttpServletRequest()).get("id"));
+        String requeued = String.valueOf(backtests.createBacktest(json.readTree("{\"type\":\"quality\"}"),
+                new MockHttpServletRequest()).get("id"));
+        String ours = String.valueOf(backtests.createBacktest(json.readTree("{\"type\":\"quality\"}"),
+                new MockHttpServletRequest()).get("id"));
+        for (String id : List.of(interrupted, requeued, ours)) {
+            RuleBacktestIT.await(jobs, id);
+        }
+        assertThat(jobs.get(ours).getWorkerInstance()).isEqualTo(BacktestJobService.INSTANCE);
+        jdbc.update("UPDATE backtest_job SET status = 'running', finished_at = NULL, worker_instance = 'old-process'"
+                + " WHERE id = ?", interrupted);
+        jdbc.update("UPDATE backtest_job SET status = 'queued', finished_at = NULL, worker_instance = NULL"
+                + " WHERE id = ?", requeued);
+        jdbc.update("UPDATE backtest_job SET status = 'running', finished_at = NULL WHERE id = ?", ours);
+
+        BacktestJobService.Recovery recovery = jobs.recoverInterrupted();
+
+        assertThat(recovery.failed()).containsExactly(interrupted);
+        assertThat(recovery.redispatched()).containsExactly(requeued);
+        BacktestJobEntity failed = jobs.get(interrupted);
+        assertThat(failed.getStatus()).isEqualTo("failed");
+        assertThat(failed.getFinishedAt()).isNotNull();
+        assertThat(failed.getResult()).containsEntry("error", BacktestJobService.INTERRUPTED_ERROR);
+        BacktestJobEntity rerun = RuleBacktestIT.await(jobs, requeued);
+        assertThat(rerun.getStatus()).isEqualTo("done");
+        assertThat(rerun.getWorkerInstance()).isEqualTo(BacktestJobService.INSTANCE);
+        assertThat(jobs.get(ours).getStatus()).as("a job of this process is left alone").isEqualTo("running");
+        jobs.cancel(ours);
+    }
 }

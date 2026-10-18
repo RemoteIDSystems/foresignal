@@ -84,4 +84,20 @@ public class LedgerCoordinator implements LedgerHooks {
             }));
         }
     }
+
+    /** Tells the resolution listeners, once the annulment commits, that the question was annulled (prompt 142). */
+    @Override
+    public void questionAnnulled(ForecastQuestionEntity question) {
+        if (resolutionListeners == null) {
+            return;
+        }
+        String id = question.getId();
+        ForecastEvents.afterCommit(() -> resolutionListeners.orderedStream().forEach(listener -> {
+            try {
+                listener.questionAnnulled(id);
+            } catch (RuntimeException e) {
+                log.warn("A resolution listener failed on annulled question {}: {}", id, e.toString());
+            }
+        }));
+    }
 }

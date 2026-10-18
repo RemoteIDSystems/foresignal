@@ -673,6 +673,16 @@ public class RegionalOutlookService implements QuestionResolutionListener {
         }
     }
 
+    /**
+     * Marks the window of an annulled question {@code annulled} on its outlook (prompt 142: before this, an annulled
+     * window question left its window {@code open}). {@link #onResolved} already writes {@code annulled} for any
+     * question whose status is not {@code resolved}.
+     */
+    @Override
+    public void questionAnnulled(String questionId) {
+        questionResolved(questionId, null);
+    }
+
     /** Records a resolved window question on its outlook; returns the exceedance finding written, or null. */
     public FindingService.Outcome onResolved(ForecastQuestionEntity q, Instant now) {
         RegionalOutlookEntity row = outlooks.findById(q.getOutlookId()).orElse(null);

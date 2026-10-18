@@ -186,6 +186,20 @@ class RegionalOutlookIT {
     }
 
     @Test
+    @DisplayName("an annulled window question marks its window annulled once the annulment commits (prompt 142)")
+    void annulledWindow() {
+        service.publishAll(NOW);
+        RegionalOutlookEntity ye = outlooks.findTop1ByRegionAndFamilyOrderByPublishedAtDescIdDesc("YE",
+                ReferenceFamilies.BATTLES).orElseThrow();
+        Map<String, Object> first = ye.getWindows().get(0);
+        ForecastQuestionEntity q = ledger.find(first.get("questionId").toString()).orElseThrow();
+        ledger.annul(q, "OPERATOR", "annulled by the test", "operator");
+        RegionalOutlookEntity updated = outlooks.findById(ye.getId()).orElseThrow();
+        assertThat(updated.getWindows().get(0)).containsEntry("status", "annulled").doesNotContainKey("actual");
+        assertThat(updated.getWindows().get(1)).containsEntry("status", "open");
+    }
+
+    @Test
     @DisplayName("foresignal-outlook records: one per window with externalId {region}:{family}:{windowStart}, on change")
     void records() {
         service.publishAll(NOW);

@@ -15,4 +15,13 @@ public interface LedgerHooks {
 
     /** A question was resolved (called inside the resolving transaction). */
     void questionResolved(ForecastQuestionEntity question);
+
+    /**
+     * A question was annulled (called inside the annulling transaction). The default does nothing.
+     *
+     * @param question the annulled question
+     */
+    default void questionAnnulled(ForecastQuestionEntity question) {
+        // nothing by default
+    }
 }

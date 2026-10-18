@@ -402,6 +402,10 @@ public class ForecastService {
         questions.save(q);
         scores.deleteAll(scores.findByQuestionId(q.getId()));
         events.question(ForecastEvents.ANNULLED, q, forecasts.countByQuestionId(q.getId()));
+        LedgerHooks h = hooks.getIfAvailable();
+        if (h != null) {
+            h.questionAnnulled(q);
+        }
         return q;
     }
 

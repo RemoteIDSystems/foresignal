@@ -38,6 +38,8 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Limit;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -68,6 +70,9 @@ import tools.jackson.databind.json.JsonMapper;
  *   <li><strong>Cancel</strong> flips {@code queued|running → cancelled}; the run stops at its next
  *       checkpoint and its result is discarded.
  *   <li>Finished jobs are deleted after {@value #RETENTION_DAYS} days.
+ *   <li><strong>Restart recovery</strong> (prompt 142): the worker pool lives in memory, so at
+ *       {@link ApplicationReadyEvent} {@link #recoverInterrupted} fails every {@code running} job owned
+ *       by another process ({@code worker_instance}) and re-dispatches every such {@code queued} job.
  * </ul>
  *
  * <p>The worker pool has {@code foresignal.backtest.concurrency} platform threads (default 1, at
@@ -93,6 +98,16 @@ public class BacktestJobService {
 
     /** The detector version recorded on recipe jobs. */
     public static final String RECIPE_BACKTEST_VERSION = "recipe-backtest/1.0.0";
+
+    /**
+     * This JVM's worker identity (prompt 142), stamped on every job it submits or claims. Static, so every
+     * application context in one JVM (the test suite's cached contexts share one database) shares it and none
+     * recovers another's live jobs; a restarted broker gets a new one.
+     */
+    public static final String INSTANCE = UUID.randomUUID().toString();
+
+    /** The error recorded on a job that a restart interrupted (prompt 142). */
+    public static final String INTERRUPTED_ERROR = "interrupted by a restart";
 
     /** The job types this service runs. */
     public static final List<String> TYPES = List.of("rule", "recipe", "precursor", "quality");
@@ -230,6 +245,7 @@ public class BacktestJobService {
         job.setCaveats(CaveatGenerator.stored(CaveatGenerator.generate(new CaveatGenerator.Inputs(resolved.clamped(),
                 false, false, false, false, false, false, Integer.MAX_VALUE))));
         job.setManifestId(manifest(job));
+        job.setWorkerInstance(INSTANCE);
         jobs.save(job);
         String id = job.getId();
         afterCommit(() -> executor.submit(() -> runQuietly(id)));
@@ -299,6 +315,7 @@ public class BacktestJobService {
         job.setDetectorVersion(type + "/1.0.0");
         job.setDefinitionHash(hash(json.writeValueAsString(job.getDefinition())));
         job.setCaveats(List.of());
+        job.setWorkerInstance(INSTANCE);
         jobs.save(job);
         String id = job.getId();
         afterCommit(() -> executor.submit(() -> runQuietly(id)));
@@ -516,8 +533,8 @@ public class BacktestJobService {
      * claimed it, or it was canceled).
      */
     public void run(String id) {
-        int claimed = jdbc.update("UPDATE backtest_job SET status = 'running', started_at = ? WHERE id = ?"
-                + " AND status = 'queued'", Timestamp.from(clock.instant()), id);
+        int claimed = jdbc.update("UPDATE backtest_job SET status = 'running', started_at = ?, worker_instance = ?"
+                + " WHERE id = ? AND status = 'queued'", Timestamp.from(clock.instant()), INSTANCE, id);
         if (claimed == 0) {
             return;
         }
@@ -704,6 +721,41 @@ public class BacktestJobService {
                 + " WHERE id = ? AND status IN ('queued', 'running')", Timestamp.from(clock.instant()), id);
         return get(id);
     }
+
+    /**
+     * Recovers jobs a restart interrupted (prompt 142; the 121 and 124 reports carried this as open). Every
+     * {@code running} job owned by another process, or by none (rows from before prompt 142), ends {@code failed}
+     * with the error {@value #INTERRUPTED_ERROR}; every {@code queued} job owned by another process is handed to
+     * this process's worker pool, whose conditional claim keeps it from running twice.
+     *
+     * @return the ids of the jobs failed and re-dispatched
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    public Recovery recoverInterrupted() {
+        Timestamp now = Timestamp.from(clock.instant());
+        String error = json.writeValueAsString(Map.of("error", INTERRUPTED_ERROR));
+        List<String> failed = jdbc.queryForList("UPDATE backtest_job SET status = 'failed', finished_at = ?,"
+                + " result = CAST(? AS jsonb) WHERE status = 'running' AND worker_instance IS DISTINCT FROM ?"
+                + " RETURNING id", String.class, now, error, INSTANCE);
+        List<String> queued = jdbc.queryForList("SELECT id FROM backtest_job WHERE status = 'queued'"
+                + " AND worker_instance IS DISTINCT FROM ? ORDER BY created_at, id", String.class, INSTANCE);
+        for (String id : queued) {
+            executor.submit(() -> runQuietly(id));
+        }
+        if (!failed.isEmpty() || !queued.isEmpty()) {
+            log.info("Backtest restart recovery: {} interrupted job(s) failed, {} queued job(s) re-dispatched",
+                    failed.size(), queued.size());
+        }
+        return new Recovery(failed, queued);
+    }
+
+    /**
+     * What {@link #recoverInterrupted} did.
+     *
+     * @param failed the {@code running} jobs ended {@code failed}
+     * @param redispatched the {@code queued} jobs handed to the worker pool
+     */
+    public record Recovery(List<String> failed, List<String> redispatched) {}
 
     /** Deletes jobs finished more than {@value #RETENTION_DAYS} days ago; returns how many. */
     @Scheduled(fixedDelayString = "${foresignal.backtest.purge-interval:1h}", initialDelayString = "5m")
