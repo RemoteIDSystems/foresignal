@@ -9,7 +9,9 @@ import java.util.Map;
  * The events of the personal {@code me} SSE topic (prompt 130) and their payloads: {@code share.received}
  * ({@code ShareReceivedEvent}), {@code mention} and {@code comment.reply} ({@code CommentEvent}),
  * {@code saved-search.matches} ({@code SavedSearchMatchesEvent}), and prompt 132's {@code report.received} and
- * {@code report.retracted} ({@code ReportEvent}) and {@code package.received} ({@code PackageReceivedEvent}).
+ * {@code report.retracted} ({@code ReportEvent}) and {@code package.received} ({@code PackageReceivedEvent}), and
+ * prompt 134's {@code chronicle.link.found} ({@code ChronicleLinkFoundEvent}) and {@code chronicle.access.requested},
+ * {@code chronicle.access.granted} and {@code chronicle.access.declined} ({@code ChronicleAccessEvent}).
  */
 public final class MeEvents {
 
@@ -34,9 +36,22 @@ public final class MeEvents {
     /** A report revision sent to the principal was retracted (prompt 132). */
     public static final String REPORT_RETRACTED = "report.retracted";
 
-    /** The events of the {@code me} topic: prompt 130's four and prompt 132's three. */
+    /** A related chronicle was found for one of the principal's chronicles (prompt 134). */
+    public static final String CHRONICLE_LINK_FOUND = "chronicle.link.found";
+
+    /** Someone asked for access to one of the principal's chronicles (prompt 134). */
+    public static final String CHRONICLE_ACCESS_REQUESTED = "chronicle.access.requested";
+
+    /** The principal's access request was granted (prompt 134). */
+    public static final String CHRONICLE_ACCESS_GRANTED = "chronicle.access.granted";
+
+    /** The principal's access request was declined (prompt 134). */
+    public static final String CHRONICLE_ACCESS_DECLINED = "chronicle.access.declined";
+
+    /** The events of the {@code me} topic: prompt 130's four, prompt 132's three and prompt 134's four. */
     public static final List<String> ALL = List.of(SHARE_RECEIVED, MENTION, COMMENT_REPLY, SAVED_SEARCH_MATCHES,
-            REPORT_RECEIVED, PACKAGE_RECEIVED, REPORT_RETRACTED);
+            REPORT_RECEIVED, PACKAGE_RECEIVED, REPORT_RETRACTED, CHRONICLE_LINK_FOUND, CHRONICLE_ACCESS_REQUESTED,
+            CHRONICLE_ACCESS_GRANTED, CHRONICLE_ACCESS_DECLINED);
 
     /**
      * The analysis cycles proposed a chronicle to its owner (prompt 131). Inbox and personal channels only: it is not
@@ -50,8 +65,15 @@ public final class MeEvents {
     /** A chronicle fell behind global retention and has a capture gap (prompt 131); inbox and personal channels only. */
     public static final String CHRONICLE_GAP = "chronicle.gap";
 
-    /** The chronicle events of prompt 131. */
-    public static final List<String> CHRONICLE = List.of(CHRONICLE_PROPOSED, CHRONICLE_CAP_WARNING, CHRONICLE_GAP);
+    /**
+     * A stricter TLP label lowered a chronicle's discoverability (prompt 134); inbox and personal channels only, not an
+     * event of the {@code me} topic.
+     */
+    public static final String CHRONICLE_DISCOVERABILITY_LOWERED = "chronicle.discoverability_lowered";
+
+    /** The chronicle events of prompt 131, and prompt 134's discoverability notice. */
+    public static final List<String> CHRONICLE = List.of(CHRONICLE_PROPOSED, CHRONICLE_CAP_WARNING, CHRONICLE_GAP,
+            CHRONICLE_DISCOVERABILITY_LOWERED);
 
     /** Longest comment excerpt, in characters. */
     public static final int EXCERPT_MAX = 280;
@@ -65,7 +87,9 @@ public final class MeEvents {
             case MENTION -> "mention";
             case COMMENT_REPLY -> "comment-reply";
             case SAVED_SEARCH_MATCHES -> "saved-search";
-            case CHRONICLE_PROPOSED, CHRONICLE_CAP_WARNING, CHRONICLE_GAP -> "chronicle";
+            case CHRONICLE_PROPOSED, CHRONICLE_CAP_WARNING, CHRONICLE_GAP, CHRONICLE_LINK_FOUND,
+                    CHRONICLE_DISCOVERABILITY_LOWERED -> "chronicle";
+            case CHRONICLE_ACCESS_REQUESTED, CHRONICLE_ACCESS_GRANTED, CHRONICLE_ACCESS_DECLINED -> "access-request";
             case REPORT_RECEIVED, REPORT_RETRACTED -> "report";
             case PACKAGE_RECEIVED -> "package";
             default -> "system";
@@ -78,7 +102,9 @@ public final class MeEvents {
             case SHARE_RECEIVED -> "share";
             case MENTION -> "mention";
             case COMMENT_REPLY -> "comment-reply";
-            case CHRONICLE_PROPOSED, CHRONICLE_CAP_WARNING, CHRONICLE_GAP -> "chronicle";
+            case CHRONICLE_PROPOSED, CHRONICLE_CAP_WARNING, CHRONICLE_GAP, CHRONICLE_LINK_FOUND,
+                    CHRONICLE_DISCOVERABILITY_LOWERED, CHRONICLE_ACCESS_REQUESTED, CHRONICLE_ACCESS_GRANTED,
+                    CHRONICLE_ACCESS_DECLINED -> "chronicle";
             case REPORT_RECEIVED, REPORT_RETRACTED, PACKAGE_RECEIVED -> "report";
             default -> null;
         };
@@ -206,6 +232,48 @@ public final class MeEvents {
         out.put("title", title);
         out.put("tlp", tlp);
         out.put("signatureStatus", signatureStatus);
+        out.put("at", at);
+        return out;
+    }
+
+    /**
+     * The {@code ChronicleLinkFoundEvent} payload (prompt 134).
+     *
+     * @param chronicleId the principal's chronicle
+     * @param link the {@code ChronicleLink} or {@code OpaqueChronicleLink} at the principal's disclosure level
+     * @param at when
+     * @return the payload
+     */
+    public static Map<String, Object> chronicleLinkFound(String chronicleId, Map<String, Object> link, Instant at) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("chronicleId", chronicleId);
+        out.put("link", link);
+        out.put("at", at);
+        return out;
+    }
+
+    /**
+     * The {@code ChronicleAccessEvent} payload (prompt 134). The requester's handle and message are only set on
+     * {@code chronicle.access.requested}; a decision tells the requester only the status.
+     *
+     * @param requestId the request
+     * @param linkId the link
+     * @param status {@code pending}, {@code granted} or {@code declined}
+     * @param requesterHandle the requester's handle (requested only), or null
+     * @param message the requester's message (requested only), or null
+     * @param chronicleId the owner's chronicle (requested) or the granted chronicle, or null
+     * @param at when
+     * @return the payload
+     */
+    public static Map<String, Object> chronicleAccess(String requestId, String linkId, String status,
+            String requesterHandle, String message, String chronicleId, Instant at) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("requestId", requestId);
+        out.put("linkId", linkId);
+        out.put("status", status);
+        out.put("requesterHandle", requesterHandle);
+        out.put("message", message);
+        out.put("chronicleId", chronicleId);
         out.put("at", at);
         return out;
     }

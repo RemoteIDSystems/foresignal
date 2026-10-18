@@ -91,6 +91,29 @@ public class ShareService {
         this.clock = clock;
     }
 
+    private org.springframework.beans.factory.ObjectProvider<TlpChangeListener> tlpListeners;
+
+    /** Installs the listeners told about TLP changes (prompt 134). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setTlpListeners(org.springframework.beans.factory.ObjectProvider<TlpChangeListener> listeners) {
+        this.tlpListeners = listeners;
+    }
+
+    /** Tells every {@link TlpChangeListener} that a label changed; a failing listener is logged, never thrown. */
+    public void tlpChanged(String ref, Tlp from, Tlp to, String actor) {
+        if (tlpListeners == null) {
+            return;
+        }
+        tlpListeners.orderedStream().forEach(l -> {
+            try {
+                l.tlpChanged(ref, from, to, actor);
+            } catch (RuntimeException e) {
+                org.slf4j.LoggerFactory.getLogger(ShareService.class).warn("TLP listener failed for {}: {}", ref,
+                        e.toString());
+            }
+        });
+    }
+
     // ------------------------------------------------------------------------- views
 
     /** The {@code ObjectAcl} of a registered object. */
@@ -223,10 +246,14 @@ public class ShareService {
             acls.save(row);
         }
         String previousOwner = rec.getOwner();
+        Tlp previousTlp = Tlp.fromWire(rec.getTlp());
         rec.setOwner(owner);
         rec.setVisibility(visibility);
         rec.setTlp(tlp.wireValue());
         access.save(rec);
+        if (previousTlp != tlp) {
+            tlpChanged(rec.getObjectRef(), previousTlp, tlp, caller.principal());
+        }
         if (newOwner != null && ObjectTypes.WORKSPACE.equals(rec.getType())) {
             String id = rec.getObjectRef().substring(rec.getObjectRef().indexOf(':') + 1);
             workspaces.findById(id).ifPresent(w -> {

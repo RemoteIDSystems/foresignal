@@ -577,6 +577,11 @@
         "version": "1.3.0",
         "date": "2026-10-17",
         "note": "133: listNewsStories, getNewsStory, listNewsArticles, listMediaOutlets, getMediaOutlet, updateMediaOutlet, listMediaProviders, getMediaProvider, updateMediaProvider and importMediaRatings are implemented, with the gdelt-articles source (GDELT DOC 2.0 ArtList per attention topic, metadata only, sharing hostPacing 5 s with gdelt-timelines), the news-feed-* outlet feeds (073 feed kit, item mapper news-article), news-article records keyed by the SHA-256 of the canonical URL, the media outlet registry (unknown domains added as unrated; wires mapped to their own originators), ratings only from declared providers (wikidata CC0, partisan-web CC BY 4.0, allsides and mbfc off and LOCAL_ONLY, operator imports) with license, date and egress, the consensus per dimension (median, disagreement, lean bucket), the 116 canonical-event family news-story (title-embedding cosine 0.82 or token Jaccard 0.6 within 48 h, wire reprints one evidence group with syndicated members), CoverageAnalyzer 1.0.0 (balance by lean, country, outlet type and factuality; state-affiliated share; blindspot at 75% of at least 8 rated evidence groups; SKEWED_COVERAGE), corroboration by non-news evidence groups, news-story records of foresignal-intel read by the situation linker as context members, the finding types coverage-blindspot and coverage-divergence, daily series rollup:news/{topicId|situationId}/{bucket} in the analysis-series registry, the coverage member of situations, dossiers and assessments, Hypothesis.newsCoverage with the confidence step-down (ConfidenceAssessor 1.1.0) for skewed news support without non-news corroboration, media.reliabilityMap for news evidence reliability, contract 1.4 (object types news-story and outlet), the MCP tools list_news_stories, get_news_story and get_outlet (read), and the error codes UNKNOWN_STORY, UNKNOWN_OUTLET, PROVIDER_LICENCE_NOT_ACKNOWLEDGED and RATINGS_IMPORT_INVALID. Reconciliations (additive): MediaOutletPatch gains aggregates (the wires an outlet syndicates); the dossier include value coverage fills the top-level coverage member; SeriesRef accepts rollup:news/."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-17",
+        "note": "134: listRelatedChronicles, setChronicleDiscoverability, dismissChronicleLink, requestChronicleAccess, listChronicleClusters, getChronicleCluster, getChronicleClusterTimeline, listChronicleAccessRequests, grantChronicleAccessRequest, declineChronicleAccessRequest, setChronicleNetworkSalt and receiveChronicleSketches are implemented, with global evidence keys (ev:, cell:, ent:, at:, topic:) keyed by HMAC-SHA256 under an instance salt (rotated yearly) or a per-network salt (90 days), 128-permutation MinHash sketches per chronicle, key type and salt, LSH discovery (16 bands of 8 rows) nightly and on a sketch change above 10%, links at a minimum of network.minSharedKeys (5) shared keys and 0.05 containment, clusters of medium-or-stronger links, the deduplicated cluster timeline, full and opaque disclosure bounded by visibility, discoverability and TLP, the anti-probing limits (50 keys before discovery, 20 new opaque links per principal per day, churn holds), access requests (10 per day, 30-day suppression after a decline) granted by access list or 132 package, the me events chronicle.link.found and chronicle.access.requested|granted|declined, the inbox notice chronicle.discoverability_lowered, the MCP tool get_related_chronicles, the app settings network.minSharedKeys and network.federated, and CircularReportingDetector (ConfidenceAssessor 1.2.0). Reconciliations (additive): ChronicleSketchBatch gains accessRequests and accessDecisions; AchEvidence gains caveats; the confidence basis gains circularReporting and circularSupports; ChronicleSketchPackage.minhash says 128 values; Problem codes UNKNOWN_LINK, UNKNOWN_CLUSTER, UNKNOWN_ACCESS_REQUEST (404), DISCOVERABILITY_NOT_ALLOWED, CHRONICLE_ALREADY_VISIBLE, ACCESS_REQUEST_DECIDED, FEDERATED_DISCOVERY_DISABLED, NETWORK_SALT_UNKNOWN (409), SKETCH_BATCH_INVALID (400) and REQUEST_RATE_LIMITED (429). Package loop prevention (132) now counts only the hops of the package's own product, so a new report citing this instance's work can come back and is marked CIRCULAR_REPORTING when used as support."
       }
     ]
   },
@@ -74953,7 +74958,7 @@
         ],
         "operationId": "listRelatedChronicles",
         "summary": "Related chronicles",
-        "description": "Links of this chronicle at the disclosure level the caller is allowed: full (both visible) or opaque (strength band, dimensions, time overlap; title and owner only if revealed).\n\n**Scope:** `read`.",
+        "description": "Links of this chronicle at the disclosure level the caller is allowed: full (both visible: scores, shared canonical events and entities, computed exactly from both key sets) or opaque (strength band, dimensions, time overlap; title and owner only if revealed). A principal is shown at most 20 new opaque links per day; links shown once stay visible.\n\n**Scope:** `read`.",
         "parameters": [
           {
             "name": "chronicleId",
@@ -75060,6 +75065,16 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Validation failed (minStrength)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -75069,7 +75084,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "134",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -75080,7 +75095,7 @@
         ],
         "operationId": "setChronicleDiscoverability",
         "summary": "Set chronicle discoverability",
-        "description": "Sets discoverability and reveal flags (owner only). TLP caps it: RED → none, AMBER+STRICT → none or instance.\n\n**Scope:** `agent`.",
+        "description": "Sets discoverability and reveal flags (owner only). TLP caps it: RED → none, AMBER+STRICT → none or instance; a stricter label set later lowers it automatically (logged, owner notified with `chronicle.discoverability_lowered`). Lowering it from `network` withdraws the chronicle's sketch from peers at the next exchange.\n\n**Scope:** `agent`.",
         "parameters": [
           {
             "name": "chronicleId",
@@ -75145,7 +75160,17 @@
             }
           },
           "403": {
-            "description": "Token lacks the required scope",
+            "description": "Token lacks the required scope, or the caller is not the chronicle's owner (FORBIDDEN)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -75162,7 +75187,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "134",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/chronicle-network/links/{linkId}/dismiss": {
@@ -75172,7 +75197,7 @@
         ],
         "operationId": "dismissChronicleLink",
         "summary": "Dismiss a chronicle link",
-        "description": "Dismisses a link (owner of either side).\n\n**Scope:** `read`.",
+        "description": "Dismisses a link (owner of either local side); a dismissed link stays dismissed through later discovery runs and is listed only with `includeDismissed=true`. Anyone else gets 404 UNKNOWN_LINK.\n\n**Scope:** `read`.",
         "parameters": [
           {
             "name": "linkId",
@@ -75234,7 +75259,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "134",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -75245,7 +75270,7 @@
         ],
         "operationId": "requestChronicleAccess",
         "summary": "Request access to a related chronicle",
-        "description": "Sends the other chronicle's owner (locally, or through the peer channel) only the requester's handle, the message and an optional share offer. Limits: 10 per principal per day; repeats to a declining owner are suppressed for 30 days.\n\n**Scope:** `read`.",
+        "description": "Sends the other chronicle's owner (locally, or through the peer channel) only the requester's handle, the message and an optional share offer. The link must be shown to the caller (opaque, within its daily cap); a link whose other chronicle the caller already sees is 409 CHRONICLE_ALREADY_VISIBLE. Limits: 10 per principal per day (429 REQUEST_RATE_LIMITED); repeats to an owner who declined the same requester within 30 days are stored but suppressed, so that owner never sees them.\n\n**Scope:** `read`.",
         "parameters": [
           {
             "name": "linkId",
@@ -75307,6 +75332,26 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "The caller can already see both chronicles (CHRONICLE_ALREADY_VISIBLE)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (offerShare must be a chronicle the caller owns; message up to 1000 characters)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -75316,7 +75361,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "134",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -75398,7 +75443,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "134",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -75478,7 +75523,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "134",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -75599,7 +75644,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "134",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -75708,7 +75753,7 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "134",
-        "x-foresignal-status": "planned",
+        "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
       }
     },
@@ -75719,7 +75764,7 @@
         ],
         "operationId": "grantChronicleAccessRequest",
         "summary": "Grant an access request",
-        "description": "Owner grants access: a 130 ACL grant on this instance, or for remote requesters a 132 package (chronicle extract or report). TLP applies.\n\n**Scope:** `agent`.",
+        "description": "Owner grants access: on this instance a 130 access-list grant (viewer or commenter, TLP checked) and, when the requester offered one, the requester's own chronicle shared back with the owner as viewer; for a remote requester a 132 signed package (a chronicle extract, or a chronicle-recap report drafted and published for the purpose) addressed to the requester's handle on its instance. The requester is told the status only.\n\n**Scope:** `agent`.",
         "parameters": [
           {
             "name": "requestId",
@@ -75773,7 +75818,7 @@
             }
           },
           "409": {
-            "description": "Request already decided (Conflict)",
+            "description": "Request already decided (ACCESS_REQUEST_DECIDED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -75800,7 +75845,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "134",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/chronicle-network/requests/{requestId}/decline": {
@@ -75844,7 +75889,7 @@
             }
           },
           "409": {
-            "description": "Request already decided (Conflict)",
+            "description": "Request already decided (ACCESS_REQUEST_DECIDED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -75881,7 +75926,7 @@
         ],
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "134",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/chronicle-network/salts": {
@@ -75891,7 +75936,7 @@
         ],
         "operationId": "setChronicleNetworkSalt",
         "summary": "Install a network discovery salt",
-        "description": "Stores a per-network salt agreed out of band by peer admins (requires `network.federated=true`). The salt is kept with secret material, never exported, and rotated every 90 days.\n\n**Scope:** `admin`.",
+        "description": "Stores a per-network salt agreed out of band by peer admins (requires `network.federated=true`). The salt is kept with the instance's secret material (encrypted), never exported or returned, and used for 90 days; installing a new salt for the network retires the previous one and forgets the sketches received under it, so linkage restarts with new sketch ids.\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -75924,7 +75969,7 @@
             }
           },
           "409": {
-            "description": "Federated discovery disabled (Conflict)",
+            "description": "Federated discovery disabled (FEDERATED_DISCOVERY_DISABLED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -75961,7 +76006,7 @@
         ],
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "134",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/federation/chronicle-sketches": {
@@ -75971,7 +76016,7 @@
         ],
         "operationId": "receiveChronicleSketches",
         "summary": "Receive chronicle sketches from a peer",
-        "description": "Peers exchange signed sketch packages for `network`-discoverable chronicles. The body is signed with the sender's instance key (109) in `Foresignal-Signature` (detached JWS) and verified against the pinned key. Received sketches expire after 30 days unless refreshed and only ever yield opaque links.\n\n**Scope:** `peer` (federation peer credential, 113).",
+        "description": "Peers exchange signed sketch packages for `network`-discoverable chronicles. The body is signed with the sender's instance key (109) in `Foresignal-Signature` (detached JWS) and verified against the peer's pinned key, else its JWKS. Sketches whose TLP does not allow network discoverability (RED, AMBER+STRICT) are rejected one by one. Received sketches expire after 30 days unless refreshed and only ever yield opaque links. The same channel carries `accessRequests` and `accessDecisions` between instances.\n\n**Scope:** `peer` (federation peer credential, 113).",
         "parameters": [
           {
             "name": "Foresignal-Signature",
@@ -76005,7 +76050,7 @@
             }
           },
           "400": {
-            "description": "Invalid batch or signature",
+            "description": "Invalid batch or signature (SKETCH_BATCH_INVALID)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -76025,7 +76070,17 @@
             }
           },
           "409": {
-            "description": "Unknown network salt or federated discovery disabled (Conflict)",
+            "description": "Federated discovery disabled (FEDERATED_DISCOVERY_DISABLED) or no current salt for the network (NETWORK_SALT_UNKNOWN)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The batch exceeds 16 MiB (PAYLOAD_TOO_LARGE)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -76042,7 +76097,7 @@
         ],
         "x-foresignal-scope": "peer",
         "x-foresignal-prompt": "134",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/reports": {
@@ -140112,7 +140167,7 @@
           },
           "confidenceBasis": {
             "type": "object",
-            "description": "Inputs to the rule-based confidence (`ConfidenceAssessor` 1.0.0)",
+            "description": "Inputs to the rule-based confidence (`ConfidenceAssessor` 1.2.0)",
             "properties": {
               "observedIndicators": {
                 "type": "integer"
@@ -140161,6 +140216,27 @@
                   "null"
                 ],
                 "description": "The rule that set the level"
+              },
+              "newsCoverage": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "`ok` or `SKEWED_COVERAGE` (133)"
+              },
+              "circularReporting": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "`ok` or `CIRCULAR_REPORTING` (134): support of one origin counted once"
+              },
+              "circularSupports": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "Live ACH rows of the set marked CIRCULAR_REPORTING (134)"
               }
             },
             "additionalProperties": true
@@ -141110,7 +141186,8 @@
             "items": {
               "$ref": "#/components/schemas/ProvenanceChainEntry"
             },
-            "description": "134: chain used by CircularReportingDetector; circular support carries caveat CIRCULAR_REPORTING and counts as one evidence group"
+            "description": "134: chain used by CircularReportingDetector; circular support carries caveat CIRCULAR_REPORTING and counts as one evidence group",
+            "readOnly": true
           },
           "refs": {
             "type": "array",
@@ -141119,6 +141196,17 @@
             },
             "readOnly": true,
             "description": "Every reference attached to the row: the first and the re-reports of the same 116 evidence group, which add no weight"
+          },
+          "caveats": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "CIRCULAR_REPORTING"
+              ]
+            },
+            "readOnly": true,
+            "description": "134: CIRCULAR_REPORTING when the support's provenance chain returns to the consuming analyst, or when a further reference with the same origin attached to the row"
           }
         },
         "required": [
@@ -150572,7 +150660,7 @@
           },
           "event": {
             "type": "string",
-            "description": "Event type, e.g. `mention`, `share.received`, `report.received`, `package.received`, `chronicle.proposed`, `chronicle.cap_warning`, `chronicle.gap`, `chronicle.access.requested`, `saved-search.matches`, `assessment.published`, `comment.reply`"
+            "description": "Event type, e.g. `mention`, `share.received`, `report.received`, `package.received`, `chronicle.proposed`, `chronicle.cap_warning`, `chronicle.gap`, `chronicle.link.found`, `chronicle.access.requested`, `chronicle.access.granted`, `chronicle.access.declined`, `chronicle.discoverability_lowered`, `saved-search.matches`, `assessment.published`, `comment.reply`"
           },
           "category": {
             "type": "string",
@@ -152946,7 +153034,7 @@
               "instance",
               "network"
             ],
-            "description": "Owner's discovery setting, capped by TLP (134)"
+            "description": "Owner's discovery setting, capped by TLP (134): the effective value"
           },
           "revealTitle": {
             "type": "boolean",
@@ -154083,7 +154171,8 @@
               "none",
               "instance",
               "network"
-            ]
+            ],
+            "description": "The effective setting (the owner's choice capped by the TLP label) in responses; the requested one in requests"
           },
           "revealTitle": {
             "type": "boolean",
@@ -154905,7 +154994,7 @@
               "type": "string",
               "contentEncoding": "base64"
             },
-            "description": "Key type → 129 MinHash values (base64)"
+            "description": "Key type → 128 MinHash values (base64 of 128 big-endian 64-bit integers)"
           },
           "sizeBand": {
             "type": "object",
@@ -154994,6 +155083,92 @@
               "type": "string"
             },
             "description": "Sketch ids no longer valid"
+          },
+          "accessRequests": {
+            "type": "array",
+            "maxItems": 100,
+            "description": "Access requests relayed to the instance holding the sketch (134); never the requester's chronicle",
+            "items": {
+              "type": "object",
+              "description": "A relayed access request",
+              "properties": {
+                "requestId": {
+                  "$ref": "#/components/schemas/Ulid"
+                },
+                "linkId": {
+                  "$ref": "#/components/schemas/Ulid"
+                },
+                "sketchId": {
+                  "type": "string",
+                  "description": "The receiving instance's sketch id"
+                },
+                "requesterHandle": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 1000
+                },
+                "offerShare": {
+                  "type": "boolean",
+                  "description": "The requester offers to share a chronicle of its own"
+                }
+              },
+              "required": [
+                "requestId",
+                "sketchId",
+                "requesterHandle"
+              ]
+            }
+          },
+          "accessDecisions": {
+            "type": "array",
+            "maxItems": 100,
+            "description": "Owners' decisions on relayed requests, sent back to the requester's instance (134); status only",
+            "items": {
+              "type": "object",
+              "description": "A relayed decision",
+              "properties": {
+                "requestId": {
+                  "$ref": "#/components/schemas/Ulid"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "granted",
+                    "declined"
+                  ]
+                },
+                "deliveredAs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "report",
+                    "chronicle-extract",
+                    null
+                  ]
+                },
+                "packageId": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Ulid"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "requestId",
+                "status"
+              ]
+            }
           }
         },
         "required": [

@@ -822,6 +822,36 @@ public final class ErrorCodes {
     /** 400: a ratings import is malformed (unknown provider, bad CSV or JSON, no usable row) (133). */
     public static final String RATINGS_IMPORT_INVALID = "RATINGS_IMPORT_INVALID";
 
+    /** 404: no chronicle link with this id, or the caller may not learn of it (134). */
+    public static final String UNKNOWN_LINK = "UNKNOWN_LINK";
+
+    /** 404: no chronicle cluster with this id holding a chronicle the caller can see (134). */
+    public static final String UNKNOWN_CLUSTER = "UNKNOWN_CLUSTER";
+
+    /** 404: no access request with this id addressed to or sent by the caller (134). */
+    public static final String UNKNOWN_ACCESS_REQUEST = "UNKNOWN_ACCESS_REQUEST";
+
+    /** 409: the chronicle's TLP label does not allow the requested discoverability; carries the {@code rule} (134). */
+    public static final String DISCOVERABILITY_NOT_ALLOWED = "DISCOVERABILITY_NOT_ALLOWED";
+
+    /** 429: the principal sent its 10 access requests of the day (134). */
+    public static final String REQUEST_RATE_LIMITED = "REQUEST_RATE_LIMITED";
+
+    /** 409: the access request was already granted or declined (134). */
+    public static final String ACCESS_REQUEST_DECIDED = "ACCESS_REQUEST_DECIDED";
+
+    /** 409: federated chronicle discovery is off ({@code network.federated} is false) (134). */
+    public static final String FEDERATED_DISCOVERY_DISABLED = "FEDERATED_DISCOVERY_DISABLED";
+
+    /** 409: a sketch batch names a network this instance holds no current salt for (134). */
+    public static final String NETWORK_SALT_UNKNOWN = "NETWORK_SALT_UNKNOWN";
+
+    /** 409: an access request on a link whose other chronicle the caller can already see (134). */
+    public static final String CHRONICLE_ALREADY_VISIBLE = "CHRONICLE_ALREADY_VISIBLE";
+
+    /** 400: a sketch batch is malformed or its signature does not verify (134). */
+    public static final String SKETCH_BATCH_INVALID = "SKETCH_BATCH_INVALID";
+
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
     private ErrorCodes() {}

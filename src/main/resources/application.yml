@@ -148,6 +148,8 @@ foresignal:
     series-sample-interval: 15m
     retention-scheduled: true
     async-jobs: true
+    # Chronicle network (134): hourly sketch refresh, nightly discovery, daily peer sketch exchange.
+    network-scheduled: true
   # Discovery (119): analysis-series auto-registration (02:00 UTC), change points (03:00 and :20), unexplained moves
   # (04:00), co-occurrence (05:00) and the live event-study poll (every minute). Off in tests.
   analytics:

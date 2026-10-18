@@ -12662,7 +12662,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('chronicleLinkId', j.items[0].linkId);",
+                  "}"
                 ]
               }
             }
@@ -12713,7 +12716,7 @@
                 }
               ]
             },
-            "description": "Links of this chronicle at the disclosure level the caller is allowed: full (both visible) or opaque (strength band, dimensions, time overlap; title and owner only if revealed).\n\n**Scope:** `read`.\n\noperationId: `listRelatedChronicles`",
+            "description": "Links of this chronicle at the disclosure level the caller is allowed: full (both visible: scores, shared canonical events and entities, computed exactly from both key sets) or opaque (strength band, dimensions, time overlap; title and owner only if revealed). A principal is shown at most 20 new opaque links per day; links shown once stay visible.\n\n**Scope:** `read`.\n\noperationId: `listRelatedChronicles`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -12764,7 +12767,7 @@
               ],
               "query": []
             },
-            "description": "Sets discoverability and reveal flags (owner only). TLP caps it: RED \u2192 none, AMBER+STRICT \u2192 none or instance.\n\n**Scope:** `agent`.\n\noperationId: `setChronicleDiscoverability`",
+            "description": "Sets discoverability and reveal flags (owner only). TLP caps it: RED \u2192 none, AMBER+STRICT \u2192 none or instance; a stricter label set later lowers it automatically (logged, owner notified with `chronicle.discoverability_lowered`). Lowering it from `network` withdraws the chronicle's sketch from peers at the next exchange.\n\n**Scope:** `agent`.\n\noperationId: `setChronicleDiscoverability`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -12777,7 +12780,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"discoverability\": \"instance\",\n  \"revealTitle\": false,\n  \"revealOwner\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -12803,7 +12806,7 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/chronicle-network/links/{{linkId}}/dismiss",
+              "raw": "{{baseUrl}}/v1/chronicle-network/links/{{chronicleLinkId}}/dismiss",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -12811,12 +12814,12 @@
                 "v1",
                 "chronicle-network",
                 "links",
-                "{{linkId}}",
+                "{{chronicleLinkId}}",
                 "dismiss"
               ],
               "query": []
             },
-            "description": "Dismisses a link (owner of either side).\n\n**Scope:** `read`.\n\noperationId: `dismissChronicleLink`",
+            "description": "Dismisses a link (owner of either local side); a dismissed link stays dismissed through later discovery runs and is listed only with `includeDismissed=true`. Anyone else gets 404 UNKNOWN_LINK.\n\n**Scope:** `read`.\n\noperationId: `dismissChronicleLink`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -12837,7 +12840,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('accessRequestId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -12855,7 +12861,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/chronicle-network/links/{{linkId}}/request-access",
+              "raw": "{{baseUrl}}/v1/chronicle-network/links/{{chronicleLinkId}}/request-access",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -12863,12 +12869,12 @@
                 "v1",
                 "chronicle-network",
                 "links",
-                "{{linkId}}",
+                "{{chronicleLinkId}}",
                 "request-access"
               ],
               "query": []
             },
-            "description": "Sends the other chronicle's owner (locally, or through the peer channel) only the requester's handle, the message and an optional share offer. Limits: 10 per principal per day; repeats to a declining owner are suppressed for 30 days.\n\n**Scope:** `read`.\n\noperationId: `requestChronicleAccess`",
+            "description": "Sends the other chronicle's owner (locally, or through the peer channel) only the requester's handle, the message and an optional share offer. The link must be shown to the caller (opaque, within its daily cap); a link whose other chronicle the caller already sees is 409 CHRONICLE_ALREADY_VISIBLE. Limits: 10 per principal per day (429 REQUEST_RATE_LIMITED); repeats to an owner who declined the same requester within 30 days are stored but suppressed, so that owner never sees them.\n\n**Scope:** `read`.\n\noperationId: `requestChronicleAccess`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -12881,7 +12887,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"message\": \"I follow the same front; may I see your chronicle?\",\n  \"offerShare\": \"{{chronicleId}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -12898,7 +12904,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('chronicleClusterId', j.items[0].id);",
+                  "}"
                 ]
               }
             }
@@ -12971,7 +12980,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/chronicle-network/clusters/{{clusterId}}",
+              "raw": "{{baseUrl}}/v1/chronicle-network/clusters/{{chronicleClusterId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -12979,7 +12988,7 @@
                 "v1",
                 "chronicle-network",
                 "clusters",
-                "{{clusterId}}"
+                "{{chronicleClusterId}}"
               ],
               "query": []
             },
@@ -13018,7 +13027,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/chronicle-network/clusters/{{clusterId}}/timeline",
+              "raw": "{{baseUrl}}/v1/chronicle-network/clusters/{{chronicleClusterId}}/timeline",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -13026,7 +13035,7 @@
                 "v1",
                 "chronicle-network",
                 "clusters",
-                "{{clusterId}}",
+                "{{chronicleClusterId}}",
                 "timeline"
               ],
               "query": [
@@ -13077,7 +13086,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('accessRequestId', j.items[0].id);",
+                  "}"
                 ]
               }
             }
@@ -13166,7 +13178,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/chronicle-network/requests/{{requestId}}/grant",
+              "raw": "{{baseUrl}}/v1/chronicle-network/requests/{{accessRequestId}}/grant",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -13174,12 +13186,12 @@
                 "v1",
                 "chronicle-network",
                 "requests",
-                "{{requestId}}",
+                "{{accessRequestId}}",
                 "grant"
               ],
               "query": []
             },
-            "description": "Owner grants access: a 130 ACL grant on this instance, or for remote requesters a 132 package (chronicle extract or report). TLP applies.\n\n**Scope:** `agent`.\n\noperationId: `grantChronicleAccessRequest`",
+            "description": "Owner grants access: on this instance a 130 access-list grant (viewer or commenter, TLP checked) and, when the requester offered one, the requester's own chronicle shared back with the owner as viewer; for a remote requester a 132 signed package (a chronicle extract, or a chronicle-recap report drafted and published for the purpose) addressed to the requester's handle on its instance. The requester is told the status only.\n\n**Scope:** `agent`.\n\noperationId: `grantChronicleAccessRequest`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -13192,7 +13204,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"role\": \"viewer\",\n  \"expiresAt\": null,\n  \"deliverAs\": \"chronicle-extract\",\n  \"message\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -13223,7 +13235,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/chronicle-network/requests/{{requestId}}/decline",
+              "raw": "{{baseUrl}}/v1/chronicle-network/requests/{{accessRequestId}}/decline",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -13231,7 +13243,7 @@
                 "v1",
                 "chronicle-network",
                 "requests",
-                "{{requestId}}",
+                "{{accessRequestId}}",
                 "decline"
               ],
               "query": []
@@ -13286,7 +13298,7 @@
               ],
               "query": []
             },
-            "description": "Stores a per-network salt agreed out of band by peer admins (requires `network.federated=true`). The salt is kept with secret material, never exported, and rotated every 90 days.\n\n**Scope:** `admin`.\n\noperationId: `setChronicleNetworkSalt`",
+            "description": "Stores a per-network salt agreed out of band by peer admins (requires `network.federated=true`). The salt is kept with the instance's secret material (encrypted), never exported or returned, and used for 90 days; installing a new salt for the network retires the previous one and forgets the sketches received under it, so linkage restarts with new sketch ids.\n\n**Scope:** `admin`.\n\noperationId: `setChronicleNetworkSalt`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -13299,7 +13311,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"networkId\": \"gulf-analysts\",\n  \"saltRef\": \"{{networkSalt}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -13351,7 +13363,7 @@
               ],
               "query": []
             },
-            "description": "Peers exchange signed sketch packages for `network`-discoverable chronicles. The body is signed with the sender's instance key (109) in `Foresignal-Signature` (detached JWS) and verified against the pinned key. Received sketches expire after 30 days unless refreshed and only ever yield opaque links.\n\n**Scope:** `peer` (federation peer credential, 113).\n\noperationId: `receiveChronicleSketches`",
+            "description": "Peers exchange signed sketch packages for `network`-discoverable chronicles. The body is signed with the sender's instance key (109) in `Foresignal-Signature` (detached JWS) and verified against the peer's pinned key, else its JWKS. Sketches whose TLP does not allow network discoverability (RED, AMBER+STRICT) are rejected one by one. Received sketches expire after 30 days unless refreshed and only ever yield opaque links. The same channel carries `accessRequests` and `accessDecisions` between instances.\n\n**Scope:** `peer` (federation peer credential, 113).\n\noperationId: `receiveChronicleSketches`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -20121,7 +20133,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/external/question-links/{{linkId}}",
+              "raw": "{{baseUrl}}/v1/external/question-links/{{chronicleLinkId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -20129,7 +20141,7 @@
                 "v1",
                 "external",
                 "question-links",
-                "{{linkId}}"
+                "{{chronicleLinkId}}"
               ],
               "query": []
             },
@@ -52302,6 +52314,22 @@
     },
     {
       "key": "receivedId",
+      "value": ""
+    },
+    {
+      "key": "chronicleLinkId",
+      "value": ""
+    },
+    {
+      "key": "chronicleClusterId",
+      "value": ""
+    },
+    {
+      "key": "accessRequestId",
+      "value": ""
+    },
+    {
+      "key": "networkSalt",
       "value": ""
     },
     {

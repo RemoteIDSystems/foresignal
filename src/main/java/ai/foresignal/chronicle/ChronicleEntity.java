@@ -125,6 +125,18 @@ public class ChronicleEntity {
     @Column(name = "created_by", length = 200)
     private String createdBy;
 
+    @Column(name = "discoverability", length = 16)
+    private String discoverability;
+
+    @Column(name = "reveal_title")
+    private Boolean revealTitle;
+
+    @Column(name = "reveal_owner")
+    private Boolean revealOwner;
+
+    @Column(name = "discoverability_updated_at")
+    private Instant discoverabilityUpdatedAt;
+
     @Column(name = "version", nullable = false)
     private int version = 1;
 
@@ -433,6 +445,49 @@ public class ChronicleEntity {
     /** Sets the creating actor. */
     public void setCreatedBy(String value) {
         this.createdBy = value;
+    }
+
+    /**
+     * The owner's discoverability setting (prompt 134): {@code none} (the default, also for rows from before 134),
+     * {@code instance} or {@code network}. The effective setting is this one capped by the TLP label.
+     */
+    public String getDiscoverability() {
+        return discoverability == null ? "none" : discoverability;
+    }
+
+    /** Sets the discoverability setting. */
+    public void setDiscoverability(String value) {
+        this.discoverability = value;
+    }
+
+    /** True when opaque links may show the title (prompt 134); false by default. */
+    public boolean isRevealTitle() {
+        return Boolean.TRUE.equals(revealTitle);
+    }
+
+    /** Sets whether opaque links may show the title. */
+    public void setRevealTitle(boolean value) {
+        this.revealTitle = value;
+    }
+
+    /** True when opaque links may show the owner's handle (prompt 134); false by default. */
+    public boolean isRevealOwner() {
+        return Boolean.TRUE.equals(revealOwner);
+    }
+
+    /** Sets whether opaque links may show the owner's handle. */
+    public void setRevealOwner(boolean value) {
+        this.revealOwner = value;
+    }
+
+    /** When the discoverability last changed, or null. */
+    public Instant getDiscoverabilityUpdatedAt() {
+        return discoverabilityUpdatedAt;
+    }
+
+    /** Sets when the discoverability last changed. */
+    public void setDiscoverabilityUpdatedAt(Instant value) {
+        this.discoverabilityUpdatedAt = value;
     }
 
     /** The optimistic-lock version (the ETag). */

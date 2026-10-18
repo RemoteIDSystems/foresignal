@@ -17,7 +17,8 @@ import org.hibernate.type.SqlTypes;
  * One ACH evidence row of a hypothesis set (prompt 125, table {@code ach_evidence}): one per 116 evidence group, so a
  * re-report attaches to the existing row ({@code refs} grows) instead of adding weight. It holds the source, the
  * reference, the evidence group, the description, credibility and relevance, the ratings per hypothesis, the log-odds
- * contributions it applied (reversed when the row is removed), who added it and when, and {@code removed_at}.
+ * contributions it applied (reversed when the row is removed), who added it and when, and {@code removed_at}. Since
+ * prompt 134 it also keeps the provenance chain of a supporting product and its caveats ({@code CIRCULAR_REPORTING}).
  */
 @Entity
 @Table(name = "ach_evidence", indexes = {
@@ -78,6 +79,14 @@ public class AchEvidenceEntity {
 
     @Column(name = "added_at", nullable = false)
     private Instant addedAt;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "provenance_chain", columnDefinition = "jsonb")
+    private List<Map<String, Object>> provenanceChain;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "caveats", columnDefinition = "jsonb")
+    private List<String> caveats;
 
     @Column(name = "removed_at")
     private Instant removedAt;
@@ -245,5 +254,31 @@ public class AchEvidenceEntity {
     /** Sets when it was removed. */
     public void setRemovedAt(Instant value) {
         this.removedAt = value;
+    }
+
+    /**
+     * The provenance chain of the supporting product (prompt 134), origin first; empty for evidence without one.
+     */
+    public List<Map<String, Object>> getProvenanceChain() {
+        return provenanceChain == null ? List.of() : provenanceChain;
+    }
+
+    /** Sets the provenance chain. */
+    public void setProvenanceChain(List<Map<String, Object>> value) {
+        this.provenanceChain = value == null || value.isEmpty() ? null : new ArrayList<>(value);
+    }
+
+    /** The caveats of the row (prompt 134: {@code CIRCULAR_REPORTING}); empty when none. */
+    public List<String> getCaveats() {
+        return caveats == null ? List.of() : caveats;
+    }
+
+    /** Adds a caveat once. */
+    public void addCaveat(String caveat) {
+        List<String> out = caveats == null ? new ArrayList<>() : new ArrayList<>(caveats);
+        if (!out.contains(caveat)) {
+            out.add(caveat);
+        }
+        this.caveats = out;
     }
 }

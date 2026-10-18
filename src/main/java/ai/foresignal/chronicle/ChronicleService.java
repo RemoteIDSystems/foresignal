@@ -568,6 +568,7 @@ public class ChronicleService {
                     "The chronicle changed since version " + ifMatch + "; it is at version " + found.getVersion() + ".")
                     .withProperty("version", found.getVersion());
         }
+        Tlp[][] tlpChange = new Tlp[1][];
         ChronicleEntity changed = capture.exclusive(() -> tx.execute(s -> {
             ChronicleEntity c = chronicles.findById(found.getId()).orElseThrow(() -> unknown(id));
             if (body.has("name")) {
@@ -615,13 +616,20 @@ public class ChronicleService {
                 shares.checkTlp(tlp, rec.getOwner(), shares.entries(rec.getObjectRef(),
                         ai.foresignal.collab.PrincipalViews.cache()).stream()
                         .map(e -> String.valueOf(e.get("grantee"))).toList(), vis);
+                Tlp previous = Tlp.fromWire(rec.getTlp());
                 rec.setVisibility(vis);
                 rec.setTlp(tlp.wireValue());
                 access.save(rec);
+                if (previous != tlp) {
+                    tlpChange[0] = new Tlp[] {previous, tlp};
+                }
             }
             c.touch(clock.instant());
             return chronicles.save(c);
         }));
+        if (tlpChange[0] != null) {
+            shares.tlpChanged(ref(changed.getId()), tlpChange[0][0], tlpChange[0][1], caller.principal());
+        }
         return changed;
     }
 
@@ -656,6 +664,7 @@ public class ChronicleService {
                     "Deleting a chronicle needs confirm equal to its display id.",
                     List.of(new FieldError("confirm", "must be " + c.getDisplayId())));
         }
+        String owner = access.record(ref(c.getId())).map(ShareableObjectEntity::getOwner).orElse(null);
         capture.exclusive(() -> {
             storage.deleteCaptured(c.getId());
             tx.executeWithoutResult(s -> {
@@ -671,6 +680,7 @@ public class ChronicleService {
             jobs.deletePackage(c.getId());
             return null;
         });
+        lifecycle(l -> l.deleted(c, owner));
     }
 
     // ------------------------------------------------------------------------- layers
@@ -857,10 +867,10 @@ public class ChronicleService {
                 "resumed; the paused interval is not captured", ch -> ch.setCursorSeq(changeBus.lastPublishedSeq()));
     }
 
-    /** Ends capture; history is kept and replayable. */
+    /** Ends capture; history is kept and replayable. Lifecycle listeners (134) are told afterwards. */
     public ChronicleEntity stop(String id, ObjectCaller caller) {
         ChronicleEntity c = require(id, caller, AccessAction.EDIT);
-        return transition(c, Set.of(ChronicleVocabulary.ACTIVE, ChronicleVocabulary.PAUSED),
+        ChronicleEntity stopped = transition(c, Set.of(ChronicleVocabulary.ACTIVE, ChronicleVocabulary.PAUSED),
                 ChronicleVocabulary.STOPPED, "stopped", ch -> {
                     Long cursor = jdbc.queryForObject("SELECT cursor_seq FROM chronicle WHERE id = ?", Long.class,
                             ch.getId());
@@ -868,6 +878,29 @@ public class ChronicleService {
                     ch.setStoppedAt(clock.instant());
                     ch.setCaptureToSeq(cursor);
                 });
+        lifecycle(l -> l.stopped(stopped));
+        return stopped;
+    }
+
+    private ObjectProvider<ChronicleLifecycleListener> lifecycleListeners;
+
+    /** Installs the lifecycle listeners (prompt 134). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setLifecycleListeners(ObjectProvider<ChronicleLifecycleListener> listeners) {
+        this.lifecycleListeners = listeners;
+    }
+
+    private void lifecycle(java.util.function.Consumer<ChronicleLifecycleListener> call) {
+        if (lifecycleListeners == null) {
+            return;
+        }
+        lifecycleListeners.orderedStream().forEach(l -> {
+            try {
+                call.accept(l);
+            } catch (RuntimeException e) {
+                log.warn("Chronicle lifecycle listener failed: {}", e.toString());
+            }
+        });
     }
 
     /** Archives a stopped chronicle to a cold package and drops its leaf (asynchronous; restorable). */
@@ -1061,15 +1094,25 @@ public class ChronicleService {
         }
         out.put("layers", layerViews);
         out.put("archive", fresh.getArchive());
-        out.put("discoverability", "none");
-        out.put("revealTitle", false);
-        out.put("revealOwner", false);
+        Tlp label = rec == null ? access.defaultTlp() : Tlp.fromWire(rec.getTlp());
+        out.put("discoverability", effectiveDiscoverability(fresh.getDiscoverability(), label));
+        out.put("revealTitle", fresh.isRevealTitle());
+        out.put("revealOwner", fresh.isRevealOwner());
         out.put("unreadCount", thread.unread(fresh.getId(), caller));
         out.put("tags", tags(fresh, caller));
         out.put("version", fresh.getVersion());
         out.put("createdAt", fresh.getCreatedAt().toString());
         out.put("updatedAt", fresh.getUpdatedAt().toString());
         return out;
+    }
+
+    /**
+     * The effective discoverability (prompt 134): the owner's setting lowered to what the TLP label allows (RED → none,
+     * AMBER+STRICT → at most instance).
+     */
+    public static String effectiveDiscoverability(String setting, Tlp tlp) {
+        return ai.foresignal.chronicle.network.DiscoverabilityLevel.cap(
+                ai.foresignal.chronicle.network.DiscoverabilityLevel.fromWire(setting), tlp).wireValue();
     }
 
     private Object ownerSummary(String principalId) {

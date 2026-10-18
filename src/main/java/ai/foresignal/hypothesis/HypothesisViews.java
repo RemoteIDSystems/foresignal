@@ -139,6 +139,8 @@ public final class HypothesisViews {
         out.put("addedAt", e.getAddedAt().toString());
         out.put("removedAt", e.getRemovedAt() == null ? null : e.getRemovedAt().toString());
         out.put("evidenceItemId", null);
+        out.put("provenanceChain", e.getProvenanceChain());
+        out.put("caveats", e.getCaveats());
         return out;
     }
 

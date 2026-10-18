@@ -156,7 +156,7 @@ class CoverageInAnalysisIT {
         ConfidenceAssessor.Assessment lowered = ConfidenceAssessor.assess(base);
         assertThat(lowered.level()).isEqualTo("low");
         assertThat(lowered.basis()).containsEntry("newsCoverage", "SKEWED_COVERAGE")
-                .containsEntry("assessor", "ConfidenceAssessor 1.1.0");
+                .containsEntry("assessor", "ConfidenceAssessor 1.2.0");
 
         evidence(set, "record:usgs-earthquakes/us7000test@5", Map.of("H1", "CC"), "record");
         NewsCoverageService.HypothesisSupport corroborated = coverage.hypothesisSupport(set, "H1");

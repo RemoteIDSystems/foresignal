@@ -321,6 +321,18 @@ public final class SettingKeys {
      */
     public static final String MEDIA_RELIABILITY_MAP = "media.reliabilityMap";
 
+    /**
+     * The minimum estimated shared keys of a chronicle link (prompt 134, {@code network.minSharedKeys}); 5. A link
+     * also needs a containment of the smaller chronicle of at least 0.05.
+     */
+    public static final String NETWORK_MIN_SHARED_KEYS = "network.minSharedKeys";
+
+    /**
+     * Whether federated chronicle discovery is on (prompt 134, {@code network.federated}); false. Network salts can
+     * be installed and peer sketches received only while it is true.
+     */
+    public static final String NETWORK_FEDERATED = "network.federated";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -339,7 +351,7 @@ public final class SettingKeys {
                     IMPACT_QUESTION_MIN_PROBABILITY, IMPACT_ASSET_BUFFER_KM, RELATION_CURSOR,
                     CHRONICLE_DEFAULT_CAP_GB, CHRONICLE_AUTO_ACTIVATE_PER_DAY, CHRONICLE_AUTO_ACTIVATE_CAP_GB,
                     CHRONICLE_THREAD_CURSORS, EXCHANGE_MAX_PACKAGE_MB, EXCHANGE_ALLOW_GREEN_LINKS,
-                    MEDIA_RELIABILITY_MAP);
+                    MEDIA_RELIABILITY_MAP, NETWORK_MIN_SHARED_KEYS, NETWORK_FEDERATED);
 
     private SettingKeys() {}
 }

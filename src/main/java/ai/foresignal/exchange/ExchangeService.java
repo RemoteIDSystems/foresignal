@@ -349,8 +349,8 @@ public class ExchangeService {
         for (String a : r.getAuthors()) {
             b.authors.add(author(a, "author"));
         }
-        b.chain.add(chainEntry(identity.instanceId(), handle(reports.record(r).getOwner()), b.objectRef,
-                rev.getManifestId(), "origin", rev.getPublishedAt()));
+        b.chain.addAll(reportChain(b.objectRef, handle(reports.record(r).getOwner()), rev.getManifestId(),
+                rev.getPublishedAt()));
         Map<String, Object> bundle = copy(rev.getBundle());
         Set<String> excluded = reduce(bundle, b.reductions);
         filterReport(bundle, excluded);
@@ -559,7 +559,7 @@ public class ExchangeService {
             if (!identity.instanceId().equals(entry.get("instanceId"))) {
                 b.chain.add(new LinkedHashMap<>(entry));
             }
-            if (entry.get("instanceId") != null) {
+            if (entry.get("instanceId") != null && ExchangeInbox.transportHop(entry, b.objectRef)) {
                 b.loopInstances.add(String.valueOf(entry.get("instanceId")));
             }
         }
@@ -877,6 +877,37 @@ public class ExchangeService {
     private String handle(String principalId) {
         return principalId == null ? "unknown" : principals.findById(principalId).map(PrincipalEntity::getHandle)
                 .orElse(principalId);
+    }
+
+    private ProvenanceChains provenance;
+
+    /** Installs the provenance chains of prompt 134 (reports carry the chains of what they cite). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setProvenanceChains(ProvenanceChains provenance) {
+        this.provenance = provenance;
+    }
+
+    /**
+     * The chain of a report package (prompt 134): the chains of the reports, received material and evidence items it
+     * cites, origin first, then the report itself (with its manifest), so a report that comes back through other
+     * analysts is recognized as circular.
+     */
+    List<Map<String, Object>> reportChain(String reportRef, String ownerHandle, String manifestId, Instant at) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        if (provenance != null) {
+            try {
+                for (Map<String, Object> e : provenance.of(reportRef)) {
+                    if (!reportRef.equals(e.get("productRef"))) {
+                        out.add(e);
+                    }
+                }
+            } catch (RuntimeException e) {
+                out.clear();
+            }
+        }
+        out.add(chainEntry(identity.instanceId(), ownerHandle, reportRef, manifestId, out.isEmpty() ? "origin"
+                : "author", at));
+        return out;
     }
 
     /** One {@code ProvenanceChainEntry}. */

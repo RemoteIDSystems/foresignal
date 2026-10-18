@@ -174,6 +174,7 @@ public class ReportDrafter {
         } else if (assessmentId != null) {
             throw ValidationException.forField("assessmentId", "applies only to the weekly-assessment template");
         }
+        circularCaveats(built);
         ReportService.Draft draft = new ReportService.Draft(title == null ? built.title : title.strip())
                 .template(template).source(source).timeWindow(window != null ? window : built.window)
                 .area(area != null ? area : built.area);
@@ -184,6 +185,48 @@ public class ReportDrafter {
             draft.block(writer.write(draft, caller));
         }
         return reports.save(draft, caller);
+    }
+
+    /**
+     * Adds the {@code CIRCULAR_REPORTING} caveat to the coverage block when a hypothesis set the report shows has
+     * support marked circular (prompt 134): an interpretation that came back through other analysts is not independent
+     * confirmation.
+     */
+    @SuppressWarnings("unchecked")
+    void circularCaveats(Built built) {
+        List<String> setIds = new ArrayList<>();
+        Map<String, Object> coverage = null;
+        for (Map<String, Object> b : built.blocks) {
+            if ("hypotheses".equals(b.get("type")) && b.get("hypothesisSetRef") instanceof String ref
+                    && ref.startsWith(ObjectTypes.HYPOTHESIS_SET + ":")) {
+                setIds.add(ref.substring(ObjectTypes.HYPOTHESIS_SET.length() + 1));
+            }
+            if ("coverage".equals(b.get("type"))) {
+                coverage = b;
+            }
+        }
+        if (setIds.isEmpty() || coverage == null) {
+            return;
+        }
+        Integer n;
+        try {
+            n = jdbc.queryForObject("SELECT count(*) FROM ach_evidence WHERE set_id = ANY(?) AND removed_at IS NULL"
+                    + " AND caveats IS NOT NULL AND caveats @> '[\"CIRCULAR_REPORTING\"]'::jsonb", Integer.class,
+                    (Object) setIds.toArray(String[]::new));
+        } catch (RuntimeException e) {
+            return;
+        }
+        if (n == null || n == 0) {
+            return;
+        }
+        List<Map<String, Object>> caveats = coverage.get("caveats") instanceof List<?> list
+                ? new ArrayList<>((List<Map<String, Object>>) list) : new ArrayList<>();
+        Map<String, Object> caveat = new LinkedHashMap<>();
+        caveat.put("code", "CIRCULAR_REPORTING");
+        caveat.put("text", n + " supporting item(s) of the hypotheses shown came back through other analysts or share"
+                + " an origin; they count once, never as independent confirmation.");
+        caveats.add(caveat);
+        coverage.put("caveats", caveats);
     }
 
     /** A drafted report: title, blocks, window and area. */

@@ -129,6 +129,7 @@ foresignal:
     auto-start: false
     retention-scheduled: false
     async-jobs: false
+    network-scheduled: false
 
 logging:
   level:

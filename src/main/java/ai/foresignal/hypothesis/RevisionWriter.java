@@ -366,11 +366,18 @@ public class RevisionWriter {
     @Transactional
     public void refreshConfidence(HypothesisSetEntity set, List<HypothesisEntity> hyps) {
         List<IndicatorEntity> observed = new ArrayList<>();
+        java.util.Set<String> origins = new java.util.HashSet<>();
         for (IndicatorEntity i : indicators.findBySetIdOrderByIdAsc(set.getId())) {
             if (HypothesisVocabulary.OBSERVED.equals(i.getState())) {
+                // Prompt 134: indicators observed through products of one origin (circular reporting) count once.
+                Object key = i.getObservedEvidence() == null ? null : i.getObservedEvidence().get("evidenceKey");
+                if (key != null && key.toString().startsWith("origin:") && !origins.add(key.toString())) {
+                    continue;
+                }
                 observed.add(i);
             }
         }
+        int circularSupports = circularSupports(set.getId());
         boolean brokenLinchpin = false;
         for (KeyAssumptionEntity a : assumptions.findBySetIdOrderByIdAsc(set.getId())) {
             brokenLinchpin |= a.brokenLinchpin();
@@ -392,7 +399,7 @@ public class RevisionWriter {
         }
         ConfidenceAssessor.Assessment setLevel = ConfidenceAssessor.assess(new ConfidenceAssessor.Inputs(all,
                 brokenLinchpin, lowDensity, null, null, agreement,
-                leading != null && Boolean.TRUE.equals(skewed.get(leading.getId()))));
+                leading != null && Boolean.TRUE.equals(skewed.get(leading.getId())), circularSupports));
         set.setConfidence(setLevel.level());
         for (HypothesisEntity h : hyps) {
             List<ConfidenceAssessor.Observed> bearing = new ArrayList<>();
@@ -405,9 +412,22 @@ public class RevisionWriter {
                 }
             }
             ConfidenceAssessor.Assessment a = ConfidenceAssessor.assess(new ConfidenceAssessor.Inputs(bearing,
-                    brokenLinchpin, lowDensity, null, null, agreement, Boolean.TRUE.equals(skewed.get(h.getId()))));
+                    brokenLinchpin, lowDensity, null, null, agreement, Boolean.TRUE.equals(skewed.get(h.getId())),
+                    circularSupports));
             h.setConfidence(a.level());
             h.setConfidenceBasis(a.basis());
+        }
+    }
+
+    /** The live ACH rows of a set marked {@code CIRCULAR_REPORTING} (prompt 134). */
+    int circularSupports(String setId) {
+        try {
+            Integer n = jdbc.getJdbcTemplate().queryForObject("SELECT count(*) FROM ach_evidence WHERE set_id = ?"
+                    + " AND removed_at IS NULL AND caveats IS NOT NULL AND caveats @> '[\"CIRCULAR_REPORTING\"]'::jsonb",
+                    Integer.class, setId);
+            return n == null ? 0 : n;
+        } catch (RuntimeException e) {
+            return 0;
         }
     }
 

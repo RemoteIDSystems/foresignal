@@ -1132,9 +1132,71 @@ public class HypothesisService {
             return "ref:" + (at > 0 ? text.substring(0, at) : text);
         }
         if (ref != null) {
+            ai.foresignal.exchange.CircularReportingDetector detector = circular;
+            if (detector != null) {
+                try {
+                    Object consumer = observed.remove(CONSUMER);
+                    Optional<ai.foresignal.exchange.CircularReportingDetector.Assessment> a = detector.assess(
+                            ref.toString(), consumer == null ? null : consumer.toString());
+                    if (a.isPresent()) {
+                        observed.put("provenanceChain", a.get().chain());
+                        if (a.get().circular()) {
+                            observed.put("caveats", List.of(
+                                    ai.foresignal.exchange.CircularReportingDetector.CIRCULAR_REPORTING));
+                        }
+                        return a.get().evidenceKey();
+                    }
+                } catch (RuntimeException e) {
+                    log.debug("No provenance chain for {}: {}", ref, e.toString());
+                }
+            }
             return "ref:" + ref;
         }
         return "manual:" + Ulids.next(clock.instant());
+    }
+
+    /** The probe member naming the consuming principal for circular-reporting detection (prompt 134). */
+    static final String CONSUMER = "_consumerPrincipal";
+
+    private ai.foresignal.exchange.CircularReportingDetector circular;
+
+    /** Installs the circular-reporting detector of prompt 134. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setCircularReportingDetector(ai.foresignal.exchange.CircularReportingDetector detector) {
+        this.circular = detector;
+    }
+
+    /**
+     * Applies what the circular-reporting detector put on an observation to a row: its provenance chain and the
+     * {@code CIRCULAR_REPORTING} caveat (prompt 134).
+     */
+    @SuppressWarnings("unchecked")
+    static void applyProvenance(AchEvidenceEntity row, Map<String, Object> observed) {
+        if (observed.get("provenanceChain") instanceof List<?> chain && row.getProvenanceChain().isEmpty()) {
+            row.setProvenanceChain((List<Map<String, Object>>) chain);
+        }
+        if (observed.get("caveats") instanceof List<?> caveats) {
+            for (Object c : caveats) {
+                row.addCaveat(String.valueOf(c));
+            }
+        }
+    }
+
+    /**
+     * Attaches a further reference to a live row. When the row's key is an origin key (prompt 134) and the reference is
+     * a different product, two supports share an origin: the row is marked {@code CIRCULAR_REPORTING} and still counts
+     * once.
+     */
+    static void attach(AchEvidenceEntity row, String ref, String key, Map<String, Object> observed) {
+        List<String> refs = new ArrayList<>(row.getRefs());
+        if (ref != null && !refs.contains(ref)) {
+            refs.add(ref);
+            if (key != null && key.startsWith("origin:")) {
+                row.addCaveat(ai.foresignal.exchange.CircularReportingDetector.CIRCULAR_REPORTING);
+            }
+        }
+        row.setRefs(refs);
+        applyProvenance(row, observed);
     }
 
     /** Adds an observed indicator's ACH row, or attaches the observation to the live row of its evidence group. */
@@ -1144,11 +1206,7 @@ public class HypothesisService {
         List<AchEvidenceEntity> existing = evidence.findBySetIdAndEvidenceGroupKeyAndRemovedAtIsNull(set.getId(), key);
         if (!existing.isEmpty()) {
             AchEvidenceEntity row = existing.get(0);
-            List<String> refs = new ArrayList<>(row.getRefs());
-            if (ref != null && !refs.contains(ref)) {
-                refs.add(ref);
-            }
-            row.setRefs(refs);
+            attach(row, ref, key, observed);
             evidence.save(row);
             return;
         }
@@ -1157,6 +1215,7 @@ public class HypothesisService {
         row.setRef(ref);
         row.setRefs(ref == null ? List.of() : List.of(ref));
         row.setEvidenceGroupKey(key);
+        applyProvenance(row, observed);
         Object group = observed.get("evidenceGroupId");
         row.setEvidenceGroupId(group == null ? null : group.toString());
         row.setDescription(i.getDescription());
@@ -1179,6 +1238,19 @@ public class HypothesisService {
      */
     @Transactional
     public AchEvidenceEntity addEvidence(String setId, EvidenceDraft draft, String actor, boolean seesPrivate) {
+        return addEvidence(setId, draft, actor, seesPrivate, null);
+    }
+
+    /**
+     * {@link #addEvidence(String, EvidenceDraft, String, boolean)} for a known consuming principal (prompt 134): a
+     * supporting product whose provenance chain returns to that principal is marked {@code CIRCULAR_REPORTING}, and
+     * every product with a chain is grouped by its origin, so it counts once.
+     *
+     * @param principalId the consuming principal, or null
+     */
+    @Transactional
+    public AchEvidenceEntity addEvidence(String setId, EvidenceDraft draft, String actor, boolean seesPrivate,
+            String principalId) {
         get(setId, seesPrivate);
         HypothesisSetEntity set = locked(setId);
         requireUnresolved(set);
@@ -1198,15 +1270,14 @@ public class HypothesisService {
         if (draft.ref() != null) {
             probe.put("ref", draft.ref());
         }
+        if (principalId != null) {
+            probe.put(CONSUMER, principalId);
+        }
         String key = evidenceKey(probe);
         List<AchEvidenceEntity> existing = evidence.findBySetIdAndEvidenceGroupKeyAndRemovedAtIsNull(setId, key);
         if (!existing.isEmpty()) {
             AchEvidenceEntity row = existing.get(0);
-            List<String> refs = new ArrayList<>(row.getRefs());
-            if (draft.ref() != null && !refs.contains(draft.ref())) {
-                refs.add(draft.ref());
-            }
-            row.setRefs(refs);
+            attach(row, draft.ref(), key, probe);
             return evidence.save(row);
         }
         AchEvidenceEntity row = new AchEvidenceEntity(Ulids.next(now), setId, draft.source(), actor == null
@@ -1216,6 +1287,7 @@ public class HypothesisService {
         row.setEvidenceGroupKey(key);
         Object group = probe.get("evidenceGroupId");
         row.setEvidenceGroupId(group == null ? null : group.toString());
+        applyProvenance(row, probe);
         row.setDescription(draft.description());
         row.setCredibility(draft.credibility());
         row.setRelevance(draft.relevance());

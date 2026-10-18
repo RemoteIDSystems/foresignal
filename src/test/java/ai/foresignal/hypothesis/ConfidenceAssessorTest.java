@@ -10,7 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * {@code ConfidenceAssessor} 1.1.0 (prompt 125 §4.7, prompt 133): each rule of high, moderate and low, and the one-step downgrade
+ * {@code ConfidenceAssessor} 1.2.0 (prompt 125 §4.7, prompts 133 and 134): each rule of high, moderate and low, and the one-step downgrade
  * of a broken linchpin.
  */
 class ConfidenceAssessorTest {
@@ -84,6 +84,6 @@ class ConfidenceAssessorTest {
         assertThat(lowered.basis().get("rule").toString()).contains("skewed");
         Assessment both = ConfidenceAssessor.assess(new Inputs(two, true, false, null, null, null, true));
         assertThat(both.level()).as("linchpin and skew: two steps").isEqualTo("low");
-        assertThat(ConfidenceAssessor.VERSION).isEqualTo("1.1.0");
+        assertThat(ConfidenceAssessor.VERSION).isEqualTo("1.2.0");
     }
 }

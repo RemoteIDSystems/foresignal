@@ -82,7 +82,8 @@ Two Server-Sent Events endpoints push changes as they are committed (typically w
   `notifications`, `system`, `inbox`, `intel`, `evidence`, `analyst`, `situations`, `analytics`, `forecasts`,
   `hypotheses`, `assessments`, `workspace`, `me` (130: the caller's own `share.received`, `mention`,
   `comment.reply` and `saved-search.matches`; 132: `report.received`, `package.received` and `report.retracted`;
-  resumable by id) and `chronicle` (131: `chronicle.item` and
+  134: `chronicle.link.found`, `chronicle.access.requested`, `chronicle.access.granted` and
+  `chronicle.access.declined`; resumable by id) and `chronicle` (131: `chronicle.item` and
   `chronicle.status` of the chronicles the caller can see, filter `chronicle.chronicleId`) as their prompts add them. Filters take the topic as a prefix
   (`changes.bbox=…`, `changes.live=false`, `alerts.minSeverity=warning`). The first event is `hello {streamId, topics,
   watermarkSeq, filterVersion}`. The filter can be swapped without reconnecting (below).
@@ -683,7 +684,7 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `get_information_value` | read | A set's pending indicators ranked by expected information gain (`eig`, `potentialEig` at full detectability, `pDetect`, `pObserved`) and whether each is a `collectionGap`. Use it to say what would most change the judgment. |
 | `list_collection_gaps` | read | Indicators that would matter but cannot currently be observed (`setId`, `limit`), with recommendations (`enable-source`, `add-receiver`, `add-sensor`, `none`). Recommendations are advice; enabling a source is the operator's action. |
 | `create_hypothesis_set` | agent | Creates a set: `question`, `kind` (`exclusive` needs exactly one `other` hypothesis and priors summing to 1), `cadence`, optional `horizon`, `regionCodes`, `hypotheses` (each prior with its `priorBasis`), `indicators` (signal, `signalFamily`, credibility, relevance, `lr` per hypothesis label as `{class, direction, rationale}`), `assumptions` and an optional `ledgerQuestion`. **Call `get_base_rate` and `find_analogs` first** and use them as the priors' basis. |
-| `add_evidence` | agent | Adds ACH evidence to a set (`setId`, `source`, `ref`, `description`, `credibility`, `relevance`, `ratings` per hypothesis id for manual evidence). Re-reports of one evidence group attach to the existing row and add no weight; manual ratings move the probabilities through a recorded `evidence-added` revision. `source: evidence-item` cites a 130 evidence item you can see (`ref` its id). |
+| `add_evidence` | agent | Adds ACH evidence to a set (`setId`, `source`, `ref`, `description`, `credibility`, `relevance`, `ratings` per hypothesis id for manual evidence). Re-reports of one evidence group attach to the existing row and add no weight; manual ratings move the probabilities through a recorded `evidence-added` revision. `source: evidence-item` cites a 130 evidence item you can see (`ref` its id). A report, received material (`remote:…`) or an evidence item citing them is grouped by the origin of its provenance chain (134): support that returns to you through other analysts, or two supports with one origin, is one row marked `CIRCULAR_REPORTING`. |
 | `review_hypothesis_set` | agent | Records a review revision (`setId`, `rationale`, optional `probabilities`, `lr` and `assumptions` changes, `exceedCap`, `citations`). The rationale must pass the ICD 203 lint (`LINT_FAILED` otherwise): state what changed since the previous revision. |
 | `draft_hypothesis_set` | agent, cost-bearing | Has the LLM draft a set from plain language (`text`, optional `situationId`, `regionCodes`). The draft returns with `warnings` and `valid`; nothing is created until you call `create_hypothesis_set` with it (after the operator agrees). |
 | `get_series_forecast` | read | Foresignal's statistical forecast of a series (126): `ref`, optional `horizon` (1, 7 or 28). Quantiles p05–p95 for each horizon from the method a rolling-origin backtest selected (`model`: the method, its backtest pinball losses, `selectedAt`), and the ledger questions that score it. A `LOCAL_ONLY` series comes back in standardized units to callers without local egress. Quote ranges (p05–p95, p25–p75), never the median alone. 409 `FORECAST_MODEL_NOT_READY` before the first selection. |
@@ -710,6 +711,7 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 | `get_chronicle_state` | read, always authenticated | What a chronicle recorded at a moment (131): `chronicleId`, `at`, optional `layer`, `cursor`, `limit`. Per layer, the latest captured version of each entity observed and known by then and still valid, from the chronicle's own storage (independent of global retention), with `caveats` such as `CAPTURE_GAP` and `BEFORE_CAPTURE`. |
 | `create_chronicle` | agent | Creates a chronicle you own (131): `name`, optional `description`, `visibility`, `tlp`, `area`, `retention`, `sizeCapBytes`, links (`situationIds`, `hypothesisSetIds`, `investigationIds`, `topicIds`), `layers` (selector, optional `areaOverride`, `capture`) and `activate`. It stays `proposed` (no capture) unless `activate` is true. |
 | `add_chronicle_layer` | agent | Adds a layer to a chronicle you may edit (131): `chronicleId`, `name`, `selector`, optional `areaOverride`, `capture`, `enabled`. Capture for the layer starts from now; earlier history is not copied. |
+| `get_related_chronicles` | read, always authenticated | The chronicles related to one you can see (134), found by comparing fingerprints of what they captured: `chronicleId`, optional `minStrength` (`low`, `medium`, `high`), `includeDismissed`, `cursor`, `limit`. A `full` link (you can see both) has the scores, the shared canonical events and entities and the temporal relation; an `opaque` link only says a related thread exists (strength band, dimensions, time overlap; title and owner only if revealed; `remote` for another instance). Never infer more from an opaque link. |
 | `list_reports` | read, always authenticated | The reports you own, author or that are shared with you (132): `status` (`draft`, `review`, `published`, `retracted`), `scope` (`mine`, `shared`, `all`), `sourceRef`, `limit`; each with its TLP label, template, source, blocks and latest published revision. |
 | `get_report` | read, always authenticated | One report (`reportId` or its display id `RPT-yyyy-nnnn`) with its ordered blocks (key judgments with ICD 203 terms, pinned objects, maps, timelines, hypothesis and forecast snapshots, graded evidence, caveats, sources); `markdown: true` adds the latest published revision as Markdown, TLP banner included (132). |
 | `draft_report` | agent, cost-bearing with `narrative` | Builds and stores a deterministic report draft (132) from a `source` (`selection` with `refs`, or `tag`, `investigation`, `chronicle`, `situation`, `workspace` with `ref`) and a `template` (`situation-brief`, `investigation-summary`, `chronicle-recap`, `weekly-assessment` with `assessmentId`, `custom`). `narrative: true` adds an LLM narrative block labeled `llm` whose citations were verified. Nothing is published or sent. |
@@ -848,6 +850,29 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 - **Chronicles are work products.** They are private until shared, carry a TLP label, and their exports print it;
   apply the collaboration rules above.
 
+### Chronicle network
+
+- **Related threads come from fingerprints, never contents.** Foresignal compares keyed hashes and MinHash sketches of
+  what chronicles captured (upstream event ids, canonical-event cells, entity keys per day, area-time cells, topics).
+  `get_related_chronicles` returns what you are allowed to know: a `full` link when you can see both chronicles, an
+  `opaque` link when the other is only discoverable to you (or on another instance), nothing otherwise.
+- **An opaque link is "a related thread exists", nothing more.** Report its strength band (`low`, `medium`, `high`),
+  dimensions and time overlap; never guess the other chronicle's title, owner, contents or size (a title or handle
+  appears only when its owner revealed it). Offer the operator the request-access action
+  (`POST /v1/chronicle-network/links/{linkId}/request-access`); a request shows the owner only the handle, the message
+  and an optional share offer. Ask only when the operator wants it: requests are limited to 10 a day.
+- **Shared evidence counts once.** A full link's `sharedCanonicalEvents` and a cluster timeline
+  (`GET /v1/chronicle-network/clusters/{id}/timeline`) are deduplicated by global evidence key; each timeline item lists
+  the chronicles holding it (`heldBy`). Two chronicles holding the same event are one observation, not two
+  confirmations.
+- **Discoverability is the owner's call.** Never change a chronicle's discoverability (`none`, `instance`, `network`;
+  capped by TLP: `RED` never, `AMBER+STRICT` at most `instance`) unless its owner asked; `DISCOVERABILITY_NOT_ALLOWED`
+  is the label working.
+- **Circular reporting is not confirmation.** When an ACH row carries `CIRCULAR_REPORTING` (its support came back
+  through other analysts, or shares an origin with other support), it counts once; say so when you cite it, and never
+  present a judgment that returned to its author as independent support. A hypothesis's `confidenceBasis` reports
+  `circularReporting`; a report's coverage block may carry the same caveat.
+
 ### Reports and exchange
 
 - **Draft deterministically, then edit.** `draft_report` builds the blocks from the source without a model; read the
@@ -889,7 +914,7 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
 - **Skewed support lowers confidence.** `SKEWED_COVERAGE` marks coverage where at least 75% of the rated groups come
   from one bucket, or 75% of all groups from state-affiliated outlets (at least 3 groups). A hypothesis's
   `newsCoverage` describes its news support (ACH rows rated `C` or `CC` whose evidence is news articles); when that
-  support is skewed and nothing outside the news corroborates it, the confidence assessor (1.1.0) lowers the
+  support is skewed and nothing outside the news corroborates it, the confidence assessor (1.1.0 and later) lowers the
   hypothesis's confidence one step and says so in `basis.newsCoverage`. Mention it when you report the confidence.
 - **Corroboration comes only from non-news evidence.** A story is `corroborated` when a non-news canonical event in
   the same region within 24 hours of its articles has a sensor-network or agency observation; a situation's
@@ -920,7 +945,9 @@ Every tool takes `detail`: `short` (the default, compact items, the whole result
   workspace, chronicle, report, saved search, note, attachment, evidence item, shared tag) has an owner, an access list and a
   **TLP** label (`CLEAR`, `GREEN`, `AMBER`, `AMBER+STRICT`, `RED`); without access it is invisible.
 - A **chronicle** (prompt 131) is a named monitoring thread whose layers record their own history while it is active;
-  `chronicle:{id}` (or `CHR-yyyy-nnnn`) names it.
+  `chronicle:{id}` (or `CHR-yyyy-nnnn`) names it. A **chronicle link** (prompt 134) relates two chronicles that
+  captured overlapping evidence, shown in full or as an opaque link; a **cluster** is a group of strongly linked
+  chronicles.
 - A **report** (prompt 132) is an analyst work product published as immutable revisions; `report:{id}` (or
   `RPT-yyyy-nnnn`) names it. A **remote** reference (`remote:{instanceId}/{type}:{id}`) names read-only material
   received from another instance in a signed package.
@@ -1141,6 +1168,8 @@ OpenClaw skill in `integrations/openclaw/foresignal/` packages the same knowledg
 | Share a work product, change its access list, create groups | `agent` (and the owner's or an editor's role) | |
 | Read chronicles, their threads and replay | `read` (a token, and the chronicle's viewer role) | |
 | Create chronicles, add layers, change their lifecycle | `agent` (and the owner's or an editor's role) | |
+| Read related chronicles, clusters and timelines; dismiss links; request access | `read` (a token; dismissing needs the owner's role) | |
+| Set a chronicle's discoverability; grant or decline access requests | `agent` (and the owner's role) | network salts and `network.federated` (admin) |
 | Read reports and received packages; create, edit and publish reports | `read` (a token, and the report's viewer or editor role; received packages: a named recipient) | |
 | Draft reports, send them, build exchange packages | `agent` (and the report's editor role; a narrative needs an LLM provider) | |
 | Read news stories, articles and outlets | `read` | providers, rating imports and outlet edits (admin) |

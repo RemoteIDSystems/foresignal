@@ -85,6 +85,11 @@ import org.springframework.util.AntPathMatcher;
  * packages and the sent list {@code agent}, the peer inbox and receipts {@link AccessRequirement#PEER}, imports
  * {@code admin}, received packages {@code read} (always authenticated, per recipient).
  *
+ * <p>Prompt 134 adds the chronicle network: related links, clusters, cluster timelines, the access-request list,
+ * dismissing links and requesting access ({@code read}, always authenticated; the service decides disclosure and
+ * ownership), discoverability and grant or decline ({@code agent}), network salts ({@code admin}) and the peer sketch
+ * inbox ({@link AccessRequirement#PEER}).
+ *
  * <p>Prompt 025 adds {@code /mcp} and {@code /mcp/**} (the MCP server, also outside {@code /v1}):
  * {@code read}, with per-tool scope checks inside the server ({@code McpToolRegistry}).
  */
@@ -657,8 +662,7 @@ public class AccessPolicy {
                 // ---- Chronicles (prompt 131): reads, the thread and its read cursor need a token at read scope
                 // (the controller checks the viewer role); creating, changing, layers, the lifecycle, suggestions and
                 // exports are agent operations (the controller checks editor or owner). Each 131 route has its own
-                // rule, so the 134 chronicle-network routes under /v1/chronicles/{id}/ keep falling to admin until
-                // they are built. ----
+                // rule; the 134 chronicle-network routes under /v1/chronicles/{id}/ have theirs below. ----
                 rule(HttpMethod.GET, "/v1/chronicles", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.POST, "/v1/chronicles", AccessRequirement.AGENT),
                 rule(HttpMethod.POST, "/v1/chronicles/suggest", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
@@ -684,6 +688,25 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/chronicles/*/tracks/*/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/chronicles/*/series", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/chronicles/*/summary", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+
+                // ---- Chronicle network (prompt 134): related links, clusters, timelines, the request list, dismissing
+                // and requesting access are read-scope operations held to a token (the service decides disclosure and
+                // ownership); discoverability and decisions on requests are agent operations for the owner; network
+                // salts are admin; the peer sketch inbox is a PEER rule above. ----
+                rule(HttpMethod.GET, "/v1/chronicles/*/related", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PUT, "/v1/chronicles/*/discoverability", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/chronicle-network/links/*/dismiss",
+                        AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/chronicle-network/links/*/request-access",
+                        AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/chronicle-network/clusters", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/chronicle-network/clusters/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/chronicle-network/clusters/*/timeline",
+                        AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/chronicle-network/requests", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/chronicle-network/requests/*/grant", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/chronicle-network/requests/*/decline", AccessRequirement.AGENT),
+                rule(HttpMethod.PUT, "/v1/chronicle-network/salts", AccessRequirement.ADMIN),
 
                 // ---- Reports and exchange (prompt 132): report reads and edits are read-scope operations held to a
                 // token (the controller checks viewer, editor or owner on the report); sending, share links, building

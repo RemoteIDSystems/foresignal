@@ -194,6 +194,11 @@ class EventSchemaConformanceTest {
             entry(ai.foresignal.collab.MeEvents.REPORT_RECEIVED, () -> reportEvents(false)),
             entry(ai.foresignal.collab.MeEvents.REPORT_RETRACTED, () -> reportEvents(true)),
             entry(ai.foresignal.collab.MeEvents.PACKAGE_RECEIVED, EventSchemaConformanceTest::packageReceivedEvents),
+            // 134: MeTopic sends the payloads MeEvents.chronicleLinkFound and MeEvents.chronicleAccess build.
+            entry(ai.foresignal.collab.MeEvents.CHRONICLE_LINK_FOUND, EventSchemaConformanceTest::linkFoundEvents),
+            entry(ai.foresignal.collab.MeEvents.CHRONICLE_ACCESS_REQUESTED, () -> accessEvents("pending")),
+            entry(ai.foresignal.collab.MeEvents.CHRONICLE_ACCESS_GRANTED, () -> accessEvents("granted")),
+            entry(ai.foresignal.collab.MeEvents.CHRONICLE_ACCESS_DECLINED, () -> accessEvents("declined")),
             // 131: ChronicleTopic sends ChronicleThreadService.item for thread items and the status snapshot.
             entry(ai.foresignal.chronicle.ChronicleTopic.ITEM_EVENT, EventSchemaConformanceTest::chronicleItemEvents),
             entry(ai.foresignal.chronicle.ChronicleTopic.STATUS_EVENT,
@@ -265,6 +270,44 @@ class EventSchemaConformanceTest {
                 toTree(ai.foresignal.collab.MeEvents.packageReceived("01JA8Q3V7S2K9W4T6Y1B5N0M3G",
                         "01JA8Q3V7S2K9W4T6Y1B5N0M3H", "chronicle-extract", "fs-eu-2", "CHR-2026-0001 Gulf", "GREEN",
                         "valid", at)));
+    }
+
+    /** {@code chronicle.link.found} payloads with an opaque and a full link, as prompt 134's notices build them. */
+    static List<JsonNode> linkFoundEvents() {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        Map<String, Object> opaque = ai.foresignal.chronicle.network.Disclosure.opaque("01JA8Q3V7S2K9W4T6Y1B5N0M3K",
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3C", "medium", List.of("evidence", "area-time"), "partial", false, null, null,
+                null);
+        Map<String, Object> full = new java.util.LinkedHashMap<>();
+        full.put("linkId", "01JA8Q3V7S2K9W4T6Y1B5N0M3M");
+        full.put("disclosure", "full");
+        full.put("a", "01JA8Q3V7S2K9W4T6Y1B5N0M3C");
+        full.put("b", "01JA8Q3V7S2K9W4T6Y1B5N0M3D");
+        full.put("other", null);
+        full.put("strength", "high");
+        full.put("dimensions", List.of("evidence"));
+        full.put("scores", Map.of("evidence", Map.of("jaccard", 0.5, "containment", 0.8, "sharedEstimate", 60.0)));
+        full.put("temporal", "concurrent");
+        full.put("timeOverlap", "full");
+        full.put("sharedSituations", List.of());
+        full.put("sharedCanonicalEvents", List.of("canonical-event:01JA8Q3V7S2K9W4T6Y1B5N0M3E"));
+        full.put("sharedEntities", List.of());
+        full.put("sharedKeyCount", 60);
+        full.put("status", "active");
+        full.put("firstFound", at.toString());
+        full.put("lastUpdated", at.toString());
+        return List.of(
+                toTree(ai.foresignal.collab.MeEvents.chronicleLinkFound("01JA8Q3V7S2K9W4T6Y1B5N0M3C", opaque, at)),
+                toTree(ai.foresignal.collab.MeEvents.chronicleLinkFound("01JA8Q3V7S2K9W4T6Y1B5N0M3C", full, at)));
+    }
+
+    /** {@code chronicle.access.*} payloads as {@code MeEvents.chronicleAccess} writes them (prompt 134). */
+    static List<JsonNode> accessEvents(String status) {
+        java.time.Instant at = java.time.Instant.parse("2026-10-17T06:00:00Z");
+        boolean requested = "pending".equals(status);
+        return List.of(toTree(ai.foresignal.collab.MeEvents.chronicleAccess("01JA8Q3V7S2K9W4T6Y1B5N0M3R",
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3K", status, requested ? "jsmith" : null,
+                requested ? "Working the same front" : null, requested ? "01JA8Q3V7S2K9W4T6Y1B5N0M3C" : null, at)));
     }
 
     /** A saved thread item with an id, as the SSE topic reads it (prompt 131). */

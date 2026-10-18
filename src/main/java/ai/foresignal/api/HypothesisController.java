@@ -253,10 +253,11 @@ public class HypothesisController {
     public Map<String, Object> addAchEvidence(@PathVariable String setId, @RequestBody JsonNode body,
             HttpServletRequest request) {
         // Prompt 130: evidence items are cited only when the caller can see them.
-        HypothesisInputs.EvidenceDraft draft = evidenceItems.citable(HypothesisInputs.evidence(body),
-                callers.of(request));
+        ai.foresignal.object.ObjectCaller caller = callers.of(request);
+        HypothesisInputs.EvidenceDraft draft = evidenceItems.citable(HypothesisInputs.evidence(body), caller);
+        // Prompt 134: the consuming principal lets circular reporting be detected.
         return HypothesisViews.evidence(service.addEvidence(setId, draft, actor(request),
-                visibility.seesPrivate(request)), false);
+                visibility.seesPrivate(request), caller.principal()), false);
     }
 
     /** {@code removeAchEvidence}: 204; an {@code evidence-removed} revision reverses what the row applied. */

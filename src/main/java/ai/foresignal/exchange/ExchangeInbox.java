@@ -288,7 +288,7 @@ public class ExchangeInbox {
             for (Object e : ExchangeRenditions.list(manifest.get("provenanceChain"))) {
                 if (e instanceof Map<?, ?> entry) {
                     m.chain.add(new LinkedHashMap<>((Map<String, Object>) entry));
-                    if (entry.get("instanceId") != null) {
+                    if (entry.get("instanceId") != null && transportHop(entry, m.objectRef)) {
                         m.chainInstances.add(String.valueOf(entry.get("instanceId")));
                     }
                 }
@@ -545,6 +545,21 @@ public class ExchangeInbox {
                 + ")") + " on " + now + " via " + via + "; authors: " + String.join(", ", authors)
                 + "; signature " + v.result.status() + " (" + v.keySource + "). Read-only material from another"
                 + " instance, not local analysis.";
+    }
+
+    /**
+     * True when a chain entry is a hop of this package's own product (its origin, a forwarder, or an importer of the
+     * same product), as opposed to the ancestry of material the product cites (prompt 134). Only own hops count for
+     * loop prevention: a new report that cites this instance's work may come back (and is then marked
+     * {@code CIRCULAR_REPORTING} when used as support), while the same package never does.
+     */
+    static boolean transportHop(Map<?, ?> entry, String objectRef) {
+        Object product = entry.get("productRef");
+        if (product == null || objectRef == null) {
+            return true;
+        }
+        String p = String.valueOf(product);
+        return p.equals(objectRef) || p.endsWith("/" + objectRef);
     }
 
     private static String titleOf(String type, Map<String, Object> bundle, String objectRef) {

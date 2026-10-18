@@ -1,15 +1,3 @@
-listRelatedChronicles 134
-setChronicleDiscoverability 134
-dismissChronicleLink 134
-requestChronicleAccess 134
-listChronicleClusters 134
-getChronicleCluster 134
-getChronicleClusterTimeline 134
-listChronicleAccessRequests 134
-grantChronicleAccessRequest 134
-declineChronicleAccessRequest 134
-setChronicleNetworkSalt 134
-receiveChronicleSketches 134
 listSocialPlatforms 135
 getSocialPlatform 135
 updateSocialPlatform 135

@@ -6424,11 +6424,13 @@ you could not have seen is not evidence.
   swing the set from 10% to 90% in an afternoon;
 - while the set is active, probabilities stay between 2% and 98%.
 
-Confidence is recomputed with every revision by rule (`ConfidenceAssessor` 1.1.0). It is `high` only with two or more
+Confidence is recomputed with every revision by rule (`ConfidenceAssessor` 1.2.0). It is `high` only with two or more
 credible (M or H) observed indicators from two or more families, sources graded A or B by 109, and no region of thin
 reporting (`LOW_REPORTING_DENSITY`). It is `moderate` with at least one credible observed indicator, and `low`
 otherwise. A broken linchpin assumption lowers it one step. Since prompt 133, supporting news evidence whose coverage is skewed
-(`SKEWED_COVERAGE`) and has no non-news corroboration lowers it one step more. Confidence rates the evidence; it says nothing about which
+(`SKEWED_COVERAGE`) and has no non-news corroboration lowers it one step more. Since prompt 134, indicators observed through
+products of one origin count once, and the basis reports circular support (`circularReporting`, `circularSupports`; see
+[Chronicle network](#chronicle-network-prompt-134)). Confidence rates the evidence; it says nothing about which
 answer is right.
 
 **The ACH matrix is an audit trail.** `GET /v1/hypotheses/sets/{id}/matrix` lists the evidence against the hypotheses,
@@ -6436,7 +6438,9 @@ rated `CC`, `C`, `N`, `NA`, `I` or `II`. Observed indicators add a row automatic
 `CC`, 1.5 or more `C`, 0.25 or less `II`, 0.67 or less `I`, otherwise `N`; `NA` where the indicator does not bear on
 the hypothesis). Add your own with `POST …/evidence`: a record, finding,
 intel event or alert reference, or `manual` evidence you rate yourself. A re-report of the same evidence group attaches
-to the existing row instead of adding weight. Each hypothesis gets an inconsistency score, `−Σ weight × inconsistency`
+to the existing row instead of adding weight. Since prompt 134 a report, received material (`remote:…`) or an evidence
+item that cites them is grouped by the origin of its provenance chain, and a row whose support came back through other
+analysts, or that a second support of the same origin attached to, carries `CIRCULAR_REPORTING`. Each hypothesis gets an inconsistency score, `−Σ weight × inconsistency`
 (I counts 1, II counts 2, and the weight is credibility × relevance with L 0.5, M 1, H 2). The least inconsistent
 hypothesis is shown, and rows rated the same for every hypothesis are flagged non-diagnostic: they cannot tell the
 answers apart. The probabilities come from the updater and are scored in the ledger, not from the matrix. Manual
@@ -7259,7 +7263,8 @@ naming the rule (`rule`):
 
 `GET /v1/inbox` is the caller's personal inbox (mentions, shares, replies, saved-search matches), newest first;
 listing an item marks it read. The `me` topic on `/v1/events/stream` streams the same items
-(`share.received`, `mention`, `comment.reply`, `saved-search.matches`) and resumes by id. To reach a person elsewhere,
+(`share.received`, `mention`, `comment.reply`, `saved-search.matches`; since prompt 132 the report and package events and
+since prompt 134 the chronicle network events) and resumes by id. To reach a person elsewhere,
 they set `PUT /v1/me/notification-preferences`:
 
 ```json
@@ -7400,7 +7405,8 @@ and workspace and may export, but not change it. `POST /v1/chronicles/{id}/expor
 `json-bundle`; optional `layers`, `from`, `to`) queues a 111 export job of the captured history (202, with
 `Foresignal-TLP`); sources the caller may not read are left out and `LOCAL_ONLY` data never leaves. MCP:
 `list_chronicles`, `get_chronicle_thread` and `get_chronicle_state` (read), and `create_chronicle` and
-`add_chronicle_layer` (agent).
+`add_chronicle_layer` (agent). Whether other analysts may learn that a chronicle exists is its owner's discoverability
+setting (see [Chronicle network](#chronicle-network-prompt-134)).
 
 **Settings.** App settings `chronicle.defaultCapGb` (20), `chronicle.autoActivatePerDay` (2) and
 `chronicle.autoActivateCapGb` (5); deployment properties under `foresignal.chronicles`: `auto-start`, `poll-interval`
@@ -7467,7 +7473,8 @@ investigation, an evidence item, a chronicle (a `chronicle-extract`, with `extra
 `remote:` reference to forward. `recipients` is `"*"` or a
 list of `{instanceId, principals}` (`"*"` among principals for anyone there); the 130 TLP table's last column decides
 what each label allows, with a peer's `sameOperator` standing for the owner's organization. The package carries
-`manifest.json` (type, title, sender, authors, TLP, recipients, content hashes, message and provenance chain), a
+`manifest.json` (type, title, sender, authors, TLP, recipients, content hashes, message and provenance chain; since
+prompt 134 a report's chain starts with the chains of the reports, received material and evidence items it cites), a
 detached Ed25519 JWS over it signed with the 109 instance key, and the content with its renditions. Data the egress
 policy keeps at home (private sources, `LOCAL_ONLY` licenses) is reduced to counts. A package larger than
 `exchange.maxPackageMb` (default 200) is refused with `413 PACKAGE_TOO_LARGE`. With `"deliver": "peer"` it is posted to
@@ -7486,7 +7493,10 @@ A delivered or imported package is verified before anything is stored: the signa
 JWKS pinned at import, then a sender key stored earlier, then the peer's pinned key, then the peer's JWKS), every
 content hash, and the recipients (`422 PACKAGE_RECIPIENT_UNKNOWN` when a named principal does not exist here).
 A failing signature is `400 PACKAGE_SIGNATURE_INVALID`; a package already imported is `409 PACKAGE_ALREADY_IMPORTED`; a
-package whose provenance chain already names this instance is `409 PACKAGE_LOOP`. An admin imports a package from a
+package whose own product already passed through this instance (its origin, a forwarder or an importer of the same
+product in the provenance chain) is `409 PACKAGE_LOOP`. Since prompt 134 the hops of material a new product only cites
+do not count, so a report written elsewhere about this instance's work can arrive; used as support, it is marked
+`CIRCULAR_REPORTING` (see [Chronicle network](#chronicle-network-prompt-134)). An admin imports a package from a
 file with `POST /v1/exchange/import` (multipart `file`, and `jwks` with the sender's published JWKS to pin its keys on
 first contact).
 
@@ -7804,7 +7814,7 @@ per-provider disagreement and `nRated`, and check corroboration before drawing a
   default `include`, so name it when you narrow the sections.
 - **Hypotheses (125).** `newsCoverage` on each hypothesis gives the statistics of the live ACH rows rated `C` or `CC`
   for it whose references are news articles (one row per evidence group), with the `SKEWED_COVERAGE` caveat when
-  skewed. `ConfidenceAssessor` 1.1.0 lowers the set's confidence **one step** when that support is skewed **and** has
+  skewed. `ConfidenceAssessor` (1.1.0 and later) lowers the set's confidence **one step** when that support is skewed **and** has
   no non-news corroboration (no supporting non-news row and no corroborated story); `basis.newsCoverage` says why.
   Skewed but corroborated support changes nothing. An indicator can watch a `rollup:news/…` series with
   `changePoint: true`.
@@ -7847,3 +7857,189 @@ catalog). Contract 1.4 adds the object types `news-story` (its id is the story's
 | `404 UNKNOWN_OUTLET` | no such outlet |
 | `409 PROVIDER_LICENCE_NOT_ACKNOWLEDGED` | enabling a provider, or importing for it, before an admin acknowledged its license |
 | `400 RATINGS_IMPORT_INVALID` | an import with an unknown provider, a malformed body or no usable row |
+
+## Chronicle network (prompt 134)
+
+Chronicles that follow the same events find each other. Foresignal compares **fingerprints** of what each chronicle
+captured, never the captured data: on this instance (other analysts' private chronicles included) and, when you turn
+it on, across federated instances that agreed a shared salt. What an analyst learns about a related chronicle depends
+on whether they may see it, on its owner's **discoverability** setting and on its TLP label. Analysts can ask the
+owner for access without revealing their own work, shared evidence is counted once, and an interpretation that comes
+back through other analysts is never mistaken for independent confirmation.
+
+### What is shared: fingerprints, never content
+
+- **Global evidence keys.** From each chronicle's own captured rows (`chronicle_version`), Foresignal derives text keys
+  that any instance capturing the same upstream content derives identically: `ev:{family}:{originator}:{upstreamId}` for
+  a 116 canonical event with an upstream id, otherwise `cell:{family}:{H3 resolution-5 cell}:{UTC hour}` of the
+  canonical event; `ent:{keyType}:{value}:{UTC day}` for ICAO hex (`icao24`), MMSI, IMO and NORAD keys;
+  `at:{H3 resolution-4 cell}:{UTC day}` for every located row; and `topic:{hash of the normalized keyword set}` for the
+  chronicle's attention topics and the topics of captured news articles. Rows of private sources (039) give no keys.
+- **Keyed hashes.** Every key is hashed with HMAC-SHA256 under a salt and truncated to 64 bits. The **instance salt**
+  (local discovery) is 32 random bytes generated on first use and rotated yearly; a rotation rebuilds every key set
+  under the new salt. A **network salt** keys federated discovery (below). Salts are stored encrypted with the
+  instance's secret key (`secret.key`, like source credentials), never exported and never returned by the API.
+- **Sketches.** Per chronicle, key type and salt Foresignal keeps a MinHash signature of 128 seeded, deterministic
+  permutations and the exact set size (`chronicle_fingerprint`). The hashed key sets themselves (`chronicle_key`) stay
+  on this instance; they are what lets full links list the shared canonical events exactly. Sketches are updated
+  incrementally from what was captured since the last pass, every hour and when capture stops.
+
+### Discoverability and TLP
+
+`PUT /v1/chronicles/{id}/discoverability` (owner, agent scope) takes `discoverability` (`none`, the default, `instance`
+or `network`) and `revealTitle` and `revealOwner` (both false by default). The TLP label caps it:
+
+| Label | Allowed discoverability |
+|---|---|
+| `RED` | `none` only: never discoverable |
+| `AMBER+STRICT` | `none` or `instance` |
+| `AMBER`, `GREEN`, `CLEAR` | any |
+
+Asking for more is `409 DISCOVERABILITY_NOT_ALLOWED` with the `rule`. The response (and the chronicle's own
+`discoverability`) is the effective setting, with `maxAllowed` and `tlp`. When a stricter label is set later (through
+the chronicle or `PUT /v1/objects/chronicle:{id}/acl`), discoverability is lowered automatically, the change is logged
+and the owner gets `chronicle.discoverability_lowered` in the inbox. Lowering it from `network` withdraws the chronicle's
+sketch from peers at the next exchange.
+
+### How links are found
+
+The `ChronicleDiscoveryJob` runs nightly (03:30 UTC) and, every hour after the sketch refresh, whenever some chronicle's
+sketch changed by more than 10% since its last discovery:
+
+- **Candidates** come from LSH banding over the signatures (16 bands of 8 rows, per key type): two sketches that agree
+  on every row of a band are compared.
+- **Scores** per key type are the Jaccard similarity and the containment of the smaller set. Local pairs are scored
+  **exactly** from both key sets; remote pairs are estimated from the signatures and the peer's log2 size bands.
+- **A link exists** when, for at least one key type, the shared keys reach `network.minSharedKeys` (app setting,
+  default 5) **and** the containment of the smaller chronicle reaches 0.05. The key types that pass are its
+  `dimensions`; its **strength** comes from the largest Jaccard among them: `low` below 0.1, `medium` below 0.3, `high`
+  from 0.3. The `temporal` relation says which chronicle saw the shared keys first (more than an hour earlier for at
+  least twice as many of them; else `concurrent`), and `timeOverlap` compares the capture spans.
+- **Clusters** are connected components of medium-or-stronger active links (`chronicle_cluster`); a cluster keeps its
+  id while it changes.
+- A link that no longer passes is removed; a dismissed link stays dismissed. Deleting a chronicle removes its keys,
+  sketches and links.
+
+### What each analyst sees
+
+`GET /v1/chronicles/{id}/related` (read; MCP `get_related_chronicles`) returns each link of a chronicle the caller can
+see at its disclosure level:
+
+- **full**, when the caller can also see the other chronicle (owner, access list or admin): the other envelope, the
+  per-dimension scores, `sharedCanonicalEvents` and `sharedEntities` (at most 100 each, computed exactly),
+  `sharedKeyCount`, `sharedSituations`, `temporal` and `timeOverlap`;
+- **opaque**, when the other chronicle is discoverable to the caller (`instance` or `network` after the TLP cap) or is a
+  peer's sketch (`remote: true`): only the strength band, the dimensions, the time overlap and, if its owner revealed
+  them, the title and the owner's handle. No count finer than the band is ever given;
+- **nothing**, otherwise.
+
+Each new link notifies the owners of its local chronicles with `chronicle.link.found` on their inbox, `me` topic and
+personal channels, at their own disclosure level. `POST /v1/chronicle-network/links/{linkId}/dismiss` (the owner of
+either side) dismisses a link; `includeDismissed=true` still lists it.
+
+**Clusters and the combined timeline.** `GET /v1/chronicle-network/clusters` and `/{id}` show clusters holding a
+chronicle the caller can see, with visible members in full and directly linked discoverable members as opaque members
+(no id). `GET /v1/chronicle-network/clusters/{id}/timeline?from&to` merges the visible members' captured evidence and
+thread items, **deduplicated by global evidence key**, and lists for each item which visible chronicles hold it
+(`heldBy`). Opaque members contribute nothing.
+
+### Anti-probing
+
+- Discovery runs only on chronicles, never on ad-hoc queries, and only for chronicles that captured at least 50 global
+  evidence keys.
+- A principal is shown at most 20 new opaque links a day (a link shown once stays visible); the rest wait for later
+  days.
+- Churn buys nothing: when an owner deleted a chronicle less than 24 hours after creating it, within the last 24 hours,
+  that owner's chronicles younger than 24 hours sit out discovery until they are a day old.
+- Access requests are limited to 10 per principal per day.
+
+### Federated discovery and network salts
+
+Federation needs both sides' consent. On each instance an admin sets the app setting `network.federated` to `true`
+(default `false`) and installs the same salt, agreed out of band (a password manager, a phone call), for a network id:
+
+```json
+PUT /v1/chronicle-network/salts
+{"networkId": "gulf-analysts", "saltRef": "<the agreed secret, at least 16 characters>"}
+```
+
+The answer is the salt's public status (`networkId`, `saltId`, `createdAt`, `rotatesAt`), never its value. A salt is
+used for 90 days; after that federated discovery for that network stops until the admins agree and install a new one,
+so long-term linkage needs continued consent. Installing a new salt retires the old one and forgets the sketches
+received under it; chronicles then get new random sketch ids.
+
+Every day at 04:30 UTC Foresignal sends, for each current network salt, a signed `ChronicleSketchBatch` to every
+enabled 113 peer that holds an exchange key (the same `fsp_` key as package exchange, see "Reports and exchange"):
+`POST {peer}/v1/federation/chronicle-sketches`, the body signed with the 109 instance key in `Foresignal-Signature`. It
+carries, for each chronicle that is `network`-discoverable and has at least 50 keys, a sketch package: a random sketch
+id (per chronicle per salt), the key types, the MinHash slots, log2 size bands, the capture span in ISO weeks, the TLP
+label, and the title or owner handle only if revealed; and the sketch ids withdrawn in the last 30 days. Nothing else
+leaves.
+
+A received batch is accepted only with a valid signature (the peer's pinned key, else its JWKS; otherwise
+`400 SKETCH_BATCH_INVALID`), while `network.federated` is on (`409 FEDERATED_DISCOVERY_DISABLED`) and for a network
+with a current salt here (`409 NETWORK_SALT_UNKNOWN`). Sketches whose label does not allow network discoverability are
+rejected one by one. Received sketches are stored per peer, expire after 30 days unless refreshed, and take part in
+discovery like local ones, but only ever yield opaque links. A peer with a different salt simply produces nothing in
+common.
+
+### Access requests
+
+`POST /v1/chronicle-network/links/{linkId}/request-access {"message": "…", "offerShare": "<one of your chronicles>"}`
+(read) asks the owner of the other chronicle for access. The owner sees only the requester's handle (and instance),
+the message and, if the requester chose, which of the requester's own chronicles it offers to share; never the
+requester's chronicle in the link. Remote owners receive it through the peer channel. `GET /v1/chronicle-network/requests`
+lists the caller's incoming and outgoing requests.
+
+- **Grant** (`POST /v1/chronicle-network/requests/{id}/grant {"role": "viewer" | "commenter", "expiresAt", "deliverAs",
+  "message"}`, owner, agent scope): on this instance a 130 access-list grant, checked against TLP
+  (`403 TLP_VIOLATION`), and the offered chronicle shared back with the owner as viewer; for a remote requester a 132
+  signed package addressed to its handle, a `chronicle-extract` (the default) or a `report` (a chronicle recap drafted
+  and published for the purpose).
+- **Decline** (`…/decline`) or ignore. The requester is told only `granted` or `declined`
+  (`chronicle.access.granted` or `.declined`); a decided request is `409 ACCESS_REQUEST_DECIDED`.
+- Repeats to an owner who declined the same requester are stored but suppressed for 30 days: the owner never sees them.
+  A request on a link whose other side the caller already sees is `409 CHRONICLE_ALREADY_VISIBLE`; more than 10 a day
+  is `429 REQUEST_RATE_LIMITED`.
+
+### Circular reporting
+
+Analytic products that cross analysts or instances carry a **provenance chain**, the ordered hops from origin to now
+(`instanceId`, `principal`, `productRef`, `manifestId`, `role`): a received package keeps the chain of its manifest, a
+local report starts with the chains of the reports, received material and evidence items it cites and ends with its
+owner, and a report package now carries that chain. When a report, received material or an evidence item citing them
+is added to a hypothesis set as support (`POST /v1/hypotheses/sets/{id}/evidence`, MCP `add_evidence`, or an indicator
+observation), `CircularReportingDetector` takes the chain's origin as the 116 evidence group, so:
+
+- support whose chain names the consuming analyst (this instance and principal) before its last hop, importer hops
+  aside, is that analyst's own judgment coming back and is marked `CIRCULAR_REPORTING`;
+- two supports that share an origin fall into one ACH row (the second one marks it `CIRCULAR_REPORTING`), and the 125
+  updater applies its weight once;
+- the confidence assessor (1.2.0) counts indicators observed through one origin once and reports `circularReporting`
+  and `circularSupports` in the confidence basis, and a report drafted over such a set gets a `CIRCULAR_REPORTING`
+  coverage caveat.
+
+The row shows its `provenanceChain` and `caveats`. Package loop prevention (132) counts only the hops of the package's
+own product, so a new report from elsewhere that cites your work can arrive; it is then marked, never counted as
+independent confirmation.
+
+### Settings, schedule and problem codes
+
+App settings `network.minSharedKeys` (5) and `network.federated` (`false`). The deployment property
+`foresignal.chronicles.network-scheduled` (true; off in tests) runs the hourly sketch refresh, the nightly discovery
+(03:30 UTC) and the daily expiry and peer exchange (04:30 UTC). AccessPolicy: related links, clusters, timelines, the
+request list, dismissing and requesting are read-scope operations held to a token; discoverability and decisions are
+agent operations for the owner; salts are admin; the peer inbox takes a peer ingest key.
+
+| Code | When |
+|---|---|
+| `404 UNKNOWN_LINK` | no such link, or one you may not learn of |
+| `404 UNKNOWN_CLUSTER` | no such cluster holding a chronicle you can see |
+| `404 UNKNOWN_ACCESS_REQUEST` | no such request addressed to or sent by you |
+| `409 DISCOVERABILITY_NOT_ALLOWED` | the TLP label does not allow the requested discoverability (with `rule`) |
+| `409 ACCESS_REQUEST_DECIDED` | the request was already granted or declined |
+| `409 CHRONICLE_ALREADY_VISIBLE` | an access request on a link whose other chronicle you can already see |
+| `409 FEDERATED_DISCOVERY_DISABLED` | a salt or sketch batch while `network.federated` is false |
+| `409 NETWORK_SALT_UNKNOWN` | a sketch batch for a network with no current salt here |
+| `400 SKETCH_BATCH_INVALID` | a malformed sketch batch or a signature that does not verify |
+| `429 REQUEST_RATE_LIMITED` | more than 10 access requests in a day |

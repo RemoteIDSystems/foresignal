@@ -60,7 +60,9 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
              # 131: chronicles and their layers.
              "chronicleId": "chronicleId", "layerId": "chronicleLayerId",
              # 132: reports, their blocks, packages built here and packages received.
-             "reportId": "reportId", "blockId": "blockId", "packageId": "packageId", "receivedId": "receivedId"}
+             "reportId": "reportId", "blockId": "blockId", "packageId": "packageId", "receivedId": "receivedId",
+             # 134: chronicle links, clusters and access requests.
+             "linkId": "chronicleLinkId", "clusterId": "chronicleClusterId", "requestId": "accessRequestId"}
 
 # Path variables that mean something else under a prefix (024): EDP sources and registration tokens.
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
@@ -959,6 +961,14 @@ BODIES = {
                             "message": "Week 42 assessment for your desk.", "deliver": "peer"},
   "receiveExchangeReceipt": {"packageId": "{{packageId}}", "type": "acknowledged", "receiverInstanceId": "fs-eu-1",
                              "principalHandle": "jsmith", "at": "2026-10-17T09:00:00Z"},
+  # 134: the owner makes a chronicle discoverable on this instance (title and owner stay hidden), asks for access to
+  # a related chronicle with a share offer, grants a request, and installs a network salt agreed with the peers.
+  "setChronicleDiscoverability": {"discoverability": "instance", "revealTitle": False, "revealOwner": False},
+  "requestChronicleAccess": {"message": "I follow the same front; may I see your chronicle?",
+                             "offerShare": "{{chronicleId}}"},
+  "grantChronicleAccessRequest": {"role": "viewer", "expiresAt": None, "deliverAs": "chronicle-extract",
+                                  "message": None},
+  "setChronicleNetworkSalt": {"networkId": "gulf-analysts", "saltRef": "{{networkSalt}}"},
   # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
   # one nautical mile in the next hour.
   "cpaBatch": {"subject": "aisstream/244660000", "filter": {"kinds": ["vessel"], "sources": [],
@@ -1030,6 +1040,11 @@ CAPTURE = {
   "createReportBlock": "const j = pm.response.json(); pm.collectionVariables.set('blockId', j.id);",
   "createExchangePackage": "const j = pm.response.json(); pm.collectionVariables.set('packageId', j.id);",
   "importExchangePackage": "const j = pm.response.json(); pm.collectionVariables.set('receivedId', j.id);",
+  # 134: the first related link and cluster, and the first access request.
+  "listRelatedChronicles": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('chronicleLinkId', j.items[0].linkId);",
+  "listChronicleClusters": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('chronicleClusterId', j.items[0].id);",
+  "listChronicleAccessRequests": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('accessRequestId', j.items[0].id);",
+  "requestChronicleAccess": "const j = pm.response.json(); pm.collectionVariables.set('accessRequestId', j.id);",
   # 131: the chronicle (and its display id, the confirmation of a delete) and the added layer.
   "createChronicle": "const j = pm.response.json(); pm.collectionVariables.set('chronicleId', j.id); pm.collectionVariables.set('chronicleDisplayId', j.displayId);",
   "createChronicleLayer": "const j = pm.response.json(); pm.collectionVariables.set('chronicleLayerId', j.id);",
@@ -1440,6 +1455,7 @@ collection = {
       ("principalId", ""), ("groupId", ""), ("tagId", ""), ("attachmentId", ""), ("evidenceItemId", ""),
       ("savedSearchId", ""),
       ("reportId", ""), ("blockId", ""), ("packageId", ""), ("receivedId", ""),
+      ("chronicleLinkId", ""), ("chronicleClusterId", ""), ("accessRequestId", ""), ("networkSalt", ""),
       ("benchmarkRunId", ""), ("benchmarkCaseId", ""),
       ("hypothesisSetId", ""), ("hypothesisId", ""), ("indicatorId", ""), ("achEvidenceId", ""), ("assumptionId", ""),
       ("indexId", "instability"), ("outlookRegion", "YE"), ("outlookFamily", "conflict:battles"),

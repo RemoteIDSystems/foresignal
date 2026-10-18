@@ -101,9 +101,9 @@ public class AddEvidenceTool implements ForesignalMcpTool {
         String setId = McpArgs.requiredText(args, "setId");
         ObjectNode body = ((ObjectNode) args).deepCopy();
         body.remove("setId");
-        HypothesisInputs.EvidenceDraft draft = evidenceItems.citable(HypothesisInputs.evidence(body),
-                callers.of(context.caller()));
+        ai.foresignal.object.ObjectCaller caller = callers.of(context.caller());
+        HypothesisInputs.EvidenceDraft draft = evidenceItems.citable(HypothesisInputs.evidence(body), caller);
         return ToolResult.json(json.valueToTree(HypothesisViews.evidence(service.addEvidence(setId,
-                draft, context.actor(), visibility.seesPrivate(context.caller())), false)));
+                draft, context.actor(), visibility.seesPrivate(context.caller()), caller.principal()), false)));
     }
 }

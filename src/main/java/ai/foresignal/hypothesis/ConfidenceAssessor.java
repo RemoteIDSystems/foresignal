@@ -20,12 +20,15 @@ import java.util.Set;
  * A broken linchpin assumption lowers the level one step (so it also rules out high). Since 1.1.0 (prompt 133),
  * supporting news evidence that is skewed ({@code SKEWED_COVERAGE}: at least 75% from one lean bucket or from
  * state-affiliated outlets) <em>and</em> has no non-news corroboration lowers it one step more; skewed coverage with
- * corroboration changes nothing (coverage describes reporting, never truth). Pure.
+ * corroboration changes nothing (coverage describes reporting, never truth). Since 1.2.0 (prompt 134), observed
+ * indicators supported by products that share one origin (circular reporting) are counted once before the rules are
+ * applied, and the basis reports {@code circularReporting} ({@value #CIRCULAR_REPORTING} or {@code ok}) with the number
+ * of ACH rows that carry the caveat. Pure.
  */
 public final class ConfidenceAssessor {
 
     /** The assessor version. */
-    public static final String VERSION = "1.1.0";
+    public static final String VERSION = "1.2.0";
 
     /** The reporting-density caveat of 121. */
     public static final String LOW_REPORTING_DENSITY = "LOW_REPORTING_DENSITY";
@@ -54,24 +57,38 @@ public final class ConfidenceAssessor {
      * @param forecasterAgreement agreement between ledger forecasters (1 − spread), or null
      * @param skewedUncorroboratedNews true when the supporting news evidence is skewed and nothing outside the news
      *     corroborates it (prompt 133)
+     * @param circularSupports the ACH rows of the set marked {@code CIRCULAR_REPORTING} (prompt 134)
      */
     public record Inputs(List<Observed> observed, boolean brokenLinchpin, boolean lowReportingDensity,
-            String evidenceQuality, String coverage, Double forecasterAgreement, boolean skewedUncorroboratedNews) {
+            String evidenceQuality, String coverage, Double forecasterAgreement, boolean skewedUncorroboratedNews,
+            int circularSupports) {
 
         /** Copies the list. */
         public Inputs {
             observed = observed == null ? List.of() : List.copyOf(observed);
+            circularSupports = Math.max(0, circularSupports);
+        }
+
+        /** Inputs without circular reporting (the 1.1.0 inputs). */
+        public Inputs(List<Observed> observed, boolean brokenLinchpin, boolean lowReportingDensity,
+                String evidenceQuality, String coverage, Double forecasterAgreement, boolean skewedUncorroboratedNews) {
+            this(observed, brokenLinchpin, lowReportingDensity, evidenceQuality, coverage, forecasterAgreement,
+                    skewedUncorroboratedNews, 0);
         }
 
         /** Inputs without a news-coverage judgment (the 1.0.0 inputs). */
         public Inputs(List<Observed> observed, boolean brokenLinchpin, boolean lowReportingDensity,
                 String evidenceQuality, String coverage, Double forecasterAgreement) {
-            this(observed, brokenLinchpin, lowReportingDensity, evidenceQuality, coverage, forecasterAgreement, false);
+            this(observed, brokenLinchpin, lowReportingDensity, evidenceQuality, coverage, forecasterAgreement, false,
+                    0);
         }
     }
 
     /** The coverage caveat of prompt 133. */
     public static final String SKEWED_COVERAGE = "SKEWED_COVERAGE";
+
+    /** The provenance caveat of prompt 134. */
+    public static final String CIRCULAR_REPORTING = "CIRCULAR_REPORTING";
 
     /**
      * The assessment.
@@ -141,6 +158,8 @@ public final class ConfidenceAssessor {
         basis.put("forecasterAgreement", in.forecasterAgreement());
         basis.put("brokenLinchpin", in.brokenLinchpin());
         basis.put("newsCoverage", in.skewedUncorroboratedNews() ? SKEWED_COVERAGE : "ok");
+        basis.put("circularReporting", in.circularSupports() > 0 ? CIRCULAR_REPORTING : "ok");
+        basis.put("circularSupports", in.circularSupports());
         basis.put("rule", rule);
         basis.put("assessor", "ConfidenceAssessor " + VERSION);
         return new Assessment(level, basis);
