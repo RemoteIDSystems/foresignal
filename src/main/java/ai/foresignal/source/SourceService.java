@@ -13,6 +13,7 @@ import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.CredentialField;
 import ai.foresignal.source.spi.IngestPolicy;
 import ai.foresignal.source.spi.IngestPolicyValidator;
+import ai.foresignal.source.spi.ParamSpec;
 import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.ValidatedParams;
 import ai.foresignal.store.SourceCredentialEntity;
@@ -119,10 +120,16 @@ public class SourceService implements ApplicationRunner {
     // ---------- startup ----------
 
     /**
-     * Inserts a default, disabled settings row for every registered source that has none.
+     * Inserts a default settings row for every registered source that has none, with the
+     * descriptor's interval and budget.
      *
-     * <p>Defaults are disabled on purpose: installing Foresignal must not start fetching from a hundred
-     * upstreams. The operator opts each source in.
+     * <p>Free sources start enabled (prompt 145): a built-in source that {@linkplain
+     * #runsWithoutOperatorInput runs without operator input} (no required credential and no required
+     * parameter) is seeded enabled, so a fresh install fetches every free source at its own default
+     * cadence. A source gated by a credential or a required parameter is seeded disabled until it is
+     * configured, and a dynamic source (prompt 024) keeps its own rule. The operator can disable any
+     * source. Only missing rows are created, so this governs fresh installs and newly registered
+     * sources; {@link #enableFree()} brings an existing install to the same state.
      *
      * <p>Rows for sources that are no longer registered are left alone — an adapter removed in an
      * upgrade should not silently destroy its configuration — but are logged once so the situation
@@ -134,15 +141,25 @@ public class SourceService implements ApplicationRunner {
         settings.findAll().forEach(row -> existing.add(row.getSourceId()));
 
         List<SourceSettingsEntity> created = new ArrayList<>();
-        for (SourceDescriptor descriptor : registry.descriptors()) {
+        int enabled = 0;
+        for (SourceRegistry.Registration registration : registry.all()) {
+            SourceDescriptor descriptor = registration.descriptor();
             if (existing.contains(descriptor.id())) {
                 continue;
             }
-            created.add(defaultRow(descriptor));
+            SourceSettingsEntity row = defaultRow(descriptor);
+            if (!registration.dynamic() && runsWithoutOperatorInput(descriptor)) {
+                row.setEnabled(true);
+                enabled++;
+            }
+            created.add(row);
         }
         if (!created.isEmpty()) {
             settings.saveAll(created);
-            log.info("Created default settings for {} new source(s)", created.size());
+            log.info(
+                    "Created default settings for {} new source(s), {} of them enabled (free sources)",
+                    created.size(),
+                    enabled);
         }
 
         Set<String> orphaned = new TreeSet<>(existing);
@@ -156,6 +173,35 @@ public class SourceService implements ApplicationRunner {
         }
     }
 
+    /**
+     * True when {@code descriptor} runs with zero operator input (prompt 145): it requires no
+     * credential, declares no required parameter, and its parameters are valid with nothing supplied.
+     *
+     * <p>The last test is the {@link #update} enable guard's own ({@link ParamValidator#validate} with
+     * no parameters, which includes the adapter's {@code checkParams}). The first two alone are not
+     * enough: the {@code local-acars-*} slots, {@code usgs-water} and {@code snotel} declare nothing required yet
+     * refuse an empty configuration (at least one endpoint; a box or locations; states or stations).
+     * With all three, the rule is exactly what the guard accepts with default settings, so a source
+     * seeded or bulk-enabled by it is never enabled-but-broken. No {@code LAN_URL} parameter has a
+     * default, so validating defaults never resolves an address.
+     */
+    boolean runsWithoutOperatorInput(SourceDescriptor descriptor) {
+        if (descriptor.requiresCredentials() || descriptor.params().stream().anyMatch(ParamSpec::required)) {
+            return false;
+        }
+        try {
+            paramValidator.validate(descriptor, Map.of());
+            return true;
+        } catch (ValidationException e) {
+            return false;
+        }
+    }
+
+    /**
+     * A settings row with the descriptor's defaults, <em>disabled</em>. {@link #seedDefaults} enables
+     * the free ones; every other caller (an update or a dynamic source with no row yet) starts from a
+     * disabled row, so changing one setting of an unseeded source never switches it on.
+     */
     private SourceSettingsEntity defaultRow(SourceDescriptor descriptor) {
         var entity = new SourceSettingsEntity(descriptor.id());
         entity.setEnabled(false);
@@ -636,6 +682,71 @@ public class SourceService implements ApplicationRunner {
         }
         String field = problem.substring(0, end);
         return field.endsWith(".") ? field.substring(0, field.length() - 1) : field;
+    }
+
+    /**
+     * Enables every currently disabled built-in source that {@linkplain #runsWithoutOperatorInput
+     * runs without operator input} ({@code POST /v1/sources/enable-free}, prompt 145): the one-time
+     * control that brings an install seeded before prompt 145 to the free-sources default without
+     * re-seeding, which would discard its configuration.
+     *
+     * <p>Each source is enabled through {@link #update}, so the same checks run and the same
+     * {@link SourceSettingsChangedEvent} is published after commit; the collector picks the sources
+     * up within seconds. A source the enable guard still refuses (stored parameters that are not
+     * valid) is left disabled and counted as skipped. Enabled rows, credential- or parameter-gated
+     * sources and dynamic sources (prompt 024: a custom push source or an external provider, which is
+     * enabled by its approval) are left untouched. Idempotent: a second call enables nothing.
+     *
+     * @return the ids enabled, sorted, and how many disabled built-in sources were left disabled
+     */
+    @Transactional
+    public EnableFreeResult enableFree() {
+        Set<String> enabledRows = new TreeSet<>();
+        settings.findByEnabledTrue().forEach(row -> enabledRows.add(row.getSourceId()));
+        List<String> enabled = new ArrayList<>();
+        int skipped = 0;
+        for (SourceRegistry.Registration registration : registry.all()) {
+            String id = registration.id();
+            if (registration.dynamic() || enabledRows.contains(id)) {
+                continue;
+            }
+            if (!runsWithoutOperatorInput(registration.descriptor())) {
+                skipped++;
+                continue;
+            }
+            try {
+                update(id, SourceSettingsUpdate.enabled(true));
+                enabled.add(id);
+            } catch (ValidationException | ConflictException e) {
+                // Refused before anything was saved: its stored settings need the operator first.
+                log.info("Not enabling {}: {}", id, e.getMessage());
+                skipped++;
+            }
+        }
+        enabled.sort(null);
+        if (!enabled.isEmpty()) {
+            log.info("Enabled {} free source(s): {}", enabled.size(), enabled);
+        }
+        return new EnableFreeResult(enabled, skipped);
+    }
+
+    /**
+     * What {@link #enableFree()} did.
+     *
+     * @param enabled the ids it enabled, sorted
+     * @param skipped the disabled built-in sources it left disabled: gated by a credential or a
+     *     required parameter, or refused by the enable guard
+     */
+    public record EnableFreeResult(List<String> enabled, int skipped) {
+
+        public EnableFreeResult {
+            enabled = List.copyOf(enabled);
+        }
+
+        /** How many sources were enabled. */
+        public int count() {
+            return enabled.size();
+        }
     }
 
     /**

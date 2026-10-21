@@ -86,6 +86,9 @@ class HealthServiceIT {
         jdbc.update("delete from source_health");
         tracker.clearStreams();
         sources.seedDefaults();
+        // Free sources are seeded enabled (prompt 145); these tests start from every source off and enable what
+        // they need, so DISABLED and IDLE hold only the sources each test names.
+        jdbc.update("update source_settings set enabled = false");
     }
 
     @AfterEach

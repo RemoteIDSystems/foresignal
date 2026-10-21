@@ -21,6 +21,9 @@ import ai.foresignal.collect.BackoffRegistry;
 import ai.foresignal.collect.IngestCounts;
 import ai.foresignal.collect.UsageMeter;
 import ai.foresignal.security.AdminTokenService;
+import ai.foresignal.security.Scope;
+import ai.foresignal.security.TokenService;
+import ai.foresignal.testsupport.security.TestTokens;
 import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.source.adapters.usgs.UsgsEarthquakesAdapter;
 import ai.foresignal.source.spi.FetchResult;
@@ -66,6 +69,7 @@ class SourcesControllerIT {
 
     @Autowired private MockMvc mvc;
     @Autowired private AdminTokenService adminTokens;
+    @Autowired private TokenService tokens;
     @Autowired private AppSettingService settings;
     @Autowired private ControllablePollingAdapter collectPollAdapter;
     @Autowired private ControllablePollingAdapter collectKeyedAdapter;
@@ -668,6 +672,53 @@ class SourcesControllerIT {
             mvc.perform(get("/v1/sources/" + POLL + "/usage").param("from", "yesterday"))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.errors[0].field").value("from"));
+        }
+    }
+
+    // ---------- enableFreeSources (prompt 145) ----------
+
+    @Nested
+    @DisplayName("enableFreeSources")
+    class EnableFreeSources {
+
+        @Test
+        @DisplayName("enables the free sources, not the keyed one, and answers enabled, count and skipped")
+        void enablesFreeSources() throws Exception {
+            mvc.perform(admin(post("/v1/sources/enable-free")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.enabled").value(hasItem(POLL)))
+                    .andExpect(jsonPath("$.enabled").value(hasItem(USGS)))
+                    .andExpect(jsonPath("$.enabled").value(not(hasItem(KEYED))))
+                    .andExpect(jsonPath("$.count").isNumber())
+                    .andExpect(jsonPath("$.skipped").isNumber())
+                    .andExpect(jsonPath("$", aMapWithSize(3)));
+
+            mvc.perform(get("/v1/sources/" + POLL)).andExpect(jsonPath("$.enabled").value(true));
+            mvc.perform(get("/v1/sources/" + KEYED)).andExpect(jsonPath("$.enabled").value(false));
+        }
+
+        @Test
+        @DisplayName("is idempotent: the second call enables nothing")
+        void idempotent() throws Exception {
+            mvc.perform(admin(post("/v1/sources/enable-free"))).andExpect(status().isOk());
+
+            mvc.perform(admin(post("/v1/sources/enable-free")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.enabled").isEmpty())
+                    .andExpect(jsonPath("$.count").value(0));
+        }
+
+        @Test
+        @DisplayName("is admin: 401 without a token, 403 with a read token, and nothing is enabled")
+        void adminOnly() throws Exception {
+            mvc.perform(post("/v1/sources/enable-free"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+            String reader = TestTokens.bearer(TestTokens.create(tokens, "enable-free-reader", Scope.READ));
+            mvc.perform(post("/v1/sources/enable-free").header(HttpHeaders.AUTHORIZATION, reader))
+                    .andExpect(status().isForbidden());
+
+            mvc.perform(get("/v1/sources/" + POLL)).andExpect(jsonPath("$.enabled").value(false));
         }
     }
 

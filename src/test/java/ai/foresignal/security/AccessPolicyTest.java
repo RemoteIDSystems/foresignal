@@ -399,6 +399,14 @@ class AccessPolicyTest {
     }
 
     @Test
+    @DisplayName("enabling every free source is admin (145)")
+    void enableFreeIsAdmin() {
+        assertScope("POST", "/v1/sources/enable-free", Scope.ADMIN);
+        // A GET of the same path is the (unknown) source read, not this write.
+        assertScope("GET", "/v1/sources/enable-free", Scope.READ);
+    }
+
+    @Test
     @DisplayName("the fetch log is admin even though it is a GET under /v1/sources (013)")
     void fetchLogIsAdmin() {
         assertScope("GET", "/v1/sources/usgs-earthquakes/fetches", Scope.ADMIN);

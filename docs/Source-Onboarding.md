@@ -13,27 +13,57 @@ interval, budget), `docs/Runtime-Verification.md` (bring the service up), and `s
 
 ## The guarantee (and why it holds)
 
-You can enable **1, 2, 10, 100 — any subset** of sources and the service runs cleanly on just
-those. Nothing is thrown because other providers are unconfigured. This is designed in, not
-incidental, and it is provable from three places in the code:
+A fresh install is useful at once: **every free source starts enabled and pulling**, each at its own
+default interval and budget. Sources that need a credential or a parameter start **disabled** until
+you configure them. You can disable any source, and enable or disable **any subset**, and the
+service runs cleanly on whatever is on. Nothing is thrown because other providers are
+unconfigured. This is designed in, not incidental, and it is provable from four places in the code:
 
-1. **Every source starts disabled.** At startup `SourceService.seedDefaults()` inserts one
-   disabled settings row per registered source
-   ([`SourceService.java:159-172`](../src/main/java/ai/foresignal/source/SourceService.java#L159),
-   `entity.setEnabled(false)` at line 161). Its javadoc: *"installing Foresignal must not start
-   fetching from a hundred upstreams. The operator opts each source in."*
+1. **Free sources start enabled; gated sources start disabled** (prompt 145). At startup
+   `SourceService.seedDefaults()` inserts one settings row per registered source that has none
+   ([`SourceService.java:139`](../src/main/java/ai/foresignal/source/SourceService.java#L139)).
+   A built-in source is seeded **enabled** (line 152) when it runs with zero operator input
+   (`runsWithoutOperatorInput`, line 188):
+   - it requires no credential;
+   - it declares no required parameter;
+   - its parameters are valid with nothing supplied. That is the enable guard's own check,
+     including the adapter's `checkParams`. It is what keeps sources like `usgs-water`
+     (a box or locations) and `snotel` (states or stations) disabled, though they declare
+     nothing required.
 
-2. **The collector only ever touches enabled, credentialed sources.** The scheduling loop queries
+   Every other source is seeded **disabled**
+   ([`defaultRow`, line 205](../src/main/java/ai/foresignal/source/SourceService.java#L205)). So
+   is every custom or external source (prompt 024), which keeps its own rule. Only missing rows
+   are created, so this governs a fresh install and any newly registered source. Your settings for
+   an existing source are never overwritten.
+
+2. **An existing install adopts the same default in one call.** An install seeded before
+   prompt 145 started with every source disabled. `POST /v1/sources/enable-free` (admin) enables
+   every currently disabled built-in source that passes the same rule. It answers
+   `{"enabled": [ids], "count": N, "skipped": M}`, where `skipped` counts the disabled sources it
+   left disabled because they need a credential or a parameter. It leaves every other row as it
+   is and is idempotent
+   ([`SourceService.enableFree`, line 703](../src/main/java/ai/foresignal/source/SourceService.java#L703)).
+   Each source is enabled through the normal settings update, so the collector picks it up within
+   ~2 s.
+
+3. **The collector only ever touches enabled, credentialed sources.** The scheduling loop queries
    literally `select source_id, interval_seconds from source_settings where enabled`, and then
    `if (descriptor.requiresCredentials() && !credentialsSet(id)) { continue; }`
    ([`CollectorScheduler.java:357-382`](../src/main/java/ai/foresignal/collect/CollectorScheduler.java#L357)).
-   A disabled or keyless source is never in the work set — there is nothing to fail on. A push- or
-   derived-mode source is never polled either.
+   A disabled source, or one whose credential is missing, is never in the work set, so there is
+   nothing to fail on. A push- or derived-mode source is never polled either. A push source
+   waits, a derived source computes, and a stream connects.
 
-3. **Startup does not require any provider.** With zero enabled sources the scheduler simply
+4. **Startup does not require any provider.** With zero enabled sources the scheduler simply
    schedules nothing. The app only refuses to start if an adapter's *descriptor* is malformed — a
    code defect, never a missing key
    ([`SourceRegistry.java:64-98`](../src/main/java/ai/foresignal/source/SourceRegistry.java#L64)).
+
+**You can turn any source off.** `PUT /v1/sources/{id}` `{"enabled": false}` disables a free
+source like any other. A later restart does not turn it back on, because seeding only creates
+missing rows. `enable-free` would turn it back on, since it enables every free source that is
+disabled.
 
 The only "errors" you will ever see from an unconfigured provider are **config-time 4xx guards**
 returned to *you* when you ask to enable something that isn't ready (see
@@ -123,10 +153,10 @@ defaults to `all_day`). This is exactly the Postman "00 Quickstart" folder.
 # 1. Service is up
 GET  {{baseUrl}}/v1/system
 
-# 2. Confirm the source exists (disabled by default)
+# 2. Confirm the source exists (a free source: enabled from the start on a fresh install)
 GET  {{baseUrl}}/v1/sources
 
-# 3. Enable it
+# 3. Enable it (already enabled on a fresh install; this sets the feed and is harmless)
 PUT  {{baseUrl}}/v1/sources/usgs-earthquakes
      Authorization: Bearer {{adminToken}}
      { "enabled": true, "params": { "feed": "all_day" } }
@@ -297,15 +327,26 @@ None of these affect other sources or the running service.
 
 ---
 
-## Immediate wins — 133 sources need no credentials at all
+## Immediate wins — free sources are already on
 
-These are enabled with a single `PUT /v1/sources/{id}` `{"enabled":true}` and nothing else. A
-representative starter set (full list: filter the Auth column of `docs/Source-Catalog.md` for
-`none`):
+Every source that needs no credential and no parameter starts enabled on a fresh install (see
+[the guarantee](#the-guarantee-and-why-it-holds)). On an install seeded before that change, turn
+them all on at once:
+
+```
+POST {{baseUrl}}/v1/sources/enable-free
+     Authorization: Bearer {{adminToken}}
+     -> { "enabled": ["awc-sigmets", "usgs-earthquakes", ...], "count": N, "skipped": M }
+```
+
+The call is idempotent; run it again and it enables nothing. Sources the catalog lists with Auth
+`none` include the set below (full list: filter the Auth column of `docs/Source-Catalog.md` for
+`none`). Each starts enabled unless it needs a parameter, such as a bounding box, in which case it
+starts disabled until you set one; `GET /v1/sources` shows which are on:
 
 - **Seismic / geophysical:** `usgs-earthquakes`, `emsc-seismic`, `fdsn-geofon`, `fdsn-ingv`
 - **Aviation weather:** `awc-sigmets`, `awc-gairmets`, `awc-pireps`, `awc-tafs`, `awc-cwas`
-- **Hydrology / flooding:** `ea-flood-warnings`, `eccc-hydrometric`, `copernicus-ems`
+- **Hydrology / flooding:** `ea-flood-warnings`, `copernicus-ems`
 - **Wildfire:** `cwfis-hotspots`, `cwfis-perimeters`, `cwfis-fwi-stations`, `feature-wfigs-incidents`
 - **Hurricanes / alerts (CAP):** `feed-nhc-atlantic`, `feed-nhc-eastpacific`, and the national CAP
   feeds `cap-de-dwd`, `cap-no-metno`, `cap-nz-metservice`, `cap-kr-kma`, … (many countries)
@@ -314,8 +355,7 @@ representative starter set (full list: filter the Auth column of `docs/Source-Ca
 - **Rail / transport:** `amtraker`, `digitraffic-rail`, `ais-digitraffic`, `ais-kystverket`
 - **Traffic cameras:** `cctv-caltrans-d1`…`d12`, `cctv-drivebc`, `cctv-nsw`, `cctv-austin`
 
-Start with `usgs-earthquakes` to prove the pipeline, then turn on as many no-credential sources as
-you like; each one is independent.
+Disable any of them with `PUT /v1/sources/{id}` `{"enabled":false}`; each one is independent.
 
 ---
 
@@ -323,9 +363,10 @@ you like; each one is independent.
 
 To satisfy yourself the launch is clean with only a handful of sources on:
 
-1. **`GET /v1/sources/health`** — every source you haven't enabled reports `status: disabled`;
-   enabled ones report `healthy`/`idle`. No source reports an error you didn't cause.
-2. **The application log** — with sources disabled, the collector logs
+1. **`GET /v1/sources/health`** — every disabled source (a gated one you haven't configured, or
+   one you turned off) reports `status: disabled`; enabled ones report `healthy`/`idle`. No
+   disabled or unconfigured source reports an error.
+2. **The application log** — for the disabled sources, the collector logs
    `Collector scheduler started (reconcile every 2s)` and then nothing about unconfigured
    providers. Missing keys produce **no** log lines (the source is simply never scheduled).
 3. **`GET /v1/records?source=<a-disabled-source>`** — returns an empty page (200), not an error.
@@ -333,6 +374,6 @@ To satisfy yourself the launch is clean with only a handful of sources on:
 
 ---
 
-*Grounded in the code as of 2026-10-18. Endpoints cross-checked against the Postman collection and
+*Grounded in the code as of 2026-10-21 (prompt 145). Endpoints cross-checked against the Postman collection and
 the controllers in `src/main/java/ai/foresignal/api`. The per-source authority is
 `docs/Source-Catalog.md`; the full API spec is `docs/OpenAPI.json`.*

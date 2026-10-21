@@ -15,6 +15,11 @@
     "x-foresignal-changelog": [
       {
         "version": "1.0.0",
+        "date": "2026-10-21",
+        "note": "145: free sources are enabled by default. A built-in source that runs without operator input (no required credential, no required parameter, parameters valid with nothing supplied) is seeded enabled; credential- or parameter-gated sources are still seeded disabled. Adds enableFreeSources (POST /v1/sources/enable-free, admin) and the EnableFreeSourcesResult schema, which bring an existing install to that default in one idempotent call. Additive: no operation or schema is changed or removed."
+      },
+      {
+        "version": "1.0.0",
         "date": "2026-10-18",
         "note": "144: release 1.0.0. info.version is reset from the pre-release document version 1.3.0 to the product release 1.0.0, and this document is frozen at docs/api/v1.0.0/OpenAPI.json. From here /v1 is additive only (NFR-10): checkApiCompat runs oasdiff breaking against the frozen copy, and breaking changes go to /v2. No operation, schema or parameter changed in 144."
       },
@@ -54549,6 +54554,56 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "117",
+        "x-foresignal-status": "implemented",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/sources/enable-free": {
+      "post": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "enableFreeSources",
+        "summary": "Enable every free source",
+        "description": "Enables every currently disabled built-in source that runs without operator input: no required credential, no required parameter, and parameters that are valid with nothing supplied (the same checks `PUT /v1/sources/{sourceId}` applies when enabling). Each source is enabled through the settings-update path, so the collector picks it up within seconds and fetches it at its default interval and budget. Enabled sources, credential- or parameter-gated sources and custom or external sources are left untouched. Idempotent: a second call enables nothing. This is how an install seeded before free sources started enabled (prompt 145) adopts that default without re-seeding; a fresh install seeds them enabled already.\n\n**Scope:** `admin`.",
+        "responses": {
+          "200": {
+            "description": "The sources enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnableFreeSourcesResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "145",
         "x-foresignal-status": "implemented",
         "security": [
           {
@@ -167192,6 +167247,35 @@
           "rates",
           "families"
         ]
+      },
+      "EnableFreeSourcesResult": {
+        "type": "object",
+        "description": "What `POST /v1/sources/enable-free` did (prompt 145).",
+        "required": [
+          "enabled",
+          "count",
+          "skipped"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The source ids enabled by this call, sorted; empty when there was nothing to enable"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "How many sources this call enabled (the length of `enabled`)"
+          },
+          "skipped": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Disabled built-in sources left disabled: they need a credential or a required parameter, or their stored parameters are not valid"
+          }
+        },
+        "additionalProperties": false
       }
     },
     "securitySchemes": {

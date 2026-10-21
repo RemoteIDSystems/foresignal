@@ -36,9 +36,18 @@ before prompt 023 keeps its admin token: it moves into that row on the first sta
 
 ## Sources
 
-A source is one upstream feed, such as `usgs-earthquakes`. Every source is installed **disabled**.
-Enabling it is the only thing that makes Foresignal contact that upstream; reading or streaming data
-never triggers a fetch.
+A source is one upstream feed, such as `usgs-earthquakes`. A **free** built-in source, one that needs no credential,
+has no required parameter and is valid with its defaults, is installed **enabled** and fetches at its default interval
+and budget. A source gated by a required credential or a required parameter is installed **disabled** until you
+configure it; the `local-acars-*` slots, `usgs-water` and `snotel` count as gated too, because each refuses an empty
+configuration (an endpoint, an area or a station list) although no single parameter is marked required. Custom push
+sources and external providers keep their own rules. You can disable any source with `PUT /v1/sources/{id}` and
+`{"enabled": false}`. These defaults apply only when a source's settings row is first created, so an install seeded
+before them keeps every source disabled until you call `POST /v1/sources/enable-free` (admin): it enables every disabled
+built-in free source in one call, is idempotent, and answers `{"enabled": [ids], "count": N, "skipped": M}` (`skipped`
+counts the disabled built-in sources it left alone). It cannot tell a free source you disabled on purpose from one that
+was never enabled, so disable those again afterwards. Enabling a source is the only thing that makes Foresignal contact
+that upstream; reading or streaming data never triggers a fetch.
 
 | Call | What it does |
 |---|---|
@@ -88,7 +97,8 @@ until you store them with `PUT /v1/sources/{id}/credentials`.
 
 ### Aircraft sources
 
-Prompt 062 adds the global aircraft sources, all disabled until you enable them:
+Prompt 062 adds the global aircraft sources. `adsblol-mil` and `opensky-states` start enabled (free); the area slots
+stay disabled until you set their center (`lat` and `lon` are required):
 
 | Source | What it covers | Default interval · budget |
 |---|---|---|
@@ -222,7 +232,8 @@ share links or feeds. No key means no vessels from this source; keyless official
 
 ### Keyless AIS and your own AIS-catcher
 
-Prompt 085 adds three vessel sources that need no key, all disabled until you enable them. They emit the same
+Prompt 085 adds three vessel sources that need no key. `ais-kystverket` and `ais-digitraffic` start enabled (free);
+`local-ais-{n}` stays disabled until you set its `endpoint`. They emit the same
 `vessel` records as `aisstream` (the same payload keys, the same SAMPLED policy and 30-minute TTL), decoded by
 Foresignal's own AIVDM codec.
 
@@ -271,7 +282,8 @@ For an AIS-catcher somewhere else (a remote site that can reach Foresignal but n
 ### Local RF decoders
 
 Prompt 086 brings in your own SDR decoders: aviation datalink metadata, radiosondes, a GNSS integrity sentinel, drone
-Remote ID, Raspberry Shake triggers and NOAA Weather Radio SAME headers. Every source is disabled until you enable it,
+Remote ID, Raspberry Shake triggers and NOAA Weather Radio SAME headers. Every source is disabled until you configure it
+(each needs your decoder's address; the Shake and SAME sources are custom sources you create),
 reads only (it never writes to your decoders, except gpsd's watch command), and accepts only addresses on your network
 with an explicit port. The legal and privacy rules below are enforced in code; there is no setting to turn them off.
 
@@ -360,7 +372,8 @@ header's purge time; the three repetitions of a header collapse into one, and `N
 
 ### Aviation safety
 
-Prompt 087 adds the US aviation-safety picture. Every source is disabled until you enable it; all are public-domain US
+Prompt 087 adds the US aviation-safety picture. Every source starts enabled (free) except `faa-uasfm`, which stays
+disabled until you set its `bbox`; disable any with `PUT /v1/sources/{id}`. All are public-domain US
 Government data.
 
 | Source | What it gives | Notes |
@@ -395,7 +408,8 @@ TFRs, the NOTAMs that matter most on a map, come from `faa-tfr`.
 
 ### Cyber feeds and Certificate Transparency
 
-Prompt 076 adds five sources, all disabled until you enable them:
+Prompt 076 adds five sources. `cisa-kev`, `abusech-feodo` and `nvd-cves` start enabled (free); `abusech-urlhaus`
+(needs `authKey`) and `ct-domain-watch` (needs `domains`) stay disabled until configured:
 
 - **`cisa-kev`** (the CISA Known Exploited Vulnerabilities catalog) and **`abusech-feodo`** (botnet C2 servers)
   need no credential.
@@ -568,7 +582,9 @@ local receivers.
 
 ### Amateur radio sources
 
-Prompt 082 adds five amateur-radio sources, all disabled until you enable them. Whoever received a spot or a packet
+Prompt 082 adds five amateur-radio sources. `kiwisdr` and `openmhz-systems` start enabled (free); `pskreporter-ft8`
+(needs `appContact`), `aprs-is` (needs `filter`) and `local-aprs-{n}` (needs `endpoint`) stay disabled until
+configured. Whoever received a spot or a packet
 (a PSK Reporter receiver, an APRS igate, your own TNC) is stored as the record's **observer**, never in its payload:
 it comes back only with `include=observer` on an agent or admin token, or when `security.exposeObserver` is on.
 
@@ -594,7 +610,8 @@ PUT /v1/sources/pskreporter-ft8
 public list and nothing private is sent.
 
 **OpenMHz.** OpenMHz answers Foresignal with a Cloudflare challenge page. The source reports `BLOCKED_CHALLENGE` and
-stays `failing`; Foresignal never pretends to be a browser or solves the challenge. Leave it disabled until OpenMHz
+stays `failing`; Foresignal never pretends to be a browser or solves the challenge. It starts enabled like every free
+source; disable it (`PUT /v1/sources/openmhz-systems` with `{"enabled": false}`) until OpenMHz
 offers API access.
 
 **APRS-IS filter etiquette.** `aprs-is` cannot be enabled without a narrow `filter`: ask APRS-IS only for what you
@@ -636,7 +653,9 @@ packets, not AX.25. Pointed at one, `local-aprs-{n}` connects, counts every fram
 
 ### Mesh networks
 
-Prompt 083 adds five mesh sources, all disabled until you enable them. Every node arrives as a `mesh-node` record:
+Prompt 083 adds five mesh sources. `meshtastic-mqtt`, `meshtastic-map` and `meshcore-bridge` start enabled (free);
+`meshtastic-local` (needs `brokerUrl`) and `meshcore-local` (needs `endpoint`) stay disabled until configured. Every
+node arrives as a `mesh-node` record:
 its names, role or node type, hardware, firmware, battery and last known position. The gateway or your own node that
 heard it is the record's observer. Foresignal never decodes Meshtastic protobufs (they are GPL-3.0); every Meshtastic
 path uses the firmware's JSON output.
@@ -722,8 +741,9 @@ from adverts alone; Foresignal never logs in to a repeater or asks it for status
 
 ### Flood watching
 
-Prompt 079 adds river, snow, drought and coastal water sources (see the Source Catalog, "Hydrology and coast"). All
-ship disabled. Two of them publish an official flood category you can trigger on: `nwps-gauges` (NOAA river gauges,
+Prompt 079 adds river, snow, drought and coastal water sources (see the Source Catalog, "Hydrology and coast"). `usdm`
+and `ea-flood-warnings` start enabled (free); the others stay disabled until you scope them (step 1 below).
+Two of them publish an official flood category you can trigger on: `nwps-gauges` (NOAA river gauges,
 `floodCategory` `no_flooding|action|minor|moderate|major|…`) and `noaa-coops-tides` (NOAA tide gauges,
 `floodCategory` `none|action|minor|moderate|major`, from the station's NOS flood thresholds converted to meters above
 MLLW).
@@ -2672,7 +2692,8 @@ URL must pass the outbound URL policy's `PUBLIC_ONLY` profile; a LAN host needs 
 `allowCidrs` (`PUT /v1/settings/outbound`). A host that does not resolve at startup is accepted and checked again
 before each fetch.
 
-**The new source** appears in `GET /v1/sources` disabled, like every source. Enable it, set its interval and budget,
+**The new source** appears in `GET /v1/sources` enabled, like every free source (a `wasm-feed` source has no
+credential or parameter; it fetches only while plugins are on). Disable it if you need to, set its interval and budget,
 and watch its health as usual.
 
 **Each run:**
@@ -4329,8 +4350,8 @@ they are until retention drops them; nothing new is thinned.
 
 ## Radar and satellite products
 
-Prompt 046 adds the first two product sources. Like every source they start disabled; enable them
-with `PUT /v1/sources/{id}` and `{"enabled": true}`.
+Prompt 046 adds the first two product sources. Like every free source they start enabled; disable them
+with `PUT /v1/sources/{id}` and `{"enabled": false}`.
 
 | Source | Products | Upstream | Poll | Default budget |
 |---|---|---|---|---|
@@ -4469,8 +4490,8 @@ include `/v1/map/` and `/v1/tiles/`.
 
 ## Forecast models (GFS and HRRR)
 
-Prompt 051 adds two forecast model sources. Both start disabled; enable them with
-`PUT /v1/sources/{id}` and `{"enabled": true}`.
+Prompt 051 adds two forecast model sources. Both start enabled (free); disable them with
+`PUT /v1/sources/{id}` and `{"enabled": false}`.
 
 | Source | Products | Runs and steps | Poll | Default budget |
 |---|---|---|---|---|
@@ -4514,7 +4535,7 @@ the same way.
 
 ## Severe weather records
 
-Prompt 047 adds four record sources (installed disabled, like every source):
+Prompt 047 adds four record sources (installed enabled, like every free source):
 
 | Source | What it brings | Notes |
 |---|---|---|
@@ -4586,7 +4607,7 @@ listed is not fetched or stored. Left unset (it has no descriptor default), the 
 the OVATION aurora raster, TAF, HRRR smoke (surface and column), `wpc-heatrisk` and `epa-uv`; the **large**
 profile also turns on C02, `goes-west-abi`, `gfs-wave`, the MRMS extras (lightning probability, VIL, echo
 top), `sst-geopolar` and `aifs`. The mesoscale sectors are opt-in on both (list them in `goes-east-abi`'s
-`products`), and `nexrad-l3` is opt-in like every source. Set the parameter with
+`products`), and `nexrad-l3` starts enabled like every free source. Set the parameter with
 `PUT /v1/sources/{id}/params` (or the source settings API).
 
 **New sources.** `goes-west-abi` mirrors the East clean IR on GOES-18; `goes-east-abi` adds the C08/C09
@@ -4600,7 +4621,7 @@ gains `hrrr-smoke-column` (COLMD); `swpc-aurora` gains the global `aurora-probab
 adds the daily Geo-Polar SST over an ocean bbox; `wpc-heatrisk` adds the **experimental** NWS HeatRisk
 days 1–7 (place-weather `heat`); `epa-uv` adds the hourly UV index per place — set a place's `zip`
 attribute (`PUT /v1/places/{id}` `{"attributes":{"zip":"78701"}}`) for it to be fetched; places without
-one are named in the source's health note. **`nexrad-l3`** (opt-in) ingests N0B reflectivity and N0G
+one are named in the source's health note. **`nexrad-l3`** (enabled by default) ingests N0B reflectivity and N0G
 velocity for the nearest WSR-88D sites (`sites`, or `siteCount` nearest the home), decoded with
 NetCDF-Java's NIDS reader and resampled to 0.005° within 230 km.
 
@@ -4618,7 +4639,7 @@ track) at its own time.
 
 ## Lightning and fire
 
-Prompt 048 adds four more sources (installed disabled):
+Prompt 048 adds four more sources (installed enabled; all are free):
 
 | Source | What it brings | Notes |
 |---|---|---|
@@ -4681,7 +4702,7 @@ before the newest one already ingested, per product; re-sent detections are touc
 
 ## Weather alerts
 
-Prompt 052 adds three **derived** sources (installed disabled). They make no upstream request: they read
+Prompt 052 adds three **derived** sources (installed enabled; all are free). They make no upstream request: they read
 the frames and records the weather sources already stored, and write a record only when its rounded
 content changes.
 
@@ -4691,9 +4712,9 @@ content changes.
 | `wx-areas` | `wx-area` | one per configured area (`refl:50:aoi`, `mesh:25:home`): the area above a threshold inside the places AOI or a place, every 6–10 min |
 | `wx-cells` | `radar-cell` | one per tracked storm cell (`c-{ulid}`): maximum reflectivity, area, hail size, GLM flashes and centroid motion |
 
-Enable the inputs you want first (`mrms`, `goes-glm`, `gfs`, `hrrr`), then the derived sources:
-`PUT /v1/sources/wx-places {"enabled": true}` and the same for `wx-cells` (the `cell` section needs it)
-and `wx-areas`. `wx-areas` takes `areas` (a list of `field:threshold:aoi`, field `refl`, `mesh`, `precip`,
+The inputs (`mrms`, `goes-glm`, `gfs`, `hrrr`) and the derived sources all start enabled; keep `wx-cells`
+enabled while you use `wx-places` (the `cell` section needs it), and disable any you do not want with
+`PUT /v1/sources/{id} {"enabled": false}`. `wx-areas` takes `areas` (a list of `field:threshold:aoi`, field `refl`, `mesh`, `precip`,
 `rotation` (s⁻¹), `qpe1h` (mm) or `ffg` (% of flash-flood guidance))
 and `interval` (6–10 min); `wx-cells` takes `scope` (`aoi`, or `conus` on the large profile). Each derived
 source shows in `GET /v1/sources/{id}/health` like any other: every invocation (a frame, a change batch, a
@@ -4811,8 +4832,9 @@ them ever causes an upstream fetch.
 
 Prompt 099 adds the object-derived layers. Like the weather ones they make no upstream request:
 they read the stored and live records of the aircraft, vessel and event sources through the
-observation feed, and write an ordinary record only when its rounded content changes. Every layer is
-installed **disabled**, is a STANDARD source with no TTL (the fused-aircraft layer is the one TRACK,
+observation feed, and write an ordinary record only when its rounded content changes. Every layer except
+`derived-cpa` (disabled until you set its `aoi`) is installed **enabled** (free); every layer is a STANDARD source
+with no TTL (the fused-aircraft layer is the one TRACK,
 with a 5-minute TTL), and declares its inputs as source families, so the receiver slots you configure
 (`local-adsb-*`, `ais-*`, `adsbfi-region-*`, …) are picked up without further setup.
 
@@ -4837,8 +4859,9 @@ with a 5-minute TTL), and declares its inputs as source families, so the receive
 | `derived-lightning-holdover` | `holdover-fire-risk` | GLM + FIRMS/FDC + QPE | flash clusters over dry cells, watched for a later fire |
 | `derived-hf-blackout` | `hf-propagation-anomaly` | PSKReporter + SWPC X-ray | spot/SNR drops on sunlit paths against a 14-day baseline |
 
-Enable the inputs you want first, then the layers, for example
-`PUT /v1/sources/derived-gps-jamming {"enabled": true}`. Each layer shows in
+A layer reads only the inputs you have enabled: the free ones are on already, the keyed or configured ones (receiver
+slots, `aisstream`, …) once you set them up. Disable a layer you do not want, for example
+`PUT /v1/sources/derived-gps-jamming {"enabled": false}`. Each layer shows in
 `GET /v1/sources/{id}/health` like any other and writes one `fetch_log` row with `principal: derived`
 per invocation. Its tick is one minute by default (`derived-gps-jamming` five, others as noted in the
 catalog).
@@ -4936,8 +4959,8 @@ same section as `weatherAtPlaces` (it needs a token). The place-weather rule rec
 
 Prompt 049 makes your own [SatDump](https://github.com/SatDump/SatDump) station a source. Set
 `FORESIGNAL_SATDUMP_STATIONS` (property `foresignal.satdump.stations`) to a comma list of station names,
-for example `home`, and restart: each name becomes a `satdump-{station}` source, installed disabled like
-every source. A name is kebab-case and at most 56 characters.
+for example `home`, and restart: each name becomes a `satdump-{station}` source, installed disabled until
+you set its required `location`. A name is kebab-case and at most 56 characters.
 
 SatDump is GPL-3.0 and stays a separate program that you install and run. Foresignal talks to it only
 through HTTP (`/api`, `/polarplot.jpeg`) and the files it writes; no SatDump code is in Foresignal, and the
@@ -5192,7 +5215,8 @@ schema, or a PNG without valid bounds, is rejected with a health reason.
 
 ## Space sources (prompt 064)
 
-All five start disabled. Enable them with `PUT /v1/sources/{id}`.
+`celestrak-gp`, `celestrak-socrates`, `satellite-passes` and `launch-library` start enabled (free); `spacetrack-tip`
+stays disabled until its Space-Track account is stored. Disable any with `PUT /v1/sources/{id}`.
 
 **`celestrak-gp` (element sets).** CelesTrak's usage policy of 2026-05-22 is strict, and Foresignal
 follows it:
@@ -5209,7 +5233,7 @@ follows it:
   answers `409 IN_BACKOFF`.
 - More than 60 MB in a day turns health `degraded` (CelesTrak may block above 100 MB a day).
 - `celestrak-socrates` (about 23 MB, refreshed every 10–11 h) follows the same rules and the same
-  CelesTrak error budget. Leave it disabled if you do not need conjunctions.
+  CelesTrak error budget. It starts enabled; disable it if you do not need conjunctions.
 
 **Feeding Gpredict, Look4Sat and SatDump.** Point clients at Foresignal instead of CelesTrak:
 `/compat/celestrak/gp.php` (or `/compat/celestrak/NORAD/elements/gp.php`) serves the stored element
@@ -5265,7 +5289,7 @@ limits TIP to once an hour, or every 10 minutes during a re-entry within 12 hour
 
 Foresignal ships seven reviewed GTFS-Realtime feeds (`docs/Source-Catalog.md`, "Reviewed transit feeds"): each has a
 `transit-{id}` vehicle source and, where the operator publishes alerts, a `transit-alerts-{id}` source. All are
-disabled until you enable them with `PUT /v1/sources/{id}`. Vehicles are TRACK records with a 5-minute TTL; keep the
+enabled by default (free; disable any with `PUT /v1/sources/{id}`). Vehicles are TRACK records with a 5-minute TTL; keep the
 interval at or below 30 s (the default), or shorten the keyframe of the ingest policy with it (225 s at 45 s), because
 `keyframe ≤ ttl − interval − 30 s` must hold. The policy validator checks that only against the default interval, so it
 will not stop a slower interval on its own. The alerts source takes a `language` parameter (default `en`)
@@ -5303,7 +5327,7 @@ reruns `scripts/update-mobility-catalog.py`.
 ## Bikeshare (prompt 071)
 
 Foresignal ships 30 reviewed docked bikeshare systems, each a `gbfs-{id}` source of `bikeshare-station` records. All
-are disabled until you enable them with `PUT /v1/sources/{id}`:
+are enabled by default (free; disable any with `PUT /v1/sources/{id}`):
 
 | Operator family | Sources |
 |---|---|
@@ -5654,14 +5678,14 @@ docker compose exec -T db dropdb -U foresignal restore_drill
   <https://dash.cloudflare.com/profile/api-tokens> with **Radar read** access and set it as the `apiToken`
   credential. Cloudflare's global limit is 1,200 requests per 5 minutes per user; Foresignal's budget is far
   below that and honours `Retry-After` on 429.
-- **`gpsjam-daily` is disabled by default:** gpsjam.org publishes no licence, so the source is local-only and
-  must be enabled deliberately.
+- **`gpsjam-daily` starts enabled** like every free source (it needs no key or parameter). gpsjam.org publishes no
+  license, so the source is local-only; disable it with `PUT /v1/sources/gpsjam-daily` if you do not want it.
 - **RIPE Atlas:** `ripe-atlas-probes` never stores a probe's address or description; only status, prefixes,
   ASNs, country and tags. Licence: RIPE Atlas Service Terms v3.5.
 - **Rule recipes:** BGP hijacks — enter on `bgp-hijack` when `confidence_score >= 8`; service status — enter on
   `service-status` when `indicator in [major, critical]`. Cloudflare outages pair with IODA (`ioda-outages`) in
   the 099 corroboration layer to distinguish a national outage from a cable cut or a hijack.
-- **RIS Live (`ris-live`) is optional and disabled by default.** Set `prefixes` (at most 50) to the prefixes you
+- **RIS Live (`ris-live`) is optional and stays disabled until you set `prefixes`.** Set `prefixes` (at most 50) to the prefixes you
   watch; Foresignal subscribes to those (with their more-specifics) and never to the full firehose. Optional:
   `expectedOrigins` (`prefix=ASN,ASN;prefix2=ASN`) to flag an unexpected origin, and `hosts` (RRC names such as
   `rrc00`) to narrow the subscription to those collectors. While the stream is down, records say
@@ -5673,7 +5697,7 @@ docker compose exec -T db dropdb -U foresignal restore_drill
 
 - **They poll weekly on their own.** `wri-power-plants`, `ourairports`, `submarine-cables`, `gvp-volcanoes`,
   `world-port-index`, `nps-boundaries`, `spaceports`, `nuclear-reactors-us` and `nuclear-plants-wikidata` are
-  disabled by default like every built-in source; enable the ones you want. Each keeps 730 days of history and
+  enabled by default like every free source; disable the ones you do not want. Each keeps 730 days of history and
   emits one `dataset-release` record per run.
 - **`allowShrink`.** A reference dataset normally changes slowly, so if a complete run would remove more than
   `reconcile.maxAbsentRatio` of it (20 % by default), Foresignal writes no tombstones and shows the source
@@ -5725,9 +5749,9 @@ docker compose exec -T db dropdb -U foresignal restore_drill
   government data **except WastewaterSCAN rows, which are CC BY-NC 4.0**; those are dropped unless
   `includeWastewaterScan` is set, and then each carries `licenceOverride: "CC BY-NC 4.0 (WastewaterSCAN)"`, which
   109 honours.
-- **`wiki-edit-surge` is off by default and bandwidth-heavy.** It holds one connection to the Wikimedia
-  EventStreams `recentchange` firehose and reports **the bytes it reads** against a 3 GB/day budget; the stream is
-  a continuous firehose, so measure your own volume before enabling it. It never stores usernames, edit comments
+- **`wiki-edit-surge` starts enabled (it needs no key) and is bandwidth-heavy.** It holds one connection to the
+  Wikimedia EventStreams `recentchange` firehose and reports **the bytes it reads** against a 3 GB/day budget; the
+  stream is a continuous firehose, so measure your own volume, and disable the source if it is too much. It never stores usernames, edit comments
   or parsed comments; the page title is untrusted text and is the only embedded field. A useful rule:
   `phase == rising` in `enter`, with a **6 h cooldown** so a long surge does not repeat.
 
@@ -5752,7 +5776,7 @@ docker compose exec -T db dropdb -U foresignal restore_drill
   Use `only_new` (`onlyNew`) so a reprocessed item that only moves `properties.updated` is a touch, not a new
   alert. `cloudCover` is percent (one decimal); `aoiCoverPct` is an integer 0–100.
 - **Cloudy-season flood watching with Sentinel-1.** SAR sees through cloud, so enable `stac-sentinel1`
-  (off by default) and watch `kind=satellite-scene`, `sources=["stac-sentinel1"]` with a
+  (it too needs `aoi`) and watch `kind=satellite-scene`, `sources=["stac-sentinel1"]` with a
   `aoiCoverPct >= 90` rule: a new Sentinel-1 scene over your flood AOI is a fresh, cloud-independent look.
   Sentinel-1 has no `cloudCover`, so leave it out of the conditions.
 - **Cadence and quota.** Each run searches your AOI hourly (min 15 minutes) at 4 requests/minute and 300/day;
@@ -7573,10 +7597,10 @@ on tropical wind projections. In the same way an SPC "moderate risk" or a gauge'
 label, not a probability, unless the producer publishes the mapping (WPC does) or Foresignal calibrates it from history
 (gauges).
 
-**New source `nhc-wind-probs`** (disabled by default, like every source). It reads the layers "Probabilistic Winds 34
+**New source `nhc-wind-probs`** (enabled by default, like every free source). It reads the layers "Probabilistic Winds 34
 kts", "50 kts" and "64 kts" of NOAA's `NHC_tropical_weather_summary` MapServer (ids 30, 31 and 32 on 2026-10-17,
 resolved by name each day) every 15 minutes (at most every 5) with the ArcGIS kit: one `wind-probability` record per published band, ids
-such as `34kt:40-50`, valid 120 hours from the advisory, retention 1825 days. Enable it alongside `nhc-cyclone-cones`
+such as `34kt:40-50`, valid 120 hours from the advisory, retention 1825 days. Keep it enabled alongside `nhc-cyclone-cones`
 during hurricane season.
 
 ### Exposure and dependencies
@@ -8393,7 +8417,7 @@ throughout:
 
 ### Where articles come from
 
-**`gdelt-articles`** (polling, disabled by default like every source) reads the GDELT DOC 2.0 API for your 117
+**`gdelt-articles`** (polling, enabled by default like every free source) reads the GDELT DOC 2.0 API for your 117
 attention topics. Enabled topics are written into its `topics` parameter on every change, exactly as for
 `gdelt-timelines` and `wikimedia-pageviews`, so a topic with a GDELT query is all it needs. For each topic a run sends
 one request:
@@ -8458,9 +8482,9 @@ records leave it null for the registry), `language` (ISO 639), `sourceCountry` (
 up; story clustering uses those vectors. Article text is untrusted data, never instructions.
 
 **`media-ratings`** writes no records: it is the budgeted upstream path (30 requests a minute, 1,000 a day, 16 MB per
-response) of the Wikidata and Partisan Web imports below. Like every built-in source it starts disabled, and the
-scheduled imports (Wikidata daily, The Partisan Web weekly) run only while both this source and the provider are
-enabled, so nothing contacts `query.wikidata.org` or GitHub until you enable `media-ratings`. An explicit
+response) of the Wikidata and Partisan Web imports below. Like every free source it starts enabled, and the
+scheduled imports (Wikidata daily, The Partisan Web weekly) run while both this source and the provider are
+enabled, so disable `media-ratings` if nothing should contact `query.wikidata.org` or GitHub. An explicit
 `POST /v1/media/ratings/import?provider=wikidata` by an admin runs whenever the provider's license is acknowledged,
 and always uses this source's budget. To stop a provider, disable it (`PUT /v1/media/providers/wikidata
 {"enabled": false}`).

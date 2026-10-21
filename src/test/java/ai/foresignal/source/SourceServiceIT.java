@@ -6,6 +6,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import ai.foresignal.api.error.ConflictException;
 import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.api.error.ValidationException;
+import ai.foresignal.source.adapters.aisstream.AisStreamAdapter;
+import ai.foresignal.source.adapters.hydro.usgswater.UsgsWaterAdapter;
+import ai.foresignal.source.adapters.radio.AprsIsAdapter;
+import ai.foresignal.source.adapters.usgs.UsgsEarthquakesAdapter;
 import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.IngestPolicy;
 import ai.foresignal.store.SourceCredentialRepository;
@@ -52,6 +56,10 @@ class SourceServiceIT {
         recorder.clear();
     }
 
+    private boolean enabled(String id) {
+        return settings.findById(id).orElseThrow().isEnabled();
+    }
+
     // ---------- startup ----------
 
     @Nested
@@ -59,12 +67,12 @@ class SourceServiceIT {
     class Startup {
 
         @Test
-        @DisplayName("every registered source gets a disabled default row")
+        @DisplayName("every registered source gets a default row; a free one starts enabled (prompt 145)")
         void seedsDefaults() {
             assertThat(settings.count()).isEqualTo(registry.ids().size());
 
             SourceSettingsEntity row = settings.findById(POLLING).orElseThrow();
-            assertThat(row.isEnabled()).isFalse();
+            assertThat(row.isEnabled()).isTrue();
             assertThat(row.getParams()).isEmpty();
             assertThat(row.getRetention()).isNull();
             assertThat(row.getIngestPolicy()).isNull();
@@ -83,9 +91,51 @@ class SourceServiceIT {
         }
 
         @Test
-        @DisplayName("nothing is enabled by installing Foresignal")
-        void nothingIsEnabledByDefault() {
-            assertThat(settings.findByEnabledTrue()).isEmpty();
+        @DisplayName("free sources are seeded enabled; credential- and parameter-gated ones disabled (prompt 145)")
+        void onlyFreeSourcesAreEnabledByDefault() {
+            // No credential, no parameter: enabled.
+            assertThat(enabled(POLLING)).isTrue();
+            // Only an optional parameter with a default: enabled.
+            assertThat(enabled(ParamAdapterConfig.PARAMETERISED_ID)).isTrue();
+            // A required credential: disabled.
+            assertThat(enabled(CredentialAdapterConfig.CREDENTIALLED_ID)).isFalse();
+            // A required parameter, no credential: disabled.
+            assertThat(enabled(RequiredParamAdapterConfig.REQUIRED_PARAM_ID)).isFalse();
+        }
+
+        @Test
+        @DisplayName("built-in sources follow the same rule: usgs-earthquakes on; aisstream, aprs-is, usgs-water off")
+        void builtInSourcesFollowTheRule() {
+            // Keyless, every parameter defaulted.
+            assertThat(enabled(UsgsEarthquakesAdapter.ID)).isTrue();
+            // Needs an aisstream.io API key.
+            assertThat(enabled(AisStreamAdapter.ID)).isFalse();
+            // Keyless, but its filter parameter is required.
+            assertThat(enabled(AprsIsAdapter.ID)).isFalse();
+            // Keyless and nothing declared required, but its checkParams refuses an empty configuration (a box or
+            // locations), so the enable guard would refuse it too: it must not be seeded enabled-but-broken.
+            assertThat(enabled(UsgsWaterAdapter.ID)).isFalse();
+        }
+
+        @Test
+        @DisplayName("seeding never re-enables a source the operator disabled")
+        void seedingKeepsAnOperatorsDisable() {
+            service.update(POLLING, SourceSettingsUpdate.enabled(false));
+
+            service.seedDefaults();
+
+            assertThat(enabled(POLLING)).isFalse();
+        }
+
+        @Test
+        @DisplayName("every seeded-enabled source passes the enable guard")
+        void seededEnabledSourcesAreRunnable() {
+            for (SourceSettingsEntity row : settings.findByEnabledTrue()) {
+                var descriptor = registry.descriptor(row.getSourceId());
+                assertThat(descriptor.requiresCredentials()).as(row.getSourceId()).isFalse();
+                // Enabling again goes through the same credential and parameter guard; it must not throw.
+                service.update(row.getSourceId(), SourceSettingsUpdate.enabled(true));
+            }
         }
 
         @Test
@@ -140,7 +190,8 @@ class SourceServiceIT {
             SourceView view = service.view(POLLING);
 
             assertThat(view.descriptor().id()).isEqualTo(POLLING);
-            assertThat(view.enabled()).isFalse();
+            // A free source is seeded enabled (prompt 145).
+            assertThat(view.enabled()).isTrue();
             assertThat(view.credentialsSet()).isFalse();
             assertThat(view.interval()).isEqualTo(registry.descriptor(POLLING).defaultInterval());
             assertThat(view.ingestPolicy()).isNotNull();
@@ -622,6 +673,112 @@ class SourceServiceIT {
         }
     }
 
+    // ---------- enable free sources (prompt 145) ----------
+
+    @Nested
+    @DisplayName("enableFree")
+    class EnableFree {
+
+        private static final String NEEDS_CREDENTIALS = CredentialAdapterConfig.CREDENTIALLED_ID;
+        private static final String NEEDS_PARAM = RequiredParamAdapterConfig.REQUIRED_PARAM_ID;
+
+        /** An install seeded before prompt 145: every row disabled. */
+        @BeforeEach
+        void seededBeforeFreeDefault() {
+            jdbc.update("update source_settings set enabled = false");
+            recorder.clear();
+        }
+
+        @Test
+        @DisplayName("enables only the free, disabled sources and leaves the gated ones disabled")
+        void enablesOnlyFreeSources() {
+            SourceService.EnableFreeResult result = service.enableFree();
+
+            assertThat(result.enabled())
+                    .contains(POLLING, ParamAdapterConfig.PARAMETERISED_ID, UsgsEarthquakesAdapter.ID)
+                    .doesNotContain(NEEDS_CREDENTIALS, NEEDS_PARAM, AisStreamAdapter.ID, AprsIsAdapter.ID,
+                            UsgsWaterAdapter.ID)
+                    .isSorted();
+            assertThat(result.count()).isEqualTo(result.enabled().size());
+            assertThat(result.skipped()).isPositive();
+            assertThat(enabled(POLLING)).isTrue();
+            assertThat(enabled(NEEDS_CREDENTIALS)).isFalse();
+            assertThat(enabled(NEEDS_PARAM)).isFalse();
+            assertThat(enabled(UsgsWaterAdapter.ID)).isFalse();
+        }
+
+        @Test
+        @DisplayName("counts every disabled, gated built-in source as skipped")
+        void countsSkipped() {
+            long gated = registry.all().stream()
+                    .filter(registration -> !registration.dynamic())
+                    .filter(registration -> !service.runsWithoutOperatorInput(registration.descriptor()))
+                    .count();
+
+            assertThat(service.enableFree().skipped()).isEqualTo((int) gated);
+        }
+
+        @Test
+        @DisplayName("leaves an enabled row alone, even a gated one enabled by the operator")
+        void leavesEnabledRowsAlone() {
+            service.setCredentials(NEEDS_CREDENTIALS, Map.of("apiKey", "secret"));
+            service.update(NEEDS_CREDENTIALS, SourceSettingsUpdate.enabled(true));
+            service.update(POLLING, new SourceSettingsUpdate(true, Duration.ofMinutes(7), null, null, null, false,
+                    null, false));
+            recorder.clear();
+
+            SourceService.EnableFreeResult result = service.enableFree();
+
+            assertThat(result.enabled()).doesNotContain(NEEDS_CREDENTIALS, POLLING);
+            assertThat(enabled(NEEDS_CREDENTIALS)).isTrue();
+            assertThat(service.view(POLLING).interval()).isEqualTo(Duration.ofMinutes(7));
+            assertThat(recorder.settingsEvents())
+                    .extracting(SourceSettingsChangedEvent::sourceId)
+                    .doesNotContain(NEEDS_CREDENTIALS, POLLING);
+        }
+
+        @Test
+        @DisplayName("is idempotent: a second call enables nothing and changes nothing")
+        void idempotent() {
+            SourceService.EnableFreeResult first = service.enableFree();
+            recorder.clear();
+
+            SourceService.EnableFreeResult second = service.enableFree();
+
+            assertThat(first.count()).isPositive();
+            assertThat(second.enabled()).isEmpty();
+            assertThat(second.count()).isZero();
+            assertThat(second.skipped()).isEqualTo(first.skipped());
+            assertThat(recorder.settingsEvents()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("enables through the settings update, so each source publishes its change event")
+        void publishesTheSettingsEvent() {
+            service.enableFree();
+
+            assertThat(recorder.settingsEvents())
+                    .filteredOn(event -> event.sourceId().equals(POLLING))
+                    .singleElement()
+                    .satisfies(event -> {
+                        assertThat(event.before().enabled()).isFalse();
+                        assertThat(event.after().enabled()).isTrue();
+                        assertThat(event.enabledChanged()).isTrue();
+                        assertThat(event.affectsScheduling()).isTrue();
+                    });
+        }
+
+        @Test
+        @DisplayName("an operator can still disable a source it enabled")
+        void operatorCanDisable() {
+            service.enableFree();
+
+            service.update(POLLING, SourceSettingsUpdate.enabled(false));
+
+            assertThat(enabled(POLLING)).isFalse();
+        }
+    }
+
     // ---------- events ----------
 
     @Nested
@@ -631,6 +788,10 @@ class SourceServiceIT {
         @Test
         @DisplayName("a settings change publishes after commit, with before and after")
         void publishesSettingsChange() {
+            // POLLING is free, so it is seeded enabled (prompt 145); switch it off to see an enable.
+            service.update(POLLING, SourceSettingsUpdate.enabled(false));
+            recorder.clear();
+
             service.update(POLLING, SourceSettingsUpdate.enabled(true));
 
             assertThat(recorder.settingsEvents()).hasSize(1);
@@ -764,6 +925,23 @@ class SourceServiceIT {
         }
     }
 
+    /** A keyless source with a required parameter (prompt 145: seeded disabled). */
+    @TestConfiguration
+    static class RequiredParamAdapterConfig {
+
+        static final String REQUIRED_PARAM_ID = "fake-required-param";
+
+        @Bean
+        ai.foresignal.testsupport.adapters.FakePollingAdapter fakeRequiredParamAdapter() {
+            return new ai.foresignal.testsupport.adapters.FakePollingAdapter(
+                    ai.foresignal.testsupport.adapters.FakePollingAdapter.defaultDescriptor(REQUIRED_PARAM_ID)
+                            .param(
+                                    ai.foresignal.source.spi.ParamSpec.required(
+                                            "station", ai.foresignal.source.spi.ParamType.STRING, "which station"))
+                            .build());
+        }
+    }
+
     /** Captures the after-commit events. */
     static class EventRecorder {
 
@@ -795,7 +973,8 @@ class SourceServiceIT {
     }
 
     @TestConfiguration
-    @Import({TrackAdapterConfig.class, CredentialAdapterConfig.class, ParamAdapterConfig.class})
+    @Import({TrackAdapterConfig.class, CredentialAdapterConfig.class, ParamAdapterConfig.class,
+            RequiredParamAdapterConfig.class})
     static class EventRecorderConfig {
 
         @Bean

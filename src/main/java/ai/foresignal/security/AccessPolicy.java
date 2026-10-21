@@ -358,6 +358,8 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/sources/*/fetch", AccessRequirement.ADMIN),
                 // The CFTC COT history backfill (prompt 117) spends the source's budget: admin.
                 rule(HttpMethod.POST, "/v1/sources/cftc-cot/backfill", AccessRequirement.ADMIN),
+                // Enabling every free source (prompt 145) is a configuration change: admin.
+                rule(HttpMethod.POST, "/v1/sources/enable-free", AccessRequirement.ADMIN),
                 rule(HttpMethod.POST, "/v1/sources/*/probe", AccessRequirement.ADMIN),
                 // The adapter doctor (prompt 140): a run probes the upstream and may spend LLM budget, so it is admin
                 // and always authenticated; its reports are agent reads (before the sources READ rule).

@@ -44841,7 +44841,14 @@
             },
             "description": "Upload an image (multipart, through 043 ImageGuard) or submit a PDQ hex string; returns fingerprints within Hamming distance 31 (default) with first-seen dates and narratives, and the REFERENCE_WINDOW caveat stating the fingerprint store's start date. The uploaded image is not stored.\n\n**Scope:** `read` (token required).\n\noperationId: `matchMedia`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -45954,6 +45961,52 @@
                   "language": "json"
                 }
               }
+            }
+          }
+        },
+        {
+          "name": "Enable every free source",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/sources/enable-free",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "sources",
+                "enable-free"
+              ],
+              "query": []
+            },
+            "description": "Enables every currently disabled built-in source that runs without operator input: no required credential, no required parameter, and parameters that are valid with nothing supplied (the same checks `PUT /v1/sources/{sourceId}` applies when enabling). Each source is enabled through the settings-update path, so the collector picks it up within seconds and fetches it at its default interval and budget. Enabled sources, credential- or parameter-gated sources and custom or external sources are left untouched. Idempotent: a second call enables nothing. This is how an install seeded before free sources started enabled (prompt 145) adopts that default without re-seeding; a fresh install seeds them enabled already.\n\n**Scope:** `admin`.\n\noperationId: `enableFreeSources`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
