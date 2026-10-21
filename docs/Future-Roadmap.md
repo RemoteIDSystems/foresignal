@@ -75,3 +75,46 @@ usable by any external analyzer/enricher.
 
 **Status.** Design candidate. The continuous path is usable today via EDP; the on-demand
 request/callback is the new primitive to design. Owner's call.
+
+---
+
+## Relationship intelligence / link analysis (Benjis-style) — the engine is already here
+
+_Added 2026-10-21._
+
+**Reference.** [Benjis.ai](https://benjis.ai/waitlist/) (waitlist page, so partly inferred): entity
+resolution + relationship discovery / link analysis + pattern detection + alerts + graph dashboards,
+over aggregated **financial, corporate-ownership and public-records** data, for fraud, due diligence,
+financial crime and compliance.
+
+**What Foresignal already has (the capability stack, built).**
+- **Aggregation:** ~300–500 sources via the adapter framework + the EDP for external providers.
+- **Entity resolution:** the entity registry — `resolveEntity`, `mergeEntities`, entity keys; a
+  merged entity resolves to its survivor (098).
+- **Link analysis / relationship graphs:** `POST /v1/graph` (`queryGraph`), `findCommonDependencies`,
+  operator `relations`, `listRelatedObjects`, dependency paths, the object/dossier `related` graph (129).
+- **Correlation:** intel correlation recipes (`intel/recipes`, `testRecipe`), canonical/intel events,
+  investigations (116, 101).
+- **Pattern / anomaly detection:** precursors + mining, anomaly/pattern trigger operators, hypotheses
+  (ACH), social narratives + claims (100, 120, 125, 135–137).
+- **Alerts on new connections/patterns:** the trigger engine + alerts + notifications (017/100).
+- **Predict + report:** forecasts/ensemble/calibration, LLM assessments, reports, briefings (122, 128, 132).
+
+So the chain Benjis describes — aggregate → resolve entities → find connections → detect patterns →
+alert → predict/report — is already first-class here.
+
+**What differs is the data domain, not the capability.** Foresignal's sources are physical/geospatial/
+security telemetry + news/social/sanctions; Benjis targets **financial transactions, corporate /
+beneficial ownership and public records** for fraud/compliance. Foresignal overlaps on sanctions,
+news/outlets and social, and on corporate facts via Wikidata, but lacks the financial-flow and
+beneficial-ownership depth.
+
+**To offer the same thing, add data — not an engine.**
+- **Sources (via EDP / adapters):** corporate registries, beneficial-ownership, sanctions/PEP (extend
+  existing), financial-flow / transaction feeds, address/identity public records.
+- **A few domain analytics on the existing graph:** ownership-chain and shared-attribute
+  (address / phone / officer) path queries, and a fraud-oriented recipe set — expressible on the
+  current relation graph and correlation-recipe engine.
+
+**Status.** Capability already present; matching the fraud/compliance use case is a data-sourcing +
+light-analytics effort, not a new engine. Owner's call whether to pursue that domain.
