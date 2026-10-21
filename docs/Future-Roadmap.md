@@ -109,12 +109,30 @@ beneficial ownership and public records** for fraud/compliance. Foresignal overl
 news/outlets and social, and on corporate facts via Wikidata, but lacks the financial-flow and
 beneficial-ownership depth.
 
-**To offer the same thing, add data — not an engine.**
-- **Sources (via EDP / adapters):** corporate registries, beneficial-ownership, sanctions/PEP (extend
-  existing), financial-flow / transaction feeds, address/identity public records.
-- **A few domain analytics on the existing graph:** ownership-chain and shared-attribute
-  (address / phone / officer) path queries, and a fraud-oriented recipe set — expressible on the
-  current relation graph and correlation-recipe engine.
+**To offer the same thing, add data — not an engine.** (Benjis's exact feeds aren't published; this
+compares our Source-Catalog against the domain they operate in.)
+
+_Already in the catalog (domain overlap), so we are not starting from zero:_ sanctions / OFAC SDN
+screening (Source-Catalog ~L415–424, 701, 744), SEC EDGAR filings (L422, 745), CFTC COT + market /
+attention / structural series (prompt 117; L835, 1052), news & media ratings (133), social platforms
+(135–137), and corporate facts via Wikidata.
+
+_Not yet — the entity-ownership + financial-crime public-records layer (via EDP / adapters):_
+- **Corporate registries + officers/directors** — OpenCorporates-style company data, **GLEIF/LEI**
+  entity hierarchies, Companies House, etc.
+- **Beneficial-ownership (UBO) registers** — who really controls an entity.
+- **Financial transaction / flow data** — we have market series, not transaction-level flows.
+- **PEP lists** (politically exposed persons).
+- **Public records for identity/fraud** — court records / dockets, property / land records,
+  address / identity data, business associations.
+- **Leak / shell-company network datasets** — ICIJ Offshore Leaks / Panama-Papers-style graphs.
+
+Cheapest starting points are the extend-existing items — **sanctions → PEP** and **EDGAR →
+ownership** — and several of the rest (registries, GLEIF, ICIJ) have open or bulk feeds.
+
+**A few domain analytics on the existing graph:** ownership-chain and shared-attribute
+(address / phone / officer) path queries, and a fraud-oriented recipe set — expressible on the
+current relation graph and correlation-recipe engine.
 
 **Status.** Capability already present; matching the fraud/compliance use case is a data-sourcing +
 light-analytics effort, not a new engine. Owner's call whether to pursue that domain.
