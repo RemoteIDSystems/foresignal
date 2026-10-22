@@ -100,8 +100,11 @@ class FireAndCycloneIngestIT extends WeatherIngestSupport {
     }
 
     @Test
-    @DisplayName("every 075 source is registered, disabled by default, with a license; no HMS source is added")
+    @DisplayName("every 075 source is registered and disabled under the test profile, with a license; no HMS"
+            + " source is added")
     void registered() {
+        // The test profile seeds every source disabled (foresignal.sources.default-enable=false, prompt 146); in
+        // production these free sources start enabled (prompt 145).
         List<String> ids = List.of("nifc-perimeters", "inciweb-incidents", "cwfis-perimeters", "cwfis-fwi-stations",
                 "cwfis-hotspots", "radio-browser", "nhc-cyclone-cones");
         assertThat(sources.list()).filteredOn(s -> ids.contains(s.id())).hasSize(ids.size())

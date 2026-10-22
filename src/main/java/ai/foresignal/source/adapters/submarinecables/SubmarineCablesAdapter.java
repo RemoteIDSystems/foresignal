@@ -23,7 +23,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * {@code submarine-cables}: TeleGeography's public Submarine Cable Map data (prompt 094). Disabled by default.
+ * {@code submarine-cables}: TeleGeography's public Submarine Cable Map data (prompt 094). It needs no key, so it
+ * starts enabled (prompt 145).
  *
  * <p>The JSON is the public map's undocumented data and the geometry is stylised; the citation page states
  * CC BY-SA 4.0 for the public maps and the underlying database is subscriber-only, so the source is
@@ -148,7 +149,7 @@ public class SubmarineCablesAdapter implements PollingAdapter {
         SourceDescriptor.Builder b = ReferenceSupport.defaults(SourceDescriptor.builder(ID)
                 .name("Submarine cables")
                 .description("Submarine cables and their landing points from TeleGeography's public Submarine"
-                        + " Cable Map. The geometry is stylised and the underlying data is subscriber-only:"
+                        + " Cable Map. The geometry is stylized and the underlying data is subscriber-only:"
                         + " display only, attribute TeleGeography, non-commercial.")
                 .kind(SubmarineCableParser.CABLE_KIND)
                 .kind(SubmarineCableParser.LANDING_KIND)

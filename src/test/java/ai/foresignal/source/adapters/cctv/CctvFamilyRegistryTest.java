@@ -25,15 +25,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * The {@code cctv-*} family in the registry (prompt 072): every reviewed pack registers once, with license and terms,
- * disabled by default; Ontario 511 cannot be enabled without its key (409 {@code CREDENTIALS_REQUIRED}); the
- * reviewed list validates and its problems are reported.
+ * disabled under the test profile; Ontario 511 cannot be enabled without its key (409
+ * {@code CREDENTIALS_REQUIRED}); the reviewed list validates and its problems are reported.
  */
 class CctvFamilyRegistryTest extends WeatherIngestSupport {
 
     @Autowired private SourceRegistry registry;
 
     @Test
-    @DisplayName("every pack registers once with license and terms, STANDARD/ALL/RECEIVED, and is disabled by default")
+    @DisplayName("every pack registers once with license and terms, STANDARD/ALL/RECEIVED, and is disabled under the"
+            + " test profile")
     void registered() {
         assertThat(CctvPacks.REVIEWED).hasSize(24);
         Set<String> ids = new HashSet<>();
@@ -60,7 +61,8 @@ class CctvFamilyRegistryTest extends WeatherIngestSupport {
             assertThat(d.param(CctvDescriptors.BBOX_PARAM)).isNotNull();
             assertThat(IngestPolicyValidator.problems(d.defaultIngestPolicy(), d, "policy")).as(pack.id()).isEmpty();
             SourceView view = sources.view(pack.id());
-            assertThat(view.enabled()).as(pack.id() + " ships disabled").isFalse();
+            // The test profile seeds every source disabled (prompt 146); in production the keyless packs start enabled.
+            assertThat(view.enabled()).as(pack.id() + " disabled under the test profile").isFalse();
         }
         assertThat(ids).contains("cctv-tfl", "cctv-caltrans-d1", "cctv-caltrans-d12", "cctv-ontario511",
                 "cctv-digitraffic", "cctv-drivebc", "cctv-nsw", "cctv-calgary", "cctv-austin", "cctv-deldot",

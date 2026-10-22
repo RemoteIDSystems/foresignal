@@ -65,8 +65,10 @@ class KitIngestIT extends WeatherIngestSupport {
     }
 
     @Test
-    @DisplayName("both families register every spec, and every kit source is disabled by default")
+    @DisplayName("both families register every spec, and every kit source is disabled under the test profile")
     void registered() {
+        // The test profile seeds every source disabled (foresignal.sources.default-enable=false, prompt 146); in
+        // production the kit sources, which need no key, start enabled (prompt 145).
         List<String> ids = List.of(WFIGS, "feed-cisa-advisories", "feed-ncsc-uk", "feed-nhc-atlantic",
                 "feed-nhc-eastpacific", ECDC, "feed-who-news");
         for (String id : ids) {

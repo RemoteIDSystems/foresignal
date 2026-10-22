@@ -10,7 +10,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Registers one {@link FdsnEventAdapter} per reviewed FDSN event service (prompt 089): {@code fdsn-geofon} and
- * {@code fdsn-ingv}, from {@link FdsnServices#RESOURCE}. Every source ships disabled.
+ * {@code fdsn-ingv}, from {@link FdsnServices#RESOURCE}. Each source starts enabled unless it needs a credential or a
+ * parameter (the seeding rule of prompt 145).
  */
 @Component
 public class FdsnEventFamily implements SourceAdapterFamily {

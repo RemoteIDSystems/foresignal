@@ -28,7 +28,8 @@ import java.util.Set;
  *   <li><strong>Parameter:</strong> optional {@code bbox} keeps only the cameras inside it.
  * </ul>
  *
- * <p>Every pack ships disabled; license, attribution and terms come from the pack.
+ * <p>License, attribution and terms come from the pack; a pack's source starts enabled unless it needs a credential
+ * (the seeding rule of prompt 145).
  */
 public final class CctvDescriptors {
 

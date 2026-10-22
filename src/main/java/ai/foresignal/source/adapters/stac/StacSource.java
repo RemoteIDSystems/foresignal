@@ -14,8 +14,9 @@ package ai.foresignal.source.adapters.stac;
  * @param attribution the credit line the upstream asks for
  * @param termsUrl the upstream's terms
  * @param homepage where a human can read about the collection
- * @param enabledByDefault the prompt's intent (all built-in sources start disabled until the operator
- *     enables them; Sentinel-1 is additionally marked off by default)
+ * @param enabledByDefault prompt 096's intent, recorded only: seeding follows the source rule of prompts 145 and 146
+ *     (enabled unless the source needs a credential or a parameter); every STAC source needs its {@code aoi}, and
+ *     Sentinel-1 is additionally marked off
  * @param observedAtField the item property {@code observedAt} is read from for this collection,
  *     {@value #UPDATED} or {@value #CREATED}: fixed per collection and decided by the captured fixture, never per
  *     item (prompt 096); an item without it is skipped

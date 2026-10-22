@@ -13,7 +13,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Registers {@code cwfis-perimeters}, {@code cwfis-fwi-stations} and {@code cwfis-hotspots} (prompt 075), one
- * {@link CwfisAdapter} per reviewed {@link CwfisLayer}, all disabled by default.
+ * {@link CwfisAdapter} per reviewed {@link CwfisLayer}; each starts enabled unless it needs a credential or a
+ * parameter (the seeding rule of prompt 145).
  */
 @Component
 public class CwfisFamily implements SourceAdapterFamily {

@@ -13,7 +13,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Registers one {@link KitFeedAdapter} per feed-kit spec (prompt 073): the reviewed {@code kits/feeds/*.json} files
- * (the curated bulletin pack among them) plus, when enabled, the operator overlay. Every source ships disabled.
+ * (the curated bulletin pack among them) plus, when enabled, the operator overlay. A kit source declares no credential
+ * and no parameter, so every one starts enabled (prompt 145).
  *
  * <p>The WebSub coordinator is resolved lazily, because the WebSub service depends on the source registry this
  * family feeds.

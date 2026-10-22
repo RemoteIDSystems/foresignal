@@ -26,7 +26,7 @@ import java.util.Set;
  *       {@code title, summary} (untrusted text, prompt 028); tiles {@code title, link, published}.
  * </ul>
  *
- * <p>Every kit source ships disabled.
+ * <p>A kit source declares no credential and no parameter, so every one starts enabled (prompt 145).
  */
 public final class FeedDescriptors {
 

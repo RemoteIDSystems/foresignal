@@ -14,7 +14,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Registers the {@code cctv-*} sources (prompt 072): one {@link CctvPackAdapter} per pack of the reviewed list
- * ({@link CctvPacks#REVIEWED}), every one disabled by default.
+ * ({@link CctvPacks#REVIEWED}); each starts enabled unless it needs a credential or a parameter (the seeding rule of
+ * prompt 145).
  *
  * <p>The list is validated at startup ({@link CctvPacks#problems}); an invalid list stops Foresignal rather than
  * registering a URL nobody reviewed. Pack lists are never caller-supplied.

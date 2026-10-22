@@ -10,7 +10,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Registers one {@link MeteoAlarmAdapter} per reviewed MeteoAlarm member (prompt 089): {@code meteoalarm-<slug>}
- * for each of the 38 members of {@link MeteoAlarmCountries#REVIEWED}. Every source ships disabled.
+ * for each of the 38 members of {@link MeteoAlarmCountries#REVIEWED}. Each source starts enabled unless it needs a
+ * credential or a parameter (the seeding rule of prompt 145).
  *
  * <p>The member list is static and code-reviewed; no caller-supplied country reaches the API.
  */

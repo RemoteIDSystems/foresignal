@@ -24,7 +24,7 @@ import tools.jackson.databind.node.ObjectNode;
  * The road-event sources end to end through the real fetch path and ingest writer (prompt 074): the Digitraffic
  * road-work fixture ingests one version per current situation with {@code validFrom}/{@code validUntil} from its
  * schedule; a situation absent from two consecutive fetches is tombstoned once; an Open511 {@code ARCHIVED} event is
- * tombstoned at once; every road-event source is registered and disabled by default.
+ * tombstoned at once; every road-event source is registered, and disabled under the test profile.
  *
  * <p>The fixture's situation ids and the {@code drivebc.ca/IT-…} ids are used by no other test, so per-entity history
  * holds in the shared context.
@@ -62,8 +62,10 @@ class RoadEventsIngestIT extends WeatherIngestSupport {
     }
 
     @Test
-    @DisplayName("every road-event source is registered, disabled by default, and emits road-event")
+    @DisplayName("every road-event source is registered, disabled under the test profile, and emits road-event")
     void registered() {
+        // The test profile seeds every source disabled (foresignal.sources.default-enable=false, prompt 146); in
+        // production the ones needing no key or parameter start enabled (prompt 145).
         assertThat(sources.list()).filteredOn(s -> s.id().startsWith("wzdx-") || s.id().startsWith("open511-")
                         || List.of("digitraffic-road", "ndw-situations", "ndw-srti").contains(s.id()))
                 .hasSize(35)

@@ -24,7 +24,7 @@ public record Open511Server(String id, String name, String jurisdiction, URI eve
 
     private static final Pattern ID = Pattern.compile("^open511-[a-z0-9]+(-[a-z0-9]+)*$");
 
-    /** The servers that ship (all disabled). */
+    /** The servers that ship. */
     public static final List<Open511Server> REVIEWED = List.of(new Open511Server(
             "open511-drivebc",
             "DriveBC road events (Open511)",

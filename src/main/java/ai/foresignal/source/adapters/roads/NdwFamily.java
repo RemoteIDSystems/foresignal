@@ -13,7 +13,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Registers {@code ndw-situations} and {@code ndw-srti} (prompt 074), one {@link NdwSituationsAdapter} per feed of
- * {@link NdwSituationsAdapter#FEEDS}, both disabled by default.
+ * {@link NdwSituationsAdapter#FEEDS}; each starts enabled unless it needs a credential or a parameter (the seeding
+ * rule of prompt 145).
  */
 @Component
 public class NdwFamily implements SourceAdapterFamily {

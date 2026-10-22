@@ -38,7 +38,7 @@ import org.springframework.stereotype.Component;
  * Mesh.md rules ({@link MeshtasticMqttRules}), which no setting can loosen.
  *
  * <ul>
- *   <li><strong>Disabled by default</strong>; starting the stream logs a WARN summarizing the rules.
+ *   <li><strong>Enabled by default</strong> (free, prompt 145); starting the stream logs a WARN summarizing the rules.
  *   <li><strong>Connection:</strong> 060's {@link MqttConnections}, MQTT 3.1.1, the public credentials
  *       {@value #USERNAME} / {@value #PASSWORD} (descriptor constants, not operator credentials), client id
  *       {@code foresignal-<installId>}, keepalive 120 s, clean session, nothing ever published (no Will, no status

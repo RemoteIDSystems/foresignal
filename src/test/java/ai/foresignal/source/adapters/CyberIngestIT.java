@@ -87,8 +87,10 @@ class CyberIngestIT extends WeatherIngestSupport {
     }
 
     @Test
-    @DisplayName("every 076 source is registered, disabled by default")
+    @DisplayName("every 076 source is registered and disabled under the test profile")
     void registered() {
+        // The test profile seeds every source disabled (foresignal.sources.default-enable=false, prompt 146); in
+        // production the keyless ones start enabled (prompt 145).
         List<String> ids = List.of("cisa-kev", "abusech-feodo", "abusech-urlhaus", "nvd-cves", "ct-domain-watch");
         assertThat(sources.list()).filteredOn(s -> ids.contains(s.id())).hasSize(ids.size())
                 .allSatisfy(s -> assertThat(s.enabled()).as(s.id()).isFalse());

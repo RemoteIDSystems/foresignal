@@ -22,8 +22,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * The static, code-reviewed list of camera-catalog packs (prompt 072): one {@code cctv-*} source each, every one
- * disabled by default.
+ * The static, code-reviewed list of camera-catalog packs (prompt 072): one {@code cctv-*} source each, enabled at
+ * seeding unless it needs a credential or a parameter (prompt 145; {@code cctv-ontario511} waits for its key).
  *
  * <p>Pack lists are never caller-supplied. {@link #problems} validates the list at startup and
  * {@link CctvCatalogFamily} refuses to start on any problem.

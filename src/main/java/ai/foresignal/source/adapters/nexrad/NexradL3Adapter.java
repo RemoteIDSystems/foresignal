@@ -49,8 +49,8 @@ import org.springframework.stereotype.Component;
  * 2026-10-16), resampled to a 0.005° latlon grid within 230 km of the radar ({@link PolarResampler}) and
  * quantized to u8 (N0B: 0.5 dBZ from −32; N0G: 0.5 m/s from −64; code 0 nodata).
  *
- * <p>The source is opt-in like every source (sources start disabled); once enabled, both products are
- * ingested unless the {@code products} param lists a subset. With {@code siteCount} above 1 the sites'
+ * <p>The source needs no key and no required parameter, so it starts enabled (prompt 145); while enabled, both
+ * products are ingested unless the {@code products} param lists a subset. With {@code siteCount} above 1 the sites'
  * scans share the two products, each frame on its own site's grid.
  *
  * <p><strong>Verified 2026-10-15</strong>: the bucket {@code unidata-nexrad-level3} is live (keys
@@ -361,7 +361,7 @@ public class NexradL3Adapter implements PollingAdapter {
                 .name("NEXRAD Level III (nearest sites)")
                 .description("Super-resolution base reflectivity (N0B) and velocity (N0G) from the NEXRAD Level III"
                         + " archive for the 1–3 WSR-88D sites nearest the home, decoded with NetCDF-Java's NIDS reader"
-                        + " and resampled to 0.005° within 230 km. Opt-in on both profiles.")
+                        + " and resampled to 0.005° within 230 km.")
                 .kind(ProductSpec.RECORD_KIND)
                 .homepage("https://registry.opendata.aws/noaa-nexrad/")
                 .attribution("NOAA/NWS NEXRAD Level III, via Unidata")

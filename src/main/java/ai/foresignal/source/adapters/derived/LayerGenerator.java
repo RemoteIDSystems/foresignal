@@ -26,8 +26,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 
 /**
- * Base class for the prompt 099 derived layers: a STANDARD, ALL, {@code recordTtl=null} DERIVED
- * source disabled by default, evaluated on a 60-second tick, that consumes the stored and live
+ * Base class for the prompt 099 derived layers: a STANDARD, ALL, {@code recordTtl=null} DERIVED source, enabled at
+ * seeding unless it needs a parameter (prompt 145), evaluated on a 60-second tick, that consumes the stored and live
  * records of its input source families through the {@link ai.foresignal.derive.ObservationFeed}.
  *
  * <p>Input families are prefixes resolved against the {@link SourceRegistry} at start, so the
@@ -155,7 +155,7 @@ public abstract class LayerGenerator implements DerivedGenerator, StatefulGenera
     }
 
     /**
-     * A standard layer descriptor builder: DERIVED, STANDARD, no TTL, disabled by default, 60 s
+     * A standard layer descriptor builder: DERIVED, STANDARD, no TTL, 60 s
      * cadence, {@code zeroResultsNormal}, with the given licence and the {@code maxEntities} parameter.
      */
     protected static SourceDescriptor.Builder layer(String id, String name, String description, String licence,

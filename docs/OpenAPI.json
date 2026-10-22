@@ -16,6 +16,11 @@
       {
         "version": "1.1.0",
         "date": "2026-10-21",
+        "note": "148: documentation only. enableFreeSources and EnableFreeSourcesResult.skipped now say that a source held off by default (wiki-edit-surge, prompt 146) is skipped. No operation, schema or parameter changed."
+      },
+      {
+        "version": "1.1.0",
+        "date": "2026-10-21",
         "note": "146: info.version is 1.1.0, the minor bump for enableFreeSources (145), which is additive against the frozen v1.0.0 contract. No operation, schema or parameter changed in 146; wiki-edit-surge now seeds disabled and is skipped by enableFreeSources (a free source held off for its bandwidth)."
       },
       {
@@ -54574,7 +54579,7 @@
         ],
         "operationId": "enableFreeSources",
         "summary": "Enable every free source",
-        "description": "Enables every currently disabled built-in source that runs without operator input: no required credential, no required parameter, and parameters that are valid with nothing supplied (the same checks `PUT /v1/sources/{sourceId}` applies when enabling). Each source is enabled through the settings-update path, so the collector picks it up within seconds and fetches it at its default interval and budget. Enabled sources, credential- or parameter-gated sources and custom or external sources are left untouched. Idempotent: a second call enables nothing. This is how an install seeded before free sources started enabled (prompt 145) adopts that default without re-seeding; a fresh install seeds them enabled already.\n\n**Scope:** `admin`.",
+        "description": "Enables every currently disabled built-in source that runs without operator input: no required credential, no required parameter, and parameters that are valid with nothing supplied (the same checks `PUT /v1/sources/{sourceId}` applies when enabling), unless the source is held off by default for its bandwidth or terms (prompt 146: `wiki-edit-surge`, which the operator enables with `PUT /v1/sources/wiki-edit-surge`). Each source is enabled through the settings-update path, so the collector picks it up within seconds and fetches it at its default interval and budget. Enabled sources, credential- or parameter-gated sources, held-off sources and custom or external sources are left untouched. Idempotent: a second call enables nothing. This is how an install seeded before free sources started enabled (prompt 145) adopts that default without re-seeding; a fresh install seeds them enabled already.\n\n**Scope:** `admin`.",
         "responses": {
           "200": {
             "description": "The sources enabled",
@@ -167277,7 +167282,7 @@
           "skipped": {
             "type": "integer",
             "minimum": 0,
-            "description": "Disabled built-in sources left disabled: they need a credential or a required parameter, or their stored parameters are not valid"
+            "description": "Disabled built-in sources left disabled: they need a credential or a required parameter, are held off by default (`wiki-edit-surge`), or their stored parameters are not valid"
           }
         },
         "additionalProperties": false

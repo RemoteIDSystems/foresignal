@@ -10,7 +10,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Registers one {@link CapFeedAdapter} per reviewed CAP feed (prompt 089): {@value CapFeeds#RESOURCE},
- * validated at startup. Every source ships disabled.
+ * validated at startup. Each source starts enabled unless it needs a credential or a parameter (the seeding rule of
+ * prompt 145).
  *
  * <p>The list is code-reviewed and static; the WMO Register is never read at runtime and no caller can add a
  * feed. An invalid list stops Foresignal rather than registering a URL nobody reviewed.

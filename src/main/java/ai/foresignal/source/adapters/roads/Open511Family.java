@@ -13,7 +13,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Registers the {@code open511-*} sources (prompt 074): one {@link Open511Adapter} per server of the reviewed list
- * ({@link Open511Server#REVIEWED}), every one disabled by default.
+ * ({@link Open511Server#REVIEWED}); each starts enabled unless it needs a credential or a parameter (the seeding rule
+ * of prompt 145).
  *
  * <p>The list is validated at startup; an invalid list stops Foresignal. Servers are never caller-supplied.
  */

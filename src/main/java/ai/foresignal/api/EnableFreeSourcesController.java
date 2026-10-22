@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * {@code POST /v1/sources/enable-free} (prompt 145, admin): enables every currently disabled built-in source that
  * runs without operator input (no required credential, no required parameter, parameters valid with nothing
- * supplied), and answers 200 with {@code {"enabled": [ids], "count": N, "skipped": M}}. Idempotent; the operator's
+ * supplied) and is not held off by its descriptor (prompt 146: {@code wiki-edit-surge}), and answers 200 with {@code {"enabled": [ids], "count": N, "skipped": M}}. Idempotent; the operator's
  * one call that brings an install seeded before prompt 145 to the free-sources default.
  */
 @RestController

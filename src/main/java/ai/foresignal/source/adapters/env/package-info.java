@@ -14,7 +14,8 @@
  *
  * <p>Every source is a point measurement on the Core-Data-Model §2 "Measurements" time base ({@code observedAt} =
  * measurement time, {@code eventTime} = the end of the measurement period, TTL anchored on {@code observedAt}),
- * STANDARD history, the {@code state} retention class (365 d) and disabled by default.
+ * STANDARD history and the {@code state} retention class (365 d). Each starts enabled unless it needs a credential or a
+ * parameter (the seeding rule of prompt 145), so the keyed, boxed and LAN sources wait for their configuration.
  * {@link ai.foresignal.source.adapters.env.EnvSources} holds what the sources share; adapters never import each other.
  */
 package ai.foresignal.source.adapters.env;

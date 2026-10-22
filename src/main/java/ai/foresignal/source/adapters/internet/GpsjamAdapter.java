@@ -39,7 +39,7 @@ import org.springframework.stereotype.Component;
  * <p>A cell's bad fraction is the site's metric {@code pctBad = 100·(bad − 1)/(good + bad)}; cells below the
  * threshold or with fewer than three aircraft are dropped. The manifest date gates the fetch, so an unchanged
  * day fetches nothing. Cells present yesterday and absent today are tombstoned. The site publishes no licence
- * beyond "free to use", so the source is disabled by default and local-only.
+ * beyond "free to use", so the source is local-only. It needs no key, so it starts enabled (prompt 145).
  */
 @Component
 public final class GpsjamAdapter implements PollingAdapter {
@@ -197,7 +197,7 @@ public final class GpsjamAdapter implements PollingAdapter {
                 .name("gpsjam daily jamming cells")
                 .description("Daily aircraft-derived GPS jamming cells (H3 resolution 4) from gpsjam.org. The bad "
                         + "fraction uses the site's metric; the manifest date gates the fetch. The site publishes no "
-                        + "licence, so the source is local-only.")
+                        + "license, so the source is local-only.")
                 .kind(KIND)
                 .mode(Mode.POLLING)
                 .homepage("https://gpsjam.org")

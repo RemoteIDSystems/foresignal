@@ -15,8 +15,9 @@
  * <p>Every gauge, snow and tide source is a point measurement on the Core-Data-Model §2 "Measurements" time base
  * ({@code observedAt = eventTime} = measurement time, TTL anchored on {@code observedAt}), STANDARD history, policy
  * ALL, the {@code state} retention class (365 d); drought areas and flood warnings are the {@code event} class
- * (1825 d). Sentinels ({@code -999}, {@code -9999}, {@code 0001-01-01T00:00:00Z}) become omitted fields. Every source
- * is disabled by default. {@link ai.foresignal.source.adapters.hydro.HydroSources} holds what they share; adapters
- * never import each other.
+ * (1825 d). Sentinels ({@code -999}, {@code -9999}, {@code 0001-01-01T00:00:00Z}) become omitted fields. Each source
+ * starts enabled unless it needs a credential or a parameter (the seeding rule of prompt 145): {@code usgs-water} and
+ * {@code snotel} refuse an empty configuration, so they wait for theirs.
+ * {@link ai.foresignal.source.adapters.hydro.HydroSources} holds what they share; adapters never import each other.
  */
 package ai.foresignal.source.adapters.hydro;

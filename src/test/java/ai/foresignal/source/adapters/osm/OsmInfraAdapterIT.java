@@ -14,7 +14,7 @@ class OsmInfraAdapterIT {
     @Autowired OsmInfrastructureAdapter adapter;
 
     @Test
-    @DisplayName("the descriptor is ODbL, RECEIVED, no TTL and disabled by default")
+    @DisplayName("the descriptor is ODbL, RECEIVED and has no TTL")
     void descriptor() {
         var descriptor = adapter.descriptor();
         assertThat(descriptor.licence()).isEqualTo("ODbL-1.0");

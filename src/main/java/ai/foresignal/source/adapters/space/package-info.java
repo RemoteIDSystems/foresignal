@@ -12,7 +12,9 @@
  *   <li>{@code localsonde}: radiosonde_auto_rx {@code PAYLOAD_SUMMARY} datagrams on the LAN ({@code local-sonde}).
  * </ul>
  *
- * <p>Every source is STANDARD, ALL and disabled by default. {@link ai.foresignal.source.adapters.space.SpaceSources}
- * holds what the polling sources share; adapters never import each other.
+ * <p>Every source is STANDARD and ALL; each starts enabled unless it needs a credential or a parameter (the seeding
+ * rule of prompt 145), so {@code local-sonde} waits for its LAN configuration.
+ * {@link ai.foresignal.source.adapters.space.SpaceSources} holds what the polling sources share; adapters never
+ * import each other.
  */
 package ai.foresignal.source.adapters.space;

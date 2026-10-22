@@ -13,7 +13,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Registers the {@code wzdx-*} sources (prompt 074): one {@link WzdxAdapter} per feed of the vendored registry
- * snapshot ({@link WzdxRegistry}), every one disabled by default.
+ * snapshot ({@link WzdxRegistry}); each starts enabled unless it needs a credential or a parameter (the seeding rule
+ * of prompt 145): a feed whose registry entry carries an {@code apiKey} waits for its key.
  *
  * <p>The snapshot is validated at startup ({@link WzdxRegistry#problems}); an invalid snapshot stops Foresignal.
  * The registry is never read at runtime and feeds are never caller-supplied.

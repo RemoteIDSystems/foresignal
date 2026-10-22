@@ -28,7 +28,8 @@ import java.util.Set;
  *       restrictions in autumn).
  * </ul>
  *
- * <p>Every source ships disabled; each adds its own id, texts, schedule, budget and limits.
+ * <p>Each source adds its own id, texts, schedule, budget and limits, and starts enabled unless it needs a credential
+ * or a parameter (the seeding rule of prompt 145).
  */
 public final class RoadEventDescriptors {
 
