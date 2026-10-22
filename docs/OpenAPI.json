@@ -16,6 +16,11 @@
       {
         "version": "1.3.0",
         "date": "2026-10-22",
+        "note": "153: de-hype & partisan vetting. Claim gains a neutral restatement (the de-hyped who/what/where/when core, an LLM proposal kept only when it re-validates against the lexicon, gazetteer and entity index, otherwise synthesized deterministically), a deterministic LLM-free framingScore with a framingLabel band (neutral / charged / inflammatory) measuring how the most central post is told rather than whether it is true, and a reputation member (new ClaimReputation schema: outlet factuality, lean, state-affiliation) when the source resolves to a rated outlet — folded into sourceReliability as news reliability already grades news. The claim-extraction-system prompt template is now 1.1.0 (it emits the restatement while staying an extractor, never an arbiter); 1.0.0 stays bundled. Additive: no operation or schema was renamed or removed."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-22",
         "note": "152: numeric / quantile forecast calibration. getForecastCalibration now returns a numeric calibration for a numeric-only forecaster or question — a quantile-reliability diagram (empirical coverage of each stated quantile vs its nominal level), a PIT histogram and a calibration-error summary (new ForecastNumericCalibration schema, type: numeric) — and the binary CORP/bins calibration otherwise (unchanged). The 200 response is now oneOf [ForecastCalibration, ForecastNumericCalibration]. Part of the 1.3.0 wave; no version change."
       },
       {
@@ -162902,6 +162907,51 @@
             "pattern": "^[A-F][1-6]$",
             "example": "F6"
           },
+          "restatement": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 240,
+            "description": "The neutral, de-hyped who/what/where/when restatement of the claim: the checkable core stripped of outrage and partisan framing. An LLM proposal is kept only when it re-validates against the lexicon, gazetteer and entity index and carries no hype word or unresolvable specific; otherwise a deterministic restatement synthesized from the validated fields. Null for claims extracted before 153 (153)",
+            "x-foresignal-prompt": "153"
+          },
+          "framingScore": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Deterministic, LLM-free framing/partisan intensity of the most central post (0 neutral prose, higher = more outrage, partisan-loaded labels, shouting and emphasis). Measures how the claim is told, not whether it is true. Null for claims extracted before 153 (153)",
+            "x-foresignal-prompt": "153"
+          },
+          "framingLabel": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "neutral",
+              "charged",
+              "inflammatory",
+              null
+            ],
+            "description": "Band of framingScore: neutral (< 0.12), charged (< 0.28), inflammatory (>= 0.28). Null for claims extracted before 153 (153)",
+            "x-foresignal-prompt": "153"
+          },
+          "reputation": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ClaimReputation"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The rated-outlet reputation folded into sourceReliability, when the claim's source resolves to a rated outlet (a source key that is a web domain). Null for the common case of a social account with no resolvable outlet (153)",
+            "x-foresignal-prompt": "153"
+          },
           "tlp": {
             "$ref": "#/components/schemas/Tlp"
           },
@@ -162928,6 +162978,37 @@
           "sourceReliability",
           "informationCredibility",
           "grade"
+        ]
+      },
+      "ClaimReputation": {
+        "type": "object",
+        "description": "The reputation of a rated outlet as it bears on a social claim: its factuality grade, partisan lean and state-affiliation, mirroring how news reliability is graded. Present only when the claim's source resolves to a rated outlet (153)",
+        "properties": {
+          "outletId": {
+            "type": "string",
+            "description": "The rated outlet the source resolved to"
+          },
+          "factuality": {
+            "type": "string",
+            "pattern": "^[A-F]$",
+            "description": "The outlet's factuality grade (A best, F worst)"
+          },
+          "lean": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Consensus partisan lean bucket (e.g. left / center / right), or null when unrated"
+          },
+          "stateAffiliated": {
+            "type": "boolean",
+            "description": "Whether the outlet is state media"
+          }
+        },
+        "required": [
+          "outletId",
+          "factuality",
+          "stateAffiliated"
         ]
       },
       "ClaimPage": {

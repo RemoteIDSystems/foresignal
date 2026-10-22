@@ -139,6 +139,12 @@ public class NarrativeViews {
         out.put("sourceReliability", c.sourceReliability());
         out.put("informationCredibility", credibility);
         out.put("grade", SocialEvidenceGrades.grade(c.sourceReliability(), credibility));
+        // Prompt 153: the de-hyped restatement, the framing/partisan score of the post, and the outlet reputation
+        // (factuality + lean + state-affiliation) that shaped the reliability.
+        out.put("restatement", c.restatement());
+        out.put("framingScore", c.framingScore());
+        out.put("framingLabel", c.framingLabel());
+        out.put("reputation", c.reputation());
         out.put("tlp", c.tlp());
         out.put("createdAt", c.createdAt().toString());
         return out;

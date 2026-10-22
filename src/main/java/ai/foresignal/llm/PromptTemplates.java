@@ -54,6 +54,9 @@ public final class PromptTemplates {
     /** The version every template shipped at in prompt 116. */
     public static final String V1 = "1.0.0";
 
+    /** The claim extractor's version after it gained the neutral {@code restatement} field (prompt 153). */
+    public static final String V1_1 = "1.1.0";
+
     /** The situation brief (prompt 118). */
     public static final String SITUATION_BRIEF = "situation-brief-system";
 

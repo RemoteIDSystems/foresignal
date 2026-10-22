@@ -48,7 +48,7 @@ public class NarrativeStore {
             + " place::text AS place, place_lon, place_lat, region_code, entity_refs, event_time::text AS event_time,"
             + " actor, support_count, evidence_group_count, first_observed_at, extraction, manifest_id, confidence,"
             + " status, comparison_id, source_key, source_reliability, information_credibility, tlp, created_at,"
-            + " updated_at";
+            + " updated_at, restatement, framing_score, framing_label, reputation::text AS reputation";
 
     private static final String FINGERPRINT_COLUMNS = "id, pdq, quality, first_seen_at, first_post_ref,"
             + " first_post_key, use_count, platforms, narrative_ids, media_id, reuse_finding_ids, created_at, updated_at";
@@ -197,18 +197,23 @@ public class NarrativeStore {
      * @param status the 137 status
      * @param comparisonId the 137 comparison, or null
      * @param sourceKey the account or channel of the earliest supporting post
-     * @param sourceReliability the Admiralty reliability
+     * @param sourceReliability the Admiralty reliability (reputation-adjusted, prompt 153)
      * @param informationCredibility the Admiralty credibility
      * @param tlp the TLP label
      * @param createdAt the creation time
      * @param updatedAt the last change
+     * @param restatement the neutral de-hyped who/what/where/when restatement (prompt 153)
+     * @param framingScore the framing / partisan intensity of the source post in [0, 1] (prompt 153)
+     * @param framingLabel neutral / charged / inflammatory (prompt 153)
+     * @param reputation the rated-outlet reputation folded into the reliability, or null (prompt 153)
      */
     public record Claim(String id, String narrativeId, String claimKey, String type, String signalFamily,
             String polarity, boolean hedged, Map<String, Object> place, Double lon, Double lat, String regionCode,
             List<String> entityRefs, Map<String, Object> eventTime, String actor, int supportCount,
             int evidenceGroupCount, Instant firstObservedAt, String extraction, String manifestId, double confidence,
             String status, String comparisonId, String sourceKey, String sourceReliability,
-            int informationCredibility, String tlp, Instant createdAt, Instant updatedAt) {}
+            int informationCredibility, String tlp, Instant createdAt, Instant updatedAt, String restatement,
+            Double framingScore, String framingLabel, Map<String, Object> reputation) {}
 
     /**
      * A fingerprint row.
@@ -686,26 +691,31 @@ public class NarrativeStore {
                             + " event_time = CAST(? AS jsonb), actor = ?, support_count = ?, evidence_group_count = ?,"
                             + " first_observed_at = ?, manifest_id = ?, confidence = ?, source_key = ?,"
                             + " source_reliability = ?, information_credibility = CASE status WHEN 'corroborated' THEN 2"
-                            + " WHEN 'contradicted' THEN 4 WHEN 'unobserved' THEN 5 ELSE ? END, updated_at = ? WHERE id = ?",
+                            + " WHEN 'contradicted' THEN 4 WHEN 'unobserved' THEN 5 ELSE ? END, restatement = ?,"
+                            + " framing_score = ?, framing_label = ?, reputation = CAST(? AS jsonb), updated_at = ?"
+                            + " WHERE id = ?",
                     c.type(), c.signalFamily(), c.polarity(), c.hedged(), jsonOrNull(c.place()), c.lon(), c.lat(),
                     c.regionCode(), array(c.entityRefs()), jsonOrNull(c.eventTime()), clip(c.actor(), 200),
                     c.supportCount(), c.evidenceGroupCount(), Timestamp.from(c.firstObservedAt()), c.manifestId(),
                     c.confidence(), clip(c.sourceKey(), 300), c.sourceReliability(), c.informationCredibility(),
-                    Timestamp.from(c.updatedAt()), existing.get(0));
+                    clip(c.restatement(), ClaimRestatement.MAX_LENGTH), c.framingScore(), c.framingLabel(),
+                    jsonOrNull(c.reputation()), Timestamp.from(c.updatedAt()), existing.get(0));
             return Map.entry(existing.get(0), false);
         }
         jdbc.update("INSERT INTO social_claim (id, narrative_id, claim_key, type, signal_family, polarity, hedged, place,"
                         + " place_lon, place_lat, region_code, entity_refs, event_time, actor, support_count,"
                         + " evidence_group_count, first_observed_at, extraction, manifest_id, confidence, status,"
                         + " comparison_id, source_key, source_reliability, information_credibility, tlp, created_at,"
-                        + " updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?, ?, ?, CAST(? AS jsonb), ?,"
-                        + " ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        + " updated_at, restatement, framing_score, framing_label, reputation) VALUES (?, ?, ?, ?, ?, ?,"
+                        + " ?, CAST(? AS jsonb), ?, ?, ?, ?, CAST(? AS jsonb), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
+                        + " ?, ?, ?, ?, CAST(? AS jsonb))",
                 c.id(), c.narrativeId(), clip(c.claimKey(), 600), c.type(), c.signalFamily(), c.polarity(), c.hedged(),
                 jsonOrNull(c.place()), c.lon(), c.lat(), c.regionCode(), array(c.entityRefs()), jsonOrNull(c.eventTime()),
                 clip(c.actor(), 200), c.supportCount(), c.evidenceGroupCount(), Timestamp.from(c.firstObservedAt()),
                 c.extraction(), c.manifestId(), c.confidence(), c.status(), c.comparisonId(), clip(c.sourceKey(), 300),
                 c.sourceReliability(), c.informationCredibility(), c.tlp(), Timestamp.from(c.createdAt()),
-                Timestamp.from(c.updatedAt()));
+                Timestamp.from(c.updatedAt()), clip(c.restatement(), ClaimRestatement.MAX_LENGTH), c.framingScore(),
+                c.framingLabel(), jsonOrNull(c.reputation()));
         return Map.entry(c.id(), true);
     }
 
@@ -1006,7 +1016,9 @@ public class NarrativeStore {
                 rs.getString("extraction"), rs.getString("manifest_id"), rs.getDouble("confidence"),
                 rs.getString("status"), rs.getString("comparison_id"), rs.getString("source_key"),
                 rs.getString("source_reliability"), rs.getInt("information_credibility"), rs.getString("tlp"),
-                instant(rs, "created_at"), instant(rs, "updated_at"));
+                instant(rs, "created_at"), instant(rs, "updated_at"), rs.getString("restatement"),
+                (Double) rs.getObject("framing_score"), rs.getString("framing_label"),
+                rs.getString("reputation") == null ? null : map(rs.getString("reputation")));
     }
 
     private Fingerprint fingerprint(ResultSet rs) throws SQLException {

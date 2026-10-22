@@ -114,6 +114,52 @@ public final class SocialEvidenceGrades {
         return v == null ? null : v.toString().strip().toUpperCase(java.util.Locale.ROOT);
     }
 
+    /**
+     * The source reliability after an outlet's reputation is folded in (prompt 153): when a social claim's source
+     * maps to a rated outlet, its factuality caps the track-record grade (the worse of the two wins), and a strongly
+     * partisan lean or a state-affiliated outlet drops it one further step toward {@code F}. This is the lever that
+     * finally lets partisan bias and factuality lower how much a social claim is trusted, not only news.
+     *
+     * @param base the track-record reliability (A–F)
+     * @param factualityGrade the outlet's factuality grade (A–F), or null when the outlet is unrated
+     * @param leanBucket the outlet's lean bucket ({@code left} / {@code center} / {@code right} / {@code unrated}), or
+     *     null
+     * @param stateAffiliated whether a provider records the outlet as state media
+     * @return the adjusted grade (A–F)
+     */
+    public static String withReputation(String base, String factualityGrade, String leanBucket,
+            boolean stateAffiliated) {
+        String grade = worse(base, factualityGrade);
+        if (grade == null) {
+            grade = "F";
+        }
+        boolean stronglyPartisan = "left".equals(leanBucket) || "right".equals(leanBucket);
+        if (stronglyPartisan || stateAffiliated) {
+            grade = downgrade(grade);
+        }
+        return grade;
+    }
+
+    /** The worse (less reliable, later-lettered) of two A–F grades; the non-null one when one is null. */
+    static String worse(String a, String b) {
+        if (a == null) {
+            return b;
+        }
+        if (b == null) {
+            return a;
+        }
+        return a.compareTo(b) >= 0 ? a : b;
+    }
+
+    /** One step less reliable (toward {@code F}), capped at {@code F}. */
+    static String downgrade(String grade) {
+        if (grade == null || grade.isEmpty() || "F".equals(grade)) {
+            return "F";
+        }
+        char next = (char) (grade.charAt(0) + 1);
+        return next > 'F' ? "F" : String.valueOf(next);
+    }
+
     /** The information credibility of a 137 status. */
     public static int credibility(String status) {
         return switch (status == null ? "" : status) {

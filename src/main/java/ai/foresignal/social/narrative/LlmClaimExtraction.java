@@ -41,7 +41,7 @@ import tools.jackson.databind.node.ObjectNode;
  *
  * <p>A narrative qualifies with at least {@code social.llmClaimMinPosts} (50) posts or
  * {@value NarrativeVocabulary#LLM_MIN_GROUPS} evidence groups, and again once it has doubled since the last run. The
- * versioned template {@code claim-extraction-system@1.0.0} receives the {@value NarrativeVocabulary#LLM_TEXTS} most
+ * versioned template {@code claim-extraction-system@1.1.0} receives the {@value NarrativeVocabulary#LLM_TEXTS} most
  * central member texts as a data block ({@code {"tool": …, "data": …}}, never instructions; sources the provider may not
  * receive are left out) and answers claim tuples in a JSON schema. Every tuple is validated: types outside the lexicon
  * are dropped, polarity defaults to asserted, places are resolved through the gazetteer (an unknown place is kept as a
@@ -58,7 +58,7 @@ public class LlmClaimExtraction {
     public static final String COMPONENT = "ClaimExtractorLlm";
 
     /** Its version. */
-    public static final String VERSION = "1.0.0";
+    public static final String VERSION = "1.1.0";
 
     /** The output cap of one call. */
     static final int MAX_TOKENS = 2_000;
@@ -91,7 +91,7 @@ public class LlmClaimExtraction {
      * @param entityRefs resolved entities
      */
     public record Tuple(String type, String polarity, boolean hedged, ClaimExtractor.Place place, String actor,
-            List<String> entityRefs) {
+            List<String> entityRefs, String restatement) {
 
         /** The claim key: type, polarity and place. */
         public String key() {
@@ -106,13 +106,14 @@ public class LlmClaimExtraction {
     private final PlaceIndex places;
     private final EntityIndex entities;
     private final AppSettingService settings;
+    private final ClaimEnrichment enrichment;
     private final JsonMapper json;
     private final Clock clock;
 
     /** Creates the extraction. */
     public LlmClaimExtraction(NarrativeStore store, NarrativeService service, ObjectProvider<LlmService> llm,
             ObjectProvider<EgressPolicy> egress, PlaceIndex places, EntityIndex entities, AppSettingService settings,
-            JsonMapper json, Clock clock) {
+            ClaimEnrichment enrichment, JsonMapper json, Clock clock) {
         this.store = store;
         this.service = service;
         this.llm = llm;
@@ -120,6 +121,7 @@ public class LlmClaimExtraction {
         this.places = places;
         this.entities = entities;
         this.settings = settings;
+        this.enrichment = enrichment;
         this.json = json;
         this.clock = clock;
     }
@@ -196,7 +198,7 @@ public class LlmClaimExtraction {
                 return Outcome.NOT_ELIGIBLE;
             }
             ChatRequest request = ChatRequest.simple(Purpose.ANALYST,
-                    PromptTemplates.text(PromptTemplates.CLAIM_EXTRACTION, PromptTemplates.V1),
+                    PromptTemplates.text(PromptTemplates.CLAIM_EXTRACTION, PromptTemplates.V1_1),
                     AskPrompts.wrap("narrative_posts", packet(narrativeId, texts), json), MAX_TOKENS);
             ChatResponse response = client.chat(request);
             store.markLlm(narrativeId, n.postCount(), now);
@@ -221,7 +223,7 @@ public class LlmClaimExtraction {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("model", response.model());
         out.put("role", NarrativeVocabulary.LLM_ROLE);
-        out.put("templates", List.of(PromptTemplates.reference(PromptTemplates.CLAIM_EXTRACTION, PromptTemplates.V1)));
+        out.put("templates", List.of(PromptTemplates.reference(PromptTemplates.CLAIM_EXTRACTION, PromptTemplates.V1_1)));
         return out;
     }
 
@@ -308,7 +310,7 @@ public class LlmClaimExtraction {
                 }
             }
             Tuple tuple = new Tuple(type, polarity, hedged, place, actor == null ? null : NarrativeStore.clip(actor,
-                    200), new ArrayList<>(refs));
+                    200), new ArrayList<>(refs), text(c.get("restatement")));
             if (keys.add(tuple.key())) {
                 out.add(tuple);
             }
@@ -355,17 +357,26 @@ public class LlmClaimExtraction {
             }
             String sourceKey = first == null ? null : first.sourceKey();
             int[] record = store.trackRecord(sourceKey);
-            String reliability = SocialEvidenceGrades.reliability(record[0], record[1],
+            String base = SocialEvidenceGrades.reliability(record[0], record[1],
                     SocialEvidenceGrades.override(overrides, sourceKey), SocialEvidenceGrades.thresholds(
                             settings.get(SettingKeys.SOCIAL_TRACK_RECORD, Map.class).orElse(null)));
+            // Prompt 153: fold outlet reputation into reliability, score the post's framing, and keep a de-hyped
+            // restatement re-validated against the gazetteer and entity index.
+            ClaimEnrichment.Reputation reputation = enrichment.reputation(sourceKey);
+            String reliability = enrichment.adjustedReliability(base, reputation);
             ClaimExtractor.Place place = t.place();
+            String placeName = place == null ? null : place.name();
+            FramingScore.Framing framing = FramingScore.score(first == null ? null : service.text(first));
+            String restatement = ClaimRestatement.restatement(t.restatement(), t.type(), t.polarity(), t.actor(),
+                    placeName, null, places, entities);
             NarrativeStore.Claim claim = new NarrativeStore.Claim(Ulids.next(now), n.id(), t.key(), t.type(),
                     ClaimLexicon.bundled().type(t.type()).signalFamily(), t.polarity(), t.hedged(),
                     place == null ? null : place.toMap(), place == null ? null : place.lon(),
                     place == null ? null : place.lat(), place == null ? null : place.regionCode(), t.entityRefs(), null,
                     t.actor(), support, groups.size(), first == null ? n.firstObservedAt() : first.createdAt(), "llm",
                     manifestId, 0.5, NarrativeVocabulary.UNASSESSED, null, sourceKey, reliability,
-                    SocialEvidenceGrades.credibility(NarrativeVocabulary.UNASSESSED), n.tlp(), now, now);
+                    SocialEvidenceGrades.credibility(NarrativeVocabulary.UNASSESSED), n.tlp(), now, now, restatement,
+                    framing.score(), framing.label(), reputation == null ? null : reputation.toMap());
             keys.add(t.key());
             Map.Entry<String, Boolean> result = store.upsertClaim(claim);
             if (result.getValue()) {

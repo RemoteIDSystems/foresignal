@@ -63,7 +63,7 @@ class SocialEvidenceItemTest {
         NarrativeStore.Claim c = new NarrativeStore.Claim("01JA8Q3V7S2K9W4T6Y1B5N0M3C", "N", "explosion|asserted|aden",
                 "explosion", "conflict", "asserted", false, null, null, null, null, List.of(), null, null, 3, 2, t,
                 "deterministic", "01JA8Q3V7S2K9W4T6Y1B5N0M3D", 0.7, "corroborated", null, "account:x:k", "E", 6,
-                "CLEAR", t, t);
+                "CLEAR", t, t, null, null, null, null);
         Map<String, Object> view = NarrativeViews.claim(c);
         assertThat(view.get("informationCredibility")).isEqualTo(2);
         assertThat(view.get("grade")).isEqualTo("E2");

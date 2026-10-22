@@ -347,7 +347,7 @@ class EventSchemaConformanceTest {
                         "01JA8Q3V7S2K9W4T6Y1B5N0M3C", "explosion|asserted|aden", "explosion", "conflict", "asserted",
                         false, place, 45.03, 12.78, "YE", List.of(), Map.of("from", at.toString(), "precision",
                         "minute"), null, 3, 2, at, "deterministic", "01JA8Q3V7S2K9W4T6Y1B5N0M3E", 0.8, "unassessed",
-                        null, "account:bluesky:k", "F", 6, "CLEAR", at, at);
+                        null, "account:bluesky:k", "F", 6, "CLEAR", at, at, null, null, null, null);
         return List.of(toTree(ai.foresignal.social.narrative.NarrativeService.claimBody(
                 ai.foresignal.social.narrative.NarrativeViews.claim(claim), at)));
     }

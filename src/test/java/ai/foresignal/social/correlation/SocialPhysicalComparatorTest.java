@@ -169,7 +169,7 @@ class SocialPhysicalComparatorTest {
         place.put("precision", precision);
         return new NarrativeStore.Claim("C", "N", "k", "explosion", "conflict", polarity, false, place, 45.03, 12.78,
                 "YE", List.of(), null, null, 3, 3, T0, "deterministic", null, 0.8, "unassessed", null, null, "F", 6,
-                "CLEAR", T0, T0);
+                "CLEAR", T0, T0, null, null, null, null);
     }
 
     static ComparisonStore.Comparison row(SocialPhysicalComparator.Decision d) {

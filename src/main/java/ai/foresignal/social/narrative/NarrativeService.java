@@ -86,7 +86,7 @@ public class NarrativeService {
     /** Creates the service. */
     public NarrativeService(NarrativeStore store, EvidenceStore evidence, ObjectProvider<NewsStoryStore> stories,
             ObjectProvider<TitleEmbeddings> embeddings, ObjectProvider<ManifestService> manifests, SocialEvents events,
-            AppSettingService settings, Clock clock) {
+            AppSettingService settings, ClaimEnrichment enrichment, Clock clock) {
         this.store = store;
         this.evidence = evidence;
         this.stories = stories;
@@ -94,8 +94,11 @@ public class NarrativeService {
         this.manifests = manifests;
         this.events = events;
         this.settings = settings;
+        this.enrichment = enrichment;
         this.clock = clock;
     }
+
+    private final ClaimEnrichment enrichment;
 
     /** The {@code DetectorRef} of the clusterer. */
     public static Map<String, Object> clustererRef() {
@@ -659,13 +662,22 @@ public class NarrativeService {
             Agg a = e.getValue();
             keys.add(e.getKey());
             int[] record = store.trackRecord(a.sourceKey);
-            String reliability = SocialEvidenceGrades.reliability(record[0], record[1],
+            String base = SocialEvidenceGrades.reliability(record[0], record[1],
                     SocialEvidenceGrades.override(overrides, a.sourceKey), grading);
+            // Prompt 153: outlet reputation into reliability, the post's framing score, and a deterministic de-hyped
+            // restatement synthesized from the validated who/what/where/when (the deterministic path has no LLM text).
+            ClaimEnrichment.Reputation reputation = enrichment.reputation(a.sourceKey);
+            String reliability = enrichment.adjustedReliability(base, reputation);
+            FramingScore.Framing framing = FramingScore.score(a.first == null ? null : text(a.first));
+            String placeName = a.place == null || a.place.get("name") == null ? null : a.place.get("name").toString();
+            String restatement = ClaimRestatement.restatement(null, a.type, a.polarity, a.actor(), placeName, null,
+                    null, null);
             NarrativeStore.Claim claim = new NarrativeStore.Claim(Ulids.next(now), narrativeId, e.getKey(), a.type,
                     a.signalFamily, a.polarity, a.hedged, a.place, a.lon(), a.lat(), a.regionCode(),
                     new ArrayList<>(a.entities), a.eventTime(), a.actor(), a.support, a.groups.size(), a.firstAt,
                     "deterministic", manifestId, a.confidence(), NarrativeVocabulary.UNASSESSED, null, a.sourceKey,
-                    reliability, SocialEvidenceGrades.credibility(NarrativeVocabulary.UNASSESSED), tlp, now, now);
+                    reliability, SocialEvidenceGrades.credibility(NarrativeVocabulary.UNASSESSED), tlp, now, now,
+                    restatement, framing.score(), framing.label(), reputation == null ? null : reputation.toMap());
             Map.Entry<String, Boolean> result = store.upsertClaim(claim);
             if (result.getValue()) {
                 store.claim(result.getKey()).ifPresent(c -> events.emit(NarrativeVocabulary.EVENT_CLAIM,
@@ -684,6 +696,7 @@ public class NarrativeService {
         final Map<String, Object> place;
         final Instant firstAt;
         final String sourceKey;
+        final NarrativeStore.Member first;
         boolean hedged;
         int support;
         double confidenceSum;
@@ -700,6 +713,7 @@ public class NarrativeService {
             place = c.get("place") instanceof Map<?, ?> p ? new LinkedHashMap<>((Map<String, Object>) p) : null;
             firstAt = first.createdAt();
             sourceKey = first.sourceKey();
+            this.first = first;
         }
 
         void add(Map<?, ?> c, NarrativeStore.Member m, String group) {

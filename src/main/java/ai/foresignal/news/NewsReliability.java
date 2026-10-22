@@ -90,6 +90,19 @@ public class NewsReliability {
         return numeric(grade(sourceId, externalId));
     }
 
+    /**
+     * The factuality reliability grade of an outlet by id (prompt 153), or {@code F} when the outlet is unrated. Lets
+     * social-claim scoring fold outlet factuality in the same way news does.
+     */
+    public String gradeForOutlet(String outletId) {
+        if (outletId == null) {
+            return "F";
+        }
+        Map<String, Consensus.Result> consensus = outlets.consensus(outletId);
+        Consensus.Result f = consensus.get(MediaVocabulary.FACTUALITY);
+        return gradeOfBand(CoverageAnalyzer.factualityBand(f == null ? null : f.median()));
+    }
+
     /** The number of a grade, or null for F or none. */
     public static Double numeric(String grade) {
         return grade == null ? null : NUMERIC.get(grade);

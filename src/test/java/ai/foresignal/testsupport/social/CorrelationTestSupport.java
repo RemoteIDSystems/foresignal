@@ -103,7 +103,7 @@ public final class CorrelationTestSupport {
         NarrativeStore.Claim c = new NarrativeStore.Claim(id, narrativeId, type + "|asserted|aden", type, family,
                 "asserted", false, place("Aden", LON, LAT, "YE"), LON, LAT, "YE", List.of(), null, null, groups * 2,
                 groups, at, "deterministic", null, 0.8, "unassessed", null, "account:bluesky:k", "F", 6, "CLEAR", at,
-                at);
+                at, null, null, null, null);
         return store.upsertClaim(c).getKey();
     }
 
