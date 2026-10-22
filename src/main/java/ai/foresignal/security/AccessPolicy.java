@@ -845,6 +845,7 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/context-links", AccessRequirement.READ),
                 rule(HttpMethod.POST, "/v1/graph", AccessRequirement.READ),
                 rule(HttpMethod.POST, "/v1/graph/common-dependencies", AccessRequirement.READ),
+                rule(HttpMethod.POST, "/v1/graph/ownership-chain", AccessRequirement.READ),
                 rule(HttpMethod.POST, "/v1/relations", AccessRequirement.AGENT),
                 rule(HttpMethod.DELETE, "/v1/relations/*", AccessRequirement.AGENT),
                 rule(HttpMethod.GET, "/v1/analytics/precision", AccessRequirement.READ),

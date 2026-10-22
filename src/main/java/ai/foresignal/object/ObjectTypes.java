@@ -86,10 +86,19 @@ public final class ObjectTypes {
     public static final String CAUSES = "causes";
     public static final String RELATED_TO = "related-to";
 
+    // Ownership / affiliation edges (prompt 158): relationship intelligence for people and organizations. The
+    // model is built here; the external corporate/UBO/PEP/leak data that populates these edges is deferred (see
+    // docs/Future-Roadmap.md).
+    public static final String OWNS = "owns";
+    public static final String CONTROLS = "controls";
+    public static final String OFFICER_OF = "officer-of";
+    public static final String BENEFICIAL_OWNER = "beneficial-owner";
+    public static final String AFFILIATED_WITH = "affiliated-with";
+
     /** Every relation type (Client-Contract §4), in contract order. */
     public static final List<String> RELATION_TYPES = List.of(MEMBER_OF, OBSERVED_BY, SAME_AS, LOCATED_IN, NEAR,
             DEPENDS_ON, AFFECTS, DERIVED_FROM, EVIDENCE_FOR, EVIDENCE_AGAINST, ABOUT, MENTIONS, PRECEDES, CAUSES,
-            RELATED_TO);
+            RELATED_TO, OWNS, CONTROLS, OFFICER_OF, BENEFICIAL_OWNER, AFFILIATED_WITH);
 
     /** Relation labels, strongest first (the 104 vocabulary). */
     public static final List<String> LABELS = List.of("confirmed", "likely", "possible", "speculative");

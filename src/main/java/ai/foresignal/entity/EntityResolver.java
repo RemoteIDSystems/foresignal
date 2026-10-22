@@ -32,11 +32,12 @@ public class EntityResolver {
 
     /** Weak-key precedence when weak keys point at different entities. Lower wins. */
     private static final Map<String, Integer> PRECEDENCE = Map.of(
-            "icao24", 1, "mmsi", 1, "registration", 2, "callsign", 3);
+            "icao24", 1, "mmsi", 1, "registration", 2, "callsign", 3, "person-key", 4);
 
     /** Key types in the order they are considered: anchors, then weak keys by precedence. */
     private static final List<String> TYPE_ORDER = List.of(
-            "airframe", "imo", "norad", "cospar", "icao24", "mmsi", "registration", "callsign");
+            "airframe", "imo", "norad", "cospar", "lei", "company-number", "tax-id", "officer-id",
+            "icao24", "mmsi", "registration", "callsign", "person-key");
 
     /** Anchors before weak keys, then {@link #TYPE_ORDER}, then the value: a total, fixed order. */
     static final Comparator<Key> KEY_ORDER = Comparator

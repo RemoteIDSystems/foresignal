@@ -32941,6 +32941,58 @@
           }
         },
         {
+          "name": "Walk ownership and affiliation chains",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/graph/ownership-chain",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "graph",
+                "ownership-chain"
+              ],
+              "query": []
+            },
+            "description": "People and organizations reached from up to 50 seed entities through the ownership / affiliation edges (`owns`, `controls`, `officer-of`, `beneficial-owner`, `affiliated-with`), each with its strongest, shortest ownership chain (158). An entity reached from two or more seeds is a shared attribute \u2014 a common owner, officer, address or affiliate. Model and queries only; the external corporate / UBO / PEP / leak data that populates the edges is deferred (docs/Future-Roadmap.md).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `ownershipChain`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "Add an operator relation",
           "event": [
             {

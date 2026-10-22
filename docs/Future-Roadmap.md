@@ -80,7 +80,8 @@ request/callback is the new primitive to design. Owner's call.
 
 ## Relationship intelligence / link analysis (Benjis-style) — the engine is already here
 
-_Added 2026-10-21._
+_Added 2026-10-21. Updated 2026-10-22: the people/organization model is now built (prompt 158); the
+external data that feeds it is still pending (below)._
 
 **Reference.** [Benjis.ai](https://benjis.ai/waitlist/) (waitlist page, so partly inferred): entity
 resolution + relationship discovery / link analysis + pattern detection + alerts + graph dashboards,
@@ -90,9 +91,13 @@ financial crime and compliance.
 **What Foresignal already has (the capability stack, built).**
 - **Aggregation:** ~300–500 sources via the adapter framework + the EDP for external providers.
 - **Entity resolution:** the entity registry — `resolveEntity`, `mergeEntities`, entity keys; a
-  merged entity resolves to its survivor (098).
+  merged entity resolves to its survivor (098). Since 158 this includes **people and organizations**
+  resolved deterministically on corporate / person keys (LEI, company number, tax id, officer id,
+  normalized person key).
 - **Link analysis / relationship graphs:** `POST /v1/graph` (`queryGraph`), `findCommonDependencies`,
-  operator `relations`, `listRelatedObjects`, dependency paths, the object/dossier `related` graph (129).
+  `ownershipChain` (158), operator `relations`, `listRelatedObjects`, dependency paths, the
+  object/dossier `related` graph (129). Ownership / affiliation edges (`owns`, `controls`,
+  `officer-of`, `beneficial-owner`, `affiliated-with`) are first-class relation types since 158.
 - **Correlation:** intel correlation recipes (`intel/recipes`, `testRecipe`), canonical/intel events,
   investigations (116, 101).
 - **Pattern / anomaly detection:** precursors + mining, anomaly/pattern trigger operators, hypotheses
@@ -131,8 +136,15 @@ Cheapest starting points are the extend-existing items — **sanctions → PEP**
 ownership** — and several of the rest (registries, GLEIF, ICIJ) have open or bulk feeds.
 
 **A few domain analytics on the existing graph:** ownership-chain and shared-attribute
-(address / phone / officer) path queries, and a fraud-oriented recipe set — expressible on the
-current relation graph and correlation-recipe engine.
+(common owner / officer / address / affiliate) path queries are **built in 158** (`ownershipChain`,
+`POST /v1/graph/ownership-chain`), as are the person/organization entity types, corporate/person
+keys and ownership/affiliation edges; a fraud-oriented recipe set is expressible on the current
+relation graph and correlation-recipe engine (the shared-attribute join landed in 157). **The model
+is there; it holds no ownership data yet** — the edges and corporate keys are populated only once the
+feeds below are sourced.
 
-**Status.** Capability already present; matching the fraud/compliance use case is a data-sourcing +
-light-analytics effort, not a new engine. Owner's call whether to pursue that domain.
+**Status.** The relationship-intelligence **model and queries are built (158)**: people and
+organizations are first-class entities with corporate keys, ownership/affiliation edges exist, and
+ownership-chain / shared-attribute queries work. What remains is **data, not an engine** — sourcing
+the corporate-registry / GLEIF / UBO / PEP / public-records / leak feeds above via the EDP and
+adapters. Owner's call whether to pursue that domain.

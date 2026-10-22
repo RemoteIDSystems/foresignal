@@ -26,7 +26,15 @@ import java.util.function.Consumer;
  *   <tr><td>{@code norad}</td><td>ANCHOR</td><td>positive catalog number</td><td>1.0</td></tr>
  *   <tr><td>{@code cospar}</td><td>ANCHOR</td><td>{@code YYYY-NNNP{PP}}</td><td>1.0</td></tr>
  *   <tr><td>{@code callsign}</td><td>WEAK</td><td>upper, domain-prefixed {@code air:}/{@code sea:}/{@code ham:}</td><td>0.5/0.7/0.9</td></tr>
+ *   <tr><td>{@code lei}</td><td>ANCHOR</td><td>20 upper alphanumeric (ISO 17442)</td><td>1.0</td></tr>
+ *   <tr><td>{@code company-number}</td><td>ANCHOR</td><td>{@code JURIS:NUMBER}, upper</td><td>1.0</td></tr>
+ *   <tr><td>{@code tax-id}</td><td>ANCHOR</td><td>upper, spaces and hyphens removed</td><td>1.0</td></tr>
+ *   <tr><td>{@code officer-id}</td><td>ANCHOR</td><td>{@code REGISTRY:ID}, upper</td><td>0.9</td></tr>
+ *   <tr><td>{@code person-key}</td><td>WEAK</td><td>lower, whitespace-collapsed composed key</td><td>0.5</td></tr>
  * </table>
+ *
+ * <p>Prompt 158 adds the corporate and person keys (the lower five rows) for relationship intelligence; they
+ * resolve people and organizations with the same deterministic anchor/weak rules as the physical keys.
  */
 public final class EntityKeys {
 
@@ -37,10 +45,12 @@ public final class EntityKeys {
 
     private EntityKeys() {}
 
-    /** True when {@code keyType} is one of the eight registry key types. */
+    /** True when {@code keyType} is one of the registry key types. */
     public static boolean known(String keyType) {
         return switch (keyType) {
             case "airframe", "icao24", "registration", "imo", "mmsi", "norad", "cospar", "callsign" -> true;
+            // Prompt 158: corporate and person keys.
+            case "lei", "company-number", "tax-id", "officer-id", "person-key" -> true;
             default -> false;
         };
     }
@@ -50,6 +60,9 @@ public final class EntityKeys {
         return switch (keyType) {
             case "airframe", "imo", "norad", "cospar" -> EntityKeyRole.ANCHOR;
             case "icao24", "registration", "mmsi", "callsign" -> EntityKeyRole.WEAK;
+            // Prompt 158: a registry-scoped corporate or officer id is an anchor; a composed person key is weak.
+            case "lei", "company-number", "tax-id", "officer-id" -> EntityKeyRole.ANCHOR;
+            case "person-key" -> EntityKeyRole.WEAK;
             default -> null;
         };
     }
@@ -60,6 +73,9 @@ public final class EntityKeys {
             case "airframe", "icao24", "registration" -> EntityType.AIRCRAFT;
             case "imo", "mmsi" -> EntityType.VESSEL;
             case "norad", "cospar" -> EntityType.SATELLITE;
+            // Prompt 158: corporate keys identify an organization; officer id and person key, a person.
+            case "lei", "company-number", "tax-id" -> EntityType.ORGANIZATION;
+            case "officer-id", "person-key" -> EntityType.PERSON;
             default -> null;
         };
     }
@@ -86,6 +102,11 @@ public final class EntityKeys {
             case "norad" -> norad(value);
             case "cospar" -> cospar(value);
             case "callsign" -> callsign(value, prefix);
+            case "lei" -> lei(value);
+            case "company-number" -> companyNumber(value);
+            case "tax-id" -> taxId(value);
+            case "officer-id" -> officerId(value);
+            case "person-key" -> personKey(value);
             default -> null;
         };
     }
@@ -97,6 +118,11 @@ public final class EntityKeys {
             case "icao24", "registration" -> 0.9f;
             case "mmsi" -> 0.8f;
             case "callsign" -> callsignConfidence(normalized);
+            // Prompt 158: a global corporate id (LEI), a registry company number and a tax id are strong; a
+            // registry officer id is near-strong; a composed person key collides and is weak.
+            case "lei", "company-number", "tax-id" -> 1.0f;
+            case "officer-id" -> 0.9f;
+            case "person-key" -> 0.5f;
             default -> 0.5f;
         };
     }
@@ -213,6 +239,59 @@ public final class EntityKeys {
             }
         }
         return call.isBlank() ? null : domain + ":" + call;
+    }
+
+    /** A Legal Entity Identifier: 20 upper-case alphanumeric characters (ISO 17442); prompt 158. */
+    static String lei(String value) {
+        String upper = value.strip().toUpperCase(Locale.ROOT);
+        return upper.matches("[A-Z0-9]{20}") ? upper : null;
+    }
+
+    /**
+     * A jurisdiction-qualified company number {@code {JURIS}:{NUMBER}} (prompt 158): the jurisdiction code and
+     * the number, upper-cased, the number stripped of spaces. A bare number collides across registries, so both
+     * parts are required.
+     */
+    static String companyNumber(String value) {
+        String upper = value.strip().toUpperCase(Locale.ROOT);
+        int colon = upper.indexOf(':');
+        if (colon <= 0 || colon == upper.length() - 1) {
+            return null;
+        }
+        String juris = upper.substring(0, colon);
+        String number = upper.substring(colon + 1).replace(" ", "");
+        return juris.matches("[A-Z0-9_-]{1,12}") && number.matches("[A-Z0-9]{1,32}") ? juris + ":" + number : null;
+    }
+
+    /** A tax id (EIN, VAT, TIN): upper-cased, spaces and hyphens removed (prompt 158). */
+    static String taxId(String value) {
+        String id = value.strip().toUpperCase(Locale.ROOT).replace(" ", "").replace("-", "");
+        return id.matches("[A-Z0-9]{4,20}") ? id : null;
+    }
+
+    /**
+     * A registry-scoped officer id {@code {REGISTRY}:{ID}} (prompt 158): the registry code and the id,
+     * upper-cased. Both parts are required so an id is never confused across registries.
+     */
+    static String officerId(String value) {
+        String upper = value.strip().toUpperCase(Locale.ROOT);
+        int colon = upper.indexOf(':');
+        if (colon <= 0 || colon == upper.length() - 1) {
+            return null;
+        }
+        String registry = upper.substring(0, colon);
+        String id = upper.substring(colon + 1).replace(" ", "");
+        return registry.matches("[A-Z0-9_-]{1,16}") && id.matches("[A-Z0-9]{1,48}") ? registry + ":" + id : null;
+    }
+
+    /**
+     * A composed person key (prompt 158): a lower-cased, whitespace-collapsed key the source composes from a
+     * person's identity (for example {@code name|dob|nationality}). Names collide, so it is a weak key; the
+     * resolver anchors a person on an officer id or a tax id instead whenever one is present.
+     */
+    static String personKey(String value) {
+        String key = value.strip().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
+        return key.isEmpty() ? null : key;
     }
 
     /** air 0.5, sea 0.7, ham 0.9 (prompt 098). */

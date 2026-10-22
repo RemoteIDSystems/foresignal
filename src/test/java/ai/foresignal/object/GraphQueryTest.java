@@ -140,6 +140,56 @@ class GraphQueryTest extends ObjectItSupport {
     }
 
     @Test
+    @DisplayName("ownership chains walk owns/controls edges and surface the shared owner path")
+    void ownershipChain() {
+        // parentA owns holdco owns target; parentB controls target directly. Target is owned via two chains.
+        nodes("parentA", "parentB", "holdco", "target");
+        Instant t = clock.instant();
+        edge("parentA", "holdco", ObjectTypes.OWNS, "confirmed", t.minus(Duration.ofDays(1)), null, t);
+        edge("holdco", "target", ObjectTypes.OWNS, "likely", t.minus(Duration.ofDays(1)), null, t);
+        edge("parentB", "target", ObjectTypes.CONTROLS, "confirmed", t.minus(Duration.ofDays(1)), null, t);
+        ResolveContext ctx = context(Scope.READ, false, null);
+
+        // Walking out from the two parents: target is reached by both — a shared attribute.
+        JsonNode out = JSON.valueToTree(relationService.ownershipChain(
+                List.of(ObjectRef.parse(q("parentA")), ObjectRef.parse(q("parentB"))), 6, "out", Set.of(), 0, ctx));
+        assertThat(out.get("direction").asString()).isEqualTo("out");
+        JsonNode shared = out.get("shared");
+        assertThat(shared).hasSize(1);
+        assertThat(shared.get(0).get("node").get("ref").asString()).isEqualTo(q("target"));
+        assertThat(shared.get(0).get("reachedFrom")).hasSize(2);
+        assertThat(shared.get(0).get("weakestEdgeLabel").asString()).isEqualTo("likely");
+        assertThat(out.get("chains").findValuesAsString("ref")).contains(q("holdco"), q("target"));
+        for (JsonNode path : shared.get(0).get("paths")) {
+            if (path.get("from").asString().equals(q("parentA"))) {
+                assertThat(path.get("hops")).hasSize(2); // holdco, target
+                assertThat(path.get("relationTypes")).hasSize(2);
+                assertThat(path.get("relationTypes").get(0).asString()).isEqualTo(ObjectTypes.OWNS);
+                assertThat(path.get("weakestEdgeLabel").asString()).isEqualTo("likely");
+            } else {
+                assertThat(path.get("hops")).hasSize(1); // target directly
+                assertThat(path.get("weakestEdgeLabel").asString()).isEqualTo("confirmed");
+            }
+        }
+
+        // Walking in from the target recovers the whole ownership chain above it.
+        JsonNode in = JSON.valueToTree(relationService.ownershipChain(List.of(ObjectRef.parse(q("target"))), 6, "in",
+                Set.of(), 0, ctx));
+        assertThat(in.get("chains").findValuesAsString("ref"))
+                .containsExactlyInAnyOrder(q("holdco"), q("parentA"), q("parentB"));
+
+        // A type filter narrows the walked edges to one kind.
+        JsonNode controlled = JSON.valueToTree(relationService.ownershipChain(List.of(ObjectRef.parse(q("target"))), 6,
+                "in", Set.of(ObjectTypes.CONTROLS), 0, ctx));
+        assertThat(controlled.get("chains").findValuesAsString("ref")).containsExactly(q("parentB"));
+
+        // A non-ownership relation type is rejected.
+        assertThatThrownBy(() -> relationService.ownershipChain(
+                JSON.readTree("{\"refs\":[\"" + q("target") + "\"],\"types\":[\"depends-on\"]}"), ctx))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
     @DisplayName("private relations are left out for callers without private access")
     void privateRelationsHidden() {
         nodes("q1", "q2");

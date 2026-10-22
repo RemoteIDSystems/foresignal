@@ -3,14 +3,17 @@ package ai.foresignal.entity;
 import java.util.Locale;
 
 /**
- * What a canonical entity is (prompt 098): a physical vehicle or object, never a person or an
- * organization.
+ * What a canonical entity is (prompt 098): a physical vehicle or object (aircraft, vessel, satellite,
+ * station), and — since prompt 158 — a person or an organization, resolved on deterministic corporate and
+ * person keys for relationship intelligence (ownership and affiliation).
  */
 public enum EntityType {
     AIRCRAFT("aircraft"),
     VESSEL("vessel"),
     SATELLITE("satellite"),
-    STATION("station");
+    STATION("station"),
+    PERSON("person"),
+    ORGANIZATION("organization");
 
     private final String wire;
 

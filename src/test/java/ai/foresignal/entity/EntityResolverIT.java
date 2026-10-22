@@ -206,6 +206,47 @@ class EntityResolverIT {
         assertThat(entities.count()).isZero();
     }
 
+    @Test
+    void anLeiAnchorsAnOrganizationDeterministically() {
+        Resolution first = resolver.resolve(
+                List.of(key("lei", "5493001KJTIIGC8Y1R12", EntityKeyRole.ANCHOR, 1.0f)),
+                NOW, KeyOrigin.REGISTRY, "gleif:5493001KJTIIGC8Y1R12");
+        assertThat(first).isNotNull();
+        assertThat(first.entityType()).isEqualTo(EntityType.ORGANIZATION);
+        assertThat(entities.findById(first.entityId()).orElseThrow().isProvisional()).isFalse();
+
+        Resolution again = resolver.resolve(
+                List.of(key("lei", "5493001KJTIIGC8Y1R12", EntityKeyRole.ANCHOR, 1.0f)),
+                NOW.plusSeconds(3600), KeyOrigin.REGISTRY, "gleif:5493001KJTIIGC8Y1R12");
+        assertThat(again.entityId()).isEqualTo(first.entityId());
+        assertThat(entities.count()).isEqualTo(1);
+    }
+
+    @Test
+    void aCompanyNumberAnchorsAnOrganization() {
+        Resolution resolution = resolver.resolve(
+                List.of(key("company-number", "GB:01234567", EntityKeyRole.ANCHOR, 1.0f)),
+                NOW, KeyOrigin.REGISTRY, "companies-house:01234567");
+        assertThat(resolution.entityType()).isEqualTo(EntityType.ORGANIZATION);
+        assertThat(entities.findById(resolution.entityId()).orElseThrow().isProvisional()).isFalse();
+    }
+
+    @Test
+    void anOfficerIdAnchorsAPersonAndItsWeakNameKeyLinksBack() {
+        Resolution officer = resolver.resolve(
+                List.of(key("officer-id", "GB:P7V9ABCD", EntityKeyRole.ANCHOR, 0.9f),
+                        key("person-key", "jane doe|1980-01-02|gb", EntityKeyRole.WEAK, 0.5f)),
+                NOW, KeyOrigin.REGISTRY, "companies-house:P7V9ABCD");
+        assertThat(officer.entityType()).isEqualTo(EntityType.PERSON);
+        assertThat(entities.findById(officer.entityId()).orElseThrow().isProvisional()).isFalse();
+
+        // The same person later seen only by the weak name key resolves to the anchored officer entity.
+        Resolution weak = resolver.resolve(
+                List.of(key("person-key", "jane doe|1980-01-02|gb", EntityKeyRole.WEAK, 0.5f)),
+                NOW.plusSeconds(60), KeyOrigin.OBSERVED, "leak:jane");
+        assertThat(weak.entityId()).isEqualTo(officer.entityId());
+    }
+
     private static Key key(String type, String value, EntityKeyRole role, float confidence) {
         return new Key(type, value, role, confidence);
     }

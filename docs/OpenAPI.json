@@ -16,6 +16,11 @@
       {
         "version": "1.3.0",
         "date": "2026-10-22",
+        "note": "158: relationship intelligence for people and organizations (model and queries only). The canonical entity resolver and relation graph, physical-domain only until now (aircraft / vessel / satellite / station), gain person and organization entity types and the corporate / person identity keys that resolve them deterministically: lei, company-number (JURISDICTION:NUMBER), tax-id and officer-id (REGISTRY:ID) are anchors for organizations, and person-key (a normalized name key) is a weak key for people — added to the EntityKey, EntityKeyInput and EntityLink keyType enums and the Entity type enum. Five ownership / affiliation relation types join the vocabulary — owns, controls, officer-of, beneficial-owner, affiliated-with — usable on createRelation, listRelatedObjects and queryGraph. A new ownershipChain query (POST /v1/graph/ownership-chain, read) is the sibling of findCommonDependencies: it walks those edges from up to 50 seed entities and returns each reached entity's strongest, shortest chain, with the subset reached from two or more seeds surfaced as a shared attribute (a common owner, officer, address or affiliate). This builds the model and queries; the external corporate / UBO / PEP / leak data that populates the edges is deferred to the Future-Roadmap. Additive: no operation or schema was renamed or removed."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-22",
         "note": "157: author-able correlation recipes, shared-attribute joins, settings-driven thresholds. An operator can now author a correlation recipe through the API, not only toggle a bundled one: createRecipe (POST /v1/intel/recipes, admin) persists a validated operator-authored recipe beside the bundled classpath recipes (new CorrelationRecipeCreate schema), and updateRecipe additionally accepts a full definition to replace for an operator recipe (CorrelationRecipeUpdate gains definition); a bundled recipe's definition stays managed by the classpath. CorrelationRecipe gains origin (bundled / operator). A recipe join gains a sharedAttribute predicate — a candidate joins when its payload value at a dot-path equals a seed member's (an address, phone, officer or shared id), matching on the attribute alone without geometry — the foundation for fraud/relationship recipes (pairing with 158's ownership edges). The Admiralty reliability numbers and the coverage skew/blindspot thresholds are now settings (media.reliabilityNumbers, news.coverageThresholds), mirroring media.reliabilityMap, so the admin app can tune them. Additive: no operation or schema was renamed or removed."
       },
       {
@@ -35277,7 +35282,9 @@
                 "aircraft",
                 "vessel",
                 "satellite",
-                "station"
+                "station",
+                "person",
+                "organization"
               ]
             }
           },
@@ -66530,7 +66537,12 @@
                   "mentions",
                   "precedes",
                   "causes",
-                  "related-to"
+                  "related-to",
+                  "owns",
+                  "controls",
+                  "officer-of",
+                  "beneficial-owner",
+                  "affiliated-with"
                 ],
                 "description": "Client-Contract §4 relation type"
               }
@@ -66885,6 +66897,85 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "129",
+        "x-foresignal-status": "implemented",
+        "security": [
+          {},
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/graph/ownership-chain": {
+      "post": {
+        "tags": [
+          "Objects"
+        ],
+        "operationId": "ownershipChain",
+        "summary": "Walk ownership and affiliation chains",
+        "description": "People and organizations reached from up to 50 seed entities through the ownership / affiliation edges (`owns`, `controls`, `officer-of`, `beneficial-owner`, `affiliated-with`), each with its strongest, shortest ownership chain (158). An entity reached from two or more seeds is a shared attribute — a common owner, officer, address or affiliate. Model and queries only; the external corporate / UBO / PEP / leak data that populates the edges is deferred (docs/Future-Roadmap.md).\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OwnershipChainRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ownership chains and shared attributes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnershipChain"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (OBJECT_REF_INVALID)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited (RATE_LIMITED); honour Retry-After",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-prompt": "158",
         "x-foresignal-status": "implemented",
         "security": [
           {},
@@ -120002,7 +120093,7 @@
       },
       "Entity": {
         "type": "object",
-        "description": "A canonical vehicle or object (never a person or organisation) with its keys, aliases and per-source link counts",
+        "description": "A canonical vehicle or object, and (since prompt 158) a person or organization, with its keys, aliases and per-source link counts",
         "properties": {
           "id": {
             "$ref": "#/components/schemas/Ulid"
@@ -120024,7 +120115,9 @@
               "aircraft",
               "vessel",
               "satellite",
-              "station"
+              "station",
+              "person",
+              "organization"
             ]
           },
           "displayName": {
@@ -120168,9 +120261,14 @@
               "mmsi",
               "norad",
               "cospar",
-              "callsign"
+              "callsign",
+              "lei",
+              "company-number",
+              "tax-id",
+              "officer-id",
+              "person-key"
             ],
-            "description": "Key type. `callsign` values are domain-prefixed (`air:`, `sea:`, `ham:`)"
+            "description": "Key type. `callsign` values are domain-prefixed (`air:`, `sea:`, `ham:`). Corporate and person keys (prompt 158): `lei`, `company-number` (`JURISDICTION:NUMBER`), `tax-id`, `officer-id` (`REGISTRY:ID`) for organizations; `person-key` (a normalized name key) for people"
           },
           "keyValue": {
             "type": "string",
@@ -120184,7 +120282,7 @@
               "ANCHOR",
               "WEAK"
             ],
-            "description": "ANCHOR keys (airframe, imo, norad, cospar) identify an entity on their own; WEAK keys can be re-assigned"
+            "description": "ANCHOR keys (airframe, imo, norad, cospar, lei, company-number, tax-id, officer-id) identify an entity on their own; WEAK keys (callsign, person-key) can be re-assigned"
           },
           "confidence": {
             "type": "number",
@@ -120250,7 +120348,12 @@
               "mmsi",
               "norad",
               "cospar",
-              "callsign"
+              "callsign",
+              "lei",
+              "company-number",
+              "tax-id",
+              "officer-id",
+              "person-key"
             ]
           },
           "keyValue": {
@@ -120308,7 +120411,12 @@
               "mmsi",
               "norad",
               "cospar",
-              "callsign"
+              "callsign",
+              "lei",
+              "company-number",
+              "tax-id",
+              "officer-id",
+              "person-key"
             ]
           },
           "keyValue": {
@@ -149568,7 +149676,12 @@
               "mentions",
               "precedes",
               "causes",
-              "related-to"
+              "related-to",
+              "owns",
+              "controls",
+              "officer-of",
+              "beneficial-owner",
+              "affiliated-with"
             ],
             "description": "Client-Contract §4 relation type"
           },
@@ -149660,7 +149773,12 @@
               "mentions",
               "precedes",
               "causes",
-              "related-to"
+              "related-to",
+              "owns",
+              "controls",
+              "officer-of",
+              "beneficial-owner",
+              "affiliated-with"
             ],
             "description": "Client-Contract §4 relation type"
           },
@@ -149801,7 +149919,12 @@
                 "mentions",
                 "precedes",
                 "causes",
-                "related-to"
+                "related-to",
+                "owns",
+                "controls",
+                "officer-of",
+                "beneficial-owner",
+                "affiliated-with"
               ],
               "description": "Client-Contract §4 relation type"
             }
@@ -149971,7 +150094,12 @@
                             "mentions",
                             "precedes",
                             "causes",
-                            "related-to"
+                            "related-to",
+                            "owns",
+                            "controls",
+                            "officer-of",
+                            "beneficial-owner",
+                            "affiliated-with"
                           ],
                           "description": "Client-Contract §4 relation type"
                         }
@@ -150007,6 +150135,195 @@
         "required": [
           "refs",
           "dependencies"
+        ]
+      },
+      "OwnershipChainRequest": {
+        "type": "object",
+        "description": "Seed entities (people / organizations) whose ownership and affiliation chains to walk (158)",
+        "properties": {
+          "refs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ObjectRef"
+            },
+            "minItems": 1,
+            "maxItems": 50
+          },
+          "depth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6,
+            "default": 6,
+            "description": "Most ownership / affiliation hops to follow"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "in",
+              "out",
+              "both"
+            ],
+            "default": "both",
+            "description": "Follow edges out of the seed (what it owns / controls), into it (who owns / controls it), or both"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "owns",
+                "controls",
+                "officer-of",
+                "beneficial-owner",
+                "affiliated-with"
+              ]
+            },
+            "description": "Ownership / affiliation edge types to walk; empty or absent walks all five"
+          },
+          "minConfidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0
+          },
+          "asOf": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "refs"
+        ]
+      },
+      "OwnershipChain": {
+        "type": "object",
+        "description": "Ownership / affiliation chains from the seeds and the attributes they share (158)",
+        "properties": {
+          "refs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ObjectRef"
+            }
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "in",
+              "out",
+              "both"
+            ]
+          },
+          "asOf": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "chains": {
+            "type": "array",
+            "description": "Every entity reached from a seed through ownership / affiliation edges, strongest and shortest path first",
+            "items": {
+              "$ref": "#/components/schemas/OwnershipChainNode"
+            }
+          },
+          "shared": {
+            "type": "array",
+            "description": "The subset of `chains` reached from two or more seeds — a shared owner, officer, address or affiliate",
+            "items": {
+              "$ref": "#/components/schemas/OwnershipChainNode"
+            }
+          }
+        },
+        "required": [
+          "refs",
+          "direction",
+          "chains",
+          "shared"
+        ]
+      },
+      "OwnershipChainNode": {
+        "type": "object",
+        "description": "An entity reached through ownership / affiliation edges, with the chain from each seed that reached it",
+        "properties": {
+          "node": {
+            "$ref": "#/components/schemas/ObjectEnvelope"
+          },
+          "reachedFrom": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ObjectRef"
+            },
+            "description": "The seeds whose chain reaches this entity"
+          },
+          "weakestEdgeLabel": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "likely",
+              "possible",
+              "speculative"
+            ],
+            "description": "Weakest edge across the reaching chains (104 vocabulary)"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "The ownership / affiliation chain from one seed to this entity",
+              "properties": {
+                "from": {
+                  "$ref": "#/components/schemas/ObjectRef"
+                },
+                "hops": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ObjectRef"
+                  }
+                },
+                "relationTypes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "owns",
+                      "controls",
+                      "officer-of",
+                      "beneficial-owner",
+                      "affiliated-with"
+                    ]
+                  }
+                },
+                "weakestEdgeLabel": {
+                  "type": "string",
+                  "enum": [
+                    "confirmed",
+                    "likely",
+                    "possible",
+                    "speculative"
+                  ]
+                }
+              },
+              "required": [
+                "from",
+                "hops",
+                "weakestEdgeLabel"
+              ]
+            }
+          }
+        },
+        "required": [
+          "node",
+          "reachedFrom",
+          "weakestEdgeLabel",
+          "paths"
         ]
       },
       "Annotation": {

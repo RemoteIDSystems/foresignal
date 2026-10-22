@@ -58,6 +58,13 @@ public class RelationService {
     /** Most hops followed for common dependencies. */
     static final int COMMON_HOPS = 4;
 
+    /** The ownership / affiliation edge types walked by an ownership-chain query (prompt 158). */
+    public static final Set<String> OWNERSHIP_EDGES = Set.of(ObjectTypes.OWNS, ObjectTypes.CONTROLS,
+            ObjectTypes.OFFICER_OF, ObjectTypes.BENEFICIAL_OWNER, ObjectTypes.AFFILIATED_WITH);
+
+    /** Most hops followed for an ownership chain. */
+    static final int OWNERSHIP_HOPS = 6;
+
     /** Most related objects returned. */
     public static final int MAX_RELATED = 500;
 
@@ -501,6 +508,176 @@ public class RelationService {
         out.put("generatedAt", clock.instant());
         out.put("dependencies", shared);
         return out;
+    }
+
+    // ------------------------------------------------------------------------- ownership chain
+
+    /**
+     * The ownership / affiliation graph around people and organizations ({@code ownershipChain}, prompt 158): the
+     * sibling of {@link #commonDependencies} that walks the ownership edges ({@code owns}, {@code controls},
+     * {@code officer-of}, {@code beneficial-owner}, {@code affiliated-with}) instead of {@code depends-on} /
+     * {@code located-in}. Each seed's reachable nodes come back as chains with their strongest, shortest ownership
+     * path; a node reached from two or more seeds is a shared attribute (a common owner, officer, address or
+     * affiliate — the entities "sharing address/phone/officer").
+     *
+     * <p>This is the query model only; the external corporate / UBO / PEP / leak data that populates the edges is
+     * deferred (docs/Future-Roadmap.md).
+     *
+     * @param body the {@code OwnershipChainRequest}
+     * @param context the caller and {@code asOf}
+     * @return the {@code OwnershipChain} view
+     */
+    public Map<String, Object> ownershipChain(JsonNode body, ResolveContext context) {
+        List<ObjectRef> seeds = refs(body, "refs", 1, MAX_GRAPH_REFS);
+        int depth = body.has("depth") ? body.get("depth").asInt(OWNERSHIP_HOPS) : OWNERSHIP_HOPS;
+        if (depth < 1 || depth > OWNERSHIP_HOPS) {
+            throw ValidationException.forField("depth", "must be between 1 and " + OWNERSHIP_HOPS);
+        }
+        String direction = direction(body);
+        Set<String> types = ownershipTypes(body == null ? null : body.get("types"));
+        double minConfidence = body != null && body.has("minConfidence") ? body.get("minConfidence").asDouble(0) : 0;
+        return ownershipChain(seeds, depth, direction, types, minConfidence, context);
+    }
+
+    /** {@link #ownershipChain(JsonNode, ResolveContext)} with parsed parameters. */
+    public Map<String, Object> ownershipChain(List<ObjectRef> seeds, int depth, String direction, Set<String> types,
+            double minConfidence, ResolveContext context) {
+        Instant at = context.asOf() == null ? clock.instant() : context.asOf();
+        Map<ObjectRef, ObjectEnvelope> seedEnvelopes = objects.resolveRefs(seeds, context);
+        Map<String, Map<String, Path>> reachedBy = new LinkedHashMap<>();
+        List<String> seedKeys = new ArrayList<>();
+        for (ObjectRef seed : seeds) {
+            ObjectEnvelope env = seedEnvelopes.get(seed);
+            if (env == null) {
+                throw new NotFoundException(ErrorCodes.UNKNOWN_OBJECT,
+                        "No object '" + seed + "' exists, or you may not see it.");
+            }
+            String key = seed.withoutSeq().format();
+            seedKeys.add(key);
+            walkOwnership(env, types, direction, depth, minConfidence, at, context)
+                    .forEach((node, path) -> reachedBy.computeIfAbsent(node, n -> new LinkedHashMap<>()).put(key, path));
+        }
+        Map<ObjectRef, ObjectEnvelope> nodes = objects.resolveRefs(reachedBy.keySet().stream()
+                .filter(n -> !seedKeys.contains(n)).map(RelationService::parseQuietly)
+                .filter(java.util.Objects::nonNull).toList(), context);
+        List<Map<String, Object>> chains = new ArrayList<>();
+        List<Map<String, Object>> shared = new ArrayList<>();
+        for (Map.Entry<String, Map<String, Path>> e : reachedBy.entrySet()) {
+            if (seedKeys.contains(e.getKey())) {
+                continue;
+            }
+            ObjectRef ref = parseQuietly(e.getKey());
+            ObjectEnvelope node = ref == null ? null : nodes.get(ref);
+            if (node == null) {
+                continue;
+            }
+            String weakest = null;
+            List<Map<String, Object>> paths = new ArrayList<>();
+            for (Map.Entry<String, Path> p : e.getValue().entrySet()) {
+                weakest = weakest == null ? p.getValue().weakest() : ObjectTypes.weaker(weakest, p.getValue().weakest());
+                Map<String, Object> path = new LinkedHashMap<>();
+                path.put("from", p.getKey());
+                path.put("hops", p.getValue().hops().stream().map(Hop::ref).toList());
+                path.put("relationTypes", p.getValue().hops().stream().map(Hop::type).toList());
+                path.put("weakestEdgeLabel", p.getValue().weakest());
+                paths.add(path);
+            }
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("node", node);
+            row.put("reachedFrom", List.copyOf(e.getValue().keySet()));
+            row.put("weakestEdgeLabel", weakest);
+            row.put("paths", paths);
+            chains.add(row);
+            if (e.getValue().size() >= 2) {
+                shared.add(row);
+            }
+        }
+        Comparator<Map<String, Object>> order = Comparator
+                .<Map<String, Object>>comparingInt(r -> -((List<?>) r.get("reachedFrom")).size())
+                .thenComparingInt(r -> ObjectTypes.labelRank((String) r.get("weakestEdgeLabel")))
+                .thenComparing(r -> ((ObjectEnvelope) r.get("node")).ref());
+        chains.sort(order);
+        shared.sort(order);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("refs", seeds.stream().map(ObjectRef::format).toList());
+        out.put("direction", direction);
+        out.put("asOf", context.asOf());
+        out.put("generatedAt", clock.instant());
+        out.put("chains", chains);
+        out.put("shared", shared);
+        return out;
+    }
+
+    /**
+     * The strongest, shortest ownership / affiliation path from {@code start} to every entity it reaches, walking
+     * only {@code edgeTypes} in {@code direction} for up to {@code maxHops}. Unlike {@link #walkDependencies} there
+     * is no geographic ({@code located-in} / {@code near}) seeding — ownership is not spatial.
+     */
+    Map<String, Path> walkOwnership(ObjectEnvelope start, Set<String> edgeTypes, String direction, int maxHops,
+            double minConfidence, Instant at, ResolveContext context) {
+        Map<String, Path> best = new HashMap<>();
+        String origin = start.objectRef().withoutSeq().format();
+        Map<String, Path> frontier = new LinkedHashMap<>();
+        frontier.put(origin, new Path(List.of(), "confirmed"));
+        for (int hop = 0; hop < maxHops && !frontier.isEmpty(); hop++) {
+            List<RelationEntity> rows = query.touching(frontier.keySet(), edgeTypes, direction, at,
+                    context.asOf() != null, minConfidence, context.seesPrivate(), MAX_GRAPH_EDGES);
+            Map<String, Path> next = new LinkedHashMap<>();
+            for (RelationEntity r : rows) {
+                String near;
+                String far;
+                if (frontier.containsKey(r.getFromRef())) {
+                    near = r.getFromRef();
+                    far = r.getToRef();
+                } else if (frontier.containsKey(r.getToRef())) {
+                    near = r.getToRef();
+                    far = r.getFromRef();
+                } else {
+                    continue;
+                }
+                if (far.equals(origin)) {
+                    continue;
+                }
+                Path from = frontier.get(near);
+                List<Hop> hops = new ArrayList<>(from.hops());
+                hops.add(new Hop(far, r.getType(), r.getLabel()));
+                Path candidate = new Path(hops, from.hops().isEmpty() ? r.getLabel()
+                        : ObjectTypes.weaker(from.weakest(), r.getLabel()));
+                Path existing = best.get(far);
+                if (existing == null || better(candidate, existing)) {
+                    best.put(far, candidate);
+                    next.put(far, candidate);
+                }
+            }
+            frontier = next;
+        }
+        return best;
+    }
+
+    /** The ownership / affiliation edge types of a request field, defaulting to all of them. */
+    static Set<String> ownershipTypes(JsonNode node) {
+        if (node == null || node.isNull()) {
+            return OWNERSHIP_EDGES;
+        }
+        Set<String> out = relationTypes(node, "types");
+        for (String type : out) {
+            if (!OWNERSHIP_EDGES.contains(type)) {
+                throw ValidationException.forField("types", "'" + type + "' is not an ownership or affiliation edge");
+            }
+        }
+        return out.isEmpty() ? OWNERSHIP_EDGES : out;
+    }
+
+    /** The walk direction of a request ({@code in}, {@code out} or {@code both}; default {@code both}). */
+    private static String direction(JsonNode body) {
+        String value = body == null ? null : text(body, "direction");
+        if (value == null || value.isBlank()) {
+            return "both";
+        }
+        if (!value.equals("in") && !value.equals("out") && !value.equals("both")) {
+            throw ValidationException.forField("direction", "must be 'in', 'out' or 'both'");
+        }
+        return value;
     }
 
     /** The strongest, shortest path from {@code start} to every dependency it reaches. */

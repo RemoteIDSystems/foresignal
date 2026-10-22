@@ -116,6 +116,65 @@ class EntityKeysTest {
         assertThat(EntityKeys.known("aircraft-tail")).isFalse();
     }
 
+    @Test
+    void leiIsTwentyUpperAlphanumeric() {
+        assertThat(EntityKeys.normalize("lei", " 5493001kjtiigc8y1r12 ", null)).isEqualTo("5493001KJTIIGC8Y1R12");
+        assertThat(EntityKeys.normalize("lei", "5493001KJTIIGC8Y1R1", null)).isNull(); // 19 chars
+        assertThat(EntityKeys.normalize("lei", "5493001KJTIIGC8Y1R12X", null)).isNull(); // 21 chars
+        assertThat(EntityKeys.normalize("lei", "5493001-JTIIGC8Y1R12", null)).isNull(); // hyphen
+    }
+
+    @Test
+    void companyNumberNeedsAJurisdictionAndNumber() {
+        assertThat(EntityKeys.normalize("company-number", " gb:012 345 67 ", null)).isEqualTo("GB:01234567");
+        assertThat(EntityKeys.normalize("company-number", "us-de:5203989", null)).isEqualTo("US-DE:5203989");
+        assertThat(EntityKeys.normalize("company-number", "01234567", null)).isNull(); // no jurisdiction
+        assertThat(EntityKeys.normalize("company-number", "gb:", null)).isNull();
+    }
+
+    @Test
+    void taxIdStripsSpacesAndHyphens() {
+        assertThat(EntityKeys.normalize("tax-id", " 12-3456789 ", null)).isEqualTo("123456789");
+        assertThat(EntityKeys.normalize("tax-id", "GB 123 4567 89", null)).isEqualTo("GB123456789");
+        assertThat(EntityKeys.normalize("tax-id", "12", null)).isNull(); // too short
+    }
+
+    @Test
+    void officerIdNeedsARegistryAndId() {
+        assertThat(EntityKeys.normalize("officer-id", "gb:p7v9abcd", null)).isEqualTo("GB:P7V9ABCD");
+        assertThat(EntityKeys.normalize("officer-id", "p7v9abcd", null)).isNull(); // no registry
+    }
+
+    @Test
+    void personKeyIsLowerAndWhitespaceCollapsed() {
+        assertThat(EntityKeys.normalize("person-key", "  Jane   Doe|1980-01-02|GB  ", null))
+                .isEqualTo("jane doe|1980-01-02|gb");
+        assertThat(EntityKeys.normalize("person-key", "   ", null)).isNull();
+    }
+
+    @Test
+    void corporateAndPersonRolesTypesAndConfidence() {
+        // Corporate keys are organization anchors; a person key is a weak person key.
+        assertThat(EntityKeys.roleOf("lei")).isEqualTo(EntityKeyRole.ANCHOR);
+        assertThat(EntityKeys.roleOf("company-number")).isEqualTo(EntityKeyRole.ANCHOR);
+        assertThat(EntityKeys.roleOf("tax-id")).isEqualTo(EntityKeyRole.ANCHOR);
+        assertThat(EntityKeys.roleOf("officer-id")).isEqualTo(EntityKeyRole.ANCHOR);
+        assertThat(EntityKeys.roleOf("person-key")).isEqualTo(EntityKeyRole.WEAK);
+
+        assertThat(EntityKeys.typeOf("lei")).isEqualTo(EntityType.ORGANIZATION);
+        assertThat(EntityKeys.typeOf("company-number")).isEqualTo(EntityType.ORGANIZATION);
+        assertThat(EntityKeys.typeOf("tax-id")).isEqualTo(EntityType.ORGANIZATION);
+        assertThat(EntityKeys.typeOf("officer-id")).isEqualTo(EntityType.PERSON);
+        assertThat(EntityKeys.typeOf("person-key")).isEqualTo(EntityType.PERSON);
+
+        assertThat(EntityKeys.confidence("lei", "5493001KJTIIGC8Y1R12")).isEqualTo(1.0f);
+        assertThat(EntityKeys.confidence("officer-id", "GB:P7V9ABCD")).isEqualTo(0.9f);
+        assertThat(EntityKeys.confidence("person-key", "jane doe|1980-01-02|gb")).isEqualTo(0.5f);
+
+        assertThat(EntityKeys.known("lei")).isTrue();
+        assertThat(EntityKeys.known("person-key")).isTrue();
+    }
+
     private static SourceDescriptor.Builder descriptor() {
         return SourceDescriptor.builder("entity-keys-test")
                 .name("Entity keys test")

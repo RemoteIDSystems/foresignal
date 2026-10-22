@@ -193,6 +193,14 @@ public class ObjectsController {
         return relations.commonDependencies(body, context(request, asOfOf(body)));
     }
 
+    /** {@code ownershipChain}: ownership / affiliation chains and shared attributes for people and organizations. */
+    @PostMapping("/v1/graph/ownership-chain")
+    @RestrictedRead("entities resolve through the object resolvers under the caller's private rule")
+    @Operation(operationId = "ownershipChain", tags = "Objects")
+    public Map<String, Object> ownershipChain(@RequestBody JsonNode body, HttpServletRequest request) {
+        return relations.ownershipChain(body, context(request, asOfOf(body)));
+    }
+
     /** {@code createRelation}: an operator or agent relation (agent). */
     @PostMapping("/v1/relations")
     @ResponseStatus(HttpStatus.CREATED)
