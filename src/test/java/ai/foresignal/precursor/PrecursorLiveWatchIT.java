@@ -6,6 +6,8 @@ import static org.assertj.core.api.Assertions.within;
 import ai.foresignal.analytics.finding.AnalyticFindingEntity;
 import ai.foresignal.analytics.finding.FindingDraft;
 import ai.foresignal.analytics.finding.FindingService;
+import ai.foresignal.intel.IntelCalibrationService;
+import ai.foresignal.intel.IntelOutcomeEntity;
 import ai.foresignal.security.Ulids;
 import ai.foresignal.test.IntegrationTest;
 import ai.foresignal.testsupport.analytics.AnalyticsItSupport;
@@ -34,6 +36,7 @@ class PrecursorLiveWatchIT extends AnalyticsItSupport {
     @Autowired PrecursorRepository precursors;
     @Autowired PrecursorCursorConsumer consumer;
     @Autowired FindingService findings;
+    @Autowired IntelCalibrationService calibration;
 
     int seq;
 
@@ -122,6 +125,38 @@ class PrecursorLiveWatchIT extends AnalyticsItSupport {
         assertThat(f.getExplanation()).contains("association in stored data; not causation");
         assertThat(f.getManifestId()).isNotNull();
         assertThat(watch.cursor()).isEqualTo(result.cursors().seq());
+    }
+
+    @Test
+    @DisplayName("a precursor-active probability is recalibrated once its scope has >= CORP_MIN resolved outcomes")
+    void precursorProbabilityIsCalibrated() {
+        // Seed >= CORP_MIN resolved precursor outcomes whose observed frequency is well above the forecast, so the
+        // fitted SCOPE_PRECURSOR curve maps the raw probability to a clearly different (higher) calibrated one.
+        for (int i = 0; i < 30; i++) {
+            calibration.recordOutcome(IntelCalibrationService.SCOPE_PRECURSOR, IntelOutcomeEntity.KIND_PRECURSOR,
+                    "lo-" + i, 0.30, i < 24 ? 1 : 0);
+        }
+        for (int i = 0; i < 30; i++) {
+            calibration.recordOutcome(IntelCalibrationService.SCOPE_PRECURSOR, IntelOutcomeEntity.KIND_PRECURSOR,
+                    "hi-" + i, 0.70, i < 27 ? 1 : 0);
+        }
+        double raw = PrecursorRules.probability(8, 10, 0.2);
+        double expected = calibration.calibrate(IntelCalibrationService.SCOPE_PRECURSOR, raw).orElseThrow();
+        assertThat(expected).as("the fit must actually move the probability").isNotCloseTo(raw, within(0.05));
+
+        clock.setInstant(T0.plus(Duration.ofDays(10)));
+        PrecursorEntity p = precursor("validated", "conflict");
+        restartWatch();
+        watch.poll();
+        Instant at = clock.instant().minus(Duration.ofHours(2));
+        changePoint("conflict", "YE", at);
+        watch.poll();
+
+        AnalyticFindingEntity f = active().get(0);
+        assertThat(f.getPrecursorId()).isEqualTo(p.getId());
+        assertThat(f.getStats()).containsEntry("calibrated", true);
+        assertThat(((Number) f.getStats().get("rawProbability")).doubleValue()).isCloseTo(raw, within(1e-5));
+        assertThat(((Number) f.getStats().get("probability")).doubleValue()).isCloseTo(expected, within(1e-4));
     }
 
     @Test

@@ -14,6 +14,13 @@ public interface ExternalQuestionLinkRepository extends JpaRepository<ExternalQu
     Optional<ExternalQuestionLinkEntity> findBySourceIdAndStreamIdAndExternalQuestionId(String sourceId,
             String streamId, String externalQuestionId);
 
+    /**
+     * The links of one stream that point at a ledger question (prompt 159): the on-demand / callback path knows the
+     * ledger question, not the provider's external question id, so it stamps {@code lastForecastAt} on each.
+     */
+    List<ExternalQuestionLinkEntity> findBySourceIdAndStreamIdAndQuestionId(String sourceId, String streamId,
+            String questionId);
+
     /** The links of one forecaster. */
     List<ExternalQuestionLinkEntity> findByForecasterId(String forecasterId);
 }

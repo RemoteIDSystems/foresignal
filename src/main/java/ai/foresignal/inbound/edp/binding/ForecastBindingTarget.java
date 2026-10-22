@@ -126,12 +126,7 @@ public class ForecastBindingTarget implements BindingTargetHandler {
                     d.orientation()));
         }
         ForecasterEntity forecaster = forecaster(registry, item.sourceId(), stream);
-        Optional<ForecastEntity> previous = forecasts.findTop1ByQuestionIdAndForecasterIdOrderByMadeAtDescIdDesc(
-                q.getId(), forecaster.getId());
-        ForecastInputs.ForecastValue standing = previous.map(f -> new ForecastInputs.ForecastValue(
-                f.getProbability(), null, f.getQuantiles())).orElse(null);
-        if (!ExternalForecastPolicy.shouldRecord(standing, previous.map(ForecastEntity::getMadeAt).orElse(null),
-                value, now)) {
+        if (!shouldRecordStanding(forecasts, q.getId(), forecaster.getId(), value, now)) {
             return BindingEffect.skip(item, "no-material-change");
         }
         ForecastEntity recorded = service.record(q, forecaster, value, null, List.of(), List.of(),
@@ -141,6 +136,22 @@ public class ForecastBindingTarget implements BindingTargetHandler {
             links.save(d.link());
         }
         return BindingEffect.of(item, "forecast-recorded", ObjectTypes.QUESTION + ":" + q.getId());
+    }
+
+    /**
+     * The push path's material-change dedup, shared with the on-demand / callback path (prompt 159): true when a
+     * new {@code value} for the external forecaster {@code forecasterId} on {@code questionId} should be recorded,
+     * false when {@link ExternalForecastPolicy#shouldRecord} finds the forecaster's standing forecast still covers
+     * it (same within a day, no material move). Keeps push and on-demand forecasts deduped identically.
+     */
+    static boolean shouldRecordStanding(ForecastRepository forecasts, String questionId, String forecasterId,
+            ForecastInputs.ForecastValue value, Instant now) {
+        Optional<ForecastEntity> previous = forecasts.findTop1ByQuestionIdAndForecasterIdOrderByMadeAtDescIdDesc(
+                questionId, forecasterId);
+        ForecastInputs.ForecastValue standing = previous.map(f -> new ForecastInputs.ForecastValue(
+                f.getProbability(), null, f.getQuantiles())).orElse(null);
+        return ExternalForecastPolicy.shouldRecord(standing, previous.map(ForecastEntity::getMadeAt).orElse(null),
+                value, now);
     }
 
     /** The external forecaster of a stream, registered on first use. */

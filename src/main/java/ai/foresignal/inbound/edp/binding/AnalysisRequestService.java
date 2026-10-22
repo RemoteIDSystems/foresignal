@@ -57,6 +57,7 @@ public class AnalysisRequestService {
     private final ForecastService ledger;
     private final ForecasterRegistry forecasters;
     private final ForecastRepository forecasts;
+    private final ExternalQuestionLinkRepository links;
     private final JsonMapper json;
     private final Clock clock;
     private final ObjectProvider<ServerSettingsService> server;
@@ -64,13 +65,15 @@ public class AnalysisRequestService {
     /** Creates the service. */
     public AnalysisRequestService(EdpManifestService manifests, EdpHttpClient http,
             AnalysisCorrelationRepository correlations, ForecastService ledger, ForecasterRegistry forecasters,
-            ForecastRepository forecasts, JsonMapper json, Clock clock, ObjectProvider<ServerSettingsService> server) {
+            ForecastRepository forecasts, ExternalQuestionLinkRepository links, JsonMapper json, Clock clock,
+            ObjectProvider<ServerSettingsService> server) {
         this.manifests = manifests;
         this.http = http;
         this.correlations = correlations;
         this.ledger = ledger;
         this.forecasters = forecasters;
         this.forecasts = forecasts;
+        this.links = links;
         this.json = json;
         this.clock = clock;
         this.server = server;
@@ -171,7 +174,21 @@ public class AnalysisRequestService {
         request.put("sourceId", correlation.getSourceId());
         request.put("streamId", correlation.getStreamId());
         inputs.put("analysisRequest", request);
+        // Prompt 159: dedup and stamp lastForecastAt exactly like the push path (ForecastBindingTarget), so on-demand
+        // and pushed forecasts are tracked identically; the forecaster identity and ledger.record terminal are the
+        // same, so scoring is unchanged. A deduped answer still fulfills the correlation (it was answered).
+        if (!ForecastBindingTarget.shouldRecordStanding(forecasts, q.getId(), forecaster.getId(), value, now)) {
+            correlation.setStatus(AnalysisCorrelationEntity.FULFILLED);
+            correlation.setFulfilledAt(now);
+            correlations.save(correlation);
+            return null;
+        }
         ForecastEntity recorded = ledger.record(q, forecaster, value, null, List.of(), List.of(), inputs, null, false);
+        for (ExternalQuestionLinkEntity link : links.findBySourceIdAndStreamIdAndQuestionId(correlation.getSourceId(),
+                correlation.getStreamId(), correlation.getQuestionId())) {
+            link.setLastForecastAt(recorded.getMadeAt());
+            links.save(link);
+        }
         correlation.setStatus(AnalysisCorrelationEntity.FULFILLED);
         correlation.setFulfilledAt(now);
         correlations.save(correlation);

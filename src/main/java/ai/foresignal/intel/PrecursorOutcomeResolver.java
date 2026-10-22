@@ -95,7 +95,12 @@ public class PrecursorOutcomeResolver {
         return null;
     }
 
-    /** The probability the precursor stated when the question opened, read from the finding, or 0.5 when absent. */
+    /**
+     * The raw probability the precursor stated when the question opened, read from the finding, or 0.5 when absent.
+     * The finding's {@code rawProbability} (the uncalibrated shrink-to-base-rate value, prompt 159) is used so the
+     * calibration curve is always fitted on raw scores, never on a probability it already remapped; findings written
+     * before 159 carry only {@code probability} (which was raw then), so that is the fallback.
+     */
     private double probability(ForecastQuestionEntity q) {
         if (q.getFindingId() == null) {
             return 0.5;
@@ -104,7 +109,10 @@ public class PrecursorOutcomeResolver {
         if (finding == null) {
             return 0.5;
         }
-        Object value = finding.getStats().get("probability");
+        Object value = finding.getStats().get("rawProbability");
+        if (!(value instanceof Number)) {
+            value = finding.getStats().get("probability");
+        }
         return value instanceof Number n ? Math.max(0, Math.min(1, n.doubleValue())) : 0.5;
     }
 }

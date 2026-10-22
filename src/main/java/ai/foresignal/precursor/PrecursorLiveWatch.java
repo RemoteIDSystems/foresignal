@@ -13,6 +13,7 @@ import ai.foresignal.analytics.series.SeriesRef;
 import ai.foresignal.evidence.EvidenceService;
 import ai.foresignal.evidence.RecordRef;
 import ai.foresignal.ingest.IngestStateReset;
+import ai.foresignal.intel.IntelCalibrationService;
 import ai.foresignal.intel.IntelVisibility;
 import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.settings.SettingKeys;
@@ -84,6 +85,7 @@ public class PrecursorLiveWatch implements IngestStateReset {
     private final NamedParameterJdbcTemplate jdbc;
     private final ObjectProvider<IntelVisibility> visibility;
     private final ObjectProvider<EvidenceService> evidence;
+    private final ObjectProvider<IntelCalibrationService> calibration;
     private final JsonMapper json;
     private final Clock clock;
     private final ReentrantLock lock = new ReentrantLock();
@@ -92,8 +94,8 @@ public class PrecursorLiveWatch implements IngestStateReset {
     /** Creates the watch. */
     public PrecursorLiveWatch(PrecursorRepository precursors, FindingService findings, SignalFamilyRegistry families,
             SeriesReader reader, AppSettingService settings, SeqClockQuery seqClock, NamedParameterJdbcTemplate jdbc,
-            ObjectProvider<IntelVisibility> visibility, ObjectProvider<EvidenceService> evidence, JsonMapper json,
-            Clock clock) {
+            ObjectProvider<IntelVisibility> visibility, ObjectProvider<EvidenceService> evidence,
+            ObjectProvider<IntelCalibrationService> calibration, JsonMapper json, Clock clock) {
         this.precursors = precursors;
         this.findings = findings;
         this.families = families;
@@ -103,6 +105,7 @@ public class PrecursorLiveWatch implements IngestStateReset {
         this.jdbc = jdbc;
         this.visibility = visibility;
         this.evidence = evidence;
+        this.calibration = calibration;
         this.json = json;
         this.clock = clock;
     }
@@ -273,7 +276,16 @@ public class PrecursorLiveWatch implements IngestStateReset {
     private boolean write(PrecursorEntity p, String ref, String identity, Instant at, Instant expectedFrom,
             Instant expectedTo, List<String> regions, Instant now, long asOfSeq, Double z) {
         double base = p.getBaseRate() == null ? Double.NaN : p.getBaseRate();
-        double probability = PrecursorRules.probability(p.getHits(), p.getNAntecedent(), base);
+        double raw = PrecursorRules.probability(p.getHits(), p.getNAntecedent(), base);
+        // Prompt 159/151: report the SCOPE_PRECURSOR-calibrated probability where a fitted mapping exists (its scope
+        // has at least CORP_MIN resolved precursor outcomes), otherwise the raw shrink-to-base-rate probability
+        // unchanged, exactly as intel-event confidence is remapped. The raw value is kept in stats.rawProbability so
+        // the calibration layer keeps training on raw scores (PrecursorOutcomeResolver reads it), never on an
+        // already-calibrated probability.
+        IntelCalibrationService cal = calibration.getIfAvailable();
+        Double mapped = cal == null ? null : cal.calibrate(IntelCalibrationService.SCOPE_PRECURSOR, raw).orElse(null);
+        boolean isCalibrated = mapped != null;
+        double probability = isCalibrated ? mapped : raw;
         String consequent = PrecursorViews.label(p.getConsequent());
         String antecedent = PrecursorViews.label(p.getAntecedent());
         Map<String, Object> stats = new LinkedHashMap<>();
@@ -281,6 +293,8 @@ public class PrecursorLiveWatch implements IngestStateReset {
         stats.put("expectedFrom", expectedFrom.toString());
         stats.put("expectedTo", expectedTo.toString());
         stats.put("probability", AnalyticsSupport.round(probability));
+        stats.put("rawProbability", AnalyticsSupport.round(raw));
+        stats.put("calibrated", isCalibrated);
         stats.put("hits", p.getHits());
         stats.put("n", p.getNAntecedent());
         stats.put("hitRate", p.getHitRate());
@@ -297,10 +311,14 @@ public class PrecursorLiveWatch implements IngestStateReset {
         baseRate.put("unit", "probability");
         baseRate.put("method", "precursor-base-rate");
         baseRate.put("n", p.getNAntecedent());
-        baseRate.put("text", "By chance alone (circular-shift baseline) the consequent followed in about "
-                + PrecursorText.pct(base) + " of comparable windows; the stated probability "
-                + PrecursorText.pct(probability) + " is the precursor's hit rate shrunk toward that rate by sample"
-                + " size.");
+        baseRate.put("text", isCalibrated
+                ? "By chance alone (circular-shift baseline) the consequent followed in about " + PrecursorText.pct(base)
+                        + " of comparable windows; the precursor's hit rate shrunk toward that rate by sample size is "
+                        + PrecursorText.pct(raw) + ", recalibrated against resolved precursor outcomes to the stated "
+                        + PrecursorText.pct(probability) + "."
+                : "By chance alone (circular-shift baseline) the consequent followed in about " + PrecursorText.pct(base)
+                        + " of comparable windows; the stated probability " + PrecursorText.pct(probability)
+                        + " is the precursor's hit rate shrunk toward that rate by sample size.");
         List<Map<String, Object>> caveats = new ArrayList<>();
         caveats.add(FindingCaveats.notGroundTruth());
         caveats.add(FindingCaveats.of(FindingCaveats.MULTIPLE_TESTS, "Found among " + p.getBatchSize()

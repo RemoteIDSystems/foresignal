@@ -53,13 +53,14 @@ class AnalysisRequestServiceTest {
     private final ForecastService ledger = mock(ForecastService.class);
     private final ForecasterRegistry forecasters = mock(ForecasterRegistry.class);
     private final ForecastRepository forecasts = mock(ForecastRepository.class);
+    private final ExternalQuestionLinkRepository links = mock(ExternalQuestionLinkRepository.class);
     private final JsonMapper json = JsonMapper.builder().build();
 
     @SuppressWarnings("unchecked")
     private final ObjectProvider<ServerSettingsService> server = mock(ObjectProvider.class);
 
     private final AnalysisRequestService service = new AnalysisRequestService(manifests, http, correlations, ledger,
-            forecasters, forecasts, json, clock, server);
+            forecasters, forecasts, links, json, clock, server);
 
     private ForecastQuestionEntity binaryQuestion() {
         ForecastQuestionEntity q = mock(ForecastQuestionEntity.class);
@@ -139,6 +140,59 @@ class AnalysisRequestServiceTest {
         ArgumentCaptor<ForecastQuestionEntity> captor = ArgumentCaptor.forClass(ForecastQuestionEntity.class);
         verify(ledger).record(captor.capture(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
         assertThat(captor.getValue().getId()).isEqualTo(QUESTION);
+    }
+
+    @Test
+    @DisplayName("an on-demand callback is deduped against the standing forecast like a pushed one (159)")
+    void duplicateCallbackIsDeduped() {
+        AnalysisCorrelationEntity correlation = new AnalysisCorrelationEntity("01HQCORRELATION00000000002",
+                "ext-timesfm", "transits", QUESTION, BindingVocabulary.SAME, "P7D", "operator", clock.instant());
+        when(correlations.findById("01HQCORRELATION00000000002")).thenReturn(Optional.of(correlation));
+        when(correlations.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        ForecastQuestionEntity q = binaryQuestion();
+        when(ledger.find(QUESTION)).thenReturn(Optional.of(q));
+        when(forecasters.ensure(anyString(), anyString(), anyString(), anyString(), any()))
+                .thenReturn(mock(ForecasterEntity.class));
+
+        // A standing forecast made moments ago at the same probability: no material change within a day.
+        ForecastEntity standing = mock(ForecastEntity.class);
+        when(standing.getProbability()).thenReturn(0.61);
+        when(standing.getQuantiles()).thenReturn(null);
+        when(standing.getMadeAt()).thenReturn(clock.instant());
+        when(forecasts.findTop1ByQuestionIdAndForecasterIdOrderByMadeAtDescIdDesc(anyString(), anyString()))
+                .thenReturn(Optional.of(standing));
+
+        Optional<ForecastEntity> recorded = service.fulfill("01HQCORRELATION00000000002", 0.61, null);
+
+        assertThat(recorded).isEmpty();
+        verify(ledger, org.mockito.Mockito.never())
+                .record(any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
+        assertThat(correlation.getStatus()).isEqualTo(AnalysisCorrelationEntity.FULFILLED);
+    }
+
+    @Test
+    @DisplayName("a recorded callback stamps lastForecastAt on the question link (159)")
+    void recordedCallbackStampsTheQuestionLink() {
+        AnalysisCorrelationEntity correlation = new AnalysisCorrelationEntity("01HQCORRELATION00000000003",
+                "ext-timesfm", "transits", QUESTION, BindingVocabulary.SAME, "P7D", "operator", clock.instant());
+        when(correlations.findById("01HQCORRELATION00000000003")).thenReturn(Optional.of(correlation));
+        when(correlations.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        ForecastQuestionEntity q = binaryQuestion();
+        when(ledger.find(QUESTION)).thenReturn(Optional.of(q));
+        when(forecasters.ensure(anyString(), anyString(), anyString(), anyString(), any()))
+                .thenReturn(mock(ForecasterEntity.class));
+        ForecastEntity forecast = mock(ForecastEntity.class);
+        Instant madeAt = clock.instant();
+        when(forecast.getMadeAt()).thenReturn(madeAt);
+        when(ledger.record(any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean())).thenReturn(forecast);
+        ExternalQuestionLinkEntity link = mock(ExternalQuestionLinkEntity.class);
+        when(links.findBySourceIdAndStreamIdAndQuestionId("ext-timesfm", "transits", QUESTION))
+                .thenReturn(java.util.List.of(link));
+
+        service.fulfill("01HQCORRELATION00000000003", 0.61, null);
+
+        verify(link).setLastForecastAt(madeAt);
+        verify(links).save(link);
     }
 
     @Test
