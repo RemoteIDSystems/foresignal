@@ -6,6 +6,7 @@ import static org.awaitility.Awaitility.await;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.SourceService;
 import ai.foresignal.source.SourceSettingsUpdate;
+import ai.foresignal.source.adapters.usgs.UsgsEarthquakesAdapter;
 import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.FetchResult;
 import ai.foresignal.source.spi.Mode;
@@ -102,6 +103,23 @@ class CollectorSchedulerIT {
     void startedOnReady() {
         assertThat(scheduler.isRunning()).isTrue();
         assertThat(scheduler.state().running()).isTrue();
+    }
+
+    @Test
+    @DisplayName("seeding leaves every real free source off here, so only the fixtures are scheduled (prompt 146)")
+    void seedingKeepsRealSourcesOffline() {
+        // The test profile seeds every row disabled (foresignal.sources.default-enable=false): with scheduling on, a
+        // free source seeded enabled would be fetched from its real upstream.
+        sources.seedDefaults();
+        assertThat(sources.view(UsgsEarthquakesAdapter.ID).enabled()).isFalse();
+        assertThat(jdbc.queryForObject("select count(*) from source_settings where enabled", Integer.class))
+                .isZero();
+
+        sources.update(POLL, SourceSettingsUpdate.enabled(true));
+
+        await().atMost(Duration.ofSeconds(3)).until(() -> collectPollAdapter.fetchCount() >= 1);
+        assertThat(scheduler.state().scheduledSources()).containsExactly(POLL);
+        assertThat(supervisor.running()).isEmpty();
     }
 
     @Test

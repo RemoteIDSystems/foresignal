@@ -26,6 +26,7 @@ import ai.foresignal.security.TokenService;
 import ai.foresignal.testsupport.security.TestTokens;
 import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.source.adapters.usgs.UsgsEarthquakesAdapter;
+import ai.foresignal.source.adapters.wikistream.WikiStreamAdapter;
 import ai.foresignal.source.spi.FetchResult;
 import ai.foresignal.test.IntegrationTest;
 import ai.foresignal.test.MutableClock;
@@ -35,6 +36,7 @@ import ai.foresignal.testsupport.ingest.TestIngestSources;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -44,6 +46,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -70,6 +73,7 @@ class SourcesControllerIT {
     @Autowired private MockMvc mvc;
     @Autowired private AdminTokenService adminTokens;
     @Autowired private TokenService tokens;
+    @Autowired private JdbcTemplate jdbc;
     @Autowired private AppSettingService settings;
     @Autowired private ControllablePollingAdapter collectPollAdapter;
     @Autowired private ControllablePollingAdapter collectKeyedAdapter;
@@ -680,6 +684,26 @@ class SourcesControllerIT {
     @Nested
     @DisplayName("enableFreeSources")
     class EnableFreeSources {
+
+        /**
+         * Leaves no real free source enabled in the shared database: a scheduling context restarting after this class
+         * reconciles from those rows at once and would reach their upstreams.
+         */
+        @AfterEach
+        void disableEverything() {
+            jdbc.update("update source_settings set enabled = false");
+        }
+
+        @Test
+        @DisplayName("skips wiki-edit-surge, which its descriptor holds off for its bandwidth (prompt 146)")
+        void skipsHeldOffSource() throws Exception {
+            mvc.perform(admin(post("/v1/sources/enable-free")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.enabled").value(hasItem(USGS)))
+                    .andExpect(jsonPath("$.enabled").value(not(hasItem(WikiStreamAdapter.ID))));
+
+            mvc.perform(get("/v1/sources/" + WikiStreamAdapter.ID)).andExpect(jsonPath("$.enabled").value(false));
+        }
 
         @Test
         @DisplayName("enables the free sources, not the keyed one, and answers enabled, count and skipped")

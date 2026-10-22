@@ -134,6 +134,11 @@ import java.util.Set;
  *     distinct observer receiver ids in the flushed records and {@code actual} as the record count (prompt 083: the
  *     distinct mesh gateways heard in the flush window). False by default, so other streams keep reporting no
  *     coverage. Internal, not in the OpenAPI {@code SourceDescriptor}
+ * @param autoEnable true (the default) when this source, if it needs no operator input, may start enabled
+ *     (prompts 145 and 146). False holds a free, runnable source off by default because its cost is bandwidth
+ *     or terms rather than a key: it is seeded disabled and {@code POST /v1/sources/enable-free} skips it, and
+ *     the operator opts in with {@code PUT /v1/sources/{id}}. Internal, not in the OpenAPI
+ *     {@code SourceDescriptor}
  */
 public record SourceDescriptor(
         String id,
@@ -236,7 +241,12 @@ public record SourceDescriptor(
          */
         List<String> upstreamRefFields,
         /** The declared observability per kind (prompt 116), or null for the registry default. */
-        DeclaredObservability observability) {
+        DeclaredObservability observability,
+        /**
+         * Whether this source, when it needs no operator input, may start enabled (prompt 146); false holds it
+         * off by default until the operator opts in.
+         */
+        boolean autoEnable) {
 
     /** The default shrink guard ratio of a complete-set reference dataset (prompt 094). */
     public static final double DEFAULT_MAX_ABSENT_RATIO = 0.2;
@@ -467,6 +477,7 @@ public record SourceDescriptor(
         private String originator;
         private final List<String> upstreamRefFields = new ArrayList<>();
         private DeclaredObservability observability;
+        private boolean autoEnable = true;
         private SourceAccess access;
 
         private Builder(String id) {
@@ -830,6 +841,15 @@ public record SourceDescriptor(
             return this;
         }
 
+        /**
+         * Whether this source may start enabled when it needs no operator input (prompt 146); true unless set.
+         * Set false for a free, runnable source whose bandwidth or terms call for the operator to opt in.
+         */
+        public Builder autoEnable(boolean value) {
+            this.autoEnable = value;
+            return this;
+        }
+
         /** How the source reaches its data. */
         public Builder access(SourceAccess access) {
             this.access = access;
@@ -1024,7 +1044,8 @@ public record SourceDescriptor(
                     reliability != null ? reliability : ReliabilitySeed.seed(id, licence, mode, custom),
                     derivedFrom,
                     upstreamRefFields,
-                    observability);
+                    observability,
+                    autoEnable);
         }
     }
 }

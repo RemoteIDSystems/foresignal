@@ -243,6 +243,8 @@ public final class WikiStreamAdapter implements StreamingAdapter {
                 .param(ParamSpec.optional(MIN_EDITORS_PARAM, ParamType.INTEGER, "Distinct editors in the 15-minute"
                         + " window needed for a surge", 5))
                 .defaultBudget(Budget.of(2, 500, 3000))
+                // Free, but the recentchange firehose reads about 3 GB a day: the operator opts in (prompt 146).
+                .autoEnable(false)
                 .historyTier(HistoryTier.STANDARD)
                 .observedAtMode(ObservedAtMode.UPSTREAM)
                 .ttlAnchor(TtlAnchor.RECEIVED)

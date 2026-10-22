@@ -38,14 +38,16 @@ before prompt 023 keeps its admin token: it moves into that row on the first sta
 
 A source is one upstream feed, such as `usgs-earthquakes`. A **free** built-in source, one that needs no credential,
 has no required parameter and is valid with its defaults, is installed **enabled** and fetches at its default interval
-and budget. A source gated by a required credential or a required parameter is installed **disabled** until you
+and budget. The one exception is **`wiki-edit-surge`**: free, but held off by default for its bandwidth (about 3 GB a
+day), so it is installed disabled until you enable it (prompt 146). Setting `foresignal.sources.default-enable` to
+false (it is true) installs every source disabled instead. A source gated by a required credential or a required parameter is installed **disabled** until you
 configure it; the `local-acars-*` slots, `usgs-water` and `snotel` count as gated too, because each refuses an empty
 configuration (an endpoint, an area or a station list) although no single parameter is marked required. Custom push
 sources and external providers keep their own rules. You can disable any source with `PUT /v1/sources/{id}` and
 `{"enabled": false}`. These defaults apply only when a source's settings row is first created, so an install seeded
 before them keeps every source disabled until you call `POST /v1/sources/enable-free` (admin): it enables every disabled
 built-in free source in one call, is idempotent, and answers `{"enabled": [ids], "count": N, "skipped": M}` (`skipped`
-counts the disabled built-in sources it left alone). It cannot tell a free source you disabled on purpose from one that
+counts the disabled built-in sources it left alone, `wiki-edit-surge` among them). It cannot tell a free source you disabled on purpose from one that
 was never enabled, so disable those again afterwards. Enabling a source is the only thing that makes Foresignal contact
 that upstream; reading or streaming data never triggers a fetch.
 
@@ -5749,9 +5751,10 @@ docker compose exec -T db dropdb -U foresignal restore_drill
   government data **except WastewaterSCAN rows, which are CC BY-NC 4.0**; those are dropped unless
   `includeWastewaterScan` is set, and then each carries `licenceOverride: "CC BY-NC 4.0 (WastewaterSCAN)"`, which
   109 honours.
-- **`wiki-edit-surge` starts enabled (it needs no key) and is bandwidth-heavy.** It holds one connection to the
-  Wikimedia EventStreams `recentchange` firehose and reports **the bytes it reads** against a 3 GB/day budget; the
-  stream is a continuous firehose, so measure your own volume, and disable the source if it is too much. It never stores usernames, edit comments
+- **`wiki-edit-surge` is free but starts disabled: you opt in.** It is the one free source held off by default
+  (prompt 146), because it holds one connection to the Wikimedia EventStreams `recentchange` firehose and reports
+  **the bytes it reads** against a 3 GB/day budget. `POST /v1/sources/enable-free` skips it; enable it with
+  `PUT /v1/sources/wiki-edit-surge` and `{"enabled": true}`, then measure your own volume. It never stores usernames, edit comments
   or parsed comments; the page title is untrusted text and is the only embedded field. A useful rule:
   `phase == rising` in `enter`, with a **6 h cooldown** so a long surge does not repeat.
 
@@ -8939,9 +8942,12 @@ agent operations for the owner; salts are admin; the peer inbox takes a peer ing
 
 Foresignal can watch what people post about the places, topics and entities you track, on the platforms you choose,
 with your own accounts, budgets and judgment. Each platform is an adapter (see the Source Catalog, "Social platforms"):
-nothing is collected from a platform until you enable it, except Bluesky's open Jetstream firehose, which is switched
-on the first time its platform row is created (`foresignal.social.default-enable`, true by default) and stays as you
-set it afterwards. Read each platform's terms before enabling it: the platform view carries a summary and the link,
+the keyed platforms collect nothing until you enable them and store their credentials. Bluesky's two adapters need no
+key, so their sources are free and start enabled like every free source (see "Sources"): the open Jetstream firehose
+(its platform row is also switched on when first created, `foresignal.social.default-enable`, true by default), and
+`bluesky-search`, which searches the social terms of the attention topics that apply to Bluesky on every run although
+its platform row reads `disabled` until you change it. Disable either with `PUT /v1/social/platforms/{platformId}`
+and `{"enabled": false}`, which also disables its source; your choice stands afterwards. Read each platform's terms before enabling it: the platform view carries a summary and the link,
 but the terms are the platform's and they change.
 
 ### Platforms, credentials and budgets
@@ -8971,7 +8977,7 @@ turns it on.
 | Platform | Credentials | Notes |
 |---|---|---|
 | `bluesky-jetstream` | none (`apiToken` only for Network Replay) | on by default; `endpoint` `us-west` uses the west instance |
-| `bluesky-search` | none, or `identifier` and `appPassword` (an app password from Bluesky's settings) | runs the standing topics' terms every run |
+| `bluesky-search` | none, or `identifier` and `appPassword` (an app password from Bluesky's settings) | source on by default (free); runs the standing topics' terms every run |
 | `mastodon` | `accessToken`, or per instance `instanceTokens` as `host=token` pairs | a **user** token with `read:statuses` (streams need it since Mastodon 4.2) and `read:accounts` for followed accounts; list the instances in `options.instances` |
 | `reddit` | `clientId`, `clientSecret`, `contactEmail` | register a script app at `reddit.com/prefs/apps`; Reddit approves Data API access by hand, for non-commercial use |
 | `youtube` | `apiKey` | a Google Cloud project with the YouTube Data API v3 enabled |

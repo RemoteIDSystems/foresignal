@@ -37,6 +37,11 @@ foresignal:
   # start fetching behind another test's back. CollectorSchedulerIT turns it on.
   collector:
     scheduled: false
+  # Seeding creates every source disabled in tests (prompts 145, 146): free sources would otherwise be seeded enabled
+  # into the shared database, and CollectorSchedulerIT's scheduler reconciles from it the moment it starts or its
+  # cached context restarts, reaching real upstreams. SourceServiceIT turns it on to test the default.
+  sources:
+    default-enable: false
   # The notification delivery worker does not poll in tests; they call DeliveryWorker.runOnce().
   notify:
     scheduled: false

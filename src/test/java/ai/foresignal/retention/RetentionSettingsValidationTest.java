@@ -195,7 +195,7 @@ class RetentionSettingsValidationTest {
             ObjectProvider<SourceHealthLookup> health = mock(ObjectProvider.class);
             service = new SourceService(registry, rows, mock(SourceCredentialRepository.class), params,
                     new IngestPolicyCodec(JSON), mock(CredentialCipher.class), mock(ApplicationEventPublisher.class),
-                    Clock.fixed(Instant.parse("2026-06-01T00:00:00Z"), ZoneOffset.UTC), health, resolver);
+                    Clock.fixed(Instant.parse("2026-06-01T00:00:00Z"), ZoneOffset.UTC), health, resolver, true);
         }
 
         @Test

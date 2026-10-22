@@ -32,6 +32,7 @@ import java.util.TreeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.ApplicationEventPublisher;
@@ -81,12 +82,16 @@ public class SourceService implements ApplicationRunner {
     private final Clock clock;
     private final ObjectProvider<SourceHealthLookup> healthLookup;
     private final RetentionResolver retention;
+    private final boolean defaultEnable;
 
     /**
      * Creates the service.
      *
      * @param healthLookup resolved lazily on each view, so health can depend on beans that depend on
      *     this service without a construction cycle
+     * @param defaultEnable whether {@link #seedDefaults} enables the free sources it seeds
+     *     ({@code foresignal.sources.default-enable}, true; false in tests, where cached contexts share one
+     *     database and a running scheduler must never reach a real upstream)
      */
     public SourceService(
             SourceRegistry registry,
@@ -98,7 +103,8 @@ public class SourceService implements ApplicationRunner {
             ApplicationEventPublisher events,
             Clock clock,
             ObjectProvider<SourceHealthLookup> healthLookup,
-            RetentionResolver retention) {
+            RetentionResolver retention,
+            @Value("${foresignal.sources.default-enable:true}") boolean defaultEnable) {
         this.registry = registry;
         this.settings = settings;
         this.credentials = credentials;
@@ -109,6 +115,7 @@ public class SourceService implements ApplicationRunner {
         this.clock = clock;
         this.healthLookup = healthLookup;
         this.retention = retention;
+        this.defaultEnable = defaultEnable;
     }
 
     /** Seeds default settings rows at startup. */
@@ -126,8 +133,11 @@ public class SourceService implements ApplicationRunner {
      * <p>Free sources start enabled (prompt 145): a built-in source that {@linkplain
      * #runsWithoutOperatorInput runs without operator input} (no required credential and no required
      * parameter) is seeded enabled, so a fresh install fetches every free source at its own default
-     * cadence. A source gated by a credential or a required parameter is seeded disabled until it is
-     * configured, and a dynamic source (prompt 024) keeps its own rule. The operator can disable any
+     * cadence, unless its descriptor holds it off ({@link SourceDescriptor#autoEnable()} false, prompt
+     * 146: {@code wiki-edit-surge}, for its bandwidth). A source gated by a credential or a required
+     * parameter is seeded disabled until it is configured, and a dynamic source (prompt 024) keeps its
+     * own rule. With {@code foresignal.sources.default-enable} false (the test profile) every seeded row is
+     * disabled. The operator can disable any
      * source. Only missing rows are created, so this governs fresh installs and newly registered
      * sources; {@link #enableFree()} brings an existing install to the same state.
      *
@@ -148,7 +158,7 @@ public class SourceService implements ApplicationRunner {
                 continue;
             }
             SourceSettingsEntity row = defaultRow(descriptor);
-            if (!registration.dynamic() && runsWithoutOperatorInput(descriptor)) {
+            if (defaultEnable && !registration.dynamic() && startsEnabled(descriptor)) {
                 row.setEnabled(true);
                 enabled++;
             }
@@ -171,6 +181,15 @@ public class SourceService implements ApplicationRunner {
                     orphaned.size(),
                     orphaned);
         }
+    }
+
+    /**
+     * True when {@code descriptor} starts enabled: it {@linkplain #runsWithoutOperatorInput runs without
+     * operator input} and its descriptor does not hold it off ({@link SourceDescriptor#autoEnable()},
+     * prompt 146). The rule for both {@link #seedDefaults} and {@link #enableFree()}.
+     */
+    boolean startsEnabled(SourceDescriptor descriptor) {
+        return descriptor.autoEnable() && runsWithoutOperatorInput(descriptor);
     }
 
     /**
@@ -685,17 +704,18 @@ public class SourceService implements ApplicationRunner {
     }
 
     /**
-     * Enables every currently disabled built-in source that {@linkplain #runsWithoutOperatorInput
-     * runs without operator input} ({@code POST /v1/sources/enable-free}, prompt 145): the one-time
+     * Enables every currently disabled built-in source that {@linkplain #startsEnabled starts
+     * enabled} ({@code POST /v1/sources/enable-free}, prompt 145): the one-time
      * control that brings an install seeded before prompt 145 to the free-sources default without
      * re-seeding, which would discard its configuration.
      *
      * <p>Each source is enabled through {@link #update}, so the same checks run and the same
      * {@link SourceSettingsChangedEvent} is published after commit; the collector picks the sources
      * up within seconds. A source the enable guard still refuses (stored parameters that are not
-     * valid) is left disabled and counted as skipped. Enabled rows, credential- or parameter-gated
-     * sources and dynamic sources (prompt 024: a custom push source or an external provider, which is
-     * enabled by its approval) are left untouched. Idempotent: a second call enables nothing.
+     * valid) is left disabled and counted as skipped, as is a gated source or one its descriptor holds
+     * off ({@link SourceDescriptor#autoEnable()} false, prompt 146). Enabled rows and dynamic sources
+     * (prompt 024: a custom push source or an external provider, which is enabled by its approval) are
+     * left untouched. Idempotent: a second call enables nothing.
      *
      * @return the ids enabled, sorted, and how many disabled built-in sources were left disabled
      */
@@ -710,7 +730,7 @@ public class SourceService implements ApplicationRunner {
             if (registration.dynamic() || enabledRows.contains(id)) {
                 continue;
             }
-            if (!runsWithoutOperatorInput(registration.descriptor())) {
+            if (!startsEnabled(registration.descriptor())) {
                 skipped++;
                 continue;
             }
@@ -735,7 +755,7 @@ public class SourceService implements ApplicationRunner {
      *
      * @param enabled the ids it enabled, sorted
      * @param skipped the disabled built-in sources it left disabled: gated by a credential or a
-     *     required parameter, or refused by the enable guard
+     *     required parameter, held off by their descriptor, or refused by the enable guard
      */
     public record EnableFreeResult(List<String> enabled, int skipped) {
 

@@ -14,16 +14,17 @@ interval, budget), `docs/Runtime-Verification.md` (bring the service up), and `s
 ## The guarantee (and why it holds)
 
 A fresh install is useful at once: **every free source starts enabled and pulling**, each at its own
-default interval and budget. Sources that need a credential or a parameter start **disabled** until
+default interval and budget, except `wiki-edit-surge`, which is held off for its bandwidth until you opt in. Sources that need a credential or a parameter start **disabled** until
 you configure them. You can disable any source, and enable or disable **any subset**, and the
 service runs cleanly on whatever is on. Nothing is thrown because other providers are
 unconfigured. This is designed in, not incidental, and it is provable from four places in the code:
 
 1. **Free sources start enabled; gated sources start disabled** (prompt 145). At startup
    `SourceService.seedDefaults()` inserts one settings row per registered source that has none
-   ([`SourceService.java:139`](../src/main/java/ai/foresignal/source/SourceService.java#L139)).
-   A built-in source is seeded **enabled** (line 152) when it runs with zero operator input
-   (`runsWithoutOperatorInput`, line 188):
+   ([`SourceService.java:149`](../src/main/java/ai/foresignal/source/SourceService.java#L149)).
+   A built-in source is seeded **enabled** (line 162) when it starts enabled (`startsEnabled`,
+   line 191): it runs with zero operator input (`runsWithoutOperatorInput`, line 207), and its
+   descriptor does not hold it off (`autoEnable`, prompt 146). Running with zero input means:
    - it requires no credential;
    - it declares no required parameter;
    - its parameters are valid with nothing supplied. That is the enable guard's own check,
@@ -31,8 +32,13 @@ unconfigured. This is designed in, not incidental, and it is provable from four 
      (a box or locations) and `snotel` (states or stations) disabled, though they declare
      nothing required.
 
+   A descriptor can hold a free source off with `autoEnable(false)` when its cost is bandwidth or
+   terms rather than a key. Only `wiki-edit-surge` does (about 3 GB a day of the Wikimedia
+   `recentchange` firehose); enable it yourself with `PUT /v1/sources/wiki-edit-surge`
+   `{"enabled": true}`.
+
    Every other source is seeded **disabled**
-   ([`defaultRow`, line 205](../src/main/java/ai/foresignal/source/SourceService.java#L205)). So
+   ([`defaultRow`, line 224](../src/main/java/ai/foresignal/source/SourceService.java#L224)). So
    is every custom or external source (prompt 024), which keeps its own rule. Only missing rows
    are created, so this governs a fresh install and any newly registered source. Your settings for
    an existing source are never overwritten.
@@ -41,9 +47,9 @@ unconfigured. This is designed in, not incidental, and it is provable from four 
    prompt 145 started with every source disabled. `POST /v1/sources/enable-free` (admin) enables
    every currently disabled built-in source that passes the same rule. It answers
    `{"enabled": [ids], "count": N, "skipped": M}`, where `skipped` counts the disabled sources it
-   left disabled because they need a credential or a parameter. It leaves every other row as it
+   left disabled because they need a credential or a parameter, or are held off like `wiki-edit-surge`. It leaves every other row as it
    is and is idempotent
-   ([`SourceService.enableFree`, line 703](../src/main/java/ai/foresignal/source/SourceService.java#L703)).
+   ([`SourceService.enableFree`, line 723](../src/main/java/ai/foresignal/source/SourceService.java#L723)).
    Each source is enabled through the normal settings update, so the collector picks it up within
    ~2 s.
 
@@ -329,7 +335,8 @@ None of these affect other sources or the running service.
 
 ## Immediate wins — free sources are already on
 
-Every source that needs no credential and no parameter starts enabled on a fresh install (see
+Every source that needs no credential and no parameter starts enabled on a fresh install, except
+`wiki-edit-surge` (see
 [the guarantee](#the-guarantee-and-why-it-holds)). On an install seeded before that change, turn
 them all on at once:
 
@@ -374,6 +381,6 @@ To satisfy yourself the launch is clean with only a handful of sources on:
 
 ---
 
-*Grounded in the code as of 2026-10-21 (prompt 145). Endpoints cross-checked against the Postman collection and
+*Grounded in the code as of 2026-10-21 (prompt 146). Endpoints cross-checked against the Postman collection and
 the controllers in `src/main/java/ai/foresignal/api`. The per-source authority is
 `docs/Source-Catalog.md`; the full API spec is `docs/OpenAPI.json`.*

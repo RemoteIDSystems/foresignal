@@ -10,8 +10,10 @@ import ai.foresignal.source.adapters.aisstream.AisStreamAdapter;
 import ai.foresignal.source.adapters.hydro.usgswater.UsgsWaterAdapter;
 import ai.foresignal.source.adapters.radio.AprsIsAdapter;
 import ai.foresignal.source.adapters.usgs.UsgsEarthquakesAdapter;
+import ai.foresignal.source.adapters.wikistream.WikiStreamAdapter;
 import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.IngestPolicy;
+import ai.foresignal.source.spi.ParamSpec;
 import ai.foresignal.store.SourceCredentialRepository;
 import ai.foresignal.store.SourceSettingsEntity;
 import ai.foresignal.store.SourceSettingsRepository;
@@ -23,6 +25,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -33,9 +36,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.TestPropertySource;
 
 @IntegrationTest
 @Import({FakeAdapters.class, SourceServiceIT.EventRecorderConfig.class})
+// The free-sources default under test (prompts 145, 146); the test profile seeds every row disabled.
+@TestPropertySource(properties = "foresignal.sources.default-enable=true")
 class SourceServiceIT {
 
     private static final String POLLING = FakeAdapters.POLLING_ID;
@@ -48,6 +54,15 @@ class SourceServiceIT {
     @Autowired private CredentialsAccess credentialsAccess;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private EventRecorder recorder;
+
+    /**
+     * Leaves no real free source enabled in the shared database: a scheduling context restarting after this class
+     * reconciles from those rows at once and would reach their upstreams.
+     */
+    @AfterEach
+    void disableEverything() {
+        jdbc.update("update source_settings set enabled = false");
+    }
 
     @BeforeEach
     void seed() {
@@ -115,6 +130,31 @@ class SourceServiceIT {
             // Keyless and nothing declared required, but its checkParams refuses an empty configuration (a box or
             // locations), so the enable guard would refuse it too: it must not be seeded enabled-but-broken.
             assertThat(enabled(UsgsWaterAdapter.ID)).isFalse();
+        }
+
+        @Test
+        @DisplayName("wiki-edit-surge needs no input but is held off by its descriptor, so it seeds disabled (prompt 146)")
+        void heldOffSourceSeedsDisabled() {
+            var wiki = registry.descriptor(WikiStreamAdapter.ID);
+            // Free and runnable: no credential, nothing required, valid with its defaults ...
+            assertThat(wiki.requiresCredentials()).isFalse();
+            assertThat(wiki.params()).noneMatch(ParamSpec::required);
+            assertThat(service.runsWithoutOperatorInput(wiki)).isTrue();
+            // ... but its ~3 GB a day keeps it off until the operator opts in.
+            assertThat(wiki.autoEnable()).isFalse();
+            assertThat(service.startsEnabled(wiki)).isFalse();
+            assertThat(enabled(WikiStreamAdapter.ID)).isFalse();
+            // A plain free source is unaffected.
+            assertThat(service.startsEnabled(registry.descriptor(UsgsEarthquakesAdapter.ID))).isTrue();
+            assertThat(enabled(UsgsEarthquakesAdapter.ID)).isTrue();
+        }
+
+        @Test
+        @DisplayName("the operator opts a held-off source in with the normal settings update")
+        void heldOffSourceCanBeEnabled() {
+            service.update(WikiStreamAdapter.ID, SourceSettingsUpdate.enabled(true));
+
+            assertThat(enabled(WikiStreamAdapter.ID)).isTrue();
         }
 
         @Test
@@ -697,7 +737,7 @@ class SourceServiceIT {
             assertThat(result.enabled())
                     .contains(POLLING, ParamAdapterConfig.PARAMETERISED_ID, UsgsEarthquakesAdapter.ID)
                     .doesNotContain(NEEDS_CREDENTIALS, NEEDS_PARAM, AisStreamAdapter.ID, AprsIsAdapter.ID,
-                            UsgsWaterAdapter.ID)
+                            UsgsWaterAdapter.ID, WikiStreamAdapter.ID)
                     .isSorted();
             assertThat(result.count()).isEqualTo(result.enabled().size());
             assertThat(result.skipped()).isPositive();
@@ -705,14 +745,16 @@ class SourceServiceIT {
             assertThat(enabled(NEEDS_CREDENTIALS)).isFalse();
             assertThat(enabled(NEEDS_PARAM)).isFalse();
             assertThat(enabled(UsgsWaterAdapter.ID)).isFalse();
+            // Free and runnable, but held off by its descriptor (prompt 146).
+            assertThat(enabled(WikiStreamAdapter.ID)).isFalse();
         }
 
         @Test
-        @DisplayName("counts every disabled, gated built-in source as skipped")
+        @DisplayName("counts every disabled built-in source that does not start enabled as skipped, held-off ones too")
         void countsSkipped() {
             long gated = registry.all().stream()
                     .filter(registration -> !registration.dynamic())
-                    .filter(registration -> !service.runsWithoutOperatorInput(registration.descriptor()))
+                    .filter(registration -> !service.startsEnabled(registration.descriptor()))
                     .count();
 
             assertThat(service.enableFree().skipped()).isEqualTo((int) gated);

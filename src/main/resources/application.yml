@@ -304,6 +304,10 @@ foresignal:
     # Cache-Control max-age of aggregated and raw tiles.
     agg-max-age: 60s
     raw-max-age: 5s
+  # Sources (prompts 145, 146): seeding a source's first settings row enables it when it needs no operator input
+  # and its descriptor does not hold it off (wiki-edit-surge). Off in tests, where cached contexts share one database.
+  sources:
+    default-enable: true
   collector:
     # Poll enabled sources and hold enabled streams open (Architecture §5.1).
     # Off in tests, where cached contexts share one database.

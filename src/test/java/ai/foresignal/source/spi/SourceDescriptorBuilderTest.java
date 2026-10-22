@@ -37,6 +37,14 @@ class SourceDescriptorBuilderTest {
     }
 
     @Test
+    @DisplayName("a descriptor may start enabled unless it says otherwise (prompt 146)")
+    void autoEnableDefaultsToTrue() {
+        assertThat(minimal().autoEnable()).isTrue();
+        assertThat(SourceDescriptor.builder("held-off").kind("thing").autoEnable(false).build().autoEnable())
+                .isFalse();
+    }
+
+    @Test
     @DisplayName("the name defaults to the id, so a descriptor is never nameless")
     void nameDefaultsToId() {
         assertThat(minimal().name()).isEqualTo("usgs-earthquakes");
