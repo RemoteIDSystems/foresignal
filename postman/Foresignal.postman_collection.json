@@ -27685,6 +27685,104 @@
           }
         },
         {
+          "name": "Corroboration policy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/intel/corroboration",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "intel",
+                "corroboration"
+              ],
+              "query": []
+            },
+            "description": "The tunable \"promote to a trusted signal\" gates (154): the event evidence-quality thresholds (with an optional cross-modality requirement), the situation activation rule, and the automatic corroboration of lone events. Every gate defaults to its historical constant.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getIntelCorroboration`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Replace the corroboration policy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/intel/corroboration",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "intel",
+                "corroboration"
+              ],
+              "query": []
+            },
+            "description": "Replaces the corroboration policy; members left out return to their defaults.\n\n**Scope:** `admin`.\n\noperationId: `updateIntelCorroboration`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "List correlation recipes",
           "event": [
             {

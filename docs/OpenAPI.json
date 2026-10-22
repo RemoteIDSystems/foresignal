@@ -16,6 +16,11 @@
       {
         "version": "1.3.0",
         "date": "2026-10-22",
+        "note": "154: timely corroboration. The hardcoded \"promote to a trusted signal\" gates are now the tunable corroboration policy: adds getIntelCorroboration (GET /v1/intel/corroboration) and updateIntelCorroboration (PUT, admin) with the IntelCorroboration schema — event evidence-quality thresholds (strongFamilies / strongGroups / moderateFamilies), a situation activation rule (minFamilies / minGroups), and the automatic corroboration of lone events (enabled, withinKm, window, maxMembers). A sensing modality (sensor / imagery / official / social / media / crowd / operator / derived), derived from the originator class, is now a distinct independence dimension: eventQuality.requireModalities and a recipe's activateAt.modalities require a candidate to span several modalities before it is strong or active. A lone agent/analyst/operator event now searches for independent corroborating records near it in space and time on creation and auto-activates once independent evidence groups accumulate. Additive: no operation or schema was renamed or removed."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-22",
         "note": "153: de-hype & partisan vetting. Claim gains a neutral restatement (the de-hyped who/what/where/when core, an LLM proposal kept only when it re-validates against the lexicon, gazetteer and entity index, otherwise synthesized deterministically), a deterministic LLM-free framingScore with a framingLabel band (neutral / charged / inflammatory) measuring how the most central post is told rather than whether it is true, and a reputation member (new ClaimReputation schema: outlet factuality, lean, state-affiliation) when the source resolves to a rated outlet — folded into sourceReliability as news reliability already grades news. The claim-extraction-system prompt template is now 1.1.0 (it emits the restatement while staying an extractor, never an arbiter); 1.0.0 stays bundled. Additive: no operation or schema was renamed or removed."
       },
       {
@@ -37180,6 +37185,124 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "151",
+        "x-foresignal-status": "implemented",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/intel/corroboration": {
+      "get": {
+        "tags": [
+          "Intelligence"
+        ],
+        "operationId": "getIntelCorroboration",
+        "summary": "Corroboration policy",
+        "description": "The tunable \"promote to a trusted signal\" gates (154): the event evidence-quality thresholds (with an optional cross-modality requirement), the situation activation rule, and the automatic corroboration of lone events. Every gate defaults to its historical constant.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "responses": {
+          "200": {
+            "description": "The corroboration policy in force",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelCorroboration"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-prompt": "154",
+        "x-foresignal-status": "implemented",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Intelligence"
+        ],
+        "operationId": "updateIntelCorroboration",
+        "summary": "Replace the corroboration policy",
+        "description": "Replaces the corroboration policy; members left out return to their defaults.\n\n**Scope:** `admin`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntelCorroboration"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The corroboration policy in force",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelCorroboration"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (VALIDATION_FAILED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "154",
         "x-foresignal-status": "implemented",
         "security": [
           {
@@ -118848,6 +118971,11 @@
               },
               "confidence": {
                 "type": "number"
+              },
+              "modalities": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "The distinct sensing modalities activation also requires (154), or absent to not require any"
               }
             }
           },
@@ -121998,6 +122126,78 @@
           "version",
           "summary"
         ]
+      },
+      "IntelCorroboration": {
+        "type": "object",
+        "description": "The tunable corroboration policy (154): the \"promote to a trusted signal\" gates, each defaulting to its historical constant. A PUT replaces the document; members left out return to their defaults.",
+        "properties": {
+          "eventQuality": {
+            "type": "object",
+            "description": "The thresholds for an intelligence event's evidence-quality label",
+            "properties": {
+              "strongFamilies": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Distinct signal families a strong event needs (default 3)"
+              },
+              "strongGroups": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Independent evidence groups a strong event needs (default 2)"
+              },
+              "moderateFamilies": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Distinct signal families a moderate event needs (default 2)"
+              },
+              "requireModalities": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Distinct sensing modalities a strong event also needs, or 0 to not require any (default 0). A modality is sensor, imagery, official, social, media, crowd, operator or derived, derived from the originator class."
+              }
+            }
+          },
+          "situationActivation": {
+            "type": "object",
+            "description": "The rule that moves a situation from emerging to active (118)",
+            "properties": {
+              "minFamilies": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Distinct signal families activation needs (default 2)"
+              },
+              "minGroups": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Independent evidence groups activation needs (default 2)"
+              }
+            }
+          },
+          "autoCorroborate": {
+            "type": "object",
+            "description": "Automatic corroboration of a lone agent/analyst/operator event on creation: it searches for independent observations near it in space and time and attaches them, so it surfaces already corroborated and can auto-activate",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Whether a lone event searches for corroboration on creation (default true)"
+              },
+              "withinKm": {
+                "type": "number",
+                "minimum": 0,
+                "description": "The search radius around the event's members, in kilometers (default 50)"
+              },
+              "window": {
+                "type": "string",
+                "description": "The time window before and after the members' observation span, an ISO-8601 or shorthand duration (default PT24H)"
+              },
+              "maxMembers": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "The most corroborating members one search attaches, one per independent originator root (default 10)"
+              }
+            }
+          }
+        }
       },
       "IntelCalibration": {
         "type": "object",

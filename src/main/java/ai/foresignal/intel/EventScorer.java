@@ -54,20 +54,42 @@ public final class EventScorer {
      * @param evidenceGroup the member's evidence group key (116 {@code EvidenceService.GroupKey.key()}), or null
      *     when it shares no group with any other member
      * @param originatorRoot the originator root independence is judged by, or null for the source id
+     * @param modality the sensing modality (prompt 154, {@link Modality}), or null when it was not resolved
      */
     public record MemberView(String signalFamily, double weight, String sourceId, boolean sourceHealthy,
-            Double reliability, String evidenceGroup, String originatorRoot) {
+            Double reliability, String evidenceGroup, String originatorRoot, String modality) {
 
         /** A member without evidence identity (each member its own group, independence by source). */
         public MemberView(String signalFamily, double weight, String sourceId, boolean sourceHealthy,
                 Double reliability) {
-            this(signalFamily, weight, sourceId, sourceHealthy, reliability, null, null);
+            this(signalFamily, weight, sourceId, sourceHealthy, reliability, null, null, null);
+        }
+
+        /** A member with evidence identity but no resolved modality (keeps the pre-154 shape). */
+        public MemberView(String signalFamily, double weight, String sourceId, boolean sourceHealthy,
+                Double reliability, String evidenceGroup, String originatorRoot) {
+            this(signalFamily, weight, sourceId, sourceHealthy, reliability, evidenceGroup, originatorRoot, null);
         }
 
         /** The root independence is judged by. */
         String root() {
             return originatorRoot != null ? originatorRoot : sourceId;
         }
+    }
+
+    /**
+     * The evidence-quality thresholds (prompt 154), tunable through the corroboration policy so the "promote to
+     * trusted" gate is config, not a constant.
+     *
+     * @param strongFamilies the distinct signal families {@code strong} needs
+     * @param strongGroups the independent evidence groups {@code strong} needs
+     * @param moderateFamilies the distinct signal families {@code moderate} needs
+     * @param requireModalities the distinct sensing modalities {@code strong} also needs, or 0 to not require any
+     */
+    public record Quality(int strongFamilies, int strongGroups, int moderateFamilies, int requireModalities) {
+
+        /** The historical defaults (prompt 116): strong = 3 families from 2 independent groups; moderate = 2. */
+        public static final Quality DEFAULT = new Quality(3, 2, 2, 0);
     }
 
     /**
@@ -79,8 +101,14 @@ public final class EventScorer {
      */
     public record Score(double confidence, String label, String evidenceQuality) {}
 
-    /** Scores an event's supporting members and active contradictions. */
+    /** Scores an event's supporting members and active contradictions with the default quality thresholds. */
     public static Score score(List<MemberView> supporting, int contradictions) {
+        return score(supporting, contradictions, Quality.DEFAULT);
+    }
+
+    /** Scores an event's supporting members and active contradictions under the given quality thresholds. */
+    public static Score score(List<MemberView> supporting, int contradictions, Quality quality) {
+        Quality q = quality == null ? Quality.DEFAULT : quality;
         boolean anyHealthy = false;
         for (MemberView member : supporting) {
             anyHealthy = anyHealthy || member.sourceHealthy();
@@ -88,10 +116,14 @@ public final class EventScorer {
         List<MemberView> independent = strongestPerGroup(supporting);
         Map<String, Double> bestByFamily = new LinkedHashMap<>();
         Map<String, java.util.Set<String>> rootsByFamily = new LinkedHashMap<>();
+        java.util.Set<String> modalities = new java.util.LinkedHashSet<>();
         for (MemberView member : independent) {
             bestByFamily.merge(member.signalFamily(), contribution(member), Math::max);
             rootsByFamily.computeIfAbsent(member.signalFamily(), k -> new java.util.LinkedHashSet<>())
                     .add(member.root());
+            if (member.modality() != null) {
+                modalities.add(member.modality());
+            }
         }
         double product = 1;
         for (double contribution : bestByFamily.values()) {
@@ -101,8 +133,8 @@ public final class EventScorer {
         confidence *= Math.pow(1 - CONTRADICTION_PENALTY, Math.max(0, contradictions));
         confidence = Math.max(0, Math.min(CAP, confidence));
         String label = label(confidence);
-        String quality = quality(bestByFamily, rootsByFamily, supporting, anyHealthy);
-        return new Score(confidence, label, quality);
+        String quality1 = quality(bestByFamily, rootsByFamily, modalities.size(), supporting, anyHealthy, q);
+        return new Score(confidence, label, quality1);
     }
 
     /**
@@ -142,20 +174,23 @@ public final class EventScorer {
     }
 
     /**
-     * strong: ≥ 3 families from ≥ 2 independent evidence groups (distinct originator roots); moderate: 2
-     * families; weak: 1 family; insufficient: members only from sources currently unhealthy.
+     * strong: ≥ {@code strongFamilies} families from ≥ {@code strongGroups} independent evidence groups (distinct
+     * originator roots), and — when {@code requireModalities} &gt; 0 — ≥ that many distinct sensing modalities;
+     * moderate: ≥ {@code moderateFamilies} families; weak: 1 family; insufficient: members only from sources
+     * currently unhealthy. The thresholds come from the corroboration policy (prompt 154).
      */
     static String quality(Map<String, Double> bestByFamily, Map<String, java.util.Set<String>> rootsByFamily,
-            List<MemberView> supporting, boolean anyHealthy) {
+            int modalities, List<MemberView> supporting, boolean anyHealthy, Quality q) {
         if (supporting.isEmpty() || !anyHealthy) {
             return "insufficient";
         }
         int families = bestByFamily.size();
         int independent = independentSources(rootsByFamily);
-        if (families >= 3 && independent >= 2) {
+        boolean enoughModalities = q.requireModalities() <= 0 || modalities >= q.requireModalities();
+        if (families >= q.strongFamilies() && independent >= q.strongGroups() && enoughModalities) {
             return "strong";
         }
-        if (families >= 2) {
+        if (families >= q.moderateFamilies()) {
             return "moderate";
         }
         return "weak";

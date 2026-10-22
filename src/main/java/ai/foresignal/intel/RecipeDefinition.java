@@ -38,8 +38,14 @@ public record RecipeDefinition(
             String sameRegion, String sameEntity, Duration before, Duration after, String role, String signalFamily,
             double weight) {}
 
-    /** The activation threshold. */
-    public record ActivateAt(int members, Double confidence) {}
+    /**
+     * The activation threshold.
+     *
+     * @param members the supporting members needed
+     * @param confidence the confidence needed, or null
+     * @param modalities the distinct sensing modalities needed (prompt 154), or null to not require any
+     */
+    public record ActivateAt(int members, Double confidence, Integer modalities) {}
 
     /** A contradiction. */
     public record Contradiction(List<String> kinds, List<String> sources, List<String> healthOf, Double withinKm,
@@ -81,7 +87,8 @@ public record RecipeDefinition(
                 joins,
                 integer(map.get("minMembers"), 2),
                 integer(map.get("minSignalFamilies"), 1),
-                new ActivateAt(integer(activate.get("members"), 2), number(activate.get("confidence"))),
+                new ActivateAt(integer(activate.get("members"), 2), number(activate.get("confidence")),
+                        activate.get("modalities") instanceof Number m ? m.intValue() : null),
                 contradictions,
                 severityMap,
                 new Dedup(dedup.isEmpty() ? 0 : number(dedup.get("radiusKm")) == null ? 0 : number(dedup.get("radiusKm")),

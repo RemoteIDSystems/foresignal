@@ -51,9 +51,23 @@ public final class SituationLifecycle {
 
     private SituationLifecycle() {}
 
-    /** True when the members meet the activation rule: ≥ 2 signal families and ≥ 2 independent evidence groups. */
+    /** The default activation rule: ≥ 2 signal families and ≥ 2 independent evidence groups. */
+    public static final int DEFAULT_MIN_FAMILIES = 2;
+
+    /** The default activation rule's independent-evidence-group count. */
+    public static final int DEFAULT_MIN_GROUPS = 2;
+
+    /** True when the members meet the default activation rule: ≥ 2 signal families and ≥ 2 independent groups. */
     public static boolean meetsActivation(int coreFamilies, int independentGroups) {
-        return coreFamilies >= 2 && independentGroups >= 2;
+        return meetsActivation(coreFamilies, independentGroups, DEFAULT_MIN_FAMILIES, DEFAULT_MIN_GROUPS);
+    }
+
+    /**
+     * True when the members meet the activation rule under the given thresholds (prompt 154: tunable through the
+     * corroboration policy): at least {@code minFamilies} signal families and {@code minGroups} independent groups.
+     */
+    public static boolean meetsActivation(int coreFamilies, int independentGroups, int minFamilies, int minGroups) {
+        return coreFamilies >= minFamilies && independentGroups >= minGroups;
     }
 
     /**
@@ -66,13 +80,30 @@ public final class SituationLifecycle {
      * @return the new status (unchanged for {@code closed})
      */
     public static String afterMembers(String current, int coreFamilies, int independentGroups, boolean newCoreMember) {
+        return afterMembers(current, coreFamilies, independentGroups, newCoreMember, DEFAULT_MIN_FAMILIES,
+                DEFAULT_MIN_GROUPS);
+    }
+
+    /**
+     * The status after a membership change under the given activation thresholds (prompt 154).
+     *
+     * @param current the stored status
+     * @param coreFamilies distinct signal families of the core members
+     * @param independentGroups independent evidence groups of the core members
+     * @param newCoreMember true when the change added a core member
+     * @param minFamilies the signal families activation needs
+     * @param minGroups the independent evidence groups activation needs
+     * @return the new status (unchanged for {@code closed})
+     */
+    public static String afterMembers(String current, int coreFamilies, int independentGroups, boolean newCoreMember,
+            int minFamilies, int minGroups) {
         if (CLOSED.equals(current)) {
             return CLOSED;
         }
         if (DORMANT.equals(current)) {
             return newCoreMember ? ACTIVE : DORMANT;
         }
-        if (EMERGING.equals(current) && meetsActivation(coreFamilies, independentGroups)) {
+        if (EMERGING.equals(current) && meetsActivation(coreFamilies, independentGroups, minFamilies, minGroups)) {
             return ACTIVE;
         }
         return current;
@@ -115,7 +146,7 @@ public final class SituationLifecycle {
                 + independentGroups + (independentGroups == 1 ? " independent evidence group" : " independent evidence groups");
         return switch (status) {
             case ACTIVE -> overridden ? counts + "; activated by an operator" : counts;
-            case EMERGING -> counts + "; activation needs 2 families and 2 independent groups";
+            case EMERGING -> counts + "; activation needs more signal families and independent evidence groups";
             case DORMANT -> counts + "; no new core member within the dormancy window";
             default -> counts + "; closed (final)";
         };

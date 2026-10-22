@@ -63,12 +63,14 @@ public class IntelController {
     private final CorrelationEngine engine;
     private final IntelVisibility visibility;
     private final IntelCalibrationService calibration;
+    private final ai.foresignal.intel.IntelCorroborationService corroboration;
     private final tools.jackson.databind.json.JsonMapper json;
 
     /** Creates the controller. */
     public IntelController(IntelEventService events, IntelEventMapper mapper, CorrelationRecipeRepository recipes,
             RecipeRegistry registry, CorrelationEngine engine, IntelVisibility visibility,
-            IntelCalibrationService calibration, tools.jackson.databind.json.JsonMapper json) {
+            IntelCalibrationService calibration, ai.foresignal.intel.IntelCorroborationService corroboration,
+            tools.jackson.databind.json.JsonMapper json) {
         this.events = events;
         this.mapper = mapper;
         this.recipes = recipes;
@@ -76,6 +78,7 @@ public class IntelController {
         this.engine = engine;
         this.visibility = visibility;
         this.calibration = calibration;
+        this.corroboration = corroboration;
         this.json = json;
     }
 
@@ -186,6 +189,25 @@ public class IntelController {
     @Operation(operationId = "getIntelCalibrationScope", tags = "Intelligence")
     public Map<String, Object> getIntelCalibrationScope(@PathVariable String scope) {
         return calibration.reliability(scope);
+    }
+
+    /**
+     * {@code getIntelCorroboration}: the tunable corroboration policy (prompt 154) — the event evidence-quality
+     * thresholds, the situation activation rule, the optional cross-modality requirement, and the automatic
+     * corroboration of lone events. Every gate defaults to the historical constant.
+     */
+    @GetMapping("/corroboration")
+    @RestrictedRead
+    @Operation(operationId = "getIntelCorroboration", tags = "Intelligence")
+    public Map<String, Object> getIntelCorroboration() {
+        return corroboration.get();
+    }
+
+    /** {@code updateIntelCorroboration}: replaces the corroboration policy; members left out return to defaults. */
+    @PutMapping("/corroboration")
+    @Operation(operationId = "updateIntelCorroboration", tags = "Intelligence")
+    public Map<String, Object> updateIntelCorroboration(@RequestBody JsonNode body) {
+        return corroboration.put(body);
     }
 
     /** {@code listIntelRecipes}. */

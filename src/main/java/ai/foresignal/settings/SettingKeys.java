@@ -158,6 +158,13 @@ public final class SettingKeys {
     public static final String INTEL_ORIGINATORS = "intel.originators";
 
     /**
+     * The corroboration policy (prompt 154): the tunable "promote to trusted" gates — event evidence-quality
+     * thresholds, situation activation, the cross-modality requirement, and automatic corroboration of lone
+     * events — as the {@code IntelCorroboration} document ({@link ai.foresignal.intel.IntelCorroborationService}).
+     */
+    public static final String INTEL_CORROBORATION = "intel.corroboration";
+
+    /**
      * True once the five example attention topics were created (prompt 117), so an operator who deletes them does
      * not see them come back on the next start.
      */

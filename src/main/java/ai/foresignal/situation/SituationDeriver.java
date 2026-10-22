@@ -23,9 +23,18 @@ public class SituationDeriver {
 
     private final CorroborationRollup corroboration;
 
+    /** The corroboration policy (prompt 154): the tunable situation activation rule, or null for the defaults. */
+    private ai.foresignal.intel.IntelCorroborationService policy;
+
     /** Creates the deriver. */
     public SituationDeriver(CorroborationRollup corroboration) {
         this.corroboration = corroboration;
+    }
+
+    /** Installs the tunable corroboration policy (prompt 154). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setPolicy(ai.foresignal.intel.IntelCorroborationService policy) {
+        this.policy = policy;
     }
 
     /**
@@ -120,8 +129,10 @@ public class SituationDeriver {
         situation.setPrivateSituation(anyPrivate);
         String derivedSeverity = severity == null ? "info" : severity;
         situation.setSeverity(situation.getSeverityOverride() != null ? situation.getSeverityOverride() : derivedSeverity);
+        ai.foresignal.intel.IntelCorroborationService.Activation activation = policy == null
+                ? ai.foresignal.intel.IntelCorroborationService.Activation.DEFAULT : policy.situationActivation();
         situation.setStatus(SituationLifecycle.afterMembers(situation.getStatus(), families.size(),
-                rollup.independentGroups(), newCoreMember));
+                rollup.independentGroups(), newCoreMember, activation.minFamilies(), activation.minGroups()));
         situation.setCorroborationShare(rollup.share());
         situation.setMemberCount(members.size());
         situation.setSignalFamilies(families);

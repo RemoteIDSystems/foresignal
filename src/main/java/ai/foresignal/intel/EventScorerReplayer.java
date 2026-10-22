@@ -40,7 +40,8 @@ public class EventScorerReplayer implements ManifestReplayer {
         Object members = manifest.config().get("members");
         List<EventScorer.MemberView> views = EventScorerViews.fromMaps(members instanceof List<?> l ? l : List.of());
         Object contradictions = manifest.config().get("contradictions");
-        EventScorer.Score score = EventScorer.score(views, contradictions instanceof Number n ? n.intValue() : 0);
+        EventScorer.Score score = EventScorer.score(views, contradictions instanceof Number n ? n.intValue() : 0,
+                quality(manifest.config().get("quality")));
         List<Map<String, Object>> stored = jdbc.queryForList("SELECT confidence, confidence_label, evidence_quality"
                 + " FROM intelligence_event WHERE manifest_id = ? LIMIT 1", manifest.id());
         if (stored.isEmpty()) {
@@ -56,5 +57,24 @@ public class EventScorerReplayer implements ManifestReplayer {
         after.put("label", score.label());
         after.put("evidenceQuality", score.evidenceQuality());
         return ManifestReplayCheck.compare(before, after);
+    }
+
+    /**
+     * The quality thresholds a manifest recorded (prompt 154), or the defaults when absent (every manifest
+     * written before 154, which used the default thresholds, stays replayable).
+     */
+    private static EventScorer.Quality quality(Object recorded) {
+        if (!(recorded instanceof Map<?, ?> m)) {
+            return EventScorer.Quality.DEFAULT;
+        }
+        EventScorer.Quality d = EventScorer.Quality.DEFAULT;
+        return new EventScorer.Quality(intValue(m.get("strongFamilies"), d.strongFamilies()),
+                intValue(m.get("strongGroups"), d.strongGroups()),
+                intValue(m.get("moderateFamilies"), d.moderateFamilies()),
+                intValue(m.get("requireModalities"), d.requireModalities()));
+    }
+
+    private static int intValue(Object v, int fallback) {
+        return v instanceof Number n ? n.intValue() : fallback;
     }
 }

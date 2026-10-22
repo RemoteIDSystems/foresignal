@@ -22,6 +22,7 @@ public final class EventScorerViews {
         out.put("reliability", view.reliability());
         out.put("evidenceGroup", view.evidenceGroup());
         out.put("originatorRoot", view.originatorRoot());
+        out.put("modality", view.modality());
         return out;
     }
 
@@ -34,6 +35,7 @@ public final class EventScorerViews {
                 Boolean.TRUE.equals(m.get("sourceHealthy")),
                 m.get("reliability") instanceof Number r ? r.doubleValue() : null,
                 m.get("evidenceGroup") == null ? null : String.valueOf(m.get("evidenceGroup")),
-                m.get("originatorRoot") == null ? null : String.valueOf(m.get("originatorRoot")))).toList();
+                m.get("originatorRoot") == null ? null : String.valueOf(m.get("originatorRoot")),
+                m.get("modality") == null ? null : String.valueOf(m.get("modality")))).toList();
     }
 }

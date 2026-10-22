@@ -145,6 +145,14 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.evidence.EvidenceService evidence;
 
+    /** The originator registry (prompt 154), to resolve a member's sensing modality, or null. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.evidence.OriginatorRegistry originators;
+
+    /** The corroboration policy (prompt 154): tunable quality thresholds, or null (the defaults then apply). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private IntelCorroborationService corroboration;
+
     /** Analysis manifests (prompt 116), or null. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.manifest.ManifestService manifests;
@@ -618,10 +626,11 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
             lines.add(line);
             anyPrivate = anyPrivate || visibility.isPrivateSource(line.sourceId());
         }
-        EventScorer.Score score = EventScorer.score(views, contradictions.count());
+        EventScorer.Score score = EventScorer.score(views, contradictions.count(), qualityThresholds());
         Geometry geom = geometry(geometries);
         boolean active = views.size() >= recipe.activateAt().members()
-                && (recipe.activateAt().confidence() == null || score.confidence() >= recipe.activateAt().confidence());
+                && (recipe.activateAt().confidence() == null || score.confidence() >= recipe.activateAt().confidence())
+                && meetsModalities(views, recipe.activateAt().modalities());
         String severity = recipe.severityMap().getOrDefault("default", "warning");
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("fromSeq", from);
@@ -857,7 +866,8 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
         List<IntelEventMemberEntity> all = members.findByEventIdOrderByIdAsc(event.getId());
         long supporting = all.stream().filter(m -> !"contradicting".equals(m.getRole())).count();
         boolean active = supporting >= recipe.activateAt().members() && (recipe.activateAt().confidence() == null
-                || (event.getConfidence() != null && event.getConfidence() >= recipe.activateAt().confidence()));
+                || (event.getConfidence() != null && event.getConfidence() >= recipe.activateAt().confidence()))
+                && membersSpanModalities(all, recipe.activateAt().modalities());
         if (active) {
             event.setStatus("active");
         } else if (created || reopened) {
@@ -1283,7 +1293,54 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
                 evidenceKeys.get(ai.foresignal.evidence.EvidenceService.recordKey(row.sourceId(), row.externalId()));
         return new EventScorer.MemberView(family, weight, row.sourceId(), healthy,
                 memberReliability(row.sourceId(), row.externalId()),
-                key == null || !key.linked() ? null : key.key(), key == null ? null : key.root());
+                key == null || !key.linked() ? null : key.key(), key == null ? null : key.root(),
+                modalityOf(row.sourceId()));
+    }
+
+    /** The sensing modality of a source (prompt 154), or null when the originator registry is absent. */
+    private String modalityOf(String sourceId) {
+        if (originators == null || sourceId == null) {
+            return null;
+        }
+        try {
+            return Modality.of(originators.resolve(sourceId).originatorClass());
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    /** The event quality thresholds in force: the corroboration policy's, else the defaults. */
+    private EventScorer.Quality qualityThresholds() {
+        return corroboration == null ? EventScorer.Quality.DEFAULT : corroboration.quality();
+    }
+
+    /** True when the candidate's members span at least {@code required} distinct sensing modalities (0 = off). */
+    private static boolean meetsModalities(List<EventScorer.MemberView> views, Integer required) {
+        if (required == null || required <= 0) {
+            return true;
+        }
+        Set<String> modalities = new LinkedHashSet<>();
+        for (EventScorer.MemberView view : views) {
+            if (view.modality() != null) {
+                modalities.add(view.modality());
+            }
+        }
+        return modalities.size() >= required;
+    }
+
+    /** True when the event's supporting members span at least {@code required} distinct modalities (0 = off). */
+    private boolean membersSpanModalities(List<IntelEventMemberEntity> all, Integer required) {
+        if (required == null || required <= 0) {
+            return true;
+        }
+        Set<String> modalities = new LinkedHashSet<>();
+        for (IntelEventMemberEntity member : all) {
+            if (!"contradicting".equals(member.getRole())) {
+                modalities.add(modalityOf(member.getSourceId()));
+            }
+        }
+        modalities.remove(null);
+        return modalities.size() >= required;
     }
 
     /** The evidence identity of every row (prompt 116), in one query; empty without the evidence service. */

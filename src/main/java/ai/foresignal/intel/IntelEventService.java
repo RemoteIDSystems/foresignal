@@ -221,8 +221,13 @@ public class IntelEventService {
             added += member.added() ? 1 : 0;
         }
         event.setPrivateEvent(anyPrivate);
+        // Prompt 154: gather independent corroboration for a lone event before the first score, so it surfaces
+        // already corroborated and an analyst-proposed event can auto-activate the moment groups accumulate.
+        int autoAdded = autoCorroborate(event, actor, now, privateAccess);
         rescore(event);
-        IntelEventLogEntity entry = log(event, now, actor, "created", Map.of("members", added));
+        autoActivate(event);
+        IntelEventLogEntity entry = log(event, now, actor, "created",
+                Map.of("members", added, "autoCorroborated", autoAdded));
         events.save(event);
         bus.publish(new IntelEvent(entry.getId(), event.getId(), IntelEvent.CREATED, event.getVersion(),
                 IntelEventMapper.summary(event), null));
@@ -529,13 +534,14 @@ public class IntelEventService {
                     member.getWeight() == null ? EventScorer.DEFAULT_RELIABILITY : member.getWeight(),
                     member.getSourceId(), healthy, memberReliability(member.getSourceId(), member.getExternalId()),
                     key == null || !key.linked() ? null : key.key(),
-                    key == null ? null : key.root());
+                    key == null ? null : key.root(), modalityOf(member.getSourceId()));
             views.add(view);
             refs.add(ai.foresignal.evidence.RecordRef.format(member.getSourceId(), member.getExternalId(),
                     member.getSeq()));
             memberViews.add(EventScorerViews.toMap(view));
         }
-        EventScorer.Score score = EventScorer.score(views, contradictions);
+        EventScorer.Quality quality = qualityThresholds();
+        EventScorer.Score score = EventScorer.score(views, contradictions, quality);
         event.setRawConfidence(score.confidence());
         // Prompt 151: report the calibrated probability where a fitted mapping exists (enough resolved outcomes),
         // otherwise the raw EventScorer score unchanged. calibrated is true only where a mapping is applied.
@@ -552,7 +558,7 @@ public class IntelEventService {
         }
         event.setEvidenceQuality(score.evidenceQuality());
         event.setConfidenceMethod(EventScorer.METHOD);
-        event.setManifestId(scoreManifest(event, memberViews, contradictions, refs));
+        event.setManifestId(scoreManifest(event, memberViews, contradictions, refs, quality));
     }
 
     /** The evidence identity of the members (prompt 116); empty without the evidence layer. */
@@ -577,7 +583,7 @@ public class IntelEventService {
      * member refs as inputs. {@code EventScorerReplayer} re-scores from it.
      */
     private String scoreManifest(IntelligenceEventEntity event, List<Map<String, Object>> memberViews,
-            int contradictions, List<String> refs) {
+            int contradictions, List<String> refs, EventScorer.Quality quality) {
         if (manifests == null) {
             return event.getManifestId();
         }
@@ -588,6 +594,13 @@ public class IntelEventService {
         config.put("contradictions", contradictions);
         config.put("cap", EventScorer.CAP);
         config.put("contradictionPenalty", EventScorer.CONTRADICTION_PENALTY);
+        // Prompt 154: record the tunable quality thresholds so a replay reproduces the evidence-quality label.
+        Map<String, Object> qualityConfig = new java.util.LinkedHashMap<>();
+        qualityConfig.put("strongFamilies", quality.strongFamilies());
+        qualityConfig.put("strongGroups", quality.strongGroups());
+        qualityConfig.put("moderateFamilies", quality.moderateFamilies());
+        qualityConfig.put("requireModalities", quality.requireModalities());
+        config.put("quality", qualityConfig);
         Object toSeq = event.getDetector() != null && event.getDetector().get("params") instanceof Map<?, ?> params
                 ? params.get("toSeq") : null;
         try {
@@ -610,6 +623,134 @@ public class IntelEventService {
     /** Confidence calibration (prompt 151), or null when the calibration layer is absent. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private IntelCalibrationService calibration;
+
+    /** The originator registry (prompt 154), to resolve a member's sensing modality, or null. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.evidence.OriginatorRegistry originators;
+
+    /** The corroboration policy (prompt 154): tunable quality thresholds and auto-corroboration, or null. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private IntelCorroborationService corroboration;
+
+    /** Automatic corroboration of lone events (prompt 154), or null when the search is unavailable. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private AutoCorroboration autoCorroboration;
+
+    /** The event evidence-quality thresholds in force: the corroboration policy's, else the defaults. */
+    private EventScorer.Quality qualityThresholds() {
+        return corroboration == null ? EventScorer.Quality.DEFAULT : corroboration.quality();
+    }
+
+    /** The sensing modality of a source (prompt 154), or null when the originator registry is absent. */
+    private String modalityOf(String sourceId) {
+        if (originators == null || sourceId == null) {
+            return null;
+        }
+        try {
+            return Modality.of(originators.resolve(sourceId).originatorClass());
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Searches for independent records that corroborate a freshly created lone event and attaches them as
+     * supporting members (prompt 154), so the event gathers corroboration at once instead of waiting for someone
+     * to pin members by hand. A no-op when the search, the policy or the evidence layer is absent, or the policy
+     * disables it.
+     *
+     * @return how many corroborating members were attached
+     */
+    private int autoCorroborate(IntelligenceEventEntity event, String actor, Instant now, boolean privateAccess) {
+        if (autoCorroboration == null || corroboration == null) {
+            return 0;
+        }
+        IntelCorroborationService.AutoCorroborate policy = corroboration.autoCorroborate();
+        if (!policy.enabled()) {
+            return 0;
+        }
+        List<Long> seqs = new ArrayList<>();
+        for (IntelEventMemberEntity member : members.findByEventIdOrderByIdAsc(event.getId())) {
+            if (!"contradicting".equals(member.getRole()) && "record".equals(member.getMemberType())) {
+                seqs.add(member.getSeq());
+            }
+        }
+        List<AutoCorroboration.Corroborator> found;
+        try {
+            found = autoCorroboration.corroborators(seqs,
+                    new AutoCorroboration.Spec(policy.withinKm(), policy.window(), policy.maxMembers()));
+        } catch (RuntimeException e) {
+            // Auto-corroboration is advisory; a search failure never fails the create.
+            return 0;
+        }
+        int attached = 0;
+        for (AutoCorroboration.Corroborator c : found) {
+            boolean privateSource = visibility.isPrivateSource(c.sourceId());
+            if (privateSource && !privateAccess) {
+                continue;
+            }
+            if (!members.findByEventIdAndMemberTypeAndSourceIdAndExternalIdAndSeq(event.getId(), "record",
+                    c.sourceId(), c.externalId(), c.seq()).isEmpty()) {
+                continue;
+            }
+            IntelEventMemberEntity member = new IntelEventMemberEntity(event.getId(), "record", c.sourceId(),
+                    c.externalId(), c.seq());
+            member.setRole("supporting");
+            member.setVersion(c.version());
+            member.setKind(c.kind());
+            member.setObservedAt(c.observedAt());
+            member.setSignalFamily(SignalFamilies.forKind(c.kind()));
+            member.setWeight(RecipeRegistry.SEED_WEIGHT);
+            member.setJoinReason(Map.of("clause", "auto-corroboration"));
+            member.setSnapshot(SnapshotCaps.cap(AutoCorroboration.snapshot(c), SnapshotCaps.MEMBER_MAX_BYTES, json));
+            member.setAddedAt(now);
+            member.setAddedBy("auto-corroboration");
+            members.save(member);
+            if (privateSource) {
+                event.setPrivateEvent(true);
+            }
+            attached++;
+        }
+        if (attached > 0) {
+            members.flush();
+        }
+        return attached;
+    }
+
+    /**
+     * Auto-upgrades an emerging event to active (prompt 154) once its supporting members span enough signal
+     * families and independent evidence groups — the corroboration policy's activation rule, the same gate a
+     * situation uses. Operator and agent events are already active; only an analyst-proposed event starts
+     * emerging, and this is what lets it promote itself as independent corroboration arrives.
+     */
+    private void autoActivate(IntelligenceEventEntity event) {
+        if (!"emerging".equals(event.getStatus()) || corroboration == null || evidence == null) {
+            return;
+        }
+        List<IntelEventMemberEntity> all = members.findByEventIdOrderByIdAsc(event.getId());
+        Set<String> families = new java.util.LinkedHashSet<>();
+        List<String> refs = new ArrayList<>();
+        for (IntelEventMemberEntity member : all) {
+            if ("contradicting".equals(member.getRole())) {
+                continue;
+            }
+            if (member.getSignalFamily() != null) {
+                families.add(member.getSignalFamily());
+            }
+            refs.add(ai.foresignal.evidence.RecordRef.format(member.getSourceId(), member.getExternalId(),
+                    member.getSeq()));
+        }
+        int independent;
+        try {
+            independent = evidence.independentCount(refs);
+        } catch (RuntimeException e) {
+            return;
+        }
+        IntelCorroborationService.Activation rule = corroboration.situationActivation();
+        if (families.size() >= rule.minFamilies() && independent >= rule.minGroups()) {
+            event.setStatus("active");
+        }
+    }
 
     /**
      * The active contradictions of an event: one per recipe contradiction clause that added contradicting

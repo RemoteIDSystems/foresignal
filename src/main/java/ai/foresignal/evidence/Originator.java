@@ -9,8 +9,8 @@ import java.util.Set;
  * each other, and an originator that {@link #aggregates()} another republishes it.
  *
  * @param id the originator id, e.g. {@code usgs-anss}
- * @param originatorClass {@code sensor-network}, {@code agency}, {@code aggregator}, {@code media},
- *     {@code crowd}, {@code operator}, {@code derived} or {@code social}
+ * @param originatorClass {@code sensor-network}, {@code imagery}, {@code agency}, {@code aggregator},
+ *     {@code media}, {@code crowd}, {@code operator}, {@code derived} or {@code social}
  * @param independenceGroup the group sources are judged in, or null for the originator alone
  * @param aggregates originator ids this originator republishes
  * @param notes free text, or null
@@ -20,8 +20,8 @@ public record Originator(String id, String originatorClass, String independenceG
         String notes, List<String> domains) {
 
     /** The classes an originator may have (the spec's {@code Originator.class} enum). */
-    public static final Set<String> CLASSES = Set.of("sensor-network", "agency", "aggregator", "media", "crowd",
-            "operator", "derived", "social");
+    public static final Set<String> CLASSES = Set.of("sensor-network", "imagery", "agency", "aggregator", "media",
+            "crowd", "operator", "derived", "social");
 
     /** The class of an originator nothing declares. */
     public static final String DEFAULT_CLASS = "aggregator";
