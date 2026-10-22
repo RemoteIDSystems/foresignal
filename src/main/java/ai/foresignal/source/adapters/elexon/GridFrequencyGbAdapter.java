@@ -54,7 +54,7 @@ public class GridFrequencyGbAdapter implements PollingAdapter {
      */
     static final Duration MAX_WINDOW = Duration.ofHours(1);
 
-    /** The licence. */
+    /** The license. */
     public static final String LICENCE = "BMRS Data Licence";
 
     private final String baseUrl;

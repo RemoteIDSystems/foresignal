@@ -131,7 +131,7 @@ public final class GeoNetVolcanoAdapter implements PollingAdapter {
     private static SourceDescriptor buildDescriptor() {
         return SourceDescriptor.builder(ID)
                 .name("GeoNet volcano alert levels")
-                .description("New Zealand volcano alert levels (0–5) and aviation colour codes from GeoNet. "
+                .description("New Zealand volcano alert levels (0–5) and aviation color codes from GeoNet. "
                         + "GeoNet publishes no update time, so the time base is RECEIVED.")
                 .kind(KIND)
                 .mode(Mode.POLLING)

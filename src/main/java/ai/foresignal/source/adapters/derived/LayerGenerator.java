@@ -156,7 +156,7 @@ public abstract class LayerGenerator implements DerivedGenerator, StatefulGenera
 
     /**
      * A standard layer descriptor builder: DERIVED, STANDARD, no TTL, 60 s
-     * cadence, {@code zeroResultsNormal}, with the given licence and the {@code maxEntities} parameter.
+     * cadence, {@code zeroResultsNormal}, with the given license and the {@code maxEntities} parameter.
      */
     protected static SourceDescriptor.Builder layer(String id, String name, String description, String licence,
             String kind) {

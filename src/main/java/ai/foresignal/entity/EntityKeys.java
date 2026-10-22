@@ -10,20 +10,20 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 /**
- * The deterministic keys of the entity registry, and their normalisation (prompt 098). Pure: no
+ * The deterministic keys of the entity registry, and their normalization (prompt 098). Pure: no
  * I/O, no fuzzy matching.
  *
  * <p>Key types and their role and default confidence:
  *
  * <table>
  *   <caption>Keys</caption>
- *   <tr><th>Type</th><th>Role</th><th>Normalisation</th><th>Confidence</th></tr>
+ *   <tr><th>Type</th><th>Role</th><th>Normalization</th><th>Confidence</th></tr>
  *   <tr><td>{@code airframe}</td><td>ANCHOR</td><td>{@code MFR:SERIAL}, upper, trimmed</td><td>1.0</td></tr>
  *   <tr><td>{@code icao24}</td><td>WEAK</td><td>6 lowercase hex, rejects {@code 000000}/{@code ffffff}/TIS-B</td><td>0.9</td></tr>
  *   <tr><td>{@code registration}</td><td>WEAK</td><td>upper, spaces and hyphens removed</td><td>0.9</td></tr>
  *   <tr><td>{@code imo}</td><td>ANCHOR</td><td>7 digits with a check digit</td><td>1.0</td></tr>
  *   <tr><td>{@code mmsi}</td><td>WEAK</td><td>9 digits, ship class only</td><td>0.8</td></tr>
- *   <tr><td>{@code norad}</td><td>ANCHOR</td><td>positive catalogue number</td><td>1.0</td></tr>
+ *   <tr><td>{@code norad}</td><td>ANCHOR</td><td>positive catalog number</td><td>1.0</td></tr>
  *   <tr><td>{@code cospar}</td><td>ANCHOR</td><td>{@code YYYY-NNNP{PP}}</td><td>1.0</td></tr>
  *   <tr><td>{@code callsign}</td><td>WEAK</td><td>upper, domain-prefixed {@code air:}/{@code sea:}/{@code ham:}</td><td>0.5/0.7/0.9</td></tr>
  * </table>
@@ -176,7 +176,7 @@ public final class EntityKeys {
         return first >= '2' && first <= '7';
     }
 
-    /** A positive integer catalogue number. */
+    /** A positive integer catalog number. */
     static String norad(String value) {
         String digits = value.strip();
         if (!digits.matches("[0-9]{1,9}")) {

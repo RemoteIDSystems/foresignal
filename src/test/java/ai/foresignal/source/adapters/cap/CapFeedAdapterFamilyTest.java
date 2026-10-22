@@ -58,7 +58,7 @@ class CapFeedAdapterFamilyTest extends WireMockSupport {
         harness = new AdapterHttpHarness(jdbc, jsonMapper, properties, install, new MutableClock(NOW),
                 Budget.of(1000, 100_000));
         CapFeed feed = new CapFeed("cap-test-xx", "XX", "Test Authority", URI.create(baseUrl() + PATH),
-                "atom-index", List.of("en-GB"), "test licence", URI.create("https://example.org/terms"),
+                "atom-index", List.of("en-GB"), "test license", URI.create("https://example.org/terms"),
                 "2026-10-14", "test feed");
         adapter = new CapFeedAdapter(feed);
         reset();
@@ -199,7 +199,7 @@ class CapFeedAdapterFamilyTest extends WireMockSupport {
         AdapterHttpHarness tight = new AdapterHttpHarness(jdbc, jsonMapper, properties, install,
                 new MutableClock(NOW), Budget.of(3, 1_000));
         CapFeed feed = new CapFeed("cap-budget-xx", "XX", "Budget Authority", URI.create(baseUrl() + PATH),
-                "atom-index", List.of("en-GB"), "test licence", URI.create("https://example.org/terms"),
+                "atom-index", List.of("en-GB"), "test license", URI.create("https://example.org/terms"),
                 "2026-10-14", "test feed");
         CapFeedAdapter budgeted = new CapFeedAdapter(feed);
         tight.reset(budgeted.id(), "cap:index", "cap:seen", "cap:skippedTests", "cap:includeTests",

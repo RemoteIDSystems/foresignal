@@ -9,9 +9,9 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
- * Modelled residential population aggregated to an H3 cell (prompt 101): {@code population_h3(h3,
+ * Modeled residential population aggregated to an H3 cell (prompt 101): {@code population_h3(h3,
  * res, pop, epoch)}. Imported from a GHSL GHS-POP GeoTIFF; every pixel's population is aggregated to
- * the H3 res-5 and res-7 cell containing its centre. This is a model, never a casualty estimate.
+ * the H3 res-5 and res-7 cell containing its center. This is a model, never a casualty estimate.
  */
 @Entity
 @Table(name = "population_h3")

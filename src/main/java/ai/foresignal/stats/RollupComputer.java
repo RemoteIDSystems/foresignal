@@ -65,8 +65,8 @@ public final class RollupComputer {
      * @param sourceId the source
      * @param kind the kind
      * @param cell the cell, {@link H3Cells#NO_CELL} or {@link H3Cells#ALL_CELLS}
-     * @param lon the cell centre longitude, or null
-     * @param lat the cell centre latitude, or null
+     * @param lon the cell center longitude, or null
+     * @param lat the cell center latitude, or null
      * @param versions counted versions
      * @param entities distinct entities
      * @param firsts FIRST and REAPPEAR

@@ -29,7 +29,7 @@ import tools.jackson.databind.JsonNode;
  * doubling tolerances until it fits {@value #MAX_VERTICES} vertices. Everything carries SRID 4326.
  *
  * <p>{@link #aoiCoverPct} projects the footprint and the AOI onto a local Lambert azimuthal equal-area
- * plane centred on the AOI and divides the intersection's area by the AOI's: on an equal-area projection
+ * plane centered on the AOI and divides the intersection's area by the AOI's: on an equal-area projection
  * the plane ratio is the spherical area ratio.
  */
 final class Footprints {
@@ -46,14 +46,14 @@ final class Footprints {
     /** At most this many doublings are tried (0.0005° · 2^24 is far beyond any extent). */
     private static final int MAX_STEPS = 24;
 
-    /** A planar factory for the equal-area projection (degrees become kilometres). */
+    /** A planar factory for the equal-area projection (degrees become kilometers). */
     private static final GeometryFactory PLANE = new GeometryFactory(new PrecisionModel(), 0);
 
     /** Reads a footprint only; {@code Geo.fromGeoJson} would reject a large one before simplification. */
     private static final GeoJsonReader READER = new GeoJsonReader(READ_MAX_VERTICES,
             GeoJsonReader.DEFAULT_MAX_COLLECTION_DEPTH);
 
-    /** WGS84 mean radius, metres, for the equal-area projection. */
+    /** WGS84 mean radius, meters, for the equal-area projection. */
     private static final double R = 6_371_008.8;
 
     private Footprints() {}
@@ -99,19 +99,19 @@ final class Footprints {
 
     /**
      * The footprint's intersection with the AOI as a percentage of the AOI's area, in a local equal-area
-     * projection centred on the AOI (0 to 100, integer).
+     * projection centered on the AOI (0 to 100, integer).
      */
     static int aoiCoverPct(Geometry footprint, Geometry aoi) {
         if (footprint == null || aoi == null || aoi.isEmpty()) {
             return 0;
         }
-        Point centre = centre(aoi);
-        Geometry aoiPlane = project(aoi, centre.getX(), centre.getY());
+        Point center = center(aoi);
+        Geometry aoiPlane = project(aoi, center.getX(), center.getY());
         double aoiArea = aoiPlane.getArea();
         if (aoiArea <= 0) {
             return 0;
         }
-        Geometry footprintPlane = project(footprint, centre.getX(), centre.getY());
+        Geometry footprintPlane = project(footprint, center.getX(), center.getY());
         double intersection;
         try {
             intersection = aoiPlane.intersection(footprintPlane).getArea();
@@ -125,8 +125,8 @@ final class Footprints {
         return (int) Math.max(0, Math.min(100, pct));
     }
 
-    /** The centroid of the AOI's largest polygon, so a split AOI is centred on a real part. */
-    private static Point centre(Geometry aoi) {
+    /** The centroid of the AOI's largest polygon, so a split AOI is centered on a real part. */
+    private static Point center(Geometry aoi) {
         Geometry best = null;
         double bestArea = -1;
         for (int i = 0; i < aoi.getNumGeometries(); i++) {
@@ -190,7 +190,7 @@ final class Footprints {
         return ring.getFactory().createLinearRing(coordinates);
     }
 
-    /** The footprint (and any geometry) projected onto the equal-area plane centred on {@code lon0/lat0}. */
+    /** The footprint (and any geometry) projected onto the equal-area plane centered on {@code lon0/lat0}. */
     private static Geometry project(Geometry geometry, double lon0, double lat0) {
         double sinLat0 = Math.sin(Math.toRadians(lat0));
         double cosLat0 = Math.cos(Math.toRadians(lat0));
@@ -226,7 +226,7 @@ final class Footprints {
         return PLANE.createLinearRing(coordinates);
     }
 
-    /** Spherical Lambert azimuthal equal-area (Snyder eq. 24-1..24-3) centred on lon0/lat0. */
+    /** Spherical Lambert azimuthal equal-area (Snyder eq. 24-1..24-3) centered on lon0/lat0. */
     private static Coordinate projectCoordinate(Coordinate c, double sinLat0, double cosLat0, double lon0Rad) {
         double lat = Math.toRadians(c.y);
         double dLon = Math.toRadians(c.x) - lon0Rad;

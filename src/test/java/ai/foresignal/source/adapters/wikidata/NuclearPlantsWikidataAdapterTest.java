@@ -76,7 +76,7 @@ class NuclearPlantsWikidataAdapterTest extends WireMockSupport {
     }
 
     @Test
-    @DisplayName("a 429 honours Retry-After and enters backoff")
+    @DisplayName("a 429 honors Retry-After and enters backoff")
     void throttled() {
         WIREMOCK.stubFor(WireMock.post(urlPathEqualTo(path())).willReturn(aResponse().withStatus(429)
                 .withHeader("Retry-After", "30")));

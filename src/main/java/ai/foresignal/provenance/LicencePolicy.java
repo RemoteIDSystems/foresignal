@@ -7,14 +7,14 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * A client's licence policy (prompt 109): an immutable set of flags that excludes records by licence.
+ * A client's license policy (prompt 109): an immutable set of flags that excludes records by license.
  * The flags are {@code no-nc} (exclude {@code commercialUse != ALLOWED}), {@code no-sa} (exclude
  * share-alike) and {@code redistributable} (exclude {@code redistribution != ALLOWED}). A token's
  * policy is a floor: a request may add flags but never remove the token's.
  *
- * @param noNc exclude non-commercial-restricted licences
- * @param noSa exclude share-alike licences
- * @param redistributable exclude licences that forbid redistribution
+ * @param noNc exclude non-commercial-restricted licenses
+ * @param noSa exclude share-alike licenses
+ * @param redistributable exclude licenses that forbid redistribution
  */
 public record LicencePolicy(boolean noNc, boolean noSa, boolean redistributable) {
 

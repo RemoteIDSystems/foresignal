@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 /**
  * {@code derived-rendezvous} (prompt 099): two vessels within 0.5 nm, both below 3 knots, for at
  * least 15 minutes, at least 5 nm from any World Port Index port, excluding tugs, pilots, SAR craft
- * and port tenders (AIS ship types 31, 32, 50–53, 55). Neighbours are found through about-1-nm grid
+ * and port tenders (AIS ship types 31, 32, 50–53, 55). Neighbors are found through about-1-nm grid
  * buckets, so the search never runs over the whole fleet.
  *
  * <p>{@code externalId} is {@code {a}:{b}} with the two vessel keys sorted. The record is tombstoned
@@ -136,7 +136,7 @@ public class RendezvousGenerator extends LayerGenerator {
         Map<String, List<Observation>> grid = bucket(eligible);
         Set<String> met = new java.util.HashSet<>();
         for (Observation a : eligible) {
-            for (Observation b : neighbours(grid, a)) {
+            for (Observation b : neighbors(grid, a)) {
                 if (a.externalId().compareTo(b.externalId()) >= 0) {
                     continue;
                 }
@@ -209,7 +209,7 @@ public class RendezvousGenerator extends LayerGenerator {
     }
 
     /** The observations in the eight cells around {@code a}. */
-    static List<Observation> neighbours(Map<String, List<Observation>> grid, Observation a) {
+    static List<Observation> neighbors(Map<String, List<Observation>> grid, Observation a) {
         List<Observation> out = new ArrayList<>();
         int cx = (int) Math.floor(a.longitude() / CELL_KM);
         int cy = (int) Math.floor(a.latitude() / CELL_KM);

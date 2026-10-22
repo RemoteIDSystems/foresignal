@@ -240,7 +240,7 @@ public class PackService {
         }
         if (exports.cancelRequested(id)) {
             exports.clearCancel(id);
-            exports.finish(job, ExportJobEntity.CANCELLED, null);
+            exports.finish(job, ExportJobEntity.CANCELED, null);
             return;
         }
         if (restriction == null) {
@@ -289,7 +289,7 @@ public class PackService {
         } catch (ExportJobService.CanceledExport e) {
             ExportJobService.deleteQuietly(dir);
             exports.clearCancel(id);
-            exports.finish(job, ExportJobEntity.CANCELLED, null);
+            exports.finish(job, ExportJobEntity.CANCELED, null);
         } catch (IOException | RuntimeException e) {
             log.warn("Pack {} failed", id, e);
             ExportJobService.deleteQuietly(dir);

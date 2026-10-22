@@ -218,7 +218,7 @@ class MilestoneE2EIT extends WireMockSupport {
         assertThat(send("PUT", "/v1/sources/" + ID, "{\"enabled\":true}", null).status()).isEqualTo(401);
         assertThat(send("POST", "/v1/triggers", "{\"name\":\"x\"}", null).status()).isEqualTo(401);
 
-        // ---- 2. The source is listed, disabled, STANDARD, with a licence.
+        // ---- 2. The source is listed, disabled, STANDARD, with a license.
         JsonNode source = find(get("/v1/sources").body(), "id", ID);
         assertThat(source).as("usgs-earthquakes in /v1/sources").isNotNull();
         assertThat(source.get("enabled").asBoolean()).isFalse();

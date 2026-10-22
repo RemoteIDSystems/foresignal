@@ -17,7 +17,7 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 
-/** {@code get_intel_event} (read, prompt 101): the full event, evidence first, speculation labelled. */
+/** {@code get_intel_event} (read, prompt 101): the full event, evidence first, speculation labeled. */
 @RestrictedRead
 @Component
 public class GetIntelEventTool implements ForesignalMcpTool {
@@ -52,7 +52,7 @@ public class GetIntelEventTool implements ForesignalMcpTool {
     public String description() {
         return UNTRUSTED_NOTE + " Returns one intelligence event with its evidence (pinned members), its"
                 + " inference (type, severity, confidence, geometry) and its speculation (alternatives, any LLM"
-                + " narrative, always labelled). Cite members; confidence is not calibrated.";
+                + " narrative, always labeled). Cite members; confidence is not calibrated.";
     }
 
     @Override

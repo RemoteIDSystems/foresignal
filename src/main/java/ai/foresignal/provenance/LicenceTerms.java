@@ -3,7 +3,7 @@ package ai.foresignal.provenance;
 import java.util.Locale;
 
 /**
- * The structured licence terms of a source or a fetched version (prompt 109; Weather-Imagery-Design
+ * The structured license terms of a source or a fetched version (prompt 109; Weather-Imagery-Design
  * §2.3, Core-Data-Model §14). The {@code id} is an SPDX id where one exists (for example
  * {@code CC-BY-4.0}, {@code ODbL-1.0}) or a slug for provider-specific terms
  * ({@code us-gov-public-domain}, {@code opensky-terms}, {@code unknown}).
@@ -15,11 +15,11 @@ import java.util.Locale;
  * @param id the SPDX id or slug
  * @param name a human name
  * @param commercialUse whether commercial use is allowed
- * @param shareAlike true for a copyleft/share-alike licence
+ * @param shareAlike true for a copyleft/share-alike license
  * @param attributionRequired true when attribution must be shown
  * @param redistribution whether records may be redistributed
  * @param attributionText the attribution line to display
- * @param termsUrl the licence or terms URL, or null
+ * @param termsUrl the license or terms URL, or null
  */
 public record LicenceTerms(String id, String name, CommercialUse commercialUse, boolean shareAlike,
         boolean attributionRequired, Redistribution redistribution, String attributionText, String termsUrl) {
@@ -117,7 +117,7 @@ public record LicenceTerms(String id, String name, CommercialUse commercialUse, 
         return rank * 2 + (attributionRequired ? 1 : 0);
     }
 
-    /** The policy flag {@code no-nc} excludes this licence. */
+    /** The policy flag {@code no-nc} excludes this license. */
     public boolean nonCommercial() {
         return effectiveCommercial() != CommercialUse.ALLOWED;
     }

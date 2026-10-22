@@ -9,7 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Behaviour of the Duration module itself, independent of Spring wiring. */
+/** Behavior of the Duration module itself, independent of Spring wiring. */
 class DurationShorthandModuleTest {
 
     private final JsonMapper mapper =

@@ -9,7 +9,7 @@ This is how Foresignal handles fringe and specialist inputs (web maps, scrapers,
 ## 1. Concepts
 
 - **Provider:** a program that produces data. It either **pushes** batches to Foresignal or exposes an **items endpoint** that Foresignal **pulls**.
-- **External source:** the provider as registered in one Foresignal instance (`ext-{id}`). It is a custom source (024) whose descriptor is built from the manifest, so versioning, history, SSE, search, triggers, retention, licences and egress all apply.
+- **External source:** the provider as registered in one Foresignal instance (`ext-{id}`). It is a custom source (024) whose descriptor is built from the manifest, so versioning, history, SSE, search, triggers, retention, licenses and egress all apply.
 - **Stream:** one typed flow of items inside a source. Each stream has a **mode**:
   - **`layer`:** geolocated features or events that form a map layer (current state, history, tiles, live updates, geofence rules). Works as soon as the source is approved.
   - **`atomic`:** discrete inputs with no predetermined use (a value, a document, a forecast, an event without a fixed role). They are stored and searchable, and the operator **binds** them to where they should be used: a series, hypothesis evidence, an indicator, a forecast question, a place, a situation or a chronicle (138).
@@ -125,7 +125,7 @@ Batch fields: `protocol` (`foresignal-edp/1.N`, not above the manifest's minor),
 | Type | Extra fields | Becomes |
 |---|---|---|
 | `feature` | `geometry` (§3.3), `eventTime?`, `validUntil?` | a record (current state of an entity: a vessel, a camera, a checkpoint) |
-| `event` | `eventTime`, `geometry?`, `upstreamEventId?` | a record of a discrete occurrence; `upstreamEventId` lets evidence matching recognise the same event from other sources |
+| `event` | `eventTime`, `geometry?`, `upstreamEventId?` | a record of a discrete occurrence; `upstreamEventId` lets evidence matching recognize the same event from other sources |
 | `observation` | `seriesKey`, `t` (one of `YYYY`, `YYYY-Qn`, `YYYY-MM`, `YYYY-Www` (ISO week), `YYYY-MM-DD`, or an RFC 3339 timestamp with offset; periods are UTC intervals `[start, end)`, and one series keeps one granularity), `value` (number or null), `knownAt?` (when the value became knowable; defaults to `observedAt`; see §3.5), `unit?` | a series point of series `{kind}/{seriesKey}` |
 | `document` | `documentType` (`social-post`, `article`, `report`, `transcript`, `note`), `text` (≤ 20,000 chars), `title?`, `url?`, `author?` (`{handle, name, accountId}`), `language?`, `publishedAt?`, `about?` (Foresignal object references or URLs), `media?` (`[{type, url, thumbUrl?}]`, links only), `geometry?`, `engagement?` | a document record; social posts and articles can be bound into the social (135–137) and news (133) pipelines |
 | `forecast` | `question` (`{externalId, title, closeTime?, resolutionCriteria?}`) or `questionRef` (a Foresignal question id) — one is required; `probability` (0–1) or `quantiles` (`p05`, `p25`, `p50`, `p75`, `p95` required, `p10`, `p90` optional; non-decreasing) — at least one is required; `madeAt` | an external forecast; bound to ledger questions it is scored like any forecaster (122) |
@@ -154,11 +154,11 @@ Only two things remove an entity: an explicit `delete` item, or its **absence fr
 
 ### 3.3 Geometry
 
-GeoJSON geometries (RFC 7946): `Point`, `MultiPoint`, `LineString`, `MultiLineString`, `Polygon`, `MultiPolygon` (no `GeometryCollection`), WGS84 longitude −180…180 and latitude −90…90, two or three coordinates (the third is altitude in metres), closed linear rings with at least four positions, and a type compatible with the stream's declared `geometry`. Invalid geometry rejects the item.
+GeoJSON geometries (RFC 7946): `Point`, `MultiPoint`, `LineString`, `MultiLineString`, `Polygon`, `MultiPolygon` (no `GeometryCollection`), WGS84 longitude −180…180 and latitude −90…90, two or three coordinates (the third is altitude in meters), closed linear rings with at least four positions, and a type compatible with the stream's declared `geometry`. Invalid geometry rejects the item.
 
 ### 3.4 Origin and independence
 
-The **provider** (the EDP source that delivered an item) is never evidence of independence. Independence is counted by **originator**: the item's `origin.originator` when given, else the manifest's `source.originator`; `aggregates` and `origin.derivedFrom` mark re-publication, and `origin.upstreamId` (or `upstreamEventId` on events) lets Foresignal recognise the same underlying observation arriving through several providers or built-in sources, so it forms one evidence group (Intelligence-Design §4.5). Five providers relaying one report count once; one provider relaying five independent sensors counts five times only if it labels each item's origin.
+The **provider** (the EDP source that delivered an item) is never evidence of independence. Independence is counted by **originator**: the item's `origin.originator` when given, else the manifest's `source.originator`; `aggregates` and `origin.derivedFrom` mark re-publication, and `origin.upstreamId` (or `upstreamEventId` on events) lets Foresignal recognize the same underlying observation arriving through several providers or built-in sources, so it forms one evidence group (Intelligence-Design §4.5). Five providers relaying one report count once; one provider relaying five independent sensors counts five times only if it labels each item's origin.
 
 ### 3.5 Time
 
@@ -182,7 +182,7 @@ Providers that can search on demand declare `transport.search`. Foresignal calls
 
 Three ways:
 
-1. **Operator registers** (`POST /v1/external/sources`, admin) with the manifest or its URL. Foresignal validates it, shows the access block, licence and streams, and creates the source `pending` (or `active` with `approve: true`). The response carries the ingest key once.
+1. **Operator registers** (`POST /v1/external/sources`, admin) with the manifest or its URL. Foresignal validates it, shows the access block, license and streams, and creates the source `pending` (or `active` with `approve: true`). The response carries the ingest key once.
 2. **Provider self-registers** with a one-time **registration token** (`fsx_…`) the operator created (`POST /v1/external/registration-tokens`): `POST /v1/external/register` with the manifest. The source is created `pending`; the operator approves it.
 3. **Manifest updates:** the provider (with its ingest key) or the operator can `PUT /v1/external/sources/{id}/manifest`. Additive changes (new optional fields, presentation, descriptions) apply at once; changes to streams, kinds or schemas return the source to `pending` until approved.
 
@@ -209,7 +209,7 @@ Every stream, layer or atomic, is also a record kind, so trigger rules, search, 
 
 - Start from the JSON Schemas and the conformance fixtures (`src/test/resources/edp/conformance/`), and validate with `POST /v1/external/validate` or `foresignal edp validate` (CLI, prompt 141).
 - Provider libraries for Python and TypeScript (prompt 141) handle batching, NDJSON, cursors, retries and the pull endpoint.
-- Keep each provider in its own repository. Foresignal's catalogue lists provider ideas (`docs/Source-Catalog.md` "External provider ideas") but ships none of them.
+- Keep each provider in its own repository. Foresignal's catalog lists provider ideas (`docs/Source-Catalog.md` "External provider ideas") but ships none of them.
 - Report breakage with `status` items rather than sending empty data.
 
 ## 7. Security and trust
@@ -219,4 +219,4 @@ Providers are an untrusted boundary.
 - **Provider URLs** (`manifestUrl`, `pull.itemsUrl`, `search.url`, media): HTTPS by default; DNS is resolved once per request and the connection pinned to the vetted address (no DNS rebinding); loopback, link-local, private, carrier-grade NAT and cloud-metadata ranges are refused unless the operator allows private networks **for that source** (a LAN provider on a homelab is normal); redirects are followed only to the same host (≤ 3, each re-vetted); connect and read timeouts, response size caps (5 MB) and the same budgets as other sources apply.
 - **Payload schemas:** ≤ 64 KB each, local `$ref`s only (no remote or `$dynamicRef` resolution), `pattern` and `patternProperties` ≤ 256 characters evaluated with a linear-time regex engine, and a validation time budget per batch (2 s); a schema that breaks these rules fails registration.
 - **Media:** links only; Foresignal fetches media solely through its image guard (size, type and address checks) when a binding needs fingerprints.
-- **Private and licensed data:** `source.private` and the licence's redistribution setting travel with every record and every derived product (embeddings, caches, tiles, findings, situations, exports, reports, MCP output, notifications) under Foresignal's egress and TLP rules; a derived product inherits the strictest input, so summarising private data never makes it public.
+- **Private and licensed data:** `source.private` and the license's redistribution setting travel with every record and every derived product (embeddings, caches, tiles, findings, situations, exports, reports, MCP output, notifications) under Foresignal's egress and TLP rules; a derived product inherits the strictest input, so summarizing private data never makes it public.

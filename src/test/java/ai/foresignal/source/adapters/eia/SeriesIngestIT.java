@@ -25,7 +25,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 /**
  * End-to-end energy-series ingest (prompt 093): a revised EIA value is version 2 and updates {@code series-latest};
- * an unchanged re-poll adds nothing; {@code /v1/series} lists the catalogue and one series' points come back in
+ * an unchanged re-poll adds nothing; {@code /v1/series} lists the catalog and one series' points come back in
  * period order and as CSV; a private source's series are hidden from callers without the grant and from a restricted
  * token.
  */

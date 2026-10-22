@@ -22,7 +22,7 @@
  *       removed". Verify with {@code SnapshotContract.assertStableStaticHash}.
  *   <li><strong>Slim, allowlisted payloads with no nulls.</strong> Copy the fields that are worth
  *       querying, not everything the upstream sent. Leave out anything relative to the query that
- *       produced it (distance from a search centre, index in a page), because the same entity
+ *       produced it (distance from a search center, index in a page), because the same entity
  *       fetched differently would then look changed. Raw counters are left out or declared
  *       volatile.
  *   <li><strong>{@code validUntil} is only an upstream-asserted expiry.</strong> Never pre-compute

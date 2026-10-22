@@ -243,7 +243,7 @@ Foresignal's own AIVDM codec.
   TAG blocks) over raw TCP, receive-only. It covers the Norwegian economic zone and the Svalbard and Jan Mayen
   protection zones; fishing vessels under 15 m and leisure craft under 45 m are left out by Kystverket. The data are
   under the Norwegian Licence for Open Government Data (NLOD 2.0), so the source is `OPEN`; credit "Contains data
-  under the Norwegian licence for Open Government data (NLOD) distributed by the Norwegian Coastal Administration"
+  under the Norwegian license for Open Government data (NLOD) distributed by the Norwegian Coastal Administration"
   wherever you show it. **Best effort:** in October 2026 the endpoint was still listed as open, but connections from
   outside Norway (a US host, and the build host) timed out. While it is unreachable the source shows `failing`, and
   Foresignal backs off from 30 s to 15 minutes (at most 12 connects an hour); it never tries another route.
@@ -1091,7 +1091,7 @@ GET  /v1/watchlists/{id}/export
 The entity registry (`/v1/entities`) resolves records to one canonical object per aircraft, vessel,
 satellite or station, from deterministic keys only (`icao24`, `registration`, `airframe`, `mmsi`,
 `imo`, `norad`, `cospar`, `callsign`); there is no fuzzy name matching and no automatic merge of two
-anchored entities. It is about vehicles and objects, never people or organisations.
+anchored entities. It is about vehicles and objects, never people or organizations.
 
 - **No owner PII:** the FAA registry adapter stores no owner name or address; the aircraft entity's
   attributes carry only manufacturer, model, type and the like.
@@ -1199,7 +1199,7 @@ the detector version and parameters needed to reproduce it.
   (missing data lowers evidence quality, it never counts as contradiction).
 - **Evidence, inference, speculation.** `GET /v1/intel/events/{id}` separates `evidence` (members:
   records, alerts, anomalies), `inference` (type, severity, confidence, geometry, times) and
-  `speculation` (alternatives and any LLM narrative, always labelled).
+  `speculation` (alternatives and any LLM narrative, always labeled).
 - **Confidence.** `c = 1 − Π_f (1 − w_f · r_f)` over distinct signal families, where `r_f` is the best
   member's source reliability (0.6 until 109 grades exist), then `×(1 − 0.25)` per active
   contradiction, capped at 0.95. Labels: low < 0.4 ≤ moderate < 0.7 ≤ high. Evidence quality: strong
@@ -1229,7 +1229,7 @@ the detector version and parameters needed to reproduce it.
 - **Investigations.** Case files (`INV-{yyyy}-{nnnn}`) with items that keep a snapshot taken when
   added, so the evidence survives retention; `GET /v1/investigations/{id}/export?format=json|md|geojson`
   exports it, each format carrying the "Automated analysis inputs; verify before acting" header and
-  licence attributions. Since prompt 130 investigations have an owner, an access list and a TLP label, which the
+  license attributions. Since prompt 130 investigations have an owner, an access list and a TLP label, which the
   export prints at the top (see [People, sharing and TLP](#people-sharing-and-tlp-prompt-130)).
 - **Exposure.** `POST /v1/exposure {geometry | placeId | eventId}` counts reference facilities,
   places, live aircraft and vessels and, with a population pack, an estimate. Every section carries a
@@ -1237,8 +1237,8 @@ the detector version and parameters needed to reproduce it.
 - **Population pack (optional).** Download a GHSL GHS-POP GeoTIFF (EPSG:4326, 30 arcsec; © European
   Union, GHSL; CC-BY-4.0) into `${FORESIGNAL_DATA_DIR}/packs`, then
   `POST /v1/packs/population/import {"path": "packs/ghsl/GHS_POP_E2025_..._4326_30ss", "epoch": 2025}`.
-  Each pixel's population is aggregated to the H3 cell (res 5 and 7) containing its centre; a query
-  polyfills the area at res 7 (res 5 over 50,000 km²) and sums. The estimate is a **modelled
+  Each pixel's population is aggregated to the H3 cell (res 5 and 7) containing its center; a query
+  polyfills the area at res 7 (res 5 over 50,000 km²) and sums. The estimate is a **modeled
   residential population, not a casualty or impact estimate**.
 
 ## Autonomous analyst (prompt 102)
@@ -1266,7 +1266,7 @@ already produced; it never manufactures evidence.
   scope, and that the daily `maxAutoActionsPerDay` cap is not reached. A restricted token cannot own
   an action-enabled profile. The analyst can never delete or disable anything. Watches are created
   enabled and tagged `analyst`; events carry `origin=analyst`; investigation items go only into open
-  investigations; `annotate_event` only appends labelled speculation and never touches members or
+  investigations; `annotate_event` only appends labeled speculation and never touches members or
   confidence.
 - **Reading claims.** Every note body has claims typed `evidence`, `inference` or `speculation`.
   Evidence claims cite a tool result from that run; an uncited evidence claim is downgraded to
@@ -1306,7 +1306,7 @@ ground truth.
   engine saw each version at its own ingest time, never at the replay's wall clock. Count and absence
   rules are replayed at record level only (`WINDOW_APPROXIMATE`).
 - **Reading lift and p-values.** Hit rates, lifts and p-values are descriptive statistics with stated
-  assumptions; they are never calibrated probabilities. Small samples are labelled `insufficient`.
+  assumptions; they are never calibrated probabilities. Small samples are labeled `insufficient`.
 - **Precursor tests.** `POST /v1/precursor-tests` defines X and Y (an alert rule, an intelligence event
   type or an anomaly rule), a lag window, a spatial rule and a dedup window; `POST
   /v1/precursor-tests/{id}/test` submits a job. The verdict is `insufficient`, `no-evidence-of-precedence`,
@@ -1315,7 +1315,7 @@ ground truth.
   instance ran in the last 30 days with a Bonferroni-adjusted p-value. **Association in stored data; not
   causation.**
 - **Alert quality.** `GET /v1/triggers/{ruleId}/quality?since` reports precision with a Wilson interval
-  (null with fewer than five labelled alerts), median time-to-ack and time-to-resolve, flapping,
+  (null with fewer than five labeled alerts), median time-to-ack and time-to-resolve, flapping,
   duplicates and the severity distribution. The 017 feedback enum maps to classes as: `useful` →
   positive; `noise` and `false_positive` → negative; `late` → neutral.
 - **Tuning suggestions** (`GET /v1/triggers/{ruleId}/suggestions?since&simulate`) are deterministic and
@@ -1349,7 +1349,7 @@ processed locally.
   data; not authoritative; heuristic links may be wrong." The cable data does not list each cable's
   landing points, so `cable-landing` is a geometry match (`topological`, `likely`). A power line
   reaching one substation is `likely`, reaching two is `confirmed`; impact traversal walks lines in
-  both directions. An edge's licence is the most restrictive licence of its two facilities.
+  both directions. An edge's license is the most restrictive license of its two facilities.
 - **API.** `GET /v1/infra/nodes`, `GET /v1/infra/nodes/{id}` (with in/out edges), `GET /v1/infra/edges`,
   `POST /v1/infra/affected {geometry | eventId | record, depth, minLabel, types}`, `GET /v1/infra/status`,
   `POST /v1/infra/rebuild` (admin; 202 at once, the build runs in the background),
@@ -2232,7 +2232,7 @@ Nothing from a **pending** or **suspended** provider is stored (pushes answer
 `409 SOURCE_PENDING_APPROVAL` / `SOURCE_SUSPENDED`, and it is not pulled). Before approving, read
 `GET /v1/external/sources/{id}`: the **access block** says how the provider gets its data
 (`official`, `unofficial-api`, `scrape`, `browser`, `other`), how likely it is to break
-(`fragility`) and a summary of the upstream's terms; the licence's `redistribution` sets the egress
+(`fragility`) and a summary of the upstream's terms; the license's `redistribution` sets the egress
 (`allowed` → `OPEN`, otherwise `LOCAL_ONLY`); `private` marks personal data. Then
 `POST /v1/external/sources/{id}/approve`. `POST …/suspend` stops it (records stay);
 `DELETE /v1/external/sources/{id}` removes it (records age out through retention).
@@ -2961,7 +2961,7 @@ a restart or a `401`, mint a new one.
 
 ### Trusted proxies
 
-Behind Tailscale Serve or Caddy, Foresignal sees the proxy's address. Tomcat honours
+Behind Tailscale Serve or Caddy, Foresignal sees the proxy's address. Tomcat honors
 `X-Forwarded-For` and `X-Forwarded-Proto` only from addresses matching `FORESIGNAL_TRUSTED_PROXIES`
 (a regular expression, or a comma-separated CIDR list). The default trusts loopback only
 (`127\.0\.0\.1|0:0:0:0:0:0:0:1|::1`), which is right for a proxy on the host
@@ -3519,7 +3519,7 @@ and so on. The format is `mp3` (the default) or `opus`.
 - The audio is stored as media with `role=audio` (`audio/mpeg` or `audio/ogg`). It expires with the briefing-run
   retention (`retention.briefings`, 180 days by default).
 - It is signed like the run's markdown: a detached JWS in `audio.signature`, verifiable against
-  `/.well-known/jwks.json` (see [Licences and egress](#licences-and-egress-prompt-109), "Signing").
+  `/.well-known/jwks.json` (see [Licenses and egress](#licenses-and-egress-prompt-109), "Signing").
 - The run's `audio` object records the outcome:
   - `status`: `ok`, `failed` or `skipped`
   - `mediaId`, `format`, `voice`, `characters`, `truncated` and `error`
@@ -3875,7 +3875,7 @@ default datasets load in the background about 30 s after startup. Loading never 
 readiness; the `reference` readiness detail and `GET /v1/reference` show progress and failures, and a
 failed load raises a `system.reference_load_failed` notification.
 
-| Dataset | Source | Licence | Download | Table |
+| Dataset | Source | License | Download | Table |
 |---|---|---|---|---|
 | `ne-admin0` | Natural Earth 10m admin-0 countries v5.1.2 | Public domain | 13 MB | `ref_country` |
 | `ne-admin1` | Natural Earth 10m admin-1 states and provinces | Public domain | 41 MB | `ref_admin1` |
@@ -3913,7 +3913,7 @@ endorsement of any claim. `foresignal.reference.ne-admin0-variant: ind` (or `arg
 `fra`, `gbr`, `rus`, `tur`, `twn`, `ukr`, `usa` … every Natural Earth point-of-view file is in the
 manifest with its hash) loads a point-of-view file instead.
 
-**Licences.** Natural Earth is public domain. GeoNames is CC BY 4.0: the credit is in
+**Licenses.** Natural Earth is public domain. GeoNames is CC BY 4.0: the credit is in
 `THIRD_PARTY_NOTICES.md`, in `GET /v1/reference`, and in every response that carries a `near`
 (`RegionTags.attribution`, GeoJSON `properties.nearAttribution`). Keep it when you republish those
 fields.
@@ -3984,7 +3984,7 @@ fewer cells) or set `statsEnabled: false` on the aircraft sources.
 | `count=true` | On `/v1/records`, `/v1/history` and `/v1/search`: `{count, exact, watermarkSeq}`, exact up to 1,000,000 |
 
 Every stats query has a 10-second statement timeout (`503 QUERY_TIMEOUT`). With a bbox, a restricted
-area or a place, rollup rows are chosen by cell centre, so edges are accurate to a cell, and
+area or a place, rollup rows are chosen by cell center, so edges are accurate to a cell, and
 `entities` counts an entity once per cell it visited.
 
 ### Glance
@@ -4562,7 +4562,7 @@ derived place weather below, "Weather alerts".
 `ecmwf-forecasts` S3 mirror (falling back to `data.ecmwf.int/forecasts` by editing the `pathTemplate`), plans byte
 ranges from each step's JSON `.index`, and costs about **0.5–1 GB/day** (20/min, 3,000/day, 1,200 MB/day; one
 20-minute check, 00z and 12z, steps 0–144 by 3). Products: `ifs` (10 m wind), `ifs-gust`, `ifs-t2m`, `ifs-mslp`,
-`ifs-precip-3h` and `ifs-precip-24h`. The whole real-time catalogue is CC BY 4.0: **every derived output carries the
+`ifs-precip-3h` and `ifs-precip-24h`. The whole real-time catalog is CC BY 4.0: **every derived output carries the
 "Contains modified Copernicus/ECMWF data … changes made" attribution** (the `forecast-area` payload and the
 place-weather `forecast.ifs` section carry it as `attribution`). The 00z/12z run appears about 7 h after its
 reference time. A step is marked fetched only when every product that has it was committed; a step whose products
@@ -4613,7 +4613,7 @@ top), `sst-geopolar` and `aifs`. The mesoscale sectors are opt-in on both (list 
 `PUT /v1/sources/{id}/params` (or the source settings API).
 
 **New sources.** `goes-west-abi` mirrors the East clean IR on GOES-18; `goes-east-abi` adds the C08/C09
-water-vapour channels, the C02 visible (daytime only, cropped to the AOI + 300 km) and the 1-minute
+water-vapor channels, the C02 visible (daytime only, cropped to the AOI + 300 km) and the 1-minute
 mesoscale sectors (AOI-gated, every second frame). `rtma-ru` is the 15-minute RTMA Rapid Update 2.5 km
 CONUS analysis (observation; about 3.4 GB/day for all five products — set `analysisEvery` to `30m` or `60m`
 to thin it); `nbm` is the National Blend of Models core; `gfs-wave` (HTSGW/PERPW/DIRPW) feeds the
@@ -4635,7 +4635,7 @@ far, exceeds **120%** of it, the source degrades with a `projected download … 
 `.velocity-json` (leaflet-velocity / wind-js, gzipped, ≤ 300,000 points per component) and `.png-uv`
 (R = u, G = v, an 8-bit RGB PNG for WebGL particles); both are listed in the field manifest's
 `encodings` block. **Position sampling:** `/v1/sample?record={sourceId}/{externalId}` samples at an
-entity's live position (honouring `private`); a position older than 15 minutes marks the values
+entity's live position (honoring `private`); a position older than 15 minutes marks the values
 `stale-position`. `POST /v1/sample/track` samples each point of a track (given, or a record's 037
 track) at its own time.
 
@@ -4843,7 +4843,7 @@ with a 5-minute TTL), and declares its inputs as source families, so the receive
 | Source | Kind | Inputs | What it reports |
 |---|---|---|---|
 | `derived-gps-jamming` | `jamming-cell` | readsb-family aircraft (NACp/NIC; not OpenSky) | cells where ≥ 30% (medium) or ≥ 50% (high) of ≥ 3 airborne aircraft report a degraded solution |
-| `derived-ais-gap` | `ais-gap` | AIS vessel sources | a vessel under way with no fix for 30 min, when ≥ 3 neighbours kept reporting nearby |
+| `derived-ais-gap` | `ais-gap` | AIS vessel sources | a vessel under way with no fix for 30 min, when ≥ 3 neighbors kept reporting nearby |
 | `derived-loiter` | `loiter` | AIS vessel sources | a vessel holding within 0.5 nm of its centroid for ≥ 30 min |
 | `derived-rendezvous` | `rendezvous` | AIS vessel sources | two slow vessels within 0.5 nm for ≥ 15 min, away from ports |
 | `derived-deception` | `deception` | aircraft + vessel | duplicate MMSI, impossible vessel or aircraft speed |
@@ -5210,7 +5210,7 @@ prefix `/compat/celestrak/`), or enable `openReads`.
 
 **SatDump 2.0 hook.** If the station runs SatDump 2.0 (alpha only as of 2026-10; 1.2.2 is stable), set
 `satdumpVersion` to `2.0` and install `contrib/satdump/foresignal_hook.as` (MIT, separate, experimental). It
-writes equirectangular composites and a `foresignal-manifest.json` that Foresignal recognises
+writes equirectangular composites and a `foresignal-manifest.json` that Foresignal recognizes
 version-agnostically: listed GeoTIFFs go through the overlay pipeline, and listed PNGs through the image
 guard, georeferenced from the product's `bounds [w,s,e,n]` (`projection: equirec`). An unknown manifest
 schema, or a PNG without valid bounds, is rejected with a health reason.
@@ -5679,11 +5679,11 @@ docker compose exec -T db dropdb -U foresignal restore_drill
 - **Cloudflare Radar (`cloudflare-radar-outages`, `cloudflare-radar-bgp`):** create an API token at
   <https://dash.cloudflare.com/profile/api-tokens> with **Radar read** access and set it as the `apiToken`
   credential. Cloudflare's global limit is 1,200 requests per 5 minutes per user; Foresignal's budget is far
-  below that and honours `Retry-After` on 429.
+  below that and honors `Retry-After` on 429.
 - **`gpsjam-daily` starts enabled** like every free source (it needs no key or parameter). gpsjam.org publishes no
   license, so the source is local-only; disable it with `PUT /v1/sources/gpsjam-daily` if you do not want it.
 - **RIPE Atlas:** `ripe-atlas-probes` never stores a probe's address or description; only status, prefixes,
-  ASNs, country and tags. Licence: RIPE Atlas Service Terms v3.5.
+  ASNs, country and tags. License: RIPE Atlas Service Terms v3.5.
 - **Rule recipes:** BGP hijacks — enter on `bgp-hijack` when `confidence_score >= 8`; service status — enter on
   `service-status` when `indicator in [major, critical]`. Cloudflare outages pair with IODA (`ioda-outages`) in
   the 099 corroboration layer to distinguish a national outage from a cable cut or a hijack.
@@ -5710,17 +5710,17 @@ docker compose exec -T db dropdb -U foresignal restore_drill
   (it sends no stored `ETag`/`Last-Modified`, so it cannot be answered with a 304) and reconciles. The
   degradation clears as soon as a reconciliation runs, after the override or after an ordinary complete run
   whose dataset is back within the ratio. The next ordinary run re-applies the guard.
-- **Licence flags you should read before enabling:**
+- **License flags you should read before enabling:**
   - `submarine-cables` is **non-commercial**: the public Submarine Cable Map is CC BY-SA 4.0, the geometry is
-    stylised and TeleGeography's underlying database is subscriber-only. Egress is local-only for prompts
+    stylized and TeleGeography's underlying database is subscriber-only. Egress is local-only for prompts
     109/110 and the attribution carries `nonCommercial: true`. Display it, attribute TeleGeography, do not
     redistribute.
   - `gvp-volcanoes` uses the Smithsonian Terms of Use (**non-commercial; cite the VOTW DOI**). The attribution
     names Volcanoes of the World v5.4.0 (2026) and `doi:10.5479/si.GVP.VOTW5-2026.5.4`.
 - **Keys:** none. `nuclear-plants-wikidata` sends Foresignal's own User-Agent with contact; set `contactEmail`
-  so Wikidata can reach you, and it honours `429`/`Retry-After`.
+  so Wikidata can reach you, and it honors `429`/`Retry-After`.
 - **Excluded upstreams:** PeeringDB facilities (AUP forbids storage/reproduction — ask
-  support@peeringdb.com first), IAEA PRIS (no open licence), GEM trackers (request form, no stable file URL)
+  support@peeringdb.com first), IAEA PRIS (no open license), GEM trackers (request form, no stable file URL)
   and the NRC dataset pages (blocked for scripted clients) are noted, not built.
 
 ## Citizen science and signals (prompt 095)
@@ -5733,7 +5733,7 @@ docker compose exec -T db dropdb -U foresignal restore_drill
   a busy area catches up over the following runs from the stored cursor, and a run inside the upstream's
   `Cache-Control: max-age` sends nothing.
 - **The privacy choices are deliberate.** No contributor usernames, descriptions or comments are ever stored.
-  Obscured observations keep their randomised upstream coordinates with the upstream's own positional accuracy;
+  Obscured observations keep their randomized upstream coordinates with the upstream's own positional accuracy;
   `private` observations and observations without coordinates are skipped. iNaturalist photo links are kept only
   when the photo's license is open and its host is exactly the open-data bucket
   (`inaturalist-open-data.s3.amazonaws.com`); licenses are per record (see `licenseCode`).
@@ -5750,7 +5750,7 @@ docker compose exec -T db dropdb -U foresignal restore_drill
   is the signal**; a rule with `detected == true` in `enter` catches it. All rows are public-domain US
   government data **except WastewaterSCAN rows, which are CC BY-NC 4.0**; those are dropped unless
   `includeWastewaterScan` is set, and then each carries `licenceOverride: "CC BY-NC 4.0 (WastewaterSCAN)"`, which
-  109 honours.
+  109 honors.
 - **`wiki-edit-surge` is free but starts disabled: you opt in.** It is the one free source held off by default
   (prompt 146), because it holds one connection to the Wikimedia EventStreams `recentchange` firehose and reports
   **the bytes it reads** against a 3 GB/day budget. `POST /v1/sources/enable-free` skips it; enable it with
@@ -5813,9 +5813,9 @@ disables WebP: `/v1/system` reports a `WEBP_UNAVAILABLE` warning and `.webp` ans
 FORMAT_UNAVAILABLE`. Set `notifications.imageLinks` only on an instance with an https `publicBaseUrl`;
 enabling it on a LAN-only instance exposes one media path per feed key and is refused without https.
 
-## Licences and egress (prompt 109)
+## Licenses and egress (prompt 109)
 
-Every source resolves to structured licence terms (`ai.foresignal.provenance.LicenceTerms`, from
+Every source resolves to structured license terms (`ai.foresignal.provenance.LicenceTerms`, from
 `provenance/licences.json`): `commercialUse`, `shareAlike`, `attributionRequired` and `redistribution`.
 `UNKNOWN` is treated as `FORBIDDEN` (commercial) and `LOCAL_ONLY` (redistribution). Free-text descriptor
 licenses resolve through catalog aliases; provider terms that state no license resolve to `provider-terms`,
@@ -5836,7 +5836,7 @@ news-derived feeds (GDELT, Wikipedia surge) `D`, and custom, peer and DERIVED so
 source with `PUT /v1/sources/{id}` `{"reliability": "A"}`; `null` reverts to the default. A news article used as
 evidence takes the grade of its outlet's factuality instead (`media.reliabilityMap`, prompt 133).
 
-**Licence-filtered reads.** Clients send `Foresignal-Licence-Policy: no-nc, no-sa, redistributable` (or
+**License-filtered reads.** Clients send `Foresignal-Licence-Policy: no-nc, no-sa, redistributable` (or
 `licencePolicy=`). A token's `licencePolicy` is a floor a request may add to but never loosen; set it at
 creation or replace it with `PATCH /v1/tokens/{tokenId}` `{"licencePolicy": [...]}` (admin; `[]` clears it).
 JSON pages and GeoJSON collections carry `licenceFiltered` (records dropped) and aggregated `attributions`,
@@ -6019,7 +6019,7 @@ keyset pages of 10,000, so a cancel takes effect within a page.
 
 Every finished job carries, next to its data file, `manifest.json` (each file's SHA-256, the spec, the
 watermark and the license summary), `manifest.json.jws` (a detached Ed25519 JWS over `manifest.json`,
-verifiable against `/.well-known/jwks.json` exactly as in "Licences and egress" above), `licence.json`
+verifiable against `/.well-known/jwks.json` exactly as in "Licenses and egress" above), `licence.json`
 (the license summary: per license the terms, sources and rows; the attributions; the exclusions) and
 `ATTRIBUTION.txt`. `?bundle=zip` downloads all of them in one zip; `?file=` names one file. Downloads support
 `Range` and `If-None-Match` (the `ETag` is the file's SHA-256), so `curl -C -` resumes:
@@ -6383,7 +6383,7 @@ Every record passes the one egress policy on the federation path before it is se
 
 Exclusions count in `foresignal.federation.denied{reason}`. The one exception is an edge pushing to its
 operator's own hub (`sameOperator: true` on the `federation-push` sink and on the hub's peer): `LOCAL_ONLY`
-records may then travel, labelled `local-only-operator`, and the hub keeps them `LOCAL_ONLY`, so it never
+records may then travel, labeled `local-only-operator`, and the hub keeps them `LOCAL_ONLY`, so it never
 re-federates them. Private records and MLAT positions never travel, even then.
 
 ### Consuming a peer
@@ -7806,7 +7806,7 @@ with a blindspot and the coverage-divergence findings (see "News coverage and me
 
 "What we cannot see" lists the collection gaps, with the analyst's comment when there is one. Every text says where it
 came from (`textOrigin`: `deterministic`, `llm` or `mixed`), every probability is a number with its derived term, and
-the footer reads: "Automated analysis. Probabilities use ICD 203 terms; evidence is cited; speculation is labelled.
+the footer reads: "Automated analysis. Probabilities use ICD 203 terms; evidence is cited; speculation is labeled.
 Verify before acting." `lintWarnings` lists the wording problems found and how they were handled: failing text is
 regenerated once, then repaired (terms derived from the numbers, confidence moved out of the sentence) or dropped.
 Each assessment names its model, effort, prompt templates and manifest, so a client can show "view prompt".

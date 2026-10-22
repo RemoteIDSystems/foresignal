@@ -19,7 +19,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 /**
- * {@code derived-chokepoint} (prompt 099): vessel behaviour inside the buffered PortWatch
+ * {@code derived-chokepoint} (prompt 099): vessel behavior inside the buffered PortWatch
  * chokepoints. Per vessel inside a chokepoint it flags a course change over 60° within 10 minutes,
  * a U-turn over 150°, or a speed drop over 50% to below 3 knots; per chokepoint it publishes hourly
  * banded counts of transits, U-turns and stops. Baselines and anomaly scoring are the 100 layer's.

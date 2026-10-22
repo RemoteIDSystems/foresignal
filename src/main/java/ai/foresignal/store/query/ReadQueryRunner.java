@@ -21,7 +21,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Runs the read API's queries: each call is one read-only transaction that starts with
  * {@code SET LOCAL statement_timeout} ({@code foresignal.api.query.statementTimeout}, default 30 s).
  *
- * <p>A query cancelled by the timeout (SQLState {@code 57014}) becomes {@code 503 QUERY_TIMEOUT}.
+ * <p>A query canceled by the timeout (SQLState {@code 57014}) becomes {@code 503 QUERY_TIMEOUT}.
  * {@link #stream} hands out a template with fetch size 1,000, so streaming formats read the result
  * through a server-side cursor instead of loading it whole; that only works inside a transaction,
  * which this class always opens.

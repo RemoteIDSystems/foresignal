@@ -26,7 +26,7 @@ import java.util.UUID;
  * @param principalId the owning principal
  * @param principalHandle the owning principal's handle
  * @param privateAccess the 039 private grant: the token may see private sources (admin tokens always may)
- * @param licencePolicy the token's default licence policy flags (prompt 109), or null when none
+ * @param licencePolicy the token's default license policy flags (prompt 109), or null when none
  * @param token the value, only on creation
  */
 public record ApiTokenDto(

@@ -42,7 +42,7 @@ public class ProvenanceStep implements RetentionStep {
         if (run.largestStandardWindow().compareTo(largest) > 0) {
             largest = run.largestStandardWindow();
         }
-        // Provenance (prompt 109): a batch's licence outlives no version it describes, so rows that
+        // Provenance (prompt 109): a batch's license outlives no version it describes, so rows that
         // wrote versions are kept for max(retention.provenance, the largest version window).
         Duration keep = run.settings().provenance();
         if (largest.compareTo(keep) > 0) {

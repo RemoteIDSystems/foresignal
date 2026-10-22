@@ -216,7 +216,7 @@ class UpstreamClientIT extends WireMockSupport {
 
         @Test
         @DisplayName("429 with Retry-After sets the backoff the upstream asked for")
-        void throttleHonoursRetryAfter() {
+        void throttleHonorsRetryAfter() {
             WIREMOCK.stubFor(com.github.tomakehurst.wiremock.client.WireMock.get(urlEqualTo("/feed"))
                     .willReturn(aResponse().withStatus(429).withHeader("Retry-After", "120").withBody("slow down")));
 
@@ -230,8 +230,8 @@ class UpstreamClientIT extends WireMockSupport {
         }
 
         @Test
-        @DisplayName("OpenSky's own retry header is honoured too")
-        void throttleHonoursOpenSkyHeader() {
+        @DisplayName("OpenSky's own retry header is honored too")
+        void throttleHonorsOpenSkyHeader() {
             WIREMOCK.stubFor(com.github.tomakehurst.wiremock.client.WireMock.get(urlEqualTo("/feed"))
                     .willReturn(aResponse()
                             .withStatus(429)

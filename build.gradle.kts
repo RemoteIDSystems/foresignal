@@ -382,6 +382,12 @@ tasks.check {
     dependsOn("checkUnidataScope")
 }
 
+// US English is the only spelling (prompt 149); see the script and gradle/us-english/.
+apply(from = "gradle/us-english.gradle.kts")
+tasks.check {
+    dependsOn("checkUsEnglish")
+}
+
 // ---------------------------------------------------------------------------
 // API tooling (prompt 020). None of these tasks is wired to compileJava or test.
 // ---------------------------------------------------------------------------

@@ -98,7 +98,7 @@ class LicenceResolverIT {
     }
 
     @Test
-    @DisplayName("the batch licence wins over the descriptor's, with the fetch row's provenance")
+    @DisplayName("the batch license wins over the descriptor's, with the fetch row's provenance")
     void batchLicenceWins() {
         ingest("ODbL-1.0", record("batch"));
         LicenceResolver.Resolution resolution = resolver.resolve(row("batch"));
@@ -134,7 +134,7 @@ class LicenceResolverIT {
     }
 
     @Test
-    @DisplayName("a peer record's _foresignal.originLicence is its licence")
+    @DisplayName("a peer record's _foresignal.originLicence is its license")
     void peerOriginLicence() {
         ingest("CC-BY-4.0", NormalizedRecord.builder("peer", KIND).observedAt(T).point(1, 1)
                 .put("_foresignal", Map.of("originLicence", "CC0-1.0", "originSeq", 7)).build());

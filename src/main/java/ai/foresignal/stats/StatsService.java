@@ -50,7 +50,7 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p><b>Accuracy.</b> Without a spatial filter the rollup's per-{@code (source, kind)} totals rows are
  * read, so every measure is exact. With a bbox, a restricted region or a place filter, rollup rows are
- * selected by their cell centre (cell resolution, about 40 km at the default {@code cellRes} 4), and
+ * selected by their cell center (cell resolution, about 40 km at the default {@code cellRes} 4), and
  * {@code entities} sums per-cell distinct counts, so an entity that crossed cells counts once per cell.
  *
  * <p>Every query runs with {@code SET LOCAL statement_timeout} = {@code foresignal.stats.queryTimeout}
@@ -639,7 +639,7 @@ public class StatsService {
             maxLat = Math.max(maxLat, e.getMaxY());
         }
         centerLat = Math.max(-MERCATOR_LIMIT, Math.min(MERCATOR_LIMIT, (minLat + maxLat) / 2));
-        // A ground size at the bbox's centre latitude, as a Web Mercator size: hexagons stay regular on
+        // A ground size at the bbox's center latitude, as a Web Mercator size: hexagons stay regular on
         // the map (no distortion at 60°N) and are sizeKm across the ground at that latitude.
         double size = sizeKm * 1000 / Math.cos(Math.toRadians(centerLat));
         double hexArea = 1.5 * Math.sqrt(3) * size * size;

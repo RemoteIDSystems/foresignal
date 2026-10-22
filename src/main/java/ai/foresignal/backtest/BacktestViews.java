@@ -31,7 +31,7 @@ public final class BacktestViews {
         out.put("manifestId", job.getManifestId());
         out.put("createdBy", job.getCreatedBy());
         out.put("createdAt", job.getCreatedAt());
-        out.put("cancelled", job.isCancelled());
+        out.put("cancelled", job.isCanceled());
         out.put("caveats", job.getCaveats() == null ? List.of() : job.getCaveats());
         out.put("result", job.getResult());
         return out;

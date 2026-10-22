@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * The FAA Releasable Aircraft Database ({@code faa-registry}, prompt 098): the aircraft registration
- * catalogue used to anchor identities (airframe serial + registration + ICAO 24-bit address) without
+ * catalog used to anchor identities (airframe serial + registration + ICAO 24-bit address) without
  * ever storing an owner's name or address.
  *
  * <p>Weekly, conditional on {@code Last-Modified}: the archive is about 60 MB and changes daily.
@@ -97,7 +97,7 @@ public class FaaRegistryAdapter implements PollingAdapter {
     private static SourceDescriptor buildDescriptor() {
         SourceDescriptor.Builder b = SourceDescriptor.builder(ID)
                 .name("FAA aircraft registry")
-                .description("The FAA Releasable Aircraft Database: the registration catalogue that anchors"
+                .description("The FAA Releasable Aircraft Database: the registration catalog that anchors"
                         + " aircraft identities (airframe serial, tail number and ICAO 24-bit address). Owner names and"
                         + " addresses are never stored.")
                 .kind(FaaRegistryParser.KIND)

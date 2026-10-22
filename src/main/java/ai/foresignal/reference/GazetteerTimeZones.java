@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
  * adapters that must convert a local wall-clock time with no offset into an instant (iNaturalist
  * {@code observed_on}, eBird {@code obsDt}).
  *
- * <p>A KNN query on the GiST index finds the closest place with a timezone in metres. It makes no network call
+ * <p>A KNN query on the GiST index finds the closest place with a timezone in meters. It makes no network call
  * and never geocodes. Lookups are cached on coordinates rounded to 0.05°; the cache is dropped when reference
  * data changes. Until the reference datasets are loaded the table is empty and every lookup misses, which
  * callers treat as "no zone" and fall back to UTC.

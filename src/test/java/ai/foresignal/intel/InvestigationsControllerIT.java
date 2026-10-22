@@ -34,7 +34,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * {@code /v1/investigations} over HTTP (prompt 101): CRUD, scopes, sequential display ids, items with
- * snapshots, removal scoped to the owning investigation, export with licence attributions, and
+ * snapshots, removal scoped to the owning investigation, export with license attributions, and
  * private items (EGR-1).
  */
 @IntegrationTest

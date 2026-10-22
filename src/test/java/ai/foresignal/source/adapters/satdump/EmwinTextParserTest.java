@@ -42,7 +42,7 @@ class EmwinTextParserTest {
         assertThat(w.etnNumber()).isEqualTo(42);
         assertThat(w.validFrom()).isEqualTo(Instant.parse("2026-10-10T21:30:00Z"));
         assertThat(w.validUntil()).isEqualTo(Instant.parse("2026-10-10T22:15:00Z"));
-        assertThat(w.cancelled()).isFalse();
+        assertThat(w.canceled()).isFalse();
         assertThat(w.polygon()).isNotNull();
         assertThat(w.polygon().getCoordinates()[0].x).isEqualTo(-97.30);
         assertThat(w.polygon().getCoordinates()[0].y).isEqualTo(32.50);
@@ -89,10 +89,10 @@ class EmwinTextParserTest {
 
     @Test
     @DisplayName("a CAN action is a cancellation")
-    void cancelled() throws FormatException {
+    void canceled() throws FormatException {
         String can = TORNADO.replace("/O.NEW.", "/O.CAN.");
         EmwinTextParser.Warning w = EmwinTextParser.parse(can.getBytes(StandardCharsets.UTF_8)).warning();
-        assertThat(w.cancelled()).isTrue();
+        assertThat(w.canceled()).isTrue();
     }
 
     @Test

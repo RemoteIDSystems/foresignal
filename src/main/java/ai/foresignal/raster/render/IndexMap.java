@@ -8,7 +8,7 @@ import ai.foresignal.raster.GridDef;
  *
  * <p>The {@link #nearest()} variant holds one flat cell index per pixel ({@code row × nx + col}, −1
  * outside the grid). The {@link #bilinear()} variant, for products whose spec sets
- * {@code resample: bilinear}, holds four cells and four weights per pixel (a missing neighbour has
+ * {@code resample: bilinear}, holds four cells and four weights per pixel (a missing neighbor has
  * cell −1 and weight 0) and still the nearest cell, which decides special codes.
  */
 public final class IndexMap {

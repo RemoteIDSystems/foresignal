@@ -14,7 +14,7 @@ import tools.jackson.databind.json.JsonMapper;
  * common spellings are accepted, because the exact layout depends on the pinned SatDump version (the
  * fixture per version records it). One file may hold one object or an array of messages.
  *
- * <p>Recognised keys (first present wins): {@code address}/{@code address_hex}/{@code dcp_address};
+ * <p>Recognized keys (first present wins): {@code address}/{@code address_hex}/{@code dcp_address};
  * {@code time}/{@code timestamp}/{@code message_time} (ISO-8601 or seconds/ms since the epoch);
  * {@code channel}; {@code signal}/{@code signal_strength}/{@code signal_dbm}; {@code freq_offset}/
  * {@code frequency_offset}; {@code data}/{@code data_hex}/{@code bytes} (byte array or hex string);

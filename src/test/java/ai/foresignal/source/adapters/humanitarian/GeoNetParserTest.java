@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 class GeoNetParserTest {
 
     @Test
-    @DisplayName("a GeoJSON feature maps to a volcano-alert record with its level and colour")
+    @DisplayName("a GeoJSON feature maps to a volcano-alert record with its level and color")
     void volcano() {
         List<NormalizedRecord> records = new GeoNetVolcanoAdapter("")
                 .parse(AdapterFixtures.bytes("geonet-volcanoes", "volcano-val.json"));

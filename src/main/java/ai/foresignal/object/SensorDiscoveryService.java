@@ -551,7 +551,7 @@ public class SensorDiscoveryService {
 
     /**
      * The envelope of {@code sensor:{kind}:{id}}: a source, receiver or station is its source; a satellite is a
-     * curated or catalogued satellite; a scene is its record; a raster product is its catalog entry.
+     * curated or cataloged satellite; a scene is its record; a raster product is its catalog entry.
      */
     public Optional<ObjectEnvelope> resolve(ObjectRef ref, ResolveContext context) {
         String kind = ref.sensorKind();

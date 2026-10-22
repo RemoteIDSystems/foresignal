@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-/** Every normalisation and rejection rule of {@link EntityKeys} (prompt 098). */
+/** Every normalization and rejection rule of {@link EntityKeys} (prompt 098). */
 class EntityKeysTest {
 
     @Test
@@ -51,7 +51,7 @@ class EntityKeysTest {
     }
 
     @Test
-    void noradIsAPositiveCatalogueNumber() {
+    void noradIsAPositiveCatalogNumber() {
         assertThat(EntityKeys.normalize("norad", "25544", null)).isEqualTo("25544");
         assertThat(EntityKeys.normalize("norad", "0", null)).isNull();
         assertThat(EntityKeys.normalize("norad", "-1", null)).isNull();

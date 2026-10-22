@@ -13,9 +13,9 @@ import org.springframework.stereotype.Service;
 
 /**
  * Precision from analyst verdicts ({@code getPrecision}, prompt 129): for findings (by detector), intel events (by
- * recipe), situations (the linker) and precursor-active findings (by precursor), the share confirmed among labelled
+ * recipe), situations (the linker) and precursor-active findings (by precursor), the share confirmed among labeled
  * verdicts with a 95% Wilson interval. Only the latest live verdict per object counts; {@code needs-review} counts as
- * unlabelled; {@code duplicate-of} counts as labelled but not confirmed. Private verdicts count only for callers with
+ * unlabelled; {@code duplicate-of} counts as labeled but not confirmed. Private verdicts count only for callers with
  * private access.
  */
 @Service
@@ -49,7 +49,7 @@ public class PrecisionService {
             }
         }
 
-        long labelled() {
+        long labeled() {
             return confirmed + rejected + duplicate;
         }
     }
@@ -110,14 +110,14 @@ public class PrecisionService {
         row.put("rejected", t.rejected);
         row.put("duplicate", t.duplicate);
         row.put("needsReview", t.needsReview);
-        long labelled = t.labelled();
-        row.put("labelled", labelled);
-        if (labelled == 0) {
+        long labeled = t.labeled();
+        row.put("labelled", labeled);
+        if (labeled == 0) {
             row.put("precision", null);
             row.put("interval", null);
         } else {
-            row.put("precision", (double) t.confirmed / labelled);
-            double[] ci = Wilson.interval(t.confirmed, labelled);
+            row.put("precision", (double) t.confirmed / labeled);
+            double[] ci = Wilson.interval(t.confirmed, labeled);
             Map<String, Object> interval = new LinkedHashMap<>();
             interval.put("lo", ci[0]);
             interval.put("hi", ci[1]);

@@ -64,7 +64,7 @@ public record ChangeFilter(
         this(sources, kinds, externalIds, bbox, near, payload, live, touches, excludedSources, ReadRestriction.NONE);
     }
 
-    /** This filter with {@code extra} added to the excluded sources (prompt 109 licence policy). */
+    /** This filter with {@code extra} added to the excluded sources (prompt 109 license policy). */
     public ChangeFilter withExcludedSources(Set<String> extra) {
         if (extra == null || extra.isEmpty()) {
             return this;

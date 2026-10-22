@@ -14,7 +14,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * The built-in licence catalogue (prompt 109; Weather-Imagery-Design §2.3), loaded from
+ * The built-in license catalog (prompt 109; Weather-Imagery-Design §2.3), loaded from
  * {@code src/main/resources/provenance/licences.json} so new entries need no code. Each entry has an
  * {@code id} (an SPDX id or slug) and optional {@code aliases} that match a descriptor's free-text
  * {@code licence}. An unresolved id resolves to the restrictive {@code unknown} terms.
@@ -31,21 +31,21 @@ public class LicenceCatalog {
     private final Map<String, LicenceTerms> byId = new LinkedHashMap<>();
     private final Map<String, String> byAlias = new LinkedHashMap<>();
 
-    /** Loads the catalogue from the bundled resource. */
+    /** Loads the catalog from the bundled resource. */
     public LicenceCatalog() {
         this(LicenceCatalog.class.getResourceAsStream(RESOURCE));
     }
 
-    /** Loads the catalogue from a stream (tests). */
+    /** Loads the catalog from a stream (tests). */
     public LicenceCatalog(InputStream stream) {
         if (stream == null) {
-            throw new IllegalStateException("Licence catalogue resource is missing: " + RESOURCE);
+            throw new IllegalStateException("License catalog resource is missing: " + RESOURCE);
         }
         try (stream) {
             JsonNode root = JsonMapper.builder().build().readTree(stream);
             JsonNode list = root.get("licences");
             if (list == null || !list.isArray()) {
-                throw new IllegalStateException("Licence catalogue has no licences array");
+                throw new IllegalStateException("License catalog has no licences array");
             }
             for (JsonNode node : list) {
                 LicenceTerms terms = new LicenceTerms(
@@ -66,7 +66,7 @@ public class LicenceCatalog {
                 byId.put(UNKNOWN, LicenceTerms.unknown());
             }
         } catch (IOException e) {
-            throw new UncheckedIOException("Could not read the licence catalogue", e);
+            throw new UncheckedIOException("Could not read the license catalog", e);
         }
     }
 
@@ -76,7 +76,7 @@ public class LicenceCatalog {
     }
 
     /**
-     * The terms for an id or free-text licence: the catalogue entry when the id resolves, an alias
+     * The terms for an id or free-text license: the catalog entry when the id resolves, an alias
      * match when the text matches one, else the {@code unknown} terms.
      */
     public LicenceTerms terms(String idOrLicence) {
@@ -95,7 +95,7 @@ public class LicenceCatalog {
         return byId.get(UNKNOWN);
     }
 
-    /** True when {@code idOrLicence} resolves to a catalogue entry (by id or alias). */
+    /** True when {@code idOrLicence} resolves to a catalog entry (by id or alias). */
     public boolean resolves(String idOrLicence) {
         if (idOrLicence == null || idOrLicence.isBlank()) {
             return false;
@@ -105,7 +105,7 @@ public class LicenceCatalog {
     }
 
     /**
-     * The terms of a descriptor: its explicit {@code licenceTerms} when set, else the catalogue entry
+     * The terms of a descriptor: its explicit {@code licenceTerms} when set, else the catalog entry
      * matching its free-text {@code licence}, else {@code unknown}.
      */
     public LicenceTerms forDescriptor(SourceDescriptor descriptor) {
@@ -163,7 +163,7 @@ public class LicenceCatalog {
                 shareAlike, attribution, strictest.effectiveRedistribution(), String.join("; ", texts), null);
     }
 
-    /** Every catalogue entry. */
+    /** Every catalog entry. */
     public List<LicenceTerms> all() {
         return List.copyOf(byId.values());
     }

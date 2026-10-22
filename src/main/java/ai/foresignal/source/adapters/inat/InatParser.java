@@ -33,7 +33,7 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p><strong>Privacy.</strong> A record whose {@code geoprivacy} or {@code taxon_geoprivacy} is {@code private},
  * or that carries no coordinates, is skipped. When {@code obscured} is true the coordinates are already
- * randomised upstream; the parser never tries to refine them and records the upstream's own
+ * randomized upstream; the parser never tries to refine them and records the upstream's own
  * {@code public_positional_accuracy} as {@link Quality#accuracyMeters()}. Contributor identity is never read:
  * {@code user}, {@code description} and comments are ignored entirely.
  *
@@ -249,7 +249,7 @@ public final class InatParser {
         return zone.orElse(ZoneOffset.UTC);
     }
 
-    /** The first photo's URL when its licence is open and its host is {@code inaturalist-open-data}. */
+    /** The first photo's URL when its license is open and its host is {@code inaturalist-open-data}. */
     static String photoUrl(JsonNode photos) {
         if (photos == null || !photos.isArray() || photos.isEmpty()) {
             return null;

@@ -129,7 +129,7 @@ public class GvpVolcanoesAdapter implements PollingAdapter {
         text(b, "country", "Country", "The country");
         text(b, "region", "Region", "The region");
         text(b, "subregion", "Subregion", "The subregion");
-        b.fieldSpec("elevationM", new FieldSpec(FieldType.NUMBER, "m", "Elevation", "Elevation in metres (MSL)",
+        b.fieldSpec("elevationM", new FieldSpec(FieldType.NUMBER, "m", "Elevation", "Elevation in meters (MSL)",
                 "MSL", Set.of()));
         text(b, "tectonicSetting", "Tectonic setting", "The tectonic setting");
         text(b, "evidenceCategory", "Evidence", "The evidence category");

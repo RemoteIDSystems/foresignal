@@ -104,7 +104,7 @@ public class RecordsController {
 
     static final List<String> INCLUDE_VALUES = List.of("observer", "region", "entity", "provenance");
 
-    /** The request header carrying a licence policy (prompt 109). */
+    /** The request header carrying a license policy (prompt 109). */
     public static final String LICENCE_POLICY_HEADER = "Foresignal-Licence-Policy";
 
     private final RecordQueryService queries;
@@ -137,11 +137,11 @@ public class RecordsController {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.entity.EntityService entityService;
 
-    /** Resolves a version's licence (prompt 109); null only in hand-built unit tests. */
+    /** Resolves a version's license (prompt 109); null only in hand-built unit tests. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.provenance.LicenceResolver licenceResolver;
 
-    /** The licence catalogue (prompt 109); null only in hand-built unit tests. */
+    /** The license catalog (prompt 109); null only in hand-built unit tests. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.provenance.LicenceCatalog licenceCatalog;
 
@@ -154,7 +154,7 @@ public class RecordsController {
     private ai.foresignal.provenance.CredibilityService credibilityService;
 
     /**
-     * The caller's licence policy (prompt 109): the token's flags are a floor a request may add to but
+     * The caller's license policy (prompt 109): the token's flags are a floor a request may add to but
      * never remove, combined with the request's own {@code Foresignal-Licence-Policy} header or
      * {@code licencePolicy} query flag.
      */
@@ -172,13 +172,13 @@ public class RecordsController {
     /** The aggregated attribution header (prompt 109). */
     public static final String ATTRIBUTION_HEADER = "Foresignal-Attribution";
 
-    /** A page's licence filtering and attribution result (prompt 109). */
+    /** A page's license filtering and attribution result (prompt 109). */
     private record LicenceFilter(List<RecordRow> rows, Map<Long, ai.foresignal.provenance.LicenceResolver.Resolution>
             resolutions, List<Map<String, Object>> attributions, String attributionText, List<String> licenceLinks,
             Integer filtered) {}
 
     /**
-     * Filters {@code rows} by the caller's licence policy (one resolver query) and aggregates their
+     * Filters {@code rows} by the caller's license policy (one resolver query) and aggregates their
      * attributions (prompt 109).
      */
     private LicenceFilter licenceFilter(List<RecordRow> rows, HttpServletRequest request) {
@@ -1026,7 +1026,7 @@ public class RecordsController {
         return headers;
     }
 
-    /** {@link ETags#notModified} with the licence-policy {@code Vary}. */
+    /** {@link ETags#notModified} with the license-policy {@code Vary}. */
     private static ResponseEntity<Object> notModifiedVaryingByLicence(String etag, ReadCaller caller) {
         return ResponseEntity.status(304)
                 .headers(varyByLicencePolicy(ETags.cacheHeaders(new HttpHeaders(), etag, caller.publicCache())))

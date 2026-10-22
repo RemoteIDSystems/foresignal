@@ -262,7 +262,7 @@ public class PushIngestService {
 
     /**
      * The license id a PUSH batch snapshots on its {@code fetch_log} row (prompt 109, task 2: "PUSH batches
-     * snapshot the custom source's terms"): the custom source's own {@code licenceTerms} id, else the catalogue
+     * snapshot the custom source's terms"): the custom source's own {@code licenceTerms} id, else the catalog
      * id its free-text license resolves to, else the free text.
      */
     String snapshotLicence(ai.foresignal.source.spi.SourceDescriptor descriptor) {

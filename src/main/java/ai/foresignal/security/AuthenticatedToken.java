@@ -16,7 +16,7 @@ import java.util.UUID;
  * @param bootstrap true for the bootstrap admin token
  * @param privateAccess the 039 private grant: a {@code read} or {@code agent} token that may see private
  *     sources (admin tokens always may)
- * @param licencePolicy the token's default licence policy flags (prompt 109): the floor a request may
+ * @param licencePolicy the token's default license policy flags (prompt 109): the floor a request may
  *     add to but never remove
  */
 public record AuthenticatedToken(
@@ -39,7 +39,7 @@ public record AuthenticatedToken(
         licencePolicy = licencePolicy == null ? java.util.List.of() : java.util.List.copyOf(licencePolicy);
     }
 
-    /** A token without the licence policy (the shape before prompt 109). */
+    /** A token without the license policy (the shape before prompt 109). */
     public AuthenticatedToken(UUID id, String name, Scope scope, TokenRestrictions restrictions, DeviceInfo device,
             String principalId, boolean bootstrap, boolean privateAccess) {
         this(id, name, scope, restrictions, device, principalId, bootstrap, privateAccess, java.util.List.of());

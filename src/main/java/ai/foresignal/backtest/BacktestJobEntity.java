@@ -79,7 +79,7 @@ public class BacktestJobEntity {
     private Instant createdAt;
 
     @Column(name = "cancelled", nullable = false)
-    private boolean cancelled;
+    private boolean canceled;
 
     /** True when the start was raised to the retained floor (nullable: the column arrived after prompt 103). */
     @Column(name = "range_clamped")
@@ -235,12 +235,12 @@ public class BacktestJobEntity {
         return createdAt;
     }
 
-    public boolean isCancelled() {
-        return cancelled;
+    public boolean isCanceled() {
+        return canceled;
     }
 
-    public void setCancelled(boolean cancelled) {
-        this.cancelled = cancelled;
+    public void setCanceled(boolean canceled) {
+        this.canceled = canceled;
     }
 
     /** True when the start was raised to the retained floor; null on rows from before the column existed. */

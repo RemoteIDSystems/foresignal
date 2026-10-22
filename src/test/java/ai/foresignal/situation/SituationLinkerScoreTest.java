@@ -24,7 +24,7 @@ class SituationLinkerScoreTest {
     static LinkerInput input(Set<String> regions, Geometry geom, Set<String> entities, String text, String theme,
             Instant at) {
         return new LinkerInput(10, SituationMemberTypes.INTEL_EVENT, "e1", "foresignal-intel", "e1", 1,
-                "intelligence-event", ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOUR, "warning", "Event", "Maritime disruption", at, geom, regions,
+                "intelligence-event", ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOR, "warning", "Event", "Maritime disruption", at, geom, regions,
                 "Yemen", entities, text, theme, theme == null ? null : "table", true, "core", List.of(), null);
     }
 

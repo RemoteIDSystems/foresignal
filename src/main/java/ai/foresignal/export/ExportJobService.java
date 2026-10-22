@@ -213,7 +213,7 @@ public class ExportJobService {
             return;
         }
         if (canceled.remove(id)) {
-            finish(job, ExportJobEntity.CANCELLED, null);
+            finish(job, ExportJobEntity.CANCELED, null);
             return;
         }
         if (export == null) {
@@ -258,7 +258,7 @@ public class ExportJobService {
         } catch (CanceledExport e) {
             deleteQuietly(dir);
             canceled.remove(id);
-            finish(job, ExportJobEntity.CANCELLED, null);
+            finish(job, ExportJobEntity.CANCELED, null);
         } catch (IOException | RuntimeException e) {
             log.warn("Custom export job {} failed", id, e);
             deleteQuietly(dir);
@@ -366,7 +366,7 @@ public class ExportJobService {
             return;
         }
         if (canceled.remove(id)) {
-            finish(job, ExportJobEntity.CANCELLED, null);
+            finish(job, ExportJobEntity.CANCELED, null);
             return;
         }
         if (restriction == null) {
@@ -453,7 +453,7 @@ public class ExportJobService {
             closeQuietly(writer);
             deleteQuietly(dir);
             canceled.remove(id);
-            finish(job, ExportJobEntity.CANCELLED, null);
+            finish(job, ExportJobEntity.CANCELED, null);
         } catch (IOException | RuntimeException e) {
             log.warn("Export job {} failed", id, e);
             closeQuietly(writer);

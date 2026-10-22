@@ -10,7 +10,7 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * The {@code foresignal-manifest.json} reader (prompt 107, SatDump 2.0 hook): a version-agnostic
  * manifest a SatDump product hook writes beside its products, listing the equirectangular GeoTIFFs and
- * PNGs to ingest. Foresignal recognises it independently of the SatDump version; an unknown schema is
+ * PNGs to ingest. Foresignal recognizes it independently of the SatDump version; an unknown schema is
  * rejected.
  *
  * <pre>{@code
@@ -21,7 +21,7 @@ import tools.jackson.databind.json.JsonMapper;
  */
 public final class ForesignalManifest {
 
-    /** The recognised schema version. */
+    /** The recognized schema version. */
     public static final int SCHEMA = 1;
 
     /** The manifest file name. */

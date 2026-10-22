@@ -9,7 +9,7 @@ import org.locationtech.jts.geom.Point;
 /**
  * A populated place from a GeoNames cities dump (table {@code gazetteer_place}, prompt 040; CC BY 4.0).
  * {@code geog} is a {@code geography(Point)} with a GiST index, so the nearest place is a KNN
- * {@code ORDER BY geog <-> :point} in metres.
+ * {@code ORDER BY geog <-> :point} in meters.
  */
 @Entity
 @Table(name = "gazetteer_place")

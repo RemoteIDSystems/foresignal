@@ -595,7 +595,7 @@ Foresignal's raster products reach GIS, TAK, 3D and offline clients without a cu
   answer `application/prs.coverage+json` whose values match `/v1/sample`; `/instances` lists forecast runs.
 - **MapLibre `raster-dem` data tiles.** `GET /v1/products/{id}/data/{frameKey}/{z}/{x}/{y}.png?encoding=custom|terrarium`
   carries physical values (no-data is alpha 0). The TileJSON `foresignal:dataTiles` block gives the
-  `{redFactor, greenFactor, blueFactor, baseShift}`, `units` and `nodata`; colour client-side.
+  `{redFactor, greenFactor, blueFactor, baseShift}`, `units` and `nodata`; color client-side.
 - **Style fragment.** `GET /v1/products/{id}/style-fragment.json` (or `/v1/products/style-fragment.json?products=a,b`)
   returns a MapLibre `{version:8, sources, layers}` with concrete content-addressed URLs and layer ids
   `foresignal-{product}`. Insert those `sources` and `layers` into your basemap style's `sources` and, below

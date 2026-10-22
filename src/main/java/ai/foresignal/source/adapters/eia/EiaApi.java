@@ -33,7 +33,7 @@ public final class EiaApi {
     /** The query parameter the key is sent in. */
     public static final String KEY_PARAM = "api_key";
 
-    /** The licence. */
+    /** The license. */
     public static final String LICENCE = "US-PD";
 
     /** The attribution line EIA asks for. */
@@ -54,7 +54,7 @@ public final class EiaApi {
     /** The EIA-930 fuel-type route. */
     public static final String RTO_FUEL_ROUTE = "/v2/electricity/rto/fuel-type-data/data/";
 
-    /** Well-known EIA series names, so the catalogue is readable without a per-series metadata call. */
+    /** Well-known EIA series names, so the catalog is readable without a per-series metadata call. */
     public static final Map<String, String> SERIES_NAMES = Map.of(
             "RWTC", "Cushing, OK WTI Spot Price FOB",
             "RBRTE", "Europe Brent Spot Price FOB",

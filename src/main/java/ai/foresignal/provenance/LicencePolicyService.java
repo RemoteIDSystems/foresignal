@@ -8,7 +8,7 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
- * Resolves the caller's {@link LicencePolicy} against the source catalogue (prompt 109): the sources
+ * Resolves the caller's {@link LicencePolicy} against the source catalog (prompt 109): the sources
  * a policy excludes wholesale, so a read path can prune them in SQL before reading (the cheap case).
  * A single record of a mixed source is still filtered by {@link LicenceResolver}.
  */

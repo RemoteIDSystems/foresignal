@@ -16,7 +16,7 @@ import java.util.zip.Deflater;
  * 512 px, and every IFD (with every out-of-line tag value) written before the tile data (the COG
  * layout). Tiles carry physical float32 values; {@code ModelPixelScale}/{@code ModelTiepoint}/
  * {@code GeoKeyDirectory} georeference EPSG:4326 or EPSG:3857, {@code GDAL_NODATA} marks the no-data
- * value, and the full-resolution IFD carries {@code Copyright} (attribution and licence) and
+ * value, and the full-resolution IFD carries {@code Copyright} (attribution and license) and
  * {@code GDAL_METADATA} when given.
  *
  * <p>Tag values follow TIFF 6.0 §2: a value whose bytes fit in four is stored inline in the entry
@@ -53,11 +53,11 @@ public final class CogWriter {
      * @param values physical values, row-major north to south, {@code width × height}
      * @param width columns
      * @param height rows
-     * @param bounds {@code [west, south, east, north]} in the CRS (degrees for 4326, metres for 3857)
+     * @param bounds {@code [west, south, east, north]} in the CRS (degrees for 4326, meters for 3857)
      * @param epsg 4326 or 3857
      * @param nodata the no-data value (also written to {@code GDAL_NODATA})
      * @param gdalMetadata the {@code GDAL_METADATA} XML document, or null
-     * @param copyright the {@code Copyright} text (attribution and licence), or null; reduced to ASCII
+     * @param copyright the {@code Copyright} text (attribution and license), or null; reduced to ASCII
      */
     public static byte[] write(float[] values, int width, int height, double[] bounds, int epsg, double nodata,
             String gdalMetadata, String copyright) {

@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
  * {@code nuclear-plants-wikidata}: nuclear power plants from a fixed Wikidata SPARQL query (prompt 094). CC0.
  *
  * <p>A POST to {@code query.wikidata.org/sparql} with {@code Accept: application/sparql-results+json}.
- * Foresignal's own User-Agent (with contact) is sent; a 429 honours {@code Retry-After}. The query is fixed in
+ * Foresignal's own User-Agent (with contact) is sent; a 429 honors {@code Retry-After}. The query is fixed in
  * {@link WikidataNuclearParser#QUERY}, so the operator cannot change it.
  */
 @Component

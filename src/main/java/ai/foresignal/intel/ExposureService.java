@@ -79,7 +79,7 @@ public class ExposureService {
             counts.put(kind, 0);
         }
         boolean anyInstalled = false;
-        boolean dataCentreInstalled = false;
+        boolean dataCenterInstalled = false;
         for (Facility facility : FACILITIES) {
             if (!installed(facility.sourceId())) {
                 continue;
@@ -89,12 +89,12 @@ public class ExposureService {
             counts.merge(facility.exposureKind(), count, Integer::sum);
         }
         if (anyInstalled) {
-            dataCentreInstalled = installed("data-centre-osm");
+            dataCenterInstalled = installed("data-centre-osm");
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("status", anyInstalled ? "ok" : "not-installed");
         out.put("counts", counts);
-        if (!dataCentreInstalled) {
+        if (!dataCenterInstalled) {
             out.put("notInstalled", List.of("data-centre"));
         }
         out.put("attribution", "facility sources; see the Source Catalog");

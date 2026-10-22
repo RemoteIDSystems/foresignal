@@ -15,7 +15,7 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
 import org.springframework.transaction.PlatformTransactionManager;
 
-/** The dependency rules (prompt 104) on synthetic nodes, the label ceilings, overrides and licences. */
+/** The dependency rules (prompt 104) on synthetic nodes, the label ceilings, overrides and licenses. */
 class DependencyRulesTest {
 
     private static final LicenceTerms ODBL = new LicenceTerms("ODbL-1.0", "ODbL", LicenceTerms.CommercialUse.ALLOWED,
@@ -161,7 +161,7 @@ class DependencyRulesTest {
     }
 
     @Test
-    @DisplayName("an edge carries the most restrictive licence of its inputs")
+    @DisplayName("an edge carries the most restrictive license of its inputs")
     void licences() {
         assertThat(InfraLicences.mostRestrictive(List.of(ODBL, CC_BY))).isEqualTo("ODbL-1.0");
         assertThat(InfraLicences.mostRestrictive(List.of(CC_BY, CC_BY))).isEqualTo("CC-BY-4.0");

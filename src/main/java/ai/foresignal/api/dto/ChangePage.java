@@ -13,7 +13,7 @@ import java.util.Map;
  * @param watermarkSeq {@code ChangeBus.lastPublishedSeq()} at query time
  * @param purgeHorizon the largest {@code RetentionState.purgeSeq} over the filtered sources
  * @param attributions the aggregated attributions (prompt 109); null when none
- * @param licenceFiltered the number of changes removed by the caller's licence policy (prompt 109)
+ * @param licenceFiltered the number of changes removed by the caller's license policy (prompt 109)
  */
 public record ChangePage(
         List<Map<String, Object>> items, long lastSeq, boolean hasMore, long watermarkSeq, long purgeHorizon,

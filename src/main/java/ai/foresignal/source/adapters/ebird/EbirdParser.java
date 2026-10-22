@@ -44,7 +44,7 @@ public final class EbirdParser {
     /** The coordinate decimals kept for a private location. */
     public static final double PRIVATE_DEGREES = 0.05;
 
-    /** The accuracy reported for a rounded private location, metres. */
+    /** The accuracy reported for a rounded private location, meters. */
     public static final double PRIVATE_ACCURACY_METERS = 5000;
 
     private static final JsonMapper JSON = JsonMapper.builder().build();

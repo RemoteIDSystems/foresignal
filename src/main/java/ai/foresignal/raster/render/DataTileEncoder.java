@@ -5,7 +5,7 @@ import java.util.Map;
 
 /**
  * Data tiles (prompt 108; Weather-Imagery-Design §11): physical values as RGB, for MapLibre
- * {@code raster-dem} and client-side colouring. Two encodings:
+ * {@code raster-dem} and client-side coloring. Two encodings:
  *
  * <ul>
  *   <li>{@code custom}: {@code v = (R·65536 + G·256 + B)·scale + offset}, i.e. the frame's own 16-bit

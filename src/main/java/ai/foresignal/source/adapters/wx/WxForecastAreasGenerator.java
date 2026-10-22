@@ -522,7 +522,7 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
         return new double[] {e.getMinX(), e.getMinY(), e.getMaxX(), e.getMaxY()};
     }
 
-    /** The cells of {@code window} whose centre is in {@code aoi} and which satisfy the threshold. */
+    /** The cells of {@code window} whose center is in {@code aoi} and which satisfy the threshold. */
     private static int[] mask(FrameView view, GridWindow window, Geometry aoi, AreaDef def, double[] envelope) {
         List<Integer> cells = new ArrayList<>();
         int nx = view.nx();
@@ -594,7 +594,7 @@ public class WxForecastAreasGenerator implements DerivedGenerator {
                 kept.add(cell);
             }
         }
-        // Dilate back: keep any cell that neighbours a surviving cell.
+        // Dilate back: keep any cell that neighbors a surviving cell.
         Set<Integer> out = new LinkedHashSet<>();
         for (int cell : kept) {
             int r = cell / nx;

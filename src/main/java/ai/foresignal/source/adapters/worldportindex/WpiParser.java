@@ -99,7 +99,7 @@ public final class WpiParser {
         return 1;
     }
 
-    /** The buffer radius, kilometres, by harbor size code. */
+    /** The buffer radius, kilometers, by harbor size code. */
     public static double bufferKm(String harborSize) {
         if (harborSize == null || harborSize.isBlank()) {
             return 3.0;

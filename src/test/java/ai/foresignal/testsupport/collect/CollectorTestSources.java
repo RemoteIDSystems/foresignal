@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Import;
  * and the {@code MutableClock}).
  *
  * <ul>
- *   <li>{@value #POLL}: polling, 1 s interval, 2 s fetch timeout, a licence, ALL;
+ *   <li>{@value #POLL}: polling, 1 s interval, 2 s fetch timeout, a license, ALL;
  *   <li>{@value #KEYED}: polling with a required {@code apiKey} credential, 2 s fetch timeout.
  * </ul>
  *

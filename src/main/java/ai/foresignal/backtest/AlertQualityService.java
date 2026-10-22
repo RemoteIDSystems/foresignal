@@ -37,8 +37,8 @@ public class AlertQualityService {
             Feedback.FALSE_POSITIVE.wire(), "negative",
             Feedback.LATE.wire(), "neutral");
 
-    /** The labelled alerts below which precision is null. */
-    public static final int MIN_LABELLED = 5;
+    /** The labeled alerts below which precision is null. */
+    public static final int MIN_LABELED = 5;
 
     /** The most alerts read per report. */
     public static final int MAX_ALERTS = 5_000;
@@ -117,7 +117,7 @@ public class AlertQualityService {
         long positive = 0;
         long negative = 0;
         long neutral = 0;
-        long labelled = 0;
+        long labeled = 0;
         List<Long> ackMinutes = new ArrayList<>();
         List<Long> resolveMinutes = new ArrayList<>();
         long flapping = 0;
@@ -130,11 +130,11 @@ public class AlertQualityService {
             switch (feedbackClass) {
                 case "positive" -> {
                     positive++;
-                    labelled++;
+                    labeled++;
                 }
                 case "negative" -> {
                     negative++;
-                    labelled++;
+                    labeled++;
                 }
                 case "neutral" -> neutral++;
                 default -> { }
@@ -161,13 +161,13 @@ public class AlertQualityService {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("ruleId", ruleId);
         out.put("alerts", rows.size());
-        out.put("labelled", labelled);
-        if (labelled == 0) {
+        out.put("labelled", labeled);
+        if (labeled == 0) {
             out.put("labelledShare", 0.0);
         } else {
-            out.put("labelledShare", (double) labelled / rows.size());
+            out.put("labelledShare", (double) labeled / rows.size());
         }
-        if (labelled < MIN_LABELLED) {
+        if (labeled < MIN_LABELED) {
             out.put("precision", null);
         } else {
             double precision = (double) positive / (positive + negative);

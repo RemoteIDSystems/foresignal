@@ -11,7 +11,7 @@ import java.util.Map;
  * @param items {@code RecordVersion} items
  * @param nextCursor the next page's cursor; null on the last page
  * @param attributions the aggregated attributions (prompt 109); null when none
- * @param licenceFiltered the number of versions removed by the caller's licence policy (prompt 109)
+ * @param licenceFiltered the number of versions removed by the caller's license policy (prompt 109)
  */
 public record RecordVersionPage(
         List<Map<String, Object>> items,

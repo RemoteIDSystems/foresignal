@@ -60,7 +60,7 @@ public class ListAnalystNotesTool implements ForesignalMcpTool {
     @Override
     public String description() {
         return UNTRUSTED_NOTE + " Lists the autonomous analyst's notes, with their typed, cited claims."
-                + " Evidence is cited; inference and speculation are labelled.";
+                + " Evidence is cited; inference and speculation are labeled.";
     }
 
     @Override

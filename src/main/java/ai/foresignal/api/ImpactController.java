@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * The impact projection endpoints (prompt 127): {@code listProjectedImpacts}, {@code getProjectedImpact} and
- * {@code listImpactRates}, all {@code read}. Every projection carries the label "modelled; heuristic links may be
+ * {@code listImpactRates}, all {@code read}. Every projection carries the label "modeled; heuristic links may be
  * wrong; not an official warning".
  */
 @RestController

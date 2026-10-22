@@ -13,7 +13,7 @@ import java.util.Map;
  * @param name the place name
  * @param iso2 the place's country, or null
  * @param admin1 the place's first-level region as ISO 3166-2 when known (else the GeoNames code), or null
- * @param distanceKm the distance from the place to the point, in kilometres
+ * @param distanceKm the distance from the place to the point, in kilometers
  * @param bearingDeg the bearing from the place to the point, degrees clockwise from north
  * @param population the place's population, or null
  * @param suffix the text after the name in {@link #text}: the US state code, else the country name; or
@@ -22,7 +22,7 @@ import java.util.Map;
 public record RegionNear(long geonameid, String name, String iso2, String admin1, double distanceKm,
         double bearingDeg, Long population, String suffix) {
 
-    /** Kilometres to statute miles. */
+    /** Kilometers to statute miles. */
     public static final double MILES_PER_KM = 0.621371192;
 
     /** The 16 compass points, starting at north. */
@@ -46,7 +46,7 @@ public record RegionNear(long geonameid, String name, String iso2, String admin1
         return distanceKm * MILES_PER_KM;
     }
 
-    /** {@code "12 km NNE of Austin, TX"}, in kilometres. */
+    /** {@code "12 km NNE of Austin, TX"}, in kilometers. */
     public String text() {
         return text(false);
     }

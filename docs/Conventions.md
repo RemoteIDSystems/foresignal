@@ -90,7 +90,7 @@ Deploy a collecting instance early (after 022) with these defaults; see `docs/Ro
 - **Chronicles own their copies:** captured data is never deleted by global retention (131).
 - **Three memories stay separate:** observations, interpretation and chronicles (Intelligence-Design §3.1); nothing downstream mutates an upstream memory.
 - **Chronicle discovery** uses keyed fingerprints only and discloses within visibility, discoverability and TLP (134).
-- **Social is reporting, not observation** (135–137): social claims never corroborate physical events or themselves, amplification never adds evidence groups, "unobserved" needs `canSeeAbsence` and attention gaps need social coverage; accounts are analysed as sources, never profiled; the social salt (`authorKey`) is stored with the secret key material.
+- **Social is reporting, not observation** (135–137): social claims never corroborate physical events or themselves, amplification never adds evidence groups, "unobserved" needs `canSeeAbsence` and attention gaps need social coverage; accounts are analyzed as sources, never profiled; the social salt (`authorKey`) is stored with the secret key material.
 - **Ratings are imported, never generated:** media lean and factuality come only from declared providers with license and date (133); no bylines or author names are stored.
 - **Durable cursors** added by the block (`evidence.cursor`, `situation.cursor`, `stats.region.cursor`, `precursor.cursor`, `impact.cursor`, `relation.cursor`, `social.cursor`, `chronicle.cursor.{id}`) join 019's consumer clamp, including its release-after-2×-window rule with an alarm.
 

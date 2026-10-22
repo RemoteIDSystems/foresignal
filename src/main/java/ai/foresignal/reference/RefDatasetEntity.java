@@ -8,7 +8,7 @@ import java.time.Instant;
 
 /**
  * The load state of one reference dataset (table {@code ref_dataset}, prompt 040): what was loaded, from
- * where, with which checksum and licence, and how many rows. Written by the {@link ReferenceDataLoader}.
+ * where, with which checksum and license, and how many rows. Written by the {@link ReferenceDataLoader}.
  */
 @Entity
 @Table(name = "ref_dataset")
@@ -69,7 +69,7 @@ public class RefDatasetEntity {
         return sha256;
     }
 
-    /** The licence, or null. */
+    /** The license, or null. */
     public String getLicence() {
         return licence;
     }

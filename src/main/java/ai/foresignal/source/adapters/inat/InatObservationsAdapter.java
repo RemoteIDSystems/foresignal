@@ -467,10 +467,10 @@ public class InatObservationsAdapter implements PollingAdapter {
                 .name("iNaturalist observations")
                 .description("Recent iNaturalist observations in an operator's area, from the v1 observations API."
                         + " An AOI is required (iNaturalist asks clients not to poll globally). Obscured"
-                        + " observations are placed at their randomised upstream coordinates with their positional"
+                        + " observations are placed at their randomized upstream coordinates with their positional"
                         + " accuracy; geoprivacy-private observations and observations without coordinates are"
                         + " skipped; contributor usernames, descriptions and comments are never stored. Per-record CC"
-                        + " licences; photos are linked only when their licence is open and they are on the"
+                        + " licenses; photos are linked only when their license is open and they are on the"
                         + " iNaturalist open-data host.")
                 .kind(KIND)
                 .homepage("https://www.inaturalist.org/observations")
@@ -487,7 +487,7 @@ public class InatObservationsAdapter implements PollingAdapter {
                         "Iconic taxa kept (for example Aves, Plantae); empty keeps every taxon", null, false,
                         List.of()))
                 .param(ParamSpec.optional(LICENSED_ONLY_PARAM, ParamType.BOOLEAN,
-                        "Skip observations with no licence (all rights reserved)", true))
+                        "Skip observations with no license (all rights reserved)", true))
                 .param(ParamSpec.optional(INCLUDE_CAPTIVE_PARAM, ParamType.BOOLEAN,
                         "Keep observations flagged captive or cultivated", false))
                 .interval(Duration.ofMinutes(10), Duration.ofMinutes(30))
@@ -511,14 +511,14 @@ public class InatObservationsAdapter implements PollingAdapter {
                 "iNaturalist iconic taxon (Aves, Plantae, Insecta, ...)", null, Set.of()));
         b.fieldSpec("qualityGrade", new FieldSpec(FieldType.STRING, null, "Quality grade",
                 "research, needs_id or casual", null, Set.of()));
-        b.fieldSpec("licenseCode", new FieldSpec(FieldType.STRING, null, "Licence",
-                "Per-record CC licence code (cc0, cc-by, cc-by-nc, ...)", null, Set.of()));
+        b.fieldSpec("licenseCode", new FieldSpec(FieldType.STRING, null, "License",
+                "Per-record CC license code (cc0, cc-by, cc-by-nc, ...)", null, Set.of()));
         b.fieldSpec("obscured", new FieldSpec(FieldType.BOOLEAN, null, "Obscured",
-                "True when iNaturalist randomised the coordinates for a sensitive taxon", null, Set.of()));
+                "True when iNaturalist randomized the coordinates for a sensitive taxon", null, Set.of()));
         b.fieldSpec("uri", new FieldSpec(FieldType.STRING, null, "Observation page", "iNaturalist observation URL",
                 null, Set.of()));
         b.fieldSpec("photoUrl", new FieldSpec(FieldType.STRING, null, "Photo",
-                "First photo, only when its licence is open and its host is inaturalist-open-data", null, Set.of()));
+                "First photo, only when its license is open and its host is inaturalist-open-data", null, Set.of()));
         return b.build();
     }
 }

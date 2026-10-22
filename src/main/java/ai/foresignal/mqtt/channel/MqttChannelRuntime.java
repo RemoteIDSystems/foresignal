@@ -101,7 +101,7 @@ public final class MqttChannelRuntime {
         this.discoveryPlatforms = Map.copyOf(platforms);
     }
 
-    /** Replaces the pending discovery debounce, cancelling the previous one. */
+    /** Replaces the pending discovery debounce, canceling the previous one. */
     public synchronized void discoveryDebounce(ScheduledFuture<?> next) {
         if (discoveryDebounce != null) {
             discoveryDebounce.cancel(false);

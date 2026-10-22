@@ -11,9 +11,9 @@ import java.util.Set;
  */
 public final class SignalFamilies {
 
-    public static final String AIS_BEHAVIOUR = "ais-behaviour";
+    public static final String AIS_BEHAVIOR = "ais-behaviour";
     public static final String NAV_WARNING = "nav-warning";
-    public static final String AVIATION_BEHAVIOUR = "aviation-behaviour";
+    public static final String AVIATION_BEHAVIOR = "aviation-behaviour";
     public static final String AVIATION_RESTRICTION = "aviation-restriction";
     public static final String GNSS_INTERFERENCE = "gnss-interference";
     public static final String WEATHER_HAZARD = "weather-hazard";
@@ -24,7 +24,7 @@ public final class SignalFamilies {
     public static final String CONFLICT = "conflict";
 
     /** Every family name. */
-    public static final Set<String> ALL = Set.of(AIS_BEHAVIOUR, NAV_WARNING, AVIATION_BEHAVIOUR,
+    public static final Set<String> ALL = Set.of(AIS_BEHAVIOR, NAV_WARNING, AVIATION_BEHAVIOR,
             AVIATION_RESTRICTION, GNSS_INTERFERENCE, WEATHER_HAZARD, INTERNET_MEASUREMENT, GRID_FREQUENCY, SEISMIC, FIRE,
             CONFLICT);
 
@@ -38,8 +38,8 @@ public final class SignalFamilies {
             return CONFLICT;
         }
         return switch (kind) {
-            case "ais-gap", "loiter", "rendezvous", "chokepoint-uturn", "chokepoint-activity" -> AIS_BEHAVIOUR;
-            case "emergency-squawk", "holding-pattern" -> AVIATION_BEHAVIOUR;
+            case "ais-gap", "loiter", "rendezvous", "chokepoint-uturn", "chokepoint-activity" -> AIS_BEHAVIOR;
+            case "emergency-squawk", "holding-pattern" -> AVIATION_BEHAVIOR;
             case "jamming-cell" -> GNSS_INTERFERENCE;
             case "outage", "internet-outage", "bgp-prefix-state" -> INTERNET_MEASUREMENT;
             case "grid-frequency" -> GRID_FREQUENCY;

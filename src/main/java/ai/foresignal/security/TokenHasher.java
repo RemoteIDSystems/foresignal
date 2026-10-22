@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class TokenHasher {
 
-    /** Every Foresignal token starts with this, so a leaked string is recognisable as a credential. */
+    /** Every Foresignal token starts with this, so a leaked string is recognizable as a credential. */
     public static final String TOKEN_PREFIX = "fsr_";
 
     static final int TOKEN_ENTROPY_BYTES = 32;

@@ -29,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
  * The optional population pack (prompt 101). Imports a GHSL GHS-POP GeoTIFF under {@code
  * ${FORESIGNAL_DATA_DIR}/packs}, aggregating each pixel's population to the H3 cells (res 5 and 7)
  * containing its center, and estimates the population inside a geometry by polyfilling it at res 7
- * (res 5 for areas over 50,000 km²). The result is a modelled residential population, never a
+ * (res 5 for areas over 50,000 km²). The result is a modeled residential population, never a
  * casualty estimate.
  */
 @Service
@@ -49,7 +49,7 @@ public class PopulationPackService {
     /** The attribution. */
     public static final String ATTRIBUTION = "© European Union, GHSL";
 
-    /** The licence. */
+    /** The license. */
     public static final String LICENCE = "CC-BY-4.0";
 
     /** The area over which a coarser resolution is used, km². */

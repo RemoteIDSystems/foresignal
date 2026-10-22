@@ -90,7 +90,7 @@ class CapRecordMapperTest {
     }
 
     @Test
-    @DisplayName("a Cancel without info is a cancelled version (not a tombstone) with validUntil = sent")
+    @DisplayName("a Cancel without info is a canceled version (not a tombstone) with validUntil = sent")
     void cancelWithoutInfo() {
         CapAlert alert = parse(text("cancel-no-info.xml"));
 
@@ -108,9 +108,9 @@ class CapRecordMapperTest {
     @DisplayName("a Cancel with info expires at info.expires; an Update is updated; a profile rule can cancel")
     void states() {
         String cancel = text("polygon.xml").replace("<msgType>Alert</msgType>", "<msgType>Cancel</msgType>");
-        NormalizedRecord cancelled = CapRecordMapper.toRecord(parse(cancel), PROFILE);
-        assertThat(cancelled.payload()).containsEntry("state", "cancelled");
-        assertThat(cancelled.validUntil()).isEqualTo(Instant.parse("2026-10-13T18:00:00Z"));
+        NormalizedRecord canceled = CapRecordMapper.toRecord(parse(cancel), PROFILE);
+        assertThat(canceled.payload()).containsEntry("state", "cancelled");
+        assertThat(canceled.validUntil()).isEqualTo(Instant.parse("2026-10-13T18:00:00Z"));
 
         NormalizedRecord updated = CapRecordMapper.toRecord(parse(text("references.xml")), PROFILE);
         assertThat(updated.payload()).containsEntry("state", "updated").containsEntry("references", 2);

@@ -79,7 +79,7 @@ public final class ModelDisagreement {
             boolean flagged = previous.containsKey(field) ? s >= threshold * HYSTERESIS : s >= threshold;
             if (flagged) {
                 fields.add(field);
-                spread.put(field, quantise(s));
+                spread.put(field, quantize(s));
                 models.addAll(present);
             }
         }
@@ -110,7 +110,7 @@ public final class ModelDisagreement {
     }
 
     /** A spread rounded to 0.5. */
-    static double quantise(double v) {
+    static double quantize(double v) {
         return Math.round(v * 2) / 2.0;
     }
 }

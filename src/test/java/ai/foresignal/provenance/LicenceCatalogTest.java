@@ -6,7 +6,7 @@ import ai.foresignal.source.spi.SourceDescriptor;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** The licence catalogue: built-in ids, aliases and the restrictive unknown fallback (prompt 109). */
+/** The license catalog: built-in ids, aliases and the restrictive unknown fallback (prompt 109). */
 class LicenceCatalogTest {
 
     private final LicenceCatalog catalog = new LicenceCatalog();
@@ -24,14 +24,14 @@ class LicenceCatalogTest {
     @Test
     @DisplayName("an unknown id resolves to the restrictive unknown terms")
     void unknown() {
-        LicenceTerms terms = catalog.terms("no-such-licence");
+        LicenceTerms terms = catalog.terms("no-such-license");
         assertThat(terms.id()).isEqualTo("unknown");
         assertThat(terms.effectiveCommercial()).isEqualTo(LicenceTerms.CommercialUse.FORBIDDEN);
         assertThat(terms.effectiveRedistribution()).isEqualTo(LicenceTerms.Redistribution.LOCAL_ONLY);
     }
 
     @Test
-    @DisplayName("aliases map a descriptor's free-text licence to a catalogue entry")
+    @DisplayName("aliases map a descriptor's free-text license to a catalog entry")
     void aliases() {
         assertThat(catalog.terms("US-PD").id()).isEqualTo("us-gov-public-domain");
         assertThat(catalog.terms("OpenSky Network terms (non-commercial research)").id()).isEqualTo("opensky-terms");
@@ -56,7 +56,7 @@ class LicenceCatalogTest {
     }
 
     @Test
-    @DisplayName("forDescriptor prefers explicit terms, then the licence alias")
+    @DisplayName("forDescriptor prefers explicit terms, then the license alias")
     void forDescriptor() {
         SourceDescriptor usPd = SourceDescriptor.builder("usgs").licence("US-PD").build();
         assertThat(catalog.forDescriptor(usPd).id()).isEqualTo("us-gov-public-domain");

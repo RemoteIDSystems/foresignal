@@ -89,7 +89,7 @@ public final class EmwinTextParser {
         }
 
         /** True for a cancellation or an expiry (the record is tombstoned). */
-        public boolean cancelled() {
+        public boolean canceled() {
             return "CAN".equals(action) || "EXP".equals(action);
         }
     }

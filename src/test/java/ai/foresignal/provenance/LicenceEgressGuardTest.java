@@ -6,7 +6,7 @@ import ai.foresignal.security.EgressPath;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** The licence egress guard table, including the UNKNOWN defaults (prompt 109). */
+/** The license egress guard table, including the UNKNOWN defaults (prompt 109). */
 class LicenceEgressGuardTest {
 
     private final LicenceEgressGuard guard = new LicenceEgressGuard();

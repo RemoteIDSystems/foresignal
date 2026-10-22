@@ -12,7 +12,7 @@ import java.time.Duration;
  *
  * <p>"Absence of evidence is not evidence of absence": a generator opens an AIS gap or clears a
  * squawk only when the source is healthy and the window is not degraded. {@code densityNear} is the
- * second test — a vessel that stops reporting while three neighbours keep reporting is a gap; a
+ * second test — a vessel that stops reporting while three neighbors keep reporting is a gap; a
  * vessel that stops while the whole feed is quiet is a coverage hole.
  */
 public interface CoverageService {

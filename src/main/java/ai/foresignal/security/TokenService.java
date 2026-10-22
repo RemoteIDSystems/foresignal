@@ -70,13 +70,13 @@ public class TokenService {
      * @param createdVia how it is created
      * @param principalId the owning principal, or null for a new one named after the token
      * @param privateAccess the 039 private grant
-     * @param licencePolicy the token's default licence policy flags (prompt 109), or empty
+     * @param licencePolicy the token's default license policy flags (prompt 109), or empty
      */
     public record TokenSpec(String name, Scope scope, Instant expiresAt, TokenRestrictions restrictions,
             DeviceInfo device, TokenCreatedVia createdVia, String principalId, boolean privateAccess,
             List<String> licencePolicy) {
 
-        /** A spec without the licence policy (the shape before prompt 109). */
+        /** A spec without the license policy (the shape before prompt 109). */
         public TokenSpec(String name, Scope scope, Instant expiresAt, TokenRestrictions restrictions,
                 DeviceInfo device, TokenCreatedVia createdVia, String principalId, boolean privateAccess) {
             this(name, scope, expiresAt, restrictions, device, createdVia, principalId, privateAccess, List.of());

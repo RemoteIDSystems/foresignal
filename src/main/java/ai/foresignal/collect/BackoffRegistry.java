@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Holds a source back after an upstream asks us to slow down (FR-12).
  *
- * <p>Honouring {@code Retry-After} is the single most important piece of upstream etiquette Foresignal
+ * <p>Honoring {@code Retry-After} is the single most important piece of upstream etiquette Foresignal
  * can implement: it is the upstream telling us exactly what it wants, and ignoring it is how
  * projects get blocked. When there is no header, backoff grows exponentially from 30 seconds,
  * capped at an hour, so a persistent outage settles into hourly probes rather than hammering.
@@ -40,7 +40,7 @@ public class BackoffRegistry {
     public static final Duration MAX_BACKOFF = Duration.ofHours(1);
 
     /**
-     * Floor for a Retry-After we honour.
+     * Floor for a Retry-After we honor.
      *
      * <p>An upstream asking us back in under 5 seconds is almost certainly a misconfigured proxy;
      * obeying literally would be close to no backoff at all.
@@ -84,7 +84,7 @@ public class BackoffRegistry {
                 sourceId,
                 delay.toSeconds(),
                 attempt,
-                retryAfter.isPresent() ? "honouring Retry-After" : "exponential");
+                retryAfter.isPresent() ? "honoring Retry-After" : "exponential");
         return deadline;
     }
 

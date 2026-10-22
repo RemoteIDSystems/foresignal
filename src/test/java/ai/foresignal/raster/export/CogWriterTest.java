@@ -131,15 +131,15 @@ class CogWriterTest {
     }
 
     @Test
-    @DisplayName("EPSG:3857 writes the projected GeoKeys; the copyright carries attribution and licence")
+    @DisplayName("EPSG:3857 writes the projected GeoKeys; the copyright carries attribution and license")
     void webMercatorAndCopyright() {
         byte[] tiff = CogWriter.write(fill(64, 64), 64, 64,
                 new double[] {-1_000_000, -1_000_000, 1_000_000, 1_000_000}, 3857, -9999, null,
-                "Data: NOAA MRMS; licence: us-gov-public-domain © Météo");
+                "Data: NOAA MRMS; license: us-gov-public-domain © Météo");
         Ifd ifd = parse(tiff).get(0);
         assertThat(ifd.values().get(34735)).containsSequence(1024L, 0L, 1L, 1L).containsSequence(3072L, 0L, 1L,
                 3857L);
-        assertThat(ifd.ascii().get(33432)).isEqualTo("Data: NOAA MRMS; licence: us-gov-public-domain (c) Meteo");
+        assertThat(ifd.ascii().get(33432)).isEqualTo("Data: NOAA MRMS; license: us-gov-public-domain (c) Meteo");
     }
 
     @Test

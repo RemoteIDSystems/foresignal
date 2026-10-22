@@ -174,7 +174,7 @@ class RuleBacktestIT {
         jobs.run(queued.getId());
         BacktestJobEntity after = jobs.get(queued.getId());
         assertThat(after.getStatus()).isEqualTo("cancelled");
-        assertThat(after.isCancelled()).isTrue();
+        assertThat(after.isCanceled()).isTrue();
         assertThat(after.getResult()).isNull();
 
         BacktestJobEntity running = new BacktestJobEntity(Ulids.next(clock.instant()), "rule", clock.instant());

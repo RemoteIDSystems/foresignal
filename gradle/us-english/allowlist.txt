@@ -1,0 +1,140 @@
+# checkUsEnglish allowlist (prompt 149): text that keeps a British spelling, each line with its reason.
+#
+#   <path glob> | <match> | [<category>] <reason>
+#
+# <match> is code:<word> (the word as or inside an identifier, a {@code}/{@link} reference or a Markdown code span),
+# ident:<Identifier> (exactly that identifier), text:<substring> (a finding on a line containing it) or word:<word>
+# (every use in the matching files). Categories are the never-correct cases of CLAUDE.md "US English, always":
+#   [wire]        crosses a wire or persists: a JSON key or value, an API field, a DB column, an error code, a header
+#   [data]        external or embedded data: an upstream field, tag or value, a file name, a test payload
+#   [quote]       a direct quotation from an external source (a provider's required credit, a license title)
+#   [license]     a license file or a copyright holder's name
+#   [vendored]    vendored or generated code, or a dependency's own API
+#   [foreign]     a translation or foreign-language text
+#   [proper-noun] the name of an organization, place or publication
+# Prefer the narrowest match that covers the case. An entry that matches nothing fails the task.
+
+# --- The licence vocabulary -------------------------------------------------------------------------------------
+# The API spells it "licence": the fields licence, licences, licenceUrl, licenceTerms, licencePolicy, licenceFiltered,
+# licenceSummary, licenceBasis, licenceAcknowledged (docs/OpenAPI.json), the schemas LicenceTerms and
+# ExportLicenceSummary, the DB columns licence, licences, licence_terms, licence_policy and licence_acknowledged, the
+# Foresignal-Licence-Policy and Foresignal-Licence-Filtered headers, the licencePolicy query parameter, the error codes
+# PROVIDER_LICENCE_NOT_ACKNOWLEDGED and SHARE_LICENCE_FORBIDDEN, the licence-forbidden and licence-local-only egress
+# reasons, and the licence.json and licences.json files. Java record components and getters are those JSON keys, and
+# the type and variable names mirror them, so identifiers keep the word. Prose about licenses is corrected.
+src/**/*.java | code:licence | [wire] the API's licence field vocabulary (see above); record components and getters are its JSON keys
+src/**/*.java | code:licences | [wire] the API's licences field and DB column (see above)
+docs/*.md | code:licence | [wire] a code span naming a licence field, header, parameter, column or file (see above)
+docs/*.md | code:licences | [wire] a code span naming the licences field or column (see above)
+src/**/*.java | text:"licence" | [wire] the licence JSON key, DB column or metadata key as a string literal
+src/**/*.java | text:"licences" | [wire] the licences JSON key or DB column as a string literal
+src/**/*.java | text:"LICENCE" | [wire] the LICENCE column OperatorRatingsParser accepts in an operator ratings CSV (LICENSE too)
+src/**/*.java | text:Foresignal-Licence- | [wire] the Foresignal-Licence-Policy and Foresignal-Licence-Filtered HTTP headers
+src/**/*.java | text:licence-forbidden | [wire] the licence-forbidden egress reason code
+src/**/*.java | text:licence-local-only | [wire] the licence-local-only egress reason code
+src/**/*.java | text:licence.json | [wire] the licence.json export manifest file name
+src/**/*.java | text:licences.json | [wire] the licences.json license catalog resource name
+src/**/*.java | text:foresignal.licence | [wire] the foresignal.licence file-metadata key and metric name prefix
+src/**/*.java | text:"derived (input licences | [wire] the licence value of a DERIVED source, stored on every fetch row and record
+src/**/*.java | text:no explicit licence) | [wire] the gdacs licence value, stored on fetch rows and aliased in licences.json
+src/**/*.java | text:(no published licence) | [wire] the ioda-outages licence value, stored on fetch rows and aliased in licences.json
+src/**/*.java | text:per-record CC licence (iNaturalist; see licenseCode) | [wire] the inat licence value, aliased in licences.json
+src/main/java/ai/foresignal/provenance/LicenceTerms.java | text:"Unknown licence" | [wire] the name of the published license catalog's unknown entry (licences.json)
+src/main/java/ai/foresignal/provenance/LicenceTerms.java | text:"Licence unknown; do not redistribute." | [wire] the summary of the published license catalog's unknown entry (licences.json)
+src/main/java/ai/foresignal/{baserate/reference/ReferenceHistoryWriter,collect/FetchLogWriter,infra/InfraGraphBuilder,infra/InfraImpactService,infra/InfraNodeQuery,ingest/IngestWriter,media/MediaQueries,media/outlet/OutletRegistry,provenance/LicenceResolver,reference/ReferenceDataLoader}.java | string:licence | [wire] SQL naming the licence column
+src/test/java/ai/foresignal/{analytics/IntelligenceLookAheadIT,api/BaseRateControllersIT,forecast/baseline/BaselineForecastersIT,forecast/eval/RetrospectiveEvaluationIT,infra/InfraGraphBuilderIT,outlook/index/IndexFitIT,outlook/regional/RegionalOutlookIT,source/adapters/AircraftIngestIT,source/adapters/usgs/UsgsIngestIT}.java | string:licence | [wire] SQL naming the licence column
+src/test/java/**/*.java | text:.licence") | [wire] a JSONPath ending at the licence field
+src/test/java/**/*.java | text:\"licence\" | [wire] the licence key in a JSON fixture
+src/test/java/ai/foresignal/inbound/CustomSourceServiceIT.java | text:'licence': | [wire] the licence key in a JSON fixture
+src/test/java/**/*.java | text:label,licence,attribution | [wire] the operator ratings CSV header (OperatorRatingsParser)
+src/main/java/ai/foresignal/provenance/LicenceCatalog.java | text:has no licences array | [wire] names the licences key of licences.json
+src/main/java/ai/foresignal/source/spi/ReliabilitySeed.java | text:"open government licence" | [data] matched against upstream license titles
+src/**/*.java | text:no licence or licenceTerms | [wire] the descriptor validator's warning, naming the licence and licenceTerms fields
+src/test/java/ai/foresignal/source/DescriptorValidatorTest.java | text:neither licence nor licenceTerms | [wire] names the descriptor's licence and licenceTerms fields
+src/main/java/ai/foresignal/source/adapters/{cap/CapFeeds,seismic/FdsnServices,stac/StacSources}.java | text:licence | [wire] a resource validation message naming the entry's licence field
+src/main/java/ai/foresignal/media/outlet/OperatorRatingsParser.java | text:licence is required | [wire] names the CSV's licence column
+src/main/java/ai/foresignal/raster/ProductRegistry.java | text:a licence field | [wire] names the product attribution's licence field
+src/test/java/ai/foresignal/api/SourcesControllerIT.java | text:titleField, licence and termsUrl | [wire] a list of descriptor fields
+src/test/java/ai/foresignal/api/mapper/SourceMapperTest.java | text:tier, licence, status | [wire] a list of summary fields
+src/test/java/ai/foresignal/inbound/edp/EdpManifestServiceTest.java | text:push and pull, licence, egress | [wire] a list of EDP manifest fields
+src/**/*.java | text:Open Government Licence | [proper-noun] the title of the Open Government Licence (UK, Canada, British Columbia, Calgary)
+src/**/*.java | text:open-government-licence | [data] a URL on the license publisher's site
+src/**/*.java | text:Norwegian Licence for Open Government Data | [proper-noun] the title of the NLOD license
+src/**/*.java | text:Norwegian licence for Open Government data | [quote] the credit line Kystverket and Entur require
+src/**/*.java | text:digitraffic.fi, licence CC 4.0 BY | [quote] the credit line Fintraffic requires
+src/**/*.java | text:BMRS Data Licence | [proper-noun] the title of Elexon's BMRS license
+src/**/*.java | text:/bmrs/data-licence/ | [data] a URL on Elexon's site
+src/**/*.java | text:SondeHub-Data-Licence | [data] a URL on the SondeHub wiki
+docs/*.md | text:Open Government Licence | [proper-noun] the title of the Open Government Licence
+docs/*.md | text:Norwegian Licence for Open Government Data | [proper-noun] the title of the NLOD license
+docs/*.md | text:Norwegian licence for Open Government data | [quote] the credit line Kystverket and Entur require
+docs/*.md | text:digitraffic.fi, licence CC 4.0 BY | [quote] the credit line Fintraffic requires
+docs/*.md | text:BMRS Data Licence | [proper-noun] the title of Elexon's BMRS license
+docs/*.md | text:no explicit licence) | [wire] the gdacs licence value
+docs/*.md | text:(no published licence) | [wire] the ioda-outages licence value
+docs/Roadmap.md | text:Licence-And-Provenance | [data] the file name of prompt 109
+
+# --- Other wire and persisted values ----------------------------------------------------------------------------
+src/**/*.java | text:"cancelled" | [wire] the persisted cancelled status or state value (backtest, reference import, precursor, CAP and tsunami records), or an upstream's (WZDx)
+src/**/*.java | text:{@code cancelled} | [wire] names the persisted cancelled status or state value, or the backtest_job.cancelled column
+src/**/*.java | text:state: cancelled | [wire] names the persisted CAP or tsunami state value
+src/main/java/ai/foresignal/backtest/BacktestJobService.java | text:→ cancelled} | [wire] the persisted cancelled status value
+src/main/java/ai/foresignal/backtest/BacktestJobService.java | string:cancelled | [wire] SQL on the backtest_job.cancelled column and its cancelled status
+src/main/java/ai/foresignal/source/adapters/tsunami/TsunamiWarningsAdapter.java | text:cancelled | [wire] field descriptions naming the persisted state value cancelled
+src/test/java/ai/foresignal/source/adapters/HazardIngestIT.java | text:(cancelled) | [wire] the persisted state value
+src/**/*.java | text:"CANCELLED" | [wire] the export and exercise CANCELLED status (API), the RFC 5545 STATUS:CANCELLED, or an upstream status (Digitraffic)
+src/**/*.java | text:{@code CANCELLED} | [wire] the RFC 5545 iCalendar STATUS value
+src/**/*.java | text:STATUS:CANCELLED | [wire] the RFC 5545 iCalendar STATUS property
+src/test/java/ai/foresignal/ical/CalendarFeedIT.java | text:stays as CANCELLED | [wire] the RFC 5545 iCalendar STATUS value
+docs/*.md | code:cancelled | [wire] a code span naming the cancelled or CANCELLED status or state value
+src/**/*.java | text:ais-behaviour | [wire] the ais-behaviour signal family id (API and stored)
+src/**/*.java | text:aviation-behaviour | [wire] the aviation-behaviour signal family alias (stored)
+docs/*.md | text:ais-behaviour | [wire] the ais-behaviour signal family id
+src/**/*.java | text:data-centre | [wire] the data-centre exposure kind and data-centre-osm record kind (API and stored)
+docs/*.md | text:data-centre | [wire] the data-centre-osm record kind
+src/**/*.java | text:external-catalogue | [wire] the external-catalogue source id
+docs/*.md | text:external-catalogue | [wire] the external-catalogue source id
+src/**/*.java | ident:ExternalCatalogueEntry | [wire] the OpenAPI schema name
+src/**/*.java | text:"draught" | [wire] the draught record payload field (AIS; API, stored and federated) or Digitraffic's metadata key
+src/main/java/ai/foresignal/{codec/ais/VesselStateMerger,source/formats/ais/VesselDescriptors,source/adapters/ais/DigitrafficAisParser,source/adapters/aisstream/VesselStateStore}.java | code:draught | [wire] a javadoc list of payload fields naming draught
+docs/*.md | code:draught | [wire] a code span naming the draught payload field
+src/test/java/ai/foresignal/source/adapters/ais/DigitrafficAdapterTest.java | text:\"draught\" | [data] Digitraffic's vessel metadata key in a fixture
+src/**/*.java | ident:MaximumStaticDraught | [data] AISStream's ShipStaticData field
+src/**/*.java | text:"colour" | [wire] the colour key of a kind's display block (KindDisplay, docs/OpenAPI.json)
+src/**/*.java | text:{@code colour} | [wire] names the colour key of a kind's display block
+src/main/java/ai/foresignal/source/DescriptorValidator.java | text:.colour ' | [wire] a validation message naming kindDisplay.<kind>.colour
+src/test/java/ai/foresignal/api/RecordsControllerIT.java | text:.display.colour | [wire] a JSONPath to the colour key
+src/test/java/ai/foresignal/{notify/push/PushSubscriptionsIT,security/pairing/PairingIT,settings/SecuritySettingsServiceTest,settings/ServerSettingsServiceTest}.java | text:\"colour\" | [data] an unknown-property fixture: a request body the API must reject
+docs/*.md | code:colour | [wire] a code span naming the colour key
+src/**/*.java | ident:labelledShare | [wire] an alert-quality JSON key (docs/OpenAPI.json)
+src/**/*.java | text:"labelled" | [wire] an alert-quality or precision JSON key (docs/OpenAPI.json)
+src/**/*.java | text:"normalised" | [wire] the regional index component's normalised JSON key (docs/OpenAPI.json), also stored in fits
+src/main/java/ai/foresignal/outlook/index/{IndexComputer,IndexFitService}.java | code:normalised | [wire] names the normalised JSON key
+src/**/*.java | text:"summarised" | [wire] the propagation graph's summarised JSON key (docs/OpenAPI.json)
+docs/*.md | code:summarised | [wire] a code span naming the summarised key
+src/**/*.java | text:"standardised" | [wire] the units value standardised (docs/OpenAPI.json)
+src/**/*.java | text:-standardised" | [wire] an event-study transform id (docs/OpenAPI.json)
+src/**/*.java | ident:standardisedZ | [wire] an event-study JSON key (docs/OpenAPI.json)
+src/**/*.java | ident:standardisedP | [wire] an event-study JSON key (docs/OpenAPI.json)
+docs/*.md | code:standardised | [wire] a code span naming the standardised units value
+src/**/*.java | text:L2-regularised NB regression | [wire] IndexFitResult.method's published value (docs/OpenAPI.json default)
+src/**/*.java | text:modelled; heuristic links may be wrong | [wire] ImpactProjector.LABEL, stored in every projection's labels and quoted verbatim by clients
+docs/*.md | text:modelled; heuristic links may be wrong | [wire] quotes ImpactProjector.LABEL
+src/main/java/ai/foresignal/intel/PopulationPackService.java | text:modelled residential population | [wire] the estimate's note value (docs/OpenAPI.json)
+src/**/*.java | text:speculation is labelled. Verify before acting. | [wire] the assessment footer (docs/OpenAPI.json Assessment.footer default)
+src/**/*.java | text:speculation are labelled. Verify before acting. | [wire] the analyst note footer (docs/OpenAPI.json AnalystNote.footer example)
+docs/*.md | text:speculation is labelled. Verify before acting. | [wire] quotes the assessment footer
+
+# --- External data, dependency APIs and proper nouns -----------------------------------------------------------
+src/**/*.java | text:.centre() | [vendored] JTS's Envelope.centre()
+src/**/*.java | text:Seismological Centre | [proper-noun] the European-Mediterranean Seismological Centre (EMSC)
+src/test/java/ai/foresignal/source/adapters/osm/OsmInfraParserCaptureTest.java | text:Centre hospitalier Princesse Grace | [foreign] the French name of a hospital in Monaco, from an OSM capture
+src/**/*.java | ident:favourites_count | [data] Mastodon's status field
+src/**/*.java | text:analysed_sst | [data] the ERDDAP variable name of the MUR SST dataset
+docs/*.md | text:analysed_sst | [data] the ERDDAP variable name of the MUR SST dataset
+src/**/*.java | text:"harbour" | [data] the OSM harbour tag
+docs/Operator-Guide.md | text:nwr/harbour=yes | [data] the OSM harbour tag in an osmium filter
+src/main/java/ai/foresignal/source/adapters/sanctions/Sanctions.java | text:"organisation" | [data] an entity type value in the UK sanctions list
+src/**/media/outlet/*.java | text:organisations | [data] the organisations directory of the stockHuman/tpw-data repository
+docs/*.md | text:tpw-data/ | [data] a path in the stockHuman/tpw-data repository (its organisations directory)
+src/main/java/ai/foresignal/source/adapters/maritime/MsiCoordinateExtractor.java | text:METRE | [data] matches the British spelling in upstream NAVAREA warning text

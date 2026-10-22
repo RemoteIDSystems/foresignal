@@ -391,7 +391,7 @@ class EgressPolicyTest {
      * attribution, per-record terms, {@code personalUse} and {@code derivedFrom}.
      */
     @Nested
-    @DisplayName("licence (109) inside the one decision")
+    @DisplayName("license (109) inside the one decision")
     class Licence {
 
         final AtomicReference<ai.foresignal.source.spi.Egress> override = new AtomicReference<>();
@@ -448,7 +448,7 @@ class EgressPolicyTest {
         }
 
         @Test
-        @DisplayName("EXPORT is licence-guarded: FORBIDDEN needs personalUse; ARCHIVE allows every licence")
+        @DisplayName("EXPORT is license-guarded: FORBIDDEN needs personalUse; ARCHIVE allows every license")
         void exportAndArchive() {
             EgressPolicy.Decision plain = decide(EgressPath.EXPORT, "opensky-states", null,
                     EgressPolicy.EgressContext.export(Viewer.admin(), false, false));
@@ -463,7 +463,7 @@ class EgressPolicyTest {
         }
 
         @Test
-        @DisplayName("descriptor LOCAL_ONLY wins over an open licence: no push, LAN serve only on a local bind")
+        @DisplayName("descriptor LOCAL_ONLY wins over an open license: no push, LAN serve only on a local bind")
         void descriptorEgressOverOpenLicence() {
             EgressPolicy.Decision push = decide(EgressPath.SINK_PUSH, "eia-petroleum", null,
                     EgressPolicy.EgressContext.sink(false, false));
@@ -481,7 +481,7 @@ class EgressPolicyTest {
         }
 
         @Test
-        @DisplayName("the operator's OPEN override lifts a LOCAL_ONLY licence default; MLAT stays local")
+        @DisplayName("the operator's OPEN override lifts a LOCAL_ONLY license default; MLAT stays local")
         void operatorOverride() {
             assertThat(decide(EgressPath.SINK_PUSH, "local-adsb-1", null, EgressPolicy.EgressContext.sink(false, false))
                     .allowed()).isFalse();
@@ -496,7 +496,7 @@ class EgressPolicyTest {
         }
 
         @Test
-        @DisplayName("MLAT downgrade keeps the licence id and attribution, and allows a local LAN serve only")
+        @DisplayName("MLAT downgrade keeps the license id and attribution, and allows a local LAN serve only")
         void mlatKeepsAttribution() {
             EgressPolicy.Decision lan = decide(EgressPath.SINK_SERVE_LAN, "adsblol-area", Map.of("posSource", "mlat"),
                     EgressPolicy.EgressContext.sink(false, true));

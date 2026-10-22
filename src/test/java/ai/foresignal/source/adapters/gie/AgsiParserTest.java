@@ -47,7 +47,7 @@ class AgsiParserTest {
     }
 
     @Test
-    @DisplayName("descriptor: key required, 3 h interval, 60/day, AGSI licence")
+    @DisplayName("descriptor: key required, 3 h interval, 60/day, AGSI license")
     void descriptor() {
         AgsiAdapter adapter = new AgsiAdapter("");
         SourceDescriptor d = adapter.descriptor();

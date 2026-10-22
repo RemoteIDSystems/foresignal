@@ -67,11 +67,11 @@ class ReferenceDescriptorsTest {
     }
 
     @Test
-    @DisplayName("every reference source declares dataset-release and a licence, terms and attribution")
+    @DisplayName("every reference source declares dataset-release and a license, terms and attribution")
     void releaseAndLicence() {
         for (SourceDescriptor descriptor : REFERENCE) {
             assertThat(descriptor.kinds()).as("%s kinds", descriptor.id()).contains("dataset-release");
-            assertThat(descriptor.licence()).as("%s licence", descriptor.id()).isNotBlank();
+            assertThat(descriptor.licence()).as("%s license", descriptor.id()).isNotBlank();
             assertThat(descriptor.termsUrl()).as("%s termsUrl", descriptor.id()).isNotBlank();
             assertThat(descriptor.attribution()).as("%s attribution", descriptor.id()).isNotBlank();
         }

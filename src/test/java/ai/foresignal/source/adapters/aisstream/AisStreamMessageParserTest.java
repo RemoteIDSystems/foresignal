@@ -84,7 +84,7 @@ class AisStreamMessageParserTest {
             assertThat(m.dimension().lengthM()).isEqualTo(150);
             assertThat(m.dimension().beamM()).isEqualTo(25);
             assertThat(m.eta()).isEqualTo(new AisMessage.Eta(10, 13, 18, 30));
-            assertThat(m.draught()).isEqualTo(4.9);
+            assertThat(m.draft()).isEqualTo(4.9);
             assertThat(m.destination()).isEqualTo("EAST COWES");
         }
 
@@ -250,7 +250,7 @@ class AisStreamMessageParserTest {
         }
 
         @Test
-        @DisplayName("IMO 0, type 0, zero dimensions, ETA not available, draught 0 and padding-only strings are omitted")
+        @DisplayName("IMO 0, type 0, zero dimensions, ETA not available, draft 0 and padding-only strings are omitted")
         void staticSentinels() {
             AisMessage m = message("sentinels.jsonl", 3);
 
@@ -260,7 +260,7 @@ class AisStreamMessageParserTest {
             assertThat(m.shipType()).isNull();
             assertThat(m.dimension()).isNull();
             assertThat(m.eta()).isNull();
-            assertThat(m.draught()).isNull();
+            assertThat(m.draft()).isNull();
             assertThat(m.destination()).isNull();
             assertThat(m.hasStatic()).isFalse();
         }
@@ -275,7 +275,7 @@ class AisStreamMessageParserTest {
             assertThat(m.destination()).isEqualTo("SOUTHAMPTON");
             assertThat(m.dimension().lengthM()).isNull();
             assertThat(m.dimension().beamM()).isEqualTo(10);
-            assertThat(m.draught()).isNull();
+            assertThat(m.draft()).isNull();
         }
 
         @Test

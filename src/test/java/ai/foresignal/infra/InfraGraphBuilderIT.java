@@ -53,7 +53,7 @@ class InfraGraphBuilderIT {
     }
 
     @Test
-    @DisplayName("a rebuild nodes the mapped sources, records inputs and counts, and edges carry their licence")
+    @DisplayName("a rebuild nodes the mapped sources, records inputs and counts, and edges carry their license")
     void rebuild() {
         seed(records, clock);
         InfraBuildEntity build = builder.rebuild(Map.of());

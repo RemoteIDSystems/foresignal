@@ -28,7 +28,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * {@code celestrak-socrates}: close approaches between catalogued objects from CelesTrak SOCRATES (prompt 064).
+ * {@code celestrak-socrates}: close approaches between cataloged objects from CelesTrak SOCRATES (prompt 064).
  *
  * <p>One conditional GET of {@code /SOCRATES/sort-minRange.csv} every 12 h (SOCRATES runs every 10–11 h; the
  * file carries an {@code ETag}, so an unchanged file is a 304), parsed row by row ({@link SocratesParser}).
@@ -166,7 +166,7 @@ public class CelestrakSocratesAdapter implements PollingAdapter {
     private static SourceDescriptor buildDescriptor() {
         return SourceDescriptor.builder(ID)
                 .name("CelesTrak SOCRATES conjunctions")
-                .description("Predicted close approaches between catalogued objects from CelesTrak SOCRATES"
+                .description("Predicted close approaches between cataloged objects from CelesTrak SOCRATES"
                         + " (sort-minRange.csv, about 23 MB, refreshed every 10–11 h). Rows are kept when any filter"
                         + " matches (minProb, maxRangeKm, watchNorad), at most 2,000 per run. Same CelesTrak usage"
                         + " policy as celestrak-gp: any unexpected status stops automatic retries for 24 h.")

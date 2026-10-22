@@ -38,7 +38,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>A cell's bad fraction is the site's metric {@code pctBad = 100·(bad − 1)/(good + bad)}; cells below the
  * threshold or with fewer than three aircraft are dropped. The manifest date gates the fetch, so an unchanged
- * day fetches nothing. Cells present yesterday and absent today are tombstoned. The site publishes no licence
+ * day fetches nothing. Cells present yesterday and absent today are tombstoned. The site publishes no license
  * beyond "free to use", so the source is local-only. It needs no key, so it starts enabled (prompt 145).
  */
 @Component

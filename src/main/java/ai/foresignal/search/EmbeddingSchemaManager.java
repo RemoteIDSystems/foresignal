@@ -103,7 +103,7 @@ public class EmbeddingSchemaManager {
         log.info("Vector slot {} reset to vector({})", slot, dimensions);
     }
 
-    /** Drops {@code slot}'s index and columns (after a swap, or when a reindex is cancelled). */
+    /** Drops {@code slot}'s index and columns (after a swap, or when a reindex is canceled). */
     public void dropSlot(VectorSlot slot) {
         execute(List.of("DROP INDEX IF EXISTS " + slot.indexName(),
                 "ALTER TABLE embedding_document DROP COLUMN IF EXISTS " + slot.embeddingColumn()

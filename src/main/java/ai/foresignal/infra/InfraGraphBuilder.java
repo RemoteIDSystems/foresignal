@@ -44,8 +44,8 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code infra/node-mapping.json}, read in a fixed order (mapping order, then {@code external_id}).
  * <strong>Edges</strong> come from the versioned rules in {@code infra/dependency-rules.json} with
  * the operator overrides of {@code app_setting['infra.rules']} ({@link InfraRules}). Every edge
- * records its rule id, the rules version, the effective parameters, the evidence and its licence:
- * the most restrictive licence of its two nodes ({@link InfraLicences}).
+ * records its rule id, the rules version, the effective parameters, the evidence and its license:
+ * the most restrictive license of its two nodes ({@link InfraLicences}).
  *
  * <p><strong>Build lifecycle.</strong> {@link #start} records a {@code running} build;
  * {@link #execute} writes that build's nodes and edges in one transaction, records the counts,

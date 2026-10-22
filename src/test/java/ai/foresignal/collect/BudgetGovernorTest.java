@@ -25,7 +25,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/** Budget behaviour, driven by a clock the test controls. */
+/** Budget behavior, driven by a clock the test controls. */
 class BudgetGovernorTest {
 
     private static final String SOURCE = "test-source";

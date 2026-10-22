@@ -8,7 +8,7 @@ import java.util.Map;
 
 /**
  * The attribution and license every raster export and place pack embeds (prompt 108, task 4: "every
- * export embeds attribution and licence (ECMWF 'changes made' where relevant)"). The structured form is
+ * export embeds attribution and license (ECMWF 'changes made' where relevant)"). The structured form is
  * the product's existing attribution object ({@link SampleService#attribution}, wire field
  * {@code licence}); the one-line form goes where a format only takes text (MBTiles/PMTiles
  * {@code attribution}, the TIFF {@code Copyright} tag).

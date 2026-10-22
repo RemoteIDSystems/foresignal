@@ -44,7 +44,7 @@ public class ExportJobEntity {
     public static final String FAILED = "FAILED";
 
     /** Canceled by its owner. */
-    public static final String CANCELLED = "CANCELLED";
+    public static final String CANCELED = "CANCELLED";
 
     /** Past {@code expiresAt}; its files are gone. */
     public static final String EXPIRED = "EXPIRED";
@@ -306,6 +306,6 @@ public class ExportJobEntity {
 
     /** True once the job can no longer change: done, failed, canceled or expired. */
     public boolean terminal() {
-        return DONE.equals(status) || CANCELLED.equals(status) || EXPIRED.equals(status) || FAILED.equals(status);
+        return DONE.equals(status) || CANCELED.equals(status) || EXPIRED.equals(status) || FAILED.equals(status);
     }
 }

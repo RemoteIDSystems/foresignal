@@ -7,7 +7,7 @@ import org.locationtech.jts.geom.Geometry;
 
 /**
  * One record handed to a sink (prompt 110): the neutral shape every sink type encodes. Carries the
- * record's geometry, its properties (payload), and its licence terms and attribution so an encoder can
+ * record's geometry, its properties (payload), and its license terms and attribution so an encoder can
  * print credits and the gate can refuse it.
  *
  * @param sourceId the source
@@ -20,7 +20,7 @@ import org.locationtech.jts.geom.Geometry;
  * @param tombstone true when the record was removed
  * @param geometry the geometry (a Point for a position), or null
  * @param properties the payload
- * @param licence the licence terms in force (prompt 109)
+ * @param licence the license terms in force (prompt 109)
  * @param attribution the attribution line, or null
  * @param snapshot true for a synthetic {@code SNAPSHOT} event replayed from current state on a resync (a
  *     CHANGE_FEED below the purge horizon, a new cursor, or {@code POST /v1/sinks/{id}/resync})

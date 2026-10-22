@@ -57,7 +57,7 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p>Record events: UID {@code {sourceId}:{externalId}@{instanceId}}, SEQUENCE = record version, DTSTAMP and
  * LAST-MODIFIED = when that version was ingested, URL = the record deep link, DESCRIPTION ends with the
- * attribution line (109). Tombstoned or expired records stay for {@value #CANCELLED_DAYS} days as
+ * attribution line (109). Tombstoned or expired records stay for {@value #CANCELED_DAYS} days as
  * {@code CANCELLED}. A source is included only when the caller may see it (private sources, restrictions) and
  * {@code EgressPolicy} allows it on the {@code FEED} path. At most {@value #MAX_EVENTS} events.
  */
@@ -71,7 +71,7 @@ public class CalendarService {
     public static final int MAX_EVENTS = 2_000;
 
     /** Days a tombstoned or expired record stays as {@code CANCELLED}. */
-    public static final int CANCELLED_DAYS = 7;
+    public static final int CANCELED_DAYS = 7;
 
     /** How far ahead briefing occurrences are expanded. */
     public static final Duration BRIEFING_HORIZON = Duration.ofDays(30);
@@ -269,7 +269,7 @@ public class CalendarService {
 
     private List<Row> query(Request r, List<String> sources, List<String> kinds) {
         Instant now = clock.instant();
-        Instant keep = now.minus(Duration.ofDays(CANCELLED_DAYS));
+        Instant keep = now.minus(Duration.ofDays(CANCELED_DAYS));
         SqlParams p = new SqlParams();
         List<String> where = new ArrayList<>();
         where.add("h.source_id = ANY(" + p.textArray(sources) + ")");

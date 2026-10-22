@@ -203,7 +203,7 @@ public final class UsgsHansVolcanoAdapter implements PollingAdapter {
     private static SourceDescriptor buildDescriptor() {
         return SourceDescriptor.builder(ID)
                 .name("USGS HANS volcano alert levels")
-                .description("Alert level and aviation colour code of every monitored US volcano, from USGS HANS. "
+                .description("Alert level and aviation color code of every monitored US volcano, from USGS HANS. "
                         + "Coordinates, cached weekly, come from the US volcano list.")
                 .kind(KIND)
                 .mode(Mode.POLLING)

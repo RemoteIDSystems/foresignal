@@ -230,7 +230,7 @@ public class NwssWvalAdapter implements PollingAdapter {
                 Set.of()));
         b.fieldSpec("geometryApproximate", new FieldSpec(FieldType.BOOLEAN, null, "Approximate geometry",
                 "True: the geometry is a state interior point, not a measured site position", null, Set.of()));
-        b.fieldSpec("licenceOverride", new FieldSpec(FieldType.STRING, null, "Licence override",
+        b.fieldSpec("licenceOverride", new FieldSpec(FieldType.STRING, null, "License override",
                 "Present on WastewaterSCAN rows: CC BY-NC 4.0 (WastewaterSCAN)", null, Set.of()));
         return b.build();
     }

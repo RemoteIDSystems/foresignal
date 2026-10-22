@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * The payload every derived layer shares (prompt 099): {@code automated}, {@code notAWarning}, a
  * {@code detector{id,version}}, a banded {@code confidence}, a {@code status} and bounded
- * {@code evidence}, plus the quantisation helpers that keep a steady-state condition from writing
+ * {@code evidence}, plus the quantization helpers that keep a steady-state condition from writing
  * versions (distances 0.5 km, ratios 0.1, durations 5 min, confidence 0.1).
  */
 public final class LayerPayload {

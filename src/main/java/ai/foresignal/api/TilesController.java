@@ -96,7 +96,7 @@ public class TilesController {
     private final AsOfResolver asOf;
     private final Clock clock;
 
-    /** Prunes whole sources a licence policy excludes (prompt 109); null in hand-built unit tests. */
+    /** Prunes whole sources a license policy excludes (prompt 109); null in hand-built unit tests. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.provenance.LicencePolicyService licencePolicy;
 
@@ -188,7 +188,7 @@ public class TilesController {
     }
 
     /**
-     * {@code response} with the {@code Foresignal-Licence-Filtered} header and the licence-policy {@code Vary}
+     * {@code response} with the {@code Foresignal-Licence-Filtered} header and the license-policy {@code Vary}
      * (prompt 109): the header when a policy applied, the {@code Vary} always.
      */
     static ResponseEntity<byte[]> withLicenceFiltered(ResponseEntity<byte[]> response, String licenceFiltered) {

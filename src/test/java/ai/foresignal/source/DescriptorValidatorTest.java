@@ -28,7 +28,7 @@ class DescriptorValidatorTest {
                 .kinds("quake", "alert")
                 .mode(Mode.PUSH)
                 .defaultBudget(60, 10_000)
-                // A licence, so the prompt 109 "no licence or licenceTerms" warning stays out of these tests.
+                // A license, so the prompt 109 "no licence or licenceTerms" warning stays out of these tests.
                 .licence("CC0-1.0");
     }
 
@@ -162,7 +162,7 @@ class DescriptorValidatorTest {
 
         @ParameterizedTest
         @ValueSource(strings = {"red", "#FFF", "#GGGGGG", "D9480F", "#D9480F0"})
-        @DisplayName("colour must be #RRGGBB")
+        @DisplayName("a kind color must be #RRGGBB")
         void color(String color) {
             assertThat(problems(valid().kindDisplay("quake", new KindDisplay(null, null, color, null))))
                     .singleElement().asString().contains("#RRGGBB");

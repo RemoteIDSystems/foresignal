@@ -31,7 +31,7 @@ public final class SeriesPoint {
     /** The point record kind. */
     public static final String KIND = "series-point";
 
-    /** The per-series catalogue record kind. */
+    /** The per-series catalog record kind. */
     public static final String LATEST_KIND = "series-latest";
 
     /** The accepted frequency codes ({@code P3M} and {@code P1Y} added by prompt 117 for FRED and the World Bank). */

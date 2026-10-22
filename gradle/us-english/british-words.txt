@@ -1,0 +1,51 @@
+# British spellings checkUsEnglish flags (prompt 149), as families whose inflections the task generates.
+#
+# A line is "<family>: <word> <word> ...". Every British form is named explicitly: a generic "-ise" rule would flag
+# precise, promise, expertise and otherwise, all correct US English. Words are lowercase; matching is per word, after
+# identifiers are split at camelCase and digit boundaries.
+#
+#   our:   a British word ending in "our"; the US form drops the "u". Inflections: s ed ing ful fully less able ably
+#          ite ites er ers hood hoods ly al ally ist ists ism.
+#   ise:   a stem before "ise"; the US form has "ize". Inflections: ise ised ises ising isation isations iser isers
+#          isable.
+#   yse:   a stem before "yse" (analyse); the US form has "yze". Inflections: yse ysed yser ysers ysing. Never "yses",
+#          which is also the plural of "analysis".
+#   re:    a British word ending in "re"; the US form ends in "er". Inflections: s d (centred) and "ring" (centring).
+#   ce:    a British noun ending in "ce"; the US form ends in "se". Inflections: s.
+#   ogue:  a British word ending in "ogue"; the US form drops "ue". Inflections: s d (catalogued) and "uing".
+#   ll:    a stem whose final "l" British doubles; the US form keeps one "l". Inflections: led ling ler lers.
+#   pair:  an explicit "british=american" pair, no inflections.
+#   lower: a pair flagged only when it is written lowercase or inside a camelCase identifier, never as a standalone
+#          capitalized word, which is a proper noun (Grey, a surname or a place).
+
+our: colour favour honour labour flavour neighbour rumour armour vapour behaviour humour harbour endeavour odour
+our: parlour savour splendour valour vigour clamour candour rigour tumour fervour ardour saviour
+ise: organ reorgan optim real recogn custom serial deserial normal denormal renormal categor synchron desynchron
+ise: author priorit standard visual final special general central decentral initial reinitial util minim maxim
+ise: summar emphas character apolog critic memor sanit global capital harmon modern neutral stabil destabil symbol
+ise: legal mobil demobil monet parallel random regular rational scrutin sensit desensit steril subsid theor trivial
+ise: anonym deanonym pseudonym canonical digit item journal personal depersonal vector token detoken container
+ise: virtual patron quant material industrial commercial hospital public equal factor hypothes styl local
+ise: internal external fertil ideal immun ion magnet mechan miniatur pressur recapital revital romantic satir
+ise: urban vapor colon carbon caramel tantal terror vocal
+yse: anal paral catal dial electrol hydrol
+re: centre metre litre theatre fibre calibre spectre sombre lustre meagre kilometre centimetre millimetre
+re: nanometre micrometre decimetre millilitre epicentre hypocentre sabre
+ce: licence defence offence pretence
+ogue: catalogue dialogue analogue
+ll: cancel label travel model signal fuel level total tunnel channel counsel dial marshal pencil equal jewel
+ll: shovel snorkel quarrel
+pair: marvellous=marvelous artefact=artifact artefacts=artifacts ageing=aging aluminium=aluminum
+pair: programme=program programmes=programs mould=mold moulds=molds moulded=molded moulding=molding mouldy=moldy
+pair: smoulder=smolder smoulders=smolders smouldered=smoldered smouldering=smoldering storey=story storeys=stories
+pair: manoeuvre=maneuver manoeuvres=maneuvers manoeuvred=maneuvered manoeuvring=maneuvering
+pair: draught=draft draughts=drafts sulphur=sulfur sulphuric=sulfuric sulphate=sulfate sulphates=sulfates
+pair: tyre=tire tyres=tires cheque=check cheques=checks jewellery=jewelry plough=plow ploughs=plows kerb=curb
+pair: skilful=skillful wilful=willful fulfil=fulfill fulfils=fulfills fulfilment=fulfillment enrol=enroll
+pair: enrols=enrolls enrolment=enrollment enrolments=enrollments instalment=installment instalments=installments
+pair: paediatric=pediatric haemoglobin=hemoglobin anaemia=anemia oestrogen=estrogen encyclopaedia=encyclopedia
+pair: aeroplane=airplane aeroplanes=airplanes licenced=licensed defenceless=defenseless
+pair: focussed=focused focussing=focusing counsellor=counselor counsellors=counselors woollen=woolen
+pair: sceptic=skeptic sceptical=skeptical scepticism=skepticism speciality=specialty specialities=specialties
+pair: practise=practice practised=practiced practising=practicing practises=practices
+lower: grey=gray greys=grays greyed=grayed greying=graying greyish=grayish greyer=grayer greyscale=grayscale

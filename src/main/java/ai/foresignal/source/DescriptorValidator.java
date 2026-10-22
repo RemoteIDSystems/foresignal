@@ -80,7 +80,7 @@ public final class DescriptorValidator {
         if (descriptor != null
                 && (descriptor.licence() == null || descriptor.licence().isBlank())
                 && descriptor.licenceTerms() == null) {
-            // Prompt 109: neither a free-text licence nor structured terms; records resolve to the
+            // Prompt 109: neither a free-text license nor structured terms; records resolve to the
             // restrictive unknown terms.
             warnings.add(descriptor.id()
                     + ": no licence or licenceTerms; its records resolve to the restrictive unknown terms"

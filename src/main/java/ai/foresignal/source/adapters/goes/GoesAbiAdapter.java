@@ -57,7 +57,7 @@ import org.springframework.stereotype.Component;
  * GOES-East (GOES-19) ABI Cloud and Moisture Imagery (prompt 046, extended in prompt 106):
  * <ul>
  *   <li>{@value #IR} (band 13, clean IR) — the v1 product;</li>
- *   <li>{@value #WV8} and {@value #WV9} (bands 8/9, water vapour), u16 0.01 K;</li>
+ *   <li>{@value #WV8} and {@value #WV9} (bands 8/9, water vapor), u16 0.01 K;</li>
  *   <li>{@value #VIS} (band 2, 0.5 km visible), u8 reflectance, cropped in scan-angle space to the
  *       places AOI + 300 km, and skipped when the solar zenith exceeds 85° over the whole AOI;</li>
  *   <li>{@value #MESO1} and {@value #MESO2} (mesoscale sectors 1/2, 1-minute CMIPM band 13), ingested
@@ -80,10 +80,10 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
     /** The band 13 product. */
     public static final String IR = "goes-east-ir";
 
-    /** The band 8 water-vapour product (prompt 106). */
+    /** The band 8 water-vapor product (prompt 106). */
     public static final String WV8 = "goes-east-wv8";
 
-    /** The band 9 water-vapour product (prompt 106). */
+    /** The band 9 water-vapor product (prompt 106). */
     public static final String WV9 = "goes-east-wv9";
 
     /** The band 2 visible product (prompt 106). */
@@ -191,11 +191,11 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
                     "GOES-East clean infrared (ABI band 13)", "Brightness temperature at 10.3 µm, K; cold (bright) is"
                             + " high cloud", Duration.ofHours(24), false, false, 1),
             channel(WV8, "CMIPC", "08", "", "wv", "CONUS", 7, 6, "wv-gray@1", "wv-enhanced@1",
-                    "GOES-East water vapour (ABI band 8)", "Brightness temperature at 6.2 µm, K; mid-level water"
-                            + " vapour", Duration.ofHours(24), false, false, 1),
+                    "GOES-East water vapor (ABI band 8)", "Brightness temperature at 6.2 µm, K; mid-level water"
+                            + " vapor", Duration.ofHours(24), false, false, 1),
             channel(WV9, "CMIPC", "09", "", "wv", "CONUS", 7, 6, "wv-gray@1", "wv-enhanced@1",
-                    "GOES-East water vapour (ABI band 9)", "Brightness temperature at 6.9 µm, K; low/mid water"
-                            + " vapour", Duration.ofHours(24), false, false, 1),
+                    "GOES-East water vapor (ABI band 9)", "Brightness temperature at 6.9 µm, K; low/mid water"
+                            + " vapor", Duration.ofHours(24), false, false, 1),
             channel(VIS, "CMIPC", "02", "", "vis", "CONUS", 8, 7, "vis-gray@1", null,
                     "GOES-East visible (ABI band 2)", "Reflectance at 0.64 µm (daytime), cropped to the AOI",
                     Duration.ofHours(6), true, false, 1),
@@ -717,7 +717,7 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
         SourceDescriptor.Builder builder = SourceDescriptor.builder(sourceId)
                 .name(label + " ABI imagery")
                 .description(label + " ABI Level 2 Cloud and Moisture Imagery, CONUS sector: clean IR (band 13),"
-                        + " water vapour (bands 8/9), visible (band 2, daytime, cropped to the AOI) and the mesoscale"
+                        + " water vapor (bands 8/9), visible (band 2, daytime, cropped to the AOI) and the mesoscale"
                         + " sectors, at the profile's default cadence.")
                 .kind(ProductSpec.RECORD_KIND)
                 .homepage("https://registry.opendata.aws/noaa-goes/")

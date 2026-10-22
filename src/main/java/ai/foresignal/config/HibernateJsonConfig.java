@@ -17,7 +17,7 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code ObjectMapper} that knows nothing about Boot's configuration — including Foresignal's
  * {@code Duration} shorthand — and the choice would silently flip if springdoc were ever dropped.
  *
- * <p>Naming the mapper explicitly pins the behaviour to one mapper, the one the rest of the
+ * <p>Naming the mapper explicitly pins the behavior to one mapper, the one the rest of the
  * application uses.
  */
 @Configuration

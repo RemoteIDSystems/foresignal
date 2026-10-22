@@ -12,7 +12,7 @@ import org.hibernate.type.SqlTypes;
 
 /**
  * A canonical physical object (prompt 098, table {@code entity}): one aircraft, vessel, satellite or
- * station seen across sources. Never a person or an organisation.
+ * station seen across sources. Never a person or an organization.
  *
  * <p>{@code id} is a ULID. A provisional entity is created from weak keys only and may later be
  * merged into an anchored entity by the resolver, or by an operator; a merged entity keeps its row

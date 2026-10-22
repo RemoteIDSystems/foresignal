@@ -489,7 +489,7 @@ public class SatDumpExtras {
             // A newer product of this warning was already applied: an older one never overrides it.
             return;
         }
-        if (warning.cancelled()) {
+        if (warning.canceled()) {
             out.add(NormalizedRecord.tombstone(wid, EMWIN_WARNING_KIND, issued));
             return;
         }

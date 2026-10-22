@@ -17,7 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * {@link SourceLicences} and the post-review catalogue additions (prompt 109): a DERIVED source inherits the most
+ * {@link SourceLicences} and the post-review catalog additions (prompt 109): a DERIVED source inherits the most
  * restrictive terms of its {@code derivedFrom} inputs (merged when no single input dominates), cycles and unknown
  * inputs fail closed, the descriptor license strings the review found unresolved now resolve, the MLAT downgrade
  * keeps attribution and the operator's opening lifts only {@code LOCAL_ONLY}.

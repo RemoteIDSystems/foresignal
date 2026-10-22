@@ -29,7 +29,7 @@ import org.springframework.stereotype.Component;
  * {@code format=csv&minmagnitude={m}&starttime&endtime&orderby=time-asc&limit=20000}. The service refuses queries over
  * 20,000 events, so a page that comes back full is split in two by time and each half read again; events are
  * de-duplicated by {@code id}. Only {@code type=earthquake} rows count. Families {@code seismic:m4.5},
- * {@code seismic:m5} and {@code seismic:m6} (cumulative). The region is the 040 country of the epicentre; offshore
+ * {@code seismic:m5} and {@code seismic:m6} (cumulative). The region is the 040 country of the epicenter; offshore
  * events take the nearest country within 200 km, else {@code ZZ}.
  */
 @Component

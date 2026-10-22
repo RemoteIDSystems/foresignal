@@ -17,7 +17,7 @@ import java.util.Map;
  * @param approximate asOf only; omitted otherwise
  * @param horizon asOf only; omitted otherwise
  * @param attributions the aggregated attributions (prompt 109, a foreign member); null when none
- * @param licenceFiltered the number of features removed by the caller's licence policy (prompt 109)
+ * @param licenceFiltered the number of features removed by the caller's license policy (prompt 109)
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record FeatureCollectionPage(
@@ -46,7 +46,7 @@ public record FeatureCollectionPage(
                 null);
     }
 
-    /** A collection carrying the aggregated attributions and the licence-filtered count (prompt 109). */
+    /** A collection carrying the aggregated attributions and the license-filtered count (prompt 109). */
     public static FeatureCollectionPage of(
             List<Map<String, Object>> features,
             String nextCursor,

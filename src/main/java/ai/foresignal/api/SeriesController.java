@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Energy and markets time series for clients (OpenAPI tag {@code Series}, prompt 093).
  *
- * <p>{@code GET /v1/series} lists the catalogue from {@code series-latest} records;
+ * <p>{@code GET /v1/series} lists the catalog from {@code series-latest} records;
  * {@code GET /v1/series/{sourceId}/{seriesId}} returns one series' points in {@code periodStart} order, as JSON or
  * CSV. Both are {@code read} scope, open while {@code security.openReads} is on.
  *
@@ -47,7 +47,7 @@ public class SeriesController {
     /** Default page size. */
     static final int DEFAULT_LIMIT = 100;
 
-    /** Largest catalogue page. */
+    /** Largest catalog page. */
     static final int MAX_LIMIT = 500;
 
     /** Default points page. */
@@ -89,7 +89,7 @@ public class SeriesController {
         return egress.visibility(caller, callers.excludedSources(caller), caller.restriction(), EgressPath.API_READ);
     }
 
-    /** {@code listSeries}: the series catalogue from {@code series-latest} records. */
+    /** {@code listSeries}: the series catalog from {@code series-latest} records. */
     @RestrictedRead("visibility: excluded sources and RestrictionClamp")
     @GetMapping("/v1/series")
     @Operation(operationId = "listSeries", tags = "Series")
@@ -102,7 +102,7 @@ public class SeriesController {
         List<String> sources = QueryParams.multi("source", source);
         SeriesQueryService.Visibility visibility = visibility(request, sources);
         int pageSize = QueryParams.intInRange("limit", limit, 1, MAX_LIMIT, DEFAULT_LIMIT);
-        SeriesQueryService.Catalogue page = series.list(sources, q, cursor, pageSize, visibility);
+        SeriesQueryService.Catalog page = series.list(sources, q, cursor, pageSize, visibility);
         return new SeriesPageDto(page.items(), page.nextCursor());
     }
 

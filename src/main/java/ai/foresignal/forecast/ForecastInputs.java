@@ -248,7 +248,7 @@ public final class ForecastInputs {
             errors.add(new FieldError("outcomes", "must be an object"));
             return out;
         }
-        boolean labelled = Ledger.MULTIPLE.equals(type) || Ledger.ORDERED.equals(type);
+        boolean labeled = Ledger.MULTIPLE.equals(type) || Ledger.ORDERED.equals(type);
         if (node != null && node.isObject()) {
             for (String field : node.propertyNames()) {
                 if (!Set.of("labels", "unit", "lower", "upper").contains(field)) {
@@ -287,11 +287,11 @@ public final class ForecastInputs {
         }
         @SuppressWarnings("unchecked")
         List<String> labels = (List<String>) out.getOrDefault("labels", List.of());
-        if (labelled && (labels.size() < 2 || labels.size() > MAX_LABELS)) {
+        if (labeled && (labels.size() < 2 || labels.size() > MAX_LABELS)) {
             errors.add(new FieldError("outcomes.labels", "a " + type + " question needs 2 to " + MAX_LABELS
                     + " labels"));
         }
-        if (!labelled && !labels.isEmpty()) {
+        if (!labeled && !labels.isEmpty()) {
             errors.add(new FieldError("outcomes.labels", "only multiple and ordered questions have labels"));
         }
         if (out.get("lower") instanceof Double lo && out.get("upper") instanceof Double hi && lo >= hi) {

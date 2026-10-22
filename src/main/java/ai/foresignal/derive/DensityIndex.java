@@ -45,9 +45,9 @@ public final class DensityIndex {
         }
         double edge = H3Cells.averageEdgeLengthKm(RES);
         int k = (int) Math.ceil(radiusKm / Math.max(edge, 0.1)) + 1;
-        long centre = H3Cells.latLngToCell(lat, lon, RES);
+        long center = H3Cells.latLngToCell(lat, lon, RES);
         Set<String> entities = new HashSet<>();
-        for (long cell : H3Cells.gridDisk(centre, k)) {
+        for (long cell : H3Cells.gridDisk(center, k)) {
             List<Entry> entries = byCell.get(cell);
             if (entries == null) {
                 continue;

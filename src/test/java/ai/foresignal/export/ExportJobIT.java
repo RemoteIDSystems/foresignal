@@ -223,7 +223,7 @@ class ExportJobIT extends ExportItSupport {
             mvc.perform(delete("/v1/exports/" + id).header(HttpHeaders.AUTHORIZATION, agent))
                     .andExpect(status().isNoContent());
             release.countDown();
-            assertThat(awaitTerminal(id).getStatus()).isEqualTo(ExportJobEntity.CANCELLED);
+            assertThat(awaitTerminal(id).getStatus()).isEqualTo(ExportJobEntity.CANCELED);
         } finally {
             release.countDown();
         }
@@ -238,8 +238,8 @@ class ExportJobIT extends ExportItSupport {
                 .until(() -> jobs.findById(id).map(j -> !ExportJobEntity.QUEUED.equals(j.getStatus())).orElse(false));
         exports.delete(id);
         String status = awaitTerminal(id).getStatus();
-        assertThat(status).isIn(ExportJobEntity.CANCELLED, ExportJobEntity.DONE);
-        if (ExportJobEntity.CANCELLED.equals(status)) {
+        assertThat(status).isIn(ExportJobEntity.CANCELED, ExportJobEntity.DONE);
+        if (ExportJobEntity.CANCELED.equals(status)) {
             assertThat(Files.exists(store.dirOf(ExportJobEntity.EXPORT, id))).isFalse();
         }
     }

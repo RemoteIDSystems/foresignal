@@ -31,7 +31,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * {@code get_series} (read, prompt 093): the energy and markets series catalogue, or the points of one series.
+ * {@code get_series} (read, prompt 093): the energy and markets series catalog, or the points of one series.
  * Compact output with a {@code *_total} count and a {@code truncated} flag.
  *
  * <p>Reads are filtered by the caller's excluded sources and restriction (prompt 035), exactly as
@@ -54,7 +54,7 @@ public class GetSeriesTool implements ForesignalMcpTool {
     static final Map<String, Object> INPUT = object(props(
             "source", string("Source id (from list_sources). Give it with series to fetch one series' points."),
             "series", string("Series id, for example agsi:DE or eia930:ERCO:D. With source, its points are returned."),
-            "q", string("Catalogue text filter on series id, name and area (catalogue mode only).", 1, 200),
+            "q", string("Catalog text filter on series id, name and area (catalog mode only).", 1, 200),
             "from", dateTime("Points with periodStart at or after this RFC 3339 time (points mode only)."),
             "to", dateTime("Points with periodStart before this RFC 3339 time (points mode only)."),
             "limit", integer("Most entries to return (1–" + MAX_LIMIT + ").", 1, MAX_LIMIT, (long) DEFAULT_LIMIT),
@@ -97,7 +97,7 @@ public class GetSeriesTool implements ForesignalMcpTool {
 
     @Override
     public Map<String, Object> outputSchema() {
-        return JsonSchemas.listOutput("Series catalogue entries or one series' points");
+        return JsonSchemas.listOutput("Series catalog entries or one series' points");
     }
 
     @Override
@@ -116,7 +116,7 @@ public class GetSeriesTool implements ForesignalMcpTool {
         if (source != null && seriesId != null) {
             return ToolResult.json(points(source, seriesId, args, limit, visibility));
         }
-        return ToolResult.json(catalogue(source, McpArgs.text(args, "q"), limit, detail, visibility));
+        return ToolResult.json(catalog(source, McpArgs.text(args, "q"), limit, detail, visibility));
     }
 
     private ObjectNode points(String source, String seriesId, JsonNode args, int limit,
@@ -134,10 +134,10 @@ public class GetSeriesTool implements ForesignalMcpTool {
                 Map.of("series", shaper.objectTree(info), "pointsTotal", points.size()));
     }
 
-    private ObjectNode catalogue(String source, String q, int limit, Detail detail,
+    private ObjectNode catalog(String source, String q, int limit, Detail detail,
             SeriesQueryService.Visibility visibility) {
         List<String> sources = source == null ? List.of() : List.of(source);
-        SeriesQueryService.Catalogue page = series.list(sources, q, null, limit, visibility);
+        SeriesQueryService.Catalog page = series.list(sources, q, null, limit, visibility);
         List<JsonNode> items = new ArrayList<>();
         for (SeriesInfoDto info : page.items()) {
             items.add(shaper.objectTree(info));

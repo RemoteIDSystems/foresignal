@@ -130,7 +130,7 @@ class SituationLinkerIT {
     @Test
     @DisplayName("a critical event seeds an emerging situation; a second family from another source joins and activates it")
     void seedJoinActivate() {
-        event(STANDARD, "e1", "active", "critical", ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOUR, DALLAS, T0);
+        event(STANDARD, "e1", "active", "critical", ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOR, DALLAS, T0);
         link();
         List<SituationEntity> all = situations.findAll();
         assertThat(all).hasSize(1);
@@ -151,7 +151,7 @@ class SituationLinkerIT {
         SituationEntity joined = holderOf("e2");
         assertThat(joined.getId()).isEqualTo(seeded.getId());
         assertThat(joined.getStatus()).isEqualTo(SituationLifecycle.ACTIVE);
-        assertThat(joined.getSignalFamilies()).containsExactly(ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOUR, "gnss-interference");
+        assertThat(joined.getSignalFamilies()).containsExactly(ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOR, "gnss-interference");
         SituationMemberEntity join = members.findByMemberTypeAndRef(SituationMemberTypes.INTEL_EVENT, "e2").get(0);
         assertThat(join.getJoinReason()).containsEntry("method", "linker").containsKeys("score", "components");
         @SuppressWarnings("unchecked")
@@ -166,7 +166,7 @@ class SituationLinkerIT {
     @Test
     @DisplayName("an event in an unrelated region does not join; it seeds its own situation")
     void unrelatedRegion() {
-        event(STANDARD, "e1", "active", "critical", ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOUR, DALLAS, T0);
+        event(STANDARD, "e1", "active", "critical", ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOR, DALLAS, T0);
         event(OTHER, "e3", "active", "warning", "gnss-interference", BRASILIA, T0.plusSeconds(60));
         link();
         assertThat(holderOf("e3").getId()).isNotEqualTo(holderOf("e1").getId());
@@ -182,7 +182,7 @@ class SituationLinkerIT {
     void sharedEntity() {
         link(STANDARD, "e1");
         link(STANDARD, "e4");
-        event(STANDARD, "e1", "active", "critical", ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOUR, DALLAS, T0);
+        event(STANDARD, "e1", "active", "critical", ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOR, DALLAS, T0);
         link();
         // Shared country 0.20 + shared entity 0.25 is exactly the 0.45 threshold, so e4 is observed at the situation's
         // last activity: any later time multiplies the score by a recency factor below 1 and it no longer joins.
@@ -208,7 +208,7 @@ class SituationLinkerIT {
     @Test
     @DisplayName("a rewound cursor gives exactly-once membership")
     void exactlyOnce() {
-        event(STANDARD, "e1", "active", "critical", ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOUR, DALLAS, T0);
+        event(STANDARD, "e1", "active", "critical", ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOR, DALLAS, T0);
         event(OTHER, "e2", "active", "warning", "gnss-interference", NEAR_DALLAS, T0.plusSeconds(60));
         link();
         long situationsBefore = situations.count();
@@ -218,7 +218,7 @@ class SituationLinkerIT {
         assertThat(situations.count()).isEqualTo(situationsBefore);
         assertThat(members.count()).isEqualTo(membersBefore);
         // A new version of a member event is not linked again either.
-        event(STANDARD, "e1", "active", "critical", ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOUR, DALLAS, T0.plusSeconds(120));
+        event(STANDARD, "e1", "active", "critical", ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOR, DALLAS, T0.plusSeconds(120));
         link();
         assertThat(members.count()).isEqualTo(membersBefore);
         assertThat(linker.cursor()).isEqualTo(changeBus.lastPublishedSeq());
@@ -229,7 +229,7 @@ class SituationLinkerIT {
     void dryRunEqualsLive() {
         link(STANDARD, "e1");
         link(STANDARD, "e4");
-        event(STANDARD, "e1", "active", "critical", ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOUR, DALLAS, T0);
+        event(STANDARD, "e1", "active", "critical", ai.foresignal.intel.SignalFamilies.AIS_BEHAVIOR, DALLAS, T0);
         event(OTHER, "e2", "active", "warning", "gnss-interference", NEAR_DALLAS, T0.plusSeconds(60));
         // e3 and e4 at e2's time, the situation's last activity: country 0.20 + entity 0.25 = 0.45 joins only with no
         // recency decay (and the test clock never moves backward between ingests).

@@ -75,7 +75,7 @@ class StacDescriptorsTest {
     }
 
     @Test
-    @DisplayName("licences are per collection")
+    @DisplayName("licenses are per collection")
     void licences() {
         assertThat(adapter("stac-sentinel2").descriptor().licence())
                 .isEqualTo("Copernicus Sentinel data terms (free, full and open)");

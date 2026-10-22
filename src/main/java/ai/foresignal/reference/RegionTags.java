@@ -28,7 +28,7 @@ public record RegionTags(String iso2, String admin1, String admin2, String sea, 
         return iso2 == null && admin1 == null && admin2 == null && sea == null && near == null;
     }
 
-    /** The {@code near} text in kilometres, or null. */
+    /** The {@code near} text in kilometers, or null. */
     public String nearText() {
         return near == null ? null : near.text();
     }

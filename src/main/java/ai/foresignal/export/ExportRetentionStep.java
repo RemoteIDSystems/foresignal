@@ -65,7 +65,7 @@ public class ExportRetentionStep implements RetentionStep {
     int expire(Instant now) {
         int count = 0;
         for (ExportJobEntity job : jobs.findByStatusIn(List.of(ExportJobEntity.DONE, ExportJobEntity.FAILED,
-                ExportJobEntity.CANCELLED))) {
+                ExportJobEntity.CANCELED))) {
             if (job.getExpiresAt() == null || job.getExpiresAt().isAfter(now)) {
                 continue;
             }

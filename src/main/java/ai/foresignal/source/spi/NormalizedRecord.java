@@ -27,7 +27,7 @@ import org.locationtech.jts.geom.Geometry;
  * @param validFrom when the asserted validity starts, for example an alert's onset; null when
  *     valid immediately. A record whose {@code validFrom} is after its {@code validUntil} is
  *     rejected by the normalizer ({@code VALID_RANGE_INVERTED})
- * @param payload the complete snapshot, JSON-serialisable, slim and allowlisted (rule 8)
+ * @param payload the complete snapshot, JSON-serializable, slim and allowlisted (rule 8)
  * @param tombstone true when upstream says this entity is gone
  * @param quality position and value trust, never hashed
  * @param observers the receivers that contributed, at most 8

@@ -51,7 +51,7 @@ class AttributionServiceTest {
     }
 
     @Test
-    @DisplayName("a layer's attribution aggregates attribution lines, else each licence's attribution text")
+    @DisplayName("a layer's attribution aggregates attribution lines, else each license's attribution text")
     void layerText() {
         SourceDescriptor credited = SourceDescriptor.builder("credited").name("c").kind("k").mode(Mode.PUSH)
                 .attribution("Data: Example Agency").licence("US-PD").build();

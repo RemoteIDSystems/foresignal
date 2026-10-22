@@ -15,7 +15,7 @@ import java.util.Locale;
  * @param feedUrl the index (or, for {@code cap-inline}, the single document) URL, HTTPS
  * @param format {@code atom-index}, {@code rss-index} or {@code cap-inline}
  * @param languages the preferred languages, best first, for the CAP {@code info} block
- * @param licence the licence, as stated by the authority
+ * @param licence the license, as stated by the authority
  * @param termsUrl the terms-of-use URL
  * @param reviewedOn the date the entry was last reviewed
  * @param notes what a reviewer should know
@@ -58,7 +58,7 @@ public record CapFeed(
      * @param feedUrl the index URL
      * @param format the index format
      * @param languages the preferred languages
-     * @param licence the licence
+     * @param licence the license
      * @param termsUrl the terms-of-use URL
      * @param reviewedOn the review date
      * @param notes reviewer notes

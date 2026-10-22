@@ -7,7 +7,7 @@ import ai.foresignal.api.error.ValidationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** The client licence policy flags (prompt 109). */
+/** The client license policy flags (prompt 109). */
 class LicencePolicyTest {
 
     private final LicenceCatalog catalog = new LicenceCatalog();

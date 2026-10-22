@@ -96,7 +96,7 @@ class GoesAbiAdapterWireMockTest extends WireMockSupport {
         client.setS3Endpoint(baseUrl());
         SourceDescriptor descriptor = adapter.descriptor();
         // Prompt 106: pin the C13 product so this 046 test stays about band 13 (the default now also
-        // enables the water-vapour channels).
+        // enables the water-vapor channels).
         return new ProductAdapterHarness.ParamContext(descriptor, client.forSource(GoesAbiAdapter.ID, descriptor), clock,
                 state, sink, ai.foresignal.source.spi.ValidatedParams.of(Map.of("products", List.of(GoesAbiAdapter.IR))));
     }

@@ -60,10 +60,10 @@ class CredentialCipherTest {
     @Test
     @DisplayName("the ciphertext does not contain the plaintext")
     void ciphertextHidesPlaintext() {
-        Encrypted encrypted = cipher.encrypt("recognisable-secret");
+        Encrypted encrypted = cipher.encrypt("recognizable-secret");
 
         assertThat(new String(encrypted.ciphertext(), StandardCharsets.ISO_8859_1))
-                .doesNotContain("recognisable-secret");
+                .doesNotContain("recognizable-secret");
     }
 
     @Test

@@ -47,7 +47,7 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code LOCAL_ONLY}, MLAT, private and exercise records never leave (exercise only with {@code includeExercise});
  * a token without the {@code federation} capability is refused with 403; below the purge horizon the feed is 410;
  * the snapshot pages through a pinned watermark; a peer record is re-served with its stored chain plus a hop; an
- * edge's same-operator push carries {@code LOCAL_ONLY} records labelled {@code local-only-operator}; and
+ * edge's same-operator push carries {@code LOCAL_ONLY} records labeled {@code local-only-operator}; and
  * {@code /info} is signed with the instance key.
  */
 @IntegrationTest

@@ -25,7 +25,7 @@ import jakarta.persistence.Table;
  * <p>Besides one row per occupied cell ({@link H3Cells#NO_CELL} for versions without a geometry), each
  * {@code (source, kind)} with activity has one {@link H3Cells#ALL_CELLS} row whose {@code entities} is
  * exact over every cell; queries without a spatial filter read only those rows. {@code cell_lon} and
- * {@code cell_lat} are the cell centre (null for the two special cells), used for bbox and area
+ * {@code cell_lat} are the cell center (null for the two special cells), used for bbox and area
  * filters at cell resolution.
  *
  * <p>Prompt 119 adds region rows: resolution 2 (region-hour) and 3 (region-day) carry a {@code region_code} and
@@ -81,7 +81,7 @@ public class ActivityRollupEntity {
         return id;
     }
 
-    /** The cell centre longitude, or null. */
+    /** The cell center longitude, or null. */
     public Double getCellLon() {
         return cellLon;
     }
@@ -91,7 +91,7 @@ public class ActivityRollupEntity {
         return regionCode;
     }
 
-    /** The cell centre latitude, or null. */
+    /** The cell center latitude, or null. */
     public Double getCellLat() {
         return cellLat;
     }

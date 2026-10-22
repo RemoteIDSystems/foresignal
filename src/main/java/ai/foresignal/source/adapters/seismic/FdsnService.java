@@ -8,8 +8,8 @@ import java.net.URI;
  * @param id the service id; the source id is {@code fdsn-<id>}
  * @param name the display name
  * @param baseUrl the FDSN event query endpoint
- * @param supportsUpdatedAfter whether the service honours {@code updatedafter} (else {@code starttime} is used)
- * @param licence the licence
+ * @param supportsUpdatedAfter whether the service honors {@code updatedafter} (else {@code starttime} is used)
+ * @param licence the license
  * @param termsUrl the terms-of-use URL
  * @param attribution the attribution
  * @param homepage the service home page

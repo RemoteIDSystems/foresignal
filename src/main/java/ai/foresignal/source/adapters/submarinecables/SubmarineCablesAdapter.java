@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
  * {@code submarine-cables}: TeleGeography's public Submarine Cable Map data (prompt 094). It needs no key, so it
  * starts enabled (prompt 145).
  *
- * <p>The JSON is the public map's undocumented data and the geometry is stylised; the citation page states
+ * <p>The JSON is the public map's undocumented data and the geometry is stylized; the citation page states
  * CC BY-SA 4.0 for the public maps and the underlying database is subscriber-only, so the source is
  * non-commercial and its egress is local-only for prompts 109 and 110.
  */
@@ -170,7 +170,7 @@ public class SubmarineCablesAdapter implements PollingAdapter {
                 .kindPresentation(SubmarineCableParser.LANDING_KIND, java.util.Map.of("nonCommercial", true)));
         b.fieldSpec("name", new FieldSpec(FieldType.STRING, null, "Name", "The cable or landing name", null,
                 Set.of()));
-        b.fieldSpec("color", new FieldSpec(FieldType.STRING, null, "Color", "The map colour", null, Set.of()));
+        b.fieldSpec("color", new FieldSpec(FieldType.STRING, null, "Color", "The map color", null, Set.of()));
         b.fieldSpec("isTbd", new FieldSpec(FieldType.BOOLEAN, null, "To be determined", "The cable's route is not"
                 + " final", null, Set.of()));
         return b.build();

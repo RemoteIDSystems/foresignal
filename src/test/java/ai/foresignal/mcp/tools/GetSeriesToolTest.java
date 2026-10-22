@@ -54,7 +54,7 @@ class GetSeriesToolTest {
     void catalogCarriesVisibility() {
         ReadRestriction restriction = new ReadRestriction(List.of("eia-930"), null, null, null, null, false, null);
         when(series.list(any(), any(), any(), anyInt(), any()))
-                .thenReturn(new SeriesQueryService.Catalogue(List.of(), null));
+                .thenReturn(new SeriesQueryService.Catalog(List.of(), null));
         tool.call(context(Set.of("eia-petroleum"), restriction), JSON.readTree("{}"));
         ArgumentCaptor<SeriesQueryService.Visibility> captor = ArgumentCaptor.forClass(SeriesQueryService.Visibility.class);
         verify(series).list(eq(List.of()), isNull(), isNull(), eq(GetSeriesTool.DEFAULT_LIMIT), captor.capture());
@@ -86,7 +86,7 @@ class GetSeriesToolTest {
         when(policy.decide(eq(EgressPath.MCP), eq("fred"), isNull(), isNull(), any()))
                 .thenReturn(new EgressPolicy.Decision(false, EgressPolicy.REASON_LOCAL_ONLY, null));
         when(series.list(any(), any(), any(), anyInt(), any()))
-                .thenReturn(new SeriesQueryService.Catalogue(List.of(), null));
+                .thenReturn(new SeriesQueryService.Catalog(List.of(), null));
         tool.call(context(Set.of(), ReadRestriction.NONE), JSON.readTree("{}"));
         ArgumentCaptor<SeriesQueryService.Visibility> captor = ArgumentCaptor.forClass(SeriesQueryService.Visibility.class);
         verify(series).list(eq(List.of()), isNull(), isNull(), eq(GetSeriesTool.DEFAULT_LIMIT), captor.capture());

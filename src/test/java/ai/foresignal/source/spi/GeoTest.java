@@ -154,7 +154,7 @@ class GeoTest {
     }
 
     @Test
-    @DisplayName("exactly (0,0) is recognised as null island")
+    @DisplayName("exactly (0,0) is recognized as null island")
     void detectsNullIsland() {
         assertThat(Geo.isNullIsland(Geo.point(0, 0))).isTrue();
         assertThat(Geo.isNullIsland(Geo.point(0.0001, 0))).isFalse();

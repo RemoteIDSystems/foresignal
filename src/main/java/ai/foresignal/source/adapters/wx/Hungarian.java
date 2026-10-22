@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 /**
  * The Hungarian algorithm for the rectangular linear assignment problem (prompt 105): given a cost
- * matrix, choose a one-to-one matching of rows to columns that minimises the total cost. It runs in
+ * matrix, choose a one-to-one matching of rows to columns that minimizes the total cost. It runs in
  * O(n³) with the potentials method (rows must not exceed columns; the matrix is transposed when they
  * do). A cost at or above {@link #FORBIDDEN} is treated as forbidden and left unmatched.
  *

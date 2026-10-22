@@ -49,7 +49,7 @@ import org.springframework.stereotype.Component;
  * <p><strong>Time base is RECEIVED:</strong> the feed carries no upstream update time; {@code obsDt} is a local
  * wall-clock time kept as {@code obsDtLocal} and mapped to {@code eventTime} through the 040 timezone.
  *
- * <p><strong>Licence:</strong> eBird's API terms are non-commercial with attribution; the source is
+ * <p><strong>License:</strong> eBird's API terms are non-commercial with attribution; the source is
  * {@code LOCAL_ONLY} for 109/110.
  */
 @Component
@@ -237,10 +237,10 @@ public class EbirdNotableAdapter implements PollingAdapter {
                 .credential(CredentialField.required(API_KEY,
                         "Your eBird API key (free from https://ebird.org/api/keygen), sent as the"
                                 + " x-ebirdapitoken header; one key per eBird account"))
-                .param(ParamSpec.optional("lat", ParamType.NUMBER, "Latitude of the search centre", null))
-                .param(ParamSpec.optional("lng", ParamType.NUMBER, "Longitude of the search centre", null))
+                .param(ParamSpec.optional("lat", ParamType.NUMBER, "Latitude of the search center", null))
+                .param(ParamSpec.optional("lng", ParamType.NUMBER, "Longitude of the search center", null))
                 .param(ParamSpec.optional("place", ParamType.STRING,
-                        "A 036 place id used as the search centre, instead of lat and lng", null))
+                        "A 036 place id used as the search center, instead of lat and lng", null))
                 .param(ParamSpec.optional("distKm", ParamType.INTEGER, "Search radius in km (1 to 50)", DEFAULT_DIST_KM))
                 .param(ParamSpec.optional("backDays", ParamType.INTEGER, "How many days back to look (1 to 30)",
                         DEFAULT_BACK_DAYS))

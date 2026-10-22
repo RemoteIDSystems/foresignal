@@ -72,7 +72,7 @@ public class ChangesController {
     private final ApiProperties properties;
     private final JsonMapper json;
 
-    /** Prunes whole sources a licence policy excludes (prompt 109); null in hand-built unit tests. */
+    /** Prunes whole sources a license policy excludes (prompt 109); null in hand-built unit tests. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.provenance.LicencePolicyService licencePolicy;
 

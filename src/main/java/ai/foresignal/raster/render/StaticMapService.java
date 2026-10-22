@@ -41,7 +41,7 @@ import tools.jackson.databind.json.JsonMapper;
  *       radius.
  *   <li><b>Frames:</b> {@code time} is {@code latest} (default), {@code now}, an ISO-8601 time or an offset
  *       ({@link TimeSpec}), resolved per product by {@link SampleService#choose}. A missing or stale frame
- *       becomes a labelled note on the map, never an omission. Two cases are errors instead: a concrete
+ *       becomes a labeled note on the map, never an omission. Two cases are errors instead: a concrete
  *       ISO time for a forecast product without {@code run} ({@code 400 RUN_REQUIRED}), and a concrete ISO
  *       time at which an enabled product has no frame ({@code 404 UNKNOWN_FRAME}).
  *   <li><b>Cache rule</b> (design §6.1): immutable only when every frame is pinned (a concrete time, a

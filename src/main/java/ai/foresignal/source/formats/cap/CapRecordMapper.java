@@ -50,7 +50,7 @@ public final class CapRecordMapper {
     public static final String STATE_UPDATED = "updated";
 
     /** {@code state} after a cancellation. */
-    public static final String STATE_CANCELLED = "cancelled";
+    public static final String STATE_CANCELED = "cancelled";
 
     /** The embedded fields of every CAP source. */
     public static final List<String> EMBED_FIELDS = List.of("headline", "description", "instruction");
@@ -77,7 +77,7 @@ public final class CapRecordMapper {
         Instant onset = instant(info == null ? null : info.onset());
         Instant effective = instant(info == null ? null : info.effective());
         Instant expires = instant(info == null ? null : info.expires());
-        Instant validUntil = STATE_CANCELLED.equals(state) ? (expires != null ? expires : sent) : expires;
+        Instant validUntil = STATE_CANCELED.equals(state) ? (expires != null ? expires : sent) : expires;
         Instant validFrom = onset != null ? onset : effective;
         if (validFrom != null && validUntil != null && validFrom.isAfter(validUntil)) {
             validFrom = null;
@@ -132,7 +132,7 @@ public final class CapRecordMapper {
     public static String state(CapAlert alert, CapAlert.Info info, CapMappingProfile profile) {
         if ("Cancel".equals(alert.msgType())
                 || (profile.cancellation() != null && profile.cancellation().cancels(alert, info))) {
-            return STATE_CANCELLED;
+            return STATE_CANCELED;
         }
         return "Update".equals(alert.msgType()) ? STATE_UPDATED : STATE_ACTIVE;
     }

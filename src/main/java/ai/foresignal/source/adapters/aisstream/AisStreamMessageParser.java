@@ -269,11 +269,11 @@ public final class AisStreamMessageParser {
     }
 
     private static AisMessage shipStatic(String mmsi, Instant time, JsonNode body) {
-        Double draught = number(body.get("MaximumStaticDraught"));
+        Double draft = number(body.get("MaximumStaticDraught"));
         return new AisMessage(SHIP_STATIC_DATA, mmsi, time, "A", false, null, null, null, null, null, null,
                 cleanText(body.get("Name")), cleanText(body.get("CallSign")), positiveInt(body.get("ImoNumber")),
                 positiveInt(body.get("Type")), dimension(body.get("Dimension")), eta(body.get("Eta")),
-                draught != null && draught > 0 ? draught : null, cleanText(body.get("Destination")));
+                draft != null && draft > 0 ? draft : null, cleanText(body.get("Destination")));
     }
 
     private static AisMessage staticReport(String mmsi, Instant time, JsonNode body) {

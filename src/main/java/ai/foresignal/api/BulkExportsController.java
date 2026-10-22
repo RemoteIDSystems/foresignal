@@ -77,7 +77,7 @@ public class BulkExportsController {
         String kindFilter = oneOf("kind", kind, List.of(ExportJobEntity.EXPORT, ExportJobEntity.SNAPSHOT,
                 ExportJobEntity.PACK));
         String statusFilter = oneOf("status", status, List.of(ExportJobEntity.QUEUED, ExportJobEntity.RUNNING,
-                ExportJobEntity.DONE, ExportJobEntity.FAILED, ExportJobEntity.CANCELLED, ExportJobEntity.EXPIRED));
+                ExportJobEntity.DONE, ExportJobEntity.FAILED, ExportJobEntity.CANCELED, ExportJobEntity.EXPIRED));
         ExportJobService.Page page = exports.list(ExportCallers.tokenId(request), ExportCallers.admin(request, callers),
                 kindFilter, statusFilter, cursor, parseLimit(limit));
         List<Map<String, Object>> items = new ArrayList<>();

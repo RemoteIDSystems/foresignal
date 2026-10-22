@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.TreeSet;
 
 /**
- * The licence of a derived infrastructure edge (prompt 104): the most restrictive of its inputs.
+ * The license of a derived infrastructure edge (prompt 104): the most restrictive of its inputs.
  * Pure.
  *
  * <p>Restrictiveness, from least to most: no attribution required; attribution required;
@@ -39,7 +39,7 @@ public final class InfraLicences {
         return terms.attributionRequired() ? 2 : 1;
     }
 
-    /** The licence id of an edge whose inputs carry {@code inputs}. */
+    /** The license id of an edge whose inputs carry {@code inputs}. */
     public static String mostRestrictive(List<LicenceTerms> inputs) {
         int worst = inputs.stream().mapToInt(InfraLicences::restrictiveness).max().orElse(5);
         TreeSet<String> ids = new TreeSet<>(Comparator.naturalOrder());

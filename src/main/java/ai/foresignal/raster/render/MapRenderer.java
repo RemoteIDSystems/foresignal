@@ -57,7 +57,7 @@ import org.springframework.stereotype.Service;
  *   <li>admin-1 lines, admin-0 boundaries, the coastline;
  *   <li>the alert or record geometry: stroke and translucent fill in the severity color;
  *   <li>the place marker and its range rings;
- *   <li>a scale bar, and a labelled note for every product whose frame is missing or stale ("MRMS
+ *   <li>a scale bar, and a labeled note for every product whose frame is missing or stale ("MRMS
  *       reflectivity unavailable — not evidence of clear weather"): a missing layer is never silently
  *       omitted.
  * </ol>

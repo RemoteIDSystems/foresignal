@@ -31,7 +31,7 @@ public final class PopulationTiffReader {
 
     private PopulationTiffReader() {}
 
-    /** One pixel's centre and population value. */
+    /** One pixel's center and population value. */
     public record Pixel(double lon, double lat, double value) {}
 
     /** Receives each valid pixel as it is decoded. */

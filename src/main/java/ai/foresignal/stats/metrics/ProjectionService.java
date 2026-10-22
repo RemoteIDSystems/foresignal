@@ -62,7 +62,7 @@ import tools.jackson.databind.json.JsonMapper;
  *       merged payload, so SAMPLED sources' live values count; touches move only the observed time.
  *   <li><b>Values:</b> numbers and numeric strings; anything else is skipped and counted in
  *       {@code foresignal.projection.coercion_failures{projection}} (global registry).
- *   <li><b>Series:</b> labelled {@code source} and {@code external_id}, or by the projection's labels
+ *   <li><b>Series:</b> labeled {@code source} and {@code external_id}, or by the projection's labels
  *       (entities with the same label values share a series; the latest write wins). A series is dropped
  *       when its head is tombstoned, expires ({@code valid_until}, checked every minute) or is purged.
  *       Each projection keeps at most {@code maxSeries}; across all projections at most

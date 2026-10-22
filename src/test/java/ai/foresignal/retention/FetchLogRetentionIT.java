@@ -48,7 +48,7 @@ class FetchLogRetentionIT extends RetentionItSupport {
                 T0.plus(keep).minus(Duration.ofDays(1))}) {
             runAt(at);
             if (versions(STANDARD, "x") > 0) {
-                assertThat(fetchRows(true)).as("versions still retained at " + at + ": the batch licence stays")
+                assertThat(fetchRows(true)).as("versions still retained at " + at + ": the batch license stays")
                         .isEqualTo(1);
             }
         }

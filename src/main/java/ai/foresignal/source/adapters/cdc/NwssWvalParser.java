@@ -22,7 +22,7 @@ import tools.jackson.databind.JsonNode;
  * breaks a tie), so a batch holding several weeks, or a re-dated older week, never leaves an older week current
  * (2026-10 review).
  *
- * <p><strong>Licence split.</strong> Rows with {@code source = WastewaterSCAN} are CC BY-NC 4.0 (Stanford) and
+ * <p><strong>License split.</strong> Rows with {@code source = WastewaterSCAN} are CC BY-NC 4.0 (Stanford) and
  * are dropped unless {@code includeWastewaterScan} is set; when kept they carry a {@code licenceOverride}
  * payload field. Every other row is public-domain US government data.
  */

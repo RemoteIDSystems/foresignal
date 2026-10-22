@@ -11,7 +11,7 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** {@code derived-rendezvous} neighbour grid (prompt 099). */
+/** {@code derived-rendezvous} neighbor grid (prompt 099). */
 class RendezvousTest {
 
     private static Observation vessel(String id, double lon, double lat) {
@@ -20,13 +20,13 @@ class RendezvousTest {
     }
 
     @Test
-    @DisplayName("the neighbour search returns the eight surrounding cells, not the world")
-    void neighbours() {
+    @DisplayName("the neighbor search returns the eight surrounding cells, not the world")
+    void neighbors() {
         Observation a = vessel("a", -95.0, 32.0);
         Observation near = vessel("b", -95.001, 32.001);
         Observation far = vessel("c", -80.0, 20.0);
         Map<String, List<Observation>> grid = RendezvousGenerator.bucket(List.of(a, near, far));
-        List<Observation> candidates = RendezvousGenerator.neighbours(grid, a);
+        List<Observation> candidates = RendezvousGenerator.neighbors(grid, a);
         assertThat(candidates).extracting(Observation::externalId).contains("b").doesNotContain("c");
     }
 }

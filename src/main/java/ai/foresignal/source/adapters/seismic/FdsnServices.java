@@ -16,7 +16,7 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * The committed, reviewed FDSN event-service list (prompt 089), {@value #RESOURCE}.
  *
- * <p>Every service was verified live on 2026-10-14. IRIS is excluded (its event service was retired in favour of
+ * <p>Every service was verified live on 2026-10-14. IRIS is excluded (its event service was retired in favor of
  * USGS). The list is code-reviewed and static; no caller can add a service.
  */
 public final class FdsnServices {

@@ -20,7 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Trusted proxies (prompt 023): with the default {@code FORESIGNAL_TRUSTED_PROXIES} (loopback),
- * Tomcat's {@code RemoteIpValve} honours {@code X-Forwarded-For} and {@code X-Forwarded-Proto}
+ * Tomcat's {@code RemoteIpValve} honors {@code X-Forwarded-For} and {@code X-Forwarded-Proto}
  * from this test, which connects over loopback. The client IP is read back from the audit log of a
  * refused write. {@link UntrustedProxyIT} is the same request from a proxy that is not trusted.
  */
@@ -58,8 +58,8 @@ class TrustedProxyIT {
     }
 
     @Test
-    @DisplayName("X-Forwarded-For and X-Forwarded-Proto are honoured from a configured internal proxy")
-    void honouredFromTrustedProxy() throws Exception {
+    @DisplayName("X-Forwarded-For and X-Forwarded-Proto are honored from a configured internal proxy")
+    void honoredFromTrustedProxy() throws Exception {
         assertThat(forwardedWrite(port, audit, jdbc)).isEqualTo("203.0.113.9");
         assertThat(secureRequests.sawHttps()).isTrue();
     }

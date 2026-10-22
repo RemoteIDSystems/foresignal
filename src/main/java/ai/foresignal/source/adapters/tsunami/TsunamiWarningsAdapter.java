@@ -62,7 +62,7 @@ import org.springframework.stereotype.Component;
  * P-VTEC action is {@code CAN}; the record then has {@code state: cancelled} and expires at its own
  * {@code expires}.
  *
- * <p><strong>Never closed on absence.</strong> The feed moves on to the next event without cancelling the
+ * <p><strong>Never closed on absence.</strong> The feed moves on to the next event without canceling the
  * previous one, so a thread that is no longer in the feed is left to expire at its CAP {@code expires}. Messages
  * whose {@code status} is not {@code Actual} (tests, exercises) and {@code Ack}/{@code Error} messages are not
  * ingested.

@@ -49,7 +49,7 @@ public class GetAnalystNoteTool implements ForesignalMcpTool {
     @Override
     public String description() {
         return UNTRUSTED_NOTE + " Returns one analyst note with its typed claims. Cite the cited members;"
-                + " inference and speculation are labelled and must be presented as such.";
+                + " inference and speculation are labeled and must be presented as such.";
     }
 
     @Override

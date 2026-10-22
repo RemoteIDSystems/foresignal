@@ -240,7 +240,7 @@ public final class ErrorCodes {
     public static final String PAIRING_CODE_INVALID = "PAIRING_CODE_INVALID";
 
     /**
-     * 429: too many attempts; honour {@code Retry-After} (pairing claims, prompt 023; per-client rate
+     * 429: too many attempts; honor {@code Retry-After} (pairing claims, prompt 023; per-client rate
      * limits and auth-failure backoff, prompt 035).
      */
     public static final String RATE_LIMITED = "RATE_LIMITED";
@@ -256,7 +256,7 @@ public final class ErrorCodes {
     /** 409: {@code observedAtMode} cannot change while the source has heads. */
     public static final String OBSERVED_AT_MODE_LOCKED = "OBSERVED_AT_MODE_LOCKED";
 
-    /** 429: the source's records-per-minute cap is spent; honour {@code Retry-After}. */
+    /** 429: the source's records-per-minute cap is spent; honor {@code Retry-After}. */
     public static final String INGEST_RECORD_RATE = "INGEST_RECORD_RATE";
 
     /** 404: no ingest format of that name. */
@@ -271,7 +271,7 @@ public final class ErrorCodes {
     /** 409: the push source is disabled. */
     public static final String SOURCE_DISABLED = "SOURCE_DISABLED";
 
-    /** 503: the ingest queue stayed full for 30 s; honour {@code Retry-After}. */
+    /** 503: the ingest queue stayed full for 30 s; honor {@code Retry-After}. */
     public static final String INGEST_BUSY = "INGEST_BUSY";
 
     /** 400: an EDP manifest failed validation; {@code errors} lists each problem. */
@@ -540,7 +540,7 @@ public final class ErrorCodes {
     /** 409: another exercise replay is running (115); one runs at a time. */
     public static final String EXERCISE_RUNNING = "EXERCISE_RUNNING";
 
-    /** 409: cancelling an exercise replay that is no longer planned or running (115). */
+    /** 409: canceling an exercise replay that is no longer planned or running (115). */
     public static final String EXERCISE_NOT_RUNNING = "EXERCISE_NOT_RUNNING";
 
     /** 409: a tuning suggestion's rule changed since it was generated, or the suggestion is not open (115). */

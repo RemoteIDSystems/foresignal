@@ -14,7 +14,7 @@ import tools.jackson.databind.JsonNode;
  * The public Submarine Cable Map GeoJSON (prompt 094): {@code cable-geo.json} and
  * {@code landing-point-geo.json}.
  *
- * <p>Stylised geometry. {@code externalId} is {@code cable:{id}} for a cable and {@code landing:{id}} for a
+ * <p>Stylized geometry. {@code externalId} is {@code cable:{id}} for a cable and {@code landing:{id}} for a
  * landing point. A feature without an id is skipped; a malformed geometry keeps the record without geometry and
  * is counted. Features are streamed one at a time ({@link ReferenceStreams}).
  */

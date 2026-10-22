@@ -42,7 +42,7 @@ class LicenceEgressGuardUsageTest {
         }
         assertThat(offenders).isEmpty();
         assertThat(USE.matcher(read(Path.of("src/main/java/ai/foresignal/security/EgressPolicy.java"))).find())
-                .as("EgressPolicy owns the licence table").isTrue();
+                .as("EgressPolicy owns the license table").isTrue();
     }
 
     private static String read(Path file) {

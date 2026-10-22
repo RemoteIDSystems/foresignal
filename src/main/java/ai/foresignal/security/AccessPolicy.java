@@ -380,7 +380,7 @@ public class AccessPolicy {
                 // Attribution aggregates for a scope (109): read.
                 rule(HttpMethod.GET, "/v1/attributions", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/records/**", AccessRequirement.READ),
-                // Energy and markets series (093): the catalogue and one series' points are read.
+                // Energy and markets series (093): the catalog and one series' points are read.
                 rule(HttpMethod.GET, "/v1/series", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/series/**", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/changes/**", AccessRequirement.READ),

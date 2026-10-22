@@ -563,7 +563,7 @@ class FamilyDefaultsTest {
                     "bulk-event")),
             // Checkpoint 097: the prompt 062/063/064 spaceship sources were never classified here. The
             // aircraft (adsb.lol, OpenSky) and AIS WebSocket sources are TRACK (trackWindow, never a
-            // default); celestrak-gp is a reference catalogue (90 d); SOCRATES conjunctions, launches and
+            // default); celestrak-gp is a reference catalog (90 d); SOCRATES conjunctions, launches and
             // Space-Track re-entry predictions are the event class (1825 d).
             Map.entry("AdsbLolAreaAdapter", new Entry(new ai.foresignal.source.adapters.adsblol.AdsbLolAreaFamily(
                     "").adapters().getFirst().descriptor(), "track")),

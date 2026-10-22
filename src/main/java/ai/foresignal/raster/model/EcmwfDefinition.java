@@ -38,11 +38,11 @@ public record EcmwfDefinition(String sourceId, String label, String bucket, Stri
      * and the place-weather forecast section.
      */
     public static final String CHANGES_MADE = "Contains modified Copernicus/ECMWF data: ECMWF open data, CC BY 4.0."
-            + " Changes made: resampled, quantised, derived fields.";
+            + " Changes made: resampled, quantized, derived fields.";
 
     /** The same attribution for AIFS-derived outputs (prompt 106). */
     public static final String CHANGES_MADE_AIFS = "Contains modified Copernicus/ECMWF data: ECMWF AIFS open data,"
-            + " CC BY 4.0. Changes made: resampled, quantised, derived fields.";
+            + " CC BY 4.0. Changes made: resampled, quantized, derived fields.";
 
     /**
      * The ECMWF attribution of a derived output built from {@code model}, or null for a non-ECMWF model.

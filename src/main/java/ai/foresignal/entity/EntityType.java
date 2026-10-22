@@ -4,7 +4,7 @@ import java.util.Locale;
 
 /**
  * What a canonical entity is (prompt 098): a physical vehicle or object, never a person or an
- * organisation.
+ * organization.
  */
 public enum EntityType {
     AIRCRAFT("aircraft"),

@@ -35,7 +35,7 @@ class WorldCrs84QuadTest {
     }
 
     @Test
-    @DisplayName("the pixel locator maps the first pixel centre inside the north-west corner")
+    @DisplayName("the pixel locator maps the first pixel center inside the north-west corner")
     void locator() {
         double[] out = new double[2];
         WorldCrs84Quad.INSTANCE.locator(0, 0, 0, 256).locate(0, 0, out);

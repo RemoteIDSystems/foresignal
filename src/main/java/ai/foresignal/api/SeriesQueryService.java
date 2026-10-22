@@ -30,7 +30,7 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * The native SQL behind {@code GET /v1/series} and {@code GET /v1/series/{sourceId}/{seriesId}} (prompt 093).
  *
- * <p>The catalogue reads {@code series-latest} heads; the points read {@code series-point} heads in
+ * <p>The catalog reads {@code series-latest} heads; the points read {@code series-point} heads in
  * {@code event_time} order, which is served by the partial expression index
  * {@code record_head (source_id, (payload->>'series'), event_time) WHERE kind='series-point'}.
  *
@@ -46,7 +46,7 @@ public class SeriesQueryService {
     /** The point kind. */
     static final String POINT_KIND = SeriesPoint.KIND;
 
-    /** The catalogue kind. */
+    /** The catalog kind. */
     static final String LATEST_KIND = SeriesPoint.LATEST_KIND;
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -80,8 +80,8 @@ public class SeriesQueryService {
         this.registry = registry;
     }
 
-    /** A catalogue page. */
-    public record Catalogue(List<SeriesInfoDto> items, String nextCursor) {}
+    /** A catalog page. */
+    public record Catalog(List<SeriesInfoDto> items, String nextCursor) {}
 
     /**
      * What the caller may read.
@@ -114,7 +114,7 @@ public class SeriesQueryService {
     private record PointRow(String externalId, Instant eventTime, SeriesPointDto dto) {}
 
     /**
-     * The series catalogue.
+     * The series catalog.
      *
      * @param sources the source ids to include; empty means every source
      * @param q a case-insensitive match on series id, seriesName and area, or null
@@ -122,12 +122,12 @@ public class SeriesQueryService {
      * @param limit the page size
      * @param visibility what the caller may read
      */
-    public Catalogue list(List<String> sources, String q, String cursor, int limit, Visibility visibility) {
+    public Catalog list(List<String> sources, String q, String cursor, int limit, Visibility visibility) {
         Cursor decoded = Cursor.decode(cursor);
         List<String> clamped = RestrictionClamp.clampSources(sources, visibility.restriction());
         if (clamped != null && clamped.isEmpty()) {
             // The request and the restriction are disjoint: nothing matches (intersect, never union).
-            return new Catalogue(List.of(), null);
+            return new Catalog(List.of(), null);
         }
         StringBuilder sql = new StringBuilder("SELECT source_id, external_id, payload FROM record_head"
                 + " WHERE kind = '" + LATEST_KIND + "' AND tombstone = false");
@@ -143,7 +143,7 @@ public class SeriesQueryService {
                     + " OR lower(coalesce(payload->>'area','')) LIKE :q ESCAPE '\\')");
             params.addValue("q", "%" + q.strip().toLowerCase() + "%");
         }
-        if (decoded != null && decoded.kind == Cursor.Kind.CATALOGUE) {
+        if (decoded != null && decoded.kind == Cursor.Kind.CATALOG) {
             sql.append(" AND (source_id, external_id) > (:cursorSource, :cursorExternal)");
             params.addValue("cursorSource", decoded.sourceId);
             params.addValue("cursorExternal", decoded.externalId);
@@ -159,9 +159,9 @@ public class SeriesQueryService {
         String next = null;
         if (more && !items.isEmpty()) {
             InfoRow last = rows.get(limit - 1);
-            next = new Cursor(Cursor.Kind.CATALOGUE, last.sourceId(), last.externalId(), null).encode();
+            next = new Cursor(Cursor.Kind.CATALOG, last.sourceId(), last.externalId(), null).encode();
         }
-        return new Catalogue(List.copyOf(items), next);
+        return new Catalog(List.copyOf(items), next);
     }
 
     /**
@@ -361,13 +361,13 @@ public class SeriesQueryService {
     }
 
     /**
-     * An opaque keyset cursor. Catalogue pages key on {@code (source_id, external_id)}, point pages on
+     * An opaque keyset cursor. Catalog pages key on {@code (source_id, external_id)}, point pages on
      * {@code (event_time, external_id)}.
      */
     record Cursor(Kind kind, String sourceId, String externalId, Instant eventTime) {
 
         enum Kind {
-            CATALOGUE,
+            CATALOG,
             POINTS
         }
 
@@ -382,7 +382,7 @@ public class SeriesQueryService {
                     return new Cursor(Kind.POINTS, null, parts[1], Instant.parse(parts[2]));
                 }
                 if (parts.length == 4 && "c".equals(parts[0])) {
-                    return new Cursor(Kind.CATALOGUE, parts[1], parts[2], null);
+                    return new Cursor(Kind.CATALOG, parts[1], parts[2], null);
                 }
             } catch (RuntimeException e) {
                 return null;

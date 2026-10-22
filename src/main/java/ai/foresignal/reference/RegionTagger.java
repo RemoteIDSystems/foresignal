@@ -33,7 +33,7 @@ import org.springframework.stereotype.Component;
  *       {@code coastal-km} (5 km) of one is given the nearest (by distance on the simplified boundary).
  *   <li><b>Sea:</b> at sea {@code iso2} is null and {@code sea} is the Natural Earth marine polygon that
  *       covers the point.
- *   <li><b>Near:</b> the KNN nearest gazetteer place ({@code geog <-> point}, metres) with
+ *   <li><b>Near:</b> the KNN nearest gazetteer place ({@code geog <-> point}, meters) with
  *       {@code population ≥ near-min-population}, with the distance and the bearing from the place to
  *       the point ({@code "12 km NNE of Austin, TX"}).
  * </ul>
@@ -346,7 +346,7 @@ public class RegionTagger implements IngestStateReset {
         return point == null || point.isEmpty() ? geometry.getCentroid() : point;
     }
 
-    /** Great-circle distance in kilometres (haversine, mean Earth radius). */
+    /** Great-circle distance in kilometers (haversine, mean Earth radius). */
     public static double distanceKm(double lon1, double lat1, double lon2, double lat2) {
         double r = 6371.0088;
         double dLat = Math.toRadians(lat2 - lat1);

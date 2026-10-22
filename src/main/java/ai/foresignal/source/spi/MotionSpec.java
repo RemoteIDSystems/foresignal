@@ -5,7 +5,7 @@ package ai.foresignal.source.spi;
  * (Core-Data-Model §5.2).
  *
  * <p>Dead reckoning from the last persisted position is what makes a distance threshold meaningful
- * for a moving entity: an aircraft that has travelled exactly where it was predicted to has not
+ * for a moving entity: an aircraft that has traveled exactly where it was predicted to has not
  * told us anything new, however far it moved.
  *
  * <p>These fields must not be listed as significant — a changing speed reading is precisely the

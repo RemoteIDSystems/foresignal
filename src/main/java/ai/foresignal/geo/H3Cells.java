@@ -159,7 +159,7 @@ public final class H3Cells {
     /**
      * The cells within {@code k} grid steps of {@code cell} (prompt 099: the density ring).
      *
-     * @param cell the centre cell
+     * @param cell the center cell
      * @param k the number of rings, at least 0
      */
     public static List<Long> gridDisk(long cell, int k) {

@@ -13,7 +13,7 @@ import java.util.Set;
 
 /**
  * Aggregated attributions for record-returning responses (prompt 109; Weather-Imagery-Design §6.10):
- * one {@code {sourceId, licence, text, termsUrl, count}} per distinct source and licence, plus the
+ * one {@code {sourceId, licence, text, termsUrl, count}} per distinct source and license, plus the
  * joined {@code Foresignal-Attribution} text and the {@code Link rel=license} URLs.
  */
 @org.springframework.stereotype.Component
@@ -80,7 +80,7 @@ public class AttributionService {
         return parts.isEmpty() ? null : String.join(" · ", parts);
     }
 
-    /** Aggregates the attributions of {@code rows}, grouped by source and licence, in row order. */
+    /** Aggregates the attributions of {@code rows}, grouped by source and license, in row order. */
     public List<Attribution> aggregate(Collection<RecordRow> rows, Map<Long, LicenceResolver.Resolution> resolutions) {
         Map<String, Attribution> byKey = new LinkedHashMap<>();
         for (RecordRow row : rows) {

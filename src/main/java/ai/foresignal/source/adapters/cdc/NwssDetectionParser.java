@@ -18,7 +18,7 @@ import tools.jackson.databind.JsonNode;
  * {@code sample_collect_date}. A detection flip ({@code pcr_target_detect} changing) is a significant change
  * because the payload carries {@code detected}.
  *
- * <p><strong>Licence split</strong> as {@link NwssWvalParser}: WastewaterSCAN rows are CC BY-NC 4.0 and are
+ * <p><strong>License split</strong> as {@link NwssWvalParser}: WastewaterSCAN rows are CC BY-NC 4.0 and are
  * dropped unless {@code includeWastewaterScan} is set.
  */
 public final class NwssDetectionParser {

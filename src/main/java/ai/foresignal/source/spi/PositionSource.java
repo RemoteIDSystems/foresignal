@@ -8,7 +8,7 @@ public enum PositionSource {
     CALCULATED,
     /** Inferred from a schedule or a route rather than measured. */
     INFERRED,
-    /** Taken from a fixed location record, for example a station's catalogue entry. */
+    /** Taken from a fixed location record, for example a station's catalog entry. */
     STATIC,
     UNKNOWN;
 

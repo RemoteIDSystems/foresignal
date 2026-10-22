@@ -124,7 +124,7 @@ public interface SourceHttp {
      *
      * <p>Accepts only 206, or 200 when {@code start} is 0, and rejects a body shorter than the
      * range asked for. An upstream that ignores {@code Range} and sends the whole object would
-     * otherwise be read as if it had honoured it, and a GRIB message index would be parsed from the
+     * otherwise be read as if it had honored it, and a GRIB message index would be parsed from the
      * wrong offset (Weather-Imagery-Design §2.2).
      *
      * <p>Follows no redirects: a redirect on a ranged read usually means the range was dropped.

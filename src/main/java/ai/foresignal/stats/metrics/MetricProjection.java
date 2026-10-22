@@ -12,7 +12,7 @@ import java.util.List;
  * @param source the source id
  * @param kind only records of this kind, or null for all
  * @param path the payload path in the 017 trigger syntax (dotted steps), not a volatile field
- * @param labels at most 4 labels read from payload paths; when empty, each series is labelled
+ * @param labels at most 4 labels read from payload paths; when empty, each series is labeled
  *     {@code source} and {@code external_id}
  * @param unit the unit, shown in the help text, or null
  * @param help the help text, or null

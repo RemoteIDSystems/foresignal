@@ -29,7 +29,7 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * {@code readsb-json} (prompt 110; STATE_MIRROR, SERVE HTTP): {@code GET /data/aircraft.json} and
  * {@code /data/receiver.json} for tar1090/VRS. Merges by hex (freshest {@code observedAt} wins). Units
- * are converted back to readsb's (metres → feet, m/s → ft/min).
+ * are converted back to readsb's (meters → feet, m/s → ft/min).
  */
 @Component
 public class ReadsbJsonSinkType implements SinkType {
@@ -252,8 +252,8 @@ public class ReadsbJsonSinkType implements SinkType {
             return ft(record.number("alt_baro"));
         }
 
-        private static Integer ft(Double metres) {
-            return metres == null ? null : (int) Math.round(metres * 3.28084);
+        private static Integer ft(Double meters) {
+            return meters == null ? null : (int) Math.round(meters * 3.28084);
         }
 
         private static Integer ftPerMin(Double ms) {

@@ -196,7 +196,7 @@ class TsunamiAdapterTest extends WireMockSupport {
     }
 
     @Test
-    @DisplayName("the cancellation thread: three versions of one record, the last cancelled and expiring at its expires")
+    @DisplayName("the cancellation thread: three versions of one record, the last canceled and expiring at its expires")
     void cancellationThread() throws Exception {
         notModified(PHEB_CAP);
         List<NormalizedRecord> versions = new ArrayList<>();
@@ -210,9 +210,9 @@ class TsunamiAdapterTest extends WireMockSupport {
         assertThat(versions).noneMatch(NormalizedRecord::tombstone);
         assertThat(versions).extracting(r -> r.payload().get("state")).containsExactly("active", "updated", "cancelled");
         assertThat(versions).extracting(r -> r.payload().get("messageType")).containsExactly("Warning", "Warning", null);
-        NormalizedRecord cancelled = versions.get(2);
-        assertThat(cancelled.validUntil()).isEqualTo(Instant.parse("2026-10-13T22:00:00Z"));
-        assertThat(cancelled.payload()).containsEntry("event", "Tsunami Cancellation").containsEntry("references", 2);
+        NormalizedRecord canceled = versions.get(2);
+        assertThat(canceled.validUntil()).isEqualTo(Instant.parse("2026-10-13T22:00:00Z"));
+        assertThat(canceled.payload()).containsEntry("event", "Tsunami Cancellation").containsEntry("references", 2);
         assertThat(state.get(CapThreadResolver.STATE_KEY)).isPresent();
     }
 

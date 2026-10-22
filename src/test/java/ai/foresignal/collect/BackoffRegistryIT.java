@@ -180,7 +180,7 @@ class BackoffRegistryIT {
     }
 
     @Test
-    @DisplayName("an HTTP-date Retry-After is honoured against the injected clock")
+    @DisplayName("an HTTP-date Retry-After is honored against the injected clock")
     void httpDateRetryAfterIsPersisted() {
         Optional<Duration> parsed = registry.parseRetryAfter("Sun, 01 Mar 2026 12:20:00 GMT");
         assertThat(parsed).contains(Duration.ofMinutes(20));

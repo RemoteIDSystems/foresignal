@@ -14,7 +14,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * The bundled list of reference datasets ({@code reference/manifest.json}, prompt 040): per dataset its
- * URL, pinned SHA-256, edition, licence and attribution. Callers can only name a dataset; there are no
+ * URL, pinned SHA-256, edition, license and attribution. Callers can only name a dataset; there are no
  * caller-supplied URLs.
  */
 @Component
@@ -46,7 +46,7 @@ public class ReferenceManifest {
      * @param url where it is downloaded from
      * @param sha256 the pinned SHA-256 (hex)
      * @param edition the edition text
-     * @param licence the licence
+     * @param licence the license
      * @param attribution the credit, or null
      * @param optional true for datasets the first-start load skips
      * @param rolling true when upstream regenerates the file in place (GeoNames, daily): the pin is then

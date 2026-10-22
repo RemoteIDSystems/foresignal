@@ -175,7 +175,7 @@ public class RasterRenderService {
 
     /**
      * A data tile (prompt 108; Weather-Imagery-Design §11): band 0's physical values as RGB for
-     * MapLibre {@code raster-dem} and client-side colouring, encoded by {@link DataTileEncoder} with
+     * MapLibre {@code raster-dem} and client-side coloring, encoded by {@link DataTileEncoder} with
      * {@code nearest} sampling only. Served from the cache or rendered through the queue.
      *
      * @param encoding {@link DataTileEncoder#CUSTOM} or {@link DataTileEncoder#TERRARIUM}

@@ -577,7 +577,7 @@ class SourceServiceIT {
         @Test
         @DisplayName("the stored bytes do not contain the plaintext")
         void credentialsAreEncryptedAtRest() {
-            service.setCredentials(NEEDS_CREDENTIALS, Map.of("apiKey", "recognisable-secret"));
+            service.setCredentials(NEEDS_CREDENTIALS, Map.of("apiKey", "recognizable-secret"));
 
             byte[] ciphertext =
                     jdbc.queryForObject(
@@ -586,7 +586,7 @@ class SourceServiceIT {
                             NEEDS_CREDENTIALS);
 
             assertThat(new String(ciphertext, StandardCharsets.ISO_8859_1))
-                    .doesNotContain("recognisable-secret")
+                    .doesNotContain("recognizable-secret")
                     .doesNotContain("apiKey");
         }
 

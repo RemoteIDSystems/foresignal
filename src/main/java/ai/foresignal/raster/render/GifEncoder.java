@@ -19,7 +19,7 @@ import org.w3c.dom.Node;
 /**
  * Animated GIF loops (prompt 108; Weather-Imagery-Design §11): the JDK ImageIO GIF writer with
  * animation metadata. The palette comes straight from the frame images (a PNG-8 palette maps to a
- * GIF palette), so a categorical style keeps its exact colours. Frames render through the render
+ * GIF palette), so a categorical style keeps its exact colors. Frames render through the render
  * queue at prefetch priority on the way in; this class is pure encoding.
  */
 public final class GifEncoder {

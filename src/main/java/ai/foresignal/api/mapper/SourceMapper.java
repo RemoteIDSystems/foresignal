@@ -184,7 +184,7 @@ public class SourceMapper {
         this.declarations = declarations;
     }
 
-    /** Wires the licence-terms resolver (prompt 109) for {@code licenceTerms}; optional so tests need none. */
+    /** Wires the license-terms resolver (prompt 109) for {@code licenceTerms}; optional so tests need none. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     public void setSourceLicences(ai.foresignal.provenance.SourceLicences sourceLicences) {
         this.sourceLicences = sourceLicences;

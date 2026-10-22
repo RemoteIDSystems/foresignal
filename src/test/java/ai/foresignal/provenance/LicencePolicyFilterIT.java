@@ -40,7 +40,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 /**
- * Prompt 109, task 3: licence-filtered reads. Three runtime sources carry CC BY 4.0 (open), CC BY-NC 4.0
+ * Prompt 109, task 3: license-filtered reads. Three runtime sources carry CC BY 4.0 (open), CC BY-NC 4.0
  * (non-commercial) and ODbL 1.0 (share-alike). Under {@code no-nc}, {@code no-sa} and {@code redistributable} the
  * records page, the GeoJSON collection, tiles and the SSE change stream leave the excluded records out, count them
  * ({@code licenceFiltered} on pages, {@code Foresignal-Licence-Filtered} on streams and tiles), aggregate
@@ -67,7 +67,7 @@ class LicencePolicyFilterIT {
     @Autowired TokenService tokens;
 
     static SourceDescriptor source(String id, String licence) {
-        return SourceDescriptor.builder(id).name("Licence test " + id).kind(KIND).mode(Mode.PUSH)
+        return SourceDescriptor.builder(id).name("License test " + id).kind(KIND).mode(Mode.PUSH)
                 .licence(licence).defaultBudget(Budget.of(60, 10_000)).build();
     }
 
@@ -103,7 +103,7 @@ class LicencePolicyFilterIT {
     }
 
     @Test
-    @DisplayName("no policy: every record, attributions per source with counts, one Link rel=license per licence")
+    @DisplayName("no policy: every record, attributions per source with counts, one Link rel=license per license")
     void unfiltered() throws Exception {
         MvcResult result = mvc.perform(get("/v1/records").param("kind", KIND).param("order", "id"))
                 .andExpect(status().isOk())
@@ -161,7 +161,7 @@ class LicencePolicyFilterIT {
     }
 
     @Test
-    @DisplayName("the ETag differs by licence policy header, so a cached unfiltered page is never revalidated for it")
+    @DisplayName("the ETag differs by license policy header, so a cached unfiltered page is never revalidated for it")
     void eTagVariesByPolicy() throws Exception {
         String plain = mvc.perform(get("/v1/records").param("kind", KIND)).andReturn().getResponse()
                 .getHeader(HttpHeaders.ETAG);

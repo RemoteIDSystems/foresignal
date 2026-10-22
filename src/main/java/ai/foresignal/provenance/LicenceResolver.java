@@ -13,7 +13,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * Resolves a version's licence (prompt 109; Core-Data-Model §14): the licence snapshotted on the
+ * Resolves a version's license (prompt 109; Core-Data-Model §14): the license snapshotted on the
  * {@code fetch_log} row of its {@code batch_id}, with a fall-back to the source's current descriptor
  * terms, a per-record peer origin license ({@code _foresignal.originLicence}, 113) and a per-record MLAT
  * downgrade that keeps the license's attribution. One query per response resolves every seq.
@@ -21,16 +21,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class LicenceResolver {
 
-    /** The licence came from the batch's {@code fetch_log} row. */
+    /** The license came from the batch's {@code fetch_log} row. */
     public static final String BASIS_BATCH = "batch";
 
-    /** The licence came from the source's current descriptor terms. */
+    /** The license came from the source's current descriptor terms. */
     public static final String BASIS_DESCRIPTOR = "descriptor";
 
-    /** The licence was downgraded because the position is MLAT. */
+    /** The license was downgraded because the position is MLAT. */
     public static final String BASIS_MLAT = "mlat-override";
 
-    /** The licence came from a ledger origin licence (peer sources, 113). */
+    /** The license came from a ledger origin license (peer sources, 113). */
     public static final String BASIS_PEER = "peer-origin";
 
     private static final String SQL =
@@ -72,11 +72,11 @@ public class LicenceResolver {
     }
 
     /**
-     * A version's licence and how it was resolved.
+     * A version's license and how it was resolved.
      *
      * @param terms the terms in force
      * @param basis {@link #BASIS_BATCH}, {@link #BASIS_DESCRIPTOR}, {@link #BASIS_PEER} or {@link #BASIS_MLAT}
-     * @param fetchId the {@code fetch_log.id} the licence came from, or null
+     * @param fetchId the {@code fetch_log.id} the license came from, or null
      * @param adapterVersion the adapter version of that fetch, or null
      * @param principal the ingest principal of that fetch, or null
      */
@@ -121,7 +121,7 @@ public class LicenceResolver {
         return out;
     }
 
-    /** The licence terms of a row's source descriptor (the fall-back), marked {@code descriptor}. */
+    /** The license terms of a row's source descriptor (the fall-back), marked {@code descriptor}. */
     public Resolution descriptorFallback(RecordRow row) {
         return new Resolution(sourceTerms(row.sourceId()), BASIS_DESCRIPTOR, null, null, null);
     }
@@ -132,7 +132,7 @@ public class LicenceResolver {
     }
 
     /**
-     * The terms of a snapshotted batch license id. An id the catalogue does not know (a custom source's own
+     * The terms of a snapshotted batch license id. An id the catalog does not know (a custom source's own
      * {@code licenceTerms}, 024) resolves to the source's current terms when their ids match, else to
      * {@code unknown}.
      */

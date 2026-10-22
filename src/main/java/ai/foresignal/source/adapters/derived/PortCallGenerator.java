@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * {@code derived-port-calls} (prompt 099): a vessel inside a World Port Index buffer (radius by
- * harbour size: very small 2 km, small 3 km, medium 6 km, large 10 km) below one knot for at least
+ * harbor size: very small 2 km, small 3 km, medium 6 km, large 10 km) below one knot for at least
  * 30 minutes is an arrival; leaving the buffer is a departure. Without fixes for the whole stay the
  * departure duration is emitted as unknown, never guessed. {@code externalId} is
  * {@code {mmsi}:{portNumber}:{arrivalEpoch}}, tombstoned 24 hours after departure.

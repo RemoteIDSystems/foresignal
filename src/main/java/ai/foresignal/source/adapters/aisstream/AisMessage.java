@@ -27,7 +27,7 @@ import java.time.Instant;
  * @param shipType the AIS ship and cargo type, or null (0 = not available)
  * @param dimension the reference-point distances, or null when the message has none
  * @param eta the ETA parts, or null when any part is "not available"
- * @param draught the maximum static draught in meters, or null (0 = not available)
+ * @param draft the maximum static draft in meters, or null (0 = not available)
  * @param destination the destination, trimmed, or null
  */
 public record AisMessage(
@@ -48,7 +48,7 @@ public record AisMessage(
         Integer shipType,
         Dimension dimension,
         Eta eta,
-        Double draught,
+        Double draft,
         String destination) implements AisStreamMessageParser.Result {
 
     /** True when the message carried a usable position. */
@@ -59,7 +59,7 @@ public record AisMessage(
     /** True when the message carried any static field. */
     public boolean hasStatic() {
         return name != null || callsign != null || imo != null || shipType != null || dimension != null
-                || eta != null || draught != null || destination != null;
+                || eta != null || draft != null || destination != null;
     }
 
     @Override

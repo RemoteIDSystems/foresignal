@@ -236,7 +236,7 @@ public class ReindexService implements IngestStateReset {
                     schema.dropSlot(pending.slot());
                 }
                 states.put(state.withPending(null));
-                log.info("Reindex to {} cancelled at {} of {}", pending.modelId(), pending.done(), pending.total());
+                log.info("Reindex to {} canceled at {} of {}", pending.modelId(), pending.done(), pending.total());
             }
         } finally {
             lock.unlock();
@@ -376,7 +376,7 @@ public class ReindexService implements IngestStateReset {
         return false;
     }
 
-    /** Stores {@code next} when {@code expected} is still the pending reindex (it may have been cancelled). */
+    /** Stores {@code next} when {@code expected} is still the pending reindex (it may have been canceled). */
     private void save(SearchIndexState.Pending expected, SearchIndexState.Pending next) {
         SearchIndexState state = states.get();
         SearchIndexState.Pending current = state.pending();

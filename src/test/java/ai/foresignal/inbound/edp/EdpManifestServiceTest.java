@@ -18,7 +18,7 @@ import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Manifests to descriptors and manifest updates (prompt 024): the conformance manifests validate as
- * labelled, the descriptor carries the manifest's fields (egress from {@code redistribution},
+ * labeled, the descriptor carries the manifest's fields (egress from {@code redistribution},
  * originator and access copied, atomic kinds hidden), and updates are classified as additive or
  * breaking (invariant EXT-1).
  */

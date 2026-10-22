@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 /**
  * {@code derived-dark-vessel-match} (prompt 099): joins an {@code ais-gap} record with an unmatched
  * SAR vessel detection inside the vessel's reachable area (last fix plus max speed × time, capped at
- * 200 km) within the gap window ± 6 h. Labelled a candidate: SAR detections are not identifications.
+ * 200 km) within the gap window ± 6 h. Labeled a candidate: SAR detections are not identifications.
  *
  * <p>{@code externalId} is {@code {mmsi}:{gapStartEpoch}:{detectionId}}. The SAR source
  * ({@code gfw-sar-detections}) is optional and was not built by prompt 088, so with no extraction the

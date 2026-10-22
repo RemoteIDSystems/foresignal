@@ -7,7 +7,7 @@ import java.nio.ByteOrder;
  * The {@code .i16} wind-field encoding (prompt 108; Weather-Imagery-Design §11): planar little-endian
  * signed int16 {@code u} then {@code v}, together with the per-component {@code scale}/{@code offset}
  * the manifest carries ({@code physical = code × scale + offset}). Values map linearly onto
- * {@code [−32767, 32767]} so a round trip stays within one quantisation step.
+ * {@code [−32767, 32767]} so a round trip stays within one quantization step.
  *
  * <p>Input is Foresignal's planar little-endian Float32 ({@code u} then {@code v}). Non-finite samples
  * become the most negative code (the no-data value).
@@ -20,7 +20,7 @@ public final class I16FieldEncoder {
     private I16FieldEncoder() {}
 
     /**
-     * The int16 bytes and the quantisation the manifest advertises.
+     * The int16 bytes and the quantization the manifest advertises.
      *
      * @param bytes planar little-endian int16 {@code u} then {@code v}
      * @param uScale physical units per code, {@code u}
@@ -48,10 +48,10 @@ public final class I16FieldEncoder {
         double vOffset = offset(bounds[2], vScale);
         ByteBuffer out = ByteBuffer.allocate(cells * 4).order(ByteOrder.LITTLE_ENDIAN);
         for (int k = 0; k < cells; k++) {
-            out.putShort((short) quantise(in.getFloat(k * 4), uScale, uOffset));
+            out.putShort((short) quantize(in.getFloat(k * 4), uScale, uOffset));
         }
         for (int k = 0; k < cells; k++) {
-            out.putShort((short) quantise(in.getFloat((cells + k) * 4), vScale, vOffset));
+            out.putShort((short) quantize(in.getFloat((cells + k) * 4), vScale, vOffset));
         }
         return new Result(out.array(), uScale, uOffset, vScale, vOffset, nx, ny);
     }
@@ -99,7 +99,7 @@ public final class I16FieldEncoder {
     }
 
     /** The signed code for {@code value}; non-finite becomes {@link #NO_DATA}. */
-    static int quantise(double value, double scale, double offset) {
+    static int quantize(double value, double scale, double offset) {
         if (!Double.isFinite(value)) {
             return NO_DATA;
         }

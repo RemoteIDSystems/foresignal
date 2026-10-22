@@ -25,7 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * non-DERIVED and non-PUSH source:
  *
  * <ul>
- *   <li>its descriptor is well formed (an id, at least one kind, a licence);
+ *   <li>its descriptor is well formed (an id, at least one kind, a license);
  *   <li>a capture fixture directory exists under {@code src/test/resources/fixtures/<source-id or
  *       family-id>/} with a {@code README.md} — or the source is a family member whose bundle of packs
  *       shares one captured representative (or is captured inline in its WireMock test), listed in
@@ -107,7 +107,7 @@ class AdapterInventoryTest {
 
         for (SourceRegistry.Registration registration : registry.all()) {
             SourceDescriptor descriptor = registration.descriptor();
-            // Foresignal's own health sources (system-canary) carry no third-party licence.
+            // Foresignal's own health sources (system-canary) carry no third-party license.
             boolean system = descriptor.id() != null && descriptor.id().startsWith("system-");
             if (descriptor.id() == null || descriptor.id().isBlank() || descriptor.kinds().isEmpty()
                     || (!system && descriptor.licence() == null)) {

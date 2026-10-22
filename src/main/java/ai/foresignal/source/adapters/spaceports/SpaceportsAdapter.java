@@ -164,7 +164,7 @@ public class SpaceportsAdapter implements PollingAdapter {
         b.fieldSpec("tStop", new FieldSpec(FieldType.STRING, null, "Active to", "The end of operation", null,
                 Set.of()));
         b.fieldSpec("parent", new FieldSpec(FieldType.STRING, null, "Parent", "The parent site", null, Set.of()));
-        b.fieldSpec("errorKm", new FieldSpec(FieldType.NUMBER, "km", "Error", "The coordinate error, kilometres",
+        b.fieldSpec("errorKm", new FieldSpec(FieldType.NUMBER, "km", "Error", "The coordinate error, kilometers",
                 null, Set.of()));
         return b.build();
     }

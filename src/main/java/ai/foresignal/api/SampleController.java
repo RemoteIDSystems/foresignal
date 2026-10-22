@@ -233,7 +233,7 @@ public class SampleController {
         }
     }
 
-    /** The live position of a record (head ⋈ live), honouring the private/restriction gate. */
+    /** The live position of a record (head ⋈ live), honoring the private/restriction gate. */
     RecordPosition recordPosition(String record, ReadCaller caller) {
         RecordRef ref = RecordRef.parse(record.strip());
         ReadRestriction restriction = caller.restriction();

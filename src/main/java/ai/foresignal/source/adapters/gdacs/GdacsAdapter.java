@@ -46,7 +46,7 @@ import org.springframework.stereotype.Component;
  * changed); an event missing from the list for {@code recordTtl} (48 h, anchored on receipt) simply expires.
  * Green alerts are kept (World Monitor drops them; Foresignal lets triggers filter on {@code alertLevel}).
  *
- * <p><strong>Terms.</strong> GDACS publishes terms of use with a disclaimer and no explicit licence: its alerts
+ * <p><strong>Terms.</strong> GDACS publishes terms of use with a disclaimer and no explicit license: its alerts
  * are computed automatically, are not reviewed, and are no substitute for official warnings.
  */
 @Component

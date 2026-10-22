@@ -32,7 +32,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>Candidates are {@code significant} (or, by setting, {@code notable}) non-social findings, situation escalations
  * and critical alerts. A candidate's attention is the posts attributed to its region on the complete-stream platforms
- * in the {@code windowHours} (6) after it, normalised by the region's trailing 8-week baseline for those hours. The
+ * in the {@code windowHours} (6) after it, normalized by the region's trailing 8-week baseline for those hours. The
  * expected distribution comes from past candidates of the same family and severity band in the trailing
  * {@code lookbackDays} (365): a log-normal fit (an intercept-only regression of {@code log(1 + attention)}) when at
  * least {@value #MIN_PAST} exist, else the empirical distribution of the region's past events of that family (the

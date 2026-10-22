@@ -68,7 +68,7 @@ public final class Xml {
     /**
      * Reads the element the reader is positioned on into a small tree (prompt 091). The reader is advanced
      * through the element's end tag. Entries in sanctioned-list documents are small, so a bounded tree per
-     * entry is safe; the stream itself is never materialised whole.
+     * entry is safe; the stream itself is never materialized whole.
      *
      * @throws XMLStreamException when the document is malformed or carries a DTD
      */

@@ -313,7 +313,7 @@ class NativePushDeliveryIT {
     }
 
     @Test
-    @DisplayName("filters are honoured: a critical-only device receives no warning")
+    @DisplayName("filters are honored: a critical-only device receives no warning")
     void filters() {
         iphone("{\"minSeverity\":\"critical\"}");
         android();

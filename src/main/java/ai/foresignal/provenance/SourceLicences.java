@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * The license terms of a registered source (prompt 109, task 1): the descriptor's explicit
- * {@code licenceTerms}, else the catalogue entry its free-text {@code licence} resolves to, and for a
+ * {@code licenceTerms}, else the catalog entry its free-text {@code licence} resolves to, and for a
  * {@code DERIVED} source the <strong>most restrictive</strong> terms of its inputs
  * ({@link LicenceCatalog#mostRestrictive}). The inputs are the descriptor's {@code derivedFrom} when declared,
  * else the source ids the generator subscribes to ({@link DerivedGenerator#inputs}); a derived source with no
@@ -45,7 +45,7 @@ public class SourceLicences {
         this.catalog = catalog;
     }
 
-    /** The catalogue this resolver reads. */
+    /** The catalog this resolver reads. */
     public LicenceCatalog catalog() {
         return catalog;
     }

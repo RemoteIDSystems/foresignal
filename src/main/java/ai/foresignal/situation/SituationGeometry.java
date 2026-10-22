@@ -27,7 +27,7 @@ public final class SituationGeometry {
     /** The most vertices the stored geometry keeps. */
     public static final int MAX_VERTICES = 500;
 
-    /** Kilometres per degree of latitude. */
+    /** Kilometers per degree of latitude. */
     static final double KM_PER_DEGREE = 111.32;
 
     private SituationGeometry() {}

@@ -31,7 +31,7 @@ class InatParserTest {
     }
 
     @Test
-    @DisplayName("keeps research observations with an open licence and drops private, unlicensed, captive and placeless rows")
+    @DisplayName("keeps research observations with an open license and drops private, unlicensed, captive and placeless rows")
     void keepsAndSkips() {
         InatParser.Result result = InatParser.parse(FIXTURE, defaults());
         assertThat(result.rows()).isEqualTo(7);
@@ -74,7 +74,7 @@ class InatParserTest {
     }
 
     @Test
-    @DisplayName("photoUrl is present only on the open-data host with an open licence")
+    @DisplayName("photoUrl is present only on the open-data host with an open license")
     void photoHostRule() {
         List<NormalizedRecord> records = InatParser.parse(FIXTURE, defaults()).records();
         assertThat(byId(records, "1001").payload().get("photoUrl"))

@@ -590,9 +590,9 @@ public class BacktestJobService {
         return new JobMonitor() {
             @Override
             public boolean canceled() {
-                Boolean cancelled = jdbc.queryForObject("SELECT cancelled FROM backtest_job WHERE id = ?",
+                Boolean canceled = jdbc.queryForObject("SELECT cancelled FROM backtest_job WHERE id = ?",
                         Boolean.class, id);
-                return Boolean.TRUE.equals(cancelled);
+                return Boolean.TRUE.equals(canceled);
             }
 
             @Override

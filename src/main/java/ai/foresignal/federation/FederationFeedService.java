@@ -45,7 +45,7 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code includeExercise}. Each exclusion counts in {@code foresignal.federation.denied{reason}}.
  *
  * <p>The one documented exception is an edge relay pushing to its operator's own hub ({@link Caller#sameOperator}):
- * {@code LOCAL_ONLY} records may then leave, labelled with the {@value #LOCAL_ONLY_LICENSE} license so the hub
+ * {@code LOCAL_ONLY} records may then leave, labeled with the {@value #LOCAL_ONLY_LICENSE} license so the hub
  * keeps them {@code LOCAL_ONLY} and never re-federates them.
  */
 @Component

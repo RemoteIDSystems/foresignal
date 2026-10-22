@@ -35,7 +35,7 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * {@code nasa-eonet} (prompt 090): NASA EONET v3 open natural events.
  *
- * <p>The response is labelled {@code application/rss+xml} but is JSON, so JSON is detected by the first
+ * <p>The response is labeled {@code application/rss+xml} but is JSON, so JSON is detected by the first
  * non-space byte, not the content type (verified 2026-10).
  */
 @Component

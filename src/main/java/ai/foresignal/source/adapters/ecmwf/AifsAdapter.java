@@ -88,7 +88,7 @@ public class AifsAdapter implements PollingAdapter, DecoderDependent {
 
     private static final String CHANGES_MADE =
             "Contains modified Copernicus/ECMWF data: ECMWF AIFS open data, CC BY 4.0."
-                    + " Changes made: resampled, quantised, derived fields.";
+                    + " Changes made: resampled, quantized, derived fields.";
 
     /** The model. */
     public static final EcmwfDefinition MODEL = new EcmwfDefinition(ID, "AIFS", BUCKET, DEFAULT_TEMPLATE,

@@ -45,7 +45,7 @@ public final class ReferenceSupport {
     /** The shortest reference interval allowed. */
     public static final Duration MIN_INTERVAL = Duration.ofDays(1);
 
-    /** Mean Earth radius, kilometres. */
+    /** Mean Earth radius, kilometers. */
     public static final double EARTH_RADIUS_KM = 6371.0088;
 
     private static final GeometryFactory GEOMETRY = new GeometryFactory();

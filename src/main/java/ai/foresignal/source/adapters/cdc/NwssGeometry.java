@@ -35,7 +35,7 @@ public final class NwssGeometry {
         if (counties == null || fips5 == null || !fips5.strip().matches("\\d{5}")) {
             return null;
         }
-        return counties.union(List.of(fips5.strip())).flatMap(NwssGeometry::centre).orElse(null);
+        return counties.union(List.of(fips5.strip())).flatMap(NwssGeometry::center).orElse(null);
     }
 
     /** The interior point of the state's county union, given a USPS code or a full state name, or null. */
@@ -44,10 +44,10 @@ public final class NwssGeometry {
         if (counties == null || fips2 == null) {
             return null;
         }
-        return counties.stateUnion(fips2).flatMap(NwssGeometry::centre).orElse(null);
+        return counties.stateUnion(fips2).flatMap(NwssGeometry::center).orElse(null);
     }
 
-    private static Optional<Point> centre(Geometry geometry) {
+    private static Optional<Point> center(Geometry geometry) {
         if (geometry == null || geometry.isEmpty()) {
             return Optional.empty();
         }

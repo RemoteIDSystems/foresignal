@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
 /**
  * The one component that decides whether a record may leave Foresignal on a given path
  * ({@code docs/Conventions.md}, "Shared components"). Prompts 026 (LLM context), 039 (private sources
- * everywhere, EGR-1), 062 ({@code LOCAL_ONLY} egress) and 109 (licence policy) each extend this class;
+ * everywhere, EGR-1), 062 ({@code LOCAL_ONLY} egress) and 109 (license policy) each extend this class;
  * no parallel policy class may exist. Prompt 039 folded the 023 private gate
  * ({@code SourceVisibilityGate}) into it, on top of {@link SourceVisibility}.
  *
@@ -636,7 +636,7 @@ public class EgressPolicy {
     /**
      * Wires the license table and the source-terms resolver (prompt 109). Required in the application context;
      * the four- and five-argument constructors leave them unset so unit tests of the private and
-     * {@code LOCAL_ONLY} rules need no catalogue (the license step is then skipped).
+     * {@code LOCAL_ONLY} rules need no catalog (the license step is then skipped).
      */
     @org.springframework.beans.factory.annotation.Autowired
     public void setLicenceGuard(LicenceEgressGuard licenceGuard, ai.foresignal.provenance.SourceLicences sourceLicences) {

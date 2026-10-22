@@ -26,7 +26,7 @@ import java.util.Set;
  * @param kinds the record kinds this source emits; non-empty
  * @param homepage where a human can read about the upstream
  * @param attribution the credit line the upstream asks for
- * @param licence the data licence, where known
+ * @param licence the data license, where known
  * @param termsUrl the upstream's terms
  * @param mode how data arrives
  * @param credentialFields the credentials the upstream needs
@@ -84,7 +84,7 @@ import java.util.Set;
  * @param privatePrecisionDecimals coordinate decimals kept for a private source, 2 to 7
  * @param custom true for a runtime-defined custom push source or external (EDP) provider (prompt
  *     024)
- * @param egress where the records may be served; {@link Egress#OPEN} unless a licence says
+ * @param egress where the records may be served; {@link Egress#OPEN} unless a license says
  *     otherwise
  * @param originator the originator id used for evidence independence (prompt 116 reads it); null
  *     means the default from the originator registry
@@ -221,8 +221,8 @@ public record SourceDescriptor(
          */
         double reconcileMaxAbsentRatio,
         /**
-         * The structured licence terms (prompt 109), or null when only the free-text {@code licence} is
-         * set; {@code LicenceCatalog.forDescriptor} derives them from the catalogue then.
+         * The structured license terms (prompt 109), or null when only the free-text {@code licence} is
+         * set; {@code LicenceCatalog.forDescriptor} derives them from the catalog then.
          */
         ai.foresignal.provenance.LicenceTerms licenceTerms,
         /**
@@ -280,7 +280,7 @@ public record SourceDescriptor(
     public static final Duration DEFAULT_SKEW_TOLERANCE = Duration.ofMinutes(2);
 
     public SourceDescriptor {
-        // Insertion order, deterministically: Set.copyOf randomises its iteration order per JVM, which
+        // Insertion order, deterministically: Set.copyOf randomizes its iteration order per JVM, which
         // made kinds() output (and tests) unstable.
         kinds = kinds == null ? Set.of()
                 : java.util.Collections.unmodifiableSet(new LinkedHashSet<>(kinds));
@@ -400,7 +400,7 @@ public record SourceDescriptor(
      * Fluent builder applying the documented defaults.
      *
      * <p>Mutable by design and not thread-safe; a descriptor is built once in an adapter's
-     * constructor or a static initialiser.
+     * constructor or a static initializer.
      */
     public static final class Builder {
 
@@ -527,7 +527,7 @@ public record SourceDescriptor(
             return this;
         }
 
-        /** Sets the structured licence terms (prompt 109). */
+        /** Sets the structured license terms (prompt 109). */
         public Builder licenceTerms(ai.foresignal.provenance.LicenceTerms licenceTerms) {
             this.licenceTerms = licenceTerms;
             return this;

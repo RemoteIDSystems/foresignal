@@ -177,7 +177,7 @@ public final class VesselStateStore {
         Field<Integer> shipType = new Field<>();
         Field<AisMessage.Dimension> dimension = new Field<>();
         Field<Instant> eta = new Field<>();
-        Field<Double> draught = new Field<>();
+        Field<Double> draft = new Field<>();
         Field<String> destination = new Field<>();
 
         State(String mmsi) {
@@ -209,7 +209,7 @@ public final class VesselStateStore {
                 // ShipStaticData carries the whole voyage block: an absent value there means cleared.
                 destination.set(m.destination(), t, true);
                 eta.set(m.eta() == null ? null : nextEta(m.eta(), t), t, true);
-                draught.set(m.draught(), t, true);
+                draft.set(m.draft(), t, true);
                 imo.set(m.imo(), t, true);
             }
             // The identity fields come from several message types; an absent value means "not carried".
@@ -240,7 +240,7 @@ public final class VesselStateStore {
                     .put("class", positionClass != null ? positionClass : staticClass)
                     .put("destination", destination.value)
                     .put("navStatus", navStatus)
-                    .put("draught", draught.value)
+                    .put("draught", draft.value)
                     .put("lengthM", dims == null ? null : dims.lengthM())
                     .put("beamM", dims == null ? null : dims.beamM())
                     .put("eta", eta.value == null ? null : eta.value.toString())

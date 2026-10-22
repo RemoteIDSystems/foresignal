@@ -126,12 +126,12 @@ public class WorldPortIndexAdapter implements PollingAdapter {
         text(b, "harborType", "Harbor type", "The harbor type");
         text(b, "harborUse", "Harbor use", "The harbor use");
         text(b, "shelter", "Shelter", "The shelter rating");
-        number(b, "channelDepthM", "Channel depth", "Channel depth, metres", "m");
-        number(b, "anchorageDepthM", "Anchorage depth", "Anchorage depth, metres", "m");
-        number(b, "maxVesselLengthM", "Max vessel length", "Maximum vessel length, metres", "m");
-        number(b, "maxVesselDraftM", "Max vessel draft", "Maximum vessel draft, metres", "m");
+        number(b, "channelDepthM", "Channel depth", "Channel depth, meters", "m");
+        number(b, "anchorageDepthM", "Anchorage depth", "Anchorage depth, meters", "m");
+        number(b, "maxVesselLengthM", "Max vessel length", "Maximum vessel length, meters", "m");
+        number(b, "maxVesselDraftM", "Max vessel draft", "Maximum vessel draft, meters", "m");
         text(b, "alternateName", "Alternate name", "An alternate port name");
-        number(b, "bufferKm", "Buffer radius", "The port-area buffer radius, kilometres", "km");
+        number(b, "bufferKm", "Buffer radius", "The port-area buffer radius, kilometers", "km");
         text(b, "portNumber", "Port number", "The WPI port number");
         return b.build();
     }

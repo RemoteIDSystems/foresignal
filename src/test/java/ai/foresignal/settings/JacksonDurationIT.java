@@ -13,7 +13,7 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * Confirms the shorthand module is actually registered on the application's mapper.
  *
- * <p>{@link DurationShorthandModuleTest} covers the module's behaviour; this covers the wiring,
+ * <p>{@link DurationShorthandModuleTest} covers the module's behavior; this covers the wiring,
  * which is the part that silently breaks if the Boot customizer is wrong.
  */
 @IntegrationTest

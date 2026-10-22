@@ -95,11 +95,11 @@ public class SbsSinkType implements SinkType {
     }
 
     private static Integer altitudeFt(SinkRecord record) {
-        Double metres = record.number("alt_baro");
-        if (metres == null) {
-            metres = record.number("alt_geom");
+        Double meters = record.number("alt_baro");
+        if (meters == null) {
+            meters = record.number("alt_geom");
         }
-        return metres == null ? null : (int) Math.round(metres * 3.28084);
+        return meters == null ? null : (int) Math.round(meters * 3.28084);
     }
 
     private static Integer verticalRateFtMin(SinkRecord record) {

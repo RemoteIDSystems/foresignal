@@ -60,7 +60,7 @@ public final class CotEncoder {
         return String.format(Locale.ROOT, "%.6f", value).replaceAll("0+$", "").replaceAll("\\.$", "");
     }
 
-    /** Knots to metres per second (CoT {@code track/@speed} is m/s; Foresignal aircraft and AIS speeds are knots). */
+    /** Knots to meters per second (CoT {@code track/@speed} is m/s; Foresignal aircraft and AIS speeds are knots). */
     public static final double KNOTS_TO_MS = 0.514444;
 
     /**

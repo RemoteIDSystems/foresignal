@@ -8,7 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * The committed CAP feed list (prompt 089, {@link CapFeeds#RESOURCE}): every entry is HTTPS, carries a licence,
+ * The committed CAP feed list (prompt 089, {@link CapFeeds#RESOURCE}): every entry is HTTPS, carries a license,
  * a terms URL and a review date, and the ids are unique and valid.
  */
 class CapFeedsResourceTest {
@@ -23,7 +23,7 @@ class CapFeedsResourceTest {
     }
 
     @Test
-    @DisplayName("every entry has HTTPS, a licence, a terms URL and a review date")
+    @DisplayName("every entry has HTTPS, a license, a terms URL and a review date")
     void required() {
         for (CapFeed feed : CapFeeds.load()) {
             assertThat(feed.feedUrl().getScheme()).as(feed.id()).isEqualTo("https");
