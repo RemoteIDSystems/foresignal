@@ -3,6 +3,8 @@ package ai.foresignal.news;
 import ai.foresignal.media.outlet.Consensus;
 import ai.foresignal.media.outlet.MediaVocabulary;
 import ai.foresignal.media.outlet.OutletRegistry;
+import ai.foresignal.settings.AppSettingService;
+import ai.foresignal.settings.SettingKeys;
 import ai.foresignal.situation.SituationRecordPublisher;
 import ai.foresignal.source.formats.news.NewsArticles;
 import java.time.Clock;
@@ -14,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.type.TypeReference;
@@ -58,15 +61,50 @@ public class NewsCoverageService {
     private final JdbcTemplate jdbc;
     private final JsonMapper json;
     private final Clock clock;
+    private final ObjectProvider<AppSettingService> settings;
 
     /** Creates the service. */
     public NewsCoverageService(NewsStoryStore store, OutletRegistry outlets, JdbcTemplate jdbc, JsonMapper json,
-            Clock clock) {
+            Clock clock, ObjectProvider<AppSettingService> settings) {
         this.store = store;
         this.outlets = outlets;
         this.jdbc = jdbc;
         this.json = json;
         this.clock = clock;
+        this.settings = settings;
+    }
+
+    /**
+     * The coverage thresholds in force (prompt 157): the {@code news.coverageThresholds} setting over the
+     * defaults; an out-of-range or non-numeric entry is ignored.
+     */
+    CoverageAnalyzer.Thresholds thresholds() {
+        CoverageAnalyzer.Thresholds defaults = CoverageAnalyzer.Thresholds.DEFAULT;
+        AppSettingService service = settings.getIfAvailable();
+        if (service == null) {
+            return defaults;
+        }
+        try {
+            Map<?, ?> m = service.get(SettingKeys.NEWS_COVERAGE_THRESHOLDS, Map.class).orElse(null);
+            if (m == null) {
+                return defaults;
+            }
+            return new CoverageAnalyzer.Thresholds(
+                    share(m.get("skewShare"), defaults.skewShare()),
+                    count(m.get("skewMinGroups"), defaults.skewMinGroups()),
+                    share(m.get("blindspotShare"), defaults.blindspotShare()),
+                    count(m.get("blindspotMinRated"), defaults.blindspotMinRated()));
+        } catch (RuntimeException e) {
+            return defaults;
+        }
+    }
+
+    private static double share(Object raw, double fallback) {
+        return raw instanceof Number n && n.doubleValue() > 0 && n.doubleValue() <= 1 ? n.doubleValue() : fallback;
+    }
+
+    private static int count(Object raw, int fallback) {
+        return raw instanceof Number n && n.intValue() >= 1 ? n.intValue() : fallback;
     }
 
     /**
@@ -132,7 +170,7 @@ public class NewsCoverageService {
         for (List<NewsStoryStore.Article> members : groups.values()) {
             infos.add(groupInfo(members, judgments, wires));
         }
-        return CoverageAnalyzer.analyze(scope, infos, corroborated, corroboratedShare, clock.instant());
+        return CoverageAnalyzer.analyze(scope, infos, corroborated, corroboratedShare, clock.instant(), thresholds());
     }
 
     private CoverageAnalyzer.GroupInfo groupInfo(List<NewsStoryStore.Article> members,
@@ -356,7 +394,7 @@ public class NewsCoverageService {
         }
         boolean corroborated = nonNews || storyCorroborated;
         CoverageAnalyzer.Result result = CoverageAnalyzer.analyze("hypothesis", infos, corroborated, null,
-                clock.instant());
+                clock.instant(), thresholds());
         return new HypothesisSupport(result.stats(), result.skewed(), corroborated, infos.size());
     }
 

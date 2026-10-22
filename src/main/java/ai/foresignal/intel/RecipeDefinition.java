@@ -33,10 +33,16 @@ public record RecipeDefinition(
     /** The seed selection. */
     public record Seed(List<String> kinds, List<String> sources, List<RuleCondition> conditions) {}
 
-    /** One join. */
+    /**
+     * One join.
+     *
+     * @param sharedAttribute a payload dot-path (prompt 157); a candidate joins when its value at that path equals a
+     *     seed member's, the join a fraud/relationship recipe needs (an address, phone, officer or shared id). It
+     *     matches on the attribute alone — geometry is not required — though the time window still applies.
+     */
     public record Join(List<String> kinds, List<String> sources, List<RuleCondition> conditions, Double withinKm,
-            String sameRegion, String sameEntity, Duration before, Duration after, String role, String signalFamily,
-            double weight) {}
+            String sameRegion, String sameEntity, String sharedAttribute, Duration before, Duration after, String role,
+            String signalFamily, double weight) {}
 
     /**
      * The activation threshold.
@@ -62,7 +68,7 @@ public record RecipeDefinition(
             Map<String, Object> join = asMap(raw);
             joins.add(new Join(strings(join.get("kinds")), strings(join.get("sources")),
                     conditions(join.get("conditions"), registry), number(join.get("withinKm")),
-                    text(join.get("sameRegion")), text(join.get("sameEntity")),
+                    text(join.get("sameRegion")), text(join.get("sameEntity")), text(join.get("sharedAttribute")),
                     duration(join.get("before")), duration(join.get("after")), text(join.get("role")),
                     text(join.get("signalFamily")), number(join.get("weight")) == null ? 0.5 : number(join.get("weight"))));
         }

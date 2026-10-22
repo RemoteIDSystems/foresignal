@@ -87,7 +87,38 @@ public class NewsReliability {
 
     /** The reliability number of a news-article record for the event scorer, or null (the scorer's default). */
     public Double reliability(String sourceId, String externalId) {
-        return numeric(grade(sourceId, externalId));
+        return numberOf(grade(sourceId, externalId));
+    }
+
+    /**
+     * The reliability numbers in force (prompt 157): the {@code media.reliabilityNumbers} setting merged over
+     * {@link #NUMERIC}; an entry outside {@code [0, 1]}, or for a grade other than A–E, is ignored.
+     */
+    public Map<String, Double> numbers() {
+        Map<String, Double> out = new LinkedHashMap<>(NUMERIC);
+        AppSettingService service = settings.getIfAvailable();
+        if (service == null) {
+            return out;
+        }
+        try {
+            service.get(SettingKeys.MEDIA_RELIABILITY_NUMBERS, Map.class).ifPresent(m -> {
+                for (Object k : m.keySet()) {
+                    Object v = m.get(k);
+                    if (out.containsKey(String.valueOf(k)) && v instanceof Number n && n.doubleValue() >= 0
+                            && n.doubleValue() <= 1) {
+                        out.put(String.valueOf(k), n.doubleValue());
+                    }
+                }
+            });
+        } catch (RuntimeException e) {
+            // keep the default
+        }
+        return out;
+    }
+
+    /** The reliability number of a grade under the settings in force, or null for F or none. */
+    public Double numberOf(String grade) {
+        return grade == null ? null : numbers().get(grade);
     }
 
     /**

@@ -16,6 +16,11 @@
       {
         "version": "1.3.0",
         "date": "2026-10-22",
+        "note": "157: author-able correlation recipes, shared-attribute joins, settings-driven thresholds. An operator can now author a correlation recipe through the API, not only toggle a bundled one: createRecipe (POST /v1/intel/recipes, admin) persists a validated operator-authored recipe beside the bundled classpath recipes (new CorrelationRecipeCreate schema), and updateRecipe additionally accepts a full definition to replace for an operator recipe (CorrelationRecipeUpdate gains definition); a bundled recipe's definition stays managed by the classpath. CorrelationRecipe gains origin (bundled / operator). A recipe join gains a sharedAttribute predicate — a candidate joins when its payload value at a dot-path equals a seed member's (an address, phone, officer or shared id), matching on the attribute alone without geometry — the foundation for fraud/relationship recipes (pairing with 158's ownership edges). The Admiralty reliability numbers and the coverage skew/blindspot thresholds are now settings (media.reliabilityNumbers, news.coverageThresholds), mirroring media.reliabilityMap, so the admin app can tune them. Additive: no operation or schema was renamed or removed."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-22",
         "note": "156: probabilistic threshold-crossing forecaster. A \"will this series cross X by date Y\" binary question (a series-value or count-threshold resolver with an op and threshold over a series) is now answered from a numeric predictive distribution instead of a flat confidence: a new threshold forecaster reads P(value op threshold) off the implied CDF of the numeric forecaster's quantiles for the resolution window — the ensemble pool of the climatology baseline and the statistical series forecast (ETS today, an external quantile forecaster such as TimesFM tomorrow), falling back to whichever is available. The persistence forecaster no longer contributes its flat confidence to these questions (numeric series-value carry-forward and situation-status are unchanged). Surfaced through the existing forecast endpoints; threshold is added to the forecaster-type enums. Part of the 1.3.0 wave; no version change."
       },
       {
@@ -37381,6 +37386,74 @@
             "bearerToken": []
           }
         ]
+      },
+      "post": {
+        "tags": [
+          "Intelligence"
+        ],
+        "operationId": "createRecipe",
+        "summary": "Author a correlation recipe",
+        "description": "Authors a new operator correlation recipe (prompt 157): the body carries an id (a slug not already in use and not a bundled recipe) and a full definition, validated by the recipe validator. Operator recipes live beside the bundled classpath recipes.\n\n**Scope:** `admin`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrelationRecipeCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrelationRecipe"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (bad id, id in use, or an invalid definition)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "157",
+        "x-foresignal-status": "implemented",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       }
     },
     "/v1/intel/recipes/{recipeId}": {
@@ -37390,7 +37463,7 @@
         ],
         "operationId": "updateRecipe",
         "summary": "Enable or tune a recipe",
-        "description": "Sets `enabled` and parameter overrides; overrides survive built-in version updates.\n\n**Scope:** `admin`.",
+        "description": "Sets `enabled` and parameter overrides; overrides survive built-in version updates. For an operator-authored recipe the body may also carry a full `definition` to replace, validated by the recipe validator (prompt 157); a bundled recipe's definition is managed by the classpath and cannot be replaced here.\n\n**Scope:** `admin`.",
         "parameters": [
           {
             "name": "recipeId",
@@ -119007,6 +119080,14 @@
           "builtIn": {
             "type": "boolean"
           },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "bundled",
+              "operator"
+            ],
+            "description": "Whether the recipe is a bundled classpath recipe or operator-authored (prompt 157)"
+          },
           "enabled": {
             "type": "boolean"
           },
@@ -119115,6 +119196,11 @@
                 },
                 "sameEntity": {
                   "type": "boolean"
+                },
+                "sharedAttribute": {
+                  "type": "string",
+                  "description": "A payload dot-path (prompt 157); a candidate joins when its value at that path equals a seed member's — the join a fraud/relationship recipe needs (address, phone, officer, shared id). Matches on the attribute alone; geometry is not required, the time window still applies.",
+                  "example": "registeredAddress"
                 },
                 "window": {
                   "type": "object",
@@ -119248,7 +119334,7 @@
       },
       "CorrelationRecipeUpdate": {
         "type": "object",
-        "description": "Operator changes to a recipe",
+        "description": "Operator changes to a recipe: the enabled flag and parameter overrides, and for an operator-authored recipe a full definition to replace (prompt 157).",
         "properties": {
           "enabled": {
             "type": "boolean"
@@ -119257,8 +119343,36 @@
             "type": "object",
             "additionalProperties": true,
             "description": "Parameter overrides"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/CorrelationRecipeDefinition",
+            "description": "A full operator-authored definition to replace (prompt 157); rejected for a bundled recipe, whose definition is managed by the classpath"
           }
         },
+        "additionalProperties": false
+      },
+      "CorrelationRecipeCreate": {
+        "type": "object",
+        "description": "Authors a new operator correlation recipe (prompt 157).",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 64,
+            "description": "A slug not already in use and not a bundled recipe id"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/CorrelationRecipeDefinition"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Defaults to true"
+          }
+        },
+        "required": [
+          "id",
+          "definition"
+        ],
         "additionalProperties": false
       },
       "CorroborationPayload": {

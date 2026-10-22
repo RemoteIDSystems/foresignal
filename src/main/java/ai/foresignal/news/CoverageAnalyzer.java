@@ -58,6 +58,21 @@ public final class CoverageAnalyzer {
     private CoverageAnalyzer() {}
 
     /**
+     * The tunable skew and blindspot thresholds (prompt 157, {@code news.coverageThresholds}).
+     *
+     * @param skewShare the share from one bucket (or state-affiliated outlets) that makes coverage skewed
+     * @param skewMinGroups the evidence groups a skew judgment needs
+     * @param blindspotShare the rated share from one side that makes a blindspot
+     * @param blindspotMinRated the rated evidence groups a blindspot needs
+     */
+    public record Thresholds(double skewShare, int skewMinGroups, double blindspotShare, int blindspotMinRated) {
+
+        /** The historical defaults. */
+        public static final Thresholds DEFAULT =
+                new Thresholds(SKEW_SHARE, SKEW_MIN_GROUPS, BLINDSPOT_SHARE, BLINDSPOT_MIN_RATED);
+    }
+
+    /**
      * One evidence group as the analyzer sees it.
      *
      * @param bucket the lean bucket of its outlet ({@code unrated} without a lean consensus)
@@ -83,13 +98,18 @@ public final class CoverageAnalyzer {
     public record Result(Map<String, Object> stats, String blindspot, boolean skewed, int nRated,
             double stateAffiliatedShare, int groups) {}
 
-    /** The analyzer reference stored with every output. */
+    /** The analyzer reference stored with every output, under the default thresholds. */
     public static Map<String, Object> detector() {
+        return detector(Thresholds.DEFAULT);
+    }
+
+    /** The analyzer reference stored with every output, under {@code thresholds}. */
+    public static Map<String, Object> detector(Thresholds thresholds) {
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("blindspotShare", BLINDSPOT_SHARE);
-        params.put("blindspotMinRated", BLINDSPOT_MIN_RATED);
-        params.put("skewShare", SKEW_SHARE);
-        params.put("skewMinGroups", SKEW_MIN_GROUPS);
+        params.put("blindspotShare", thresholds.blindspotShare());
+        params.put("blindspotMinRated", thresholds.blindspotMinRated());
+        params.put("skewShare", thresholds.skewShare());
+        params.put("skewMinGroups", thresholds.skewMinGroups());
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("name", NAME);
         out.put("version", VERSION);
@@ -108,6 +128,16 @@ public final class CoverageAnalyzer {
      */
     public static Result analyze(String scope, List<GroupInfo> groups, boolean corroborated, Double corroboratedShare,
             Instant computedAt) {
+        return analyze(scope, groups, corroborated, corroboratedShare, computedAt, Thresholds.DEFAULT);
+    }
+
+    /**
+     * Analyzes coverage under {@code thresholds} (prompt 157).
+     *
+     * @param thresholds the skew and blindspot thresholds in force
+     */
+    public static Result analyze(String scope, List<GroupInfo> groups, boolean corroborated, Double corroboratedShare,
+            Instant computedAt, Thresholds thresholds) {
         Map<String, Integer> articles = buckets();
         Map<String, Integer> byBucket = buckets();
         Map<String, Integer> byCountry = new TreeMap<>();
@@ -135,27 +165,28 @@ public final class CoverageAnalyzer {
         }
         double stateShare = total == 0 ? 0.0 : round(state / (double) total);
         String blindspot = null;
-        if (rated >= BLINDSPOT_MIN_RATED) {
-            if (byBucket.get(MediaVocabulary.LEFT) / (double) rated >= BLINDSPOT_SHARE) {
+        if (rated >= thresholds.blindspotMinRated()) {
+            if (byBucket.get(MediaVocabulary.LEFT) / (double) rated >= thresholds.blindspotShare()) {
                 blindspot = MediaVocabulary.LEFT;
-            } else if (byBucket.get(MediaVocabulary.RIGHT) / (double) rated >= BLINDSPOT_SHARE) {
+            } else if (byBucket.get(MediaVocabulary.RIGHT) / (double) rated >= thresholds.blindspotShare()) {
                 blindspot = MediaVocabulary.RIGHT;
             }
         }
         String skewBucket = null;
-        if (rated >= SKEW_MIN_GROUPS) {
+        if (rated >= thresholds.skewMinGroups()) {
             for (String b : List.of(MediaVocabulary.LEFT, MediaVocabulary.CENTER, MediaVocabulary.RIGHT)) {
-                if (byBucket.get(b) / (double) rated >= SKEW_SHARE) {
+                if (byBucket.get(b) / (double) rated >= thresholds.skewShare()) {
                     skewBucket = b;
                 }
             }
         }
-        boolean stateSkew = total >= SKEW_MIN_GROUPS && stateShare >= SKEW_SHARE;
+        boolean stateSkew = total >= thresholds.skewMinGroups() && stateShare >= thresholds.skewShare();
         boolean skewed = skewBucket != null || stateSkew;
         List<Map<String, Object>> caveats = new ArrayList<>();
         if (blindspot != null) {
-            caveats.add(caveat(COVERAGE_BLINDSPOT, "At least 75% of the rated outlets covering this come from the "
-                    + blindspot + " (" + rated + " rated evidence groups). Coverage describes reporting, not truth.",
+            caveats.add(caveat(COVERAGE_BLINDSPOT, "At least " + pct(thresholds.blindspotShare())
+                    + " of the rated outlets covering this come from the " + blindspot + " (" + rated
+                    + " rated evidence groups). Coverage describes reporting, not truth.",
                     Map.of("side", blindspot, "nRated", rated)));
         }
         if (skewed) {
@@ -163,8 +194,10 @@ public final class CoverageAnalyzer {
             data.put("bucket", skewBucket);
             data.put("stateAffiliatedShare", stateShare);
             caveats.add(caveat(SKEWED_COVERAGE, stateSkew && skewBucket == null
-                    ? "At least 75% of this coverage comes from state-affiliated outlets."
-                    : "At least 75% of the rated coverage comes from the " + skewBucket + " bucket.", data));
+                    ? "At least " + pct(thresholds.skewShare()) + " of this coverage comes from state-affiliated"
+                            + " outlets."
+                    : "At least " + pct(thresholds.skewShare()) + " of the rated coverage comes from the "
+                            + skewBucket + " bucket.", data));
         }
         if (total > 0 && byBucket.get(MediaVocabulary.UNRATED) / (double) total > 0.5) {
             caveats.add(caveat(MOSTLY_UNRATED, "Most of this coverage comes from outlets no declared provider rates.",
@@ -185,7 +218,7 @@ public final class CoverageAnalyzer {
         stats.put("corroboratedShare", corroboratedShare);
         stats.put("skewed", skewed);
         stats.put("caveats", caveats);
-        stats.put("analyzer", detector());
+        stats.put("analyzer", detector(thresholds));
         stats.put("manifestId", null);
         stats.put("computedAt", computedAt == null ? null : computedAt.toString());
         return new Result(stats, blindspot, skewed, rated, stateShare, total);
@@ -217,5 +250,10 @@ public final class CoverageAnalyzer {
 
     private static double round(double v) {
         return Math.round(v * 10_000) / 10_000.0;
+    }
+
+    /** A share as a whole-number percentage string, for a caveat message. */
+    private static String pct(double share) {
+        return Math.round(share * 100) + "%";
     }
 }

@@ -332,6 +332,21 @@ public final class SettingKeys {
     public static final String MEDIA_RELIABILITY_MAP = "media.reliabilityMap";
 
     /**
+     * The reliability number of each Admiralty grade the event scorer takes for a news member (prompt 157,
+     * {@code media.reliabilityNumbers}): a JSON object from grade ({@code "A"}…{@code "E"}) to a 0–1 number;
+     * default A → 0.9, B → 0.75, C → 0.6, D → 0.45, E → 0.3 (F has none, so the scorer's default applies).
+     */
+    public static final String MEDIA_RELIABILITY_NUMBERS = "media.reliabilityNumbers";
+
+    /**
+     * The coverage skew and blindspot thresholds (prompt 157, {@code news.coverageThresholds}): a JSON object
+     * with {@code skewShare} and {@code blindspotShare} (0–1) and {@code skewMinGroups} and
+     * {@code blindspotMinRated} (integers); default skewShare 0.75, skewMinGroups 3, blindspotShare 0.75,
+     * blindspotMinRated 8.
+     */
+    public static final String NEWS_COVERAGE_THRESHOLDS = "news.coverageThresholds";
+
+    /**
      * The minimum estimated shared keys of a chronicle link (prompt 134, {@code network.minSharedKeys}); 5. A link
      * also needs a containment of the smaller chronicle of at least 0.05.
      */
@@ -461,7 +476,8 @@ public final class SettingKeys {
                     IMPACT_QUESTION_MIN_PROBABILITY, IMPACT_ASSET_BUFFER_KM, RELATION_CURSOR,
                     CHRONICLE_DEFAULT_CAP_GB, CHRONICLE_AUTO_ACTIVATE_PER_DAY, CHRONICLE_AUTO_ACTIVATE_CAP_GB,
                     CHRONICLE_THREAD_CURSORS, EXCHANGE_MAX_PACKAGE_MB, EXCHANGE_ALLOW_GREEN_LINKS,
-                    MEDIA_RELIABILITY_MAP, NETWORK_MIN_SHARED_KEYS, NETWORK_FEDERATED, SOCIAL_LANGUAGES,
+                    MEDIA_RELIABILITY_MAP, MEDIA_RELIABILITY_NUMBERS, NEWS_COVERAGE_THRESHOLDS,
+                    NETWORK_MIN_SHARED_KEYS, NETWORK_FEDERATED, SOCIAL_LANGUAGES,
                     SOCIAL_MIN_REGION_BASELINE, SOCIAL_VELOCITY, SOCIAL_KEEP_MEDIA, SOCIAL_LLM_CLAIM_MIN_POSTS,
                     SOCIAL_LLM_CLAIMS_PER_DAY, SOCIAL_SOURCE_RELIABILITY, SOCIAL_COMPARE, SOCIAL_ATTENTION_GAP,
                     SOCIAL_CUES, SOCIAL_TRACK_RECORD, EXTERNAL_BINDING_CURSOR, DOCTOR_AUTO_LLM,

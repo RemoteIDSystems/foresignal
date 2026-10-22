@@ -27994,6 +27994,65 @@
           }
         },
         {
+          "name": "Author a correlation recipe",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/intel/recipes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "intel",
+                "recipes"
+              ],
+              "query": []
+            },
+            "description": "Authors a new operator correlation recipe (prompt 157): the body carries an id (a slug not already in use and not a bundled recipe) and a full definition, validated by the recipe validator. Operator recipes live beside the bundled classpath recipes.\n\n**Scope:** `admin`.\n\noperationId: `createRecipe`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "Enable or tune a recipe",
           "event": [
             {
@@ -28031,7 +28090,7 @@
               ],
               "query": []
             },
-            "description": "Sets `enabled` and parameter overrides; overrides survive built-in version updates.\n\n**Scope:** `admin`.\n\noperationId: `updateRecipe`",
+            "description": "Sets `enabled` and parameter overrides; overrides survive built-in version updates. For an operator-authored recipe the body may also carry a full `definition` to replace, validated by the recipe validator (prompt 157); a bundled recipe's definition is managed by the classpath and cannot be replaced here.\n\n**Scope:** `admin`.\n\noperationId: `updateRecipe`",
             "auth": {
               "type": "bearer",
               "bearer": [

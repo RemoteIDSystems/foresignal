@@ -520,6 +520,8 @@ public class AccessPolicy {
 
                 // ---- Intelligence, investigations, exposure and packs (prompt 101) ----
                 rule(HttpMethod.POST, "/v1/intel/recipes/*/test", AccessRequirement.AGENT),
+                // Prompt 157: authoring an operator recipe (full definition) is admin, like updating one.
+                rule(HttpMethod.POST, "/v1/intel/recipes", AccessRequirement.ADMIN),
                 rule(HttpMethod.PUT, "/v1/intel/recipes/*", AccessRequirement.ADMIN),
                 rule(HttpMethod.GET, "/v1/intel/**", AccessRequirement.READ),
                 rule(null, "/v1/intel/**", AccessRequirement.AGENT),

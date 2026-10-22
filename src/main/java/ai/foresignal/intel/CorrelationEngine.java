@@ -582,14 +582,23 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
                 if (row.observedAt().isBefore(start.minus(before)) || row.observedAt().isAfter(end.plus(after))) {
                     continue;
                 }
-                Coordinate coordinate = coordinate(row);
-                if (coordinate == null) {
-                    continue;
-                }
                 Map<String, Object> reason = new LinkedHashMap<>();
                 reason.put("clause", "join[" + j + "]");
-                Double distance = nearestKm(cluster, coordinate);
-                if (join.sameRegion() != null) {
+                Coordinate coordinate = coordinate(row);
+                Double distance = coordinate == null ? null : nearestKm(cluster, coordinate);
+                if (join.sharedAttribute() != null) {
+                    // Prompt 157: a shared-attribute join matches on an attribute (address, phone, officer, shared
+                    // id), not geography; geometry is not required, only the time window above.
+                    Object value = sharedAttributeMatch(row, cluster, join.sharedAttribute());
+                    if (value == null) {
+                        continue;
+                    }
+                    reason.put("sharedAttribute", join.sharedAttribute());
+                    reason.put("sharedValue", String.valueOf(value));
+                } else if (join.sameRegion() != null) {
+                    if (coordinate == null) {
+                        continue;
+                    }
                     if (clusterRegion == null) {
                         clusterRegion = regionOf(cluster, regionCache);
                     }
@@ -599,6 +608,9 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
                     }
                     reason.put("regionTag", tag);
                 } else {
+                    if (coordinate == null) {
+                        continue;
+                    }
                     double km = join.withinKm() == null ? DEFAULT_KM : join.withinKm();
                     if (distance == null || distance > km) {
                         continue;
@@ -1426,6 +1438,30 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
 
     static String memberKey(String memberType, String sourceId, String externalId, long seq) {
         return memberType + "|" + sourceId + "|" + externalId + "|" + seq;
+    }
+
+    /** The non-null values at {@code path} across the cluster's members (prompt 157, the shared-attribute join). */
+    static java.util.Set<Object> sharedAttributeValues(List<MemberRow> cluster, String path) {
+        java.util.Set<Object> values = new java.util.HashSet<>();
+        for (MemberRow member : cluster) {
+            Object value = ai.foresignal.ingest.JsonValues.at(member.payload(), path);
+            if (value != null) {
+                values.add(value);
+            }
+        }
+        return values;
+    }
+
+    /**
+     * The candidate's value at {@code path} when it is shared with at least one cluster member (prompt 157), else
+     * null — the decision of a shared-attribute join.
+     */
+    static Object sharedAttributeMatch(MemberRow candidate, List<MemberRow> cluster, String path) {
+        Object value = ai.foresignal.ingest.JsonValues.at(candidate.payload(), path);
+        if (value == null) {
+            return null;
+        }
+        return sharedAttributeValues(cluster, path).contains(value) ? value : null;
     }
 
     private static double seedKm(RecipeDefinition recipe) {

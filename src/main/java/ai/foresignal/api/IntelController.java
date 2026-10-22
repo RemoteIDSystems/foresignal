@@ -217,12 +217,58 @@ public class IntelController {
         return recipes.findAll().stream().map(IntelController::recipe).toList();
     }
 
-    /** {@code updateRecipe}: enable/disable and set parameter overrides. */
+    /**
+     * {@code createRecipe}: authors a new operator correlation recipe (prompt 157). The body is
+     * {@code {id, definition, enabled?}}; the id is a slug not already in use and not a bundled recipe, and the
+     * definition is validated by {@code RecipeDefinitionValidator} (an invalid definition is {@code 400}).
+     * Operator recipes live beside the bundled classpath recipes.
+     */
+    @PostMapping("/recipes")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(operationId = "createRecipe", tags = "Intelligence")
+    public Map<String, Object> createRecipe(@RequestBody JsonNode body) {
+        String id = body.path("id").asString(null);
+        if (id == null || !id.matches("^[a-z0-9]+(-[a-z0-9]+)*$") || id.length() > 64) {
+            throw ValidationException.forField("id", "must be a slug of at most 64 characters");
+        }
+        if (RecipeRegistry.isBundled(id)) {
+            throw ValidationException.forField("id", "'" + id + "' is a bundled recipe; choose another id");
+        }
+        if (registry.exists(id)) {
+            throw ValidationException.forField("id", "a recipe '" + id + "' already exists; update it instead");
+        }
+        if (!body.hasNonNull("definition") || !body.get("definition").isObject()) {
+            throw ValidationException.forField("definition", "is required and must be an object");
+        }
+        Map<String, Object> definition = params(body.get("definition"));
+        validateDefinition(id, definition);
+        Boolean enabled = body.hasNonNull("enabled") ? body.get("enabled").asBoolean() : Boolean.TRUE;
+        return recipe(registry.author(id, definition, enabled));
+    }
+
+    /**
+     * {@code updateRecipe}: enable/disable and set parameter overrides; for an operator recipe the body may also
+     * carry a full {@code definition} to replace (validated; prompt 157). A bundled recipe's definition is
+     * managed by the classpath and cannot be replaced here.
+     */
     @PutMapping("/recipes/{id}")
     @Operation(operationId = "updateRecipe", tags = "Intelligence")
     public Map<String, Object> updateRecipe(@PathVariable String id, @RequestBody JsonNode body) {
         CorrelationRecipeEntity recipe = recipes.findById(id).orElseThrow(
                 () -> new NotFoundException("No such recipe: " + id));
+        if (body.hasNonNull("definition")) {
+            if (!body.get("definition").isObject()) {
+                throw ValidationException.forField("definition", "must be an object");
+            }
+            if (RecipeRegistry.isBundled(id)) {
+                throw ValidationException.forField("definition", "'" + id + "' is a bundled recipe; its definition"
+                        + " is managed by the classpath — override params or author a new recipe");
+            }
+            Map<String, Object> definition = params(body.get("definition"));
+            validateDefinition(id, definition);
+            Boolean enabled = body.hasNonNull("enabled") ? body.get("enabled").asBoolean() : null;
+            return recipe(registry.author(id, definition, enabled));
+        }
         if (body.hasNonNull("enabled")) {
             recipe.setEnabled(body.get("enabled").asBoolean());
         }
@@ -231,6 +277,14 @@ public class IntelController {
         }
         recipes.save(recipe);
         return recipe(recipe);
+    }
+
+    /** Validates an operator recipe definition, or 400 with the validator's warnings. */
+    private void validateDefinition(String id, Map<String, Object> definition) {
+        var validation = registry.validate(id, definition);
+        if (!validation.valid()) {
+            throw ValidationException.forField("definition", String.join("; ", validation.warnings()));
+        }
     }
 
     /**
@@ -287,6 +341,7 @@ public class IntelController {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("id", recipe.getId());
         out.put("version", recipe.getVersion());
+        out.put("origin", RecipeRegistry.isBundled(recipe.getId()) ? "bundled" : "operator");
         out.put("enabled", recipe.isEnabled());
         out.put("definition", recipe.getDefinition());
         out.put("params", recipe.getParams());

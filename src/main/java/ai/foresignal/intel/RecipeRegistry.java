@@ -125,6 +125,44 @@ public class RecipeRegistry {
         }
     }
 
+    /** True when {@code id} is one of the bundled classpath recipes (its definition is managed there). */
+    public static boolean isBundled(String id) {
+        return BUNDLED.contains(id);
+    }
+
+    /** True when a recipe with {@code id} is stored (bundled or operator-authored). */
+    public boolean exists(String id) {
+        return recipes.findById(id).isPresent();
+    }
+
+    /** Validates an operator-authored recipe definition against the installed kinds (prompt 157). */
+    public RecipeDefinitionValidator.Validation validate(String id, Map<String, Object> definition) {
+        RecipeDefinition parsed = RecipeDefinition.of(id, RecipeDefinition.integer(definition.get("version"), 1),
+                definition, operators);
+        return RecipeDefinitionValidator.validate(parsed, sources.kinds());
+    }
+
+    /**
+     * Persists an operator-authored recipe (prompt 157): the full {@code definition} replaces any stored one of
+     * the same id, dropping stale parameter overrides and keeping the run history. Bundled recipes are synced
+     * from the classpath instead; the caller validates the definition first.
+     *
+     * @param enabled the enabled flag to set, or null to leave it (defaults to enabled for a new recipe)
+     */
+    public CorrelationRecipeEntity author(String id, Map<String, Object> definition, Boolean enabled) {
+        int version = RecipeDefinition.integer(definition.get("version"), 1);
+        CorrelationRecipeEntity entity = recipes.findById(id)
+                .orElseGet(() -> new CorrelationRecipeEntity(id, version, definition));
+        entity.setVersion(version);
+        entity.setDefinition(definition);
+        entity.setParams(null);
+        entity.setLastError(null);
+        if (enabled != null) {
+            entity.setEnabled(enabled);
+        }
+        return recipes.save(entity);
+    }
+
     /** A stored recipe (enabled or not) as a parsed definition; empty when unknown. */
     public java.util.Optional<RecipeDefinition> definition(String id) {
         return recipes.findById(id).map(entity -> RecipeDefinition.of(entity.getId(), entity.getVersion(),
