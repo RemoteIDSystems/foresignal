@@ -261,6 +261,32 @@ Design: [Intelligence Design](Intelligence-Design.md); client contract: [Client 
 
 They consume the API, SSE, MCP, push and SDKs above.
 
+### Post-release: sources, calibration, vetting and relationship intelligence (API 1.3.0)
+
+Planner additions after v1.2 code-complete. 145–150 are built (compile-only, per the owner's no-test
+directive); 151–158 are the backend shore-up that makes the engine **calibrated**, **de-hyped/vetted**,
+**timely**, extends it to external forecasting (TimesFM), and opens **people/organization relationship
+intelligence** — driven by the 2026-10-22 gap assessment and the ForeSignal Admin screen plan. 151
+takes the API to **1.3.0**; 152–158 add under it. External corporate/UBO/PEP/leak **data** sourcing and
+fraud recipe sets remain in [Future-Roadmap](Future-Roadmap.md).
+
+| # | Prompt | Scope | Status |
+|---|---|---|---|
+| 145 | Free-Sources-Enabled-By-Default | Seed free, runnable sources enabled; `enable-free` admin action | Done |
+| 146 | Hold-Heavy-Free-Sources-And-Api-1-1-0 | `autoEnable` opt-out (wiki-edit-surge off); API 1.1.0 | Done |
+| 147 | Correct-Stale-Source-Descriptions | Fix now-wrong "disabled by default" API descriptions | Done |
+| 148 | Sweep-Stale-Default-Comments-And-Tests | Same fix across comments/tests/docs; two spellings | Done |
+| 149 | US-English-Guard | `checkUsEnglish` Gradle guard + allowlist + backlog fix | Done |
+| 150 | Paced-Ingestion-Governor | Global pull governor + `maxConcurrentPulls` + core default set + `enable-core` | Done |
+| 151 | Signal-Calibration | Calibrated intel-event/precursor confidence + confidence-upgrade events; API 1.3.0 | Planned |
+| 152 | Quantile-Forecast-Calibration | PIT / quantile-reliability calibration for numeric forecasters | Planned |
+| 153 | Dehype-And-Partisan-Vetting | Neutral restatement + framing/partisan score + outlet reputation (incl. lean) into social scoring | Planned |
+| 154 | Timely-Corroboration | Auto-corroborate lone claims, modality-aware independence, tunable thresholds | Planned |
+| 155 | On-Demand-External-Forecaster | EDP analysis-request round-trip (correlation + callback), external backtest runner, forecaster config, decile mapping (TimesFM) | Planned |
+| 156 | Probabilistic-Threshold-Crossing | P(series crosses X by Y) from the predictive quantile distribution | Planned |
+| 157 | Authorable-Recipes-Shared-Attribute-Joins | Create/replace-recipe API, shared-attribute join, thresholds → settings | Planned |
+| 158 | Relationship-Intelligence-People-Orgs | Person/org entities + corporate keys, ownership edges, ownership-chain/shared-attribute queries (model only; data deferred) | Planned |
+
 ## 5. Renumbering map
 
 Some older prompt text, and the design docs, still use earlier numbers. Translate them with these tables.
