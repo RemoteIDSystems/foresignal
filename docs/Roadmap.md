@@ -278,14 +278,15 @@ fraud recipe sets remain in [Future-Roadmap](Future-Roadmap.md).
 | 148 | Sweep-Stale-Default-Comments-And-Tests | Same fix across comments/tests/docs; two spellings | Done |
 | 149 | US-English-Guard | `checkUsEnglish` Gradle guard + allowlist + backlog fix | Done |
 | 150 | Paced-Ingestion-Governor | Global pull governor + `maxConcurrentPulls` + core default set + `enable-core` | Done |
-| 151 | Signal-Calibration | Calibrated intel-event/precursor confidence + confidence-upgrade events; API 1.3.0 | Planned |
-| 152 | Quantile-Forecast-Calibration | PIT / quantile-reliability calibration for numeric forecasters | Planned |
-| 153 | Dehype-And-Partisan-Vetting | Neutral restatement + framing/partisan score + outlet reputation (incl. lean) into social scoring | Planned |
-| 154 | Timely-Corroboration | Auto-corroborate lone claims, modality-aware independence, tunable thresholds | Planned |
-| 155 | On-Demand-External-Forecaster | EDP analysis-request round-trip (correlation + callback), external backtest runner, forecaster config, decile mapping (TimesFM) | Planned |
-| 156 | Probabilistic-Threshold-Crossing | P(series crosses X by Y) from the predictive quantile distribution | Planned |
-| 157 | Authorable-Recipes-Shared-Attribute-Joins | Create/replace-recipe API, shared-attribute join, thresholds → settings | Planned |
-| 158 | Relationship-Intelligence-People-Orgs | Person/org entities + corporate keys, ownership edges, ownership-chain/shared-attribute queries (model only; data deferred) | Planned |
+| 151 | Signal-Calibration | Calibrated intel-event/precursor confidence + confidence-upgrade events; API 1.3.0 | Done |
+| 152 | Quantile-Forecast-Calibration | PIT / quantile-reliability calibration for numeric forecasters | Done |
+| 153 | Dehype-And-Partisan-Vetting | Neutral restatement + framing/partisan score + outlet reputation (incl. lean) into social scoring | Done |
+| 154 | Timely-Corroboration | Auto-corroborate lone claims, modality-aware independence, tunable thresholds | Done |
+| 155 | On-Demand-External-Forecaster | EDP analysis-request round-trip (correlation + callback), external backtest runner, forecaster config, decile mapping (TimesFM) | Done |
+| 156 | Probabilistic-Threshold-Crossing | P(series crosses X by Y) from the predictive quantile distribution | Done |
+| 157 | Authorable-Recipes-Shared-Attribute-Joins | Create/replace-recipe API, shared-attribute join, thresholds → settings | Done |
+| 158 | Relationship-Intelligence-People-Orgs | Person/org entities + corporate keys, ownership edges, ownership-chain/shared-attribute queries (model only; data deferred) | Done |
+| 159 | On-Demand-Forecast-Parity-And-Precursor-Calibration | Unify the on-demand/callback forecast path with the push path's dedup + `lastForecastAt`; apply the precursor calibration curve (as-built review cleanup) | Done |
 
 ## 5. Renumbering map
 
