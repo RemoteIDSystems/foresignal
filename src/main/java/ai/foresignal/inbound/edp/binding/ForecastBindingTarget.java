@@ -117,7 +117,8 @@ public class ForecastBindingTarget implements BindingTargetHandler {
             return BindingEffect.skip(item, "question-" + q.getStatus());
         }
         Double probability = item.payload().get("probability") instanceof Number n ? n.doubleValue() : null;
-        Map<String, Double> quantiles = quantiles(item.payload().get("quantiles"));
+        // Prompt 155: a decile provider (TimesFM emits p10–p90) is mapped onto the ledger's required quantiles.
+        Map<String, Double> quantiles = DecileQuantiles.toLedger(quantiles(item.payload().get("quantiles")));
         ForecastInputs.ForecastValue value = ExternalForecastPolicy.value(q.getType(), probability, quantiles,
                 d.orientation());
         if (value == null) {

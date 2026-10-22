@@ -35,6 +35,7 @@ import tools.jackson.databind.JsonNode;
  * @param push {@code transport.push}
  * @param pull {@code transport.pull}, or null
  * @param search {@code transport.search}, or null
+ * @param analysisRequest {@code transport.analysisRequest} (prompt 155), or null
  * @param streams the streams, in manifest order
  */
 public record EdpManifestModel(
@@ -61,6 +62,7 @@ public record EdpManifestModel(
         boolean push,
         Pull pull,
         Search search,
+        AnalysisRequest analysisRequest,
         List<Stream> streams) {
 
     /** Copies the lists. */
@@ -132,6 +134,7 @@ public record EdpManifestModel(
                 transport.path("push").asBoolean(false),
                 Pull.parse(transport.path("pull")),
                 Search.parse(transport.path("search")),
+                AnalysisRequest.parse(transport.path("analysisRequest")),
                 streams);
     }
 
@@ -262,6 +265,27 @@ public record EdpManifestModel(
             }
             String auth = text(search, "auth");
             return new Search(required(search, "url"), auth == null ? "none" : auth, text(search, "header"));
+        }
+    }
+
+    /**
+     * {@code transport.analysisRequest} (prompt 155): the endpoint Foresignal POSTs an on-demand forecast
+     * request to ({@code {questionId / seriesRef, horizon, correlationId, callbackUrl, asOf}}). A provider that
+     * answers synchronously returns the forecast in the HTTP response; one that answers asynchronously posts it
+     * to {@code callbackUrl}. This generalizes the formerly inert {@code transport.search}.
+     *
+     * @param url the analysis-request endpoint
+     * @param auth the auth style, as for pull
+     * @param header the header name for {@code auth: header}, or null
+     */
+    public record AnalysisRequest(String url, String auth, String header) {
+
+        static AnalysisRequest parse(JsonNode node) {
+            if (node == null || !node.isObject()) {
+                return null;
+            }
+            String auth = text(node, "auth");
+            return new AnalysisRequest(required(node, "url"), auth == null ? "none" : auth, text(node, "header"));
         }
     }
 

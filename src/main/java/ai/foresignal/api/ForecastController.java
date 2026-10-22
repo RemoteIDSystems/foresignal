@@ -223,14 +223,30 @@ public class ForecastController {
         return ForecastViews.page(items, next);
     }
 
-    /** {@code updateForecaster}: the active flag and configuration. */
+    /** {@code updateForecaster}: the active flag, configuration and display name. */
     @PutMapping("/v1/forecasts/forecasters/{forecasterId}")
     @Operation(operationId = "updateForecaster", tags = "Forecasts")
     public Map<String, Object> updateForecaster(@PathVariable String forecasterId, @RequestBody JsonNode body) {
         Map<String, Object> update = ForecastInputs.forecasterUpdate(body);
         @SuppressWarnings("unchecked")
         Map<String, Object> config = (Map<String, Object>) update.get("config");
-        ForecasterEntity f = forecasters.update(forecasterId, (Boolean) update.get("active"), config);
+        ForecasterEntity f = forecasters.update(forecasterId, (Boolean) update.get("active"), config,
+                (String) update.get("name"));
+        return ForecastViews.forecaster(f, scoring.trackRecords().get(f.getId()));
+    }
+
+    /**
+     * {@code registerExternalForecaster}: pre-registers, names and configures an external forecaster (prompt 155)
+     * — a display name and a per-forecaster {@code externalMinResolved} — before any forecast arrives.
+     */
+    @PostMapping("/v1/forecasts/forecasters")
+    @Operation(operationId = "registerExternalForecaster", tags = "Forecasts")
+    public Map<String, Object> registerExternalForecaster(@RequestBody JsonNode body) {
+        Map<String, Object> registration = ForecastInputs.externalForecasterRegistration(body);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> config = (Map<String, Object>) registration.get("config");
+        ForecasterEntity f = forecasters.registerExternal((String) registration.get("id"),
+                (String) registration.get("name"), config);
         return ForecastViews.forecaster(f, scoring.trackRecords().get(f.getId()));
     }
 

@@ -580,18 +580,52 @@ public final class ForecastInputs {
     public static Map<String, Object> forecasterUpdate(JsonNode body) {
         requireObject(body, "ForecasterUpdate");
         List<FieldError> errors = new ArrayList<>();
-        unknown(body, Set.of("active", "config"), errors);
+        unknown(body, Set.of("active", "config", "name"), errors);
         if (!body.hasNonNull("active") || !body.get("active").isBoolean()) {
             errors.add(new FieldError("active", "is required and must be a boolean"));
         }
         if (body.has("config") && !body.get("config").isNull() && !body.get("config").isObject()) {
             errors.add(new FieldError("config", "must be an object"));
         }
+        if (body.hasNonNull("name") && (!body.get("name").isString() || body.get("name").asString().isBlank()
+                || body.get("name").asString().length() > 200)) {
+            errors.add(new FieldError("name", "must be 1 to 200 characters"));
+        }
         if (!errors.isEmpty()) {
             throw new ValidationException("The forecaster update is not valid.", errors);
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("active", body.get("active").asBoolean());
+        out.put("config", body.hasNonNull("config") ? JsonValues.map(body.get("config")) : null);
+        // Prompt 155: an operator may rename an external forecaster (display name).
+        out.put("name", body.hasNonNull("name") ? body.get("name").asString() : null);
+        return out;
+    }
+
+    /**
+     * Parses an {@code ExternalForecasterRegistration} (prompt 155): names and configures a first-class external
+     * forecaster before any forecast arrives.
+     *
+     * @return {@code id}, {@code name} (null when absent) and {@code config} (null when absent)
+     */
+    public static Map<String, Object> externalForecasterRegistration(JsonNode body) {
+        requireObject(body, "ExternalForecasterRegistration");
+        List<FieldError> errors = new ArrayList<>();
+        unknown(body, Set.of("id", "name", "config"), errors);
+        String id = text(body, "id", 1, 128, true, errors);
+        if (body.hasNonNull("name") && (!body.get("name").isString() || body.get("name").asString().isBlank()
+                || body.get("name").asString().length() > 200)) {
+            errors.add(new FieldError("name", "must be 1 to 200 characters"));
+        }
+        if (body.has("config") && !body.get("config").isNull() && !body.get("config").isObject()) {
+            errors.add(new FieldError("config", "must be an object"));
+        }
+        if (!errors.isEmpty()) {
+            throw new ValidationException("The external forecaster registration is not valid.", errors);
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("id", id);
+        out.put("name", body.hasNonNull("name") ? body.get("name").asString() : null);
         out.put("config", body.hasNonNull("config") ? JsonValues.map(body.get("config")) : null);
         return out;
     }

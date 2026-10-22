@@ -16,6 +16,11 @@
       {
         "version": "1.3.0",
         "date": "2026-10-22",
+        "note": "155: on-demand external forecaster round-trip. A first-class external forecaster (a model like TimesFM) can now be asked to forecast a specific ledger question on demand: the EDP manifest gains an optional transport.analysisRequest endpoint (EdpAnalysisRequest schema), and requestAnalysis (POST /v1/external/analysis/requests) posts {questionId, horizon, correlationId, callbackUrl} to it and persists the correlation. The provider answers synchronously in the response and/or asynchronously to analysisCallback (POST /v1/external/analysis/callback), which resolves the correlation and records the forecast through the usual binding path as the external forecaster edp:{sourceId}/{streamId}. createForecastEvaluation can now backtest a type=external forecaster by issuing as-of analysis requests (previously skipped). An operator can pre-register, name and configure an external forecaster independent of the auto-derived id with registerExternalForecaster (POST /v1/forecasts/forecasters, ExternalForecasterRegistration schema); ForecasterUpdate gains an optional name, and a per-forecaster externalMinResolved config overrides the ensemble default. A decile-only provider (p10..p90, as TimesFM emits) is accepted and mapped binding-side onto the ledger's required quantiles (p05/p25/p50/p75/p95) without loosening the required set. TimesFM stays an external Python service; no Python enters the backend. Additive: no operation or schema was renamed or removed."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-22",
         "note": "154: timely corroboration. The hardcoded \"promote to a trusted signal\" gates are now the tunable corroboration policy: adds getIntelCorroboration (GET /v1/intel/corroboration) and updateIntelCorroboration (PUT, admin) with the IntelCorroboration schema — event evidence-quality thresholds (strongFamilies / strongGroups / moderateFamilies), a situation activation rule (minFamilies / minGroups), and the automatic corroboration of lone events (enabled, withinKm, window, maxMembers). A sensing modality (sensor / imagery / official / social / media / crowd / operator / derived), derived from the originator class, is now a distinct independence dimension: eventQuality.requireModalities and a recipe's activateAt.modalities require a candidate to span several modalities before it is strong or active. A lone agent/analyst/operator event now searches for independent corroborating records near it in space and time on creation and auto-activates once independent evidence groups accumulate. Additive: no operation or schema was renamed or removed."
       },
       {
@@ -60175,6 +60180,74 @@
             "bearerToken": []
           }
         ]
+      },
+      "post": {
+        "tags": [
+          "Forecasts"
+        ],
+        "operationId": "registerExternalForecaster",
+        "summary": "Register an external forecaster",
+        "description": "Pre-registers, names and configures a first-class external forecaster (155) — a display name and a per-forecaster `externalMinResolved` — independent of the auto-derived `edp:{sourceId}/{streamId}` id, before any forecast arrives. An existing forecaster with that id is renamed and reconfigured in place (its type is kept).\n\n**Scope:** `admin`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalForecasterRegistration"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forecaster"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "155",
+        "x-foresignal-status": "implemented",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       }
     },
     "/v1/forecasts/forecasters/{forecasterId}": {
@@ -60184,7 +60257,7 @@
         ],
         "operationId": "updateForecaster",
         "summary": "Update a forecaster",
-        "description": "Sets a forecaster's `active` flag and configuration.\n\n**Scope:** `admin`.",
+        "description": "Sets a forecaster's `active` flag, configuration and, for an external forecaster, display `name` (155).\n\n**Scope:** `admin`.",
         "parameters": [
           {
             "name": "forecasterId",
@@ -85016,6 +85089,124 @@
         },
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "024",
+        "x-foresignal-status": "implemented",
+        "security": [
+          {}
+        ]
+      }
+    },
+    "/v1/external/analysis/requests": {
+      "post": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "requestAnalysis",
+        "summary": "Request an on-demand forecast",
+        "description": "Asks a first-class external forecaster (a model like TimesFM) to forecast a ledger question now (155). Resolves the forecaster to its provider, which must declare `transport.analysisRequest`, persists a correlation and posts `{questionId, horizon, correlationId, callbackUrl}` to the provider. A provider that answers synchronously returns the forecast in its response and it is recorded at once (`recorded: true`); one that answers asynchronously posts the result later to `analysisCallback`.\n\n**Scope:** `agent`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisRequestSubmission"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correlation accepted (recorded true when the provider answered synchronously)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisRequestResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (unknown forecaster, provider or analysis-request transport; question missing or not open)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "agent",
+        "x-foresignal-prompt": "155",
+        "x-foresignal-status": "implemented",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/external/analysis/callback": {
+      "post": {
+        "tags": [
+          "External"
+        ],
+        "operationId": "analysisCallback",
+        "summary": "Ingest a correlated analysis result",
+        "description": "The callback a provider posts an asynchronous on-demand forecast to (155). Resolves the `correlationId` to its question and external forecaster and records the forecast through the usual binding path; decile output is mapped to the ledger's required quantiles. An unknown, already-answered or unusable result is accepted and ignored (`recorded: false`).\n\n**Scope:** open — the unguessable `correlationId` in the body is the credential (the provider receives it in the request and echoes it back), the same pattern as `register`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisCallback"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Callback processed (recorded true when a forecast was recorded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisRequestResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (correlationId missing)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "open",
+        "x-foresignal-prompt": "155",
         "x-foresignal-status": "implemented",
         "security": [
           {}
@@ -139083,11 +139274,125 @@
           },
           "config": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Replaces the forecaster's configuration. For an external forecaster, `externalMinResolved` (integer) overrides the ensemble's global minimum resolved count before the forecaster is weighted (155)."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Optional display name; set for a first-class external forecaster (155)."
           }
         },
         "required": [
           "active"
+        ]
+      },
+      "ExternalForecasterRegistration": {
+        "type": "object",
+        "description": "Pre-registers, names and configures a first-class external forecaster (155), independent of the auto-derived edp:{sourceId}/{streamId} id.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+            "description": "Forecaster id, conventionally edp:{sourceId}/{streamId}."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Optional display name (defaults to the id)."
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Optional configuration; `sourceId` and `streamId` pin the provider for backtests, and `externalMinResolved` (integer) overrides the ensemble's global minimum resolved count."
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "AnalysisRequestSubmission": {
+        "type": "object",
+        "description": "Requests an on-demand forecast of a ledger question from an external forecaster (155).",
+        "properties": {
+          "forecasterId": {
+            "type": "string",
+            "description": "The external forecaster id, edp:{sourceId}/{streamId}."
+          },
+          "questionId": {
+            "type": "string",
+            "description": "The ledger question to forecast; must be open."
+          },
+          "orientation": {
+            "type": "string",
+            "enum": [
+              "same",
+              "inverse"
+            ],
+            "default": "same",
+            "description": "Whether the provider's probability is for the question as stated (same) or its negation (inverse)."
+          },
+          "horizon": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional forecast horizon passed to the provider (for example an ISO-8601 duration)."
+          }
+        },
+        "required": [
+          "forecasterId",
+          "questionId"
+        ]
+      },
+      "AnalysisRequestResult": {
+        "type": "object",
+        "description": "The outcome of an on-demand analysis request or callback (155).",
+        "properties": {
+          "correlationId": {
+            "type": "string",
+            "description": "The id sent to the provider and echoed in its callback."
+          },
+          "recorded": {
+            "type": "boolean",
+            "description": "True when a forecast was recorded at once (a synchronous provider, or a callback that resolved)."
+          },
+          "forecastId": {
+            "type": "string",
+            "description": "The recorded forecast's id, present when recorded is true via the callback."
+          }
+        },
+        "required": [
+          "correlationId",
+          "recorded"
+        ]
+      },
+      "AnalysisCallback": {
+        "type": "object",
+        "description": "A provider's asynchronous answer to an on-demand analysis request (155).",
+        "properties": {
+          "correlationId": {
+            "type": "string",
+            "description": "The correlation id from the original request; the credential for this callback."
+          },
+          "probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "The forecast probability for a binary question."
+          },
+          "quantiles": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Quantile levels to values for a numeric question. The ledger's required levels are p05, p25, p50, p75, p95; a decile provider (p10..p90, as TimesFM emits) is accepted and mapped binding-side onto the required set."
+          }
+        },
+        "required": [
+          "correlationId"
         ]
       },
       "ScorecardEntry": {
@@ -166105,6 +166410,16 @@
                 "type": "null"
               }
             ]
+          },
+          "analysisRequest": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EdpAnalysisRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "anyOf": [
@@ -167989,6 +168304,35 @@
       "EdpSearch": {
         "type": "object",
         "description": "Optional provider search endpoint used by cues (137)",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "auth": {
+            "type": "string",
+            "enum": [
+              "none",
+              "bearer",
+              "header",
+              "basic"
+            ],
+            "default": "none"
+          },
+          "header": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "EdpAnalysisRequest": {
+        "type": "object",
+        "description": "Optional on-demand analysis-request endpoint (155): Foresignal posts {questionId, horizon, correlationId, callbackUrl} (asOf for a backtest) and the provider answers synchronously in the response and/or asynchronously to the callback. Enables on-demand forecasts and backtesting of a first-class external forecaster such as TimesFM.",
         "properties": {
           "url": {
             "type": "string",

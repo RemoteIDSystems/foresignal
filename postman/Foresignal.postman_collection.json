@@ -18912,6 +18912,119 @@
           }
         },
         {
+          "name": "Request an on-demand forecast",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/analysis/requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "analysis",
+                "requests"
+              ],
+              "query": []
+            },
+            "description": "Asks a first-class external forecaster (a model like TimesFM) to forecast a ledger question now (155). Resolves the forecaster to its provider, which must declare `transport.analysisRequest`, persists a correlation and posts `{questionId, horizon, correlationId, callbackUrl}` to the provider. A provider that answers synchronously returns the forecast in its response and it is recorded at once (`recorded: true`); one that answers asynchronously posts the result later to `analysisCallback`.\n\n**Scope:** `agent`.\n\noperationId: `requestAnalysis`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{agentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Ingest a correlated analysis result",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/external/analysis/callback",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "external",
+                "analysis",
+                "callback"
+              ],
+              "query": []
+            },
+            "description": "The callback a provider posts an asynchronous on-demand forecast to (155). Resolves the `correlationId` to its question and external forecaster and records the forecast through the usual binding path; decile output is mapped to the ledger's required quantiles. An unknown, already-answered or unusable result is accepted and ignored (`recorded: false`).\n\n**Scope:** open \u2014 the unguessable `correlationId` in the body is the credential (the provider receives it in the request and echoes it back), the same pattern as `register`.\n\noperationId: `analysisCallback`",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "List external sources",
           "event": [
             {
@@ -22042,6 +22155,65 @@
           }
         },
         {
+          "name": "Register an external forecaster",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/forecasts/forecasters",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "forecasts",
+                "forecasters"
+              ],
+              "query": []
+            },
+            "description": "Pre-registers, names and configures a first-class external forecaster (155) \u2014 a display name and a per-forecaster `externalMinResolved` \u2014 independent of the auto-derived `edp:{sourceId}/{streamId}` id, before any forecast arrives. An existing forecaster with that id is renamed and reconfigured in place (its type is kept).\n\n**Scope:** `admin`.\n\noperationId: `registerExternalForecaster`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "Update a forecaster",
           "event": [
             {
@@ -22079,7 +22251,7 @@
               ],
               "query": []
             },
-            "description": "Sets a forecaster's `active` flag and configuration.\n\n**Scope:** `admin`.\n\noperationId: `updateForecaster`",
+            "description": "Sets a forecaster's `active` flag, configuration and, for an external forecaster, display `name` (155).\n\n**Scope:** `admin`.\n\noperationId: `updateForecaster`",
             "auth": {
               "type": "bearer",
               "bearer": [

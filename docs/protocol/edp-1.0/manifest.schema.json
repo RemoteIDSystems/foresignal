@@ -194,6 +194,35 @@
         "url"
       ]
     },
+    "EdpAnalysisRequest": {
+      "type": "object",
+      "description": "Optional on-demand analysis-request endpoint (155): Foresignal posts {questionId, horizon, correlationId, callbackUrl} and the provider answers synchronously in the response and/or asynchronously to the callback",
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "auth": {
+          "type": "string",
+          "enum": [
+            "none",
+            "bearer",
+            "header",
+            "basic"
+          ],
+          "default": "none"
+        },
+        "header": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "url"
+      ]
+    },
     "EdpSourceInfo": {
       "type": "object",
       "description": "Identity, publisher, licence, access and originator of a provider",
@@ -621,6 +650,16 @@
           "oneOf": [
             {
               "$ref": "#/$defs/EdpSearch"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "analysisRequest": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/EdpAnalysisRequest"
             },
             {
               "type": "null"

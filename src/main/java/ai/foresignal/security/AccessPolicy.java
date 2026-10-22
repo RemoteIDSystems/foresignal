@@ -285,6 +285,11 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/external/sources/*/question-links", AccessRequirement.READ),
                 rule(HttpMethod.POST, "/v1/external/sources/*/question-links", AccessRequirement.AGENT),
                 rule(HttpMethod.DELETE, "/v1/external/question-links/*", AccessRequirement.AGENT),
+                // Prompt 155: an operator requests an on-demand forecast (agent); a provider returns the
+                // correlated result to the callback, where the unguessable correlationId in the body is the
+                // credential (checked in code), the same pattern as /v1/external/register.
+                rule(HttpMethod.POST, "/v1/external/analysis/requests", AccessRequirement.AGENT),
+                rule(HttpMethod.POST, "/v1/external/analysis/callback", AccessRequirement.OPEN),
 
                 // ---- Open informational endpoints ----
                 rule(HttpMethod.GET, "/v1/system", AccessRequirement.OPEN),

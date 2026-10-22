@@ -124,12 +124,49 @@ public class ForecasterRegistry {
     /** Sets a forecaster's active flag and, when given, replaces its configuration. */
     @Transactional
     public ForecasterEntity update(String id, boolean active, Map<String, Object> config) {
+        return update(id, active, config, null);
+    }
+
+    /**
+     * Sets a forecaster's active flag and, when given, replaces its configuration and display name (prompt 155:
+     * naming an external forecaster).
+     */
+    @Transactional
+    public ForecasterEntity update(String id, boolean active, Map<String, Object> config, String name) {
         ForecasterEntity f = get(id);
         f.setActive(active);
         if (config != null) {
             f.setConfig(config);
         }
+        if (name != null && !name.isBlank()) {
+            f.setName(name);
+        }
         return forecasters.save(f);
+    }
+
+    /**
+     * Pre-registers (or renames/re-configures) an external forecaster independent of the auto-derived
+     * {@code edp:{…}} id (prompt 155): an operator can name it and set a per-forecaster
+     * {@code externalMinResolved} before any forecast arrives. An existing forecaster keeps its type and is
+     * updated in place.
+     */
+    @Transactional
+    public ForecasterEntity registerExternal(String id, String name, Map<String, Object> config) {
+        Optional<ForecasterEntity> existing = forecasters.findById(id);
+        if (existing.isPresent()) {
+            ForecasterEntity f = existing.get();
+            if (name != null && !name.isBlank()) {
+                f.setName(name);
+            }
+            if (config != null) {
+                f.setConfig(config);
+            }
+            return forecasters.save(f);
+        }
+        ForecasterEntity f = new ForecasterEntity(id, "external", name == null || name.isBlank() ? id : name, "1.0.0",
+                clock.instant());
+        f.setConfig(config == null ? Map.of() : config);
+        return forecasters.saveAndFlush(f);
     }
 
     /**

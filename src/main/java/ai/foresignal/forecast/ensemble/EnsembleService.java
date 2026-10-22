@@ -275,7 +275,9 @@ public class EnsembleService {
                     }
                     count = resolved.getOrDefault(forecaster.getId(), 0);
                 }
-                if (count < externalMin) {
+                // Prompt 155: a named external forecaster may override the global externalMinResolved.
+                int min = (int) forecaster.configNumber("externalMinResolved", externalMin);
+                if (count < min) {
                     continue;
                 }
             }

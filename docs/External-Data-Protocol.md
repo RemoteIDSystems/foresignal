@@ -1,6 +1,6 @@
 # Foresignal External Data Protocol (EDP) 1.0
 
-**Status:** design (2026-10-11). Built by prompts **024** (core: manifest, registration, push and pull, validation, layer streams) and **138** (bindings for atomic streams, provider kit). The machine-readable contract is `docs/OpenAPI.json` (schemas `Edp*`, `ExternalSource*`, `ExternalBinding*`; tag `External`); JSON Schema files are exported to `docs/protocol/edp-1.0/` and served at `/v1/external/protocol/schemas/{name}`.
+**Status:** design (2026-10-11). Built by prompts **024** (core: manifest, registration, push and pull, validation, layer streams), **138** (bindings for atomic streams, provider kit) and **155** (on-demand analysis-request round-trip, first-class external forecasters). The machine-readable contract is `docs/OpenAPI.json` (schemas `Edp*`, `ExternalSource*`, `ExternalBinding*`; tag `External`); JSON Schema files are exported to `docs/protocol/edp-1.0/` and served at `/v1/external/protocol/schemas/{name}`.
 
 EDP lets anyone write a data source for Foresignal **without changing Foresignal**. A provider is a separate program, written in any language and published anywhere, that describes itself with a **manifest** and delivers **items**. Foresignal does not care where the data comes from: an official API, a scraper, a sensor, a spreadsheet or another analyst's tool. As long as the output matches this contract, Foresignal stores it with full history and uses it like any built-in source.
 
@@ -38,7 +38,8 @@ The manifest is a JSON document that describes the provider. It is submitted at 
   "transport": {
     "push": true,
     "pull": {"itemsUrl": "https://hormuz.example.org/edp/items", "intervalSeconds": 3600, "auth": "bearer"},
-    "search": null
+    "search": null,
+    "analysisRequest": null
   },
   "streams": [
     {
@@ -83,6 +84,7 @@ The manifest is a JSON document that describes the provider. It is submitted at 
 | `transport.push` | `true` when the provider pushes to `POST /v1/external/sources/{id}/items`. A manifest must declare at least one delivery mechanism: `push: true` or a `pull` endpoint (there is no default). |
 | `transport.pull` | Foresignal polls `itemsUrl` (§4.2) every `intervalSeconds` (≥ 60) with the stated `auth` (`none`, `bearer`, `header` with `header` name, `basic`); the credential is entered by the operator, never put in the manifest. |
 | `transport.search` | optional: Foresignal may call `GET {url}?q=&since=&until=&bbox=&lang=&limit=` (same auth styles as pull) and expects a batch; used for searches triggered by physical findings (137 cues). |
+| `transport.analysisRequest` | optional: Foresignal may `POST {url}` a request to forecast a specific ledger question now (`{questionId, horizon, correlationId, callbackUrl}`, same auth styles as pull), used for on-demand and backtest forecasts from first-class external forecasters (§4.4, 155). |
 | `streams[].id` | slug, unique in the manifest (checked at registration). |
 | `streams[].mode` | `layer` or `atomic`. Layer streams carry `feature` or `event` items and must not declare `geometry: none`. |
 | `streams[].itemType` | the item type the stream carries (one per stream). |
@@ -128,7 +130,7 @@ Batch fields: `protocol` (`foresignal-edp/1.N`, not above the manifest's minor),
 | `event` | `eventTime`, `geometry?`, `upstreamEventId?` | a record of a discrete occurrence; `upstreamEventId` lets evidence matching recognize the same event from other sources |
 | `observation` | `seriesKey`, `t` (one of `YYYY`, `YYYY-Qn`, `YYYY-MM`, `YYYY-Www` (ISO week), `YYYY-MM-DD`, or an RFC 3339 timestamp with offset; periods are UTC intervals `[start, end)`, and one series keeps one granularity), `value` (number or null), `knownAt?` (when the value became knowable; defaults to `observedAt`; see §3.5), `unit?` | a series point of series `{kind}/{seriesKey}` |
 | `document` | `documentType` (`social-post`, `article`, `report`, `transcript`, `note`), `text` (≤ 20,000 chars), `title?`, `url?`, `author?` (`{handle, name, accountId}`), `language?`, `publishedAt?`, `about?` (Foresignal object references or URLs), `media?` (`[{type, url, thumbUrl?}]`, links only), `geometry?`, `engagement?` | a document record; social posts and articles can be bound into the social (135–137) and news (133) pipelines |
-| `forecast` | `question` (`{externalId, title, closeTime?, resolutionCriteria?}`) or `questionRef` (a Foresignal question id) — one is required; `probability` (0–1) or `quantiles` (`p05`, `p25`, `p50`, `p75`, `p95` required, `p10`, `p90` optional; non-decreasing) — at least one is required; `madeAt` | an external forecast; bound to ledger questions it is scored like any forecaster (122) |
+| `forecast` | `question` (`{externalId, title, closeTime?, resolutionCriteria?}`) or `questionRef` (a Foresignal question id) — one is required; `probability` (0–1) or `quantiles` (`p05`, `p25`, `p50`, `p75`, `p95` required, `p10`, `p90` optional; non-decreasing) — at least one is required; `madeAt`. A provider that emits only deciles (`p10`…`p90`, as TimesFM does) is accepted: the binding maps them onto the required quantiles by monotone piecewise-linear interpolation (§5), so the ledger's required set is never loosened | an external forecast; bound to ledger questions it is scored like any forecaster (122) |
 | `delete` | — (`observedAt` and `properties` optional, kept for audit) | a tombstone for `{stream}:{id}` |
 | `status` | `health` (`ok`, `degraded`, `blocked`, `layout-changed`, `geo-restricted`), `message`; without `stream` it is the source's health, with `stream` that stream's | health in Foresignal (no record) |
 
@@ -178,7 +180,21 @@ The provider serves `GET {itemsUrl}?cursor={cursor}&limit={n}` returning a batch
 
 Providers that can search on demand declare `transport.search`. Foresignal calls `GET {url}?q={query}&since=&until=&bbox=&lang=&limit=` when a physical finding triggers a cue (137), within the cue's budget, and stores the returned items like any other (marked as cue results, so they never feed volume baselines).
 
-### 4.4 Registration
+### 4.4 Analysis request (optional, on-demand, 155)
+
+A continuous forecaster pushes or is pulled like any stream, and a pushed `forecast` item is scored with no extra transport. A **first-class external forecaster** (a model like TimesFM that answers a specific question on demand) additionally declares `transport.analysisRequest`: an endpoint Foresignal calls to ask *forecast this question now*.
+
+- Foresignal `POST {url}`s `{questionId, horizon, correlationId, callbackUrl}` (`asOf` instead of `correlationId`/`callbackUrl` for a backtest, §below), with the auth style the manifest declares, within the source's budget and under the same URL vetting as pull (§7).
+- The provider answers either way, or both:
+  - **Synchronously** — the forecast (`probability` and/or `quantiles`, deciles accepted) in the HTTP response body. Used for backtests and recorded at once.
+  - **Asynchronously** — a later `POST {callbackUrl}` (`/v1/external/analysis/callback`) carrying the `correlationId` and the forecast. Foresignal resolves the correlation to its question and external forecaster and records the forecast through the usual binding path.
+- The returned forecast is recorded as the external forecaster `edp:{sourceId}/{streamId}`, scored like any forecaster (122). Decile output is mapped to the ledger's required quantiles (§5).
+- **Backtesting:** because the request can be answered synchronously, Foresignal can backtest an external forecaster by issuing an **as-of** analysis request per question in an evaluation window (`createForecastEvaluation`); a provider that answers only asynchronously cannot be backtested and those questions are skipped.
+- **First-class config:** an operator can pre-register, name and configure an external forecaster (display name; a per-forecaster `externalMinResolved`) independent of the auto-derived `edp:{…}` id (`POST /v1/forecasts/forecasters`, `PUT /v1/forecasts/forecasters/{id}`).
+
+The question, horizon and forecaster are correlated by the `correlationId` Foresignal persists before it calls out, so an asynchronous answer always lands on the right question. TimesFM and every other model stay external services; Foresignal adds only the transport and the correlation.
+
+### 4.5 Registration
 
 Three ways:
 
@@ -200,10 +216,12 @@ A binding connects an atomic stream to a destination:
 | `news` | `article` documents join news stories and coverage analysis |
 | `evidence` | matching items become graded evidence items on a hypothesis set |
 | `indicator` | a condition on items marks a hypothesis indicator `observed` (physical data) or `reported` (documents) |
-| `forecast` | forecast items become external forecasts on linked ledger questions (question links map the provider's question ids to Foresignal questions) |
+| `forecast` | forecast items become external forecasts on linked ledger questions (question links map the provider's question ids to Foresignal questions); a forecaster that declares `transport.analysisRequest` can also be asked on demand and backtested (§4.4) |
 | `place`, `situation`, `chronicle` | attach the stream to a place, a situation, or a chronicle layer |
 
 Every stream, layer or atomic, is also a record kind, so trigger rules, search, briefings and Ask can use it without a binding.
+
+**Decile mapping.** A forecast carrying only deciles (`p10`, `p20`…`p90`) — the native output of models like TimesFM — is mapped to the ledger's required quantiles (`p05`, `p25`, `p50`, `p75`, `p95`) binding-side: each required level is read from the provided points by monotone piecewise-linear interpolation (and clamped to stay non-decreasing), extrapolating the tails from the two nearest points. A forecast that already carries every required level is passed through unchanged. This keeps the ledger's required set fixed while accepting a decile provider.
 
 ## 6. Writing a provider
 
@@ -216,7 +234,7 @@ Every stream, layer or atomic, is also a record kind, so trigger rules, search, 
 
 Providers are an untrusted boundary.
 
-- **Provider URLs** (`manifestUrl`, `pull.itemsUrl`, `search.url`, media): HTTPS by default; DNS is resolved once per request and the connection pinned to the vetted address (no DNS rebinding); loopback, link-local, private, carrier-grade NAT and cloud-metadata ranges are refused unless the operator allows private networks **for that source** (a LAN provider on a homelab is normal); redirects are followed only to the same host (≤ 3, each re-vetted); connect and read timeouts, response size caps (5 MB) and the same budgets as other sources apply.
+- **Provider URLs** (`manifestUrl`, `pull.itemsUrl`, `search.url`, `analysisRequest.url`, media): HTTPS by default; DNS is resolved once per request and the connection pinned to the vetted address (no DNS rebinding); loopback, link-local, private, carrier-grade NAT and cloud-metadata ranges are refused unless the operator allows private networks **for that source** (a LAN provider on a homelab is normal); redirects are followed only to the same host (≤ 3, each re-vetted); connect and read timeouts, response size caps (5 MB) and the same budgets as other sources apply.
 - **Payload schemas:** ≤ 64 KB each, local `$ref`s only (no remote or `$dynamicRef` resolution), `pattern` and `patternProperties` ≤ 256 characters evaluated with a linear-time regex engine, and a validation time budget per batch (2 s); a schema that breaks these rules fails registration.
 - **Media:** links only; Foresignal fetches media solely through its image guard (size, type and address checks) when a binding needs fingerprints.
 - **Private and licensed data:** `source.private` and the license's redistribution setting travel with every record and every derived product (embeddings, caches, tiles, findings, situations, exports, reports, MCP output, notifications) under Foresignal's egress and TLP rules; a derived product inherits the strictest input, so summarizing private data never makes it public.

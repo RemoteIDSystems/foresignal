@@ -148,14 +148,71 @@ public class EdpHttpClient {
         }
     }
 
+    /**
+     * POSTs a JSON body to {@code uri} through the same vetting, pinning and TLS checks as {@link #get} and
+     * returns the response (prompt 155, the analysis-request transport). The request is not redirected across
+     * hosts; a 4xx/5xx raises {@link EdpFetchException}.
+     *
+     * @param json the request body (sent with {@code Content-Type: application/json})
+     */
+    public EdpHttpResponse post(URI uri, Map<String, String> headers, String json, boolean allowPrivateNetwork,
+            long maxBytes) throws EdpFetchException {
+        URI current = uri;
+        for (int hop = 0; ; hop++) {
+            EdpUrlGuard.VettedUrl vetted;
+            try {
+                vetted = guard.vet(current, allowPrivateNetwork);
+            } catch (EdpUrlRefusedException e) {
+                throw new EdpFetchException(e.getMessage(), e);
+            }
+            HttpResponse<InputStream> response = send(vetted, headers,
+                    HttpRequest.BodyPublishers.ofString(json == null ? "" : json, StandardCharsets.UTF_8),
+                    "application/json");
+            int status = response.statusCode();
+            if (REDIRECTS.contains(status)) {
+                String location = response.headers().firstValue("Location").orElse(null);
+                close(response);
+                if (location == null || hop >= MAX_REDIRECTS) {
+                    throw new EdpFetchException("Redirect " + status + " not followed for a POST", status);
+                }
+                URI next = current.resolve(location);
+                if (!EdpUrlGuard.sameHost(current, next)) {
+                    throw new EdpFetchException("A redirect to another host (" + next.getHost() + ") was refused",
+                            status);
+                }
+                current = next;
+                continue;
+            }
+            byte[] body = read(response, maxBytes);
+            if (status >= 400) {
+                String snippet = new String(body, 0, Math.min(body.length, 500), StandardCharsets.UTF_8).strip();
+                throw new EdpFetchException("The provider answered HTTP " + status
+                        + (snippet.isEmpty() ? "" : ": " + snippet), status);
+            }
+            return new EdpHttpResponse(status, current, response.headers().map(), body);
+        }
+    }
+
     private HttpResponse<InputStream> send(EdpUrlGuard.VettedUrl vetted, Map<String, String> headers)
             throws EdpFetchException {
+        return send(vetted, headers, null, null);
+    }
+
+    private HttpResponse<InputStream> send(EdpUrlGuard.VettedUrl vetted, Map<String, String> headers,
+            HttpRequest.BodyPublisher body, String contentType) throws EdpFetchException {
         URI original = vetted.uri();
         boolean https = "https".equalsIgnoreCase(original.getScheme());
         URI pinned = pinnedUri(original, vetted.address());
         HttpRequest.Builder request = HttpRequest.newBuilder(pinned)
-                .GET()
                 .timeout(properties.manifestFetchTimeout());
+        if (body != null) {
+            request.POST(body);
+            if (contentType != null) {
+                request.header("Content-Type", contentType);
+            }
+        } else {
+            request.GET();
+        }
         String hostHeader = hostHeader(original);
         try {
             request.header("Host", hostHeader);
