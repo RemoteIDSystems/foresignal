@@ -3,6 +3,8 @@ package ai.foresignal.reference;
 import ai.foresignal.config.StartupOrder;
 import ai.foresignal.ingest.IngestStateReset;
 import ai.foresignal.ingest.PersistReason;
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.search.EmbeddingWorker;
 import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.settings.SettingKeys;
@@ -124,7 +126,13 @@ public class RegionTagWorker implements ChangeListener, LiveListener, IngestStat
 
     // ------------------------------------------------------------------------- lifecycle
 
-    /** Loads the cursor, subscribes to both buses and catches up. */
+    /**
+     * Loads the cursor and subscribes to both buses, then catches up on a background thread of its own.
+     *
+     * <p>The catch-up runs off the startup thread because it can be long (every version persisted while the
+     * service was down, tagged one record at a time: about four minutes for 43,000 versions), and the service is
+     * not ready until every startup listener has returned.
+     */
     @EventListener(ApplicationReadyEvent.class)
     @Order(StartupOrder.REGION_TAGGING)
     public void start() {
@@ -139,10 +147,12 @@ public class RegionTagWorker implements ChangeListener, LiveListener, IngestStat
             live = liveBus.subscribe("region-tagger", this, LIVE_QUEUE);
             log.info("Region tag worker started at cursor {}", cursor);
         }
-        catchUp();
-        if (fresh) {
-            retagAllAsync();
-        }
+        WorkThreads.start(WorkRole.BACKGROUND, "foresignal-region-catchup", () -> {
+            catchUp();
+            if (fresh) {
+                retagAllAsync();
+            }
+        });
     }
 
     /** Unsubscribes; the cursor stays where the last processed range left it. */
@@ -373,7 +383,7 @@ public class RegionTagWorker implements ChangeListener, LiveListener, IngestStat
 
     private void retagAllAsync() {
         if (retagging.compareAndSet(false, true)) {
-            Thread.ofVirtual().name("region-retag").start(() -> {
+            WorkThreads.start(WorkRole.BACKGROUND, "foresignal-region-retag", () -> {
                 try {
                     retagAll();
                 } finally {

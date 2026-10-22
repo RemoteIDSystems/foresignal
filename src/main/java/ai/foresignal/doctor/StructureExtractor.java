@@ -1,5 +1,6 @@
 package ai.foresignal.doctor;
 
+import ai.foresignal.collect.XmlLimits;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -530,7 +531,7 @@ public final class StructureExtractor {
         factory.setXIncludeAware(false);
         factory.setExpandEntityReferences(false);
         factory.setNamespaceAware(false);
-        return factory;
+        return XmlLimits.apply(factory);
     }
 
     private static Structure xml(byte[] bytes, String contentType) {

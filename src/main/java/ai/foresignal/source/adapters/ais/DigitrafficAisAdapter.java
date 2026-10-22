@@ -3,6 +3,8 @@ package ai.foresignal.source.adapters.ais;
 import ai.foresignal.codec.ais.VesselStateMerger;
 import ai.foresignal.codec.ais.VesselUpdate;
 import ai.foresignal.config.ForesignalVersion;
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.mqtt.MqttConnectionSpec;
 import ai.foresignal.mqtt.MqttConnections;
 import ai.foresignal.mqtt.MqttEndpoint;
@@ -231,7 +233,7 @@ public class DigitrafficAisAdapter implements StreamingAdapter {
                 }
             }
             if (bootstrapDue(clock.instant()) && bootstrapping.compareAndSet(false, true)) {
-                Thread.ofVirtual().name("ais-digitraffic-bootstrap").start(() -> {
+                WorkThreads.start(WorkRole.COLLECT, "ais-digitraffic-bootstrap", () -> {
                     try {
                         bootstrapIfDue(ctx);
                     } finally {

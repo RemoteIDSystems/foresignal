@@ -1,6 +1,8 @@
 package ai.foresignal.collect;
 
 import ai.foresignal.config.StartupOrder;
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.source.CredentialsAccess;
 import ai.foresignal.source.SourceCredentialsChangedEvent;
 import ai.foresignal.source.SourceRegistry;
@@ -15,6 +17,7 @@ import ai.foresignal.store.FetchTrigger;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,8 +50,10 @@ import org.springframework.stereotype.Component;
  * polled nor streamed here. The other two paths are {@link ManualFetchService} and
  * {@link ProbeService}, both operator-initiated.
  *
- * <p><strong>Timing.</strong> One platform thread drives all timing; every fetch runs on a virtual
- * thread. {@link #reconcile()} compares the enabled sources in {@code source_settings} with the
+ * <p><strong>Timing.</strong> One platform thread drives all timing. Every scheduled source has a
+ * platform thread of its own ({@code foresignal-source-<id>}), in the {@link WorkRole#COLLECT} role, on
+ * which its runs execute one after another; so a slow or stuck source holds only its own thread, and
+ * collection draws only on the collect database pool, never on what the API needs. {@link #reconcile()} compares the enabled sources in {@code source_settings} with the
  * running set every 2 seconds, and immediately ({@link #reconcileNow()}) when settings, credentials
  * or the registry change, so an enable or disable applies within seconds:
  *
@@ -96,7 +101,6 @@ public class CollectorScheduler implements SmartLifecycle {
     /** True once {@link #start()} has run; see {@link #isAutoStartup()}. */
     private volatile boolean startedOnce;
     private ScheduledExecutorService timer;
-    private ExecutorService fetchers;
     private ScheduledFuture<?> reconcileTask;
 
     /** Creates the scheduler. */
@@ -117,9 +121,11 @@ public class CollectorScheduler implements SmartLifecycle {
         this.properties = properties;
     }
 
-    /** One scheduled polling source. */
+    /** One scheduled polling source, with the thread its runs execute on. */
     private static final class Entry {
         final String sourceId;
+        /** The source's own thread; one run at a time ({@link #runInFlight}). */
+        final ExecutorService thread;
         volatile Duration interval;
         volatile boolean active = true;
         volatile boolean runInFlight;
@@ -128,6 +134,8 @@ public class CollectorScheduler implements SmartLifecycle {
         Entry(String sourceId, Duration interval) {
             this.sourceId = sourceId;
             this.interval = interval;
+            this.thread = Executors.newSingleThreadExecutor(
+                    WorkThreads.named(WorkRole.COLLECT, "foresignal-source-" + sourceId));
         }
     }
 
@@ -150,12 +158,7 @@ public class CollectorScheduler implements SmartLifecycle {
         if (running) {
             return;
         }
-        timer = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "foresignal-collector");
-            thread.setDaemon(true);
-            return thread;
-        });
-        fetchers = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name("foresignal-scheduled-", 0).factory());
+        timer = Executors.newSingleThreadScheduledExecutor(WorkThreads.named(WorkRole.COLLECT, "foresignal-collector"));
         running = true;
         startedOnce = true;
         long period = Math.max(1, properties.reconcileInterval().toMillis());
@@ -170,14 +173,12 @@ public class CollectorScheduler implements SmartLifecycle {
     @Override
     public void stop() {
         ScheduledExecutorService stoppingTimer;
-        ExecutorService stoppingFetchers;
         synchronized (this) {
             if (!running) {
                 return;
             }
             running = false;
             stoppingTimer = timer;
-            stoppingFetchers = fetchers;
             if (reconcileTask != null) {
                 reconcileTask.cancel(false);
             }
@@ -189,7 +190,8 @@ public class CollectorScheduler implements SmartLifecycle {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        entries.values().forEach(entry -> entry.active = false);
+        List<Entry> stopping = new ArrayList<>(entries.values());
+        stopping.forEach(entry -> entry.active = false);
         entries.clear();
         while (inFlight.get() > 0 && System.nanoTime() < deadline) {
             try {
@@ -203,7 +205,7 @@ public class CollectorScheduler implements SmartLifecycle {
             log.warn("{} fetches were still running when the collector stopped", inFlight.get());
         }
         supervisor.stopAll(Duration.ofNanos(Math.max(1, deadline - System.nanoTime())));
-        stoppingFetchers.shutdown();
+        stopping.forEach(entry -> entry.thread.shutdown());
         log.info("Collector scheduler stopped");
     }
 
@@ -329,13 +331,19 @@ public class CollectorScheduler implements SmartLifecycle {
                 log.info("Stopped scheduling {}", entry.sourceId);
             }
         }
+        Instant now = Instant.now();
+        int[] dueNow = {0};
         desired.polling().forEach((id, interval) -> {
             Entry entry = entries.get(id);
             if (entry == null) {
                 Entry created = new Entry(id, interval);
                 entries.put(id, created);
-                schedule(created, Duration.ZERO);
-                log.info("Scheduling {} every {}", id, interval);
+                Duration delay = firstDelay(desired.lastAttempts().get(id), interval, now, dueNow[0]);
+                if (delay.compareTo(STAGGER.multipliedBy(dueNow[0])) <= 0) {
+                    dueNow[0]++;
+                }
+                schedule(created, delay);
+                log.info("Scheduling {} every {}, first run in {}", id, interval, delay);
             } else if (!entry.interval.equals(interval)) {
                 entry.interval = interval;
                 if (!entry.runInFlight) {
@@ -351,15 +359,39 @@ public class CollectorScheduler implements SmartLifecycle {
         supervisor.reconcile(desired.streams());
     }
 
-    /** What should be running. */
-    private record Desired(Map<String, Duration> polling, Set<String> streams) {}
+    /**
+     * The delay before a newly scheduled source's first run: the rest of its interval since its last attempt, so a
+     * restart does not re-fetch what was just fetched (CelesTrak allows one download per update, 2026-10-22). A
+     * source that is due, or never ran, starts {@code dueBefore} × {@link #STAGGER} from now, so the hundreds due
+     * at once after a restart do not all start in the same second (1.7% of that burst timed out, against 0.27%
+     * for the rest of the day).
+     */
+    static Duration firstDelay(Instant lastAttempt, Duration interval, Instant now, int dueBefore) {
+        Duration stagger = STAGGER.multipliedBy(dueBefore);
+        if (lastAttempt == null) {
+            return stagger;
+        }
+        Duration remaining = Duration.between(now, lastAttempt.plus(interval));
+        return remaining.compareTo(stagger) > 0 ? remaining : stagger;
+    }
+
+    /** The spacing between the first runs of sources that are due at the same time. */
+    static final Duration STAGGER = Duration.ofMillis(100);
+
+    /** What should be running, with each polling source's last attempt (absent when it never ran). */
+    private record Desired(Map<String, Duration> polling, Set<String> streams, Map<String, Instant> lastAttempts) {}
 
     private Desired desired() {
         Map<String, Duration> polling = new LinkedHashMap<>();
         Set<String> streams = new TreeSet<>();
+        Map<String, Instant> lastAttempts = new HashMap<>();
         List<Object[]> rows = jdbc.query(
-                "select source_id, interval_seconds from source_settings where enabled",
-                (rs, row) -> new Object[] {rs.getString(1), rs.getInt(2)});
+                "select s.source_id, s.interval_seconds, h.last_attempt_at from source_settings s"
+                        + " left join source_health h on h.source_id = s.source_id where s.enabled",
+                (rs, row) -> {
+                    java.sql.Timestamp last = rs.getTimestamp(3);
+                    return new Object[] {rs.getString(1), rs.getInt(2), last == null ? null : last.toInstant()};
+                });
         for (Object[] row : rows) {
             String id = (String) row[0];
             SourceRegistry.Registration registration = registry.find(id).orElse(null);
@@ -373,12 +405,15 @@ public class CollectorScheduler implements SmartLifecycle {
             }
             if (descriptor.mode() == Mode.POLLING && adapter instanceof PollingAdapter) {
                 polling.put(id, Duration.ofSeconds(Math.max(1, (Integer) row[1])));
+                if (row[2] != null) {
+                    lastAttempts.put(id, (Instant) row[2]);
+                }
             } else if (descriptor.mode() == Mode.STREAMING && adapter instanceof StreamingAdapter) {
                 streams.add(id);
             }
             // PUSH and DERIVED: never polled nor streamed here.
         }
-        return new Desired(polling, streams);
+        return new Desired(polling, streams, lastAttempts);
     }
 
     private boolean credentialsSet(String sourceId) {
@@ -408,9 +443,11 @@ public class CollectorScheduler implements SmartLifecycle {
         }
         entries.remove(entry.sourceId, entry);
         backoffLogged.remove(entry.sourceId);
+        // A run in flight finishes (FetchExecutor records it DISCARDED); then the thread ends.
+        entry.thread.shutdown();
     }
 
-    /** Starts one run on a virtual thread. Timer thread. */
+    /** Starts one run on the source's own thread. Timer thread. */
     private void launch(Entry entry) {
         if (!running || !entry.active) {
             return;
@@ -418,14 +455,14 @@ public class CollectorScheduler implements SmartLifecycle {
         entry.runInFlight = true;
         inFlight.incrementAndGet();
         try {
-            fetchers.execute(() -> runOnce(entry));
+            entry.thread.execute(() -> runOnce(entry));
         } catch (RejectedExecutionException e) {
             entry.runInFlight = false;
             inFlight.decrementAndGet();
         }
     }
 
-    /** One scheduled fetch. Virtual thread. */
+    /** One scheduled fetch. The source's own thread. */
     private void runOnce(Entry entry) {
         try {
             FetchOutcome outcome = executor.execute(entry.sourceId, FetchTrigger.SCHEDULED);

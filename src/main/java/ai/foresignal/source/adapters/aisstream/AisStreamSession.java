@@ -5,6 +5,8 @@ package ai.foresignal.source.adapters.aisstream;
 // Copyright (c) 2026 Bilawal Sidhu): src/data/aisStreamAdapter.js and src/data/aisWatchdog.js. See
 // THIRD_PARTY_NOTICES.md.
 
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.CredentialsRejectedException;
 import ai.foresignal.source.spi.MeteredWebSocket;
@@ -219,7 +221,7 @@ final class AisStreamSession implements StreamHandle, WebSocket.Listener {
 
     /** Starts the watchdog thread; called once the socket is open. */
     void startWatchdog() {
-        watchdog = Thread.ofVirtual().name("foresignal-aisstream-watchdog").start(() -> {
+        watchdog = WorkThreads.start(WorkRole.COLLECT, "foresignal-aisstream-watchdog", () -> {
             while (!finished.get()) {
                 try {
                     TimeUnit.MILLISECONDS.sleep(TICK.toMillis());

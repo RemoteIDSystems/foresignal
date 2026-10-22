@@ -1,5 +1,7 @@
 package ai.foresignal.source.adapters.mesh;
 
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.LanEndpoint;
@@ -151,7 +153,7 @@ public class MeshCoreLocalAdapter implements StreamingAdapter {
                 ctx.connected();
             }
         });
-        Thread.ofVirtual().name("meshcore-repeaters-" + ctx.sourceId()).start(() -> {
+        WorkThreads.start(WorkRole.COLLECT, "meshcore-repeaters-" + ctx.sourceId(), () -> {
             while (handle.isRunning()) {
                 try {
                     Thread.sleep(reevaluateEvery.toMillis());

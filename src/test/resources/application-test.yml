@@ -13,6 +13,9 @@ spring:
     open-in-view: false
 
 foresignal:
+  # Derived tests feed batches and wait for them at once; production spaces change invocations 30 s apart.
+  derive:
+    change-interval: PT0S
   # Kept off the real ./data directory so tests never touch developer state.
   data-dir: ${java.io.tmpdir}/foresignal-test-data
   reset-admin-token: false

@@ -26,15 +26,15 @@ class WzdxRegistrySnapshotTest {
     static final Pattern LONG_TOKEN = Pattern.compile("[A-Za-z0-9_\\-]{24,}");
 
     @Test
-    @DisplayName("31 feeds from the 2026-10-13 snapshot of 43 registry rows")
+    @DisplayName("30 feeds from the 2026-10-13 snapshot of 43 registry rows (nysdot excluded 2026-10-22)")
     void snapshot() {
         assertThat(WzdxRegistry.snapshotDate()).isEqualTo("2026-10-13");
         List<WzdxFeed> feeds = WzdxRegistry.load();
-        assertThat(feeds).hasSize(31);
+        assertThat(feeds).hasSize(30);
         assertThat(WzdxRegistry.problems(feeds)).isEmpty();
         assertThat(feeds).extracting(WzdxFeed::feedname).contains("wsdot", "mndot", "udot", "txdot_v4_2")
                 .doesNotContain("odot", "fldot", "quebec", "cdot_cwz", "modot", "wisdot", "michigandot", "ordot",
-                        "mdot_4");
+                        "mdot_4", "nysdot");
     }
 
     @Test
@@ -75,7 +75,7 @@ class WzdxRegistrySnapshotTest {
     void keyedFeeds() {
         List<String> keyed = WzdxRegistry.load().stream().filter(f -> f.apiKey() != null).map(WzdxFeed::feedname)
                 .sorted().toList();
-        assertThat(keyed).containsExactly("cdot", "iltollway", "mtc", "nps", "ohio", "ptc", "txdot_v4_2", "vdot");
+        assertThat(keyed).containsExactly("cdot", "iltollway", "mtc", "ncdot", "nps", "ohio", "ptc", "txdot_v4_2", "vdot");
         WzdxFamily family = new WzdxFamily("", () -> null);
         for (SourceAdapter a : family.adapters()) {
             WzdxFeed feed = ((WzdxAdapter) a).feed();
@@ -94,7 +94,7 @@ class WzdxRegistrySnapshotTest {
     @DisplayName("every feed: version 4.x, interval clamped to [5, 30] min, valid descriptor, attribution")
     void descriptors() {
         WzdxFamily family = new WzdxFamily("", () -> null);
-        assertThat(family.adapters()).hasSize(31);
+        assertThat(family.adapters()).hasSize(30);
         for (SourceAdapter a : family.adapters()) {
             WzdxFeed feed = ((WzdxAdapter) a).feed();
             assertThat(feed.version()).as(a.id()).startsWith("4");

@@ -4,6 +4,8 @@ import ai.foresignal.ingest.FetchLogEntry;
 import ai.foresignal.ingest.IngestBackpressureException;
 import ai.foresignal.ingest.IngestOutcome;
 import ai.foresignal.ingest.IngestRecord;
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.source.spi.Coverage;
 import ai.foresignal.source.spi.IngestPolicy;
 import ai.foresignal.source.spi.NormalizedRecord;
@@ -160,7 +162,7 @@ public class PolicyAwareRecordSink implements RecordSink {
         lock.lock();
         try {
             if (flusher == null) {
-                flusher = Thread.ofVirtual().name("foresignal-sink-" + sourceId).start(this::flushLoop);
+                flusher = WorkThreads.start(WorkRole.COLLECT, "foresignal-sink-" + sourceId, this::flushLoop);
             }
         } finally {
             lock.unlock();

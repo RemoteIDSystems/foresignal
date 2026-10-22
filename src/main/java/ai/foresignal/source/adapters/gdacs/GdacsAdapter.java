@@ -1,5 +1,6 @@
 package ai.foresignal.source.adapters.gdacs;
 
+import ai.foresignal.collect.UpstreamHttpException;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.FetchContext;
 import ai.foresignal.source.spi.FetchResult;
@@ -142,7 +143,16 @@ public class GdacsAdapter implements PollingAdapter {
     public FetchResult fetch(FetchContext ctx) throws AdapterException {
         List<NormalizedRecord> out = new ArrayList<>();
         for (String type : eventTypes(ctx.params())) {
-            UpstreamResponse response = ctx.http().get(eventListUri(type), Map.of("Accept", "application/json"));
+            UpstreamResponse response;
+            try {
+                response = ctx.http().get(eventListUri(type), Map.of("Accept", "application/json"));
+            } catch (UpstreamHttpException e) {
+                if (isEmptyList(e)) {
+                    ctx.log().debug("GDACS {}: no current events (404 Not Found)", type);
+                    continue;
+                }
+                throw e;
+            }
             if (response.truncated()) {
                 throw new UpstreamFormatException("GDACS " + type + " list exceeded maxResponseBytes", null);
             }
@@ -152,6 +162,16 @@ public class GdacsAdapter implements PollingAdapter {
             out.addAll(parsed.records());
         }
         return FetchResult.complete(out);
+    }
+
+    /**
+     * Whether a failure is GDACS's answer for a type with no current events: a 404 whose problem+json title is
+     * "Not Found" (seen for VO with no volcano current, 2026-10-22). A 404 with any other body, such as the
+     * "max pool size was reached" overload answer, still fails the run.
+     */
+    static boolean isEmptyList(UpstreamHttpException e) {
+        String body = e.getBodySnippet();
+        return e.getStatus() == 404 && body != null && body.contains("\"title\":\"Not Found\"");
     }
 
     private static SourceDescriptor buildDescriptor() {

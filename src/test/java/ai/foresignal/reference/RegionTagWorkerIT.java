@@ -163,7 +163,8 @@ class RegionTagWorkerIT {
         worker.start();
         await().atMost(WAIT).until(() -> row(POINTS, "c2") != null);
         assertThat(row(POINTS, "c2")).containsEntry("admin2", "48201");
-        assertThat(worker.cursor()).isGreaterThan(before);
+        // The catch-up runs on its own thread; the cursor advances just after the row is written.
+        await().atMost(WAIT).until(() -> worker.cursor() > before);
     }
 
     @Test

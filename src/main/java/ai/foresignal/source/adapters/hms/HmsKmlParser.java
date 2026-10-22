@@ -1,5 +1,6 @@
 package ai.foresignal.source.adapters.hms;
 
+import ai.foresignal.collect.XmlLimits;
 import ai.foresignal.source.spi.Geo;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.source.spi.UpstreamFormatException;
@@ -94,7 +95,7 @@ public final class HmsKmlParser {
         factory.setProperty(XMLInputFactory.SUPPORT_DTD, Boolean.FALSE);
         factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
         factory.setProperty(XMLInputFactory.IS_COALESCING, Boolean.TRUE);
-        return factory;
+        return XmlLimits.apply(factory);
     }
 
     /**

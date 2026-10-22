@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
  * each a separate source with its own settings, budget and health, all disabled by default.
  *
  * <p>The slot list is fixed in code, and the parameters are validated numbers, never URLs (the family rule
- * in {@link SourceAdapterFamily}). It replaces the catalog's six fixed {@code adsblol-region-*} centers:
- * 250 nm circles cannot cover continents.
+ * in {@link SourceAdapterFamily}). The worldwide coverage is {@code adsblol-world}, whose
+ * {@code /v2/lat/lon/dist} path takes continent-sized radii; these slots are additions on top of it.
  */
 @Component
 public class AdsbLolAreaFamily implements SourceAdapterFamily {

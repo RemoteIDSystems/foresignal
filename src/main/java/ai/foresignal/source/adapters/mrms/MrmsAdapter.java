@@ -1024,6 +1024,8 @@ public class MrmsAdapter implements PollingAdapter, DecoderDependent {
                 .mode(Mode.POLLING)
                 .interval(Duration.ofMinutes(2), Duration.ofMinutes(2))
                 .defaultBudget(Budget.of(30, 12_000, 4_500))
+                // Catching up a 15-frame backlog per product is about 580 s of decoding (2026-10-22).
+                .fetchTimeout(Duration.ofMinutes(15))
                 .historyTier(HistoryTier.STANDARD)
                 .observedAtMode(ObservedAtMode.UPSTREAM)
                 .recordTtl(null)

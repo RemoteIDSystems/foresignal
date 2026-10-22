@@ -22,9 +22,10 @@ import java.util.Set;
  *   <li>TRACK, {@code ttlAnchor} OBSERVED, {@code observedAtMode} UPSTREAM;
  *   <li>{@code recordTtl} 6 minutes ({@link #TTL}): §5.3's 5 minutes fails
  *       {@code keyframe ≤ ttl − pollInterval − 30 s} at a 60 s poll; 6 minutes allows polls up to 90 s with
- *       the 240 s keyframe. {@code opensky-states} passes its own 15 minutes;
+ *       the 240 s keyframe. {@code opensky-states} and the 30-minute blind-spot sources pass their own;
  *   <li>SAMPLED {@code {minInterval 60s, keyframe 240s, minDeviationMeters 1000, thresholds true,
- *       edgeMinInterval 30s}};
+ *       edgeMinInterval 30s}}: a moved aircraft keeps a trail point every 60 s, as Shadowbroker adds one each
+ *       minute only when the position changed; an unmoved one keeps a keyframe every 240 s;
  *   <li>significant {@code flight, r, t, squawk, category, emergency, onGround, navDegraded}; thresholds
  *       {@code alt_baro} 300 m (§5.3 states 1,000 ft) and {@code track} 20° (angular); motion
  *       {@code {gs, KNOTS, track}};
@@ -46,7 +47,7 @@ public final class AircraftDescriptors {
     /** The §5.3 SAMPLED sampling interval. */
     public static final Duration MIN_INTERVAL = Duration.ofSeconds(60);
 
-    /** The §5.3 keyframe. */
+    /** The §5.3 keyframe: an unmoved aircraft keeps a point every 240 s. */
     public static final Duration KEYFRAME = Duration.ofSeconds(240);
 
     /** The §5.3 deviation from the dead-reckoned position that earns a sample. */

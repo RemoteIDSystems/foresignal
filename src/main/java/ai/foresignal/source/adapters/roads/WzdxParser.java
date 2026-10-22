@@ -97,6 +97,10 @@ public final class WzdxParser {
      */
     public static ParsedEvents parse(byte[] body, Instant now) {
         JsonNode root = RoadEvents.readJson(body, "the WZDx feed");
+        if (root.isString()) {
+            // NJIT serves its feed JSON-encoded inside one JSON string (verified 2026-10-22).
+            root = RoadEvents.readJson(root.asString().getBytes(StandardCharsets.UTF_8), "the WZDx feed");
+        }
         if (!"FeatureCollection".equals(RoadEvents.text(root, "type"))) {
             throw new UpstreamFormatException("the WZDx feed is not a GeoJSON FeatureCollection", "");
         }

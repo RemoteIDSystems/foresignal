@@ -1,5 +1,6 @@
 package ai.foresignal.source.adapters.sanctions;
 
+import ai.foresignal.collect.XmlLimits;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -27,6 +28,7 @@ public final class Xml {
         factory.setProperty(XMLInputFactory.IS_REPLACING_ENTITY_REFERENCES, true);
         factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, true);
         factory.setProperty(XMLInputFactory.IS_COALESCING, true);
+        XmlLimits.apply(factory);
         try {
             factory.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
         } catch (IllegalArgumentException ignored) {

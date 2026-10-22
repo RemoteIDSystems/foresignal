@@ -210,7 +210,7 @@ class GoesAbiAdapterWireMockTest extends WireMockSupport {
     @DisplayName("the descriptor and the key grammar")
     void descriptor() {
         SourceDescriptor d = adapter.descriptor();
-        assertThat(d.defaultBudget()).isEqualTo(Budget.of(10, 2_000, 2_500));
+        assertThat(d.defaultBudget()).isEqualTo(Budget.of(60, 4_000, 4_000));
         assertThat(d.defaultInterval()).isEqualTo(Duration.ofMinutes(5));
         assertThat(d.maxResponseBytes()).isEqualTo(8 * 1024 * 1024);
         assertThat(d.kinds()).containsExactly(ProductSpec.RECORD_KIND);

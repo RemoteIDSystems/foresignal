@@ -84,8 +84,9 @@ class FdsnEventAdapterTest extends WireMockSupport {
         assertThat(result.records()).isEmpty();
         assertThat(harness.client.stateStore(adapter.id()).get(FdsnEventAdapter.CURSOR_KEY))
                 .contains("2026-10-14T11:55:00Z");
+        // Sent without the zone: INGV answers 400 to a trailing Z (2026-10-22).
         WIREMOCK.verify(getRequestedFor(urlPathEqualTo(PATH)).withQueryParam("updatedafter",
-                equalTo("2026-10-14T10:00:00Z")).withQueryParam("limit", equalTo("500")));
+                equalTo("2026-10-14T10:00:00")).withQueryParam("limit", equalTo("500")));
     }
 
     @Test

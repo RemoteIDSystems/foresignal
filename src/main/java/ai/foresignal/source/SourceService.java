@@ -14,6 +14,7 @@ import ai.foresignal.source.spi.CredentialField;
 import ai.foresignal.source.spi.IngestPolicy;
 import ai.foresignal.source.spi.IngestPolicyValidator;
 import ai.foresignal.source.spi.ParamSpec;
+import ai.foresignal.source.spi.ParamType;
 import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.ValidatedParams;
 import ai.foresignal.store.SourceCredentialEntity;
@@ -212,9 +213,14 @@ public class SourceService implements ApplicationRunner {
      * With all three, the rule is exactly what the guard accepts with default settings, so a source
      * seeded or bulk-enabled by it is never enabled-but-broken. No {@code LAN_URL} parameter has a
      * default, so validating defaults never resolves an address.
+     *
+     * <p>An {@link ParamType#INBOX_PATH} parameter also counts as operator input even with a default:
+     * the operator still has to put a file there ({@code osm-infrastructure} was seeded enabled and failed
+     * every run on an empty inbox, 2026-10-22).
      */
     boolean runsWithoutOperatorInput(SourceDescriptor descriptor) {
-        if (descriptor.requiresCredentials() || descriptor.params().stream().anyMatch(ParamSpec::required)) {
+        if (descriptor.requiresCredentials() || descriptor.params().stream()
+                .anyMatch(p -> p.required() || p.type() == ParamType.INBOX_PATH)) {
             return false;
         }
         try {

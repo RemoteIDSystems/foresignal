@@ -26,6 +26,7 @@ import ai.foresignal.source.CredentialsAccess;
 import ai.foresignal.source.ParamValidator;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.SourceService;
+import ai.foresignal.source.formats.readsb.AircraftRegion;
 import ai.foresignal.source.spi.AdapterStateStore;
 import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.FetchContext;
@@ -265,6 +266,49 @@ class AdsbfiAdaptersTest extends WireMockSupport {
 
         assertThatThrownBy(() -> mil.fetch(context(mil, Map.of())))
                 .isInstanceOf(UpstreamFormatException.class).hasMessageContaining("non-JSON 200");
+    }
+
+    @Test
+    @Timeout(value = 60, unit = TimeUnit.SECONDS)
+    @DisplayName("adsbfi-blindspots: Shadowbroker's eight 250 nm circles in order, 1.1 s apart, merged by hex")
+    void blindSpots() throws Exception {
+        List<Duration> pauses = new ArrayList<>();
+        AdsbFiBlindSpotAdapter blind = new AdsbFiBlindSpotAdapter(baseUrl(), pauses::add);
+        backoff.onSuccess(AdsbFiBlindSpotAdapter.ID);
+        List<String> paths = AircraftRegion.BLIND_SPOTS.stream()
+                .map(r -> "/api/v3/lat/" + r.latText() + "/lon/" + r.lonText() + "/dist/250").toList();
+        serve(paths.getFirst(), "adsbfi-mil", "mil.json", 0);
+        for (String path : paths.subList(1, paths.size())) {
+            serve(path, "adsbfi-region", "region-39.86--104.67-25.json", 0);
+        }
+
+        FetchResult result = blind.fetch(context(blind, Map.of()));
+
+        assertThat(paths.getFirst()).isEqualTo("/api/v3/lat/56.8/lon/60.6/dist/250");
+        assertThat(paths.getLast()).isEqualTo("/api/v3/lat/9/lon/38.7/dist/250");
+        List<String> order = WIREMOCK.getAllServeEvents().stream()
+                .sorted(Comparator.comparing(e -> e.getRequest().getLoggedDate()))
+                .map(e -> e.getRequest().getUrl()).toList();
+        assertThat(order).containsExactlyElementsOf(paths);
+        assertThat(pauses).hasSize(7).containsOnly(Duration.ofMillis(1100));
+        assertThat(result.records()).extracting(r -> r.externalId()).doesNotHaveDuplicates();
+        assertThat(result.complete()).isTrue();
+    }
+
+    @Test
+    @DisplayName("adsbfi-blindspots: every 30 min, a 35-minute TTL, on by default; adsbfi-mil is off by default")
+    void blindSpotDescriptor() {
+        SourceDescriptor d = new AdsbFiBlindSpotAdapter("").descriptor();
+        assertThat(ai.foresignal.source.DescriptorValidator.problems(d, new AdsbFiBlindSpotAdapter(""))).isEmpty();
+        assertThat(ai.foresignal.source.spi.IngestPolicyValidator.problems(d.defaultIngestPolicy(), d,
+                "defaultIngestPolicy")).isEmpty();
+        assertThat(d.defaultInterval()).isEqualTo(Duration.ofMinutes(30));
+        assertThat(d.recordTtl()).isEqualTo(Duration.ofMinutes(35));
+        assertThat(d.defaultBudget()).isEqualTo(Budget.of(10, 400));
+        assertThat(d.hostPacing()).isEqualTo(Duration.ofMillis(1100));
+        assertThat(d.params()).isEmpty();
+        assertThat(d.autoEnable()).isTrue();
+        assertThat(mil.descriptor().autoEnable()).isFalse();
     }
 
     /** The smallest {@link FetchContext} around a real {@link SourceHttp}. */

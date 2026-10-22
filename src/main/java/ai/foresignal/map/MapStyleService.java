@@ -226,7 +226,7 @@ public class MapStyleService {
         boolean icon = display != null && display.icon() != null && sprite.contains(display.icon());
         if (icon) {
             Map<String, Object> layout = new LinkedHashMap<>();
-            layout.put("icon-image", display.icon());
+            layout.put("icon-image", iconImage(display));
             layout.put("icon-allow-overlap", true);
             layout.put("icon-ignore-placement", true);
             if (display.rotateField() != null) {
@@ -270,8 +270,29 @@ public class MapStyleService {
     }
 
     /**
+     * The icon: a {@code match} on {@code iconField} over {@code iconCases}, falling back to {@code icon}, when
+     * the kind chooses its icon by value (cases in sorted order, so the style is the same on every start);
+     * otherwise the constant {@code icon}.
+     */
+    static Object iconImage(KindDisplay display) {
+        if (display.iconField() == null || display.iconCases() == null || display.iconCases().isEmpty()) {
+            return display.icon();
+        }
+        List<Object> match = new ArrayList<>();
+        match.add("match");
+        match.add(valueOf(display.iconField()));
+        new java.util.TreeMap<>(display.iconCases()).forEach((value, icon) -> {
+            match.add(value);
+            match.add(icon);
+        });
+        match.add(display.icon());
+        return match;
+    }
+
+    /**
      * The color expression: a {@code match} on {@code colorField}, or on {@code severity} when the layer
-     * carries it, over {@link #SEVERITY_COLORS}; otherwise the constant {@code base}.
+     * carries it, over the kind's {@code colorCases} or else {@link #SEVERITY_COLORS}; otherwise the constant
+     * {@code base}.
      */
     static Object color(TileLayer layer, KindDisplay display, String base) {
         String field = display != null && display.colorField() != null ? display.colorField()
@@ -281,13 +302,25 @@ public class MapStyleService {
         }
         List<Object> match = new ArrayList<>();
         match.add("match");
-        match.add(List.of("downcase", List.of("to-string", List.of("coalesce", List.of("get", field), ""))));
-        for (Map.Entry<List<String>, String> entry : SEVERITY_COLORS) {
-            match.add(entry.getKey());
-            match.add(entry.getValue());
+        match.add(valueOf(field));
+        if (display != null && display.colorCases() != null && !display.colorCases().isEmpty()) {
+            new java.util.TreeMap<>(display.colorCases()).forEach((value, color) -> {
+                match.add(value);
+                match.add(color.toUpperCase(Locale.ROOT));
+            });
+        } else {
+            for (Map.Entry<List<String>, String> entry : SEVERITY_COLORS) {
+                match.add(entry.getKey());
+                match.add(entry.getValue());
+            }
         }
         match.add(base);
         return match;
+    }
+
+    /** A feature's {@code field} as lowercase text, empty when absent: the input of every value match. */
+    private static Object valueOf(String field) {
+        return List.of("downcase", List.of("to-string", List.of("coalesce", List.of("get", field), "")));
     }
 
     /** The circle radius: by zoom, and with {@code sizeField} plus up to three times the square root of it. */

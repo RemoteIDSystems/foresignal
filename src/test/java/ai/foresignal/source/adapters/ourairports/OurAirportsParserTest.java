@@ -7,6 +7,7 @@ import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.testsupport.adapters.AdapterFixtures;
 import ai.foresignal.testsupport.adapters.FieldSpecContract;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,41 @@ class OurAirportsParserTest {
         NormalizedRecord noCoords =
                 records.stream().filter(r -> r.externalId().equals("ZZZZ")).findFirst().orElseThrow();
         assertThat(noCoords.geometry()).isNull();
+    }
+
+    @Test
+    @DisplayName("chart details: towered, the longest runway and the sectional symbol; an upright symbol has no heading")
+    void chartDetails() {
+        Map<String, AirportChart.Info> chart = AirportChart.index(
+                AdapterFixtures.bytes(OurAirportsAdapter.ID, "runways.csv"),
+                AdapterFixtures.bytes(OurAirportsAdapter.ID, "airport-frequencies.csv"));
+        List<NormalizedRecord> records = OurAirportsParser.parseAirportsAll(
+                AdapterFixtures.bytes(OurAirportsAdapter.ID, "airports.csv"), Set.of(), chart);
+        FieldSpecContract.assertPayloadKeysDeclared(descriptor, records);
+        Map<String, Map<String, Object>> byId = new java.util.HashMap<>();
+        records.forEach(r -> byId.put(r.externalId(), r.payload()));
+
+        assertThat(byId.get("KJFK")).containsEntry("towered", true)
+                .containsEntry("runwaySurface", "hard")
+                .containsEntry("longestRunwayFt", 14_511L)
+                .containsEntry("runwayHeading", 31.0)
+                .containsEntry("chartSymbol", "major");
+        assertThat(byId.get("LFPG")).containsEntry("towered", false).containsEntry("chartSymbol", "major");
+        assertThat(byId.get("ZZZZ")).containsEntry("chartSymbol", "soft").containsEntry("runwayHeading", 0.0);
+        assertThat(byId.get("KFFO")).containsEntry("chartSymbol", "heliport");
+        assertThat(byId.get("KFFO").get("runwayHeading")).isNull();
+        assertThat(byId.get("XXCL")).containsEntry("chartSymbol", "closed").containsEntry("towered", false);
+    }
+
+    @Test
+    @DisplayName("without chart details an airport is drawn by its type")
+    void chartByType() {
+        List<NormalizedRecord> records = OurAirportsParser.parseAirportsAll(
+                AdapterFixtures.bytes(OurAirportsAdapter.ID, "airports.csv"),
+                OurAirportsParser.types(OurAirportsParser.DEFAULT_TYPES));
+        assertThat(records).filteredOn(r -> r.externalId().equals("EGLL")).singleElement()
+                .satisfies(r -> assertThat(r.payload()).containsEntry("chartSymbol", "major")
+                        .containsEntry("towered", false));
     }
 
     @Test

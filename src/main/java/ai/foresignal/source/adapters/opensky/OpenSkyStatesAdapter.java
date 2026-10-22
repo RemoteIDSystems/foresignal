@@ -45,7 +45,12 @@ import org.springframework.stereotype.Component;
  *
  * <p><strong>Interval:</strong> 300 s by default, 90 s minimum ({@code 86400 / (4000 / 4)} ≈ 86 s for a
  * standard account at world cost); anonymous world polling needs at least 900 s (400 credits ÷ 4 = 100 calls
- * a day). The TTL is 15 minutes, so the 240 s keyframe holds up to a 630 s interval.
+ * a day). The TTL is 15 minutes, so the 60 s keyframe holds up to an 810 s interval.
+ *
+ * <p><strong>Off by default:</strong> Shadowbroker queries OpenSky only with a token, every 300 s. Anonymous
+ * polling at that interval spends the 400 anonymous credits by mid-morning, so this source is not enabled on
+ * a fresh install; the operator enables it, with credentials for Shadowbroker's behavior or without them as an
+ * addition.
  *
  * <p><strong>License:</strong> OpenSky's terms (non-commercial research), so {@code egress: LOCAL_ONLY}:
  * never re-served by sinks, federation, share links or feeds (Gap-Analysis §9).
@@ -237,8 +242,8 @@ public class OpenSkyStatesAdapter implements PollingAdapter {
                         + " extended). Credit-governed: a standard account has 4,000 credits a day and a world query"
                         + " costs 4, so the floor is 90 s; anonymous world polling needs an interval of at least"
                         + " 900 s (400 credits / 4 = 100 calls a day). Optional OAuth2 client credentials (clientId"
-                        + " and clientSecret together). TTL 15 minutes, so the 240 s keyframe holds up to a 630 s"
-                        + " interval. LOCAL_ONLY: OpenSky's terms forbid redistribution.")
+                        + " and clientSecret together). TTL 15 minutes and a trail point every 60 s. Off by"
+                        + " default: enable it once the credentials are set. LOCAL_ONLY: OpenSky's terms forbid redistribution.")
                 .mode(Mode.POLLING)
                 .homepage("https://opensky-network.org")
                 .attribution("The OpenSky Network, https://opensky-network.org. Matthias Schäfer, Martin Strohmeier,"
@@ -247,6 +252,7 @@ public class OpenSkyStatesAdapter implements PollingAdapter {
                 .licence("OpenSky Network terms (non-commercial research)")
                 .termsUrl("https://opensky-network.org/about/terms-of-use")
                 .egress(Egress.LOCAL_ONLY)
+                .autoEnable(false)
                 .credential(CredentialField.optional(CLIENT_ID,
                         "OpenSky API client id (Account page → API client); set together with clientSecret"))
                 .credential(CredentialField.optional(CLIENT_SECRET,

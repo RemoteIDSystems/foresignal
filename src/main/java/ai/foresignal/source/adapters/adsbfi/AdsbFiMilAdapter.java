@@ -19,6 +19,9 @@ import org.springframework.stereotype.Component;
  * <p>One GET of {@code /api/v2/mil} per poll (readsb {@code ac[]} with {@code dbFlags}, {@code mlat[]} and
  * {@code tisb[]}), every 30 s, paced with the other adsb.fi sources (see the package note). The result is the
  * complete current set, but absent aircraft are never tombstoned: the 6-minute TTL retires them.
+ *
+ * <p>Off by default: Shadowbroker's military feed is adsb.lol and airplanes.live only, so this source is an
+ * addition the operator turns on.
  */
 @Component
 public class AdsbFiMilAdapter implements PollingAdapter {
@@ -73,9 +76,9 @@ public class AdsbFiMilAdapter implements PollingAdapter {
                 .description("Aircraft flagged military in the adsb.fi database, worldwide, from community ADS-B and"
                         + " MLAT receivers (opendata.adsb.fi /api/v2/mil). Personal, non-commercial use only; cite"
                         + " adsb.fi. Requests to opendata.adsb.fi are serial across every adsbfi-* source, at least"
-                        + " 1.1 s apart. TRACK with a 6-minute TTL and the 240 s keyframe: keyframe <= ttl - interval"
-                        + " - 30 s holds at the 30 s interval and up to 90 s.");
-        AdsbFi.upstream(builder);
+                        + " 1.1 s apart. TRACK with a 6-minute TTL and a trail point every 60 s. Off by default.");
+        AdsbFi.upstream(builder)
+                .autoEnable(false);
         AircraftDescriptors.global(builder);
         builder.kindDisplay(AircraftFields.KIND, AircraftDescriptors.militaryDisplay());
         return builder.build();

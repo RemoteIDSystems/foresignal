@@ -91,6 +91,7 @@ class AdsbLolAdapterTest extends WireMockSupport {
     private UpstreamClient client;
     private AdsbLolMilAdapter mil;
     private AdsbLolAreaAdapter area;
+    private AdsbLolWorldAdapter world;
 
     @BeforeEach
     void setUp() {
@@ -104,11 +105,13 @@ class AdsbLolAdapterTest extends WireMockSupport {
         backoff = new BackoffRegistry(jdbc, clock);
         backoff.onSuccess(AdsbLolMilAdapter.ID);
         backoff.onSuccess("adsblol-area-1");
+        backoff.onSuccess(AdsbLolWorldAdapter.ID);
         BudgetGovernor budgets = new BudgetGovernor(sources, usage, clock);
         client = new UpstreamClient(
                 budgets, backoff, usage, install, credentials, sources, jdbc, jsonMapper, properties, clock);
         mil = new AdsbLolMilAdapter(baseUrl());
         area = (AdsbLolAreaAdapter) new AdsbLolAreaFamily(baseUrl()).adapters().getFirst();
+        world = new AdsbLolWorldAdapter(baseUrl());
     }
 
     private FetchContext context(SourceAdapter adapter, Map<String, Object> params) {
@@ -318,16 +321,113 @@ class AdsbLolAdapterTest extends WireMockSupport {
     }
 
     @Nested
+    @DisplayName("adsblol-world")
+    class World {
+
+        private static final List<String> PATHS = List.of(
+                "/v2/lat/39.8/lon/-98.5/dist/2000",
+                "/v2/lat/50/lon/15/dist/2000",
+                "/v2/lat/35/lon/105/dist/2000",
+                "/v2/lat/-25/lon/133/dist/2000",
+                "/v2/lat/0/lon/20/dist/2500",
+                "/v2/lat/-15/lon/-60/dist/2000");
+
+        @Test
+        @DisplayName("requests Shadowbroker's six circles from /v2/lat/lon/dist, once each, and merges them by hex")
+        void sixCircles() throws Exception {
+            serve(PATHS.get(0), "adsblol-area", "point-41.98--87.90-250.json");
+            serve(PATHS.get(1), "adsblol-mil", "mil.json");
+            for (String path : PATHS.subList(2, 6)) {
+                serve(path, "adsblol-area", "point-41.98--87.90-250.json");
+            }
+
+            FetchResult result = world.fetch(context(world, Map.of()));
+
+            // 30 + 30 distinct aircraft; the four repeats of the first file add nothing.
+            assertThat(result.records()).hasSize(60);
+            assertThat(result.records()).extracting(r -> r.externalId()).doesNotHaveDuplicates();
+            assertThat(result.complete()).isTrue();
+            assertThat(result.coverage().actual()).isEqualTo(60);
+            assertThat(result.coverage().region())
+                    .isEqualTo(ai.foresignal.source.formats.readsb.AircraftRegion.envelopeOf(
+                            ai.foresignal.source.formats.readsb.AircraftRegion.WORLD));
+            for (String path : PATHS) {
+                WIREMOCK.verify(1, getRequestedFor(urlEqualTo(path)));
+            }
+        }
+
+        @Test
+        @DisplayName("the first circle that reports an aircraft keeps it")
+        void firstCircleWins() throws Exception {
+            serve(PATHS.get(0), "adsblol-area", "point-41.98--87.90-250.json");
+            for (String path : PATHS.subList(1, 6)) {
+                serve(path, "adsblol-area", "point-41.98--87.90-250.json");
+            }
+
+            FetchResult result = world.fetch(context(world, Map.of()));
+
+            assertThat(result.records()).hasSize(30);
+        }
+
+        @Test
+        @DisplayName("a circle that fails leaves the others standing, as a partial result")
+        void oneCircleFails() throws Exception {
+            serve(PATHS.get(0), "adsblol-area", "point-41.98--87.90-250.json");
+            // The failures answer late, so their backoff cannot hold back the circles that succeed.
+            for (String path : PATHS.subList(1, 5)) {
+                WIREMOCK.stubFor(WireMock.get(urlEqualTo(path)).willReturn(aResponse().withStatus(503)
+                        .withFixedDelay(500)));
+            }
+            serve(PATHS.get(5), "adsblol-mil", "mil.json");
+
+            FetchResult result = world.fetch(context(world, Map.of()));
+
+            assertThat(result.records()).hasSize(60);
+            assertThat(result.complete()).as("absent aircraft of the failed circles must not look gone").isFalse();
+        }
+
+        @Test
+        @DisplayName("the poll fails only when every circle failed, with the first circle's error")
+        void allCirclesFail() {
+            for (String path : PATHS) {
+                WIREMOCK.stubFor(WireMock.get(urlEqualTo(path)).willReturn(aResponse().withStatus(503)));
+            }
+
+            assertThatThrownBy(() -> world.fetch(context(world, Map.of())))
+                    .isInstanceOf(UpstreamHttpException.class);
+        }
+
+        @Test
+        @DisplayName("a refusal of this client fails the poll and starts the one-hour backoff")
+        void refused() {
+            for (String path : PATHS) {
+                WIREMOCK.stubFor(WireMock.get(urlEqualTo(path)).willReturn(aResponse().withStatus(451)));
+            }
+
+            assertThatThrownBy(() -> world.fetch(context(world, Map.of())))
+                    .isInstanceOf(UpstreamAccessDeniedException.class);
+            assertThat(backoff.backoffUntil(AdsbLolWorldAdapter.ID)).isEqualTo(NOW.plus(Duration.ofHours(1)));
+        }
+
+        @Test
+        @DisplayName("the production URL of a circle")
+        void productionUrl() {
+            assertThat(new AdsbLolWorldAdapter("").uri(ai.foresignal.source.formats.readsb.AircraftRegion.WORLD
+                    .getFirst()).toString()).isEqualTo("https://api.adsb.lol/v2/lat/39.8/lon/-98.5/dist/2000");
+        }
+    }
+
+    @Nested
     @DisplayName("descriptors")
     class Descriptors {
 
         @Test
-        @DisplayName("mil and the three area slots pass registry validation with the prompt's values")
+        @DisplayName("mil, world and the three area slots pass registry validation with their values")
         void values() {
             SourceDescriptor m = mil.descriptor();
             assertThat(DescriptorValidator.problems(m, mil)).isEmpty();
             assertThat(m.minInterval()).isEqualTo(Duration.ofSeconds(15));
-            assertThat(m.defaultInterval()).isEqualTo(Duration.ofSeconds(30));
+            assertThat(m.defaultInterval()).as("Shadowbroker's military cadence").isEqualTo(Duration.ofSeconds(60));
             assertThat(m.defaultBudget()).isEqualTo(Budget.of(4, 3_000));
             assertThat(m.licence()).isEqualTo("ODbL-1.0");
             assertThat(m.termsUrl()).isEqualTo("https://github.com/adsblol/api");
@@ -351,6 +451,18 @@ class AdsbLolAdapterTest extends WireMockSupport {
                 assertThat(d.param("lat").required()).isTrue();
                 assertThat(d.param("lon").required()).isTrue();
             }
+
+            SourceDescriptor w = world.descriptor();
+            assertThat(DescriptorValidator.problems(w, world)).isEmpty();
+            assertThat(w.minInterval()).isEqualTo(Duration.ofSeconds(60));
+            assertThat(w.defaultInterval()).isEqualTo(Duration.ofSeconds(60));
+            assertThat(w.defaultBudget()).as("six requests a poll").isEqualTo(Budget.of(12, 9_000));
+            assertThat(w.params()).as("no operator input, so it starts enabled").isEmpty();
+            assertThat(w.autoEnable()).isTrue();
+            assertThat(w.egress()).isEqualTo(Egress.OPEN);
+            assertThat(w.accessDeniedIsTerminal()).isTrue();
+            assertThat(w.historyTier()).isEqualTo(HistoryTier.TRACK);
+            assertThat(w.credentialFields()).isEmpty();
         }
 
         @Test

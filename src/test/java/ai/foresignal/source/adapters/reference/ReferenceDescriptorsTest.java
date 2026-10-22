@@ -61,8 +61,16 @@ class ReferenceDescriptorsTest {
                 assertThat(descriptor.minInterval()).as("%s minInterval", descriptor.id())
                         .isEqualTo(Duration.ofDays(1));
             }
-            assertThat(descriptor.defaultBudget().perMinute()).as("%s budget/min", descriptor.id()).isEqualTo(2);
-            assertThat(descriptor.defaultBudget().perDay()).as("%s budget/day", descriptor.id()).isEqualTo(20);
+            // OurAirports makes up to four requests a run (airports, runways, frequencies, navaids); see its budget.
+            boolean airports = descriptor.id().equals(ai.foresignal.source.adapters.ourairports.OurAirportsAdapter.ID);
+            assertThat(descriptor.defaultBudget().perMinute()).as("%s budget/min", descriptor.id())
+                    .isEqualTo(airports ? ai.foresignal.source.adapters.ourairports.OurAirportsAdapter.BUDGET_PER_MINUTE : 2);
+            assertThat(descriptor.defaultBudget().perDay()).as("%s budget/day", descriptor.id())
+                    .isEqualTo(airports ? ai.foresignal.source.adapters.ourairports.OurAirportsAdapter.BUDGET_PER_DAY : 20);
+            if (airports) {
+                assertThat(descriptor.fetchTimeout()).as("a full rebuild ingests about 84,000 airports")
+                        .isEqualTo(Duration.ofMinutes(10));
+            }
         }
     }
 

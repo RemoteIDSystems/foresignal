@@ -1,5 +1,7 @@
 package ai.foresignal.source.adapters.bluesky;
 
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.social.SocialCollector;
 import ai.foresignal.social.SocialPost;
 import ai.foresignal.social.SocialRuntime;
@@ -41,6 +43,9 @@ final class JetstreamSession implements StreamHandle, WebSocket.Listener {
     /** How often the watchdog runs. */
     static final Duration TICK = Duration.ofSeconds(1);
 
+    /** A dropped event is logged the first time and then once every this many. */
+    static final long DROP_LOG_EVERY = 10_000;
+
     /** How often the cursor is stored. */
     static final Duration SAVE_EVERY = Duration.ofSeconds(5);
 
@@ -77,6 +82,8 @@ final class JetstreamSession implements StreamHandle, WebSocket.Listener {
     private volatile boolean deletionSync;
     private volatile long posts;
     private volatile long stored;
+    /** Events that could not be mapped this session. */
+    private long dropped;
 
     JetstreamSession(StreamContext ctx, RecordSink sink, SocialRuntime runtime, Long storedSeq,
             StreamLedger.Gap pendingGap) {
@@ -219,7 +226,13 @@ final class JetstreamSession implements StreamHandle, WebSocket.Listener {
             try {
                 commit(did, operation, collection, rkey, commit.get("record"), time == null ? receivedAt : time);
             } catch (RuntimeException e) {
-                log.debug("{}: dropping an event it could not map: {}", ctx.sourceId(), e.toString());
+                // Logged loudly: from 2026-10-19 the live stream counted no posts while staying connected and healthy,
+                // and this line, then at debug, was the only place the cause could have shown.
+                dropped++;
+                if (dropped == 1 || dropped % DROP_LOG_EVERY == 0) {
+                    log.warn("{}: dropped {} event(s) it could not map; latest {} {}", ctx.sourceId(), dropped,
+                            collection, operation, e);
+                }
             }
         }
         advance(position, time, receivedAt);
@@ -278,7 +291,7 @@ final class JetstreamSession implements StreamHandle, WebSocket.Listener {
     // ---------- watchdog ----------
 
     void startWatchdog() {
-        watchdog = Thread.ofVirtual().name("foresignal-jetstream-watchdog").start(() -> {
+        watchdog = WorkThreads.start(WorkRole.COLLECT, "foresignal-jetstream-watchdog", () -> {
             while (!finished.get()) {
                 try {
                     TimeUnit.MILLISECONDS.sleep(TICK.toMillis());

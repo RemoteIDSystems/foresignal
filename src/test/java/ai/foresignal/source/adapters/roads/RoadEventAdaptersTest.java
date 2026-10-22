@@ -128,7 +128,7 @@ class RoadEventAdaptersTest extends WireMockSupport {
     @Test
     @DisplayName("every road-event descriptor validates, is disabled-by-default material and emits road-event")
     void descriptors() {
-        assertThat(adapters).hasSize(35);
+        assertThat(adapters).hasSize(34);
         for (SourceAdapter a : adapters) {
             assertThat(DescriptorValidator.problems(a.descriptor(), a)).as(a.id()).isEmpty();
             assertThat(a.descriptor().kinds()).as(a.id()).containsExactly("road-event");

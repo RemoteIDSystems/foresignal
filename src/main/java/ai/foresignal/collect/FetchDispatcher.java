@@ -11,9 +11,9 @@ import java.util.concurrent.TimeoutException;
 /**
  * Where an adapter's work actually runs.
  *
- * <p>A seam rather than a hard-coded executor: the default runs every fetch on its own virtual
- * thread, and prompt 042 replaces it to route heavy product decodes onto a bounded platform pool
- * behind a semaphore (Weather-Imagery-Design §2.2, "Scheduler").
+ * <p>A seam rather than a hard-coded executor: the default ({@link SourceThreadFetchDispatcher}) runs
+ * every fetch on a platform thread of its own, in the collect role, so collection never shares the
+ * threads or the database pool the API serves requests with.
  */
 public interface FetchDispatcher {
 

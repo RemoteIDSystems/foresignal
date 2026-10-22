@@ -28,7 +28,7 @@ public final class CapFeeds {
     public static final String RESOURCE = "/sources/cap-feeds.json";
 
     /** The accepted index formats. */
-    public static final Set<String> FORMATS = Set.of("atom-index", "rss-index", "cap-inline");
+    public static final Set<String> FORMATS = Set.of("atom-index", "rss-index", "cap-inline", "atom-embedded");
 
     private static final Pattern ID = Pattern.compile("^cap-[a-z0-9]+(-[a-z0-9]+)*$");
     private static final JsonMapper JSON = JsonMapper.builder().build();

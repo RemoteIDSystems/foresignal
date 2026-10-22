@@ -59,12 +59,12 @@
     "interval": "24h",
     "minInterval": "1h",
     "budget": {
-      "perMinute": 10,
-      "perDay": 100
+      "perMinute": 30,
+      "perDay": 200
     },
     "paging": {
-      "pageSize": 1000,
-      "maxPages": 10
+      "pageSize": 250,
+      "maxPages": 20
     },
     "absenceTombstones": true,
     "zeroResultsNormal": false,

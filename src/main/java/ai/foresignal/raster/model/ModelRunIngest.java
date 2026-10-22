@@ -84,8 +84,8 @@ public class ModelRunIngest implements ForecastRunCadence {
     /** The most steps read per fetch. */
     public static final int MAX_STEPS_PER_FETCH = 10;
 
-    /** The largest grid accepted, points (HRRR's 1799 × 1059 = 1.9 M fits). */
-    public static final int MAX_POINTS = 2_000_000;
+    /** The largest grid accepted, points (NBM's 2345 × 1597 = 3.7 M and HRRR's 1799 × 1059 = 1.9 M fit). */
+    public static final int MAX_POINTS = 4_000_000;
 
     /** The {@code .idx} response cap, bytes. */
     public static final int MAX_IDX_BYTES = 2 * 1024 * 1024;

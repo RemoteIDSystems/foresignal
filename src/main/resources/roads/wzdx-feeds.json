@@ -4,7 +4,7 @@
   "registryLicense": "Public Domain U.S. Government",
   "snapshotDate": "2026-10-13",
   "registryRows": 43,
-  "rule": "active=true, format=geojson, version 4.x, no token in the URL; key-required rows only where the registry URL shows the key's query parameter",
+  "rule": "active=true, format=geojson, version 4.x, no token in the URL; key-required rows only where the registry URL shows the key's query parameter, or where the publisher's own documentation requires one (ncdot, 2026-10-22)",
   "feeds": [
     {
       "feedname": "austin",
@@ -163,7 +163,12 @@
       "state": "north carolina",
       "version": "4.2",
       "datafeed_frequency_update": "4m",
-      "url": "https://drivenc.gov/api/wzdx"
+      "url": "https://www.drivenc.gov/api/wzdx",
+      "apiKey": {
+        "placement": "query",
+        "name": "key"
+      },
+      "apikeyurl": "https://www.drivenc.gov/developers/doc"
     },
     {
       "feedname": "nddot",
@@ -209,14 +214,6 @@
         "name": "api_key"
       },
       "apikeyurl": "https://www.nps.gov/subjects/developer/get-started.htm"
-    },
-    {
-      "feedname": "nysdot",
-      "issuingorganization": "New York DOT",
-      "state": "new york",
-      "version": "4.1",
-      "datafeed_frequency_update": "15m",
-      "url": "https://511ny.org/api/wzdx"
     },
     {
       "feedname": "ohio",
@@ -296,6 +293,11 @@
     }
   ],
   "excluded": [
+    {
+      "feedname": "nysdot",
+      "version": "4.1",
+      "reason": "511NY moved platforms (2026-09-29); /api/wzdx now serves the site's HTML shell and no replacement URL is published (checked 2026-10-22)"
+    },
     {
       "feedname": "cdot_cwz",
       "version": "CWZ 1.0",

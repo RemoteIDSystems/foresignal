@@ -196,6 +196,8 @@ public class GfsAdapter implements PollingAdapter, DecoderDependent {
                 .mode(Mode.POLLING)
                 .interval(Duration.ofMinutes(15), Duration.ofMinutes(15))
                 .defaultBudget(Budget.of(60, 3_000, 1_000))
+                // The slowest successful run took 58.8 s of the old 60 s default (2026-10-22).
+                .fetchTimeout(Duration.ofMinutes(3))
                 .historyTier(HistoryTier.STANDARD)
                 .observedAtMode(ObservedAtMode.UPSTREAM)
                 .recordTtl(null)

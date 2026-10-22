@@ -141,9 +141,7 @@ public class AdsbLolAreaAdapter implements PollingAdapter {
                 .name("adsb.lol area " + slot)
                 .description("Every aircraft within radiusNm (at most 250 nm) of an operator-chosen point, from"
                         + " adsb.lol community receivers (api.adsb.lol /v2/point). Disabled until lat and lon are set."
-                        + " TRACK with a 6-minute TTL and the 240 s keyframe: keyframe <= ttl - interval - 30 s holds"
-                        + " at the default 60 s interval and up to 90 s; a slower interval needs a shorter keyframe in"
-                        + " the ingest policy.");
+                        + " TRACK with a 6-minute TTL and a trail point every 60 s.");
         AdsbLol.upstream(builder)
                 .interval(Duration.ofSeconds(30), Duration.ofSeconds(60))
                 .defaultBudget(2, 1_500)

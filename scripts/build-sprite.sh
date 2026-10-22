@@ -10,6 +10,9 @@
 # Icons come from two pinned CC0 releases:
 #   Maki   v8.0.1  https://github.com/mapbox/maki        (CC0-1.0)
 #   Temaki v5.13.0 https://github.com/rapideditor/temaki (CC0-1.0)
+# A third set is drawn for Foresignal and kept in scripts/sprite-icons/: the airport symbols of a VFR sectional
+# chart (airport-major, -hard, -soft, -heliport, -seaplane, -closed), after the FAA Aeronautical Chart User's
+# Guide, "Airports". They are copied under their file names.
 # Temaki file names use underscores; they are renamed to kebab-case so every sprite name matches
 # ^[a-z0-9-]+$ (getMapIcon). ALIASES give the names adapters use in kindDisplay.icon (for example
 # "earthquake", "lightning") an image from either set; the sprite then holds the alias name as its own
@@ -101,6 +104,9 @@ for name in "${MAKI_ICONS[@]}"; do
 done
 for name in "${TEMAKI_ICONS[@]}"; do
   cp "$WORK/temaki/icons/${name}.svg" "$WORK/svg/${name//_/-}.svg"
+done
+for svg in scripts/sprite-icons/*.svg; do
+  cp "$svg" "$WORK/svg/$(basename "$svg")"
 done
 for entry in "${ALIASES[@]}"; do
   alias="${entry%%=*}"

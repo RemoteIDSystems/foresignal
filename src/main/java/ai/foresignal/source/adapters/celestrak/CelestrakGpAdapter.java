@@ -222,7 +222,7 @@ public class CelestrakGpAdapter implements PollingAdapter {
                 .attribution("CelesTrak (Dr. T.S. Kelso), https://celestrak.org; data from the 18th Space Defense"
                         + " Squadron via Space-Track")
                 .licence("CelesTrak (data from 18th SDS via Space-Track)")
-                .termsUrl("https://celestrak.org/NORAD/elements/usage-policy.php")
+                .termsUrl("https://celestrak.org/usage-policy.php")
                 .param(ParamSpec.optional(GROUP_PARAM, ParamType.STRING,
                         "The CelesTrak group fetched every run (default active: every object)", CelestrakGroups.ACTIVE))
                 .param(new ParamSpec(MEMBERS_PARAM, ParamType.STRING_LIST,

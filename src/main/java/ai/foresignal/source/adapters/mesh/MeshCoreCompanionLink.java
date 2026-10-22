@@ -1,5 +1,7 @@
 package ai.foresignal.source.adapters.mesh;
 
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.source.formats.meshcore.MeshCoreCommandGuard;
 import ai.foresignal.source.formats.meshcore.MeshCoreFrameDecoder;
 import ai.foresignal.source.formats.meshcore.MeshCoreFrames;
@@ -77,7 +79,7 @@ public final class MeshCoreCompanionLink {
     static final Duration LADDER_RESET = Duration.ofMinutes(10);
 
     private static final ScheduledExecutorService TIMERS = Executors.newSingleThreadScheduledExecutor(
-            Thread.ofVirtual().name("meshcore-link-timer").factory());
+            WorkThreads.named(WorkRole.COLLECT, "meshcore-link-timer"));
 
     /** Hears the frames and the connection changes of a link. */
     public interface Listener {
@@ -186,8 +188,7 @@ public final class MeshCoreCompanionLink {
         if (!running) {
             running = true;
             // Assigned before it starts: the loop runs only while it is the current runner.
-            Thread next = Thread.ofVirtual().name("meshcore-link-" + endpoint.host() + "-" + endpoint.port())
-                    .unstarted(this::loop);
+            Thread next = WorkThreads.unstarted(WorkRole.COLLECT, "meshcore-link-" + endpoint.host() + "-" + endpoint.port(), this::loop);
             runner = next;
             next.start();
         } else if (connected() && listener != null) {

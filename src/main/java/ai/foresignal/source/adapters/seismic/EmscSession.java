@@ -1,5 +1,7 @@
 package ai.foresignal.source.adapters.seismic;
 
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.MeteredWebSocket;
 import ai.foresignal.source.spi.NormalizedRecord;
@@ -299,7 +301,7 @@ final class EmscSession implements StreamHandle, WebSocket.Listener {
     // ---------- watchdog ----------
 
     void startWatchdog() {
-        watchdog = Thread.ofVirtual().name("foresignal-emsc-watchdog").start(() -> {
+        watchdog = WorkThreads.start(WorkRole.COLLECT, "foresignal-emsc-watchdog", () -> {
             while (!finished.get()) {
                 try {
                     TimeUnit.MILLISECONDS.sleep(TICK.toMillis());

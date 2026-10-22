@@ -25,6 +25,11 @@ import org.springframework.transaction.annotation.Transactional;
  * projects get blocked. When there is no header, backoff grows exponentially from 30 seconds,
  * capped at an hour, so a persistent outage settles into hourly probes rather than hammering.
  *
+ * <p>A {@code Retry-After} is a floor, not a fixed period: the first throttle waits exactly what the
+ * upstream asked, and each further consecutive throttle waits at least the exponential step of the
+ * throttles before it ({@link #escalation}). On 2026-10-22 adsb.lol answered 106 polls in a row with
+ * 429 and {@code Retry-After: 30}; retrying every 30 s for hours kept the block in place.
+ *
  * <p>Persisted to {@code source_health.backoff_until}, so a restart during a backoff does not
  * release the brake. Prompt 006 builds the rest of that table.
  */
@@ -75,7 +80,9 @@ public class BackoffRegistry {
      */
     public Instant onThrottled(String sourceId, Optional<Duration> retryAfter) {
         int attempt = consecutive.computeIfAbsent(sourceId, id -> new AtomicInteger()).incrementAndGet();
-        Duration delay = retryAfter.map(BackoffRegistry::clampRetryAfter).orElseGet(() -> exponential(attempt));
+        Duration delay = retryAfter.map(BackoffRegistry::clampRetryAfter)
+                .map(asked -> max(asked, escalation(attempt)))
+                .orElseGet(() -> exponential(attempt));
         Instant deadline = clock.instant().plus(delay);
         until.put(sourceId, deadline);
         persist(sourceId, deadline);
@@ -193,6 +200,19 @@ public class BackoffRegistry {
     // ---------- delay arithmetic ----------
 
     /** {@code 30s × 2^(attempt-1)}, capped at an hour. */
+    /**
+     * The least a throttle that came with a {@code Retry-After} waits: nothing extra for the first, then
+     * the exponential step of the throttles before it (30 s for the second, 60 s for the third, up to
+     * {@link #MAX_BACKOFF}).
+     */
+    static Duration escalation(int attempt) {
+        return attempt <= 1 ? Duration.ZERO : exponential(attempt - 1);
+    }
+
+    private static Duration max(Duration a, Duration b) {
+        return a.compareTo(b) >= 0 ? a : b;
+    }
+
     static Duration exponential(int attempt) {
         int exponent = Math.min(Math.max(attempt, 1) - 1, MAX_EXPONENT);
         Duration delay = BASE_BACKOFF.multipliedBy(1L << exponent);

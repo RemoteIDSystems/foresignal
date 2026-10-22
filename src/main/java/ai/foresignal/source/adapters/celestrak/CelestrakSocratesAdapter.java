@@ -175,7 +175,7 @@ public class CelestrakSocratesAdapter implements PollingAdapter {
                 .homepage("https://celestrak.org/SOCRATES/")
                 .attribution("CelesTrak SOCRATES (Dr. T.S. Kelso), https://celestrak.org/SOCRATES/")
                 .licence("CelesTrak (data from 18th SDS via Space-Track)")
-                .termsUrl("https://celestrak.org/NORAD/elements/usage-policy.php")
+                .termsUrl("https://celestrak.org/usage-policy.php")
                 .param(ParamSpec.optional(MIN_PROB_PARAM, ParamType.NUMBER,
                         "Keep conjunctions whose maximum probability is at least this", DEFAULT_MIN_PROB))
                 .param(ParamSpec.optional(MAX_RANGE_PARAM, ParamType.NUMBER,

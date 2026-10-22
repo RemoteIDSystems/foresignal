@@ -13,7 +13,7 @@ import java.net.URI;
 import java.util.OptionalInt;
 
 /**
- * CelesTrak's usage policy of 2026-05-22 as code (prompt 064; {@code https://celestrak.org/NORAD/elements/usage-policy.php}),
+ * CelesTrak's usage policy of 2026-05-22 as code (prompt 064; {@code https://celestrak.org/usage-policy.php}),
  * shared by {@code celestrak-gp} and {@code celestrak-socrates}.
  *
  * <ul>
@@ -57,6 +57,9 @@ final class CelestrakPolicy {
                 ctx.log().debug("{}: {} not updated since the last download", ctx.sourceId(), uri);
                 return null;
             }
+            // The health reason stays fixed; CelesTrak's own words go to the log so a halt can be diagnosed.
+            ctx.log().warn("{}: {} answered {}: {}", ctx.sourceId(), uri, status.getAsInt(),
+                    message.length() > 300 ? message.substring(0, 300) : message);
             throw halt(status.getAsInt());
         }
         if (response.notModified()) {

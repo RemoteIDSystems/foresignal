@@ -149,6 +149,8 @@ public class KystverketAdapter implements StreamingAdapter {
                 .termsUrl("https://data.norge.no/nlod/en/2.0")
                 .egress(Egress.OPEN)
                 .defaultBudget(BUDGET)
+                // Unreachable from a US host (TCP connect times out, 2026-10-22), so it is not switched on unasked.
+                .autoEnable(false)
                 .allowedHost(HOST)
                 .reconnect(RECONNECT)
                 .observedAtMode(ObservedAtMode.UPSTREAM);

@@ -98,6 +98,20 @@ class WzdxParserTest {
     }
 
     @Test
+    @DisplayName("a feed served JSON-encoded inside a JSON string (NJIT) parses like the plain document")
+    void stringWrapped() {
+        byte[] plain = AdapterFixtures.bytes("wzdx", "edge-4.2.json");
+        String wrapped = tools.jackson.databind.json.JsonMapper.builder().build()
+                .writeValueAsString(new String(plain, java.nio.charset.StandardCharsets.UTF_8));
+
+        ParsedEvents parsed = WzdxParser.parse(wrapped.getBytes(java.nio.charset.StandardCharsets.UTF_8), NOW);
+
+        assertThat(parsed.records()).extracting(NormalizedRecord::externalId)
+                .containsExactlyElementsOf(parse("edge-4.2.json").records().stream()
+                        .map(NormalizedRecord::externalId).toList());
+    }
+
+    @Test
     @DisplayName("edge cases: detour closure, restriction with speed, completed ended, skips, exact repeat, unknowns")
     void edgeCases() {
         ParsedEvents parsed = parse("edge-4.2.json");

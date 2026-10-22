@@ -2,6 +2,8 @@ package ai.foresignal.inbound.edp.binding;
 
 import ai.foresignal.config.StartupOrder;
 import ai.foresignal.ingest.IngestStateReset;
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.settings.SettingKeys;
 import ai.foresignal.stream.ChangeBatch;
@@ -94,7 +96,7 @@ public class BindingRouter implements ChangeListener, DisposableBean, IngestStat
         }
         running = true;
         subscription = changeBus.subscribe(SUBSCRIBER, this, 1024);
-        thread = Thread.ofVirtual().name("external-binding-router").start(this::loop);
+        thread = WorkThreads.start(WorkRole.COLLECT, "external-binding-router", this::loop);
     }
 
     /** Stops the router. */

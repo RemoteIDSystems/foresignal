@@ -211,7 +211,9 @@ public class NbmAdapter implements PollingAdapter, DecoderDependent {
                 .termsUrl("https://registry.opendata.aws/noaa-nbm/")
                 .mode(Mode.POLLING)
                 .interval(Duration.ofMinutes(15), Duration.ofMinutes(15))
-                .defaultBudget(Budget.of(60, 3_000, 1_500))
+                // A day is about 1,400 MiB; a run of 10 steps on the 3.7 M-point grid about 100-190 s (2026-10-22).
+                .defaultBudget(Budget.of(60, 3_000, 2_500))
+                .fetchTimeout(Duration.ofMinutes(5))
                 .historyTier(HistoryTier.STANDARD)
                 .observedAtMode(ObservedAtMode.UPSTREAM)
                 .recordTtl(null)

@@ -2,7 +2,7 @@
   "register": "https://alertingauthority.wmo.int/atom.xml",
   "registerUpdated": "2026-09-18T19:52:01+00:00",
   "reviewedOn": "2026-10-14",
-  "rule": "Keyless, documented, HTTPS CAP feeds seeded from the WMO Register of Alerting Authorities. US NWS is skipped (prompt 047 has nws-alerts); European national MeteoAlarm feeds are skipped (the meteoalarm-* family covers them). Every entry was fetched live on 2026-10-14 and returned XML with the licence recorded here. Format: atom-index or rss-index (an Atom/RSS index whose items link to CAP documents) or cap-inline (the URL is one CAP document).",
+  "rule": "Keyless, documented, HTTPS CAP feeds seeded from the WMO Register of Alerting Authorities. US NWS is skipped (prompt 047 has nws-alerts); European national MeteoAlarm feeds are skipped (the meteoalarm-* family covers them). Every entry was fetched live on 2026-10-14 and returned XML with the licence recorded here. Format: atom-index or rss-index (an Atom/RSS index whose items link to CAP documents) or cap-inline (the URL is one CAP document) or atom-embedded (an Atom feed whose entries carry whole CAP alerts).",
   "feeds": [
     {
       "id": "cap-de-dwd",
@@ -117,12 +117,12 @@
       "country": "BR",
       "authority": "Instituto Nacional de Meteorologia (via MDR)",
       "feedUrl": "https://idapfile.mdr.gov.br/idap/api/rss/cap",
-      "format": "atom-index",
+      "format": "atom-embedded",
       "languages": ["pt-BR", "pt"],
       "licence": "public domain (Brazilian Government open data)",
       "termsUrl": "https://www.gov.br/mdr/pt-br",
       "reviewedOn": "2026-10-14",
-      "notes": "MDR/INMET CAP Atom index."
+      "notes": "MDR CAP Atom feed whose entries carry whole CAP 1.2 alerts (sender CENAD-SEDEC, national civil defense) instead of links; about 6.6 MB, read every 15 minutes."
     },
     {
       "id": "cap-nz-metservice",

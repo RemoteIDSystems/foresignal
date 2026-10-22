@@ -2,6 +2,8 @@ package ai.foresignal.source.adapters.cap;
 
 import ai.foresignal.collect.BudgetExceededException;
 import ai.foresignal.source.formats.cap.CapAlert;
+import ai.foresignal.source.formats.cap.CapEmbeddedAlerts;
+import ai.foresignal.source.formats.cap.CapParseOptions;
 import ai.foresignal.source.formats.cap.CapParser;
 import ai.foresignal.source.formats.cap.CapThreadResolver;
 import ai.foresignal.source.kit.feed.FeedDocument;
@@ -53,6 +55,16 @@ public final class CapFeedAdapter implements PollingAdapter {
     /** The most document links remembered. */
     public static final int MAX_SEEN = 5_000;
 
+    /** The format whose entries carry whole alerts rather than links ({@link CapEmbeddedAlerts}). */
+    public static final String EMBEDDED = "atom-embedded";
+
+    /**
+     * The per-alert limits: 4 MB, because an embedded Brazilian alert with its municipal polygons reached 2.25 MB
+     * (2026-10-22); the element cap is the default.
+     */
+    static final CapParseOptions PARSE_OPTIONS = new CapParseOptions(4L * 1024 * 1024,
+            CapParseOptions.DEFAULT_MAX_ELEMENTS);
+
     /** The adapter-state key for the index validators. */
     static final String INDEX_STATE_KEY = "cap:index";
 
@@ -92,6 +104,9 @@ public final class CapFeedAdapter implements PollingAdapter {
         boolean includeTests = ctx.params().bool("includeTests", false);
         if ("cap-inline".equals(feed.format())) {
             return fetchInline(ctx, includeTests);
+        }
+        if (EMBEDDED.equals(feed.format())) {
+            return fetchEmbedded(ctx, includeTests);
         }
         return fetchIndex(ctx, includeTests);
     }
@@ -193,6 +208,44 @@ public final class CapFeedAdapter implements PollingAdapter {
     }
 
     /**
+     * Reads a feed whose entries carry whole alerts ({@link CapEmbeddedAlerts}). An alert is keyed by the SHA-256 of
+     * its bytes, so an unchanged alert is skipped and a changed one is read again.
+     */
+    private FetchResult fetchEmbedded(FetchContext ctx, boolean includeTests) throws AdapterException {
+        UpstreamResponse response = ctx.http().getConditional(feed.feedUrl(), INDEX_STATE_KEY);
+        if (response.notModified()) {
+            return FetchResult.unchanged();
+        }
+        if (response.status() != 200 || response.truncated()) {
+            throw new UpstreamFormatException("The CAP feed of " + feed.id() + " answered HTTP " + response.status()
+                    + (response.truncated() ? " (truncated)" : ""), "");
+        }
+        SeenSet seen = SeenSet.load(ctx.state(), SEEN_STATE_KEY);
+        SeenSet skippedTests = SeenSet.load(ctx.state(), SKIPPED_TESTS_STATE_KEY);
+        CapThreadResolver resolver = CapThreadResolver.load(ctx.state(), ctx.now());
+        List<NormalizedRecord> records = new ArrayList<>();
+        for (byte[] alert : CapEmbeddedAlerts.extract(response.body())) {
+            String key = "sha256:" + sha256(alert);
+            if (seen.contains(key) || (!includeTests && skippedTests.contains(key))) {
+                continue;
+            }
+            mapped(ctx, alert, resolver, seen, skippedTests, key, includeTests, records);
+        }
+        resolver.save(ctx.state());
+        seen.save(ctx.state());
+        skippedTests.save(ctx.state());
+        return FetchResult.of(records);
+    }
+
+    private static String sha256(byte[] bytes) {
+        try {
+            return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is always present", e);
+        }
+    }
+
+    /**
      * Parses, threads and maps one CAP document. A document that does not parse is marked seen; a non-{@code Actual}
      * one skipped because {@code includeTests} is off goes to {@code skippedTests} instead, so enabling
      * {@code includeTests} later still picks it up.
@@ -201,7 +254,7 @@ public final class CapFeedAdapter implements PollingAdapter {
             SeenSet skippedTests, String link, boolean includeTests, List<NormalizedRecord> records) {
         CapAlert alert;
         try {
-            alert = CapParser.parse(body);
+            alert = CapParser.parse(new java.io.ByteArrayInputStream(body), PARSE_OPTIONS);
         } catch (UpstreamFormatException e) {
             if (seen != null) {
                 seen.add(link);
@@ -225,6 +278,7 @@ public final class CapFeedAdapter implements PollingAdapter {
     }
 
     private static SourceDescriptor build(CapFeed feed) {
+        boolean embedded = EMBEDDED.equals(feed.format());
         return SourceDescriptor.builder(feed.id())
                 .name(feed.authority() + " CAP alerts")
                 .description("Reviewed national CAP feed (" + feed.country() + ", " + feed.authority() + "), "
@@ -238,7 +292,9 @@ public final class CapFeedAdapter implements PollingAdapter {
                 .termsUrl(feed.termsUrl() == null ? null : feed.termsUrl().toString())
                 .param(ParamSpec.optional("includeTests", ParamType.BOOLEAN,
                         "Keep messages whose status is not Actual (Exercise, Test, System, Draft)", false))
-                .interval(Duration.ofMinutes(5), Duration.ofMinutes(5))
+                // An embedded feed is one large download (6.6 MB, about 25-55 s, no validators, 2026-10-22).
+                .interval(Duration.ofMinutes(5), embedded ? Duration.ofMinutes(15) : Duration.ofMinutes(5))
+                .fetchTimeout(embedded ? Duration.ofMinutes(3) : SourceDescriptor.DEFAULT_FETCH_TIMEOUT)
                 .defaultBudget(6, 1_000)
                 .historyTier(HistoryTier.STANDARD)
                 .observedAtMode(ObservedAtMode.UPSTREAM)

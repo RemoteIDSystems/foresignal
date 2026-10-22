@@ -1,5 +1,6 @@
 package ai.foresignal.source.formats.cap;
 
+import ai.foresignal.collect.XmlLimits;
 import ai.foresignal.source.spi.UpstreamFormatException;
 import java.io.ByteArrayInputStream;
 import java.io.FilterInputStream;
@@ -155,6 +156,7 @@ public final class CapParser {
         factory.setProperty(XMLInputFactory.IS_REPLACING_ENTITY_REFERENCES, false);
         factory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, true);
         factory.setProperty(XMLInputFactory.IS_COALESCING, true);
+        XmlLimits.apply(factory);
         try {
             factory.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
         } catch (IllegalArgumentException ignored) {

@@ -17,8 +17,9 @@ import org.springframework.stereotype.Component;
 /**
  * {@code adsblol-mil}: aircraft flagged military in adsb.lol's database, worldwide (prompt 062).
  *
- * <p>One GET of {@code /v2/mil} per poll: 30 s by default (15 s minimum), budget 4 per minute and 3,000 per
- * day. adsb.lol publishes no numbers and its limits are dynamic, so the source stays at this rate. The
+ * <p>One GET of {@code /v2/mil} per poll: every 60 s by default, Shadowbroker's cadence (15 s minimum), budget
+ * 4 per minute and 3,000 per day. adsb.lol publishes no numbers and its limits are dynamic, so the source stays
+ * within this rate. The
  * result is the complete current set, but absent aircraft are never tombstoned: the 6-minute TTL retires
  * them.
  *
@@ -77,12 +78,10 @@ public class AdsbLolMilAdapter implements PollingAdapter {
         SourceDescriptor.Builder builder = SourceDescriptor.builder(ID)
                 .name("adsb.lol military aircraft")
                 .description("Aircraft flagged military in the adsb.lol database, worldwide, from community ADS-B"
-                        + " and MLAT receivers (api.adsb.lol /v2/mil). TRACK with a 6-minute TTL and the 240 s"
-                        + " keyframe: keyframe <= ttl - interval - 30 s holds at the default 30 s interval and up to"
-                        + " 90 s; a slower interval needs a shorter keyframe in the ingest policy.");
+                        + " and MLAT receivers (api.adsb.lol /v2/mil). TRACK with a6-minute TTL and a trail point every 60 s, polled every 60 s.");
         AdsbLol.upstream(builder)
                 // adsb.lol publishes no limits and adjusts them dynamically; stay at this rate.
-                .interval(Duration.ofSeconds(15), Duration.ofSeconds(30))
+                .interval(Duration.ofSeconds(15), Duration.ofSeconds(60))
                 .defaultBudget(4, 3_000);
         AircraftDescriptors.global(builder);
         builder.kindDisplay(AircraftFields.KIND, AircraftDescriptors.militaryDisplay());

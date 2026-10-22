@@ -39,10 +39,16 @@ public final class OurAirportsParser {
     /** One parse. */
     public record Result(int records, int skipped) {}
 
-    /** Parses an airports CSV body into records (fixtures and tests). */
+    /** Parses an airports CSV body into records, without chart details (fixtures and tests). */
     public static List<NormalizedRecord> parseAirportsAll(byte[] body, Set<String> types) {
+        return parseAirportsAll(body, types, Map.of());
+    }
+
+    /** Parses an airports CSV body into records with their chart details (fixtures and tests). */
+    public static List<NormalizedRecord> parseAirportsAll(byte[] body, Set<String> types,
+            Map<String, AirportChart.Info> chart) {
         List<NormalizedRecord> records = new ArrayList<>();
-        parseAirports(body, types, records::addAll);
+        parseAirports(body, types, chart, records::addAll);
         return records;
     }
 
@@ -57,9 +63,12 @@ public final class OurAirportsParser {
      * Streams an airports CSV.
      *
      * @param types the accepted {@code type} values; empty accepts all
+     * @param chart the chart details by airport ident ({@link AirportChart#index}); an airport it lacks gets
+     *     {@link AirportChart#NONE}
      */
-    public static Result parseAirports(byte[] body, Set<String> types, Consumer<List<NormalizedRecord>> sink) {
-        return parse(body, sink, (row, index) -> airport(row, index, types));
+    public static Result parseAirports(byte[] body, Set<String> types, Map<String, AirportChart.Info> chart,
+            Consumer<List<NormalizedRecord>> sink) {
+        return parse(body, sink, (row, index) -> airport(row, index, types, chart));
     }
 
     /** Streams a navaids CSV. */
@@ -128,8 +137,13 @@ public final class OurAirportsParser {
         return new Result(records, skipped);
     }
 
-    /** One airport, or null when its type is filtered out or it has no ident. */
-    static NormalizedRecord airport(List<String> row, Map<String, Integer> index, Set<String> types) {
+    /**
+     * One airport, or null when its type is filtered out or it has no ident. Its chart details give it
+     * {@code towered}, {@code runwaySurface}, {@code longestRunwayFt}, {@code runwayHeading} and the chart symbol
+     * ({@code chartSymbol}, {@link AirportChart#symbol}).
+     */
+    static NormalizedRecord airport(List<String> row, Map<String, Integer> index, Set<String> types,
+            Map<String, AirportChart.Info> chart) {
         String ident = CsvReader.get(row, index, "IDENT");
         if (ident == null) {
             return null;
@@ -150,6 +164,14 @@ public final class OurAirportsParser {
                 .put("iataCode", CsvReader.get(row, index, "IATA_CODE"))
                 .put("gpsCode", CsvReader.get(row, index, "GPS_CODE"))
                 .put("localCode", CsvReader.get(row, index, "LOCAL_CODE"));
+        AirportChart.Info info = chart.getOrDefault(ident, AirportChart.NONE);
+        String symbol = AirportChart.symbol(type, info);
+        b.put("towered", info.towered())
+                .put("runwaySurface", info.surface())
+                .put("longestRunwayFt", info.longestFt())
+                // The map turns the symbol by this; a heliport's H, an anchor or a closed X stays upright.
+                .put("runwayHeading", AirportChart.turnsWithRunway(symbol) ? info.heading() : null)
+                .put("chartSymbol", symbol);
         point(b, CsvReader.get(row, index, "LATITUDE_DEG"), CsvReader.get(row, index, "LONGITUDE_DEG"));
         return b.build();
     }

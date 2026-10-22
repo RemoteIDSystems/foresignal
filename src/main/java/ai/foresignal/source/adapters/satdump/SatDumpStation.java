@@ -1,5 +1,7 @@
 package ai.foresignal.source.adapters.satdump;
 
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.InboxAccess;
 import ai.foresignal.source.spi.LiveImageHolder;
@@ -248,9 +250,9 @@ public final class SatDumpStation implements StreamHandle, RemoteMediaReceiver {
         if (receivers != null) {
             receivers.register(sourceId, this);
         }
-        inboxThread = Thread.ofVirtual().name("foresignal-satdump-inbox-" + station).start(this::inboxLoop);
+        inboxThread = WorkThreads.start(WorkRole.COLLECT, "foresignal-satdump-inbox-" + station, this::inboxLoop);
         if (apiUrl != null) {
-            apiThread = Thread.ofVirtual().name("foresignal-satdump-api-" + station).start(this::apiLoop);
+            apiThread = WorkThreads.start(WorkRole.COLLECT, "foresignal-satdump-api-" + station, this::apiLoop);
         }
         ctx.connected();
     }

@@ -149,7 +149,7 @@ public class AdsbFiRegionAdapter implements PollingAdapter {
                         + " from adsb.fi community receivers (opendata.adsb.fi /api/v3/lat/lon/dist). Disabled until"
                         + " lat and lon are set. Personal, non-commercial use only; cite adsb.fi. Requests to"
                         + " opendata.adsb.fi are serial across every adsbfi-* source, at least 1.1 s apart. TRACK"
-                        + " with a 6-minute TTL and the 240 s keyframe (holds up to a 90 s interval).");
+                        + " with a 6-minute TTL and a trail point every 60 s.");
         AdsbFi.upstream(builder)
                 .zeroResultsNormal(true)
                 .param(ParamSpec.required(LAT_PARAM, ParamType.NUMBER, "Center latitude, -90 to 90"))

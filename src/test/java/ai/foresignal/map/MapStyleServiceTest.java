@@ -50,10 +50,18 @@ class MapStyleServiceTest {
             .kindDisplay("warning-area", new KindDisplay(null, "warning", "#C92A2A", null))
             .build();
 
+    /** Airports: the icon and color chosen by value, as the sectional chart symbols are. */
+    static final SourceDescriptor FIELDS = base("map-fields", "airport")
+            .tileProperties("chartSymbol", "towered", "runwayHeading")
+            .kindDisplay("airport", new KindDisplay("{name}", "airport-soft", "#d04fb4", null, "runwayHeading", null,
+                    "towered", "chartSymbol", Map.of("major", "airport-major", "hard", "airport-hard"),
+                    Map.of("true", "#4f8fe8")))
+            .build();
+
     /** A private source. */
     static final SourceDescriptor SECRET = base("map-secret", "secret").privateSource(true).build();
 
-    static final List<SourceDescriptor> REGISTRY = List.of(PLANES, FIRES, WARNINGS, SECRET);
+    static final List<SourceDescriptor> REGISTRY = List.of(PLANES, FIRES, WARNINGS, FIELDS, SECRET);
 
     private final SpriteCatalog sprite = new SpriteCatalog(JSON);
     private final MapStyleService service = new MapStyleService(sprite, Clock.fixed(T, ZoneOffset.UTC));
@@ -227,6 +235,45 @@ class MapStyleServiceTest {
         assertThat(layerIds(style)).noneMatch(id -> id.startsWith("map-secret"));
         List<TileLayer> admin = TileLayerResolver.layers(REGISTRY, Set.of());
         assertThat(style(admin, MapStyleService.Theme.LIGHT, URLS).get("sources").has("map-secret")).isTrue();
+    }
+
+    @Test
+    @DisplayName("icon and color by value: a match on iconField over iconCases, and on colorField over colorCases")
+    void iconAndColorByValue() {
+        JsonNode style = style(List.of(layer("map-fields", Set.of())), MapStyleService.Theme.DARK, URLS);
+        JsonNode point = layerById(style, "map-fields--airport--point");
+        String value = "[\"downcase\",[\"to-string\",[\"coalesce\",[\"get\",\"%s\"],\"\"]]]";
+        assertThat(point.get("layout").get("icon-image").toString()).isEqualTo("[\"match\"," + value.formatted("chartSymbol")
+                + ",\"hard\",\"airport-hard\",\"major\",\"airport-major\",\"airport-soft\"]");
+        assertThat(point.get("paint").get("icon-color").toString())
+                .isEqualTo("[\"match\"," + value.formatted("towered") + ",\"true\",\"#4F8FE8\",\"#D04FB4\"]");
+        assertThat(point.get("layout").get("icon-rotate").toString()).contains("runwayHeading");
+        assertThat(DescriptorValidator.problems(FIELDS, null)).isEmpty();
+        // A kind without cases keeps its constant icon.
+        assertThat(MapStyleService.iconImage(new KindDisplay(null, "plane", null, null))).isEqualTo("plane");
+    }
+
+    @Test
+    @DisplayName("value cases need their field and fallback, sprite icons, #RRGGBB colors and lowercase keys")
+    void caseValidation() {
+        SourceDescriptor bad = base("map-bad-cases", "airport")
+                .tileProperties("chartSymbol")
+                .kindDisplay("airport", new KindDisplay(null, null, "#112233", null, null, null, null, "chartSymbol",
+                        Map.of("Major", "no-such-icon"), Map.of("true", "blue")))
+                .build();
+        assertThat(DescriptorValidator.problems(bad, null))
+                .anySatisfy(p -> assertThat(p).contains("iconCases needs iconField and a fallback icon"))
+                .anySatisfy(p -> assertThat(p).contains("iconCases key 'Major' must be lowercase"))
+                .anySatisfy(p -> assertThat(p).contains("iconCases icon 'no-such-icon'"))
+                .anySatisfy(p -> assertThat(p).contains("colorCases needs colorField"))
+                .anySatisfy(p -> assertThat(p).contains("colorCases color 'blue' must be #RRGGBB"));
+        SourceDescriptor noCases = base("map-bad-field", "airport")
+                .tileProperties("chartSymbol")
+                .kindDisplay("airport", new KindDisplay(null, "airport-soft", null, null, null, null, null,
+                        "chartSymbol", null, null))
+                .build();
+        assertThat(DescriptorValidator.problems(noCases, null))
+                .anySatisfy(p -> assertThat(p).contains("iconField needs iconCases"));
     }
 
     @Test

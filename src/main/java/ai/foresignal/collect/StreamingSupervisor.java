@@ -4,6 +4,8 @@ import ai.foresignal.config.ForesignalVersion;
 import ai.foresignal.ingest.FetchLogEntry;
 import ai.foresignal.ingest.IngestOutcome;
 import ai.foresignal.ingest.IngestQueue;
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.SourceService;
 import ai.foresignal.source.spi.CredentialsRejectedException;
@@ -141,7 +143,7 @@ public class StreamingSupervisor implements DisposableBean {
         sink.start();
         Runner runner = new Runner(descriptor, streaming, sink);
         runners.put(sourceId, runner);
-        runner.thread = Thread.ofVirtual().name("foresignal-stream-" + sourceId).start(runner::loop);
+        runner.thread = WorkThreads.start(WorkRole.COLLECT, "foresignal-stream-" + sourceId, runner::loop);
         log.info("Started the stream of {}", sourceId);
     }
 

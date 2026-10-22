@@ -15,7 +15,8 @@ package ai.foresignal.security.ratelimit;
  * @param stream SSE opens per minute and concurrently open streams
  * @param expensive search, Ask, LLM-backed MCP tools and {@code /v1/sample}
  * @param write every method other than GET, HEAD and OPTIONS
- * @param anonymous every request of a caller without a credential, per client IP
+ * @param anonymous every request of a caller without a credential, per client IP, except map tiles (limited by
+ *     {@code tiles} alone)
  * @param metricsPerMinute the optional limit of {@code /actuator/prometheus} per client IP; null for
  *     none
  */

@@ -133,6 +133,30 @@ class HumanitarianAdaptersTest extends WireMockSupport {
         WIREMOCK.verify(count + 1, getRequestedFor(urlPathEqualTo("/backend/dashboard-api/public-activations/")));
     }
 
+    @Test
+    @DisplayName("a Copernicus detail refused on budget keeps the run: every activation, summaries for the rest")
+    void copernicusDetailBudget() throws Exception {
+        byte[] info = AdapterFixtures.bytes("copernicus-ems", "activations-info.json");
+        int count = JSON.readTree(info).get("results").size();
+        serveCopernicusInfo(info);
+        WIREMOCK.stubFor(get(urlPathEqualTo("/backend/dashboard-api/public-activations/"))
+                .willReturn(aResponse().withStatus(200).withHeader("Content-Type", "application/json")
+                        .withBody(AdapterFixtures.bytes("copernicus-ems", "detail.json"))));
+        AdapterHttpHarness tight = new AdapterHttpHarness(jdbc, jsonMapper, properties, install, new MutableClock(NOW),
+                Budget.of(3, 300));
+        CopernicusEmsAdapter adapter = new CopernicusEmsAdapter(baseUrl());
+        tight.reset(adapter.id(), CopernicusEmsAdapter.CURSOR_KEY);
+
+        FetchResult first = adapter.fetch(tight.context(adapter, Map.of()));
+
+        assertThat(count).isGreaterThan(3);
+        assertThat(first.records()).hasSize(count);
+        // One list request, then details until the third request of the minute; none tried after the refusal.
+        WIREMOCK.verify(1, getRequestedFor(urlPathEqualTo("/backend/dashboard-api/public-activations-info/")));
+        WIREMOCK.verify(2, getRequestedFor(urlPathEqualTo("/backend/dashboard-api/public-activations/")));
+        assertThat(tight.client.stateStore(adapter.id()).get(CopernicusEmsAdapter.CURSOR_KEY)).isPresent();
+    }
+
     private static void serveCopernicusInfo(byte[] body) {
         WIREMOCK.stubFor(get(urlPathEqualTo("/backend/dashboard-api/public-activations-info/"))
                 .willReturn(aResponse().withStatus(200).withHeader("Content-Type", "application/json")

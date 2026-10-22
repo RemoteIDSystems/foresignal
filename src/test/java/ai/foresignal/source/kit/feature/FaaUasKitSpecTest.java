@@ -67,7 +67,9 @@ class FaaUasKitSpecTest {
         List<SourceAdapter> adapters = new FeatureKitFamily(specs, "", null).adapters();
         for (SourceAdapter a : adapters) {
             assertThat(DescriptorValidator.problems(a.descriptor(), a)).as(a.id()).isEmpty();
-            assertThat(a.descriptor().defaultBudget()).isEqualTo(Budget.of(10, 100));
+            // NSUFR pages 250 features at a time (larger pages timed out, 2026-10-22), so it needs up to 20 a run.
+            assertThat(a.descriptor().defaultBudget()).as(a.id()).isEqualTo(a.id().equals("faa-uas-nsufr")
+                    ? Budget.of(30, 200) : Budget.of(10, 100));
             assertThat(a.descriptor().defaultRetention()).isEqualTo(Duration.ofDays(90));
         }
         assertThat(FeatureSpecValidator.ID_PATTERN.matcher("faa-other").matches()).isFalse();

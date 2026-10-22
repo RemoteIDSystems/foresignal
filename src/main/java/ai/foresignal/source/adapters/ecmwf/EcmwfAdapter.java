@@ -213,7 +213,9 @@ public class EcmwfAdapter implements PollingAdapter, DecoderDependent {
                 .termsUrl("https://www.ecmwf.int/en/forecasts/datasets/open-data")
                 .mode(Mode.POLLING)
                 .interval(Duration.ofMinutes(20), Duration.ofMinutes(20))
-                .defaultBudget(Budget.of(20, 3_000, 1_200))
+                // A run is about 60 requests (index plus ranges for 10 steps) and up to about 110 s (2026-10-22).
+                .defaultBudget(Budget.of(60, 3_000, 1_200))
+                .fetchTimeout(Duration.ofMinutes(3))
                 .historyTier(HistoryTier.STANDARD)
                 .observedAtMode(ObservedAtMode.UPSTREAM)
                 .recordTtl(null)

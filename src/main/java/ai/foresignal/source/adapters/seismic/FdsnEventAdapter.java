@@ -77,7 +77,7 @@ public final class FdsnEventAdapter implements PollingAdapter {
      * Reads every event updated since the cursor (or in the window), page by page.
      *
      * <p>Pages of {@value #LIMIT} rows are requested with {@code offset} (1-based; verified live on GEOFON and INGV
-     * 2026-10-16) until a page holds fewer rows. HTTP 204 is FDSN's default {@code nodata} answer for "no matching
+     * 2026-10-16; GEOFON has no update-time filter and pages by start time, 2026-10-22) until a page holds fewer rows. HTTP 204 is FDSN's default {@code nodata} answer for "no matching
      * events" and is an empty, successful page; {@code nodata} is not sent, so a 404 still means a broken endpoint.
      * A pass that cannot finish in one run (the page cap, or a budget refusal after the first page) stores its place
      * ({@value #PASS_KEY}) and the next run continues it with the same {@code updatedafter}; the cursor moves only
@@ -153,7 +153,9 @@ public final class FdsnEventAdapter implements PollingAdapter {
         StringBuilder sb = new StringBuilder(base);
         sb.append(base.contains("?") ? '&' : '?').append("format=text&limit=").append(LIMIT)
                 .append("&offset=").append(offset).append("&orderby=time");
-        sb.append(service.supportsUpdatedAfter() ? "&updatedafter=" : "&starttime=").append(encode(since));
+        // FDSN times carry no zone (UTC is implied); INGV answers 400 to the trailing Z that Instant adds.
+        String zoneless = since.endsWith("Z") ? since.substring(0, since.length() - 1) : since;
+        sb.append(service.supportsUpdatedAfter() ? "&updatedafter=" : "&starttime=").append(encode(zoneless));
         return URI.create(sb.toString());
     }
 

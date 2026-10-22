@@ -1,0 +1,5 @@
+"id","airport_ref","airport_ident","type","description","frequency_mhz"
+1,1,"KJFK","TWR","KENNEDY TWR",119.1
+2,1,"KJFK","GND","KENNEDY GND",121.9
+3,2,"EGLL","TWR","HEATHROW TOWER",118.5
+4,6,"ZZZZ","CTAF","CTAF",122.9

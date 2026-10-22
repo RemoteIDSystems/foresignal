@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 /**
  * {@code airplaneslive-mil}: aircraft flagged military in airplanes.live's database, worldwide (prompt 080).
  *
- * <p>One GET of {@code /v2/mil} per poll, every 30 s, paced 1.1 s per host. Anonymous access is refused today
+ * <p>One GET of {@code /v2/mil} per poll, every 60 s as Shadowbroker polls it, paced 1.1 s per host. Anonymous access is refused today
  * (see the package note): the 403 becomes {@code UpstreamAccessDeniedException} with the reason
  * {@value #ACCESS_REASON}, an hourly retry and health {@code failing}.
  */
@@ -95,7 +95,7 @@ public class AirplanesLiveMilAdapter implements PollingAdapter {
                         + " /v2/mil). Anonymous requests are refused with HTTP 403 until airplanes.live approves the"
                         + " project by email (contact@airplanes.live); the source then fails with that reason and is"
                         + " retried hourly. adsbfi-mil is the keyless alternative. Non-commercial, no SLA. TRACK with"
-                        + " a 6-minute TTL and the 240 s keyframe (holds up to a 90 s interval).")
+                        + " a 6-minute TTL and a trail point every 60 s.")
                 .mode(Mode.POLLING)
                 .homepage("https://airplanes.live")
                 .attribution("airplanes.live")
@@ -105,7 +105,7 @@ public class AirplanesLiveMilAdapter implements PollingAdapter {
                 .accessDeniedIsTerminal(true)
                 .accessDeniedReason(ACCESS_BODY_KEY, ACCESS_REASON)
                 .hostPacing(HOST_PACING)
-                .interval(Duration.ofSeconds(30), Duration.ofSeconds(30))
+                .interval(Duration.ofSeconds(30), Duration.ofSeconds(60))
                 .defaultBudget(2, 2_880);
         AircraftDescriptors.global(builder);
         builder.kindDisplay(AircraftFields.KIND, AircraftDescriptors.militaryDisplay());

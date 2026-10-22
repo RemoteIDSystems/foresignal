@@ -1,5 +1,7 @@
 package ai.foresignal.source.adapters.wikistream;
 
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.CredentialsRejectedException;
@@ -310,7 +312,7 @@ public final class WikiStreamAdapter implements StreamingAdapter {
         }
 
         void start() {
-            thread = Thread.ofVirtual().name("foresignal-stream-" + ID).start(this);
+            thread = WorkThreads.start(WorkRole.COLLECT, "foresignal-stream-" + ID, this);
         }
 
         @Override

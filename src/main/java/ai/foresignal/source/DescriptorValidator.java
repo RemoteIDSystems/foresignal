@@ -575,6 +575,47 @@ public final class DescriptorValidator {
         checkStyleField(descriptor, kind, "rotateField", display.rotateField(), problems);
         checkStyleField(descriptor, kind, "sizeField", display.sizeField(), problems);
         checkStyleField(descriptor, kind, "colorField", display.colorField(), problems);
+        checkStyleField(descriptor, kind, "iconField", display.iconField(), problems);
+        checkCases(id, kind, display, problems);
+    }
+
+    /**
+     * The value-driven choices: {@code iconCases} needs {@code iconField} and a fallback {@code icon}, and names
+     * sprite icons; {@code colorCases} needs {@code colorField} and gives {@code #RRGGBB} colors. Their values
+     * are matched lowercased, so a key must be lowercase to ever match.
+     */
+    private static void checkCases(String id, String kind, KindDisplay display, List<String> problems) {
+        String at = id + ": kindDisplay." + kind;
+        if (display.iconField() != null && display.iconCases() == null) {
+            problems.add(at + ".iconField needs iconCases");
+        }
+        if (display.iconCases() != null) {
+            if (display.iconField() == null || display.icon() == null) {
+                problems.add(at + ".iconCases needs iconField and a fallback icon");
+            }
+            java.util.Set<String> icons = ai.foresignal.map.SpriteCatalog.iconNames();
+            display.iconCases().forEach((value, icon) -> {
+                if (!value.equals(value.toLowerCase(java.util.Locale.ROOT))) {
+                    problems.add(at + ".iconCases key '" + value + "' must be lowercase");
+                }
+                if (!icons.contains(icon)) {
+                    problems.add(at + ".iconCases icon '" + icon + "' is not in the sprite (scripts/build-sprite.sh)");
+                }
+            });
+        }
+        if (display.colorCases() != null) {
+            if (display.colorField() == null) {
+                problems.add(at + ".colorCases needs colorField");
+            }
+            display.colorCases().forEach((value, color) -> {
+                if (!value.equals(value.toLowerCase(java.util.Locale.ROOT))) {
+                    problems.add(at + ".colorCases key '" + value + "' must be lowercase");
+                }
+                if (color == null || !COLOR_PATTERN.matcher(color).matches()) {
+                    problems.add(at + ".colorCases color '" + color + "' must be #RRGGBB");
+                }
+            });
+        }
     }
 
     /**

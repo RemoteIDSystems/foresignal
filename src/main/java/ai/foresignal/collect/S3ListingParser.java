@@ -35,7 +35,7 @@ final class S3ListingParser {
         factory.setProperty(XMLInputFactory.SUPPORT_DTD, Boolean.FALSE);
         factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);
         factory.setProperty(XMLInputFactory.IS_COALESCING, Boolean.TRUE);
-        return factory;
+        return XmlLimits.apply(factory);
     }
 
     /**

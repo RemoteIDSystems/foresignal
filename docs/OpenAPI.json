@@ -100107,6 +100107,41 @@
               "null"
             ],
             "description": "Payload field driving a data-driven colour match (default `severity`); must be in tileProperties"
+          },
+          "iconField": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Payload field choosing the icon through `iconCases` (e.g. `chartSymbol`); must be in tileProperties"
+          },
+          "iconCases": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Icon names by lowercase `iconField` value; `icon` is drawn for any other value",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "major": "airport-major",
+              "hard": "airport-hard"
+            }
+          },
+          "colorCases": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Colors `#RRGGBB` by lowercase `colorField` value, replacing the severity colors; `colour` for any other value",
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            },
+            "example": {
+              "true": "#4F8FE8"
+            }
           }
         }
       },

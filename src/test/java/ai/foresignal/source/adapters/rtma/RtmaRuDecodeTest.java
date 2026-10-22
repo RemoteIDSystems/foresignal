@@ -88,7 +88,7 @@ class RtmaRuDecodeTest {
     void descriptor() {
         var d = new RtmaAdapter(null, null, "", "small").descriptor();
         assertThat(d.param(RtmaAdapter.ANALYSIS_EVERY)).isNotNull();
-        assertThat(d.defaultBudget().mbPerDay()).isEqualTo(3_600);
+        assertThat(d.defaultBudget().mbPerDay()).isEqualTo(4_500);
         assertThat(d.products()).extracting(p -> p.temporal().cadence()).containsOnly(Duration.ofMinutes(15));
     }
 }

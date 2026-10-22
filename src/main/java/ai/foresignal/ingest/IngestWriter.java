@@ -3,6 +3,8 @@ package ai.foresignal.ingest;
 import ai.foresignal.collect.IngestCounts;
 import ai.foresignal.collect.UsageMeter;
 import ai.foresignal.config.StartupOrder;
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.source.spi.HistoryTier;
 import ai.foresignal.source.spi.NormalizedRecord;
 import ai.foresignal.store.CoverageSample;
@@ -432,9 +434,7 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
         running = true;
         state = WriterState.RUNNING;
         resetState();
-        thread = new Thread(this::runLoop, THREAD_NAME);
-        thread.setDaemon(true);
-        thread.start();
+        thread = WorkThreads.start(WorkRole.INGEST, THREAD_NAME, this::runLoop);
         log.info("Ingest writer started (exclusive={}, lastSeq={}, lastAllocatedSeq={})",
                 settings.exclusive(), lastSeq, lastAllocatedSeq);
     }
@@ -938,7 +938,7 @@ public class IngestWriter implements IngestStateReset, DisposableBean {
         long headroom = partitions.coveredUpTo(tier, from) - to;
         if (headroom < partitions.block(tier) && ensureAheadRunning.compareAndSet(false, true)) {
             warn("record_version " + tier + " headroom is " + headroom + " seq, under one block; ensuring partitions ahead");
-            Thread.ofVirtual().name("foresignal-ensure-ahead").start(() -> {
+            WorkThreads.start(WorkRole.INGEST, "foresignal-ensure-ahead", () -> {
                 try {
                     partitions.ensureAhead();
                 } catch (RuntimeException e) {

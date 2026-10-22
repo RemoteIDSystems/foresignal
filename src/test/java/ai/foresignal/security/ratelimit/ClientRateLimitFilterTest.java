@@ -193,6 +193,22 @@ class ClientRateLimitFilterTest {
     }
 
     @Test
+    @DisplayName("an anonymous caller's map tiles are not charged to the anonymous class, only to tiles")
+    void anonymousTilesNotCharged() throws Exception {
+        use(new RateLimitSettings(100, 100, null, 0, 0, 2, null));
+        for (int i = 0; i < 5; i++) {
+            MockHttpServletRequest tile = request("GET", "/v1/tiles/aircraft/3/1/2.mvt");
+            RequestPrincipal.anonymous(new ReadRestriction(null, null, null, null, null, true, 2)).bind(tile);
+            assertThat(send(tile).getStatus()).isEqualTo(200);
+        }
+        for (int i = 0; i < 2; i++) {
+            MockHttpServletRequest r = request("GET", "/v1/records");
+            RequestPrincipal.anonymous(new ReadRestriction(null, null, null, null, null, true, 2)).bind(r);
+            assertThat(send(r).getStatus()).isEqualTo(200);
+        }
+    }
+
+    @Test
     @DisplayName("admin tokens are exempt from read and tiles, not from write or expensive")
     void adminExemptions() throws Exception {
         for (int i = 0; i < 5; i++) {

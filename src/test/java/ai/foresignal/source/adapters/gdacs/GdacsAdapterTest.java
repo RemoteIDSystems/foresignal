@@ -127,6 +127,36 @@ class GdacsAdapterTest extends WireMockSupport {
     }
 
     @Test
+    @DisplayName("a problem+json 404 Not Found means no current events of that type; the other types still load")
+    void emptyTypeIs404() throws Exception {
+        serve("EQ", "MAP-EQ.json");
+        // GDACS's answer for MAP?eventtype=VO while no volcano is current (2026-10-22).
+        WIREMOCK.stubFor(WireMock.get(urlEqualTo(GdacsAdapter.PATH + "?eventtype=VO")).willReturn(aResponse()
+                .withStatus(404).withHeader("Content-Type", "application/problem+json; charset=utf-8")
+                .withBody("{\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.5\",\"title\":\"Not Found\","
+                        + "\"status\":404}")));
+        serve("TC", "MAP-TC.json");
+
+        FetchResult result = adapter.fetch(context(Map.of(GdacsAdapter.EVENT_TYPES_PARAM, List.of("EQ", "VO", "TC"))));
+
+        assertThat(result.records()).hasSize(12);
+        WIREMOCK.verify(3, anyRequestedFor(anyUrl()));
+    }
+
+    @Test
+    @DisplayName("a 404 with any other body (the overload answer) still stops the run")
+    void overload404() {
+        WIREMOCK.stubFor(WireMock.get(urlEqualTo(GdacsAdapter.PATH + "?eventtype=EQ")).willReturn(aResponse()
+                .withStatus(404).withHeader("Content-Type", "text/plain")
+                .withBody("Error in GetEventForMapAsync: Timeout expired. max pool size was reached")));
+
+        assertThatThrownBy(() -> adapter.fetch(context(Map.of(GdacsAdapter.EVENT_TYPES_PARAM, List.of("EQ", "TC")))))
+                .isInstanceOf(UpstreamHttpException.class)
+                .satisfies(e -> assertThat(((UpstreamHttpException) e).getStatus()).isEqualTo(404));
+        WIREMOCK.verify(1, anyRequestedFor(anyUrl()));
+    }
+
+    @Test
     @DisplayName("a 400 is surfaced and stops the run")
     void badRequest() {
         WIREMOCK.stubFor(WireMock.get(urlEqualTo(GdacsAdapter.PATH + "?eventtype=EQ")).willReturn(aResponse()

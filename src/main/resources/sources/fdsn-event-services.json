@@ -6,12 +6,12 @@
       "id": "geofon",
       "name": "GEOFON (GFZ)",
       "baseUrl": "https://geofon.gfz.de/fdsnws/event/1/query",
-      "supportsUpdatedAfter": true,
+      "supportsUpdatedAfter": false,
       "licence": "GFZ/GEOFON open data (CC BY 4.0)",
       "termsUrl": "https://www.gfz-potsdam.de/en/datacentre/services/data-services/licences/",
       "attribution": "GEOFON, GFZ Helmholtz Centre for Geosciences",
       "homepage": "https://geofon.gfz.de/",
-      "notes": "Text columns end with an extra EventType column; Depth/km is spelled 'Depth/km'."
+      "notes": "Text columns end with an extra EventType column; Depth/km is spelled 'Depth/km'. No update-time filter: updatedafter answers 400 'invalid param' and its WADL's updateafter answers 400 'filtering based on update time not supported' (2026-10-22)."
     },
     {
       "id": "ingv",

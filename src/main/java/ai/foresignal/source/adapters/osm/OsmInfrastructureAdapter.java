@@ -140,6 +140,10 @@ public class OsmInfrastructureAdapter implements PollingAdapter {
         if (java.nio.file.Files.isRegularFile(requested)) {
             return requested;
         }
+        if (!java.nio.file.Files.isDirectory(requested)) {
+            // No inbox directory yet is the same as an empty one: nothing to read, not a failure.
+            return null;
+        }
         List<Path> files = new ArrayList<>();
         for (Path candidate : ctx.inbox().listRegularFiles(requested)) {
             String name = candidate.getFileName().toString();

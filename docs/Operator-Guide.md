@@ -127,28 +127,59 @@ until you store them with `PUT /v1/sources/{id}/credentials`.
 
 ### Aircraft sources
 
-Prompt 062 adds the global aircraft sources. `adsblol-mil` and `opensky-states` start enabled (free); the area slots
-stay disabled until you set their center (`lat` and `lon` are required):
+By default Foresignal tracks aircraft the way Shadowbroker does: the same upstreams, the same circles and the same
+cadence. These start enabled on a fresh install (free, no key):
 
 | Source | What it covers | Default interval · budget |
 |---|---|---|
-| `adsblol-mil` | Aircraft flagged military in adsb.lol's database, worldwide | 30 s · 4/min, 3,000/day |
-| `adsblol-area-1`, `-2`, `-3` | Every aircraft within `radiusNm` (≤ 250 nm, default 250) of a point you set | 60 s · 2/min, 1,500/day each |
-| `opensky-states` | Worldwide civil aircraft from the OpenSky Network | 300 s · 2/min, 1,500/day |
+| `adsblol-world` | Every aircraft adsb.lol sees, worldwide: six continent-sized circles requested together | 60 s · 12/min, 9,000/day |
+| `adsblol-mil` | Aircraft flagged military in adsb.lol's database, worldwide | 60 s · 4/min, 3,000/day |
+| `airplaneslive-mil` | Aircraft flagged military in airplanes.live's database (refused until airplanes.live approves you) | 60 s · 2/min, 2,880/day |
+| `adsbfi-blindspots` | Eight 250 nm circles the worldwide feed covers thinly, from adsb.fi | 30 min · 10/min, 400/day |
+| `airplaneslive-blindspots` | The same eight circles from airplanes.live (refused until approved) | 30 min · 10/min, 400/day |
 
-There is no worldwide adsb.lol source: the adsb.lol API documents a 250 nm limit, so worldwide civil coverage comes from
-OpenSky. Set an area slot's center before enabling it:
+`opensky-states` (worldwide, every 300 s) is part of the same profile, but Shadowbroker queries OpenSky only with an API
+client, so it starts **off**: set its `clientId` and `clientSecret`, then enable it. Without credentials it runs
+anonymously on 400 credits a day, which a 300 s world poll spends by mid-morning; that is an addition, not the profile.
+
+`adsblol-world` asks adsb.lol for 2,000 nm circles (2,500 nm for Africa). adsb.lol's API description documents 250 nm as
+the maximum, and the server answers larger radii anyway; if adsb.lol starts enforcing its limit, the source fails with
+the upstream's error and the blind-spot sources and OpenSky still run.
+
+**Additions, off by default.** Everything else Foresignal offers for aircraft is yours to turn on:
+
+| Source | What it adds | Default interval · budget |
+|---|---|---|
+| `adsbfi-mil` | Military aircraft from adsb.fi, the keyless alternative to `airplaneslive-mil` | 30 s · 2/min, 2,880/day |
+| `opensky-states` without credentials | Anonymous OpenSky (set the interval to at least 900 s) | 300 s · 2/min, 1,500/day |
+| `adsblol-area-1`, `-2`, `-3` | Every aircraft within `radiusNm` (≤ 250 nm, default 250) of a point you set | 60 s · 2/min, 1,500/day each |
+| `adsbfi-region-1` … `-4` | Every aircraft within `distNm` (≤ 250 nm, default 150) of a point you set | 30 s · 2/min, 2,880/day each |
+| `local-adsb-*`, `local-sbs-*`, `station-readsb-*` | Your own receivers | see their sections |
+
+Set an area slot's center before enabling it:
 
 ```json
 PUT /v1/sources/adsblol-area-1
 {"enabled": true, "params": {"lat": 41.98, "lon": -87.90, "radiusNm": 250}}
 ```
 
-All five are TRACK sources: positions are sampled (a version when an aircraft deviates 1 km from its dead-reckoned
-track, turns 20° or changes altitude by 300 m, and at least every 240 s), and a callsign, registration, type, squawk,
-emergency, ground state or navigation-quality change is always kept. An aircraft that stops reporting expires after its
-TTL (6 minutes for adsb.lol, 15 for OpenSky). With those TTLs the 240 s keyframe stays valid for intervals up to 90 s
-(adsb.lol) and 630 s (OpenSky); if you poll more slowly, also shorten the keyframe in the source's `ingestPolicy`.
+All of these are TRACK sources. Each aircraft that has moved gets a trail point every 60 s (Shadowbroker adds a point each
+minute only when the position changed); an unmoved aircraft writes one every 240 s. A point comes sooner
+when it deviates 1 km from its dead-reckoned track, turns 20° or changes altitude by 300 m; a callsign, registration,
+type, squawk, emergency, ground state or navigation-quality change is always kept. An aircraft that stops reporting
+expires after its TTL: 6 minutes for the 60 s sources, 15 for OpenSky, and 35 for the blind-spot sources, which keep an
+aircraft at its last reported position until their next poll, as Shadowbroker does.
+
+**An install seeded before 2026-10-22** keeps its own settings rows, so the profile has to be applied once:
+
+```json
+PUT /v1/sources/adsblol-mil        {"interval": "60s"}
+PUT /v1/sources/airplaneslive-mil  {"interval": "60s"}
+PUT /v1/sources/adsbfi-mil         {"enabled": false}
+```
+
+`adsblol-world` and the two blind-spot sources are new, so they are seeded enabled on the first start of the new version.
+An `ingestPolicy` override you set on an aircraft source keeps its own keyframe.
 
 ### adsb.lol access
 
@@ -2935,7 +2966,8 @@ Caddy), close the perimeter:
   tiles stay cacheable (`public` only while `openReads` is on and the key has no restriction).
 - **Limits.** Every client is rate-limited per minute. Defaults: read 600, tiles 1,200, streams 30
   opens and 8 open at once, expensive (search, Ask, LLM tools, sampling) 20, write 120, and
-  anonymous 120 per IP. Change them with `PUT /v1/settings/ratelimits`; they apply immediately. To
+  anonymous 120 per IP (every request without a token except map tiles, which only the tiles limit
+  applies to, so one map view cannot use up a browser's reads). Change them with `PUT /v1/settings/ratelimits`; they apply immediately. To
   give a kiosk or dashboard token a different read limit, set `maxRequestsPerMinute` in its
   restrictions. Admin tokens are not limited on reads and tiles. Set `metricsPerMinute` to limit
   Prometheus scrapes per IP, and `metricsOpen: false` (`PUT /v1/settings/security`) to require an

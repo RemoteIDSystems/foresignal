@@ -1,6 +1,8 @@
 package ai.foresignal.collect.socket;
 
 import ai.foresignal.collect.UpstreamIOException;
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.net.Cidr;
 import ai.foresignal.net.OutboundUrlPolicy;
 import ai.foresignal.source.LocalAddresses;
@@ -380,7 +382,7 @@ public final class DefaultSocketTransport implements SocketTransport {
         }
 
         void start() {
-            Thread.ofVirtual().name("socket-tcp-" + ctx.sourceId()).start(this::readLoop);
+            WorkThreads.start(WorkRole.COLLECT, "socket-tcp-" + ctx.sourceId(), this::readLoop);
         }
 
         private void readLoop() {
@@ -497,7 +499,7 @@ public final class DefaultSocketTransport implements SocketTransport {
         }
 
         void start() {
-            Thread.ofVirtual().name("socket-udp-" + ctx.sourceId()).start(this::receiveLoop);
+            WorkThreads.start(WorkRole.COLLECT, "socket-udp-" + ctx.sourceId(), this::receiveLoop);
         }
 
         private void receiveLoop() {

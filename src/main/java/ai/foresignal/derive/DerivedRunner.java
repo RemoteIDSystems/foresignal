@@ -11,6 +11,8 @@ import ai.foresignal.ingest.FetchLogEntry;
 import ai.foresignal.ingest.IngestOutcome;
 import ai.foresignal.ingest.IngestQueue;
 import ai.foresignal.ingest.IngestRecord;
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.place.PlaceChangedEvent;
 import ai.foresignal.raster.RasterFrameCommittedEvent;
 import ai.foresignal.raster.RasterFrameQueries;
@@ -70,7 +72,9 @@ import org.springframework.stereotype.Component;
  *   <li><b>Change batches</b> from one {@link ChangeBus} subscription, filtered per source by its
  *       {@link DerivedInputs}; a source never receives its own changes. When a source's inbox already holds
  *       {@code inboxCapacity} batches, the batch is dropped and a reconcile is scheduled. A bus gap
- *       ({@link ChangeListener#onGap}) schedules a reconcile for every source with change inputs.
+ *       ({@link ChangeListener#onGap}) schedules a reconcile for every source with change inputs. Change
+ *       invocations of one source are at least {@code changeInterval} apart; consecutive pending batches of
+ *       the same input source are merged into one ({@link #merge}).
  *   <li><b>Frame events</b> ({@link RasterFrameCommittedEvent}, {@link RasterRunCompletedEvent}),
  *       coalesced per product: only the newest pending event of a product is kept.
  *   <li><b>Ticks</b> every {@link DerivedInputs#tick()}, checked every {@code tickResolution} against the
@@ -169,11 +173,8 @@ public class DerivedRunner implements ChangeListener, DisposableBean, ai.foresig
         }
         started = true;
         subscription = bus.subscribe(SUBSCRIBER, this, 1024);
-        ticker = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "foresignal-derived-ticker");
-            t.setDaemon(true);
-            return t;
-        });
+        ticker = Executors.newSingleThreadScheduledExecutor(
+                WorkThreads.named(WorkRole.COLLECT, "foresignal-derived-ticker"));
         long period = Math.max(50, properties.tickResolution().toMillis());
         ticker.scheduleWithFixedDelay(this::tickDue, period, period, TimeUnit.MILLISECONDS);
         reconcileRunners();
@@ -281,7 +282,7 @@ public class DerivedRunner implements ChangeListener, DisposableBean, ai.foresig
         }
         Runner runner = new Runner(descriptor, generator, inputs);
         runners.put(sourceId, runner);
-        runner.thread = Thread.ofVirtual().name("foresignal-derived-" + sourceId).start(runner::loop);
+        runner.thread = WorkThreads.start(WorkRole.COLLECT, "foresignal-derived-" + sourceId, runner::loop);
         log.info("Started derived source {}", sourceId);
     }
 
@@ -545,6 +546,7 @@ public class DerivedRunner implements ChangeListener, DisposableBean, ai.foresig
         private Instant pendingTick;
         private boolean pendingReconcile = true;
         private boolean busy;
+        private long lastChangesNanos = Long.MIN_VALUE;
         private volatile boolean stopped;
         volatile Instant nextTick;
         Thread thread;
@@ -640,9 +642,12 @@ public class DerivedRunner implements ChangeListener, DisposableBean, ai.foresig
                 Work work;
                 lock.lock();
                 try {
-                    while (!stopped && !pendingReconcile && changes.isEmpty() && frameEvents.isEmpty()
-                            && pendingTick == null) {
-                        changed.awaitNanos(TimeUnit.MILLISECONDS.toNanos(500));
+                    while (!stopped && !hasWork()) {
+                        long wait = TimeUnit.MILLISECONDS.toNanos(500);
+                        if (!changes.isEmpty()) {
+                            wait = Math.max(1, Math.min(wait, changesDueInNanos()));
+                        }
+                        changed.awaitNanos(wait);
                     }
                     if (stopped) {
                         return;
@@ -673,14 +678,33 @@ public class DerivedRunner implements ChangeListener, DisposableBean, ai.foresig
             }
         }
 
+        /** True when work may run now: change batches count once their interval has passed; holding the lock. */
+        private boolean hasWork() {
+            return pendingReconcile || (!changes.isEmpty() && changesDueInNanos() <= 0) || !frameEvents.isEmpty()
+                    || pendingTick != null;
+        }
+
+        /** Nanoseconds until the next change invocation is allowed, zero or less when it is; holding the lock. */
+        private long changesDueInNanos() {
+            if (lastChangesNanos == Long.MIN_VALUE) {
+                return 0;
+            }
+            return lastChangesNanos + properties.changeInterval().toNanos() - System.nanoTime();
+        }
+
         /** The next piece of work; called holding the lock. */
         private Work next() {
             if (pendingReconcile) {
                 pendingReconcile = false;
                 return new Work(Work.Type.RECONCILE, null, null, null);
             }
-            if (!changes.isEmpty()) {
-                return new Work(Work.Type.CHANGES, changes.pollFirst(), null, null);
+            if (!changes.isEmpty() && changesDueInNanos() <= 0) {
+                lastChangesNanos = System.nanoTime();
+                ChangeBatch batch = changes.pollFirst();
+                while (!changes.isEmpty() && changes.peekFirst().sourceId().equals(batch.sourceId())) {
+                    batch = merge(batch, changes.pollFirst());
+                }
+                return new Work(Work.Type.CHANGES, batch, null, null);
             }
             if (!frameEvents.isEmpty()) {
                 String first = frameEvents.keySet().iterator().next();
@@ -704,6 +728,18 @@ public class DerivedRunner implements ChangeListener, DisposableBean, ai.foresig
                 default -> { }
             }
         }
+    }
+
+    /**
+     * Two consecutive batches of one input source as one: the changes in seq order, the seq range of both,
+     * and the later batch's id and time.
+     */
+    static ChangeBatch merge(ChangeBatch earlier, ChangeBatch later) {
+        List<ChangeSummary> all = new ArrayList<>(earlier.changes().size() + later.changes().size());
+        all.addAll(earlier.changes());
+        all.addAll(later.changes());
+        return new ChangeBatch(later.sourceId(), later.batchId(), later.ingestedAt(),
+                Math.min(earlier.fromSeq(), later.fromSeq()), Math.max(earlier.toSeq(), later.toSeq()), all);
     }
 
     /** One unit of runner work. */

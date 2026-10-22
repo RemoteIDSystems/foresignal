@@ -1,5 +1,6 @@
 package ai.foresignal.source.adapters.humanitarian;
 
+import ai.foresignal.collect.BudgetExceededException;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.FetchContext;
 import ai.foresignal.source.spi.FetchResult;
@@ -53,8 +54,11 @@ public final class CopernicusEmsAdapter implements PollingAdapter {
 
     static final Duration RETENTION = Duration.ofDays(1825);
 
-    /** The page size requested from the activations endpoint. */
-    static final int PAGE_SIZE = 50;
+    /**
+     * The page size requested from the activations endpoint: every activation (268 on 2026-10-22, 86 KB) in one
+     * request, so a first run is not a page per 50 items on top of a detail per activation.
+     */
+    static final int PAGE_SIZE = 500;
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
@@ -80,6 +84,9 @@ public final class CopernicusEmsAdapter implements PollingAdapter {
         List<NormalizedRecord> records = new ArrayList<>();
         Instant newest = watermark;
         int offset = 0;
+        // Cleared by the first budget refusal of a detail, so the rest of the run keeps summaries only and the
+        // next list page is still fetched (the refused detail used to fail the whole run and its watermark).
+        boolean[] details = {true};
         while (true) {
             UpstreamResponse response = ctx.http().get(URI.create(baseUrl
                     + "/backend/dashboard-api/public-activations-info/?limit=" + PAGE_SIZE + "&offset=" + offset));
@@ -113,7 +120,7 @@ public final class CopernicusEmsAdapter implements PollingAdapter {
                 }
                 // The stored watermark stays fixed for the whole run; the new one (the newest lastUpdate seen)
                 // is written only after the loop, so every item newer than the previous run is kept.
-                records.add(record(ctx, item));
+                records.add(details[0] ? record(ctx, item, details) : build(item, null, null, null));
             }
             offset += results.size();
             if (reached || lastPage || root.get("next") == null || root.get("next").isNull()) {
@@ -141,7 +148,7 @@ public final class CopernicusEmsAdapter implements PollingAdapter {
         return out;
     }
 
-    private NormalizedRecord record(FetchContext ctx, JsonNode item) throws AdapterException {
+    private NormalizedRecord record(FetchContext ctx, JsonNode item, boolean[] details) throws AdapterException {
         String code = text(item, "code");
         String reason = null;
         String subCategory = null;
@@ -156,6 +163,8 @@ public final class CopernicusEmsAdapter implements PollingAdapter {
                     subCategory = text(node, "subCategory");
                     reportLink = text(node, "reportLink");
                 }
+            } catch (BudgetExceededException e) {
+                details[0] = false;
             } catch (AdapterException e) {
                 // a missing detail leaves the summary fields null; the record is still useful
             }

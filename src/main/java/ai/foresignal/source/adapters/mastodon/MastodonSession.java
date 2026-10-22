@@ -1,5 +1,7 @@
 package ai.foresignal.source.adapters.mastodon;
 
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.social.SocialCollector;
 import ai.foresignal.social.SocialPost;
 import ai.foresignal.social.SocialRuntime;
@@ -102,7 +104,7 @@ final class MastodonSession implements StreamHandle {
         }
         ctx.connected();
         lastEventAt = ctx.clock().instant();
-        poller = Thread.ofVirtual().name("foresignal-mastodon-poller").start(() -> {
+        poller = WorkThreads.start(WorkRole.COLLECT, "foresignal-mastodon-poller", () -> {
             while (!finished.get()) {
                 try {
                     poll();

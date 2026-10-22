@@ -68,7 +68,7 @@ class RoadEventsIngestIT extends WeatherIngestSupport {
         // production the ones needing no key or parameter start enabled (prompt 145).
         assertThat(sources.list()).filteredOn(s -> s.id().startsWith("wzdx-") || s.id().startsWith("open511-")
                         || List.of("digitraffic-road", "ndw-situations", "ndw-srti").contains(s.id()))
-                .hasSize(35)
+                .hasSize(34)
                 .allSatisfy(s -> assertThat(s.enabled()).as(s.id()).isFalse());
     }
 

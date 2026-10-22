@@ -1,5 +1,7 @@
 package ai.foresignal.source.adapters.internet;
 
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.MeteredWebSocket;
 import ai.foresignal.source.spi.NormalizedRecord;
@@ -430,7 +432,7 @@ final class RisLiveSession implements StreamHandle, WebSocket.Listener {
     }
 
     void startWatchdog() {
-        watchdog = Thread.ofVirtual().name("foresignal-ris-watchdog").start(() -> {
+        watchdog = WorkThreads.start(WorkRole.COLLECT, "foresignal-ris-watchdog", () -> {
             while (!finished.get()) {
                 try {
                     TimeUnit.MILLISECONDS.sleep(TICK.toMillis());

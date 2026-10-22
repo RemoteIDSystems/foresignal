@@ -2,6 +2,8 @@ package ai.foresignal.notify;
 
 import ai.foresignal.collect.SourceHealthChangedEvent;
 import ai.foresignal.config.StartupOrder;
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.settings.ClientLinks;
 import ai.foresignal.settings.ServerSettings;
 import ai.foresignal.source.HealthStatus;
@@ -25,12 +27,16 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -79,6 +85,15 @@ public class NotificationRouter implements AlertListener {
     private final Clock clock;
     private volatile Subscription subscription;
 
+    /**
+     * Publishes the system notifications raised inside someone else's transaction, one at a time in order. A
+     * source's health is evaluated while reading it ({@code GET /v1/sources} in a read-only transaction) and while
+     * fetching it; writing the notification there joined that transaction, which a read-only one refuses, aborting
+     * the rest of the caller's work. Here it is written in its own transaction, from the background pool.
+     */
+    private final ExecutorService systemPublisher = Executors.newSingleThreadExecutor(
+            WorkThreads.named(WorkRole.BACKGROUND, "foresignal-system-notifications"));
+
     /** The map attachments of geolocated alerts (prompt 055); null only in hand-built unit tests. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private AlertMapService alertMaps;
@@ -106,13 +121,14 @@ public class NotificationRouter implements AlertListener {
         }
     }
 
-    /** Unsubscribes. */
+    /** Unsubscribes, and stops the system publisher once the notifications already handed to it are written. */
     @PreDestroy
     public synchronized void stop() {
         if (subscription != null) {
             subscription.close();
             subscription = null;
         }
+        systemPublisher.shutdown();
     }
 
     @Override
@@ -327,7 +343,24 @@ public class NotificationRouter implements AlertListener {
                 c -> !ai.foresignal.notify.push.PushChannelType.ID.equals(c.type()));
     }
 
+    /**
+     * Publishes a system notification: at once when the caller is in no transaction, otherwise on the
+     * {@link #systemPublisher}, so it never joins (and never aborts) the caller's transaction.
+     */
     private void system(String subtype, String severity, String title, String body, String url,
+            Map<String, Object> data, java.util.function.Predicate<NotificationChannel> filter) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            publishSystem(subtype, severity, title, body, url, data, filter);
+            return;
+        }
+        try {
+            systemPublisher.execute(() -> publishSystem(subtype, severity, title, body, url, data, filter));
+        } catch (RejectedExecutionException e) {
+            log.warn("System notification {} not published: the router is stopping", subtype);
+        }
+    }
+
+    private void publishSystem(String subtype, String severity, String title, String body, String url,
             Map<String, Object> data, java.util.function.Predicate<NotificationChannel> filter) {
         try {
             service.publish(NotificationMessage.builder(NotificationMessage.SYSTEM, subtype, title, severity)

@@ -45,9 +45,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
  *   <li>{@code read}: everything else.
  * </ul>
  *
- * A caller without a credential is also charged to {@code anonymous} per IP; when the anonymous
- * profile sets its own {@code maxRequestsPerMinute}, the stricter of the two applies (both are caps on
- * the same callers). A token's {@code maxRequestsPerMinute} overrides {@code read}, up or down. Admin tokens are exempt from {@code read} and {@code tiles} only.
+ * A caller without a credential is also charged to {@code anonymous} per IP for every request except
+ * {@code tiles}; when the anonymous profile sets its own {@code maxRequestsPerMinute}, the stricter of
+ * the two applies (both are caps on the same callers). Tiles are left out because a map draws far more
+ * of them than the anonymous budget allows: one map view used it up within seconds and every other read
+ * the page made (a track, a summary) was refused for the rest of the minute. They stay limited by their
+ * own class, per IP for an anonymous caller. A token's {@code maxRequestsPerMinute} overrides {@code read}, up or down. Admin tokens are exempt from {@code read} and {@code tiles} only.
  * {@code /actuator/prometheus} is limited per IP when {@code metricsPerMinute} is set. Preflights and
  * paths outside {@code /v1}, {@code /mcp} and {@code /actuator/prometheus} are never limited.
  *
@@ -117,7 +120,7 @@ public class ClientRateLimitFilter extends OncePerRequestFilter implements Order
         Caller caller = caller(request, ipKey);
         RateClass rateClass = classify(request.getMethod(), path);
 
-        if (caller.anonymous()) {
+        if (caller.anonymous() && rateClass != RateClass.TILES) {
             int limit = caller.anonymousOverride() != null
                     ? Math.min(caller.anonymousOverride(), settings.anonymous())
                     : settings.anonymous();

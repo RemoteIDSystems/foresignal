@@ -136,6 +136,8 @@ public final class MeteoAlarmAdapter implements PollingAdapter {
                 .interval(Duration.ofMinutes(15), Duration.ofMinutes(15))
                 .defaultBudget(2, 200)
                 .maxResponseBytes(32 * 1024 * 1024)
+                // Switzerland's 8.4 MB feed downloads at about 82 KB/s, about 102 s (2026-10-22).
+                .fetchTimeout(Duration.ofMinutes(3))
                 .historyTier(HistoryTier.STANDARD)
                 .observedAtMode(ObservedAtMode.UPSTREAM)
                 .ttlAnchor(TtlAnchor.RECEIVED)

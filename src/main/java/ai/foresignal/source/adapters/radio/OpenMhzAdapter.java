@@ -111,6 +111,8 @@ public class OpenMhzAdapter implements PollingAdapter {
                 .mode(Mode.POLLING)
                 .interval(Duration.ofHours(1), Duration.ofHours(1))
                 .defaultBudget(Budget.of(1, 30))
+                // Every official path answers a Cloudflare challenge (2026-10-22), so it is not switched on unasked.
+                .autoEnable(false)
                 .historyTier(HistoryTier.STANDARD)
                 .defaultIngestPolicy(IngestPolicy.all())
                 .observedAtMode(ObservedAtMode.RECEIVED)

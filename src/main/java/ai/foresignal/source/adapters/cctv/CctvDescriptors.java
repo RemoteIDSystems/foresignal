@@ -37,7 +37,7 @@ public final class CctvDescriptors {
     public static final Duration RETENTION = Duration.ofDays(90);
 
     /** The fetch timeout. */
-    public static final Duration FETCH_TIMEOUT = Duration.ofSeconds(30);
+    public static final Duration FETCH_TIMEOUT = Duration.ofSeconds(60);
 
     /** The {@code bbox} parameter. */
     public static final String BBOX_PARAM = "bbox";

@@ -259,6 +259,8 @@ public class HrrrAdapter implements PollingAdapter, DecoderDependent {
                 .mode(Mode.POLLING)
                 .interval(Duration.ofMinutes(10), Duration.ofMinutes(10))
                 .defaultBudget(Budget.of(60, 4_000, 2_000))
+                // The slowest successful run took 57.9 s of the old 60 s default (2026-10-22).
+                .fetchTimeout(Duration.ofMinutes(3))
                 .historyTier(HistoryTier.STANDARD)
                 .observedAtMode(ObservedAtMode.UPSTREAM)
                 .recordTtl(null)

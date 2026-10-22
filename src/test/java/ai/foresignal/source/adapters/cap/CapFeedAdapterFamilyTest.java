@@ -217,6 +217,28 @@ class CapFeedAdapterFamilyTest extends WireMockSupport {
     }
 
     @Test
+    @DisplayName("an atom-embedded feed maps the alerts its entries carry; an unchanged alert is not mapped again")
+    void embedded() throws Exception {
+        CapFeed feed = new CapFeed("cap-embedded-xx", "BR", "Embedded Authority", URI.create(baseUrl() + PATH),
+                CapFeedAdapter.EMBEDDED, List.of("pt-BR"), "test license", URI.create("https://example.org/terms"),
+                "2026-10-22", "test feed");
+        CapFeedAdapter embedded = new CapFeedAdapter(feed);
+        harness.reset(embedded.id(), "cap:index", "cap:seen", "cap:skippedTests");
+        WIREMOCK.stubFor(get(urlPathEqualTo(PATH)).willReturn(aResponse().withStatus(200)
+                .withHeader("Content-Type", "application/xml;charset=UTF-8")
+                .withBody(AdapterFixtures.bytes("cap", "embedded-atom.xml"))));
+
+        FetchResult first = embedded.fetch(harness.context(embedded, Map.of()));
+        assertThat(first.records()).hasSize(2);
+        assertThat(first.records()).extracting(r -> r.payload().get("identifier"))
+                .containsExactly("194582/2026", "194583/2026");
+        assertThat(embedded.fetch(harness.context(embedded, Map.of())).records()).isEmpty();
+        assertThat(embedded.descriptor().defaultInterval()).isEqualTo(java.time.Duration.ofMinutes(15));
+        assertThat(embedded.descriptor().fetchTimeout()).isEqualTo(java.time.Duration.ofMinutes(3));
+        harness.backoff.onSuccess(embedded.id());
+    }
+
+    @Test
     @DisplayName("the reviewed family registers every committed feed and its descriptors validate")
     void family() {
         CapFeedAdapterFamily family = new CapFeedAdapterFamily("", CapFeeds.load());

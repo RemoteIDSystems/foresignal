@@ -114,15 +114,22 @@ public class SondehubAdapter implements PollingAdapter {
         return descriptor;
     }
 
-    /** {@code center} must be {@code lat,lon}; {@code radiusKm} 1 to 1500; {@code windowS} 60 to 86400. */
+    /**
+     * {@code center} must be {@code lat,lon}, and is required when there is no place to default to;
+     * {@code radiusKm} 1 to 1500; {@code windowS} 60 to 86400.
+     */
     @Override
     public Map<String, String> checkParams(ValidatedParams params) {
         Map<String, String> problems = new LinkedHashMap<>();
+        String text = params == null || !params.has(CENTER_PARAM) ? null : params.string(CENTER_PARAM);
+        if (text != null && center(text) == null) {
+            problems.put(CENTER_PARAM, "must be lat,lon in degrees, for example 52.2,13.6");
+        } else if (text == null && !hasPlace()) {
+            // Without this the source was seeded enabled and failed every run on an install with no places.
+            problems.put(CENTER_PARAM, "is required when there is no place to default to");
+        }
         if (params == null) {
             return problems;
-        }
-        if (params.has(CENTER_PARAM) && params.string(CENTER_PARAM) != null && center(params.string(CENTER_PARAM)) == null) {
-            problems.put(CENTER_PARAM, "must be lat,lon in degrees, for example 52.2,13.6");
         }
         if (params.has(RADIUS_PARAM) && params.integer(RADIUS_PARAM) != null) {
             int r = params.integer(RADIUS_PARAM);
@@ -137,6 +144,11 @@ public class SondehubAdapter implements PollingAdapter {
             }
         }
         return problems;
+    }
+
+    private boolean hasPlace() {
+        PlacePoints p = places.get();
+        return p != null && !p.summaries().isEmpty();
     }
 
     /** {@code lat,lon} as {@code {lat, lon}}, or null when it is not a valid pair. */

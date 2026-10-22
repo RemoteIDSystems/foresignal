@@ -14,6 +14,8 @@ import ai.foresignal.inbound.edp.ExternalEvent;
 import ai.foresignal.inbound.edp.ExternalEventBus;
 import ai.foresignal.inbound.edp.ExternalSourceChangedEvent;
 import ai.foresignal.inbound.edp.ExternalSourceEntity;
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.notify.NotificationMessage;
 import ai.foresignal.notify.NotificationService;
 import ai.foresignal.security.Ulids;
@@ -590,7 +592,7 @@ public class BindingService {
             }
         };
         if (router.autoStart()) {
-            Thread.ofVirtual().name("external-binding-backfill-" + bindingId).start(task);
+            WorkThreads.start(WorkRole.COLLECT, "external-binding-backfill-" + bindingId, task);
         } else {
             task.run();
         }

@@ -73,7 +73,7 @@ class RailAndAircraftDescriptorTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("each")
-    @DisplayName("the aircraft sources: 6-minute TTL, 60 s/240 s, 30 s polls, 2/min and 2,880/day, 1.1 s pacing, LOCAL_ONLY")
+    @DisplayName("the aircraft sources: 6-minute TTL, 60 s/240 s, 30 s or 60 s polls, 2/min and 2,880/day, 1.1 s pacing, LOCAL_ONLY")
     void aircraft(SourceAdapter adapter) {
         SourceDescriptor d = adapter.descriptor();
         if (!d.kinds().contains("aircraft")) {
@@ -85,7 +85,8 @@ class RailAndAircraftDescriptorTest {
         assertThat(policy.keyframe()).isEqualTo(Duration.ofSeconds(240));
         assertThat(policy.minDeviationMeters()).isEqualTo(1000.0);
         assertThat(policy.edgeMinInterval()).isEqualTo(Duration.ofSeconds(30));
-        assertThat(d.defaultInterval()).isEqualTo(Duration.ofSeconds(30));
+        assertThat(d.defaultInterval()).isEqualTo(AirplanesLiveMilAdapter.ID.equals(d.id())
+                ? Duration.ofSeconds(60) : Duration.ofSeconds(30));
         assertThat(d.minInterval()).isEqualTo(Duration.ofSeconds(30));
         assertThat(d.defaultBudget()).isEqualTo(Budget.of(2, 2_880));
         assertThat(d.hostPacing()).isEqualTo(Duration.ofMillis(1100));
@@ -93,6 +94,8 @@ class RailAndAircraftDescriptorTest {
         assertThat(d.egress()).isEqualTo(Egress.LOCAL_ONLY);
         assertThat(d.titleField()).isEqualTo("flight");
         assertThat(d.userAgentOverride()).isNull();
+        assertThat(d.autoEnable()).as("adsbfi-mil is an addition to the Shadowbroker profile")
+                .isEqualTo(!AdsbFiMilAdapter.ID.equals(d.id()));
     }
 
     @Test

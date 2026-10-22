@@ -1,0 +1,8 @@
+"id","airport_ref","airport_ident","length_ft","width_ft","surface","lighted","closed","le_ident","le_latitude_deg","le_longitude_deg","le_elevation_ft","le_heading_degT","le_displaced_threshold_ft","he_ident","he_latitude_deg","he_longitude_deg","he_elevation_ft","he_heading_degT","he_displaced_threshold_ft"
+1,1,"KJFK",14511,200,"ASP",1,0,"04L",40.6223,-73.7854,12,31,,"22R",40.6519,-73.7618,13,211,
+2,1,"KJFK",8400,150,"ASP",1,0,"04R",,,,,,"22L",,,,223,
+3,2,"EGLL",12802,164,"ASP",1,0,"09L",51.4775,-0.4850,79,89.6,,"27R",51.4776,-0.4332,78,269.6,
+4,3,"LFPG",13829,197,"CON",1,0,"08L",49.0247,2.5248,,,,"26R",49.0262,2.5616,,,
+5,4,"KFFO",60,60,"CONC",0,0,"H1",,,,,,,,,,,
+6,6,"ZZZZ",2100,60,"TURF",0,0,"18",,,,180,,"36",,,,,
+7,6,"ZZZZ",9000,150,"ASP",0,1,"09",,,,90,,"27",,,,,

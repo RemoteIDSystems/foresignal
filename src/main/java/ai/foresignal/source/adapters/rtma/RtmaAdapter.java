@@ -286,13 +286,16 @@ public class RtmaAdapter implements PollingAdapter, DecoderDependent {
                             Arrays.copyOfRange(body, from, from + Math.toIntExact(span.length()))));
                 }
             }
+            // The downloads are keyed by message; commit looks fields up, so resolve each field to its file.
+            Map<Field, Path> fieldFiles = new LinkedHashMap<>();
             Map<String, List<Field>> byProduct = new LinkedHashMap<>();
-            for (Field field : wanted.keySet()) {
-                byProduct.computeIfAbsent(field.productId(), p -> new ArrayList<>()).add(field);
+            for (Map.Entry<Field, GribIdx.Message> w : wanted.entrySet()) {
+                fieldFiles.put(w.getKey(), files.get(w.getValue()));
+                byProduct.computeIfAbsent(w.getKey().productId(), p -> new ArrayList<>()).add(w.getKey());
             }
             for (Map.Entry<String, List<Field>> e : byProduct.entrySet()) {
                 try {
-                    NormalizedRecord record = commit(ctx, cycle, key, e.getKey(), e.getValue(), files);
+                    NormalizedRecord record = commit(ctx, cycle, key, e.getKey(), e.getValue(), fieldFiles);
                     if (record != null) {
                         out.add(record);
                     }
@@ -309,7 +312,7 @@ public class RtmaAdapter implements PollingAdapter, DecoderDependent {
     }
 
     private NormalizedRecord commit(FetchContext ctx, Instant cycle, String key, String productId, List<Field> fields,
-            Map<GribIdx.Message, Path> files) throws AdapterException {
+            Map<Field, Path> files) throws AdapterException {
         DecodedGrid header;
         try {
             header = decoder.decode(files.get(fields.get(0)), fields.get(0).request().header());
@@ -433,7 +436,9 @@ public class RtmaAdapter implements PollingAdapter, DecoderDependent {
                 .termsUrl("https://registry.opendata.aws/noaa-rtma-pds/")
                 .mode(Mode.POLLING)
                 .interval(Duration.ofMinutes(15), Duration.ofMinutes(15))
-                .defaultBudget(Budget.of(60, 3_000, 3_600))
+                .defaultBudget(Budget.of(60, 3_000, 4_500))
+                // Four analyses at about 34 MB each plus their decodes took up to about 270 s (2026-10-22).
+                .fetchTimeout(Duration.ofMinutes(5))
                 .historyTier(HistoryTier.STANDARD)
                 .observedAtMode(ObservedAtMode.UPSTREAM)
                 .recordTtl(null)

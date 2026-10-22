@@ -68,6 +68,9 @@ public class Open511Adapter implements PollingAdapter {
                 .attribution(server.attribution())
                 .licence(server.license())
                 .termsUrl(server.termsUrl())
+                // Off until enabled: api.open511.gov.bc.ca, the one reviewed server, answers 403 on every path to
+                // non-browser clients (verified 2026-10-22).
+                .autoEnable(false)
                 .build();
     }
 

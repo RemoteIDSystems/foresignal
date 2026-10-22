@@ -101,7 +101,9 @@ public class CarbonIntensityAdapter implements PollingAdapter {
                         .termsUrl("https://carbon-intensity.github.io/api-definitions/")
                         .mode(Mode.POLLING)
                         .interval(Duration.ofMinutes(15), Duration.ofMinutes(30))
-                        .defaultBudget(Budget.of(3, 300))
+                        // A run is 3 GETs plus /intensity/pt24h when the hour changes: 4 at most, and 96 x 3 + 24 =
+                        // 312 a day at the 15-minute minimum (3/min refused every hourly run, 2026-10-22).
+                        .defaultBudget(Budget.of(4, 400))
                         .observedAtMode(ObservedAtMode.RECEIVED))
                 .kind(SeriesPoint.KIND)
                 .kind(SeriesPoint.LATEST_KIND);

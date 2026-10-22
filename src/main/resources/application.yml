@@ -100,6 +100,16 @@ foresignal:
   # Deployment profile (113): full (default) or edge, a lightweight relay that collects locally and pushes to a hub;
   # edge mode leaves out embeddings, LLM features, raster products and rendering, OGC, exports and federation serving.
   mode: ${FORESIGNAL_MODE:full}
+  # Database pools kept apart by what a thread is doing (ai.foresignal.isolation): request threads use only the api
+  # pool and data gathering only the collect pool, so collection at any scale never takes a connection the API needs.
+  # The ingest writer has its own; everything else uses spring.datasource.hikari's pool (10). Each starts with
+  # minimum-idle connections and grows to its size under load. The defaults total 44 with the background pool.
+  db:
+    pools:
+      api: ${FORESIGNAL_DB_POOL_API:10}
+      collect: ${FORESIGNAL_DB_POOL_COLLECT:20}
+      ingest: ${FORESIGNAL_DB_POOL_INGEST:4}
+      minimum-idle: 2
   # Federation (113): the display name in /v1/federation/info (the federation.instanceName setting wins), and the
   # most federation SSE streams served at once.
   federation:

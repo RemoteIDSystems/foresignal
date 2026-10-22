@@ -726,7 +726,9 @@ public class GoesAbiAdapter implements PollingAdapter, DecoderDependent {
                 .termsUrl("https://registry.opendata.aws/noaa-goes/")
                 .mode(Mode.POLLING)
                 .interval(Duration.ofMinutes(5), Duration.ofMinutes(5))
-                .defaultBudget(Budget.of(10, 2_000, 2_500))
+                // A catch-up run is about 51 requests; a normal day about 2,725 MiB (2026-10-22).
+                .defaultBudget(Budget.of(60, 4_000, 4_000))
+                .fetchTimeout(Duration.ofMinutes(5))
                 .historyTier(HistoryTier.STANDARD)
                 .observedAtMode(ObservedAtMode.UPSTREAM)
                 .recordTtl(null)

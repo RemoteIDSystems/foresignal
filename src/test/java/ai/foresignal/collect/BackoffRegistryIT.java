@@ -67,6 +67,32 @@ class BackoffRegistryIT {
     }
 
     @Test
+    @DisplayName("a repeated short Retry-After escalates: 30 s, 30 s, 60 s, 120 s ... up to an hour, until a success")
+    void retryAfterEscalates() {
+        Duration asked = Duration.ofSeconds(30);
+        assertThat(registry.onThrottled(SOURCE, Optional.of(asked))).isEqualTo(START.plusSeconds(30));
+        assertThat(registry.onThrottled(SOURCE, Optional.of(asked))).isEqualTo(START.plusSeconds(30));
+        assertThat(registry.onThrottled(SOURCE, Optional.of(asked))).isEqualTo(START.plusSeconds(60));
+        assertThat(registry.onThrottled(SOURCE, Optional.of(asked))).isEqualTo(START.plusSeconds(120));
+        for (int i = 0; i < 20; i++) {
+            registry.onThrottled(SOURCE, Optional.of(asked));
+        }
+        assertThat(registry.onThrottled(SOURCE, Optional.of(asked))).isEqualTo(START.plus(Duration.ofHours(1)));
+
+        registry.onSuccess(SOURCE);
+        assertThat(registry.onThrottled(SOURCE, Optional.of(asked))).as("a success resets the escalation")
+                .isEqualTo(START.plusSeconds(30));
+    }
+
+    @Test
+    @DisplayName("a long Retry-After is honored as asked even when it exceeds the escalation step")
+    void longRetryAfterWins() {
+        registry.onThrottled(SOURCE, Optional.empty());
+        assertThat(registry.onThrottled(SOURCE, Optional.of(Duration.ofMinutes(20))))
+                .isEqualTo(START.plus(Duration.ofMinutes(20)));
+    }
+
+    @Test
     @DisplayName("a second throttle updates the existing row rather than inserting another")
     void secondThrottleUpdatesInPlace() {
         registry.onThrottled(SOURCE, Optional.empty());

@@ -84,7 +84,7 @@ ok "$count sources listed, $SOURCE present"
 # 3. Enable USGS.
 status=$(request PUT "/v1/sources/$SOURCE" '{"enabled":true}')
 expect "$status" 200 "PUT /v1/sources/$SOURCE"
-jq -e '.enabled == true' "$TMP" >/dev/null || fail "$SOURCE did not report enabled"
+jq -e '.settings.enabled == true' "$TMP" >/dev/null || fail "$SOURCE did not report enabled"
 ok "$SOURCE enabled"
 
 # 4. Wait for records; the page must carry a numeric watermarkSeq.

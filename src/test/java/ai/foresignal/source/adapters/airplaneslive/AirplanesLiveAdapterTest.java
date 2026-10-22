@@ -6,6 +6,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -28,6 +29,7 @@ import ai.foresignal.security.InstallIdService;
 import ai.foresignal.source.CredentialsAccess;
 import ai.foresignal.source.HealthStatus;
 import ai.foresignal.source.SourceService;
+import ai.foresignal.source.formats.readsb.AircraftRegion;
 import ai.foresignal.source.spi.AdapterStateStore;
 import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.FetchContext;
@@ -43,6 +45,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -94,7 +97,11 @@ class AirplanesLiveAdapterTest extends WireMockSupport {
     }
 
     private FetchContext context() {
-        SourceDescriptor d = adapter.descriptor();
+        return context(adapter);
+    }
+
+    private FetchContext context(ai.foresignal.source.spi.SourceAdapter source) {
+        SourceDescriptor d = source.descriptor();
         return new TestContext(d, client.forSource(d.id(), d), ValidatedParams.empty(), client.stateStore(d.id()),
                 clock);
     }
@@ -199,6 +206,60 @@ class AirplanesLiveAdapterTest extends WireMockSupport {
         assertThat(d.defaultBudget()).isEqualTo(Budget.of(2, 2_880));
         assertThat(d.credentialFields()).isEmpty();
         assertThat(new AirplanesLiveMilAdapter("").uri().toString()).isEqualTo("https://api.airplanes.live/v2/mil");
+    }
+
+    @Test
+    @DisplayName("airplaneslive-blindspots: the first 403 stops the poll; the other seven circles are never sent")
+    void blindSpotsRefused() {
+        List<Duration> pauses = new ArrayList<>();
+        AirplanesLiveBlindSpotAdapter blind = new AirplanesLiveBlindSpotAdapter(baseUrl(), pauses::add);
+        backoff.onSuccess(AirplanesLiveBlindSpotAdapter.ID);
+        WIREMOCK.stubFor(WireMock.get(urlPathMatching("/v2/point/.*")).willReturn(aResponse().withStatus(403)
+                .withHeader("Content-Type", "application/json")
+                .withBody(AdapterFixtures.bytes("airplaneslive-mil", "forbidden-403.json"))));
+
+        assertThatThrownBy(() -> blind.fetch(context(blind)))
+                .isInstanceOf(UpstreamAccessDeniedException.class)
+                .hasMessage(REASON);
+
+        WIREMOCK.verify(1, getRequestedFor(urlPathMatching("/v2/point/.*")));
+        WIREMOCK.verify(getRequestedFor(urlEqualTo("/v2/point/56.8/60.6/250")));
+        assertThat(pauses).as("no waiting for requests the backoff will not send").isEmpty();
+        assertThat(backoff.backoffUntil(AirplanesLiveBlindSpotAdapter.ID)).isEqualTo(NOW.plus(Duration.ofHours(1)));
+    }
+
+    @Test
+    @DisplayName("airplaneslive-blindspots: eight circles, 1.2 s plus up to 0.4 s between them, merged by hex")
+    void blindSpotsGranted() throws Exception {
+        List<Duration> pauses = new ArrayList<>();
+        AirplanesLiveBlindSpotAdapter blind = new AirplanesLiveBlindSpotAdapter(baseUrl(), pauses::add);
+        backoff.onSuccess(AirplanesLiveBlindSpotAdapter.ID);
+        WIREMOCK.stubFor(WireMock.get(urlPathMatching("/v2/point/.*")).willReturn(aResponse().withStatus(200)
+                .withHeader("Content-Type", "application/json")
+                .withBody(AdapterFixtures.bytes("airplaneslive-mil", "mil-synthetic.json"))));
+
+        FetchResult result = blind.fetch(context(blind));
+
+        assertThat(result.records()).extracting(r -> r.externalId()).containsExactly("ae57d5", "ae05ac", "ae4ff0");
+        assertThat(result.complete()).isTrue();
+        WIREMOCK.verify(8, getRequestedFor(urlPathMatching("/v2/point/.*/250")));
+        assertThat(pauses).hasSize(7).allSatisfy(p -> assertThat(p)
+                .isBetween(Duration.ofMillis(1200), Duration.ofMillis(1600)));
+    }
+
+    @Test
+    @DisplayName("airplaneslive-blindspots: every 30 min, a 35-minute TTL, the approval reason; mil polls every 60 s")
+    void blindSpotDescriptor() {
+        SourceDescriptor d = new AirplanesLiveBlindSpotAdapter("").descriptor();
+        assertThat(ai.foresignal.source.DescriptorValidator.problems(d, new AirplanesLiveBlindSpotAdapter("")))
+                .isEmpty();
+        assertThat(d.defaultInterval()).isEqualTo(Duration.ofMinutes(30));
+        assertThat(d.recordTtl()).isEqualTo(Duration.ofMinutes(35));
+        assertThat(d.accessDeniedReasons()).containsEntry("contact@airplanes.live", AirplanesLiveMilAdapter.ACCESS_REASON);
+        assertThat(d.autoEnable()).isTrue();
+        assertThat(new AirplanesLiveBlindSpotAdapter("").uri(AircraftRegion.BLIND_SPOTS.getLast()).toString())
+                .isEqualTo("https://api.airplanes.live/v2/point/9/38.7/250");
+        assertThat(adapter.descriptor().defaultInterval()).isEqualTo(Duration.ofSeconds(60));
     }
 
     /** The smallest {@link FetchContext} around a real {@link SourceHttp}. */

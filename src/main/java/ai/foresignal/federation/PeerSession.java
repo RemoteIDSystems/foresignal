@@ -3,6 +3,8 @@ package ai.foresignal.federation;
 import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.collect.InBackoffException;
 import ai.foresignal.collect.UpstreamHttpException;
+import ai.foresignal.isolation.WorkRole;
+import ai.foresignal.isolation.WorkThreads;
 import ai.foresignal.net.OutboundUrlPolicy;
 import ai.foresignal.source.spi.AdapterException;
 import ai.foresignal.source.spi.HttpStream;
@@ -85,7 +87,7 @@ final class PeerSession implements StreamHandle, Runnable {
     }
 
     void start() {
-        thread = Thread.ofVirtual().name("foresignal-peer-" + peerId).start(this);
+        thread = WorkThreads.start(WorkRole.COLLECT, "foresignal-peer-" + peerId, this);
     }
 
     /** Thrown when the peer's key does not match the pinned one. */
