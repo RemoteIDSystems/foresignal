@@ -22211,7 +22211,7 @@
                 }
               ]
             },
-            "description": "CORP reliability curve points (PAV) with the miscalibration, discrimination and uncertainty decomposition, plus a 10-bin table with counts (the fallback when n < 50).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getForecastCalibration`",
+            "description": "For a binary forecaster: CORP reliability curve points (PAV) with the miscalibration, discrimination and uncertainty decomposition, plus a 10-bin table with counts (the fallback when n < 50). For a numeric-only forecaster or question (152): a quantile-reliability diagram (empirical coverage of each stated quantile vs its nominal level), a PIT histogram and a calibration-error summary (`type: numeric`).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getForecastCalibration`",
             "auth": {
               "type": "noauth"
             }

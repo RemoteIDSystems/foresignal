@@ -135,6 +135,22 @@ public final class ForecastScorer {
         return 2.0 * sum / losses.size();
     }
 
+    /**
+     * Whether the outcome {@code y} fell at or below each stored quantile ({@code y ≤ q_τ}), per level, in level
+     * order (numeric calibration, prompt 152). The empirical mean of each level's indicator should equal its nominal
+     * level τ when the forecaster's quantiles are reliable; the indicators also place {@code y} in a PIT bin.
+     */
+    public static Map<String, Boolean> quantileCoverage(Map<String, Double> quantiles, double y) {
+        Map<String, Boolean> out = new LinkedHashMap<>();
+        for (String key : Ledger.QUANTILES) {
+            Double q = quantiles.get(key);
+            if (q != null) {
+                out.put(key, y <= q);
+            }
+        }
+        return out;
+    }
+
     /** Whether {@code y} fell inside p05–p95 and p25–p75 (inclusive). */
     public static Map<String, Boolean> intervalHits(Map<String, Double> quantiles, double y) {
         Map<String, Boolean> out = new LinkedHashMap<>();

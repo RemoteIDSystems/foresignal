@@ -16,6 +16,11 @@
       {
         "version": "1.3.0",
         "date": "2026-10-22",
+        "note": "152: numeric / quantile forecast calibration. getForecastCalibration now returns a numeric calibration for a numeric-only forecaster or question — a quantile-reliability diagram (empirical coverage of each stated quantile vs its nominal level), a PIT histogram and a calibration-error summary (new ForecastNumericCalibration schema, type: numeric) — and the binary CORP/bins calibration otherwise (unchanged). The 200 response is now oneOf [ForecastCalibration, ForecastNumericCalibration]. Part of the 1.3.0 wave; no version change."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-22",
         "note": "151: signal calibration. Confidence is reported as a calibrated probability where enough real-world outcomes have resolved, otherwise the raw EventScorer score unchanged; IntelligenceEvent and IntelEventSummary gain rawConfidence, confidence is no longer capped at 0.95 when calibrated, and the calibrated flag now means a fitted mapping was applied (not 103 validation). Adds getIntelCalibration (GET /v1/intel/calibration) and getIntelCalibrationScope (GET /v1/intel/calibration/{scope}) with the IntelCalibration schema (reliability table, Brier, sample size, CORP curve). The intel SSE topic gains intel.event.upgraded, emitted alongside intel.event.updated when a change crosses a trust threshold (status emerging→active, a confidence or evidence-quality tier, uncorroborated→corroborated, or calibrated turning true); its summary carries an upgrade member. Additive: no operation or schema was renamed or removed."
       },
       {
@@ -60262,7 +60267,7 @@
         ],
         "operationId": "getForecastCalibration",
         "summary": "Get calibration curve and bins",
-        "description": "CORP reliability curve points (PAV) with the miscalibration, discrimination and uncertainty decomposition, plus a 10-bin table with counts (the fallback when n < 50).\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "For a binary forecaster: CORP reliability curve points (PAV) with the miscalibration, discrimination and uncertainty decomposition, plus a 10-bin table with counts (the fallback when n < 50). For a numeric-only forecaster or question (152): a quantile-reliability diagram (empirical coverage of each stated quantile vs its nominal level), a PIT histogram and a calibration-error summary (`type: numeric`).\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "forecaster",
@@ -60285,11 +60290,18 @@
         ],
         "responses": {
           "200": {
-            "description": "Calibration",
+            "description": "Calibration (binary CORP/bins, or numeric PIT/quantile-reliability)",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ForecastCalibration"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ForecastCalibration"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ForecastNumericCalibration"
+                    }
+                  ]
                 }
               }
             }
@@ -139163,6 +139175,134 @@
         "required": [
           "retrospective",
           "entries",
+          "scorerVersion",
+          "computedAt"
+        ]
+      },
+      "ForecastNumericCalibration": {
+        "type": "object",
+        "description": "Numeric calibration (152): the quantile-reliability diagram, PIT histogram and calibration-error summary over resolved numeric questions",
+        "properties": {
+          "forecasterId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "category": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "const": "numeric"
+          },
+          "n": {
+            "type": "integer",
+            "description": "Resolved numeric questions with quantile coverage"
+          },
+          "label": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "insufficient"
+            ]
+          },
+          "quantileReliability": {
+            "type": "array",
+            "description": "Empirical coverage P(y ≤ q) of each stated quantile vs its nominal level",
+            "items": {
+              "type": "object",
+              "properties": {
+                "level": {
+                  "type": "number"
+                },
+                "quantile": {
+                  "type": "string",
+                  "example": "p05"
+                },
+                "nominal": {
+                  "type": "number"
+                },
+                "empirical": {
+                  "type": "number"
+                },
+                "n": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "pit": {
+            "type": "object",
+            "description": "PIT histogram over the required-quantile bins",
+            "properties": {
+              "n": {
+                "type": "integer"
+              },
+              "bins": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "lower": {
+                      "type": "number"
+                    },
+                    "upper": {
+                      "type": "number"
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "frequency": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "expected": {
+                      "type": "number",
+                      "description": "The bin width; a calibrated forecaster's frequency is near it"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "meanAbsoluteCoverageError": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "Mean |empirical − nominal| over the stated levels"
+              },
+              "maxCoverageDeviation": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          },
+          "scorerVersion": {
+            "type": "string"
+          },
+          "computedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "type",
+          "n",
+          "label",
+          "quantileReliability",
+          "pit",
           "scorerVersion",
           "computedAt"
         ]

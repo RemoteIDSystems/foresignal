@@ -3,6 +3,7 @@ package ai.foresignal.forecast.score;
 import ai.foresignal.forecast.ForecastCalibrationEntity;
 import ai.foresignal.forecast.ForecastScoreEntity;
 import ai.foresignal.forecast.ForecasterRegistry;
+import ai.foresignal.forecast.Ledger;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -198,11 +199,23 @@ public final class Scorecards {
      */
     public static Map<String, Object> calibration(List<ForecastScoreEntity> rows, Filter filter, Instant now) {
         List<ForecastScoreEntity> mine = new ArrayList<>();
+        List<ForecastScoreEntity> numericRows = new ArrayList<>();
         for (ForecastScoreEntity s : rows) {
-            if (filter.admits(s) && (filter.forecasterId() == null || filter.forecasterId().equals(s.getForecasterId()))
-                    && s.getFinalProbability() != null && s.getObserved() != null) {
-                mine.add(s);
+            if (!filter.admits(s)
+                    || (filter.forecasterId() != null && !filter.forecasterId().equals(s.getForecasterId()))) {
+                continue;
             }
+            if (s.getFinalProbability() != null && s.getObserved() != null) {
+                mine.add(s);
+            } else if (Ledger.NUMERIC.equals(s.getQuestionType()) && s.getQuantileCoverage() != null
+                    && !s.getQuantileCoverage().isEmpty()) {
+                numericRows.add(s);
+            }
+        }
+        // 152: a numeric-only forecaster or question gets the PIT / quantile-reliability report; the binary path
+        // (any final-probability rows present) is unchanged.
+        if (mine.isEmpty() && !numericRows.isEmpty()) {
+            return numericCalibration(numericRows, filter, now);
         }
         double[][] binary = binary(mine);
         int n = binary[0].length;
@@ -245,6 +258,124 @@ public final class Scorecards {
         out.put("sharpness", Calibration.sharpness(binary[0]));
         out.put("scorerVersion", ForecastScorer.VERSION);
         out.put("computedAt", now.toString());
+        return out;
+    }
+
+    /**
+     * Builds a numeric {@code ForecastCalibration} (prompt 152) from resolved numeric questions: the
+     * quantile-reliability diagram (the empirical coverage {@code P(y ≤ q_τ)} of each stated level vs its nominal
+     * level τ), a PIT histogram over the required-quantile bins, and a calibration-error summary. A well-calibrated
+     * forecaster has each level's coverage near its nominal and a near-uniform PIT (each bin's frequency near its
+     * width).
+     *
+     * @param mine the forecaster's numeric rows (each with non-null, non-empty {@code quantileCoverage})
+     * @param filter the filters
+     * @param now the computation time
+     */
+    static Map<String, Object> numericCalibration(List<ForecastScoreEntity> mine, Filter filter, Instant now) {
+        int n = mine.size();
+        // Quantile-reliability: covered / n per stored level, in level order.
+        Map<String, int[]> perLevel = new LinkedHashMap<>();
+        for (String level : Ledger.QUANTILES) {
+            perLevel.put(level, new int[2]);
+        }
+        // PIT histogram over the required-quantile bins: [0,.05),[.05,.25),[.25,.5),[.5,.75),[.75,.95),[.95,1].
+        int[] pitCounts = new int[Ledger.REQUIRED_QUANTILES.size() + 1];
+        int pitN = 0;
+        for (ForecastScoreEntity s : mine) {
+            Map<String, Boolean> coverage = s.getQuantileCoverage();
+            for (String level : Ledger.QUANTILES) {
+                Boolean covered = coverage.get(level);
+                if (covered != null) {
+                    perLevel.get(level)[1]++;
+                    if (covered) {
+                        perLevel.get(level)[0]++;
+                    }
+                }
+            }
+            Integer bin = pitBin(coverage);
+            if (bin != null) {
+                pitCounts[bin]++;
+                pitN++;
+            }
+        }
+        List<Map<String, Object>> reliability = new ArrayList<>();
+        double errorSum = 0;
+        double maxDeviation = 0;
+        int levelsWithData = 0;
+        for (String level : Ledger.QUANTILES) {
+            int[] counts = perLevel.get(level);
+            if (counts[1] == 0) {
+                continue;
+            }
+            double nominal = Ledger.level(level);
+            double empirical = counts[0] / (double) counts[1];
+            Map<String, Object> point = new LinkedHashMap<>();
+            point.put("level", nominal);
+            point.put("quantile", level);
+            point.put("nominal", nominal);
+            point.put("empirical", empirical);
+            point.put("n", counts[1]);
+            reliability.add(point);
+            errorSum += Math.abs(empirical - nominal);
+            maxDeviation = Math.max(maxDeviation, Math.abs(empirical - nominal));
+            levelsWithData++;
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("forecasterId", filter.forecasterId());
+        out.put("category", filter.category());
+        out.put("type", "numeric");
+        out.put("n", n);
+        out.put("label", n < MIN_RESOLVED ? "insufficient" : "ok");
+        out.put("quantileReliability", reliability);
+        out.put("pit", pitHistogram(pitCounts, pitN));
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("meanAbsoluteCoverageError", levelsWithData == 0 ? null : errorSum / levelsWithData);
+        summary.put("maxCoverageDeviation", levelsWithData == 0 ? null : maxDeviation);
+        out.put("summary", summary);
+        out.put("scorerVersion", ForecastScorer.VERSION);
+        out.put("computedAt", now.toString());
+        return out;
+    }
+
+    /** The PIT bin of one outcome: the first required level it is at or below, or the last bin when above all. */
+    private static Integer pitBin(Map<String, Boolean> coverage) {
+        List<String> levels = Ledger.REQUIRED_QUANTILES;
+        for (int i = 0; i < levels.size(); i++) {
+            Boolean covered = coverage.get(levels.get(i));
+            if (covered == null) {
+                return null;
+            }
+            if (covered) {
+                return i;
+            }
+        }
+        return levels.size();
+    }
+
+    /** The PIT histogram: one bin per required-quantile interval, with its count, frequency and expected width. */
+    private static Map<String, Object> pitHistogram(int[] counts, int n) {
+        List<Double> edges = new ArrayList<>();
+        edges.add(0.0);
+        for (String level : Ledger.REQUIRED_QUANTILES) {
+            edges.add(Ledger.level(level));
+        }
+        edges.add(1.0);
+        List<Map<String, Object>> bins = new ArrayList<>();
+        for (int i = 0; i < counts.length; i++) {
+            double lower = edges.get(i);
+            double upper = edges.get(i + 1);
+            Map<String, Object> bin = new LinkedHashMap<>();
+            bin.put("lower", lower);
+            bin.put("upper", upper);
+            bin.put("count", counts[i]);
+            bin.put("frequency", n == 0 ? null : counts[i] / (double) n);
+            bin.put("expected", upper - lower);
+            bins.add(bin);
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("n", n);
+        out.put("bins", bins);
         return out;
     }
 

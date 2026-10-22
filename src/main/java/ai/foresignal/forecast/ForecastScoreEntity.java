@@ -67,6 +67,11 @@ public class ForecastScoreEntity {
     @Column(name = "interval_hits", columnDefinition = "jsonb")
     private Map<String, Boolean> intervalHits;
 
+    /** Whether the outcome fell at or below each stored quantile (numeric calibration, prompt 152), or null. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "quantile_coverage", columnDefinition = "jsonb")
+    private Map<String, Boolean> quantileCoverage;
+
     @Column(name = "time_averaged_brier")
     private Double timeAveragedBrier;
 
@@ -219,6 +224,16 @@ public class ForecastScoreEntity {
     /** Whether the outcome fell inside p05–p95 and p25–p75 (numeric), or null. */
     public Map<String, Boolean> getIntervalHits() {
         return intervalHits;
+    }
+
+    /** Whether the outcome fell at or below each stored quantile (numeric calibration, prompt 152), or null. */
+    public Map<String, Boolean> getQuantileCoverage() {
+        return quantileCoverage;
+    }
+
+    /** Sets the per-quantile coverage indicators. */
+    public void setQuantileCoverage(Map<String, Boolean> value) {
+        this.quantileCoverage = value == null ? null : new LinkedHashMap<>(value);
     }
 
     /** Sets the interval hits. */

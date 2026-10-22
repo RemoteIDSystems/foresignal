@@ -155,6 +155,7 @@ public final class QuestionScorer {
         s.setCrps(ForecastScorer.crps(quantiles, value));
         s.setPinball(ForecastScorer.pinball(quantiles, value));
         s.setIntervalHits(ForecastScorer.intervalHits(quantiles, value));
+        s.setQuantileCoverage(ForecastScorer.quantileCoverage(quantiles, value));
         s.setNDays(0);
     }
 
