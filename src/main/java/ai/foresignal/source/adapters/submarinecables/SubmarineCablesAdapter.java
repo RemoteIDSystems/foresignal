@@ -149,7 +149,7 @@ public class SubmarineCablesAdapter implements PollingAdapter {
                 .name("Submarine cables")
                 .description("Submarine cables and their landing points from TeleGeography's public Submarine"
                         + " Cable Map. The geometry is stylised and the underlying data is subscriber-only:"
-                        + " display only, attribute TeleGeography, non-commercial. Disabled by default.")
+                        + " display only, attribute TeleGeography, non-commercial.")
                 .kind(SubmarineCableParser.CABLE_KIND)
                 .kind(SubmarineCableParser.LANDING_KIND)
                 .kind("dataset-release")

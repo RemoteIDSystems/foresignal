@@ -214,7 +214,7 @@ public class MeshtasticMqttAdapter implements StreamingAdapter {
                         + " one subscription per root and at most 3, no wildcard above the root, keepalive 120 s, clean"
                         + " session, reconnect 15 s to 300 s with jitter, 12 connects an hour, 100 messages a minute"
                         + " (excess dropped before parsing). Most public traffic is protobuf, so JSON is sparse; public"
-                        + " positions are reduced to 10-16 bits. Text only with includeText. Disabled by default.")
+                        + " positions are reduced to 10-16 bits. Text only with includeText.")
                 .kinds(MeshRecords.NODE_KIND, MeshRecords.MESSAGE_KIND)
                 .homepage("https://meshtastic.org/docs/software/integrations/mqtt/")
                 .attribution("Meshtastic public MQTT broker and the gateways that uplink to it")

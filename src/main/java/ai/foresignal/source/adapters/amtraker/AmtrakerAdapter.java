@@ -125,7 +125,7 @@ public class AmtrakerAdapter implements PollingAdapter {
                 .description("Positions of Amtrak, VIA Rail and Brightline trains from Amtraker (api.amtraker.com"
                         + " /v3/trains), an unofficial community relay of the operators' map data. Amtraker licenses"
                         + " the data under ODC-By 1.0 and requires attribution with a link to amtraker.com; it"
-                        + " publishes no rate limit, so the source polls every 60 s and is disabled by default. Trains"
+                        + " publishes no rate limit, so the source polls every 60 s. Trains"
                         + " that have not departed are left out. TRACK, TTL 5 min, observedAt = the time of the last"
                         + " valid position, keyframe 180 s (holds up to a 90 s interval).")
                 .kind(AmtrakerParser.KIND)

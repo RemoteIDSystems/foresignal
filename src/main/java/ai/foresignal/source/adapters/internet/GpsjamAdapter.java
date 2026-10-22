@@ -197,7 +197,7 @@ public final class GpsjamAdapter implements PollingAdapter {
                 .name("gpsjam daily jamming cells")
                 .description("Daily aircraft-derived GPS jamming cells (H3 resolution 4) from gpsjam.org. The bad "
                         + "fraction uses the site's metric; the manifest date gates the fetch. The site publishes no "
-                        + "licence, so the source is local-only and disabled by default.")
+                        + "licence, so the source is local-only.")
                 .kind(KIND)
                 .mode(Mode.POLLING)
                 .homepage("https://gpsjam.org")

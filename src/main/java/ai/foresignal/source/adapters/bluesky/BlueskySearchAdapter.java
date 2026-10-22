@@ -43,7 +43,9 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * {@code bluesky-search} (prompt 135): AppView {@code app.bsky.feed.searchPosts} ({@code q}, {@code sort=latest},
  * {@code since}, {@code tag}, {@code limit} ≤ 100, {@code cursor}; lexicon verified 2026-10-17) for the standing terms
- * and hashtags of the topics that apply to Bluesky, a paged search: complete within the API's window. Off by default.
+ * and hashtags of the topics that apply to Bluesky, a paged search: complete within the API's window. Free, so its
+ * source starts enabled (prompt 145). Whether social cues may use the platform is its platform row's setting
+ * ({@code SocialPlatformService.requireEnabled}), a separate switch.
  *
  * <p>Without credentials it asks {@code https://api.bsky.app} (answered unauthenticated on 2026-10-17; the
  * {@code public.api.bsky.app} host refused search with 403). With an {@code identifier} and {@code appPassword} it opens
@@ -331,7 +333,7 @@ public class BlueskySearchAdapter implements PollingAdapter {
                 .name("Bluesky search")
                 .description("Bluesky AppView searchPosts (sort=latest) for the attention topics' social terms and"
                         + " hashtags: a paged search, complete within the API's window. Optional app password when"
-                        + " the AppView requires a session. Off by default.")
+                        + " the AppView requires a session.")
                 .homepage("https://docs.bsky.app/")
                 .attribution("Bluesky Social PBC")
                 .licence("Bluesky public data; Bluesky Protocol Services terms")
