@@ -46,8 +46,16 @@ public class PersistenceForecaster implements BaselineForecaster {
 
     @Override
     public boolean supports(ForecastQuestionEntity q) {
-        return "series-value".equals(q.getResolverType())
-                || ("situation-status".equals(q.getResolverType()) && Ledger.BINARY.equals(q.getType()));
+        if ("situation-status".equals(q.getResolverType()) && Ledger.BINARY.equals(q.getType())) {
+            return true;
+        }
+        if (!"series-value".equals(q.getResolverType())) {
+            return false;
+        }
+        // Prompt 156: a binary series-value threshold question is answered from a predictive distribution by the
+        // threshold forecaster, not from persistence's flat confidence. Numeric series-value (carry the last
+        // value forward) is unchanged.
+        return !(Ledger.BINARY.equals(q.getType()) && q.getResolver() != null && q.getResolver().get("op") != null);
     }
 
     @Override

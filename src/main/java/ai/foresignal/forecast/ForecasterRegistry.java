@@ -43,6 +43,9 @@ public class ForecasterRegistry {
     /** The analog baseline. */
     public static final String ANALOG = "analog";
 
+    /** The threshold-crossing forecaster (prompt 156): a series crossing probability from a predictive distribution. */
+    public static final String THRESHOLD = "threshold";
+
     /** The ensemble. */
     public static final String ENSEMBLE = "ensemble";
 
@@ -71,6 +74,7 @@ public class ForecasterRegistry {
         out.put(PERSISTENCE, Map.of("binaryConfidence", 0.9));
         out.put(PRECURSOR, Map.of());
         out.put(ANALOG, Map.of("k", 10));
+        out.put(THRESHOLD, Map.of());
         out.put(ENSEMBLE, Map.of("maxAgeDays", 7, "eta", 2.0, "shrink", 20.0, "externalMinResolved", 30));
         return out;
     }
@@ -79,8 +83,8 @@ public class ForecasterRegistry {
     @EventListener(ApplicationReadyEvent.class)
     public void registerBuiltIns() {
         Map<String, String> names = Map.of(BASE_RATE, "Base rate (outside view)", CLIMATOLOGY, "Climatology",
-                PERSISTENCE, "Persistence", PRECURSOR, "Validated precursor", ANALOG, "Historical analogs", ENSEMBLE,
-                "Ensemble");
+                PERSISTENCE, "Persistence", PRECURSOR, "Validated precursor", ANALOG, "Historical analogs", THRESHOLD,
+                "Threshold crossing", ENSEMBLE, "Ensemble");
         builtIns().forEach((id, config) -> {
             try {
                 ensure(id, id, names.get(id), BUILT_IN_VERSION, config);

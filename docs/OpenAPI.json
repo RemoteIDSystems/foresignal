@@ -16,6 +16,11 @@
       {
         "version": "1.3.0",
         "date": "2026-10-22",
+        "note": "156: probabilistic threshold-crossing forecaster. A \"will this series cross X by date Y\" binary question (a series-value or count-threshold resolver with an op and threshold over a series) is now answered from a numeric predictive distribution instead of a flat confidence: a new threshold forecaster reads P(value op threshold) off the implied CDF of the numeric forecaster's quantiles for the resolution window — the ensemble pool of the climatology baseline and the statistical series forecast (ETS today, an external quantile forecaster such as TimesFM tomorrow), falling back to whichever is available. The persistence forecaster no longer contributes its flat confidence to these questions (numeric series-value carry-forward and situation-status are unchanged). Surfaced through the existing forecast endpoints; threshold is added to the forecaster-type enums. Part of the 1.3.0 wave; no version change."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-22",
         "note": "155: on-demand external forecaster round-trip. A first-class external forecaster (a model like TimesFM) can now be asked to forecast a specific ledger question on demand: the EDP manifest gains an optional transport.analysisRequest endpoint (EdpAnalysisRequest schema), and requestAnalysis (POST /v1/external/analysis/requests) posts {questionId, horizon, correlationId, callbackUrl} to it and persists the correlation. The provider answers synchronously in the response and/or asynchronously to analysisCallback (POST /v1/external/analysis/callback), which resolves the correlation and records the forecast through the usual binding path as the external forecaster edp:{sourceId}/{streamId}. createForecastEvaluation can now backtest a type=external forecaster by issuing as-of analysis requests (previously skipped). An operator can pre-register, name and configure an external forecaster independent of the auto-derived id with registerExternalForecaster (POST /v1/forecasts/forecasters, ExternalForecasterRegistration schema); ForecasterUpdate gains an optional name, and a per-forecaster externalMinResolved config overrides the ensemble default. A decile-only provider (p10..p90, as TimesFM emits) is accepted and mapped binding-side onto the ledger's required quantiles (p05/p25/p50/p75/p95) without loosening the required set. TimesFM stays an external Python service; no Python enters the backend. Additive: no operation or schema was renamed or removed."
       },
       {
@@ -60090,6 +60095,7 @@
                   "statistical",
                   "precursor",
                   "analog",
+                  "threshold",
                   "impact",
                   "indicator-bayes",
                   "llm",
@@ -138498,6 +138504,7 @@
               "statistical",
               "precursor",
               "analog",
+              "threshold",
               "impact",
               "indicator-bayes",
               "llm",
@@ -139175,6 +139182,7 @@
               "statistical",
               "precursor",
               "analog",
+              "threshold",
               "impact",
               "indicator-bayes",
               "llm",
@@ -139411,6 +139419,7 @@
               "statistical",
               "precursor",
               "analog",
+              "threshold",
               "impact",
               "indicator-bayes",
               "llm",
