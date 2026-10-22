@@ -13,63 +13,96 @@ interval, budget), `docs/Runtime-Verification.md` (bring the service up), and `s
 
 ## The guarantee (and why it holds)
 
-A fresh install is useful at once: **every free source starts enabled and pulling**, each at its own
-default interval and budget, except `wiki-edit-surge`, which is held off for its bandwidth until you opt in. Sources that need a credential or a parameter start **disabled** until
-you configure them. You can disable any source, and enable or disable **any subset**, and the
-service runs cleanly on whatever is on. Nothing is thrown because other providers are
-unconfigured. This is designed in, not incidental, and it is provable from four places in the code:
+A fresh install comes up **small and paced**: only the **core set** starts enabled, and every
+polling fetch, however many sources are on, pulls from upstream through one global governor that
+lets **two** pulls run at a time by default. Everything else, free or not, starts **disabled** until
+you turn it on, one source at a time or every free source in one call. You can disable any source,
+and enable or disable **any subset**, and the service runs cleanly on whatever is on. Nothing is
+thrown because other providers are unconfigured. This is designed in, not incidental, and it is
+provable from five places in the code:
 
-1. **Free sources start enabled; gated sources start disabled** (prompt 145). At startup
-   `SourceService.seedDefaults()` inserts one settings row per registered source that has none
-   ([`SourceService.java:149`](../src/main/java/ai/foresignal/source/SourceService.java#L149)).
-   A built-in source is seeded **enabled** (line 162) when it starts enabled (`startsEnabled`,
-   line 191): it runs with zero operator input (`runsWithoutOperatorInput`, line 207), and its
-   descriptor does not hold it off (`autoEnable`, prompt 146). Running with zero input means:
+1. **The core set starts enabled; everything else starts disabled** (prompt 150, revising 145).
+   At startup `SourceService.seedDefaults()` inserts one settings row per registered source that
+   has none ([`SourceService.java:150`](../src/main/java/ai/foresignal/source/SourceService.java#L150)).
+   A built-in source is seeded **enabled** (line 162) when `seedsEnabled` (line 201) holds: it is
+   in the core set, and it runs with zero operator input (`runsWithoutOperatorInput`, line 221).
+   The core set is `SourceRegistry.CORE_IDS`
+   ([`SourceRegistry.java:55`](../src/main/java/ai/foresignal/source/SourceRegistry.java#L55)),
+   the live-tracking picture a new operator expects to see at once:
+
+   | Core source | What it is |
+   |---|---|
+   | `adsblol-world`, `adsblol-mil` | Aircraft worldwide and military aircraft, from adsb.lol |
+   | `airplaneslive-mil` | Military aircraft from airplanes.live (refused until airplanes.live approves you) |
+   | `adsbfi-blindspots`, `airplaneslive-blindspots` | The eight thinly covered circles |
+   | `opensky-states` | OpenSky state vectors (anonymous quota) |
+   | `derived-aircraft` | The merged aircraft picture the map draws |
+   | `celestrak-gp` | Satellite orbits |
+   | `usgs-earthquakes` | Earthquakes |
+   | `nws-alerts` | US weather alerts |
+   | `nasa-firms` | Fires; needs a MAP_KEY, so it is seeded disabled until you set one |
+   | `meshtastic-map`, `meshtastic-mqtt` | Meshtastic nodes |
+
+   Running with zero input means:
    - it requires no credential;
-   - it declares no required parameter;
+   - it declares no required parameter, and no inbox-path parameter;
    - its parameters are valid with nothing supplied. That is the enable guard's own check,
-     including the adapter's `checkParams`. It is what keeps sources like `usgs-water`
-     (a box or locations) and `snotel` (states or stations) disabled, though they declare
-     nothing required.
+     including the adapter's `checkParams`.
 
-   A descriptor can hold a free source off with `autoEnable(false)` when its cost is bandwidth or
-   terms rather than a key. Only `wiki-edit-surge` does (about 3 GB a day of the Wikimedia
-   `recentchange` firehose); enable it yourself with `PUT /v1/sources/wiki-edit-surge`
-   `{"enabled": true}`.
+   The core rule does not consult a descriptor's `autoEnable`: a core source is seeded enabled
+   even when its descriptor holds it off from `enable-free` (`opensky-states`). Every other source
+   is seeded **disabled**
+   ([`defaultRow`, line 239](../src/main/java/ai/foresignal/source/SourceService.java#L239)):
+   free non-core sources, sources that need a credential or a parameter, and sources held off for
+   their bandwidth or terms (`wiki-edit-surge`). So is every custom or external source (prompt
+   024), which keeps its own rule. Only missing rows are created, so this governs a fresh install
+   and any newly registered source. Your settings for an existing source are never overwritten.
+   With `foresignal.sources.default-enable` false every seeded row is disabled.
 
-   Every other source is seeded **disabled**
-   ([`defaultRow`, line 224](../src/main/java/ai/foresignal/source/SourceService.java#L224)). So
-   is every custom or external source (prompt 024), which keeps its own rule. Only missing rows
-   are created, so this governs a fresh install and any newly registered source. Your settings for
-   an existing source are never overwritten.
+2. **Two calls turn on more, and neither disables anything.** Both are admin, both answer
+   `{"enabled": [ids], "count": N, "skipped": M}`, both enable each source through the normal
+   settings update (so the collector picks it up within ~2 s), and both are idempotent.
+   - `POST /v1/sources/enable-core` enables every disabled core source that runs without operator
+     input; `skipped` counts every other disabled built-in source. It is how an install seeded
+     before prompt 150 adopts the core default
+     ([`SourceService.enableCore`, line 752](../src/main/java/ai/foresignal/source/SourceService.java#L752)).
+   - `POST /v1/sources/enable-free` enables every disabled built-in source that runs without
+     operator input and whose descriptor does not hold it off (`autoEnable`, prompt 146);
+     `skipped` counts the ones that need a credential or a parameter, or are held off like
+     `wiki-edit-surge`
+     ([`SourceService.enableFree`, line 738](../src/main/java/ai/foresignal/source/SourceService.java#L738)).
+     It is unchanged by prompt 150.
 
-2. **An existing install adopts the same default in one call.** An install seeded before
-   prompt 145 started with every source disabled. `POST /v1/sources/enable-free` (admin) enables
-   every currently disabled built-in source that passes the same rule. It answers
-   `{"enabled": [ids], "count": N, "skipped": M}`, where `skipped` counts the disabled sources it
-   left disabled because they need a credential or a parameter, or are held off like `wiki-edit-surge`. It leaves every other row as it
-   is and is idempotent
-   ([`SourceService.enableFree`, line 723](../src/main/java/ai/foresignal/source/SourceService.java#L723)).
-   Each source is enabled through the normal settings update, so the collector picks it up within
-   ~2 s.
+3. **Every pull waits its turn at one global governor** (prompt 150). `PullGovernor` is a fair,
+   resizable pool of permits
+   ([`PullGovernor.java`](../src/main/java/ai/foresignal/collect/PullGovernor.java)).
+   `FetchExecutor` takes a permit immediately before the upstream pull of every scheduled and
+   manual fetch and releases it in `finally`
+   ([`FetchExecutor.java:289`](../src/main/java/ai/foresignal/collect/FetchExecutor.java#L289));
+   a polling probe does the same. Streams are not gated. The pool's size is the runtime setting
+   `maxConcurrentPulls` (`GET`/`PUT /v1/settings/collector`, admin; default 2, 1 to 16), and a
+   change resizes it live. The governor is the bound beneath the others: each source still runs on
+   its own thread at its own interval, and host pacing and per-source budgets still apply. A start
+   with many sources due needs no separate ramp: the first two pull, the rest queue in arrival
+   order, and the wait for a permit does not count against a fetch's timeout.
 
-3. **The collector only ever touches enabled, credentialed sources.** The scheduling loop queries
-   literally `select source_id, interval_seconds from source_settings where enabled`, and then
+4. **The collector only ever touches enabled, credentialed sources.** The scheduling loop queries
+   `source_settings` rows `where s.enabled`, and then
    `if (descriptor.requiresCredentials() && !credentialsSet(id)) { continue; }`
-   ([`CollectorScheduler.java:357-382`](../src/main/java/ai/foresignal/collect/CollectorScheduler.java#L357)).
+   ([`CollectorScheduler.java:387-405`](../src/main/java/ai/foresignal/collect/CollectorScheduler.java#L387)).
    A disabled source, or one whose credential is missing, is never in the work set, so there is
    nothing to fail on. A push- or derived-mode source is never polled either. A push source
    waits, a derived source computes, and a stream connects.
 
-4. **Startup does not require any provider.** With zero enabled sources the scheduler simply
+5. **Startup does not require any provider.** With zero enabled sources the scheduler simply
    schedules nothing. The app only refuses to start if an adapter's *descriptor* is malformed — a
    code defect, never a missing key
-   ([`SourceRegistry.java:64-98`](../src/main/java/ai/foresignal/source/SourceRegistry.java#L64)).
+   ([`SourceRegistry.java:63-110`](../src/main/java/ai/foresignal/source/SourceRegistry.java#L63)).
 
 **You can turn any source off.** `PUT /v1/sources/{id}` `{"enabled": false}` disables a free
 source like any other. A later restart does not turn it back on, because seeding only creates
 missing rows. `enable-free` would turn it back on, since it enables every free source that is
-disabled.
+disabled, and `enable-core` would turn a core source back on.
 
 The only "errors" you will ever see from an unconfigured provider are **config-time 4xx guards**
 returned to *you* when you ask to enable something that isn't ready (see

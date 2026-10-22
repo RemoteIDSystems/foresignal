@@ -17,5 +17,13 @@
  * runs each fetch and leaves its {@code fetch_log} row. The operator's
  * {@link ai.foresignal.collect.ManualFetchService} and {@link ai.foresignal.collect.ProbeService} are
  * the only other paths to an upstream.
+ *
+ * <p>How much is pulled at once is bounded in three layers (prompt 150). The
+ * {@link ai.foresignal.collect.PullGovernor} is the global bound: a fair, resizable pool of
+ * {@code maxConcurrentPulls} permits ({@code CollectorSettings}, default 2), one held by every scheduled
+ * or manual fetch and every polling probe for as long as it pulls; streams are not gated. Beneath it
+ * the per-host {@link ai.foresignal.collect.HostPacer} spaces requests to one host, and the per-source
+ * {@link ai.foresignal.collect.BudgetGovernor} and each source's own thread and interval cap what one
+ * source spends.
  */
 package ai.foresignal.collect;

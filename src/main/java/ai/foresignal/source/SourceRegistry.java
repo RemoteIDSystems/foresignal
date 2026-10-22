@@ -42,6 +42,21 @@ public class SourceRegistry {
 
     private static final Logger log = LoggerFactory.getLogger(SourceRegistry.class);
 
+    /**
+     * The core set (prompt 150): the keyless, parameter-free live-tracking sources a fresh install starts with,
+     * the equivalent of Shadowbroker's default layers. Aircraft: the six ADS-B feeds of the Shadowbroker profile
+     * (the {@code adsb.lol} worldwide circles and military list, the {@code airplanes.live} military list, the two
+     * blind-spot sweeps) with OpenSky states, and {@code derived-aircraft}, which fuses them into the one record per
+     * aircraft the map shows. Satellites: {@code celestrak-gp}. Earthquakes: {@code usgs-earthquakes}. Weather
+     * alerts: {@code nws-alerts}. Wildfires: {@code nasa-firms}, which needs a MAP_KEY and so starts disabled until
+     * one is set. Mesh: {@code meshtastic-map} and {@code meshtastic-mqtt}. A core source starts enabled only when it
+     * also runs without operator input ({@code SourceService#startsEnabled}); every other source starts disabled.
+     */
+    public static final Set<String> CORE_IDS = Set.of(
+            "adsblol-world", "adsblol-mil", "airplaneslive-mil", "adsbfi-blindspots", "airplaneslive-blindspots",
+            "opensky-states", "derived-aircraft", "celestrak-gp", "usgs-earthquakes", "nws-alerts", "nasa-firms",
+            "meshtastic-map", "meshtastic-mqtt");
+
     private final Map<String, Registration> registrations = new ConcurrentHashMap<>();
     private final ApplicationEventPublisher events;
 
@@ -152,6 +167,11 @@ public class SourceRegistry {
         Set<String> kinds = new TreeSet<>();
         registrations.values().forEach(r -> kinds.addAll(r.descriptor().kinds()));
         return kinds;
+    }
+
+    /** Whether {@code id} is in the {@linkplain #CORE_IDS core set} (prompt 150). */
+    public boolean isCore(String id) {
+        return CORE_IDS.contains(id);
     }
 
     /** True when {@code id} is registered. */

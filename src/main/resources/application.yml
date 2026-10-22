@@ -304,8 +304,9 @@ foresignal:
     # Cache-Control max-age of aggregated and raw tiles.
     agg-max-age: 60s
     raw-max-age: 5s
-  # Sources (prompts 145, 146): seeding a source's first settings row enables it when it needs no operator input
-  # and its descriptor does not hold it off (wiki-edit-surge). Off in tests, where cached contexts share one database.
+  # Sources (prompts 145, 150): seeding a source's first settings row enables it only when it is in the core set
+  # (SourceRegistry.CORE_IDS) and needs no operator input; every other source is seeded disabled
+  # (POST /v1/sources/enable-core and enable-free turn on more). Off in tests, where cached contexts share one database.
   sources:
     default-enable: true
   collector:

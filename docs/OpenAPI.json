@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Foresignal API",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "summary": "Headless intelligence broker: ingest, version and re-serve public telemetry.",
     "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...`, `/v1/k/{key}/tiles/...`, `/v1/k/{key}/map/...` and `/v1/k/{key}/changes/stream` for map clients (MapLibre, maplibre_gl, Cesium, `EventSource`), share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. A feed key reaches only `GET`/`HEAD` of `read` operations that are not always-authenticated, under the key's path prefixes, with the key's mandatory read restriction (unknown key 401 INVALID_FEED_KEY, expired or revoked 410 FEED_KEY_GONE, another method 405, a path outside the prefixes 403 RESTRICTED). A tile key reaches the same operations under its prefixes (a subset of `/v1/products/`, `/v1/styles`, `/v1/media/`, `/v1/tiles/`, `/v1/maps/static`, `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream`, `/v1/map/`), with its optional restriction and never private sources (unknown, expired or revoked key 401 INVALID_TILE_KEY, another method 405, a path outside the prefixes 403 INSUFFICIENT_SCOPE). Responses carry `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`; `Cache-Control` defaults to `private`, and a tile-key response takes the canonical path's own rule (`public` only while `openReads` covers it). Logs show only the key's first eight characters; the key is never echoed except by `createFeedKey` and `createTileKey`, and in the follow-up URLs of documents requested through it (058: the MapLibre style's sources and sprite, KML NetworkLink and icon hrefs, a feed's own `rel=\"self\"` / `feed_url`), which are then always `Cache-Control: private`. CORS exposes `Foresignal-Frame-Time`, `Foresignal-Image-Bounds`, `Foresignal-Frame-Expired`, `Retry-After`, `Link` and `ETag`, allows `Authorization`, `If-None-Match` and `Foresignal-Prefetch`, and caches preflights for a day; `?prefetch=1` marks a render prefetch without the preflight the header causes.\n\n**Restrictions and limits (035).** Restricted tokens, feed keys and the anonymous profile (`security.anonymous`, applied to tokenless reads while `openReads` is on) see only records and alerts inside their `ReadRestriction` on every read path (records, history, versions, changes, kinds, tiles, streams, search, alerts, the inbox, the digest, briefings, MCP tools and Ask): request filters are intersected with the restriction, and a single record or alert outside it is 404. Every client is rate-limited per class (`RateLimitSettings`); over a limit, or after repeated failed credentials from one address, the answer is 429 RATE_LIMITED with `Retry-After`. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).",
     "license": {
@@ -13,6 +13,11 @@
       "url": "https://foresignal.ai"
     },
     "x-foresignal-changelog": [
+      {
+        "version": "1.2.0",
+        "date": "2026-10-22",
+        "note": "150: minor bump for two additive operations: getCollectorSettings and updateCollectorSettings (GET/PUT /v1/settings/collector, schema CollectorSettings: maxConcurrentPulls, the size of the global pull governor), and enableCoreSources (POST /v1/sources/enable-core, schema EnableCoreSourcesResult). A fresh install now seeds only the core set enabled; enableFreeSources is unchanged and its description now says so."
+      },
       {
         "version": "1.1.0",
         "date": "2026-10-21",
@@ -20391,6 +20396,160 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "035",
+        "x-foresignal-status": "implemented",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/settings/collector": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "getCollectorSettings",
+        "summary": "Get collector settings",
+        "description": "The collector's runtime settings (prompt 150). `maxConcurrentPulls` is the size of the global pull governor: how many polling fetches may pull from upstream at once across every source (default 2, 1 to 16). Every scheduled and manual fetch, and every polling probe, holds a permit while it pulls; streams are not counted. Per-source intervals, host pacing and budgets apply beneath it unchanged.\n\n**Scope:** `admin`.",
+        "responses": {
+          "200": {
+            "description": "Settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectorSettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope (INSUFFICIENT_SCOPE) or the endpoint is outside its restriction (ENDPOINT_NOT_ALLOWED, RESTRICTED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited (RATE_LIMITED); honour Retry-After",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "150",
+        "x-foresignal-status": "implemented",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "updateCollectorSettings",
+        "summary": "Set collector settings",
+        "description": "Replaces the collector settings. The pull governor resizes live: a larger `maxConcurrentPulls` admits waiting fetches at once, a smaller one admits no new pull until enough running ones finish (none is interrupted). A value outside 1 to 16 is clamped; a value that is not an integer, or an unknown member, is 400 VALIDATION_FAILED.\n\n**Scope:** `admin`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectorSettings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectorSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope (INSUFFICIENT_SCOPE) or the endpoint is outside its restriction (ENDPOINT_NOT_ALLOWED, RESTRICTED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited (RATE_LIMITED); honour Retry-After",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "150",
         "x-foresignal-status": "implemented",
         "security": [
           {
@@ -54579,7 +54738,7 @@
         ],
         "operationId": "enableFreeSources",
         "summary": "Enable every free source",
-        "description": "Enables every currently disabled built-in source that runs without operator input: no required credential, no required parameter, and parameters that are valid with nothing supplied (the same checks `PUT /v1/sources/{sourceId}` applies when enabling), unless the source is held off by default for its bandwidth or terms (prompt 146: `wiki-edit-surge`, which the operator enables with `PUT /v1/sources/wiki-edit-surge`). Each source is enabled through the settings-update path, so the collector picks it up within seconds and fetches it at its default interval and budget. Enabled sources, credential- or parameter-gated sources, held-off sources and custom or external sources are left untouched. Idempotent: a second call enables nothing. This is how an install seeded before free sources started enabled (prompt 145) adopts that default without re-seeding; a fresh install seeds them enabled already.\n\n**Scope:** `admin`.",
+        "description": "Enables every currently disabled built-in source that runs without operator input: no required credential, no required parameter, and parameters that are valid with nothing supplied (the same checks `PUT /v1/sources/{sourceId}` applies when enabling), unless the source is held off by default for its bandwidth or terms (prompt 146: `wiki-edit-surge`, which the operator enables with `PUT /v1/sources/wiki-edit-surge`). Each source is enabled through the settings-update path, so the collector picks it up within seconds and fetches it at its default interval and budget. Enabled sources, credential- or parameter-gated sources, held-off sources and custom or external sources are left untouched. Idempotent: a second call enables nothing. A fresh install seeds only the core set enabled (prompt 150, `enableCoreSources`); this call turns on every free source on top of it.\n\n**Scope:** `admin`.",
         "responses": {
           "200": {
             "description": "The sources enabled",
@@ -54614,6 +54773,56 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "145",
+        "x-foresignal-status": "implemented",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/sources/enable-core": {
+      "post": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "enableCoreSources",
+        "summary": "Enable the core sources",
+        "description": "Enables every currently disabled source of the core set that runs without operator input: the small live-tracking set a fresh install seeds enabled (prompt 150): `adsblol-world`, `adsblol-mil`, `airplaneslive-mil`, `adsbfi-blindspots`, `airplaneslive-blindspots`, `opensky-states`, `derived-aircraft`, `celestrak-gp`, `usgs-earthquakes`, `nws-alerts`, `nasa-firms`, `meshtastic-map` and `meshtastic-mqtt`. A core source that needs operator input (`nasa-firms` without its MAP_KEY) is skipped, as is every source outside the core set. Each source is enabled through the settings-update path, so the collector picks it up within seconds. Disables nothing; enabled sources and custom or external sources are left untouched. Idempotent: a second call enables nothing. This is how an install seeded before prompt 150 adopts the core default without re-seeding.\n\n**Scope:** `admin`.",
+        "responses": {
+          "200": {
+            "description": "The sources enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnableCoreSourcesResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "150",
         "x-foresignal-status": "implemented",
         "security": [
           {
@@ -105761,6 +105970,23 @@
             "description": "Address ranges refused in every profile"
           }
         }
+      },
+      "CollectorSettings": {
+        "type": "object",
+        "description": "The collector's runtime settings (prompt 150).",
+        "required": [
+          "maxConcurrentPulls"
+        ],
+        "properties": {
+          "maxConcurrentPulls": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16,
+            "default": 2,
+            "description": "How many polling fetches may pull from upstream at once across every source: the size of the global pull governor. A stored or submitted value outside 1 to 16 is clamped. Streams are not counted."
+          }
+        },
+        "additionalProperties": false
       },
       "PlaceInput": {
         "type": "object",
@@ -167283,6 +167509,35 @@
             "type": "integer",
             "minimum": 0,
             "description": "Disabled built-in sources left disabled: they need a credential or a required parameter, are held off by default (`wiki-edit-surge`), or their stored parameters are not valid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EnableCoreSourcesResult": {
+        "type": "object",
+        "description": "What `POST /v1/sources/enable-core` did (prompt 150).",
+        "required": [
+          "enabled",
+          "count",
+          "skipped"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The source ids enabled by this call, sorted; empty when there was nothing to enable"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "How many sources this call enabled (the length of `enabled`)"
+          },
+          "skipped": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Disabled built-in sources left disabled: outside the core set, a core source that needs a credential or a required parameter (`nasa-firms` without its MAP_KEY), or one whose stored parameters are not valid"
           }
         },
         "additionalProperties": false

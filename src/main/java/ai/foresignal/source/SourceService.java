@@ -89,7 +89,7 @@ public class SourceService implements ApplicationRunner {
      *
      * @param healthLookup resolved lazily on each view, so health can depend on beans that depend on
      *     this service without a construction cycle
-     * @param defaultEnable whether {@link #seedDefaults} enables the free sources it seeds
+     * @param defaultEnable whether {@link #seedDefaults} enables the core sources it seeds
      *     ({@code foresignal.sources.default-enable}, true; false in tests, where cached contexts share one
      *     database and a running scheduler must never reach a real upstream)
      */
@@ -130,16 +130,16 @@ public class SourceService implements ApplicationRunner {
      * Inserts a default settings row for every registered source that has none, with the
      * descriptor's interval and budget.
      *
-     * <p>Free sources start enabled (prompt 145): a built-in source that {@linkplain
-     * #runsWithoutOperatorInput runs without operator input} (no required credential and no required
-     * parameter) is seeded enabled, so a fresh install fetches every free source at its own default
-     * cadence, unless its descriptor holds it off ({@link SourceDescriptor#autoEnable()} false, prompt
-     * 146: {@code wiki-edit-surge}, for its bandwidth). A source gated by a credential or a required
-     * parameter is seeded disabled until it is configured, and a dynamic source (prompt 024) keeps its
-     * own rule. With {@code foresignal.sources.default-enable} false (the test profile) every seeded row is
-     * disabled. The operator can disable any
-     * source. Only missing rows are created, so this governs fresh installs and newly registered
-     * sources; {@link #enableFree()} brings an existing install to the same state.
+     * <p>The core set starts enabled (prompt 150, revising 145): a built-in source is seeded enabled when it is in
+     * {@link SourceRegistry#CORE_IDS} and {@linkplain #runsWithoutOperatorInput runs without operator input}
+     * ({@link #seedsEnabled}), so a fresh install comes up with the small live-tracking set, pulled a couple at a
+     * time under the global pull governor. Every other source is seeded disabled: free non-core sources, sources
+     * gated by a credential or a required parameter (a core one too, such as {@code nasa-firms} without its
+     * MAP_KEY), and opt-in ones such as {@code wiki-edit-surge}; a dynamic source (prompt 024) keeps its own rule.
+     * With {@code foresignal.sources.default-enable} false (the test profile) every seeded row is disabled. The
+     * operator can disable any source. Only missing rows are created, so this governs fresh installs and newly
+     * registered sources; {@link #enableCore()} brings an existing install to the core default and
+     * {@link #enableFree()} turns on every free source.
      *
      * <p>Rows for sources that are no longer registered are left alone — an adapter removed in an
      * upgrade should not silently destroy its configuration — but are logged once so the situation
@@ -158,7 +158,7 @@ public class SourceService implements ApplicationRunner {
                 continue;
             }
             SourceSettingsEntity row = defaultRow(descriptor);
-            if (defaultEnable && !registration.dynamic() && startsEnabled(descriptor)) {
+            if (defaultEnable && !registration.dynamic() && seedsEnabled(descriptor)) {
                 row.setEnabled(true);
                 enabled++;
             }
@@ -167,7 +167,7 @@ public class SourceService implements ApplicationRunner {
         if (!created.isEmpty()) {
             settings.saveAll(created);
             log.info(
-                    "Created default settings for {} new source(s), {} of them enabled (free sources)",
+                    "Created default settings for {} new source(s), {} of them enabled (core sources)",
                     created.size(),
                     enabled);
         }
@@ -186,10 +186,19 @@ public class SourceService implements ApplicationRunner {
     /**
      * True when {@code descriptor} starts enabled: it {@linkplain #runsWithoutOperatorInput runs without
      * operator input} and its descriptor does not hold it off ({@link SourceDescriptor#autoEnable()},
-     * prompt 146). The rule for both {@link #seedDefaults} and {@link #enableFree()}.
+     * prompt 146). The rule of {@link #enableFree()}.
      */
     boolean startsEnabled(SourceDescriptor descriptor) {
         return descriptor.autoEnable() && runsWithoutOperatorInput(descriptor);
+    }
+
+    /**
+     * True when {@code descriptor} is seeded enabled (prompt 150): it is in the {@linkplain SourceRegistry#CORE_IDS
+     * core set} and {@linkplain #runsWithoutOperatorInput runs without operator input}. The rule of
+     * {@link #seedDefaults} and {@link #enableCore()}.
+     */
+    boolean seedsEnabled(SourceDescriptor descriptor) {
+        return registry.isCore(descriptor.id()) && runsWithoutOperatorInput(descriptor);
     }
 
     /**
@@ -218,7 +227,7 @@ public class SourceService implements ApplicationRunner {
 
     /**
      * A settings row with the descriptor's defaults, <em>disabled</em>. {@link #seedDefaults} enables
-     * the free ones; every other caller (an update or a dynamic source with no row yet) starts from a
+     * the core ones; every other caller (an update or a dynamic source with no row yet) starts from a
      * disabled row, so changing one setting of an unseeded source never switches it on.
      */
     private SourceSettingsEntity defaultRow(SourceDescriptor descriptor) {
@@ -721,6 +730,24 @@ public class SourceService implements ApplicationRunner {
      */
     @Transactional
     public EnableFreeResult enableFree() {
+        return enableWhere(this::startsEnabled, "free");
+    }
+
+    /**
+     * Enables every currently disabled built-in source that is {@linkplain #seedsEnabled seeded enabled} — the core
+     * set ({@code POST /v1/sources/enable-core}, prompt 150): the one call by which an install seeded before prompt
+     * 150 adopts the core default without re-seeding. Like {@link #enableFree()} it goes through {@link #update},
+     * leaves enabled rows and dynamic sources alone, disables nothing, and is idempotent; a core source that needs
+     * operator input ({@code nasa-firms} without its MAP_KEY) is counted as skipped, as is every non-core source.
+     *
+     * @return the ids enabled, sorted, and how many disabled built-in sources were left disabled
+     */
+    @Transactional
+    public EnableFreeResult enableCore() {
+        return enableWhere(this::seedsEnabled, "core");
+    }
+
+    private EnableFreeResult enableWhere(java.util.function.Predicate<SourceDescriptor> rule, String label) {
         Set<String> enabledRows = new TreeSet<>();
         settings.findByEnabledTrue().forEach(row -> enabledRows.add(row.getSourceId()));
         List<String> enabled = new ArrayList<>();
@@ -730,7 +757,7 @@ public class SourceService implements ApplicationRunner {
             if (registration.dynamic() || enabledRows.contains(id)) {
                 continue;
             }
-            if (!startsEnabled(registration.descriptor())) {
+            if (!rule.test(registration.descriptor())) {
                 skipped++;
                 continue;
             }
@@ -745,17 +772,18 @@ public class SourceService implements ApplicationRunner {
         }
         enabled.sort(null);
         if (!enabled.isEmpty()) {
-            log.info("Enabled {} free source(s): {}", enabled.size(), enabled);
+            log.info("Enabled {} {} source(s): {}", enabled.size(), label, enabled);
         }
         return new EnableFreeResult(enabled, skipped);
     }
 
     /**
-     * What {@link #enableFree()} did.
+     * What {@link #enableFree()} or {@link #enableCore()} did.
      *
      * @param enabled the ids it enabled, sorted
      * @param skipped the disabled built-in sources it left disabled: gated by a credential or a
-     *     required parameter, held off by their descriptor, or refused by the enable guard
+     *     required parameter, held off by their descriptor, outside the core set (for {@link #enableCore()}), or
+     *     refused by the enable guard
      */
     public record EnableFreeResult(List<String> enabled, int skipped) {
 

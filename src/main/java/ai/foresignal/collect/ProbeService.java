@@ -63,6 +63,27 @@ public class ProbeService {
     private final FetchDispatcher dispatcher;
     private final HealthTracker health;
 
+    private PullGovernor governor;
+
+    /**
+     * The global pull governor (prompt 150): a polling probe pulls from upstream, so it holds a permit like a fetch.
+     * Optional, so a hand-built service in a test runs ungated.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setPullGovernor(PullGovernor governor) {
+        this.governor = governor;
+    }
+
+    /** Runs {@code pull} holding a {@link PullGovernor} permit, when there is a governor. */
+    private <T> T gated(java.util.concurrent.Callable<T> pull) throws Exception {
+        if (governor == null) {
+            return pull.call();
+        }
+        try (PullGovernor.Permit permit = governor.acquire()) {
+            return pull.call();
+        }
+    }
+
     /** Creates the service. */
     public ProbeService(
             SourceRegistry registry, FetchContextFactory contexts, FetchDispatcher dispatcher, HealthTracker health) {
@@ -194,7 +215,7 @@ public class ProbeService {
         List<NormalizedRecordPreview> previews = List.of();
         String parseError = null;
         try {
-            FetchResult result = dispatcher.call(descriptor, () -> call.call(polling, ctx), timeout);
+            FetchResult result = gated(() -> dispatcher.call(descriptor, () -> call.call(polling, ctx), timeout));
             previews = previews(result == null ? List.of() : result.records());
         } catch (Exception e) {
             if (FetchExecutor.causeOf(e, BudgetExceededException.class) != null) {
@@ -214,7 +235,7 @@ public class ProbeService {
         List<NormalizedRecordPreview> previews = List.of();
         String parseError = null;
         try {
-            FetchResult result = dispatcher.call(descriptor, () -> adapter.fetch(ctx), timeout);
+            FetchResult result = gated(() -> dispatcher.call(descriptor, () -> adapter.fetch(ctx), timeout));
             previews = previews(result == null ? List.of() : result.records());
         } catch (Exception e) {
             if (FetchExecutor.causeOf(e, BudgetExceededException.class) != null) {

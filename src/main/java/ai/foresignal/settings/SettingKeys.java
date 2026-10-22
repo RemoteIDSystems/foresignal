@@ -50,6 +50,9 @@ public final class SettingKeys {
     /** Outbound URL policy overrides ({@code OutboundSettings}, prompt 035). */
     public static final String OUTBOUND = "outbound";
 
+    /** The collector's global pull concurrency ({@code CollectorSettings}, prompt 150). */
+    public static final String COLLECTOR = "collector";
+
     /**
      * The activity rollup job's durable cursor {@code {lastHour, lastDay, seq}} (prompt 038; the consumer
      * clamp of retention).
@@ -455,7 +458,7 @@ public final class SettingKeys {
                     SOCIAL_MIN_REGION_BASELINE, SOCIAL_VELOCITY, SOCIAL_KEEP_MEDIA, SOCIAL_LLM_CLAIM_MIN_POSTS,
                     SOCIAL_LLM_CLAIMS_PER_DAY, SOCIAL_SOURCE_RELIABILITY, SOCIAL_COMPARE, SOCIAL_ATTENTION_GAP,
                     SOCIAL_CUES, SOCIAL_TRACK_RECORD, EXTERNAL_BINDING_CURSOR, DOCTOR_AUTO_LLM,
-                    DOCTOR_AUTO_COOLDOWN, MCP_AUTH, PLUGINS, PLUGINS_APPROVALS);
+                    DOCTOR_AUTO_COOLDOWN, MCP_AUTH, PLUGINS, PLUGINS_APPROVALS, COLLECTOR);
 
     private SettingKeys() {}
 }

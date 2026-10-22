@@ -79,6 +79,8 @@ import org.springframework.stereotype.Component;
  *   <tr><td>In backoff</td><td>none</td><td>skipped, no health change</td></tr>
  *   <tr><td>Host pacing gate busy for the bounded wait ({@link HostPacingTimeoutException}, prompt 080)</td>
  *       <td>none</td><td>skipped ({@value FetchOutcome#SKIP_HOST_PACING}), no health change</td></tr>
+ *   <tr><td>Interrupted while waiting for a {@link PullGovernor} permit (prompt 150)</td>
+ *       <td>none</td><td>skipped ({@value FetchOutcome#SKIP_INTERRUPTED}), no health change</td></tr>
  *   <tr><td>Ingest queue full, or the writer failed the batch</td><td>FAILED</td><td>a warning,
  *       not an upstream failure</td></tr>
  *   <tr><td>Any other failure, timeouts included</td><td>FAILED, redacted error and HTTP
@@ -193,6 +195,17 @@ public class FetchExecutor {
         this.usage = usage;
     }
 
+    private PullGovernor governor;
+
+    /**
+     * The global pull governor (prompt 150): every fetch holds one of its permits while it pulls. Optional, so a
+     * hand-built executor in a test runs ungated.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setPullGovernor(PullGovernor governor) {
+        this.governor = governor;
+    }
+
     private org.springframework.context.ApplicationEventPublisher events;
 
     /**
@@ -262,9 +275,33 @@ public class FetchExecutor {
                         FetchOutcome.SKIP_BACKOFF,
                         "in backoff until " + backoff.backoffUntil(sourceId));
             }
-            return run(polling, descriptor, trigger, allowShrink);
+            return pull(polling, descriptor, trigger, allowShrink);
         } finally {
             flag.set(false);
+        }
+    }
+
+    /**
+     * Runs the fetch holding a permit of the {@linkplain PullGovernor global pull governor} (prompt 150), acquired
+     * immediately before the pull and released in {@code finally}. The wait for the permit is not part of the
+     * fetch: the fetch's timeout and duration start once it holds one.
+     */
+    private FetchOutcome pull(PollingAdapter polling, SourceDescriptor descriptor, FetchTrigger trigger,
+            boolean allowShrink) {
+        if (governor == null) {
+            return run(polling, descriptor, trigger, allowShrink);
+        }
+        PullGovernor.Permit permit;
+        try {
+            permit = governor.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            countSkip(descriptor.id(), FetchOutcome.SKIP_INTERRUPTED);
+            return FetchOutcome.skipped(descriptor.id(), clock.instant(), FetchOutcome.SKIP_INTERRUPTED,
+                    "interrupted while waiting for a pull permit");
+        }
+        try (permit) {
+            return run(polling, descriptor, trigger, allowShrink);
         }
     }
 

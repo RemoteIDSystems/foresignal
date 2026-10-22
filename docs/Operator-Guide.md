@@ -36,20 +36,28 @@ before prompt 023 keeps its admin token: it moves into that row on the first sta
 
 ## Sources
 
-A source is one upstream feed, such as `usgs-earthquakes`. A **free** built-in source, one that needs no credential,
-has no required parameter and is valid with its defaults, is installed **enabled** and fetches at its default interval
-and budget. The one exception is **`wiki-edit-surge`**: free, but held off by default for its bandwidth (about 3 GB a
-day), so it is installed disabled until you enable it (prompt 146). Setting `foresignal.sources.default-enable` to
-false (it is true) installs every source disabled instead. A source gated by a required credential or a required parameter is installed **disabled** until you
-configure it; the `local-acars-*` slots, `usgs-water` and `snotel` count as gated too, because each refuses an empty
-configuration (an endpoint, an area or a station list) although no single parameter is marked required. Custom push
-sources and external providers keep their own rules. You can disable any source with `PUT /v1/sources/{id}` and
-`{"enabled": false}`. These defaults apply only when a source's settings row is first created, so an install seeded
-before them keeps every source disabled until you call `POST /v1/sources/enable-free` (admin): it enables every disabled
-built-in free source in one call, is idempotent, and answers `{"enabled": [ids], "count": N, "skipped": M}` (`skipped`
-counts the disabled built-in sources it left alone, `wiki-edit-surge` among them). It cannot tell a free source you disabled on purpose from one that
-was never enabled, so disable those again afterwards. Enabling a source is the only thing that makes Foresignal contact
-that upstream; reading or streaming data never triggers a fetch.
+A source is one upstream feed, such as `usgs-earthquakes`. A fresh install enables only the **core set** (prompt 150),
+the live-tracking picture: `adsblol-world`, `adsblol-mil`, `airplaneslive-mil`, `adsbfi-blindspots`,
+`airplaneslive-blindspots`, `opensky-states`, `derived-aircraft`, `celestrak-gp`, `usgs-earthquakes`, `nws-alerts`,
+`nasa-firms`, `meshtastic-map` and `meshtastic-mqtt`. A core source that needs a credential or parameter
+(`nasa-firms`, a MAP_KEY) is installed disabled until you configure it. **Every other source is installed disabled**,
+free or not, so where a section below says a source "starts enabled (free)", read it as: it needs no key, and
+`enable-free` turns it on. Setting `foresignal.sources.default-enable` to false (it is true) installs every source
+disabled. A source gated by a required credential or a required parameter stays **disabled** until you configure it;
+the `local-acars-*` slots, `usgs-water` and `snotel` count as gated too, because each refuses an empty configuration
+(an endpoint, an area or a station list) although no single parameter is marked required. Custom push sources and
+external providers keep their own rules. You can disable any source with `PUT /v1/sources/{id}` and
+`{"enabled": false}`. These defaults apply only when a source's settings row is first created, so an existing install
+keeps the rows it has. Two admin calls enable more in one go; both are idempotent, disable nothing, and answer
+`{"enabled": [ids], "count": N, "skipped": M}` (`skipped` counts the disabled built-in sources each left alone):
+
+- `POST /v1/sources/enable-core` enables the disabled core sources, the way an install seeded before prompt 150 adopts
+  the core default.
+- `POST /v1/sources/enable-free` enables every disabled built-in free source, except those held off for their
+  bandwidth or terms (`wiki-edit-surge`, prompt 146).
+
+Neither can tell a source you disabled on purpose from one that was never enabled, so disable those again afterwards.
+Enabling a source is the only thing that makes Foresignal contact that upstream; reading or streaming data never triggers a fetch.
 
 | Call | What it does |
 |---|---|
@@ -62,6 +70,26 @@ that upstream; reading or streaming data never triggers a fetch.
 | `GET /v1/sources/health`, `GET /v1/sources/{id}/health` | Health, coverage and storage cost |
 | `GET /v1/sources/{id}/usage` | Requests, bytes and ingest counters over time |
 | `GET /v1/sources/{id}/fetches` | Per-fetch provenance log (admin) |
+| `POST /v1/sources/enable-core`, `POST /v1/sources/enable-free` | Enable the core set, or every free source (admin) |
+| `GET` / `PUT /v1/settings/collector` | How many fetches pull from upstream at once (admin) |
+
+### How many pulls run at once
+
+Every polling fetch, scheduled or manual, and every polling probe holds one permit of a global pull governor while it
+pulls from upstream (prompt 150). The runtime setting `maxConcurrentPulls` sets how many permits there are: **2** by
+default, 1 to 16 (a value outside that range is clamped). Streams are not counted. A fetch that is due while every
+permit is held waits its turn, in arrival order, and its timeout starts only once it pulls. Each source keeps its own
+interval, host pacing and budget beneath the governor.
+
+```
+GET /v1/settings/collector            -> {"maxConcurrentPulls": 2}
+PUT /v1/settings/collector            {"maxConcurrentPulls": 6}
+```
+
+The change takes effect at once: a larger value admits waiting fetches immediately; a smaller one admits no new pull
+until enough running ones finish, and interrupts none. Two is sized for the core set. With many sources enabled (after
+`enable-free`, say) two permits can leave sources waiting longer than their interval; raise the value until
+`GET /v1/sources/health` shows them fetching on time, within what the machine and its connection can carry.
 
 Enable a source, with a slower poll and a smaller budget:
 

@@ -20,6 +20,7 @@ import ai.foresignal.testsupport.collect.CollectorTestSources;
 import ai.foresignal.testsupport.collect.ControllablePollingAdapter;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -61,6 +62,7 @@ class CollectorSchedulerIT {
     @Autowired private SourceService sources;
     @Autowired private SourceRegistry registry;
     @Autowired private BackoffRegistry backoff;
+    @Autowired private PullGovernor governor;
     @Autowired private MutableClock clock;
     @Autowired private JdbcTemplate jdbc;
 
@@ -229,6 +231,33 @@ class CollectorSchedulerIT {
 
         await().atMost(Duration.ofSeconds(5)).until(() -> supervisor.running().isEmpty());
         assertThat(fakeStreamingAdapter.allClosed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("with every pull permit held, a stream still starts and a polling fetch waits for a permit (prompt 150)")
+    void streamsAreNotGated() throws Exception {
+        List<PullGovernor.Permit> held = new ArrayList<>();
+        try {
+            for (int i = 0; i < governor.cap(); i++) {
+                held.add(governor.acquire());
+            }
+            sources.update(FakeAdapters.STREAMING_ID, SourceSettingsUpdate.enabled(true));
+            sources.update(POLL, SourceSettingsUpdate.enabled(true));
+
+            // The stream is not gated: it starts while no permit is free.
+            await().atMost(Duration.ofSeconds(3)).until(() -> fakeStreamingAdapter.startCount() == 1);
+            // The polling fetch is due but waits for a permit, so it never reaches the adapter.
+            await().atMost(Duration.ofSeconds(3)).until(() -> governor.waiting() >= 1);
+            assertThat(collectPollAdapter.fetchCount()).isZero();
+        } finally {
+            held.forEach(PullGovernor.Permit::close);
+        }
+
+        // Released, the waiting fetch pulls.
+        await().atMost(Duration.ofSeconds(3)).until(() -> collectPollAdapter.fetchCount() >= 1);
+        sources.update(FakeAdapters.STREAMING_ID, SourceSettingsUpdate.enabled(false));
+        sources.update(POLL, SourceSettingsUpdate.enabled(false));
+        await().atMost(Duration.ofSeconds(5)).until(() -> supervisor.running().isEmpty());
     }
 
     @Test

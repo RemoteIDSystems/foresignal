@@ -7,7 +7,9 @@ import ai.foresignal.api.error.ConflictException;
 import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.source.adapters.aisstream.AisStreamAdapter;
+import ai.foresignal.source.adapters.firms.FirmsAdapter;
 import ai.foresignal.source.adapters.hydro.usgswater.UsgsWaterAdapter;
+import ai.foresignal.source.adapters.opensky.OpenSkyStatesAdapter;
 import ai.foresignal.source.adapters.radio.AprsIsAdapter;
 import ai.foresignal.source.adapters.usgs.UsgsEarthquakesAdapter;
 import ai.foresignal.source.adapters.wikistream.WikiStreamAdapter;
@@ -40,7 +42,7 @@ import org.springframework.test.context.TestPropertySource;
 
 @IntegrationTest
 @Import({FakeAdapters.class, SourceServiceIT.EventRecorderConfig.class})
-// The free-sources default under test (prompts 145, 146); the test profile seeds every row disabled.
+// The core-set default under test (prompts 145, 146, 150); the test profile seeds every row disabled.
 @TestPropertySource(properties = "foresignal.sources.default-enable=true")
 class SourceServiceIT {
 
@@ -82,12 +84,12 @@ class SourceServiceIT {
     class Startup {
 
         @Test
-        @DisplayName("every registered source gets a default row; a free one starts enabled (prompt 145)")
+        @DisplayName("every registered source gets a default row; a free non-core one starts disabled (prompt 150)")
         void seedsDefaults() {
             assertThat(settings.count()).isEqualTo(registry.ids().size());
 
             SourceSettingsEntity row = settings.findById(POLLING).orElseThrow();
-            assertThat(row.isEnabled()).isTrue();
+            assertThat(row.isEnabled()).isFalse();
             assertThat(row.getParams()).isEmpty();
             assertThat(row.getRetention()).isNull();
             assertThat(row.getIngestPolicy()).isNull();
@@ -106,23 +108,46 @@ class SourceServiceIT {
         }
 
         @Test
-        @DisplayName("free sources are seeded enabled; credential- and parameter-gated ones disabled (prompt 145)")
-        void onlyFreeSourcesAreEnabledByDefault() {
-            // No credential, no parameter: enabled.
-            assertThat(enabled(POLLING)).isTrue();
-            // Only an optional parameter with a default: enabled.
-            assertThat(enabled(ParamAdapterConfig.PARAMETERISED_ID)).isTrue();
+        @DisplayName("only the core set is seeded enabled: free non-core and gated sources are disabled (prompt 150)")
+        void onlyCoreSourcesAreEnabledByDefault() {
+            // Free but not core: disabled.
+            assertThat(enabled(POLLING)).isFalse();
+            assertThat(enabled(ParamAdapterConfig.PARAMETERISED_ID)).isFalse();
             // A required credential: disabled.
             assertThat(enabled(CredentialAdapterConfig.CREDENTIALLED_ID)).isFalse();
             // A required parameter, no credential: disabled.
             assertThat(enabled(RequiredParamAdapterConfig.REQUIRED_PARAM_ID)).isFalse();
+
+            // Every enabled row is a core source, and every core source that runs without input is enabled.
+            assertThat(settings.findByEnabledTrue())
+                    .extracting(SourceSettingsEntity::getSourceId)
+                    .allMatch(SourceRegistry.CORE_IDS::contains);
+            for (String id : SourceRegistry.CORE_IDS) {
+                assertThat(enabled(id))
+                        .as(id)
+                        .isEqualTo(service.runsWithoutOperatorInput(registry.descriptor(id)));
+            }
+        }
+
+        @Test
+        @DisplayName("every core id names a registered built-in source")
+        void coreIdsAreRegistered() {
+            for (String id : SourceRegistry.CORE_IDS) {
+                assertThat(registry.contains(id)).as(id).isTrue();
+                assertThat(registry.isCore(id)).as(id).isTrue();
+            }
+            assertThat(registry.isCore(POLLING)).isFalse();
         }
 
         @Test
         @DisplayName("built-in sources follow the same rule: usgs-earthquakes on; aisstream, aprs-is, usgs-water off")
         void builtInSourcesFollowTheRule() {
-            // Keyless, every parameter defaulted.
+            // Core, keyless, every parameter defaulted.
             assertThat(enabled(UsgsEarthquakesAdapter.ID)).isTrue();
+            // Core, and the core rule does not consult autoEnable, which holds it off from enable-free only.
+            assertThat(enabled(OpenSkyStatesAdapter.ID)).isTrue();
+            // Core, but it needs a MAP_KEY: disabled until the operator sets one.
+            assertThat(enabled(FirmsAdapter.ID)).isFalse();
             // Needs an aisstream.io API key.
             assertThat(enabled(AisStreamAdapter.ID)).isFalse();
             // Keyless, but its filter parameter is required.
@@ -160,11 +185,11 @@ class SourceServiceIT {
         @Test
         @DisplayName("seeding never re-enables a source the operator disabled")
         void seedingKeepsAnOperatorsDisable() {
-            service.update(POLLING, SourceSettingsUpdate.enabled(false));
+            service.update(UsgsEarthquakesAdapter.ID, SourceSettingsUpdate.enabled(false));
 
             service.seedDefaults();
 
-            assertThat(enabled(POLLING)).isFalse();
+            assertThat(enabled(UsgsEarthquakesAdapter.ID)).isFalse();
         }
 
         @Test
@@ -821,6 +846,80 @@ class SourceServiceIT {
         }
     }
 
+    // ---------- enable the core sources (prompt 150) ----------
+
+    @Nested
+    @DisplayName("enableCore")
+    class EnableCore {
+
+        /** An install seeded before prompt 150 with its sources turned off: every row disabled. */
+        @BeforeEach
+        void seededBeforeCoreDefault() {
+            jdbc.update("update source_settings set enabled = false");
+            recorder.clear();
+        }
+
+        @Test
+        @DisplayName("enables exactly the core sources that run without input, and nothing else")
+        void enablesTheCoreSet() {
+            SourceService.EnableFreeResult result = service.enableCore();
+
+            assertThat(result.enabled())
+                    .contains(UsgsEarthquakesAdapter.ID, OpenSkyStatesAdapter.ID)
+                    .doesNotContain(FirmsAdapter.ID, POLLING, ParamAdapterConfig.PARAMETERISED_ID,
+                            WikiStreamAdapter.ID)
+                    .allMatch(SourceRegistry.CORE_IDS::contains)
+                    .isSorted();
+            assertThat(result.count()).isEqualTo(result.enabled().size());
+            assertThat(settings.findByEnabledTrue())
+                    .extracting(SourceSettingsEntity::getSourceId)
+                    .containsExactlyInAnyOrderElementsOf(result.enabled());
+            assertThat(enabled(FirmsAdapter.ID)).isFalse();
+            assertThat(enabled(POLLING)).isFalse();
+        }
+
+        @Test
+        @DisplayName("counts every other disabled built-in source as skipped")
+        void countsSkipped() {
+            long skipped = registry.all().stream()
+                    .filter(registration -> !registration.dynamic())
+                    .filter(registration -> !service.seedsEnabled(registration.descriptor()))
+                    .count();
+
+            assertThat(service.enableCore().skipped()).isEqualTo((int) skipped);
+        }
+
+        @Test
+        @DisplayName("is idempotent and disables nothing: a free source enabled first stays enabled")
+        void idempotentAndDisablesNothing() {
+            service.update(POLLING, SourceSettingsUpdate.enabled(true));
+            SourceService.EnableFreeResult first = service.enableCore();
+            recorder.clear();
+
+            SourceService.EnableFreeResult second = service.enableCore();
+
+            assertThat(first.count()).isPositive();
+            assertThat(second.enabled()).isEmpty();
+            assertThat(recorder.settingsEvents()).isEmpty();
+            assertThat(enabled(POLLING)).isTrue();
+        }
+
+        @Test
+        @DisplayName("enables through the settings update, so each core source publishes its change event")
+        void publishesTheSettingsEvent() {
+            service.enableCore();
+
+            assertThat(recorder.settingsEvents())
+                    .filteredOn(event -> event.sourceId().equals(UsgsEarthquakesAdapter.ID))
+                    .singleElement()
+                    .satisfies(event -> {
+                        assertThat(event.before().enabled()).isFalse();
+                        assertThat(event.after().enabled()).isTrue();
+                        assertThat(event.affectsScheduling()).isTrue();
+                    });
+        }
+    }
+
     // ---------- events ----------
 
     @Nested
@@ -830,7 +929,8 @@ class SourceServiceIT {
         @Test
         @DisplayName("a settings change publishes after commit, with before and after")
         void publishesSettingsChange() {
-            // POLLING is free, so it is seeded enabled (prompt 145); switch it off to see an enable.
+            // POLLING is not core, so it is seeded disabled (prompt 150); switching it off first keeps this test
+            // independent of the seeding rule.
             service.update(POLLING, SourceSettingsUpdate.enabled(false));
             recorder.clear();
 

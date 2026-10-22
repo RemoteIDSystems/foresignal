@@ -71,6 +71,12 @@ public record FetchOutcome(
      */
     public static final String SKIP_HOST_PACING = "host-pacing";
 
+    /**
+     * A run skipped because its thread was interrupted while it waited for a permit of the global pull governor
+     * (prompt 150, {@link PullGovernor}): the collector is stopping, or the source was disabled.
+     */
+    public static final String SKIP_INTERRUPTED = "interrupted";
+
     /** Completes {@code byReason} so every reason is present. */
     public FetchOutcome {
         EnumMap<PersistReason, Integer> all = new EnumMap<>(PersistReason.class);

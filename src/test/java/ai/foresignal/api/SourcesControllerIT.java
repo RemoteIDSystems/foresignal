@@ -746,6 +746,74 @@ class SourcesControllerIT {
         }
     }
 
+    // ---------- enableCoreSources (prompt 150) ----------
+
+    @Nested
+    @DisplayName("enableCoreSources")
+    class EnableCoreSources {
+
+        /** Leaves no real source enabled in the shared database (see {@link EnableFreeSources}). */
+        @AfterEach
+        void disableEverything() {
+            jdbc.update("update source_settings set enabled = false");
+        }
+
+        @Test
+        @DisplayName("enables the core sources, not a free non-core one or the keyed one, and answers enabled, count, skipped")
+        void enablesCoreSources() throws Exception {
+            mvc.perform(admin(post("/v1/sources/enable-core")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.enabled").value(hasItem(USGS)))
+                    .andExpect(jsonPath("$.enabled").value(not(hasItem(POLL))))
+                    .andExpect(jsonPath("$.enabled").value(not(hasItem(KEYED))))
+                    .andExpect(jsonPath("$.enabled").value(not(hasItem("nasa-firms"))))
+                    .andExpect(jsonPath("$.count").isNumber())
+                    .andExpect(jsonPath("$.skipped").isNumber())
+                    .andExpect(jsonPath("$", aMapWithSize(3)));
+
+            mvc.perform(get("/v1/sources/" + USGS)).andExpect(jsonPath("$.enabled").value(true));
+            mvc.perform(get("/v1/sources/" + POLL)).andExpect(jsonPath("$.enabled").value(false));
+        }
+
+        @Test
+        @DisplayName("is idempotent: the second call enables nothing")
+        void idempotent() throws Exception {
+            mvc.perform(admin(post("/v1/sources/enable-core"))).andExpect(status().isOk());
+
+            mvc.perform(admin(post("/v1/sources/enable-core")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.enabled").isEmpty())
+                    .andExpect(jsonPath("$.count").value(0));
+        }
+
+        @Test
+        @DisplayName("enable-free after enable-core still enables every free source")
+        void enableFreeStillEnablesEveryFreeSource() throws Exception {
+            mvc.perform(admin(post("/v1/sources/enable-core"))).andExpect(status().isOk());
+
+            mvc.perform(admin(post("/v1/sources/enable-free")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.enabled").value(hasItem(POLL)))
+                    .andExpect(jsonPath("$.enabled").value(not(hasItem(KEYED))));
+
+            mvc.perform(get("/v1/sources/" + POLL)).andExpect(jsonPath("$.enabled").value(true));
+            mvc.perform(get("/v1/sources/" + USGS)).andExpect(jsonPath("$.enabled").value(true));
+        }
+
+        @Test
+        @DisplayName("is admin: 401 without a token, 403 with a read token, and nothing is enabled")
+        void adminOnly() throws Exception {
+            mvc.perform(post("/v1/sources/enable-core"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+            String reader = TestTokens.bearer(TestTokens.create(tokens, "enable-core-reader", Scope.READ));
+            mvc.perform(post("/v1/sources/enable-core").header(HttpHeaders.AUTHORIZATION, reader))
+                    .andExpect(status().isForbidden());
+
+            mvc.perform(get("/v1/sources/" + USGS)).andExpect(jsonPath("$.enabled").value(false));
+        }
+    }
+
     // ---------- authorization ----------
 
     @Nested
