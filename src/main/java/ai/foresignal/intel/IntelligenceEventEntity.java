@@ -66,6 +66,10 @@ public class IntelligenceEventEntity {
     @Column(name = "confidence")
     private Double confidence;
 
+    /** The uncalibrated EventScorer score behind {@link #confidence} (prompt 151), kept so both can be shown. */
+    @Column(name = "raw_confidence")
+    private Double rawConfidence;
+
     @Column(name = "confidence_label", length = 16)
     private String confidenceLabel;
 
@@ -242,6 +246,15 @@ public class IntelligenceEventEntity {
 
     public void setConfidence(Double confidence) {
         this.confidence = confidence;
+    }
+
+    /** The uncalibrated EventScorer score behind {@link #getConfidence()} (prompt 151), or null. */
+    public Double getRawConfidence() {
+        return rawConfidence;
+    }
+
+    public void setRawConfidence(Double rawConfidence) {
+        this.rawConfidence = rawConfidence;
     }
 
     public String getConfidenceLabel() {

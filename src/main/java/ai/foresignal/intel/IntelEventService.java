@@ -252,6 +252,8 @@ public class IntelEventService {
         }
         Instant now = clock.instant();
         Map<String, Object> before = IntelEventMapper.summary(event);
+        String oldStatus = event.getStatus();
+        TrustCrossing.Level trustBefore = TrustCrossing.of(event);
         if (title != null) {
             event.setTitle(title.strip());
         }
@@ -277,7 +279,52 @@ public class IntelEventService {
         bus.publish(new IntelEvent(entry.getId(), event.getId(),
                 "resolved".equals(event.getStatus()) ? IntelEvent.RESOLVED : IntelEvent.UPDATED, event.getVersion(),
                 IntelEventMapper.summary(event), null));
+        recordResolution(event, oldStatus, now);
+        publishUpgrade(event, now, actor, trustBefore);
         return event;
+    }
+
+    /**
+     * Records the resolved real-world outcome of an event for calibration (prompt 151) when an operator or agent
+     * moves it to {@code resolved} (the finding was real, outcome 1) or {@code dismissed} (a false positive, outcome 0)
+     * from a non-terminal status. Auto-resolution on quiet has no asserted ground truth and records nothing.
+     */
+    private void recordResolution(IntelligenceEventEntity event, String oldStatus, Instant now) {
+        if (calibration == null) {
+            return;
+        }
+        String status = event.getStatus();
+        boolean wasTerminal = "resolved".equals(oldStatus) || "dismissed".equals(oldStatus);
+        boolean isTerminal = "resolved".equals(status) || "dismissed".equals(status);
+        if (wasTerminal || !isTerminal) {
+            return;
+        }
+        double raw = event.getRawConfidence() != null ? event.getRawConfidence()
+                : event.getConfidence() != null ? event.getConfidence() : 0;
+        try {
+            calibration.recordOutcome(IntelCalibrationService.SCOPE_EVENT, IntelOutcomeEntity.KIND_EVENT,
+                    event.getId(), raw, "resolved".equals(status) ? 1 : 0);
+        } catch (RuntimeException e) {
+            // Calibration is advisory; a failure to record an outcome never fails the edit.
+        }
+    }
+
+    /**
+     * Emits a first-class {@code upgraded} stream event (prompt 151) in addition to the {@code updated} event when the
+     * change crossed a trust threshold, so a consumer never has to diff successive summaries. The {@code summary}
+     * carries the crossings under {@code upgrade}, and a distinct log entry gives the event its own strictly
+     * increasing cursor.
+     */
+    private void publishUpgrade(IntelligenceEventEntity event, Instant now, String actor, TrustCrossing.Level before) {
+        List<Map<String, Object>> crossings = TrustCrossing.crossings(before, TrustCrossing.of(event));
+        if (crossings.isEmpty()) {
+            return;
+        }
+        IntelEventLogEntity entry = log(event, now, actor, "upgraded", Map.of("upgrade", crossings));
+        Map<String, Object> summary = new LinkedHashMap<>(IntelEventMapper.summary(event));
+        summary.put("upgrade", crossings);
+        bus.publish(new IntelEvent(entry.getId(), event.getId(), IntelEvent.UPGRADED, event.getVersion(), summary,
+                null));
     }
 
     /** Adds a verified member. */
@@ -285,6 +332,7 @@ public class IntelEventService {
     public IntelligenceEventEntity addMember(String id, JsonNode node, String actor, boolean privateAccess) {
         IntelligenceEventEntity event = visible(id, privateAccess);
         Instant now = clock.instant();
+        TrustCrossing.Level trustBefore = TrustCrossing.of(event);
         AddedMember added = addMemberInternal(event, node, actor, now, privateAccess);
         if (added.privateSource()) {
             event.setPrivateEvent(true);
@@ -295,6 +343,7 @@ public class IntelEventService {
         events.save(event);
         bus.publish(new IntelEvent(entry.getId(), event.getId(), IntelEvent.UPDATED, event.getVersion(),
                 IntelEventMapper.summary(event), null));
+        publishUpgrade(event, now, actor, trustBefore);
         return event;
     }
 
@@ -310,12 +359,14 @@ public class IntelEventService {
         members.delete(member);
         members.flush();
         Instant now = clock.instant();
+        TrustCrossing.Level trustBefore = TrustCrossing.of(event);
         event.setUpdatedAt(now);
         rescore(event);
         IntelEventLogEntity entry = log(event, now, actor, "edited", Map.of("removedMember", memberId));
         events.save(event);
         bus.publish(new IntelEvent(entry.getId(), event.getId(), IntelEvent.UPDATED, event.getVersion(),
                 IntelEventMapper.summary(event), null));
+        publishUpgrade(event, now, actor, trustBefore);
     }
 
     /**
@@ -341,6 +392,7 @@ public class IntelEventService {
         merged.setUpdatedAt(now);
         events.save(merged);
         target.setPrivateEvent(target.isPrivateEvent() || merged.isPrivateEvent());
+        TrustCrossing.Level trustBefore = TrustCrossing.of(target);
         rescore(target);
         target.setUpdatedAt(now);
         IntelEventLogEntity entry = log(target, now, actor, "merged", Map.of("merged", id, "moved", moved));
@@ -349,6 +401,7 @@ public class IntelEventService {
                 IntelEventMapper.summary(target), null));
         bus.publish(new IntelEvent(entry.getId(), merged.getId(), IntelEvent.RESOLVED, merged.getVersion(),
                 IntelEventMapper.summary(merged), intoId));
+        publishUpgrade(target, now, actor, trustBefore);
         return target;
     }
 
@@ -483,8 +536,20 @@ public class IntelEventService {
             memberViews.add(EventScorerViews.toMap(view));
         }
         EventScorer.Score score = EventScorer.score(views, contradictions);
-        event.setConfidence(score.confidence());
-        event.setConfidenceLabel(score.label());
+        event.setRawConfidence(score.confidence());
+        // Prompt 151: report the calibrated probability where a fitted mapping exists (enough resolved outcomes),
+        // otherwise the raw EventScorer score unchanged. calibrated is true only where a mapping is applied.
+        Double calibrated = calibration == null ? null
+                : calibration.calibrate(IntelCalibrationService.SCOPE_EVENT, score.confidence()).orElse(null);
+        if (calibrated != null) {
+            event.setConfidence(calibrated);
+            event.setConfidenceLabel(EventScorer.label(calibrated));
+            event.setCalibrated(true);
+        } else {
+            event.setConfidence(score.confidence());
+            event.setConfidenceLabel(score.label());
+            event.setCalibrated(false);
+        }
         event.setEvidenceQuality(score.evidenceQuality());
         event.setConfidenceMethod(EventScorer.METHOD);
         event.setManifestId(scoreManifest(event, memberViews, contradictions, refs));
@@ -541,6 +606,10 @@ public class IntelEventService {
     /** Analysis manifests (prompt 116), or null. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.manifest.ManifestService manifests;
+
+    /** Confidence calibration (prompt 151), or null when the calibration layer is absent. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private IntelCalibrationService calibration;
 
     /**
      * The active contradictions of an event: one per recipe contradiction clause that added contradicting

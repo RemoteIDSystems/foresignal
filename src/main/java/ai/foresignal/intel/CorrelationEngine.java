@@ -497,6 +497,7 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
             out.put("confidence", score.confidence());
             out.put("confidenceLabel", score.label());
             out.put("confidenceMethod", EventScorer.METHOD);
+            // A dry run has no persisted history, so its would-be confidence is the raw score (never calibrated).
             out.put("calibrated", false);
             out.put("evidenceQuality", score.evidenceQuality());
             out.put("startTime", start);
@@ -765,14 +766,29 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
     }
 
     private void persist(RecipeDefinition recipe, Candidate candidate) {
-        IntelEvent announced = transactions.execute(status -> write(recipe, candidate));
-        if (announced != null) {
-            bus.publish(announced);
+        Written written = transactions.execute(status -> write(recipe, candidate));
+        if (written == null) {
+            return;
+        }
+        if (written.announce() != null) {
+            bus.publish(written.announce());
+        }
+        // Prompt 151: a recipe update that crossed a trust threshold also announces a first-class upgrade.
+        if (written.upgrade() != null) {
+            bus.publish(written.upgrade());
         }
     }
 
-    /** Writes one candidate in the caller's transaction; returns the stream event to announce after commit. */
-    private IntelEvent write(RecipeDefinition recipe, Candidate candidate) {
+    /**
+     * The stream events a write announces after commit.
+     *
+     * @param announce the created / updated event, or null when nothing changed
+     * @param upgrade the first-class {@code upgraded} event (prompt 151), or null
+     */
+    private record Written(IntelEvent announce, IntelEvent upgrade) {}
+
+    /** Writes one candidate in the caller's transaction; returns the stream events to announce after commit. */
+    private Written write(RecipeDefinition recipe, Candidate candidate) {
         Set<String> memberKeys = candidate.memberKeys();
         Duration window = dedupWindow(recipe);
         IntelligenceEventEntity event = findOpen(candidate, memberKeys, recipe.dedup().radiusKm(), window);
@@ -794,6 +810,7 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
             // membership or fields, and old evidence never reopens a resolved event.
             return null;
         }
+        TrustCrossing.Level trustBefore = created ? null : TrustCrossing.of(event);
         if (created) {
             event = new IntelligenceEventEntity(Ulids.next(now), candidate.type(), candidate.title(), candidate.start());
             event.setCreatedAt(now);
@@ -860,8 +877,28 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
         logRow.setAfter(Map.of("members", added, "confidence", event.getConfidence() == null ? 0.0 : event.getConfidence(),
                 "status", event.getStatus()));
         logs.save(logRow);
-        return new IntelEvent(logRow.getId(), event.getId(), created ? IntelEvent.CREATED : IntelEvent.UPDATED,
-                event.getVersion(), IntelEventMapper.summary(event), null);
+        IntelEvent announce = new IntelEvent(logRow.getId(), event.getId(),
+                created ? IntelEvent.CREATED : IntelEvent.UPDATED, event.getVersion(),
+                IntelEventMapper.summary(event), null);
+        return new Written(announce, upgrade(event, trustBefore, recipe, now));
+    }
+
+    /**
+     * The first-class {@code upgraded} stream event (prompt 151) when a recipe update crossed a trust threshold, with
+     * its own log entry for a distinct cursor; null when nothing was upgraded.
+     */
+    private IntelEvent upgrade(IntelligenceEventEntity event, TrustCrossing.Level before, RecipeDefinition recipe,
+            Instant now) {
+        List<Map<String, Object>> crossings = TrustCrossing.crossings(before, TrustCrossing.of(event));
+        if (crossings.isEmpty()) {
+            return null;
+        }
+        IntelEventLogEntity logRow = new IntelEventLogEntity(event.getId(), now, "recipe:" + recipe.id(), "upgraded");
+        logRow.setAfter(Map.of("upgrade", crossings));
+        logs.save(logRow);
+        Map<String, Object> summary = new LinkedHashMap<>(IntelEventMapper.summary(event));
+        summary.put("upgrade", crossings);
+        return new IntelEvent(logRow.getId(), event.getId(), IntelEvent.UPGRADED, event.getVersion(), summary, null);
     }
 
     /**

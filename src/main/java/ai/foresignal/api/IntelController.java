@@ -6,6 +6,7 @@ import ai.foresignal.api.support.QueryParams;
 import ai.foresignal.intel.CorrelationEngine;
 import ai.foresignal.intel.CorrelationRecipeRepository;
 import ai.foresignal.intel.CorrelationRecipeEntity;
+import ai.foresignal.intel.IntelCalibrationService;
 import ai.foresignal.intel.IntelEventMapper;
 import ai.foresignal.intel.IntelEventService;
 import ai.foresignal.intel.IntelVisibility;
@@ -61,18 +62,20 @@ public class IntelController {
     private final RecipeRegistry registry;
     private final CorrelationEngine engine;
     private final IntelVisibility visibility;
+    private final IntelCalibrationService calibration;
     private final tools.jackson.databind.json.JsonMapper json;
 
     /** Creates the controller. */
     public IntelController(IntelEventService events, IntelEventMapper mapper, CorrelationRecipeRepository recipes,
             RecipeRegistry registry, CorrelationEngine engine, IntelVisibility visibility,
-            tools.jackson.databind.json.JsonMapper json) {
+            IntelCalibrationService calibration, tools.jackson.databind.json.JsonMapper json) {
         this.events = events;
         this.mapper = mapper;
         this.recipes = recipes;
         this.registry = registry;
         this.engine = engine;
         this.visibility = visibility;
+        this.calibration = calibration;
         this.json = json;
     }
 
@@ -161,6 +164,28 @@ public class IntelController {
         }
         IntelligenceEventEntity target = events.merge(id, intoId, actor(request), visibility.seesPrivate(request));
         return mapper.full(target, events.members(intoId), events.log(intoId));
+    }
+
+    /**
+     * {@code getIntelCalibration}: how calibrated intelligence confidence is (prompt 151). Returns the calibration
+     * state of every scope, each with whether it is calibrated, the resolved sample size, the Brier score, the 10-bin
+     * reliability table and the CORP recalibration curve.
+     */
+    @GetMapping("/calibration")
+    @RestrictedRead
+    @Operation(operationId = "getIntelCalibration", tags = "Intelligence")
+    public Map<String, Object> getIntelCalibration() {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("scopes", calibration.all());
+        return out;
+    }
+
+    /** {@code getIntelCalibrationScope}: the calibration of one scope ({@code intel-event}, {@code precursor-active}). */
+    @GetMapping("/calibration/{scope}")
+    @RestrictedRead
+    @Operation(operationId = "getIntelCalibrationScope", tags = "Intelligence")
+    public Map<String, Object> getIntelCalibrationScope(@PathVariable String scope) {
+        return calibration.reliability(scope);
     }
 
     /** {@code listIntelRecipes}. */

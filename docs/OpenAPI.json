@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Foresignal API",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "summary": "Headless intelligence broker: ingest, version and re-serve public telemetry.",
     "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...`, `/v1/k/{key}/tiles/...`, `/v1/k/{key}/map/...` and `/v1/k/{key}/changes/stream` for map clients (MapLibre, maplibre_gl, Cesium, `EventSource`), share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. A feed key reaches only `GET`/`HEAD` of `read` operations that are not always-authenticated, under the key's path prefixes, with the key's mandatory read restriction (unknown key 401 INVALID_FEED_KEY, expired or revoked 410 FEED_KEY_GONE, another method 405, a path outside the prefixes 403 RESTRICTED). A tile key reaches the same operations under its prefixes (a subset of `/v1/products/`, `/v1/styles`, `/v1/media/`, `/v1/tiles/`, `/v1/maps/static`, `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream`, `/v1/map/`), with its optional restriction and never private sources (unknown, expired or revoked key 401 INVALID_TILE_KEY, another method 405, a path outside the prefixes 403 INSUFFICIENT_SCOPE). Responses carry `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`; `Cache-Control` defaults to `private`, and a tile-key response takes the canonical path's own rule (`public` only while `openReads` covers it). Logs show only the key's first eight characters; the key is never echoed except by `createFeedKey` and `createTileKey`, and in the follow-up URLs of documents requested through it (058: the MapLibre style's sources and sprite, KML NetworkLink and icon hrefs, a feed's own `rel=\"self\"` / `feed_url`), which are then always `Cache-Control: private`. CORS exposes `Foresignal-Frame-Time`, `Foresignal-Image-Bounds`, `Foresignal-Frame-Expired`, `Retry-After`, `Link` and `ETag`, allows `Authorization`, `If-None-Match` and `Foresignal-Prefetch`, and caches preflights for a day; `?prefetch=1` marks a render prefetch without the preflight the header causes.\n\n**Restrictions and limits (035).** Restricted tokens, feed keys and the anonymous profile (`security.anonymous`, applied to tokenless reads while `openReads` is on) see only records and alerts inside their `ReadRestriction` on every read path (records, history, versions, changes, kinds, tiles, streams, search, alerts, the inbox, the digest, briefings, MCP tools and Ask): request filters are intersected with the restriction, and a single record or alert outside it is 404. Every client is rate-limited per class (`RateLimitSettings`); over a limit, or after repeated failed credentials from one address, the answer is 429 RATE_LIMITED with `Retry-After`. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).",
     "license": {
@@ -13,6 +13,11 @@
       "url": "https://foresignal.ai"
     },
     "x-foresignal-changelog": [
+      {
+        "version": "1.3.0",
+        "date": "2026-10-22",
+        "note": "151: signal calibration. Confidence is reported as a calibrated probability where enough real-world outcomes have resolved, otherwise the raw EventScorer score unchanged; IntelligenceEvent and IntelEventSummary gain rawConfidence, confidence is no longer capped at 0.95 when calibrated, and the calibrated flag now means a fitted mapping was applied (not 103 validation). Adds getIntelCalibration (GET /v1/intel/calibration) and getIntelCalibrationScope (GET /v1/intel/calibration/{scope}) with the IntelCalibration schema (reliability table, Brier, sample size, CORP curve). The intel SSE topic gains intel.event.upgraded, emitted alongside intel.event.updated when a change crosses a trust threshold (status emerging→active, a confidence or evidence-quality tier, uncorroborated→corroborated, or calibrated turning true); its summary carries an upgrade member. Additive: no operation or schema was renamed or removed."
+      },
       {
         "version": "1.2.0",
         "date": "2026-10-22",
@@ -37040,6 +37045,131 @@
         },
         "x-foresignal-scope": "agent",
         "x-foresignal-prompt": "101",
+        "x-foresignal-status": "implemented",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/intel/calibration": {
+      "get": {
+        "tags": [
+          "Intelligence"
+        ],
+        "operationId": "getIntelCalibration",
+        "summary": "Intelligence calibration state",
+        "description": "How calibrated intelligence confidence is (151): the calibration of every scope, each with whether it is calibrated, the resolved sample size, the Brier score, the 10-bin reliability table and the CORP recalibration curve.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "responses": {
+          "200": {
+            "description": "Calibration of every scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scopes": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/IntelCalibration"
+                      }
+                    }
+                  },
+                  "required": [
+                    "scopes"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-prompt": "151",
+        "x-foresignal-status": "implemented",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/intel/calibration/{scope}": {
+      "get": {
+        "tags": [
+          "Intelligence"
+        ],
+        "operationId": "getIntelCalibrationScope",
+        "summary": "Calibration of one scope",
+        "description": "The calibration of one scope (151): `intel-event` or `precursor-active`. An unknown scope returns the empty, uncalibrated state.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "parameters": [
+          {
+            "name": "scope",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "intel-event",
+                "precursor-active"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The scope's calibration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelCalibration"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-prompt": "151",
         "x-foresignal-status": "implemented",
         "security": [
           {
@@ -121852,6 +121982,103 @@
           "summary"
         ]
       },
+      "IntelCalibration": {
+        "type": "object",
+        "description": "The fitted calibration of one scope (151): the CORP recalibration curve, the 10-bin reliability table and the Brier score over resolved outcomes",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "intel-event",
+              "precursor-active"
+            ]
+          },
+          "calibrated": {
+            "type": "boolean",
+            "description": "True once at least `minSamples` outcomes have resolved; until then the raw score is reported unchanged"
+          },
+          "sampleN": {
+            "type": "integer",
+            "description": "Resolved outcomes behind the fit"
+          },
+          "minSamples": {
+            "type": "integer",
+            "description": "Outcomes needed before a scope is calibrated"
+          },
+          "brier": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Mean Brier score of the raw scores against the outcomes"
+          },
+          "bins": {
+            "type": "array",
+            "description": "The 10-bin reliability table",
+            "items": {
+              "type": "object",
+              "properties": {
+                "lower": {
+                  "type": "number"
+                },
+                "upper": {
+                  "type": "number"
+                },
+                "n": {
+                  "type": "integer"
+                },
+                "meanForecast": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "observedFrequency": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "curve": {
+            "type": "array",
+            "description": "The CORP (PAV) recalibration curve, one point per distinct raw score",
+            "items": {
+              "type": "object",
+              "properties": {
+                "forecast": {
+                  "type": "number"
+                },
+                "calibrated": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "fittedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "scope",
+          "calibrated",
+          "sampleN",
+          "minSamples"
+        ]
+      },
       "IntelEventSummary": {
         "type": "object",
         "description": "Compact intelligence event for lists and SSE",
@@ -121888,8 +122115,17 @@
           "confidence": {
             "type": "number",
             "minimum": 0,
+            "maximum": 1,
+            "description": "The calibrated probability when `calibrated` is true, otherwise the raw EventScorer score (capped at 0.95)"
+          },
+          "rawConfidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
             "maximum": 0.95,
-            "description": "Score from EventScorer; not a calibrated probability unless `calibrated`"
+            "description": "The uncalibrated EventScorer score behind `confidence` (151); equal to `confidence` until calibrated"
           },
           "confidenceLabel": {
             "type": "string",
@@ -121906,7 +122142,7 @@
           },
           "calibrated": {
             "type": "boolean",
-            "description": "Set only by 103 validation"
+            "description": "True when `confidence` is a calibrated probability backed by resolved outcomes (151); until a scope has enough resolved history the raw score stands and this is false"
           },
           "evidenceQuality": {
             "type": "string",
@@ -122130,8 +122366,17 @@
               "confidence": {
                 "type": "number",
                 "minimum": 0,
+                "maximum": 1,
+                "description": "The calibrated probability when `calibrated` is true, otherwise the raw EventScorer score (capped at 0.95)"
+              },
+              "rawConfidence": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
                 "maximum": 0.95,
-                "description": "Score from EventScorer; not a calibrated probability unless `calibrated`"
+                "description": "The uncalibrated EventScorer score behind `confidence` (151); equal to `confidence` until calibrated"
               },
               "confidenceLabel": {
                 "type": "string",
@@ -122148,7 +122393,7 @@
               },
               "calibrated": {
                 "type": "boolean",
-                "description": "Set only by 103 validation"
+                "description": "True when `confidence` is a calibrated probability backed by resolved outcomes (151); until a scope has enough resolved history the raw score stands and this is false"
               },
               "evidenceQuality": {
                 "type": "string",

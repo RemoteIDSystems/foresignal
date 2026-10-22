@@ -60,7 +60,8 @@ public class ListIntelEventsTool implements ForesignalMcpTool {
     @Override
     public String description() {
         return UNTRUSTED_NOTE + " Lists intelligence events (typed, located findings built from pinned"
-                + " evidence). Confidence is an uncalibrated score, not a probability.";
+                + " evidence). Confidence is a calibrated probability where enough outcomes have resolved (the"
+                + " event's calibrated flag is true), otherwise the uncalibrated score.";
     }
 
     @Override

@@ -40,6 +40,8 @@ public class IntelEventMapper {
         out.put("regionTags", event.getRegionTags());
         out.put("confidenceMethod", event.getConfidenceMethod());
         out.put("calibrated", event.isCalibrated());
+        // The uncalibrated EventScorer score behind confidence (prompt 151); equal to confidence until calibrated.
+        out.put("rawConfidence", event.getRawConfidence());
         out.put("origin", event.getOrigin());
         out.put("recipeId", event.getRecipeId());
         out.put("recipeVersion", event.getRecipeVersion());
