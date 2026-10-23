@@ -148,6 +148,12 @@ public class PushIngestService {
             long wait = budgets.secondsUntilAvailable(sourceId);
             refused(descriptor, principal, receivedAt, urlRedacted, "request budget exceeded", 0);
             usage.recordRefused(sourceId);
+            if (budgets.status(sourceId).isMonthlyCapReached()) {
+                // The money cap of the source's budget (Budget.monthlyCapUsd): refused with BUDGET_EXCEEDED.
+                throw new ForesignalException(HttpStatus.TOO_MANY_REQUESTS, ErrorCodes.BUDGET_EXCEEDED,
+                        "The source's monthly cap is spent; retry after " + wait + " s.")
+                        .withHeader(HttpHeaders.RETRY_AFTER, Long.toString(wait));
+            }
             throw new ForesignalException(HttpStatus.TOO_MANY_REQUESTS, ErrorCodes.RATE_LIMITED,
                     "The source's request budget is spent; retry after " + wait + " s.")
                     .withHeader(HttpHeaders.RETRY_AFTER, Long.toString(wait));

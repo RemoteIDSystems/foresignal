@@ -245,6 +245,7 @@ public class SourceService implements ApplicationRunner {
         Budget budget = descriptor.defaultBudget();
         entity.setBudgetPerMinute(budget == null ? 0 : budget.perMinute());
         entity.setBudgetPerDay(budget == null ? 0 : budget.perDay());
+        entity.setBudgetMonthlyCapUsd(budget == null ? null : budget.monthlyCapUsd());
         entity.setRetention(null);
         entity.setIngestPolicy(null);
         entity.setUpdatedAt(clock.instant());
@@ -451,9 +452,15 @@ public class SourceService implements ApplicationRunner {
             if (budget.perDay() < 1) {
                 errors.add(new FieldError("budget.perDay", "must be at least 1"));
             }
-            if (budget.perMinute() >= 1 && budget.perDay() >= 1) {
+            boolean capValid = budget.monthlyCapUsd() == null || budget.monthlyCapUsd().signum() >= 0;
+            if (!capValid) {
+                errors.add(new FieldError("budget.monthlyCapUsd", "must be at least 0"));
+            }
+            if (budget.perMinute() >= 1 && budget.perDay() >= 1 && capValid) {
                 row.setBudgetPerMinute(budget.perMinute());
                 row.setBudgetPerDay(budget.perDay());
+                // The budget object is replaced whole: no monthlyCapUsd means no money cap.
+                row.setBudgetMonthlyCapUsd(budget.monthlyCapUsd());
             }
         }
 
@@ -1071,7 +1078,7 @@ public class SourceService implements ApplicationRunner {
     }
 
     /**
-     * The request limits from the settings row, plus the descriptor's byte budget.
+     * The request limits and the monthly money cap from the settings row, plus the descriptor's byte budget.
      *
      * <p>{@code mbPerDay} is not operator-overridable yet: there is no column for it, and it is a
      * property of how large the upstream's objects are rather than a preference.
@@ -1079,7 +1086,7 @@ public class SourceService implements ApplicationRunner {
     private static Budget budgetOf(SourceDescriptor descriptor, SourceSettingsEntity row) {
         Integer mbPerDay =
                 descriptor.defaultBudget() == null ? null : descriptor.defaultBudget().mbPerDay();
-        return new Budget(row.getBudgetPerMinute(), row.getBudgetPerDay(), mbPerDay);
+        return new Budget(row.getBudgetPerMinute(), row.getBudgetPerDay(), mbPerDay, row.getBudgetMonthlyCapUsd());
     }
 
     private IngestPolicy resolveIngestPolicy(SourceDescriptor descriptor, SourceSettingsEntity row) {

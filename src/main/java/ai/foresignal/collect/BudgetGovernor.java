@@ -7,14 +7,18 @@ import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.local.LocalBucket;
 import io.github.bucket4j.local.SynchronizationStrategy;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -31,6 +35,11 @@ import org.springframework.stereotype.Component;
  *
  * <p>After a restart the daily bucket is seeded from what {@link UsageMeter} already recorded
  * today, so restarting cannot be used — accidentally or otherwise — to reset the allowance.
+ *
+ * <p>A third limit applies to paid sources whose budget has a {@code monthlyCapUsd} (OpenAPI
+ * {@code Budget.monthlyCapUsd}, 135): once the month's spend, as the {@link SourceSpendLookup} beans report it,
+ * reaches the cap, every request is refused until the next UTC calendar month. The spend lives in the ledger
+ * that keeps it, not in a bucket, so a restart cannot reset it either.
  */
 @Component
 public class BudgetGovernor {
@@ -43,6 +52,7 @@ public class BudgetGovernor {
     private final UsageMeter usage;
     private final Clock clock;
     private final ClockTimeMeter timeMeter;
+    private final ObjectProvider<SourceSpendLookup> spendLookups;
 
     /** One bucket per source, created on first use. */
     private final Map<String, Entry> buckets = new ConcurrentHashMap<>();
@@ -53,11 +63,24 @@ public class BudgetGovernor {
      */
     private final Map<String, Budget> fixedBudgets = new ConcurrentHashMap<>();
 
+    /** A governor with no money ledger: monthly caps never bind. */
     public BudgetGovernor(SourceService sources, UsageMeter usage, Clock clock) {
+        this(sources, usage, clock, null);
+    }
+
+    /**
+     * Creates the governor.
+     *
+     * @param spendLookups the money ledgers of paid sources, or null for none
+     */
+    @Autowired
+    public BudgetGovernor(SourceService sources, UsageMeter usage, Clock clock,
+            ObjectProvider<SourceSpendLookup> spendLookups) {
         this.sources = sources;
         this.usage = usage;
         this.clock = clock;
         this.timeMeter = new ClockTimeMeter(clock);
+        this.spendLookups = spendLookups;
     }
 
     /**
@@ -66,7 +89,11 @@ public class BudgetGovernor {
      * @return false when the budget is spent, in which case no request may be sent
      */
     public boolean tryConsume(String sourceId) {
-        return entry(sourceId).bucket.tryConsume(1);
+        Entry entry = entry(sourceId);
+        if (monthlyCapReached(sourceId, entry.budget)) {
+            return false;
+        }
+        return entry.bucket.tryConsume(1);
     }
 
     /**
@@ -81,6 +108,9 @@ public class BudgetGovernor {
      */
     public boolean tryConsume(String sourceId, long expectedBytes) {
         Entry entry = entry(sourceId);
+        if (monthlyCapReached(sourceId, entry.budget)) {
+            return false;
+        }
         if (entry.budget.hasByteBudget() && expectedBytes > 0) {
             long remaining = remainingBytesToday(sourceId, entry);
             if (expectedBytes > remaining) {
@@ -129,7 +159,11 @@ public class BudgetGovernor {
      * push refused by the request budget (prompt 024); at least 1.
      */
     public long secondsUntilAvailable(String sourceId) {
-        long nanos = entry(sourceId).bucket.estimateAbilityToConsume(1).getNanosToWaitForRefill();
+        Entry entry = entry(sourceId);
+        if (monthlyCapReached(sourceId, entry.budget)) {
+            return Math.max(1, Duration.between(clock.instant(), nextUtcMonth()).toSeconds());
+        }
+        long nanos = entry.bucket.estimateAbilityToConsume(1).getNanosToWaitForRefill();
         return Math.max(1, (nanos + 999_999_999L) / 1_000_000_000L);
     }
 
@@ -156,7 +190,46 @@ public class BudgetGovernor {
                 Math.max(0, dayRemaining),
                 Math.max(0, minuteRemaining),
                 entry.budget.mbPerDay(),
-                megabytesUsed);
+                megabytesUsed,
+                entry.budget.monthlyCapUsd(),
+                entry.budget.hasMonthlyCap() ? spentUsdThisMonth(sourceId) : null);
+    }
+
+    /**
+     * The US dollars a paid source spent this UTC calendar month, from the {@link SourceSpendLookup} beans.
+     *
+     * @return the spend, or null when no ledger knows the source
+     */
+    public Double spentUsdThisMonth(String sourceId) {
+        if (spendLookups == null) {
+            return null;
+        }
+        Double out = null;
+        for (SourceSpendLookup lookup : spendLookups.orderedStream().toList()) {
+            try {
+                Double value = lookup.spentUsdThisMonth(sourceId);
+                if (value != null) {
+                    out = value;
+                }
+            } catch (RuntimeException e) {
+                log.debug("A spend lookup failed for {}", sourceId, e);
+            }
+        }
+        return out;
+    }
+
+    /** True when {@code budget} caps money and this month's spend has reached the cap. */
+    private boolean monthlyCapReached(String sourceId, Budget budget) {
+        if (!budget.hasMonthlyCap()) {
+            return false;
+        }
+        Double spent = spentUsdThisMonth(sourceId);
+        boolean reached = spent != null && BigDecimal.valueOf(spent).compareTo(budget.monthlyCapUsd()) >= 0;
+        if (reached) {
+            log.debug("Refusing {}: ${} spent this month reaches its ${} monthly cap", sourceId, spent,
+                    budget.monthlyCapUsd().toPlainString());
+        }
+        return reached;
     }
 
     /**
@@ -261,6 +334,12 @@ public class BudgetGovernor {
                 .plusDays(1)
                 .atStartOfDay(ZoneOffset.UTC)
                 .toInstant();
+    }
+
+    /** The start of the next UTC calendar month, which is when a monthly cap resets. */
+    Instant nextUtcMonth() {
+        return YearMonth.from(clock.instant().atZone(ZoneOffset.UTC)).plusMonths(1).atDay(1)
+                .atStartOfDay(ZoneOffset.UTC).toInstant();
     }
 
     /**

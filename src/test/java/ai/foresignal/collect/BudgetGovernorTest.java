@@ -11,8 +11,10 @@ import ai.foresignal.source.spi.Budget;
 import ai.foresignal.source.spi.IngestPolicy;
 import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.test.MutableClock;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -20,10 +22,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.support.StaticListableBeanFactory;
 
 /** Budget behavior, driven by a clock the test controls. */
 class BudgetGovernorTest {
@@ -370,6 +374,67 @@ class BudgetGovernorTest {
         clock.setInstant(Instant.parse("2026-03-02T23:59:59Z"));
 
         assertThat(governor.nextUtcMidnight()).isEqualTo(Instant.parse("2026-03-03T00:00:00Z"));
+    }
+
+    @Nested
+    @DisplayName("monthly money cap")
+    class MonthlyCap {
+
+        private final AtomicReference<Double> spent = new AtomicReference<>(0.0);
+
+        @BeforeEach
+        void capped() {
+            when(sources.effectiveBudget(SOURCE)).thenReturn(Budget.of(3, 10).withMonthlyCapUsd(new BigDecimal("25")));
+            StaticListableBeanFactory beans = new StaticListableBeanFactory();
+            beans.addBean("ledger", (SourceSpendLookup) id -> SOURCE.equals(id) ? spent.get() : null);
+            governor = new BudgetGovernor(sources, usage, clock, beans.getBeanProvider(SourceSpendLookup.class));
+        }
+
+        @Test
+        @DisplayName("below the cap requests pass; at the cap every request is refused, whatever minute and day allow")
+        void refusesAtTheCap() {
+            spent.set(24.99);
+            assertThat(governor.tryConsume(SOURCE)).isTrue();
+            assertThat(governor.status(SOURCE).isMonthlyCapReached()).isFalse();
+
+            spent.set(25.0);
+            assertThat(governor.tryConsume(SOURCE)).isFalse();
+            assertThat(governor.tryConsume(SOURCE, 1024)).isFalse();
+            BudgetStatus status = governor.status(SOURCE);
+            assertThat(status.isMonthlyCapReached()).isTrue();
+            assertThat(status.isExhausted()).isTrue();
+            assertThat(status.minuteRemaining()).isEqualTo(2);
+            assertThat(status.spentUsdThisMonth()).isEqualTo(25.0);
+        }
+
+        @Test
+        @DisplayName("a capped source waits until the next UTC month, and resumes when the month's spend starts over")
+        void pausedForTheMonth() {
+            spent.set(30.0);
+            assertThat(governor.tryConsume(SOURCE)).isFalse();
+            assertThat(governor.secondsUntilAvailable(SOURCE))
+                    .isEqualTo(Duration.between(START, Instant.parse("2026-04-01T00:00:00Z")).toSeconds());
+
+            clock.setInstant(Instant.parse("2026-04-01T00:00:01Z"));
+            spent.set(0.0);
+            assertThat(governor.tryConsume(SOURCE)).isTrue();
+        }
+
+        @Test
+        @DisplayName("a source no ledger knows is never held by its cap")
+        void unknownSpend() {
+            spent.set(null);
+            assertThat(governor.tryConsume(SOURCE)).isTrue();
+            assertThat(governor.status(SOURCE).spentUsdThisMonth()).isNull();
+        }
+
+        @Test
+        @DisplayName("the health rule names the cap, the spend and the month the source resumes")
+        void healthReason() {
+            spent.set(25.00123);
+            assertThat(MonthlyCapHealthRule.reason(governor.status(SOURCE), YearMonth.of(2026, 4)))
+                    .isEqualTo("monthly cap of $25 spent ($25.0012); paused until 2026-04-01 UTC");
+        }
     }
 
     private Instant nextUtcMidnight() {

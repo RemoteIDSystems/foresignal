@@ -361,6 +361,24 @@ class SourcesControllerIT {
         }
 
         @Test
+        @DisplayName("budget.monthlyCapUsd is stored, reported in the settings and the health, and cleared when left out")
+        void monthlyCap() throws Exception {
+            putJson("/v1/sources/" + POLL, "{\"budget\":{\"perMinute\":5,\"perDay\":500,\"monthlyCapUsd\":12.5}}")
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.settings.budget.monthlyCapUsd").value(12.5));
+            mvc.perform(admin(get("/v1/sources/" + POLL + "/health")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.budget.monthlyCapUsd").value(12.5));
+            putJson("/v1/sources/" + POLL, "{\"budget\":{\"perMinute\":5,\"perDay\":500}}")
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.settings.budget.monthlyCapUsd").value(nullValue()));
+            putJson("/v1/sources/" + POLL, "{\"budget\":{\"perMinute\":5,\"perDay\":500,\"monthlyCapUsd\":-1}}")
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                    .andExpect(jsonPath("$.errors[0].field").value("budget.monthlyCapUsd"));
+        }
+
+        @Test
         @DisplayName("a negative budget fails Bean Validation with errors[]")
         void negativeBudget() throws Exception {
             putJson("/v1/sources/" + POLL, "{\"budget\":{\"perMinute\":-1,\"perDay\":10}}")

@@ -43,6 +43,10 @@ public class SourceSettingsEntity {
     @Column(name = "budget_per_day", nullable = false)
     private int budgetPerDay;
 
+    /** The money cap per UTC calendar month in US dollars (OpenAPI {@code Budget.monthlyCapUsd}); null means none. */
+    @Column(name = "budget_monthly_cap_usd")
+    private java.math.BigDecimal budgetMonthlyCapUsd;
+
     /** Per-source retention override as a duration string; null means the global default. */
     @Column(name = "retention")
     private String retention;
@@ -149,6 +153,16 @@ public class SourceSettingsEntity {
 
     public void setBudgetPerDay(int budgetPerDay) {
         this.budgetPerDay = budgetPerDay;
+    }
+
+    /** The monthly money cap in US dollars, or null. */
+    public java.math.BigDecimal getBudgetMonthlyCapUsd() {
+        return budgetMonthlyCapUsd;
+    }
+
+    /** Sets the monthly money cap in US dollars; null removes it. */
+    public void setBudgetMonthlyCapUsd(java.math.BigDecimal budgetMonthlyCapUsd) {
+        this.budgetMonthlyCapUsd = budgetMonthlyCapUsd;
     }
 
     public String getRetention() {

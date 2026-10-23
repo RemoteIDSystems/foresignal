@@ -214,9 +214,9 @@ public class SourceMapper {
         return new FieldThresholdDto(threshold.field(), threshold.delta(), threshold.angular());
     }
 
-    /** The API budget: request limits only ({@code mbPerDay} is not part of the schema). */
+    /** The API budget: request limits and the monthly money cap ({@code mbPerDay} is not part of the schema). */
     public static BudgetDto budget(Budget budget) {
-        return budget == null ? null : new BudgetDto(budget.perMinute(), budget.perDay());
+        return budget == null ? null : new BudgetDto(budget.perMinute(), budget.perDay(), budget.monthlyCapUsd());
     }
 
     // ---------- settings ----------
@@ -564,7 +564,10 @@ public class SourceMapper {
             if (b.perMinute() != null && b.perDay() != null) {
                 Integer mbPerDay =
                         descriptor.defaultBudget() == null ? null : descriptor.defaultBudget().mbPerDay();
-                budget = new Budget(b.perMinute(), b.perDay(), mbPerDay);
+                if (b.monthlyCapUsd() != null && b.monthlyCapUsd().signum() < 0) {
+                    errors.add(new FieldError("budget.monthlyCapUsd", "must be at least 0"));
+                }
+                budget = new Budget(b.perMinute(), b.perDay(), mbPerDay, b.monthlyCapUsd());
             }
         }
 

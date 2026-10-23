@@ -1,5 +1,7 @@
 package ai.foresignal.source.spi;
 
+import java.math.BigDecimal;
+
 /**
  * How many upstream requests a source may spend.
  *
@@ -10,11 +12,21 @@ package ai.foresignal.source.spi;
  * than a day of a vector feed, so a request count alone would not bound the cost
  * (Weather-Imagery-Design §2.2).
  *
+ * <p>Paid sources can also cap money: {@code monthlyCapUsd} is the most a source may spend in a UTC calendar month,
+ * as its {@code SourceSpendLookup} reports it (OpenAPI {@code Budget.monthlyCapUsd}, 135). Once the month's spend
+ * reaches it, every request is refused until the next month begins.
+ *
  * @param perMinute requests per minute
  * @param perDay requests per UTC day
  * @param mbPerDay optional megabytes per UTC day; null means no byte budget
+ * @param monthlyCapUsd optional US dollars per UTC calendar month; null means no money cap
  */
-public record Budget(int perMinute, int perDay, Integer mbPerDay) {
+public record Budget(int perMinute, int perDay, Integer mbPerDay, BigDecimal monthlyCapUsd) {
+
+    /** A budget with no money cap. */
+    public Budget(int perMinute, int perDay, Integer mbPerDay) {
+        this(perMinute, perDay, mbPerDay, null);
+    }
 
     public static Budget of(int perMinute, int perDay) {
         return new Budget(perMinute, perDay, null);
@@ -33,5 +45,15 @@ public record Budget(int perMinute, int perDay, Integer mbPerDay) {
     /** The byte budget in bytes, or null. */
     public Long bytesPerDay() {
         return hasByteBudget() ? mbPerDay * 1024L * 1024L : null;
+    }
+
+    /** True when this budget caps money per month. */
+    public boolean hasMonthlyCap() {
+        return monthlyCapUsd != null;
+    }
+
+    /** This budget with {@code cap} as its monthly money cap (null for none). */
+    public Budget withMonthlyCapUsd(BigDecimal cap) {
+        return new Budget(perMinute, perDay, mbPerDay, cap);
     }
 }

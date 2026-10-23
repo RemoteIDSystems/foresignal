@@ -696,6 +696,11 @@ class BoundSourceHttp implements SourceHttp {
         if (!granted) {
             parent.usage().recordRefused(sourceId);
             BudgetStatus status = parent.budgets().status(sourceId);
+            if (status.isMonthlyCapReached()) {
+                throw new BudgetExceededException(sourceId, "The monthly cap of $"
+                        + status.monthlyCapUsd().stripTrailingZeros().toPlainString() + " for " + sourceId
+                        + " is spent; requests resume next month. The request was not sent.");
+            }
             throw new BudgetExceededException(
                     sourceId,
                     "The budget for "

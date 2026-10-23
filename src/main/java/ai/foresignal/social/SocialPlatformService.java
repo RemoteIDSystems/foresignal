@@ -548,12 +548,26 @@ public class SocialPlatformService {
         rows.save(row);
         boolean credentialsOk = !d.credentialsRequired() || sources.credentialsSet(platformId);
         boolean enable = parsed.settings().enabled() && credentialsOk;
-        sources.update(platformId, new SourceSettingsUpdate(enable, null, null, parsed.budget(),
+        // The platform's budget object has no money cap of its own (its cap is monthlyCapUsd above), so the
+        // source's Budget.monthlyCapUsd, set through updateSource, is kept.
+        Budget budget = parsed.budget() == null ? null
+                : parsed.budget().withMonthlyCapUsd(sourceMonthlyCap(platformId));
+        sources.update(platformId, new SourceSettingsUpdate(enable, null, null, budget,
                 parsed.settings().postRetention(), false, null, false));
         return view(platformId);
     }
 
-    /**
+        /** The source's current {@code Budget.monthlyCapUsd}, or null. */
+    private BigDecimal sourceMonthlyCap(String platformId) {
+        try {
+            Budget current = sources.view(platformId).budget();
+            return current == null ? null : current.monthlyCapUsd();
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+/**
      * A parsed body.
      *
      * @param settings the settings
