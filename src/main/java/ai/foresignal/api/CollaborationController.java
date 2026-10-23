@@ -17,6 +17,7 @@ import ai.foresignal.security.CurrentToken;
 import ai.foresignal.security.PrincipalEntity;
 import ai.foresignal.security.TokenService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -123,6 +124,7 @@ public class CollaborationController {
     /** {@code createPrincipal} (admin). */
     @PostMapping("/v1/principals")
     @Operation(operationId = "createPrincipal", tags = "Collaboration")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createPrincipal(@RequestBody JsonNode body,
             HttpServletRequest request) {
         PrincipalEntity p = principals.create(body, callers.authenticated(request));
@@ -175,6 +177,7 @@ public class CollaborationController {
     /** {@code createGroup} (agent): the creator becomes a manager. */
     @PostMapping("/v1/groups")
     @Operation(operationId = "createGroup", tags = "Collaboration")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createGroup(@RequestBody JsonNode body, HttpServletRequest request) {
         var g = groups.create(body, callers.authenticated(request));
         return ResponseEntity.created(URI.create("/v1/groups/" + g.getId())).body(groups.view(g, true));

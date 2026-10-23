@@ -6,6 +6,7 @@ import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.collect.FetchExecutor;
+import ai.foresignal.inbound.edp.EdpSearchService;
 import ai.foresignal.manifest.ManifestRequest;
 import ai.foresignal.manifest.ManifestService;
 import ai.foresignal.security.Ulids;
@@ -111,6 +112,7 @@ public class SocialCueService {
     private final XaiXSearchBackend xai;
     private final SocialEvents events;
     private final ObjectProvider<ManifestService> manifests;
+    private final ObjectProvider<EdpSearchService> edpSearch;
     private final JdbcTemplate jdbc;
     private final Clock clock;
     private final boolean async;
@@ -120,8 +122,8 @@ public class SocialCueService {
     public SocialCueService(ComparisonStore store, SocialSettingsService settings,
             ObjectProvider<SocialPlatformService> platforms, ObjectProvider<XSpend> spend, CueRequests requests,
             ObjectProvider<FetchExecutor> fetches, TermExpansion names, XaiXSearchBackend xai, SocialEvents events,
-            ObjectProvider<ManifestService> manifests, JdbcTemplate jdbc, Clock clock,
-            @Value("${foresignal.social.cues-async:true}") boolean async) {
+            ObjectProvider<ManifestService> manifests, ObjectProvider<EdpSearchService> edpSearch, JdbcTemplate jdbc,
+            Clock clock, @Value("${foresignal.social.cues-async:true}") boolean async) {
         this.store = store;
         this.settings = settings;
         this.platforms = platforms;
@@ -132,6 +134,7 @@ public class SocialCueService {
         this.xai = xai;
         this.events = events;
         this.manifests = manifests;
+        this.edpSearch = edpSearch;
         this.jdbc = jdbc;
         this.clock = clock;
         this.async = async;
@@ -390,7 +393,7 @@ public class SocialCueService {
                         : CorrelationVocabulary.BACKEND_PLATFORMS, queryViews, new ArrayList<>(used), target.from(), to,
                 kept.isEmpty() ? CorrelationVocabulary.CUE_BUDGET_REFUSED : CorrelationVocabulary.CUE_QUEUED,
                 kept.isEmpty() ? refusal : null, List.of(), List.of(), BigDecimal.ZERO, budget, input, actor, now, null,
-                kept.isEmpty() ? now : null, null);
+                kept.isEmpty() ? now : null, null, List.of());
         store.insertCue(cue);
         if (kept.isEmpty()) {
             events.emit(CorrelationVocabulary.EVENT_CUE, cueEvent(cue), false);
@@ -661,14 +664,17 @@ public class SocialCueService {
             m.put("error", error);
             perPlatform.add(m);
         }
-        String status = failed < cue.platforms().size() ? CorrelationVocabulary.CUE_DONE
+        List<EdpSearchService.Result> external = searchProviders(cue, maxResults);
+        boolean externalFound = external.stream().anyMatch(r -> r.error() == null || r.items() > 0);
+        List<Object> externalResults = new ArrayList<>(external.stream().map(EdpSearchService.Result::toMap).toList());
+        String status = failed < cue.platforms().size() || externalFound ? CorrelationVocabulary.CUE_DONE
                 : budgetRefused == cue.platforms().size() ? CorrelationVocabulary.CUE_BUDGET_REFUSED
                 : CorrelationVocabulary.CUE_FAILED;
         Instant done = clock.instant();
         String manifestId = manifest(cue);
         ComparisonStore.Cue finished = copy(cue, status, CorrelationVocabulary.CUE_DONE.equals(status) ? null
                 : "every platform failed", perPlatform, store.narrativesOfCue(cue.id()), total, started, done,
-                manifestId);
+                manifestId, externalResults);
         store.updateCue(finished);
         events.emit(CorrelationVocabulary.EVENT_CUE, cueEvent(finished), false);
     }
@@ -710,9 +716,50 @@ public class SocialCueService {
 
     private static ComparisonStore.Cue copy(ComparisonStore.Cue c, String status, String reason, List<Object> results,
             List<String> narrativeIds, BigDecimal cost, Instant started, Instant completed, String manifestId) {
+        return copy(c, status, reason, results, narrativeIds, cost, started, completed, manifestId,
+                c.externalResults());
+    }
+
+    private static ComparisonStore.Cue copy(ComparisonStore.Cue c, String status, String reason, List<Object> results,
+            List<String> narrativeIds, BigDecimal cost, Instant started, Instant completed, String manifestId,
+            List<Object> externalResults) {
         return new ComparisonStore.Cue(c.id(), c.triggerType(), c.triggerRef(), c.backend(), c.queries(), c.platforms(),
                 c.windowStart(), c.windowEnd(), status, reason, results, narrativeIds, cost, c.maxCostUsd(), c.input(),
-                c.createdBy(), c.createdAt(), started, completed, manifestId);
+                c.createdBy(), c.createdAt(), started, completed, manifestId, externalResults);
+    }
+
+    /**
+     * Searches the EDP providers that declare {@code transport.search} with the cue's distinct queries
+     * ({@code edpProviderSearch}, EDP §4.3); their records are written as cue results.
+     */
+    @SuppressWarnings("unchecked")
+    private List<EdpSearchService.Result> searchProviders(ComparisonStore.Cue cue, int maxResults) {
+        EdpSearchService search = edpSearch.getIfAvailable();
+        if (search == null) {
+            return List.of();
+        }
+        Map<String, EdpSearchService.Query> distinct = new LinkedHashMap<>();
+        for (Object o : cue.queries()) {
+            if (o instanceof Map<?, ?> q && q.get("query") != null) {
+                String text = q.get("query").toString();
+                String language = q.get("language") == null ? null : q.get("language").toString();
+                distinct.putIfAbsent(text + "|" + language, new EdpSearchService.Query(text, language));
+            }
+        }
+        if (distinct.isEmpty()) {
+            return List.of();
+        }
+        List<Double> bbox = null;
+        if (cue.input() != null && cue.input().get("bbox") instanceof List<?> b && b.size() == 4) {
+            bbox = ((List<Object>) b).stream().map(v -> ((Number) v).doubleValue()).toList();
+        }
+        try {
+            return search.search(new EdpSearchService.Search(cue.id(), List.copyOf(distinct.values()),
+                    cue.windowStart(), cue.windowEnd(), bbox, maxResults));
+        } catch (RuntimeException e) {
+            log.warn("EDP search for cue {} failed: {}", cue.id(), e.toString());
+            return List.of();
+        }
     }
 
     /** The {@code SocialCueEvent} body. */

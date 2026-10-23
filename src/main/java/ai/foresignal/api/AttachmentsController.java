@@ -9,6 +9,7 @@ import ai.foresignal.collab.EvidenceItemService;
 import ai.foresignal.object.ObjectCaller;
 import ai.foresignal.object.ObjectCallers;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -63,6 +64,7 @@ public class AttachmentsController {
     /** {@code uploadAttachment}: multipart {@code file}, optional {@code tlp} and {@code visibility}. */
     @PostMapping(value = "/v1/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(operationId = "uploadAttachment", tags = "Collaboration")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> uploadAttachment(
             @RequestPart(value = "file", required = false) MultipartFile file,
             @RequestParam(value = "tlp", required = false) String tlp,
@@ -133,6 +135,7 @@ public class AttachmentsController {
     /** {@code createEvidenceItem}. */
     @PostMapping("/v1/evidence-items")
     @Operation(operationId = "createEvidenceItem", tags = "Collaboration")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createEvidenceItem(@RequestBody JsonNode body,
             HttpServletRequest request) {
         ObjectCaller caller = callers.authenticated(request);

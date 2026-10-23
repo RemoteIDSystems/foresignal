@@ -36,7 +36,7 @@ public class ComparisonStore {
     private static final String CUE_COLUMNS = "id, trigger_type, trigger_ref, backend, queries::text AS queries,"
             + " platforms, window_start, window_end, status, status_reason, results::text AS results, narrative_ids,"
             + " cost_usd, max_cost_usd, input::text AS input, created_by, created_at, started_at, completed_at,"
-            + " manifest_id";
+            + " manifest_id, external_results::text AS external_results";
 
     private final JdbcTemplate jdbc;
     private final JsonMapper json;
@@ -135,12 +135,13 @@ public class ComparisonStore {
      * @param startedAt the start, or null
      * @param completedAt the end, or null
      * @param manifestId the manifest, or null
+     * @param externalResults what each EDP provider's {@code transport.search} returned
      */
     public record Cue(String id, String triggerType, String triggerRef, String backend, List<Object> queries,
             List<String> platforms, Instant windowStart, Instant windowEnd, String status, String statusReason,
             List<Object> results, List<String> narrativeIds, BigDecimal costUsd, BigDecimal maxCostUsd,
             Map<String, Object> input, String createdBy, Instant createdAt, Instant startedAt, Instant completedAt,
-            String manifestId) {}
+            String manifestId, List<Object> externalResults) {}
 
     // ------------------------------------------------------------------------- comparisons
 
@@ -313,21 +314,24 @@ public class ComparisonStore {
     public void insertCue(Cue c) {
         jdbc.update("INSERT INTO social_cue (id, trigger_type, trigger_ref, backend, queries, platforms, window_start,"
                         + " window_end, status, status_reason, results, narrative_ids, cost_usd, max_cost_usd, input,"
-                        + " created_by, created_at, started_at, completed_at, manifest_id) VALUES (?, ?, ?, ?,"
-                        + " CAST(? AS jsonb), ?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?, ?, CAST(? AS jsonb), ?, ?, ?, ?, ?)",
+                        + " created_by, created_at, started_at, completed_at, manifest_id, external_results) VALUES (?, ?,"
+                        + " ?, ?, CAST(? AS jsonb), ?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?, ?, CAST(? AS jsonb), ?, ?, ?, ?,"
+                        + " ?, CAST(? AS jsonb))",
                 c.id(), c.triggerType(), c.triggerRef(), c.backend(), write(c.queries()), array(c.platforms()),
                 ts(c.windowStart()), ts(c.windowEnd()), c.status(), clip(c.statusReason(), 500), write(c.results()),
                 array(c.narrativeIds()), c.costUsd(), c.maxCostUsd(), write(c.input()), clip(c.createdBy(), 200),
-                ts(c.createdAt()), ts(c.startedAt()), ts(c.completedAt()), c.manifestId());
+                ts(c.createdAt()), ts(c.startedAt()), ts(c.completedAt()), c.manifestId(),
+                write(c.externalResults() == null ? List.of() : c.externalResults()));
     }
 
     /** Updates the run members of a cue. */
     public void updateCue(Cue c) {
         jdbc.update("UPDATE social_cue SET queries = CAST(? AS jsonb), platforms = ?, status = ?, status_reason = ?,"
                         + " results = CAST(? AS jsonb), narrative_ids = ?, cost_usd = ?, started_at = ?, completed_at = ?,"
-                        + " manifest_id = ? WHERE id = ?", write(c.queries()), array(c.platforms()), c.status(),
-                clip(c.statusReason(), 500), write(c.results()), array(c.narrativeIds()), c.costUsd(),
-                ts(c.startedAt()), ts(c.completedAt()), c.manifestId(), c.id());
+                        + " manifest_id = ?, external_results = CAST(? AS jsonb) WHERE id = ?", write(c.queries()),
+                array(c.platforms()), c.status(), clip(c.statusReason(), 500), write(c.results()),
+                array(c.narrativeIds()), c.costUsd(), ts(c.startedAt()), ts(c.completedAt()), c.manifestId(),
+                write(c.externalResults() == null ? List.of() : c.externalResults()), c.id());
     }
 
     /** The narratives whose members include posts of a cue ({@code payload.cueId}). */
@@ -375,7 +379,7 @@ public class ComparisonStore {
                 rs.getString("status_reason"), readList(rs.getString("results")), strings(rs.getArray("narrative_ids")),
                 rs.getBigDecimal("cost_usd"), rs.getBigDecimal("max_cost_usd"), readMap(rs.getString("input")),
                 rs.getString("created_by"), instant(rs, "created_at"), instant(rs, "started_at"),
-                instant(rs, "completed_at"), rs.getString("manifest_id"));
+                instant(rs, "completed_at"), rs.getString("manifest_id"), readList(rs.getString("external_results")));
     }
 
     private Map<String, Object> readMap(String text) {

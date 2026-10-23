@@ -5,6 +5,7 @@ import ai.foresignal.collab.SavedSearchEntity;
 import ai.foresignal.collab.SavedSearchService;
 import ai.foresignal.object.ObjectCallers;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -52,6 +53,7 @@ public class SavedSearchesController {
     /** {@code createSavedSearch}. */
     @PostMapping("/v1/saved-searches")
     @Operation(operationId = "createSavedSearch", tags = "Collaboration")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createSavedSearch(@RequestBody JsonNode body,
             HttpServletRequest request) {
         SavedSearchEntity s = searches.create(body, callers.authenticated(request));

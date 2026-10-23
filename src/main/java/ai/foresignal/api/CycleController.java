@@ -71,6 +71,7 @@ public class CycleController {
     @PostMapping("/v1/analysis/cycles")
     @Operation(operationId = "createAnalysisCycle", tags = "Assessments")
     @ApiResponse(responseCode = "404", description = "UNKNOWN_ANALYST_PROFILE")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createAnalysisCycle(@RequestBody JsonNode body) {
         AnalysisCycleEntity cycle = cycles.create(CycleInputs.cycle(body));
         return ResponseEntity.created(URI.create("/v1/analysis/cycles/" + cycle.getId()))
@@ -82,6 +83,7 @@ public class CycleController {
     @RestrictedRead("cycle definitions carry no record content")
     @Operation(operationId = "getAnalysisCycle", tags = "Assessments")
     @ApiResponse(responseCode = "404", description = "UNKNOWN_CYCLE")
+    @ApiResponse(responseCode = "200", description = "The cycle")
     public Map<String, Object> getAnalysisCycle(@PathVariable String cycleId) {
         return AssessmentService.cycleView(cycles.get(cycleId));
     }
@@ -90,6 +92,7 @@ public class CycleController {
     @PutMapping("/v1/analysis/cycles/{cycleId}")
     @Operation(operationId = "updateAnalysisCycle", tags = "Assessments")
     @ApiResponse(responseCode = "404", description = "UNKNOWN_CYCLE")
+    @ApiResponse(responseCode = "200", description = "Updated")
     public Map<String, Object> updateAnalysisCycle(@PathVariable String cycleId, @RequestBody JsonNode body) {
         return AssessmentService.cycleView(cycles.replace(cycleId, CycleInputs.cycle(body)));
     }
@@ -98,6 +101,7 @@ public class CycleController {
     @DeleteMapping("/v1/analysis/cycles/{cycleId}")
     @Operation(operationId = "deleteAnalysisCycle", tags = "Assessments")
     @ApiResponse(responseCode = "409", description = "CYCLE_RUN_IN_PROGRESS")
+    @ApiResponse(responseCode = "204", description = "Deleted")
     public ResponseEntity<Void> deleteAnalysisCycle(@PathVariable String cycleId) {
         cycles.delete(cycleId);
         return ResponseEntity.noContent().build();
@@ -131,6 +135,7 @@ public class CycleController {
     @GetMapping("/v1/analysis/runs/{runId}")
     @Operation(operationId = "getCycleRun", tags = "Assessments")
     @ApiResponse(responseCode = "404", description = "UNKNOWN_CYCLE_RUN")
+    @ApiResponse(responseCode = "200", description = "The run")
     public Map<String, Object> getCycleRun(@PathVariable String runId, HttpServletRequest request) {
         return assessments.runView(assessments.run(runId, visibility.seesPrivate(request)), true);
     }

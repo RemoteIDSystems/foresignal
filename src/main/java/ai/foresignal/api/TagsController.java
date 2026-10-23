@@ -9,6 +9,7 @@ import ai.foresignal.object.ObjectCaller;
 import ai.foresignal.object.ObjectCallers;
 import ai.foresignal.object.ObjectRef;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -59,6 +60,7 @@ public class TagsController {
     /** {@code createTag}. */
     @PostMapping("/v1/tags")
     @Operation(operationId = "createTag", tags = "Collaboration")
+    @ApiResponse(responseCode = "201", description = "Created")
     public ResponseEntity<Map<String, Object>> createTag(@RequestBody JsonNode body, HttpServletRequest request) {
         ObjectCaller caller = callers.authenticated(request);
         TagEntity t = tags.create(body, caller);

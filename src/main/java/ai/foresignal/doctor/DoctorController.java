@@ -6,6 +6,7 @@ import ai.foresignal.security.CurrentToken;
 import ai.foresignal.security.restrict.RequestPrincipal;
 import ai.foresignal.security.visibility.SourceVisibility;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -61,6 +62,8 @@ public class DoctorController {
     /** {@code runSourceDoctor}: 200 with the report, or 202 with {@code Location} after 90 s. */
     @PostMapping("/v1/sources/{sourceId}/doctor")
     @Operation(operationId = "runSourceDoctor", tags = "Sources")
+    @ApiResponse(responseCode = "200", description = "The finished report")
+    @ApiResponse(responseCode = "202", description = "Running; poll the report")
     public ResponseEntity<Object> runSourceDoctor(@PathVariable String sourceId,
             @RequestBody(required = false) DoctorOptions body) {
         DoctorService.Started started = doctor.start(sourceId, body == null ? DoctorOptions.DEFAULTS : body,
@@ -97,6 +100,8 @@ public class DoctorController {
     /** {@code getDoctorReport}: one report; 202 while its run is in progress; 404 {@code UNKNOWN_DOCTOR_REPORT}. */
     @GetMapping("/v1/doctor/reports/{reportId}")
     @Operation(operationId = "getDoctorReport", tags = "Sources")
+    @ApiResponse(responseCode = "200", description = "The finished report")
+    @ApiResponse(responseCode = "202", description = "Still running")
     public ResponseEntity<Object> getDoctorReport(@PathVariable String reportId, HttpServletRequest request) {
         if (doctor.isRunning(reportId)) {
             return accepted(reportId);

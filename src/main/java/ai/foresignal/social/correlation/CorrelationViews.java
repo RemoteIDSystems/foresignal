@@ -94,6 +94,7 @@ public class CorrelationViews {
         out.put("status", c.status());
         out.put("statusReason", c.statusReason());
         out.put("results", c.results());
+        out.put("externalResults", c.externalResults() == null ? List.of() : c.externalResults());
         out.put("narrativeIds", c.narrativeIds());
         out.put("costUsd", c.costUsd() == null ? 0 : c.costUsd().doubleValue());
         out.put("maxCostUsd", c.maxCostUsd() == null ? null : c.maxCostUsd().doubleValue());

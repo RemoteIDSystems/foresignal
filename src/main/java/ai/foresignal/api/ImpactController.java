@@ -66,6 +66,7 @@ public class ImpactController {
     @RestrictedRead("projections are derived statistics with no record content; private ones need private access")
     @Operation(operationId = "getProjectedImpact", tags = "Analytics")
     @ApiResponse(responseCode = "404", description = "UNKNOWN_IMPACT")
+    @ApiResponse(responseCode = "200", description = "The projected impact")
     public Map<String, Object> getProjectedImpact(@PathVariable String findingId, HttpServletRequest request) {
         return ImpactViews.projected(impacts.get(findingId, visibility.seesPrivate(request)), true);
     }

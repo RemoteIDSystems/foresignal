@@ -523,6 +523,8 @@ public class AccessPolicy {
                 // Prompt 157: authoring an operator recipe (full definition) is admin, like updating one.
                 rule(HttpMethod.POST, "/v1/intel/recipes", AccessRequirement.ADMIN),
                 rule(HttpMethod.PUT, "/v1/intel/recipes/*", AccessRequirement.ADMIN),
+                // The corroboration policy is admin (154), like the recipes it gates.
+                rule(HttpMethod.PUT, "/v1/intel/corroboration", AccessRequirement.ADMIN),
                 rule(HttpMethod.GET, "/v1/intel/**", AccessRequirement.READ),
                 rule(null, "/v1/intel/**", AccessRequirement.AGENT),
                 rule(HttpMethod.GET, "/v1/investigations/**", AccessRequirement.READ),
@@ -641,6 +643,7 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/forecasts/evaluations", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/forecasts/evaluations/*", AccessRequirement.AGENT),
                 rule(HttpMethod.PUT, "/v1/forecasts/forecasters/*", AccessRequirement.ADMIN),
+                rule(HttpMethod.POST, "/v1/forecasts/forecasters", AccessRequirement.ADMIN),
                 rule(HttpMethod.GET, "/v1/forecasts/questions", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/forecasts/questions/**", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/forecasts/forecasters", AccessRequirement.READ),

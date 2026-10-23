@@ -77,9 +77,12 @@ class SocialLeadLagIT {
         }
         assertThat(pairs).contains("social:topic:red-sea/bluesky/posts -> rollup:day/*/outage/YE",
                 "social:place:aden/x/posts -> rollup:day/*/outage/YE");
-        Fdr.Adjusted adjusted = Fdr.adjust(new double[] {0.001, 0.04, 0.3, 0.8}, false, Fdr.DEFAULT_Q);
+        double[] p = {0.001, 0.04, 0.3, 0.8};
+        Fdr.Adjusted adjusted = Fdr.adjust(p, false, 0.05);
         assertThat(adjusted.method()).isEqualTo(Fdr.BH);
+        // Benjamini-Hochberg at q: the k-th smallest p survives while p(k) <= k q / m, so 0.04 needs q >= 0.08.
         assertThat(adjusted.survivors()).isEqualTo(1);
+        assertThat(Fdr.adjust(p, false, Fdr.DEFAULT_Q).survivors()).isEqualTo(2);
     }
 
     @Test
@@ -95,7 +98,8 @@ class SocialLeadLagIT {
         assertThat(ledger.latestByForecaster(pending.questionId())).containsKey(CorrelationVocabulary.FORECASTER);
         CorrelationTestSupport.canonicalEvent(evidence, jdbc, "conflict", "acled-events", "acled", "aggregator",
                 T0.plus(Duration.ofMinutes(30)), CorrelationTestSupport.LON, CorrelationTestSupport.LAT, "YE");
-        clock.setInstant(T0.plus(Duration.ofDays(3)));
+        // Final only once the conflict rule's publication lag (7d, social-compare.json) has passed.
+        clock.setInstant(pending.finalAt());
         comparisons.compareNarrative("01JA8Q3V7S2K9W4T6Y1B5N0M3C");
         ForecastQuestionEntity q = ledger.find(pending.questionId()).orElseThrow();
         assertThat(q.getStatus()).isEqualTo(ForecastStatus.RESOLVED);
@@ -111,8 +115,10 @@ class SocialLeadLagIT {
         CorrelationTestSupport.claim(narratives, "01JA8Q3V7S2K9W4T6Y1B5N0M3F", "01JA8Q3V7S2K9W4T6Y1B5N0M3E",
                 "drone", "conflict", T0, 4);
         comparisons.compareNarrative("01JA8Q3V7S2K9W4T6Y1B5N0M3E");
-        String question = store.byClaim("01JA8Q3V7S2K9W4T6Y1B5N0M3F").orElseThrow().questionId();
-        clock.setInstant(T0.plus(Duration.ofDays(3)));
+        ComparisonStore.Comparison opened = store.byClaim("01JA8Q3V7S2K9W4T6Y1B5N0M3F").orElseThrow();
+        String question = opened.questionId();
+        // Coverage can still arrive until the publication lag has passed; the question is annulled after it.
+        clock.setInstant(opened.finalAt());
         comparisons.compareNarrative("01JA8Q3V7S2K9W4T6Y1B5N0M3E");
         assertThat(store.byClaim("01JA8Q3V7S2K9W4T6Y1B5N0M3F").orElseThrow().status())
                 .isEqualTo(CorrelationVocabulary.INSUFFICIENT);

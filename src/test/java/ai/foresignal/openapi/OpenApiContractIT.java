@@ -9,6 +9,7 @@ import ai.foresignal.testsupport.collect.CollectorTestSources;
 import ai.foresignal.testsupport.openapi.OpenApiSpec;
 import ai.foresignal.testsupport.openapi.OpenApiSpec.SpecOperation;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -76,13 +77,18 @@ class OpenApiContractIT {
     @Test
     @DisplayName("an authored operation that is neither implemented nor pending is reported missing in code")
     void unimplementedAndUnlistedFails() {
-        Set<String> pending = new HashSet<>(OpenApiSpec.pending().keySet());
-        String someLaterOperation = pending.iterator().next();
-        pending.remove(someLaterOperation);
+        // Every authored operation is implemented now, so the pending list cannot lend one: drop an implemented
+        // operation from the generated document instead, as though its controller were gone.
+        Set<String> authored = new HashSet<>();
+        OpenApiSpec.routes().forEach(op -> authored.add(op.operationId()));
+        List<SpecOperation> code = new ArrayList<>(OpenApiSpec.operations(generated, "paths"));
+        SpecOperation dropped = code.stream().filter(op -> authored.contains(op.operationId())).findFirst()
+                .orElseThrow();
+        code.remove(dropped);
 
-        RouteContract.Report report = report(pending);
+        RouteContract.Report report = RouteContract.compare(OpenApiSpec.routes(), OpenApiSpec.pending().keySet(), code);
 
-        assertThat(report.missingInCode()).singleElement().asString().contains(someLaterOperation);
+        assertThat(report.missingInCode()).singleElement().asString().contains(dropped.operationId());
     }
 
     @Test

@@ -715,7 +715,7 @@ class SourcesControllerIT {
                     .andExpect(jsonPath("$.enabled").value(hasItem(USGS)))
                     .andExpect(jsonPath("$.enabled").value(not(hasItem(WikiStreamAdapter.ID))));
 
-            mvc.perform(get("/v1/sources/" + WikiStreamAdapter.ID)).andExpect(jsonPath("$.enabled").value(false));
+            mvc.perform(get("/v1/sources/" + WikiStreamAdapter.ID)).andExpect(jsonPath("$.settings.enabled").value(false));
         }
 
         @Test
@@ -730,8 +730,8 @@ class SourcesControllerIT {
                     .andExpect(jsonPath("$.skipped").isNumber())
                     .andExpect(jsonPath("$", aMapWithSize(3)));
 
-            mvc.perform(get("/v1/sources/" + POLL)).andExpect(jsonPath("$.enabled").value(true));
-            mvc.perform(get("/v1/sources/" + KEYED)).andExpect(jsonPath("$.enabled").value(false));
+            mvc.perform(get("/v1/sources/" + POLL)).andExpect(jsonPath("$.settings.enabled").value(true));
+            mvc.perform(get("/v1/sources/" + KEYED)).andExpect(jsonPath("$.settings.enabled").value(false));
         }
 
         @Test
@@ -755,7 +755,7 @@ class SourcesControllerIT {
             mvc.perform(post("/v1/sources/enable-free").header(HttpHeaders.AUTHORIZATION, reader))
                     .andExpect(status().isForbidden());
 
-            mvc.perform(get("/v1/sources/" + POLL)).andExpect(jsonPath("$.enabled").value(false));
+            mvc.perform(get("/v1/sources/" + POLL)).andExpect(jsonPath("$.settings.enabled").value(false));
         }
     }
 
@@ -784,8 +784,8 @@ class SourcesControllerIT {
                     .andExpect(jsonPath("$.skipped").isNumber())
                     .andExpect(jsonPath("$", aMapWithSize(3)));
 
-            mvc.perform(get("/v1/sources/" + USGS)).andExpect(jsonPath("$.enabled").value(true));
-            mvc.perform(get("/v1/sources/" + POLL)).andExpect(jsonPath("$.enabled").value(false));
+            mvc.perform(get("/v1/sources/" + USGS)).andExpect(jsonPath("$.settings.enabled").value(true));
+            mvc.perform(get("/v1/sources/" + POLL)).andExpect(jsonPath("$.settings.enabled").value(false));
         }
 
         @Test
@@ -809,8 +809,8 @@ class SourcesControllerIT {
                     .andExpect(jsonPath("$.enabled").value(hasItem(POLL)))
                     .andExpect(jsonPath("$.enabled").value(not(hasItem(KEYED))));
 
-            mvc.perform(get("/v1/sources/" + POLL)).andExpect(jsonPath("$.enabled").value(true));
-            mvc.perform(get("/v1/sources/" + USGS)).andExpect(jsonPath("$.enabled").value(true));
+            mvc.perform(get("/v1/sources/" + POLL)).andExpect(jsonPath("$.settings.enabled").value(true));
+            mvc.perform(get("/v1/sources/" + USGS)).andExpect(jsonPath("$.settings.enabled").value(true));
         }
 
         @Test
@@ -823,7 +823,7 @@ class SourcesControllerIT {
             mvc.perform(post("/v1/sources/enable-core").header(HttpHeaders.AUTHORIZATION, reader))
                     .andExpect(status().isForbidden());
 
-            mvc.perform(get("/v1/sources/" + USGS)).andExpect(jsonPath("$.enabled").value(false));
+            mvc.perform(get("/v1/sources/" + USGS)).andExpect(jsonPath("$.settings.enabled").value(false));
         }
     }
 

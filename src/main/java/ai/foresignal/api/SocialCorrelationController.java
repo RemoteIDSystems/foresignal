@@ -9,6 +9,7 @@ import ai.foresignal.social.correlation.LeadTimeStatistics;
 import ai.foresignal.social.correlation.SocialCueService;
 import ai.foresignal.social.correlation.SocialSettingsService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -97,6 +98,7 @@ public class SocialCorrelationController {
      */
     @PostMapping("/v1/social/cues")
     @Operation(operationId = "createSocialCue", tags = "Social")
+    @ApiResponse(responseCode = "202", description = "Queued")
     public ResponseEntity<Map<String, Object>> createSocialCue(@RequestBody(required = false) JsonNode body,
             HttpServletRequest request) {
         Map<String, Object> cue = cues.createManual(SocialCueService.parse(body), Actors.of(request));

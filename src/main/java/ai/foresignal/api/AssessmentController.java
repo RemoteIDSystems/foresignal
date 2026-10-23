@@ -89,6 +89,7 @@ public class AssessmentController {
     @RestrictedRead("assessments are derived analysis; private ones need private access")
     @Operation(operationId = "getLatestAssessment", tags = "Assessments")
     @ApiResponse(responseCode = "404", description = "UNKNOWN_ASSESSMENT")
+    @ApiResponse(responseCode = "200", description = "The assessment")
     public Map<String, Object> getLatestAssessment(@RequestParam(required = false) String cadence,
             HttpServletRequest request) {
         String c = cadence == null || cadence.isBlank() ? null
@@ -101,6 +102,7 @@ public class AssessmentController {
     @RestrictedRead("assessments are derived analysis; private ones need private access")
     @Operation(operationId = "getAssessment", tags = "Assessments")
     @ApiResponse(responseCode = "404", description = "UNKNOWN_ASSESSMENT")
+    @ApiResponse(responseCode = "200", description = "The assessment")
     public ResponseEntity<Object> getAssessment(@PathVariable String assessmentId,
             @RequestParam(required = false) String format,
             @RequestHeader(value = HttpHeaders.ACCEPT, required = false) String accept, HttpServletRequest request) {
@@ -130,6 +132,7 @@ public class AssessmentController {
     @RestrictedRead("cited objects follow their own private rule; LOCAL_ONLY raw values are withheld from the export")
     @Operation(operationId = "getAssessmentBundle", tags = "Assessments")
     @ApiResponse(responseCode = "404", description = "UNKNOWN_ASSESSMENT")
+    @ApiResponse(responseCode = "200", description = "The bundle")
     public ResponseEntity<Object> getAssessmentBundle(@PathVariable String assessmentId,
             @RequestParam(required = false) String format, HttpServletRequest request) {
         String fmt = QueryParams.oneOf("format", format, List.of("json", "geoparquet"), "json");
@@ -176,6 +179,7 @@ public class AssessmentController {
     @RestrictedRead("assessments are derived analysis; private ones need private access")
     @Operation(operationId = "listSituationAssessments", tags = "Assessments")
     @ApiResponse(responseCode = "404", description = "UNKNOWN_SITUATION")
+    @ApiResponse(responseCode = "200", description = "A page of assessments")
     public Map<String, Object> listSituationAssessments(@PathVariable String situationId,
             @RequestParam(required = false) String cursor, @RequestParam(required = false) String limit,
             HttpServletRequest request) {

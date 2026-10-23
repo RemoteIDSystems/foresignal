@@ -88,7 +88,7 @@ class SocialCueServiceTest {
         CueRequests requests = new CueRequests();
         SocialCueService service = new SocialCueService(store, settings, provider(platforms), provider(spend), requests,
                 provider((FetchExecutor) null), names, mock(XaiXSearchBackend.class), mock(SocialEvents.class),
-                provider(null), mock(JdbcTemplate.class), Clock.fixed(NOW, ZoneOffset.UTC), false);
+                provider(null), provider(null), mock(JdbcTemplate.class), Clock.fixed(NOW, ZoneOffset.UTC), false);
         return new Harness(service, store, platforms, spend, requests);
     }
 
@@ -195,7 +195,7 @@ class SocialCueServiceTest {
                 CorrelationVocabulary.BACKEND_PLATFORMS, List.of(Map.of("platform", "bluesky-search", "query",
                 "\"Aden\"", "language", "en", "estimatedCostUsd", 0.0)), List.of("bluesky-search"),
                 NOW.minusSeconds(3600), NOW, CorrelationVocabulary.CUE_QUEUED, null, List.of(), List.of(),
-                BigDecimal.ZERO, BigDecimal.ONE, Map.of("maxResults", 50), "agent", NOW, null, null, null);
+                BigDecimal.ZERO, BigDecimal.ONE, Map.of("maxResults", 50), "agent", NOW, null, null, null, List.of());
         when(h.store().cue(queued.id())).thenReturn(java.util.Optional.of(queued));
         h.service().run(queued.id());
         verify(h.store(), org.mockito.Mockito.atLeastOnce()).updateCue(org.mockito.ArgumentMatchers.argThat(c ->

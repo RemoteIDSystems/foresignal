@@ -138,16 +138,27 @@ public class EdpPullAdapter implements PollingAdapter {
      */
     static Map<String, String> authHeaders(EdpManifestModel.Pull pull, Map<String, String> credentials)
             throws AdapterException {
+        return authHeaders(pull.auth(), pull.header(), credentials);
+    }
+
+    /**
+     * The request headers of an auth style ({@code none}, {@code bearer}, {@code header}, {@code basic}), shared
+     * by {@code transport.pull} and {@code transport.search}.
+     *
+     * @throws AdapterException when the style needs a credential that is not stored
+     */
+    static Map<String, String> authHeaders(String auth, String header, Map<String, String> credentials)
+            throws AdapterException {
         Map<String, String> headers = new LinkedHashMap<>();
         headers.put("Accept", "application/json");
         Map<String, String> c = credentials == null ? Map.of() : credentials;
-        switch (pull.auth() == null ? "none" : pull.auth()) {
+        switch (auth == null ? "none" : auth) {
             case "bearer" -> headers.put("Authorization", "Bearer " + required(c, "token"));
             case "header" -> {
-                if (pull.header() == null || pull.header().isBlank()) {
+                if (header == null || header.isBlank()) {
                     throw new AdapterException("The manifest's header auth names no header");
                 }
-                headers.put(pull.header(), required(c, "value"));
+                headers.put(header, required(c, "value"));
             }
             case "basic" -> headers.put("Authorization", "Basic " + Base64.getEncoder().encodeToString(
                     (required(c, "username") + ":" + required(c, "password")).getBytes(StandardCharsets.UTF_8)));

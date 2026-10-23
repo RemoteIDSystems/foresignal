@@ -293,7 +293,8 @@ class EventSchemaConformanceTest {
                 .Cue("01JA8Q3V7S2K9W4T6Y1B5N0M3J", "finding", "finding:01JA8Q3V7S2K9W4T6Y1B5N0M3K", "platform-apis",
                 List.of(query), List.of("bluesky-search"), at.minusSeconds(21_600), at.plusSeconds(86_400), "done",
                 null, List.of(result), List.of("01JA8Q3V7S2K9W4T6Y1B5N0M3C"), java.math.BigDecimal.ZERO,
-                java.math.BigDecimal.ONE, Map.of(), "system", at, at, at.plusSeconds(60), null);
+                java.math.BigDecimal.ONE, Map.of(), "system", at, at, at.plusSeconds(60), null,
+                List.of(new ai.foresignal.inbound.edp.EdpSearchService.Result("ext-river-gauges", 2, 5, null).toMap()));
         return List.of(toTree(ai.foresignal.social.correlation.SocialCueService.cueEvent(cue)));
     }
 
@@ -304,7 +305,7 @@ class EventSchemaConformanceTest {
                 new ai.foresignal.social.correlation.AttentionGapDetector.Candidate("finding:01JA8Q3V7S2K9W4T6Y1B5N0M3K",
                         "Outage change point", "finding:outage", "significant", "YE", at.minusSeconds(21_600));
         return List.of(toTree(ai.foresignal.social.correlation.AttentionGapDetector.gapEvent(
-                "01JA8Q3V7S2K9W4T6Y1B5N0M3L", c, 120.0,
+                "01JA8Q3V7S2K9W4T6Y1B5N0M3M", c, 120.0,
                 new ai.foresignal.social.correlation.AttentionGapDetector.Attention(3, 40, List.of("bluesky")), at)));
     }
 

@@ -251,7 +251,7 @@ public record EdpManifestModel(
     }
 
     /**
-     * {@code transport.search} (stored for prompt 137's cue service).
+     * {@code transport.search}: the endpoint {@link EdpSearchService} queries for each cue (137).
      *
      * @param url the search endpoint
      * @param auth the auth style, as for pull
