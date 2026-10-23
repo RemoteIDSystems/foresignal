@@ -395,7 +395,8 @@ public class SourcesController {
                         sources.retentionOverride(sourceId),
                         sources.effectiveRetention(sourceId),
                         sources.downsampleIntervalOverride(sourceId),
-                        sources.egressOverride(sourceId)),
+                        sources.egressOverride(sourceId),
+                        sources.reliabilityOverride(sourceId)),
                 withDoctor(latestDoctorReport(sourceId)).apply(HealthMapper.health(health.health(sourceId))));
     }
 

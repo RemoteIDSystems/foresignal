@@ -141,15 +141,25 @@ public class IntelEventService {
      */
     public List<IntelligenceEventEntity> list(String type, String status, Instant since, Double minConfidence,
             int limit, boolean privateAccess) {
+        return list(type == null ? Set.of() : Set.of(type), status == null ? Set.of() : Set.of(status), since,
+                minConfidence, limit, privateAccess);
+    }
+
+    /**
+     * The newest events whose type is any of {@code types} and whose status is any of {@code statuses} (every
+     * value when a set is empty), as {@link #list(String, String, Instant, Double, int, boolean)}.
+     */
+    public List<IntelligenceEventEntity> list(Set<String> types, Set<String> statuses, Instant since, Double minConfidence,
+            int limit, boolean privateAccess) {
         List<IntelligenceEventEntity> out = new ArrayList<>();
         for (IntelligenceEventEntity event : events.findAllByOrderByUpdatedAtDescIdDesc(Limit.of(LIST_SCAN))) {
             if (!IntelVisibility.visible(event, privateAccess)) {
                 continue;
             }
-            if (type != null && !type.equals(event.getType())) {
+            if (!types.isEmpty() && !types.contains(event.getType())) {
                 continue;
             }
-            if (status != null && !status.equals(event.getStatus())) {
+            if (!statuses.isEmpty() && !statuses.contains(event.getStatus())) {
                 continue;
             }
             if (since != null && (event.getUpdatedAt() == null || event.getUpdatedAt().isBefore(since))) {
@@ -234,7 +244,10 @@ public class IntelEventService {
         return event;
     }
 
-    /** Patches title, status, a severity override and notes (all validated). */
+    /**
+     * Patches title, status, a severity override and notes (all validated). {@code severity: null} clears an
+     * override, restoring the severity it replaced.
+     */
     @Transactional
     public IntelligenceEventEntity patch(String id, JsonNode body, String actor, boolean privateAccess) {
         IntelligenceEventEntity event = visible(id, privateAccess);
@@ -271,7 +284,14 @@ public class IntelEventService {
             }
         }
         if (severity != null) {
+            // An override keeps the severity it replaces, so that null can restore it.
+            if (!event.isSeverityOverridden()) {
+                event.setComputedSeverity(event.getSeverity());
+            }
             event.setSeverity(severity);
+        } else if (body.has("severity") && event.isSeverityOverridden()) {
+            event.setSeverity(event.getComputedSeverity());
+            event.setComputedSeverity(null);
         }
         if (body.has("notes")) {
             // Operator or agent notes are stored apart from the LLM narrative (which is labeled speculation).

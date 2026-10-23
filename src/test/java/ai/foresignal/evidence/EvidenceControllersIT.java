@@ -228,6 +228,23 @@ class EvidenceControllersIT {
         assertThat(call(read, get("/v1/prompt-templates/nope")).getStatus()).isEqualTo(404);
     }
 
+    @Test
+    @DisplayName("prompt templates are listed by id with role and versions, without their text")
+    void listPromptTemplates() throws Exception {
+        JsonNode list = body(call(read, get("/v1/prompt-templates")));
+        JsonNode ask = null;
+        for (JsonNode item : list.get("items")) {
+            assertThat(item.has("text")).isFalse();
+            if ("ask-system".equals(item.get("id").asString())) {
+                ask = item;
+            }
+        }
+        assertThat(ask).isNotNull();
+        assertThat(ask.get("role").asString()).isEqualTo("ask");
+        assertThat(ask.get("version").asString()).isEqualTo("1.0.0");
+        assertThat(ask.get("versions").get(0).asString()).isEqualTo("1.0.0");
+    }
+
     private static ToolContext readContext() {
         return new ToolContext(new McpCaller(null, new ReadCaller(null, false, true), Set.of(), "127.0.0.1"),
                 "session", McpSessions.STREAMABLE);

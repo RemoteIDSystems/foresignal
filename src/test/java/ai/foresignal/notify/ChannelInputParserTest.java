@@ -64,6 +64,17 @@ class ChannelInputParserTest {
     }
 
     @Test
+    @DisplayName("every Channel.events value of the contract is accepted, the personal-copy events included")
+    void contractEvents() {
+        ChannelInput input = parse("{'name':'w','type':'webhook','config':{'url':'https://r.example.invalid'},"
+                + "'events':['alert','mention','share','report.received','package.received','chronicle.proposed',"
+                + "'chronicle.cap_warning','chronicle.gap','chronicle.access.requested','saved-search.matches',"
+                + "'social.divergence']}", null);
+        assertThat(input.events()).hasSize(11).contains("mention", "share", "saved-search.matches");
+        assertThat(ChannelTypeSpec.ALL_EVENTS).containsAll(ChannelTypeSpec.PERSONAL_COPY_EVENTS);
+    }
+
+    @Test
     @DisplayName("top-level members: unknown rejected, later prompts' members accepted, ranges and quiet hours checked")
     void members() {
         assertThat(fails("{'name':'w','type':'webhook','config':{'url':'https://r.example.invalid'},'bogus':1}").getErrors())
@@ -74,7 +85,7 @@ class ChannelInputParserTest {
         assertThat(input.quietHours().bypassSeverity()).isNull();
         assertThat(input.quietHours().days()).hasSize(2);
         assertThat(fails("{'name':'w','type':'webhook','config':{'url':'https://r.example.invalid'},'waitForEnrichmentSeconds':61,"
-                + "'events':['alert','mention'],'ruleIds':['x'],'quietHours':{'start':'22:00','end':'22:00','days':['XYZ']}}")
+                + "'events':['alert','comment.reply'],'ruleIds':['x'],'quietHours':{'start':'22:00','end':'22:00','days':['XYZ']}}")
                 .getErrors()).extracting(f -> f.field())
                 .contains("waitForEnrichmentSeconds", "events", "ruleIds", "quietHours.end", "quietHours.days");
     }

@@ -212,12 +212,16 @@ public class CollaborationController {
         return groups.view(groups.addMembers(groupId, body, callers.authenticated(request)), true);
     }
 
-    /** {@code removeGroupMembers} (managers or admin): {@code ?principalId=}. */
+    /**
+     * {@code removeGroupMembers} (managers or admin; a principal may remove itself): {@code ?principalId=},
+     * repeatable or comma-separated.
+     */
     @DeleteMapping("/v1/groups/{groupId}/members")
     @Operation(operationId = "removeGroupMembers", tags = "Collaboration")
     public Map<String, Object> removeGroupMembers(@PathVariable String groupId,
-            @RequestParam(required = false) String principalId, HttpServletRequest request) {
-        return groups.view(groups.removeMember(groupId, principalId, callers.authenticated(request)), true);
+            @RequestParam(required = false) List<String> principalId, HttpServletRequest request) {
+        return groups.view(groups.removeMembers(groupId, QueryParams.multi("principalId", principalId),
+                callers.authenticated(request)), true);
     }
 
     // ------------------------------------------------------------------------- access lists

@@ -23,8 +23,10 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -87,8 +89,8 @@ public class IntelController {
     @RestrictedRead
     @Operation(operationId = "listIntelEvents", tags = "Intelligence")
     public Map<String, Object> listIntelEvents(
-            @RequestParam(required = false) String type,
-            @RequestParam(required = false) String status,
+            @RequestParam(required = false) List<String> type,
+            @RequestParam(required = false) List<String> status,
             @RequestParam(required = false) String bbox,
             @RequestParam(required = false) String since,
             @RequestParam(required = false) String minConfidence,
@@ -98,7 +100,10 @@ public class IntelController {
         int size = QueryParams.intInRange("limit", limit, 1, 500, 100);
         Instant from = QueryParams.instant("since", since);
         Double min = minConfidence == null ? null : QueryParams.doubleInRange("minConfidence", minConfidence, 0, 1);
-        List<Map<String, Object>> items = events.list(type, status, from, min, size, visibility.seesPrivate(request))
+        // type and status are arrays (repeated, or comma-separated): an event matching any value matches.
+        Set<String> types = new LinkedHashSet<>(QueryParams.multi("type", type));
+        Set<String> statuses = new LinkedHashSet<>(QueryParams.multi("status", status));
+        List<Map<String, Object>> items = events.list(types, statuses, from, min, size, visibility.seesPrivate(request))
                 .stream().map(IntelEventMapper::summary).toList();
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("items", items);

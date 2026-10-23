@@ -117,6 +117,24 @@ class CollaborationControllersIT extends CollabItSupport {
         assertThat(removed.get("memberCount").asInt()).isEqualTo(1);
         assertThat(call(jo.bearer(), json(post("/v1/groups/" + id + "/members"),
                 "{'members':[{'principalId':'nobody'}]}")).getStatus()).isEqualTo(404);
+        Person kim = person("kim-g", Scope.AGENT, null);
+        Person lee = person("lee-g", Scope.AGENT, null);
+        assertThat(body(call(jo.bearer(), json(post("/v1/groups/" + id + "/members"),
+                "{'members':[{'principalId':'kim-g'},{'principalId':'lee-g'},{'principalId':'sam-g'}]}")))
+                .get("memberCount").asInt()).isEqualTo(4);
+        assertThat(call(kim.bearer(), delete("/v1/groups/" + id + "/members?principalId=lee-g")).getStatus())
+                .isEqualTo(403);
+        assertThat(body(call(kim.bearer(), delete("/v1/groups/" + id + "/members?principalId=kim-g")))
+                .get("memberCount").asInt()).isEqualTo(3);
+        assertThat(call(jo.bearer(), delete("/v1/groups/" + id + "/members?principalId=lee-g,nobody")).getStatus())
+                .isEqualTo(404);
+        assertThat(body(call(jo.bearer(), delete("/v1/groups/" + id + "/members?principalId=lee-g,"
+                + sam.id()))).get("memberCount").asInt()).isEqualTo(1);
+        assertThat(body(call(jo.bearer(), json(post("/v1/groups/" + id + "/members"),
+                "{'members':[{'principalId':'kim-g'},{'principalId':'lee-g'}]}"))).get("memberCount").asInt())
+                .isEqualTo(3);
+        assertThat(body(call(jo.bearer(), delete("/v1/groups/" + id + "/members?principalId=kim-g&principalId="
+                + lee.id()))).get("memberCount").asInt()).isEqualTo(1);
         assertThat(call(jo.bearer(), delete("/v1/groups/" + id)).getStatus()).isEqualTo(204);
         MockHttpServletResponse gone = call(reader, get("/v1/groups/" + id));
         assertThat(gone.getStatus()).isEqualTo(404);

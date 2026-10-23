@@ -43,8 +43,8 @@ class AttributionServiceTest {
         AttributionService service = service(Map.of());
         String longText = "x".repeat(700);
         List<AttributionService.Attribution> attributions = List.of(
-                new AttributionService.Attribution("a", "CC-BY-4.0", longText + "—a", null, 1),
-                new AttributionService.Attribution("b", "CC-BY-4.0", longText + "—b", null, 1));
+                new AttributionService.Attribution("a", "CC-BY-4.0", longText + "—a", null, true, 1),
+                new AttributionService.Attribution("b", "CC-BY-4.0", longText + "—b", null, true, 1));
         String header = service.header(attributions);
         assertThat(header).hasSize(AttributionService.MAX_TEXT).endsWith("...");
         assertThat(StandardCharsets.ISO_8859_1.newEncoder().canEncode(header)).isTrue();
@@ -61,5 +61,21 @@ class AttributionServiceTest {
         String text = service.layerText(List.of(credited, bare));
         assertThat(text).contains("Data: Example Agency").contains("Open Database License");
         assertThat(service.layerText(List.of())).isNull();
+    }
+
+    @Test
+    @DisplayName("every attribution map carries requiredDisplay from its license (OpenAPI Attribution requires it)")
+    void requiredDisplay() {
+        SourceDescriptor open = SourceDescriptor.builder("open").name("o").kind("k").mode(Mode.PUSH)
+                .licence("ODbL 1.0").build();
+        SourceDescriptor publicDomain = SourceDescriptor.builder("pd").name("p").kind("k").mode(Mode.PUSH)
+                .licence("US-PD").build();
+        AttributionService service = service(Map.of("open", open, "pd", publicDomain));
+        Map<String, Boolean> shown = new java.util.HashMap<>();
+        for (AttributionService.Attribution a : service.scope(null, null)) {
+            assertThat(a.toMap()).containsKey("requiredDisplay");
+            shown.put(a.sourceId(), (Boolean) a.toMap().get("requiredDisplay"));
+        }
+        assertThat(shown).containsEntry("open", true).containsEntry("pd", false);
     }
 }

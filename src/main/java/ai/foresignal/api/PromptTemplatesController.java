@@ -4,7 +4,9 @@ import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.llm.PromptTemplates;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +18,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * {@code GET /v1/prompt-templates/{templateId}} (prompt 116, read): the versioned system prompt of an LLM role,
- * exactly as sent, so clients can show what a model was asked. JSON by default; {@code text/markdown} when asked
- * for. Operator instructions are per analyst profile (shown to agent scope on the profile), not part of a
- * template, so {@code instructions} is null here.
+ * {@code GET /v1/prompt-templates} and {@code GET /v1/prompt-templates/{templateId}} (prompt 116, read): the
+ * bundled templates, and the versioned system prompt of an LLM role exactly as sent, so clients can show what
+ * a model was asked. JSON by default; {@code text/markdown} when asked for. Operator instructions are per
+ * analyst profile (shown to agent scope on the profile), not part of a template, so {@code instructions} is null
+ * here.
  */
 @RestController
 @Tag(name = "LLM")
@@ -28,6 +31,22 @@ public class PromptTemplatesController {
 
     /** The Markdown media type. */
     static final MediaType MARKDOWN = MediaType.parseMediaType("text/markdown");
+
+    /** {@code listPromptTemplates}: every bundled template, by id, without its text. */
+    @GetMapping
+    @Operation(operationId = "listPromptTemplates", tags = "LLM")
+    public Map<String, Object> listPromptTemplates() {
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (Map.Entry<String, List<String>> e : PromptTemplates.all().entrySet()) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", e.getKey());
+            item.put("role", PromptTemplates.ROLES.get(e.getKey()));
+            item.put("version", e.getValue().get(e.getValue().size() - 1));
+            item.put("versions", e.getValue());
+            items.add(item);
+        }
+        return Map.of("items", items);
+    }
 
     /** {@code getPromptTemplate}. */
     @GetMapping("/{templateId}")

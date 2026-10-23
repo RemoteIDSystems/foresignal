@@ -1516,7 +1516,13 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
                 sources.add(line.sourceId());
             }
         }
-        return supportingCount(lines) + " signals from " + sources.size() + " sources: " + String.join(", ", families);
+        return counted(supportingCount(lines), "signal") + " from " + counted(sources.size(), "source") + ": "
+                + String.join(", ", families);
+    }
+
+    /** {@code n} and {@code noun}, plural unless {@code n} is 1: "1 signal", "3 signals". */
+    static String counted(long n, String noun) {
+        return n + " " + noun + (n == 1 ? "" : "s");
     }
 
     private static long supportingCount(List<MemberLine> lines) {
@@ -1531,8 +1537,8 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
             }
         }
         long hours = start == null || end == null ? 0 : Duration.between(start, end).toHours();
-        return supportingCount(lines) + " signals from " + sources.size() + " independent sources ("
-                + String.join(", ", families) + ") over " + hours + " h; evidence pinned to versions.";
+        return counted(supportingCount(lines), "signal") + " from " + counted(sources.size(), "independent source")
+                + " (" + String.join(", ", families) + ") over " + hours + " h; evidence pinned to versions.";
     }
 
     /** The title derived from all stored members. */
@@ -1550,7 +1556,7 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
                 families.add(member.getSignalFamily());
             }
         }
-        return n + " signals from " + sources.size() + " sources: " + String.join(", ", families);
+        return counted(n, "signal") + " from " + counted(sources.size(), "source") + ": " + String.join(", ", families);
     }
 
     /** The deterministic explanation derived from all stored members. */
@@ -1571,8 +1577,9 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
             }
         }
         long hours = start == null || last == null ? 0 : Math.max(0, Duration.between(start, last).toHours());
-        return n + " signals from " + sources.size() + " independent sources (" + String.join(", ", families)
-                + ") over " + hours + " h" + (contradicting == 0 ? "" : "; " + contradicting + " contradicting")
+        return counted(n, "signal") + " from " + counted(sources.size(), "independent source") + " ("
+                + String.join(", ", families) + ") over " + hours + " h"
+                + (contradicting == 0 ? "" : "; " + contradicting + " contradicting")
                 + "; evidence pinned to versions.";
     }
 

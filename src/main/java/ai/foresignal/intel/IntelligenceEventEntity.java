@@ -40,6 +40,10 @@ public class IntelligenceEventEntity {
     @Column(name = "severity", length = 16, nullable = false)
     private String severity = "warning";
 
+    /** The severity before an operator override, while one is in force; null when there is none. */
+    @Column(name = "computed_severity", length = 16)
+    private String computedSeverity;
+
     @Column(name = "status", length = 16, nullable = false)
     private String status = "emerging";
 
@@ -182,6 +186,21 @@ public class IntelligenceEventEntity {
 
     public void setSeverity(String severity) {
         this.severity = severity;
+    }
+
+    /** The severity before an operator override, or null when the severity is not overridden. */
+    public String getComputedSeverity() {
+        return computedSeverity;
+    }
+
+    /** Sets {@link #getComputedSeverity()}. */
+    public void setComputedSeverity(String computedSeverity) {
+        this.computedSeverity = computedSeverity;
+    }
+
+    /** Whether an operator override sets the severity ({@code severityOverridden}). */
+    public boolean isSeverityOverridden() {
+        return computedSeverity != null;
     }
 
     public String getStatus() {

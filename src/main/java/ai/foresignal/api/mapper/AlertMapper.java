@@ -23,8 +23,8 @@ public class AlertMapper {
 
     /**
      * The {@code Alert} object of a list item (prompt 056): with {@code fullContext} the whole {@code context};
-     * otherwise {@code context} is {@code {"weather": {"summary": …}}} when the alert has a weather context, else
-     * null.
+     * otherwise {@code context} is {@code {"weather": {"status": …, "summary": …}}} when the alert has a weather
+     * context, else null. {@code status} is kept because the contract's {@code WeatherContext} requires it.
      *
      * @param alert the alert
      * @param fullContext true for {@code include=context}
@@ -37,7 +37,10 @@ public class AlertMapper {
         return out;
     }
 
-    /** {@code {"weather": {"summary": …}}} of a stored context, or null without a weather summary. */
+    /**
+     * {@code {"weather": {"status": …, "summary": …}}} of a stored context, or null without a weather summary. A
+     * stored context without a status (none is written that way) reads as {@code unavailable}.
+     */
     @SuppressWarnings("unchecked")
     static Map<String, Object> summaryOnly(String context) {
         if (context == null || context.isBlank()) {
@@ -47,6 +50,7 @@ public class AlertMapper {
             Map<String, Object> map = JSON.readValue(context, Map.class);
             if (map != null && map.get("weather") instanceof Map<?, ?> weather && weather.get("summary") != null) {
                 Map<String, Object> w = new LinkedHashMap<>();
+                w.put("status", weather.get("status") != null ? weather.get("status") : "unavailable");
                 w.put("summary", weather.get("summary"));
                 Map<String, Object> out = new LinkedHashMap<>();
                 out.put("weather", w);

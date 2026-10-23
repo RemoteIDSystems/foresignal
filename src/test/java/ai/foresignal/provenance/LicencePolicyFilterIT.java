@@ -224,4 +224,26 @@ class LicencePolicyFilterIT {
                 .andExpect(header().exists(LicencePolicyService.FILTERED_HEADER));
         mvc.perform(get("/v1/changes")).andExpect(header().doesNotExist(LicencePolicyService.FILTERED_HEADER));
     }
+
+    @Test
+    @DisplayName("getAttributions: repeated and comma-separated source/kind, the license policy, and the headers")
+    void scopeAttributions() throws Exception {
+        MvcResult all = mvc.perform(get("/v1/attributions").param("source", BY, NC).param("kind", KIND))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.attributions", hasSize(2)))
+                .andExpect(header().exists(RecordsController.ATTRIBUTION_HEADER))
+                .andReturn();
+        assertThat(all.getResponse().getHeaders(HttpHeaders.LINK)).hasSize(2)
+                .allSatisfy(link -> assertThat(link).endsWith("; rel=\"license\""));
+        assertThat(all.getResponse().getHeader(HttpHeaders.VARY)).contains("Foresignal-Licence-Policy");
+        mvc.perform(get("/v1/attributions").param("source", BY + "," + NC + "," + SA))
+                .andExpect(jsonPath("$.attributions", hasSize(3)));
+        mvc.perform(get("/v1/attributions").param("source", BY + "," + NC + "," + SA).param("licencePolicy", "no-nc"))
+                .andExpect(jsonPath("$.attributions", hasSize(2)))
+                .andExpect(jsonPath("$.attributions[?(@.sourceId == '" + NC + "')]", hasSize(0)));
+        mvc.perform(get("/v1/attributions").param("source", BY + "," + NC + "," + SA)
+                .header(LicencePolicyService.POLICY_HEADER, "no-nc, no-sa"))
+                .andExpect(jsonPath("$.attributions", hasSize(1)))
+                .andExpect(jsonPath("$.attributions[0].sourceId").value(BY));
+    }
 }

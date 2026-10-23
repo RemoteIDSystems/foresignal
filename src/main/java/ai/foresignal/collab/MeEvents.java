@@ -111,6 +111,20 @@ public final class MeEvents {
     }
 
     /**
+     * The instance-channel event (OpenAPI {@code Channel.events}) an operator subscribes to for copies of this
+     * personal event, or null when instance channels never carry it. A share arrives as {@code share}; the others
+     * keep their own name.
+     */
+    public static String channelEvent(String event) {
+        return switch (event) {
+            case SHARE_RECEIVED -> "share";
+            case MENTION, REPORT_RECEIVED, PACKAGE_RECEIVED, CHRONICLE_PROPOSED, CHRONICLE_CAP_WARNING, CHRONICLE_GAP,
+                    CHRONICLE_ACCESS_REQUESTED, SAVED_SEARCH_MATCHES -> event;
+            default -> null;
+        };
+    }
+
+    /**
      * The {@code ShareReceivedEvent} payload.
      *
      * @param ref the shared object

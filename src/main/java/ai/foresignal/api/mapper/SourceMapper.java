@@ -267,6 +267,24 @@ public class SourceMapper {
             Optional<Duration> sourceRetention,
             Optional<Duration> downsampleOverride,
             Optional<ai.foresignal.source.spi.Egress> egressOverride) {
+        return settings(view, policyOverride, retentionOverride, sourceRetention, downsampleOverride, egressOverride,
+                Optional.empty());
+    }
+
+    /**
+     * The settings of one source, with its downsample interval, egress and reliability overrides (prompts 044,
+     * 069 and 109).
+     *
+     * @param reliabilityOverride {@link ai.foresignal.source.SourceService#reliabilityOverride(String)}
+     */
+    public SourceSettingsDto settings(
+            SourceView view,
+            Optional<IngestPolicy> policyOverride,
+            Optional<Duration> retentionOverride,
+            Optional<Duration> sourceRetention,
+            Optional<Duration> downsampleOverride,
+            Optional<ai.foresignal.source.spi.Egress> egressOverride,
+            Optional<String> reliabilityOverride) {
         return new SourceSettingsDto(
                 view.enabled(),
                 view.interval(),
@@ -284,7 +302,8 @@ public class SourceMapper {
                 effectivePrivate(view),
                 regionTagging(view.descriptor()),
                 downsampleOverride.orElse(null),
-                egressOverride.map(ai.foresignal.source.spi.Egress::wireValue).orElse(null));
+                egressOverride.map(ai.foresignal.source.spi.Egress::wireValue).orElse(null),
+                reliabilityOverride.orElse(null));
     }
 
     /** The source's region tagging mode (prompt 040): the operator's choice, else its tier's default. */

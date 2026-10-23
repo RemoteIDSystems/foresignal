@@ -20,7 +20,7 @@ import org.springframework.beans.factory.ObjectProvider;
 
 /**
  * The coverage skew/blindspot thresholds and the news reliability numbers are settings (prompt 157): the
- * analyzer honours the thresholds it is given, and {@link NewsReliability} reads its numbers from the setting.
+ * analyzer honors the thresholds it is given, and {@link NewsReliability} reads its numbers from the setting.
  */
 class CoverageThresholdsTest {
 

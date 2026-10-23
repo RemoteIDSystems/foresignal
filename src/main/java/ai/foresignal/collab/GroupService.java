@@ -11,6 +11,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -203,19 +204,39 @@ public class GroupService {
         return groups.save(g);
     }
 
-    /** Removes a member ({@code removeGroupMembers}; managers or admin). */
+    /** Removes a member ({@code removeGroupMembers}; managers or admin), as {@link #removeMembers}. */
     @Transactional
     public GroupEntity removeMember(String id, String principalId, ObjectCaller caller) {
+        return removeMembers(id, principalId == null ? List.of() : List.of(principalId), caller);
+    }
+
+    /**
+     * Removes the listed principals, ids or handles ({@code removeGroupMembers}): managers or admin, or a
+     * principal removing only itself. Every principal is resolved before anything is removed, so an unknown
+     * one changes nothing. Each removal is audited.
+     */
+    @Transactional
+    public GroupEntity removeMembers(String id, List<String> principalIds, ObjectCaller caller) {
         GroupEntity g = get(id);
-        requireManager(g, caller);
-        if (principalId == null || principalId.isBlank()) {
+        List<String> keys = principalIds == null ? List.of()
+                : principalIds.stream().filter(k -> k != null && !k.isBlank()).toList();
+        if (keys.isEmpty()) {
             throw ValidationException.forField("principalId", "is required");
         }
-        PrincipalEntity p = principals.get(principalId);
-        members.findByGroupIdAndPrincipalId(g.getId(), p.getId()).ifPresent(members::delete);
+        Set<String> ids = new LinkedHashSet<>();
+        for (String key : keys) {
+            ids.add(principals.get(key).getId());
+        }
+        boolean selfOnly = caller.principal() != null && ids.equals(Set.of(caller.principal()));
+        if (!selfOnly) {
+            requireManager(g, caller);
+        }
+        for (String principalId : ids) {
+            members.findByGroupIdAndPrincipalId(g.getId(), principalId).ifPresent(members::delete);
+            audit.record(caller, "removeGroupMembers", CollabAudit.TARGET_GROUP, g.getId(),
+                    Map.of("principalId", principalId));
+        }
         g.setUpdatedAt(clock.instant());
-        audit.record(caller, "removeGroupMembers", CollabAudit.TARGET_GROUP, g.getId(), Map.of("principalId",
-                p.getId()));
         return groups.save(g);
     }
 

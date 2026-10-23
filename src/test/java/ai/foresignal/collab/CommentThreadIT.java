@@ -4,11 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import ai.foresignal.notify.ChannelService;
 import ai.foresignal.security.Scope;
+import ai.foresignal.store.NotificationDeliveryEntity;
+import ai.foresignal.store.NotificationDeliveryRepository;
 import ai.foresignal.test.IntegrationTest;
 import ai.foresignal.testsupport.ask.AskTestSources;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockHttpServletResponse;
 import tools.jackson.databind.JsonNode;
@@ -20,6 +25,9 @@ import tools.jackson.databind.JsonNode;
 @IntegrationTest
 @Import(AskTestSources.class)
 class CommentThreadIT extends CollabItSupport {
+
+    @Autowired ChannelService channelService;
+    @Autowired NotificationDeliveryRepository deliveries;
 
     @Test
     @DisplayName("mentions notify only principals who can see the target; replies notify the thread; resolve")
@@ -91,5 +99,26 @@ class CommentThreadIT extends CollabItSupport {
         assertThat(inbox.get("items").get(0).get("category").asString()).isEqualTo("mention");
         assertThat(inbox.get("items").get(0).get("read").asBoolean()).isFalse();
         assertThat(body(call(sam.bearer(), get("/v1/inbox?unread=true"))).get("items")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("a mention is copied to instance channels subscribed to 'mention' (Channel.events), not to others")
+    void mentionReachesSubscribedInstanceChannel() throws Exception {
+        quake("c2", "Aden", 4.5, 45.0, 12.8);
+        UUID subscribed = channelService.create(node("{'name':'mentions','type':'webhook',"
+                + "'config':{'url':'http://127.0.0.1:9/mentions'},'events':['mention']}")).channel().id();
+        UUID alertsOnly = channelService.create(node("{'name':'alerts','type':'webhook',"
+                + "'config':{'url':'http://127.0.0.1:9/alerts'},'events':['alert']}")).channel().id();
+        Person jo = person("jo-m", Scope.READ, null);
+        Person sam = person("sam-m", Scope.READ, null);
+        String ref = "record:" + AskTestSources.QUAKES + "/c2";
+        assertThat(call(jo.bearer(), json(post(objectPath(ref, "/annotations")), "{'kind':'note','body':'cc @sam-m'}"))
+                .getStatus()).isEqualTo(201);
+        assertThat(inboxEvents(sam.id())).containsExactly(MeEvents.MENTION);
+        assertThat(deliveries.findAll()).filteredOn(d -> d.getChannelId().equals(subscribed))
+                .extracting(NotificationDeliveryEntity::getEvent).containsExactly("mention");
+        assertThat(deliveries.findAll()).filteredOn(d -> d.getChannelId().equals(alertsOnly)).isEmpty();
+        channelService.delete(subscribed);
+        channelService.delete(alertsOnly);
     }
 }

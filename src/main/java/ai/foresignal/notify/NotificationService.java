@@ -110,6 +110,21 @@ public class NotificationService {
     }
 
     /**
+     * Publishes the instance copy of a personal notice ({@link ChannelTypeSpec#PERSONAL_COPY_EVENTS}) to every
+     * enabled instance channel subscribed to its event; nothing is persisted when none is.
+     *
+     * @return the persisted message, or null when no instance channel subscribes to its event
+     */
+    public NotificationMessage publishPersonalCopy(NotificationMessage message) {
+        if (!ChannelTypeSpec.PERSONAL_COPY_EVENTS.contains(message.event())) {
+            throw new IllegalArgumentException("not a personal-copy event: " + message.event());
+        }
+        boolean subscribed = channels.findByEnabledTrue().stream().anyMatch(e -> e.getOwnerPrincipalId() == null
+                && e.getEvents() != null && e.getEvents().contains(message.event()));
+        return subscribed ? publish(message, null) : null;
+    }
+
+    /**
      * Persists a lifecycle update ({@link NotificationMessage#updateOf()} names the original) and
      * enqueues an {@code update} or {@code followup} for each channel that received the original:
      * {@code update} when the type edits in place, the channel has {@code edit_in_place} on and the

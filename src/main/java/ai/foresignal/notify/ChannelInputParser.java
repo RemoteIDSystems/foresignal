@@ -180,11 +180,8 @@ public class ChannelInputParser {
                 for (JsonNode item : eventsNode) {
                     String event = item.isString() ? item.asString() : null;
                     if (event == null || !ChannelTypeSpec.ALL_EVENTS.contains(event)) {
-                        errors.add(new FieldError("events", "supported events are alert, briefing, system, analyst.note,"
-                                + " situation.activated, situation.escalated, finding.significant, forecast.resolved,"
-                                + " forecast.resolution_needed, hypothesis.band_changed, indicator.observed,"
-                                + " assumption.broken, assessment.published, social.divergence and"
-                                + " social.attention_gap"));
+                        errors.add(new FieldError("events", "supported events are "
+                                + String.join(", ", ChannelTypeSpec.ALL_EVENTS)));
                     } else if (!events.contains(event)) {
                         events.add(event);
                     }

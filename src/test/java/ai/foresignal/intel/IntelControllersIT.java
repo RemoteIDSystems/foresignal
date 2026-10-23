@@ -126,6 +126,56 @@ class IntelControllersIT {
     }
 
     @Test
+    @DisplayName("type and status are arrays: an event matching any listed value matches, repeated or comma-separated")
+    void listByTypesAndStatuses() throws Exception {
+        long seq = seed("l1");
+        String id = create(agent,
+                "{\"type\":\"custom\",\"title\":\"Listed\",\"members\":[" + member("l1", seq) + "]}");
+        String status = body(call(read, get("/v1/intel/events/" + id))).get("status").asString();
+        String other = "dismissed".equals(status) ? "resolved" : "dismissed";
+
+        assertThat(body(call(read, get("/v1/intel/events?status=" + other + "&status=" + status))).get("items")
+                .toString()).contains(id);
+        assertThat(body(call(read, get("/v1/intel/events?status=" + other + "," + status))).get("items").toString())
+                .contains(id);
+        assertThat(body(call(read, get("/v1/intel/events?status=" + other))).get("items").toString())
+                .doesNotContain(id);
+        assertThat(body(call(read, get("/v1/intel/events?type=seismic&type=custom"))).get("items").toString())
+                .contains(id);
+        assertThat(body(call(read, get("/v1/intel/events?type=seismic,custom"))).get("items").toString())
+                .contains(id);
+        assertThat(body(call(read, get("/v1/intel/events?type=seismic"))).get("items").toString())
+                .doesNotContain(id);
+    }
+
+    @Test
+    @DisplayName("a severity override is flagged, keeps the computed severity, and null restores it")
+    void severityOverride() throws Exception {
+        long seq = seed("o1");
+        String id = create(agent, "{\"type\":\"custom\",\"title\":\"Overridden\",\"severity\":\"info\","
+                + "\"members\":[" + member("o1", seq) + "]}");
+        JsonNode fresh = body(call(read, get("/v1/intel/events/" + id)));
+        assertThat(fresh.get("severity").asString()).isEqualTo("info");
+        assertThat(fresh.get("severityOverridden").asBoolean()).isFalse();
+
+        send(agent, patch("/v1/intel/events/" + id), "{\"severity\":\"critical\"}");
+        send(agent, patch("/v1/intel/events/" + id), "{\"severity\":\"warning\"}");
+        JsonNode overridden = body(call(read, get("/v1/intel/events/" + id)));
+        assertThat(overridden.get("severity").asString()).isEqualTo("warning");
+        assertThat(overridden.get("severityOverridden").asBoolean()).isTrue();
+
+        MockHttpServletResponse cleared = send(agent, patch("/v1/intel/events/" + id), "{\"severity\":null}");
+        assertThat(cleared.getStatus()).as(cleared.getContentAsString()).isEqualTo(200);
+        JsonNode after = body(call(read, get("/v1/intel/events/" + id)));
+        assertThat(after.get("severity").asString()).isEqualTo("info");
+        assertThat(after.get("severityOverridden").asBoolean()).isFalse();
+
+        // Clearing when nothing is overridden changes nothing.
+        send(agent, patch("/v1/intel/events/" + id), "{\"severity\":null}");
+        assertThat(body(call(read, get("/v1/intel/events/" + id))).get("severity").asString()).isEqualTo("info");
+    }
+
+    @Test
     @DisplayName("writes need agent scope; reads need only read")
     void scopes() throws Exception {
         long seq = seed("s1");
@@ -215,8 +265,10 @@ class IntelControllersIT {
         long two = seed("r2");
         String id = create(agent, "{\"type\":\"custom\",\"title\":\"R\",\"members\":[" + member("r1", one) + ","
                 + member("r2", two) + "]}");
-        long memberId = body(call(read, get("/v1/intel/events/" + id))).get("evidence").get("members").get(1)
-                .get("id").asLong();
+        JsonNode memberIdNode = body(call(read, get("/v1/intel/events/" + id))).get("evidence").get("members")
+                .get(1).get("id");
+        assertThat(memberIdNode.isString()).as("IntelEventMember.id is a string in the contract").isTrue();
+        long memberId = Long.parseLong(memberIdNode.asString());
         List<IntelEvent> seen = new java.util.concurrent.CopyOnWriteArrayList<>();
         try (var subscription = bus.subscribe("intel-controllers-it", seen::add, 16)) {
             assertThat(call(agent, delete("/v1/intel/events/" + id + "/members/" + memberId)).getStatus())

@@ -525,6 +525,14 @@ public class SourceService implements ApplicationRunner {
         }
     }
 
+    /** The operator's reliability override for {@code id} (prompt 109), or empty for the descriptor's grade. */
+    @Transactional(readOnly = true)
+    public Optional<String> reliabilityOverride(String id) {
+        return settings.findById(id)
+                .map(SourceSettingsEntity::getReliability)
+                .filter(value -> !value.isBlank());
+    }
+
     /**
      * The reliability grade in force for {@code id} (prompt 109): the operator's override, else the
      * descriptor's (default {@code F}). Never null.

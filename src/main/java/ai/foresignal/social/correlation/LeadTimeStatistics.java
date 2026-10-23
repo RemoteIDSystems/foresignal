@@ -155,7 +155,8 @@ public class LeadTimeStatistics {
         filters.put("since", f.since() == null ? null : f.since().toString());
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("generatedAt", now.toString());
-        out.put("trainingCutoff", cutoff.toString());
+        // No comparison, no cut-off: null rather than the epoch the filter above compares against.
+        out.put("trainingCutoff", points.isEmpty() ? null : cutoff.toString());
         out.put("filters", filters);
         out.put("groups", items);
         out.put("caveats", List.of(Map.of("code", "OUT_OF_SAMPLE_ONLY", "text", "Only comparisons evaluated after the"

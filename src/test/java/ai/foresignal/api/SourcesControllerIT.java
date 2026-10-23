@@ -319,6 +319,19 @@ class SourcesControllerIT {
         }
 
         @Test
+        @DisplayName("a reliability override is returned in settings, and null clears it")
+        void reliabilityOverride() throws Exception {
+            putJson("/v1/sources/" + POLL, "{\"reliability\":\"c\"}")
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.settings.reliability").value("C"));
+            mvc.perform(admin(get("/v1/sources/" + POLL)))
+                    .andExpect(jsonPath("$.settings.reliability").value("C"));
+            putJson("/v1/sources/" + POLL, "{\"reliability\":null}")
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.settings.reliability").value(nullValue()));
+        }
+
+        @Test
         @DisplayName("an interval below the minimum is 400 with errors[]")
         void intervalBelowMinimum() throws Exception {
             putJson("/v1/sources/" + USGS, "{\"interval\":\"10s\"}")

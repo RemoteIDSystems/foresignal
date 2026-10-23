@@ -592,7 +592,7 @@ public class AnalystRunner {
 
         Instant eventsSince = cursor.eventUpdatedAt() == null || cursor.eventUpdatedAt().isBefore(since) ? since
                 : cursor.eventUpdatedAt();
-        for (IntelligenceEventEntity event : intelEvents.list(null, null, eventsSince, null, 200, privateAllowed)) {
+        for (IntelligenceEventEntity event : intelEvents.list(Set.of(), Set.of(), eventsSince, null, 200, privateAllowed)) {
             if (!scope.eventTypes().isEmpty() && !scope.eventTypes().contains(event.getType())) {
                 continue;
             }

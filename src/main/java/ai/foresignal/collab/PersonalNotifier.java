@@ -21,7 +21,8 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * Delivers a notification to one principal (prompt 130): an item in the principal's inbox ({@code GET /v1/inbox}),
  * an event on the principal's {@code me} SSE topic, and a delivery through 018's worker to every enabled personal
- * channel whose preference carries the event type. When called inside a transaction, delivery waits for its commit,
+ * channel whose preference carries the event type, plus a copy to every enabled instance channel subscribed to the
+ * event's {@link MeEvents#channelEvent channel event}. When called inside a transaction, delivery waits for its commit,
  * so a rolled-back share notifies no one. The TLP label is printed at the head of every channel message.
  */
 @Component
@@ -98,6 +99,7 @@ public class PersonalNotifier {
                     row.setPayload(plain(notice.payload()));
                     InboxItemEntity saved = items.saveAndFlush(row);
                     channels(notice);
+                    instanceChannels(notice);
                     return saved;
                 });
                 if (item != null) {
@@ -133,6 +135,27 @@ public class PersonalNotifier {
                     .build();
             notifications.publishPersonal(message, pref.getChannelId());
         }
+    }
+
+    /**
+     * Copies the notice to the instance channels subscribed to its channel event ({@link MeEvents#channelEvent}),
+     * once per addressee, with the TLP label at its head.
+     */
+    private void instanceChannels(Notice notice) {
+        String event = MeEvents.channelEvent(notice.event());
+        if (event == null) {
+            return;
+        }
+        String label = notice.tlp() == null ? "" : "[TLP:" + notice.tlp() + "] ";
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("principalId", notice.principalId());
+        data.put("ref", notice.ref());
+        data.put("tlp", notice.tlp());
+        notifications.publishPersonalCopy(NotificationMessage.builder(event, notice.event(), label + notice.title(),
+                "info")
+                .body(notice.body() == null ? null : label + notice.body())
+                .data(data)
+                .build());
     }
 
     private Map<String, Object> plain(Map<String, Object> payload) {

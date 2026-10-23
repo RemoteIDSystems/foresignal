@@ -30,6 +30,8 @@ import java.util.Map;
  *     sources only), or null for {@code retention.trackDownsampleInterval}
  * @param egress the operator's egress override (prompt 069; {@code OPEN} or {@code LOCAL_ONLY}), or null for
  *     the descriptor's {@code egress}
+ * @param reliability the operator's Admiralty reliability override (prompt 109; {@code A}–{@code F}), or null for
+ *     the descriptor's grade
  */
 public record SourceSettingsDto(
         boolean enabled,
@@ -48,7 +50,19 @@ public record SourceSettingsDto(
         @com.fasterxml.jackson.annotation.JsonProperty("private") boolean privateSource,
         String regionTagging,
         Duration downsampleInterval,
-        String egress) {
+        String egress,
+        String reliability) {
+
+    /** Settings without a reliability override (the shape before prompt 109). */
+    public SourceSettingsDto(boolean enabled, Duration interval, Map<String, Object> params, BudgetDto budget,
+            Duration retention, boolean embed, boolean credentialsSet, Instant updatedAt, IngestPolicyDto ingestPolicy,
+            IngestPolicyDto effectiveIngestPolicy, Duration effectiveRetention, boolean statsEnabled,
+            boolean statsIncludePrivate, boolean privateSource, String regionTagging, Duration downsampleInterval,
+            String egress) {
+        this(enabled, interval, params, budget, retention, embed, credentialsSet, updatedAt, ingestPolicy,
+                effectiveIngestPolicy, effectiveRetention, statsEnabled, statsIncludePrivate, privateSource,
+                regionTagging, downsampleInterval, egress, null);
+    }
 
     /** Settings without an egress override (the shape before prompt 069). */
     public SourceSettingsDto(boolean enabled, Duration interval, Map<String, Object> params, BudgetDto budget,
@@ -57,7 +71,7 @@ public record SourceSettingsDto(
             boolean statsIncludePrivate, boolean privateSource, String regionTagging, Duration downsampleInterval) {
         this(enabled, interval, params, budget, retention, embed, credentialsSet, updatedAt, ingestPolicy,
                 effectiveIngestPolicy, effectiveRetention, statsEnabled, statsIncludePrivate, privateSource,
-                regionTagging, downsampleInterval, null);
+                regionTagging, downsampleInterval, (String) null);
     }
 
     /** Settings without a downsample interval override (the shape before prompt 044). */

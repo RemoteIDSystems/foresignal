@@ -13,7 +13,7 @@ import java.util.Set;
 
 /**
  * Aggregated attributions for record-returning responses (prompt 109; Weather-Imagery-Design §6.10):
- * one {@code {sourceId, licence, text, termsUrl, count}} per distinct source and license, plus the
+ * one {@code {sourceId, licence, text, termsUrl, requiredDisplay, count}} per distinct source and license, plus the
  * joined {@code Foresignal-Attribution} text and the {@code Link rel=license} URLs.
  */
 @org.springframework.stereotype.Component
@@ -34,8 +34,13 @@ public class AttributionService {
         this.catalog = catalog;
     }
 
-    /** One aggregated attribution. */
-    public record Attribution(String sourceId, String licence, String text, String termsUrl, long count) {
+    /**
+     * One aggregated attribution.
+     *
+     * @param requiredDisplay the license requires the attribution to be shown (OpenAPI {@code Attribution})
+     */
+    public record Attribution(String sourceId, String licence, String text, String termsUrl, boolean requiredDisplay,
+            long count) {
 
         /** The API map. */
         public Map<String, Object> toMap() {
@@ -44,6 +49,7 @@ public class AttributionService {
             out.put("licence", licence);
             out.put("text", text);
             out.put("termsUrl", termsUrl);
+            out.put("requiredDisplay", requiredDisplay);
             out.put("count", count);
             return out;
         }
@@ -91,10 +97,10 @@ public class AttributionService {
             Attribution existing = byKey.get(key);
             if (existing == null) {
                 byKey.put(key, new Attribution(row.sourceId(), terms.id(), text(row.sourceId(), terms),
-                        terms.termsUrl(), 1));
+                        terms.termsUrl(), terms.attributionRequired(), 1));
             } else {
                 byKey.put(key, new Attribution(existing.sourceId(), existing.licence(), existing.text(),
-                        existing.termsUrl(), existing.count() + 1));
+                        existing.termsUrl(), existing.requiredDisplay(), existing.count() + 1));
             }
         }
         return List.copyOf(byKey.values());
@@ -102,16 +108,26 @@ public class AttributionService {
 
     /** The attributions of a scope (optional {@code source} and {@code kind} filters), count 0. */
     public List<Attribution> scope(String sourceId, String kind) {
+        return scope(sourceId == null || sourceId.isBlank() ? List.of() : List.of(sourceId),
+                kind == null || kind.isBlank() ? List.of() : List.of(kind), Set.of());
+    }
+
+    /**
+     * The attributions of the sources in {@code sourceIds} (every source when empty) that serve any of
+     * {@code kinds} (any kind when empty), leaving out {@code excluded}; count 0.
+     */
+    public List<Attribution> scope(Collection<String> sourceIds, Collection<String> kinds, Set<String> excluded) {
         List<Attribution> out = new ArrayList<>();
         for (SourceDescriptor descriptor : registry.descriptors()) {
-            if (sourceId != null && !sourceId.isBlank() && !sourceId.equals(descriptor.id())) {
+            if (!sourceIds.isEmpty() && !sourceIds.contains(descriptor.id()) || excluded.contains(descriptor.id())) {
                 continue;
             }
-            if (kind != null && !kind.isBlank() && !descriptor.kinds().contains(kind)) {
+            if (!kinds.isEmpty() && kinds.stream().noneMatch(descriptor.kinds()::contains)) {
                 continue;
             }
             LicenceTerms terms = termsOf(descriptor);
-            out.add(new Attribution(descriptor.id(), terms.id(), text(descriptor.id(), terms), terms.termsUrl(), 0));
+            out.add(new Attribution(descriptor.id(), terms.id(), text(descriptor.id(), terms), terms.termsUrl(),
+                    terms.attributionRequired(), 0));
         }
         return out;
     }

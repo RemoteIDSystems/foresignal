@@ -1,5 +1,6 @@
 package ai.foresignal.intel;
 
+import ai.foresignal.source.formats.geojson.GeoJsonWriter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -9,6 +10,8 @@ import org.springframework.stereotype.Component;
 /** Shapes intelligence events for the API, SSE and MCP (prompt 101). */
 @Component
 public class IntelEventMapper {
+
+    private static final GeoJsonWriter GEOJSON = new GeoJsonWriter();
 
     /** The compact event summary used by SSE and list responses. */
     public static Map<String, Object> summary(IntelligenceEventEntity event) {
@@ -36,8 +39,10 @@ public class IntelEventMapper {
     public Map<String, Object> full(IntelligenceEventEntity event, List<IntelEventMemberEntity> members,
             List<IntelEventLogEntity> log) {
         Map<String, Object> out = new LinkedHashMap<>(summary(event));
+        out.put("severityOverridden", event.isSeverityOverridden());
         out.put("centroid", centroid(event));
         out.put("regionTags", event.getRegionTags());
+        out.put("createdAt", event.getCreatedAt());
         out.put("confidenceMethod", event.getConfidenceMethod());
         out.put("calibrated", event.isCalibrated());
         // The uncalibrated EventScorer score behind confidence (prompt 151); equal to confidence until calibrated.
@@ -48,7 +53,8 @@ public class IntelEventMapper {
         out.put("detector", event.getDetector());
         out.put("manifestId", event.getManifestId());
         out.put("exposure", event.getExposure());
-        out.put("context", event.getContext());
+        // The contract's context is an object: empty until an annotator adds to it.
+        out.put("context", event.getContext() == null ? Map.of() : event.getContext());
         out.put("explanation", event.getExplanation());
         out.put("alternatives", event.getAlternatives());
         out.put("narrative", event.getNarrative());
@@ -64,17 +70,31 @@ public class IntelEventMapper {
         }
         evidence.put("members", memberMaps);
         evidence.put("memberCount", members.size());
+        evidence.put("signalFamilies", members.stream().map(IntelEventMemberEntity::getSignalFamily)
+                .filter(java.util.Objects::nonNull).distinct().sorted().toList());
         Map<String, Object> inference = new LinkedHashMap<>();
         inference.put("type", event.getType());
         inference.put("severity", event.getSeverity());
         inference.put("confidence", event.getConfidence());
         inference.put("confidenceLabel", event.getConfidenceLabel());
-        inference.put("geometry", event.getGeom() == null ? null : event.getGeom().toString());
+        // The members the contract gives the inference section; the same values stay at the top level as well.
+        inference.put("rawConfidence", event.getRawConfidence());
+        inference.put("confidenceMethod", event.getConfidenceMethod());
+        inference.put("calibrated", event.isCalibrated());
+        inference.put("evidenceQuality", event.getEvidenceQuality());
+        inference.put("lastEvidenceAt", event.getLastEvidenceAt());
+        inference.put("centroid", GEOJSON.write(event.getCentroid()));
+        inference.put("regionTags", event.getRegionTags() == null ? List.of() : event.getRegionTags());
+        inference.put("explanation", event.getExplanation());
+        // The contract's inference.geometry is a GeoJSON geometry, never WKT text.
+        inference.put("geometry", GEOJSON.write(event.getGeom()));
         inference.put("startTime", event.getStartTime());
         inference.put("endTime", event.getEndTime());
         Map<String, Object> speculation = new LinkedHashMap<>();
-        speculation.put("alternatives", event.getAlternatives());
+        speculation.put("label", "speculation");
+        speculation.put("alternatives", event.getAlternatives() == null ? List.of() : event.getAlternatives());
         speculation.put("narrative", event.getNarrative());
+        speculation.put("narrativeOrigin", event.getNarrative() == null ? null : "llm");
         out.put("evidence", evidence);
         out.put("inference", inference);
         out.put("speculation", speculation);
@@ -96,7 +116,8 @@ public class IntelEventMapper {
     /** One member. */
     public Map<String, Object> member(IntelEventMemberEntity member) {
         Map<String, Object> out = new LinkedHashMap<>();
-        out.put("id", member.getId());
+        // The contract's IntelEventMember.id is a string; the stored id is a bigint.
+        out.put("id", member.getId() == null ? null : String.valueOf(member.getId()));
         out.put("role", member.getRole());
         out.put("memberType", member.getMemberType());
         out.put("sourceId", member.getSourceId());
