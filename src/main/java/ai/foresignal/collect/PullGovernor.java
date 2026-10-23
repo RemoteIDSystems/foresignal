@@ -74,6 +74,11 @@ public class PullGovernor {
         return permits.getQueueLength();
     }
 
+    /** A snapshot of {@link #cap()}, {@link #inUse()} and {@link #waiting()}, the cap and in-use read together. */
+    public synchronized CollectorStatus status() {
+        return new CollectorStatus(cap, cap - permits.availablePermits(), permits.getQueueLength());
+    }
+
     /**
      * Resizes the pool to {@code newCap}, clamped to {@value CollectorSettings#MIN_PULLS}..{@value
      * CollectorSettings#MAX_PULLS}: a larger cap admits waiting pulls at once; a smaller one admits no new pull until

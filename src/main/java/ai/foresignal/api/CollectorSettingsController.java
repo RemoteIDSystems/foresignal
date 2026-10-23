@@ -1,5 +1,7 @@
 package ai.foresignal.api;
 
+import ai.foresignal.collect.CollectorStatus;
+import ai.foresignal.collect.PullGovernor;
 import ai.foresignal.settings.CollectorSettings;
 import ai.foresignal.settings.CollectorSettingsService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,17 +14,20 @@ import tools.jackson.databind.JsonNode;
 
 /**
  * {@code getCollectorSettings} and {@code updateCollectorSettings} (prompt 150): the collector's global pull
- * concurrency. Admin only ({@code /v1/settings/**}).
+ * concurrency; and {@code getCollectorStatus} (prompt 160): the pull governor's live state. Admin only
+ * ({@code /v1/settings/**}).
  */
 @RestController
 @Tag(name = "Settings")
 public class CollectorSettingsController {
 
     private final CollectorSettingsService collector;
+    private final PullGovernor governor;
 
     /** Creates the controller. */
-    public CollectorSettingsController(CollectorSettingsService collector) {
+    public CollectorSettingsController(CollectorSettingsService collector, PullGovernor governor) {
         this.collector = collector;
+        this.governor = governor;
     }
 
     /** {@code getCollectorSettings}: the settings in force (the defaults when none are stored). */
@@ -37,5 +42,12 @@ public class CollectorSettingsController {
     @Operation(operationId = "updateCollectorSettings", tags = "Settings")
     public CollectorSettings updateCollectorSettings(@RequestBody JsonNode body) {
         return collector.update(body);
+    }
+
+    /** {@code getCollectorStatus}: the pull governor's live cap, permits in use and fetches waiting. */
+    @GetMapping("/v1/settings/collector/status")
+    @Operation(operationId = "getCollectorStatus", tags = "Settings")
+    public CollectorStatus getCollectorStatus() {
+        return governor.status();
     }
 }

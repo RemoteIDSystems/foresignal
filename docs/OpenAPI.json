@@ -16,6 +16,11 @@
       {
         "version": "1.3.0",
         "date": "2026-10-22",
+        "note": "160: getCollectorStatus (GET /v1/settings/collector/status, admin) with the CollectorStatus schema: the pull governor's live cap, inUse and waiting, so the admin app's collector screen can show the governor working, not only its maxConcurrentPulls setting. Additive: no operation or schema was renamed or removed; part of the 1.3.0 wave, no version change."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-22",
         "note": "158: relationship intelligence for people and organizations (model and queries only). The canonical entity resolver and relation graph, physical-domain only until now (aircraft / vessel / satellite / station), gain person and organization entity types and the corporate / person identity keys that resolve them deterministically: lei, company-number (JURISDICTION:NUMBER), tax-id and officer-id (REGISTRY:ID) are anchors for organizations, and person-key (a normalized name key) is a weak key for people — added to the EntityKey, EntityKeyInput and EntityLink keyType enums and the Entity type enum. Five ownership / affiliation relation types join the vocabulary — owns, controls, officer-of, beneficial-owner, affiliated-with — usable on createRelation, listRelatedObjects and queryGraph. A new ownershipChain query (POST /v1/graph/ownership-chain, read) is the sibling of findCommonDependencies: it walks those edges from up to 50 seed entities and returns each reached entity's strongest, shortest chain, with the subset reached from two or more seeds surfaced as a shared attribute (a common owner, officer, address or affiliate). This builds the model and queries; the external corporate / UBO / PEP / leak data that populates the edges is deferred to the Future-Roadmap. Additive: no operation or schema was renamed or removed."
       },
       {
@@ -20590,6 +20595,74 @@
         },
         "x-foresignal-scope": "admin",
         "x-foresignal-prompt": "150",
+        "x-foresignal-status": "implemented",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/settings/collector/status": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "getCollectorStatus",
+        "summary": "Get collector status",
+        "description": "The pull governor's live state (prompt 160), so a client can show it working rather than only its setting: `cap` is the `maxConcurrentPulls` in force (`getCollectorSettings`), `inUse` how many polling fetches hold a permit and are pulling from upstream right now, and `waiting` how many are queued for one. `inUse` may briefly exceed `cap` just after `updateCollectorSettings` lowers it, until running pulls finish. Streams are not counted. Read-only; a snapshot at the time of the request.\n\n**Scope:** `admin`.",
+        "responses": {
+          "200": {
+            "description": "Status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectorStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope (INSUFFICIENT_SCOPE) or the endpoint is outside its restriction (ENDPOINT_NOT_ALLOWED, RESTRICTED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited (RATE_LIMITED); honor Retry-After",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "x-foresignal-prompt": "160",
         "x-foresignal-status": "implemented",
         "security": [
           {
@@ -106650,6 +106723,34 @@
             "maximum": 16,
             "default": 2,
             "description": "How many polling fetches may pull from upstream at once across every source: the size of the global pull governor. A stored or submitted value outside 1 to 16 is clamped. Streams are not counted."
+          }
+        },
+        "additionalProperties": false
+      },
+      "CollectorStatus": {
+        "type": "object",
+        "description": "A live snapshot of the pull governor (prompt 160).",
+        "required": [
+          "cap",
+          "inUse",
+          "waiting"
+        ],
+        "properties": {
+          "cap": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16,
+            "description": "The governor's current cap: the maxConcurrentPulls in force."
+          },
+          "inUse": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "How many polling fetches hold a permit and are pulling from upstream now. May briefly exceed cap just after the cap is lowered."
+          },
+          "waiting": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "How many polling fetches are queued for a permit."
           }
         },
         "additionalProperties": false

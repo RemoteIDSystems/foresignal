@@ -42353,6 +42353,53 @@
           }
         },
         {
+          "name": "Get collector status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/collector/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings",
+                "collector",
+                "status"
+              ],
+              "query": []
+            },
+            "description": "The pull governor's live state (prompt 160), so a client can show it working rather than only its setting: `cap` is the `maxConcurrentPulls` in force (`getCollectorSettings`), `inUse` how many polling fetches hold a permit and are pulling from upstream right now, and `waiting` how many are queued for one. `inUse` may briefly exceed `cap` just after `updateCollectorSettings` lowers it, until running pulls finish. Streams are not counted. Read-only; a snapshot at the time of the request.\n\n**Scope:** `admin`.\n\noperationId: `getCollectorStatus`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "Get metric projections",
           "event": [
             {
