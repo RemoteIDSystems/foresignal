@@ -2,6 +2,7 @@ package ai.foresignal.api.support;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringJoiner;
 import org.locationtech.jts.geom.Envelope;
 
 /**
@@ -9,7 +10,8 @@ import org.locationtech.jts.geom.Envelope;
  *
  * <p>The SQL first narrows candidates with {@link #prefilter()}, a conservative degree envelope
  * that an index can use ({@code geom && envelope}), then applies the exact
- * {@code ST_DWithin(geom::geography, point::geography, radiusMeters)}.
+ * {@code fs_dwithin(geom, point, radiusMeters)} (migration V7): {@code ST_DWithin} on geography, guarded
+ * against shapes the cast refuses, with a shape that contains the point at distance 0.
  *
  * @param lon the center longitude
  * @param lat the center latitude
@@ -61,6 +63,19 @@ public record NearFilter(double lon, double lat, double radiusKm) {
             result.add(new Envelope(minLon, maxLon, minLat, maxLat));
         }
         return List.copyOf(result);
+    }
+
+    /**
+     * {@link #prefilter()} as SQL on {@code column}: each envelope as {@code column && ST_MakeEnvelope(...)},
+     * ORed, with the bounds written as literals (they are computed doubles, never input text).
+     */
+    public String prefilterSql(String column) {
+        StringJoiner or = new StringJoiner(" OR ", "(", ")");
+        for (Envelope e : prefilter()) {
+            or.add(column + " && ST_MakeEnvelope(" + e.getMinX() + ", " + e.getMinY() + ", " + e.getMaxX() + ", "
+                    + e.getMaxY() + ", 4326)");
+        }
+        return or.toString();
     }
 
     /** A stable text form, for cursor fingerprints and entity tags. */

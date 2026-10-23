@@ -52,9 +52,9 @@ public class JdbcWeatherRecords implements WeatherRecords {
 
     @Override
     public List<Row> nearby(String sourceId, String kind, Geometry geometry, double radiusKm, int limit) {
-        String sql = CURRENT + ", ST_Distance(l.geom::geography, ST_GeomFromWKB(:g, 4326)::geography) / 1000.0 AS km"
+        String sql = CURRENT + ", fs_distance(l.geom, ST_GeomFromWKB(:g, 4326)) / 1000.0 AS km"
                 + JOIN + " WHERE NOT h.tombstone AND h.source_id = :source AND h.kind = :kind AND l.geom IS NOT NULL"
-                + " AND ST_DWithin(l.geom::geography, ST_GeomFromWKB(:g, 4326)::geography, :meters)"
+                + " AND fs_dwithin(l.geom, ST_GeomFromWKB(:g, 4326), :meters)"
                 + " ORDER BY km, h.external_id LIMIT :limit";
         return jdbc.query(sql, new MapSqlParameterSource("g", wkb(geometry))
                 .addValue("source", sourceId)

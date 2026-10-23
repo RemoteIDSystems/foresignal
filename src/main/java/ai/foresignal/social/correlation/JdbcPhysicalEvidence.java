@@ -82,8 +82,8 @@ public class JdbcPhysicalEvidence implements PhysicalEvidenceSource {
         boolean located = q.lon() != null && q.lat() != null && q.rule().toleranceKm() > 0;
         StringBuilder sql = new StringBuilder("(");
         if (located) {
-            sql.append("(").append(geomColumn).append(" IS NOT NULL AND ST_DWithin(").append(geomColumn)
-                    .append("::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?))");
+            sql.append("(").append(geomColumn).append(" IS NOT NULL AND fs_dwithin(").append(geomColumn)
+                    .append(", ST_SetSRID(ST_MakePoint(?, ?), 4326), ?))");
             args.add(q.lon());
             args.add(q.lat());
             args.add(q.rule().toleranceKm() * 1000.0);
@@ -109,7 +109,7 @@ public class JdbcPhysicalEvidence implements PhysicalEvidenceSource {
         }
         args.add(q.lon());
         args.add(q.lat());
-        return "ST_Distance(" + geomColumn + "::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography) / 1000.0";
+        return "fs_distance(" + geomColumn + ", ST_SetSRID(ST_MakePoint(?, ?), 4326)) / 1000.0";
     }
 
     List<Evidence> canonical(Query q) {
@@ -215,8 +215,8 @@ public class JdbcPhysicalEvidence implements PhysicalEvidenceSource {
             for (Map<String, Object> row : jdbc.queryForList("SELECT h.source_id, h.external_id,"
                     + " h.persisted_observed_at, " + dist + " AS km FROM record_head h WHERE h.kind = ? AND NOT"
                     + " h.tombstone AND h.payload ->> ? = ANY(?) AND COALESCE(h.event_time, h.persisted_observed_at)"
-                    + " BETWEEN ? AND ? AND h.persisted_geom IS NOT NULL AND ST_DWithin(h.persisted_geom::geography,"
-                    + " ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?) LIMIT ?", args.toArray())) {
+                    + " BETWEEN ? AND ? AND h.persisted_geom IS NOT NULL AND fs_dwithin(h.persisted_geom,"
+                    + " ST_SetSRID(ST_MakePoint(?, ?), 4326), ?) LIMIT ?", args.toArray())) {
                 String source = String.valueOf(row.get("source_id"));
                 OriginatorRegistry registry = originators.getIfAvailable();
                 Originator o = registry == null ? Originator.defaultFor(source) : registry.resolve(source);

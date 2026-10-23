@@ -1,5 +1,6 @@
 package ai.foresignal.intel;
 
+import ai.foresignal.api.support.NearFilter;
 import ai.foresignal.collect.HealthService;
 import ai.foresignal.collect.SourceHealthView;
 import ai.foresignal.config.StartupOrder;
@@ -770,7 +771,8 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
     private boolean reportedNear(String source, Coordinate centroid, double km, Instant from, Instant until, long to) {
         List<Integer> hit = jdbc.queryForList("SELECT 1 FROM record_version WHERE source_id = ? AND seq <= ?"
                 + " AND observed_at >= ? AND observed_at <= ? AND geom IS NOT NULL"
-                + " AND ST_DWithin(geom::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?) LIMIT 1",
+                + " AND " + new NearFilter(centroid.x, centroid.y, km).prefilterSql("geom")
+                + " AND fs_dwithin(geom, ST_SetSRID(ST_MakePoint(?, ?), 4326), ?) LIMIT 1",
                 Integer.class, source, to, Timestamp.from(from), Timestamp.from(until), centroid.x, centroid.y,
                 km * 1000.0);
         return !hit.isEmpty();
@@ -844,7 +846,7 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
         event.setEndTime(null);
         event.setLastEvidenceAt(max(event.getLastEvidenceAt(), candidate.end() == null ? now : candidate.end()));
         Geometry geom = event.getGeom() == null ? candidate.geom()
-                : candidate.geom() == null ? event.getGeom() : event.getGeom().union(candidate.geom());
+                : candidate.geom() == null ? event.getGeom() : unionAll(List.of(event.getGeom(), candidate.geom()));
         event.setGeom(geom);
         event.setCentroid(geom == null ? null : geom.getCentroid());
         event.setDetector(candidate.detector());
@@ -1416,15 +1418,20 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
         }
     }
 
-    private static Geometry geometry(List<Geometry> geometries) {
+    static Geometry geometry(List<Geometry> geometries) {
         if (geometries.isEmpty()) {
             return null;
         }
-        Geometry combined = geometries.get(0);
-        for (int i = 1; i < geometries.size(); i++) {
-            combined = combined.union(geometries.get(i));
-        }
-        return combined.buffer(0.05);
+        return unionAll(geometries).buffer(0.05);
+    }
+
+    /**
+     * The union of {@code geometries} in one unary union. Folding pairwise fails once a point and a
+     * polygon apart union to a GeometryCollection, which {@link Geometry#union(Geometry)} refuses
+     * ("Operation does not support GeometryCollection arguments"); the unary union accepts any mix.
+     */
+    static Geometry unionAll(List<Geometry> geometries) {
+        return Geo.factory().buildGeometry(geometries).union();
     }
 
     private static Coordinate coordinate(MemberRow row) {

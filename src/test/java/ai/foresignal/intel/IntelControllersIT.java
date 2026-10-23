@@ -22,6 +22,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
@@ -109,6 +112,25 @@ class IntelControllersIT {
         MockHttpServletResponse response = send(bearer, post("/v1/intel/events"), body);
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(201);
         return body(response).get("id").asString();
+    }
+
+    @Test
+    @DisplayName("an event is created beside a world box with antipodal edges, and with one as its member")
+    void createBesideWorldBox() throws Exception {
+        Instant now = clock.instant();
+        // The four-corner world box raster frames were stored with before they were densified: its
+        // pole-to-pole edges fail geom::geography, which the corroboration scan used to reach.
+        records.ingestAt(STANDARD, now, NormalizedRecord.builder("world", "test-record").observedAt(now)
+                .geometry(new GeometryFactory(new PrecisionModel(), 4326).createPolygon(new Coordinate[] {
+                    new Coordinate(-180, -90), new Coordinate(180, -90), new Coordinate(180, 90),
+                    new Coordinate(-180, 90), new Coordinate(-180, -90)}))
+                .put("name", "world").build());
+        long world = jdbc.queryForObject("select max(seq) from record_version where source_id = ? and external_id = ?",
+                Long.class, STANDARD, "world");
+        long seq = seed("near-world");
+
+        create(agent, "{\"type\":\"custom\",\"title\":\"Beside\",\"members\":[" + member("near-world", seq) + "]}");
+        create(agent, "{\"type\":\"custom\",\"title\":\"Member\",\"members\":[" + member("world", world) + "]}");
     }
 
     @Test

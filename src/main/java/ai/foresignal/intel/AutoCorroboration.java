@@ -1,5 +1,6 @@
 package ai.foresignal.intel;
 
+import ai.foresignal.api.support.NearFilter;
 import ai.foresignal.evidence.EvidenceService;
 import ai.foresignal.evidence.RecordRef;
 import java.sql.Timestamp;
@@ -149,7 +150,9 @@ public class AutoCorroboration {
         jdbc.query("SELECT seq, source_id, external_id, kind, version, observed_at FROM record_version"
                         + " WHERE tombstone = false AND persist_reason <> 8 AND geom IS NOT NULL"
                         + " AND observed_at >= ? AND observed_at <= ?"
-                        + " AND ST_DWithin(geom::geography, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)"
+                        // The envelope lets the GiST index narrow the window before the exact distance.
+                        + " AND " + new NearFilter(lon, lat, withinKm).prefilterSql("geom")
+                        + " AND fs_dwithin(geom, ST_SetSRID(ST_MakePoint(?, ?), 4326), ?)"
                         + " ORDER BY observed_at LIMIT ?",
                 handler, Timestamp.from(from), Timestamp.from(until), lon, lat, withinKm * 1000.0, scanLimit);
         return out;

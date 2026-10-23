@@ -633,7 +633,7 @@ public class RecordQueryService {
                             + " AND v.external_id = h.external_id)");
         }
         if (distancePoint != null) {
-            select.put("dist_m", "ST_Distance(l.geom::geography, " + distancePoint + "::geography)");
+            select.put("dist_m", "fs_distance(l.geom, " + distancePoint + ")");
         }
         return select.sql();
     }
@@ -674,8 +674,8 @@ public class RecordQueryService {
                         + p.instant(c.o()) + ", " + p.text(c.s()) + ", " + p.text(c.e()) + ")");
                 case Cursor.ById c -> where.add("(h.source_id, h.external_id) > (" + p.text(c.s()) + ", "
                         + p.text(c.e()) + ")");
-                case Cursor.Distance c -> where.add("(ST_Distance(l.geom::geography, " + point(q.near(), p)
-                        + "::geography), h.source_id, h.external_id) > (" + p.dbl(c.d()) + ", " + p.text(c.s())
+                case Cursor.Distance c -> where.add("(fs_distance(l.geom, " + point(q.near(), p)
+                        + "), h.source_id, h.external_id) > (" + p.dbl(c.d()) + ", " + p.text(c.s())
                         + ", " + p.text(c.e()) + ")");
                 default -> throw new IllegalStateException("Unexpected cursor " + cursor);
             }
@@ -1024,13 +1024,16 @@ public class RecordQueryService {
         return or.toString();
     }
 
-    /** The degree-envelope prefilter ORed, then {@code ST_DWithin} on geography. */
+    /**
+     * The degree-envelope prefilter ORed, then {@code fs_dwithin} (migration V7): {@code ST_DWithin} on
+     * geography, guarded against shapes the cast refuses, with a containing shape at distance 0.
+     */
     static String nearClause(String column, NearFilter near, SqlParams p) {
         StringJoiner or = new StringJoiner(" OR ", "(", ")");
         for (Envelope e : near.prefilter()) {
             or.add(column + " && " + envelope(e, p));
         }
-        return "(" + or + " AND ST_DWithin(" + column + "::geography, " + point(near, p) + "::geography, "
+        return "(" + or + " AND fs_dwithin(" + column + ", " + point(near, p) + ", "
                 + p.dbl(near.radiusMeters()) + "))";
     }
 

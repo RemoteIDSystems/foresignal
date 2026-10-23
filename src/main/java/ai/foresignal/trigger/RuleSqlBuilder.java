@@ -327,7 +327,7 @@ public final class RuleSqlBuilder {
         b.put("anchorM", meters);
         return "(" + geom + " IS NOT NULL AND " + geom + " && ST_Expand(" + point
                 + ", CAST(:anchorDLon AS double precision), CAST(:anchorDLat AS double precision))"
-                + " AND ST_DWithin(" + geom + "::geography, " + point + "::geography, CAST(:anchorM AS double precision)))";
+                + " AND fs_dwithin(" + geom + ", " + point + ", CAST(:anchorM AS double precision)))";
     }
 
     /**

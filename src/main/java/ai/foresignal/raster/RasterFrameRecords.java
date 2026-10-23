@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.locationtech.jts.densify.Densifier;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -31,6 +32,9 @@ public final class RasterFrameRecords {
 
     /** The inline payload budget of a {@code raster-frame} change event. */
     public static final int MAX_PAYLOAD_BYTES = 1024;
+
+    /** The longest edge of a frame record's box, degrees. */
+    static final double MAX_EDGE_DEGREES = 10.0;
 
     /** The suffix of the run-in-progress record's externalId. */
     public static final String PARTIAL_SUFFIX = ":partial";
@@ -127,13 +131,20 @@ public final class RasterFrameRecords {
         payload.remove("stats");
     }
 
-    private static org.locationtech.jts.geom.Polygon box(List<Double> b) {
+    /**
+     * The record geometry of {@code bounds}: the box with its edges densified to at most
+     * {@value #MAX_EDGE_DEGREES} degrees. A four-corner world box has antipodal edges, which PostGIS
+     * refuses to cast to geography, failing every distance query that reaches the row; the shorter
+     * edges also keep a regional box's geography close to its lon/lat outline.
+     */
+    static org.locationtech.jts.geom.Polygon box(List<Double> b) {
         double west = b.get(0);
         double east = b.get(2);
         if (west > east) {
             west = -180;
             east = 180;
         }
-        return GridStore.box(west, b.get(1), east, b.get(3));
+        return (org.locationtech.jts.geom.Polygon) Densifier.densify(GridStore.box(west, b.get(1), east, b.get(3)),
+                MAX_EDGE_DEGREES);
     }
 }

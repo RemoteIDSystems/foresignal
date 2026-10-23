@@ -100,4 +100,14 @@ class NearParserTest {
         assertThat(envelopes).hasSize(1);
         assertThat(envelopes.getFirst().getWidth()).isEqualTo(360.0);
     }
+
+    @Test
+    @DisplayName("the SQL prefilter ORs one envelope per prefilter box, on the given column")
+    void prefilterSql() {
+        assertThat(new NearFilter(10, 20, 50).prefilterSql("geom"))
+                .startsWith("(geom && ST_MakeEnvelope(").doesNotContain(" OR ").endsWith(", 4326))");
+        String split = new NearFilter(179.9, 0, 50).prefilterSql("v.geom");
+        assertThat(split.split(" OR ")).hasSize(2);
+        assertThat(split).contains("v.geom && ST_MakeEnvelope(-180.0, ");
+    }
 }

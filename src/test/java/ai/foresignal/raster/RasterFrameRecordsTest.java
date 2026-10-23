@@ -82,4 +82,17 @@ class RasterFrameRecordsTest {
         assertThat(tombstone.tombstone()).isTrue();
         assertThat(tombstone.externalId()).isEqualTo(spec.id() + ":partial");
     }
+
+    @Test
+    @DisplayName("a world box is densified: same envelope, no edge longer than 10 degrees")
+    void worldBoxDensified() {
+        org.locationtech.jts.geom.Polygon box = RasterFrameRecords.box(List.of(-180.0, -90.0, 180.0, 90.0));
+        org.locationtech.jts.geom.Envelope env = box.getEnvelopeInternal();
+        assertThat(List.of(env.getMinX(), env.getMinY(), env.getMaxX(), env.getMaxY()))
+                .containsExactly(-180.0, -90.0, 180.0, 90.0);
+        org.locationtech.jts.geom.Coordinate[] ring = box.getExteriorRing().getCoordinates();
+        for (int i = 1; i < ring.length; i++) {
+            assertThat(ring[i].distance(ring[i - 1])).isLessThanOrEqualTo(RasterFrameRecords.MAX_EDGE_DEGREES + 1e-9);
+        }
+    }
 }

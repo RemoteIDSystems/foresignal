@@ -225,6 +225,28 @@ class RecordsControllerIT {
         }
 
         @Test
+        @DisplayName("near= survives a world box with antipodal edges and finds it at distance 0 everywhere")
+        void nearWorldBox() throws Exception {
+            seed();
+            // The four-corner world box raster frames were stored with before they were densified: its
+            // pole-to-pole edges fail geom::geography.
+            ingest(T, STANDARD, rec("world", T).geometry(GEOMETRY.createPolygon(new Coordinate[] {
+                new Coordinate(-180, -90), new Coordinate(180, -90), new Coordinate(180, 90),
+                new Coordinate(-180, 90), new Coordinate(-180, -90)})).build());
+
+            mvc.perform(get("/v1/records").param("near", "1.2,2.5").param("radiusKm", "100").param("sort", "distance"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.items", hasSize(2)))
+                    .andExpect(jsonPath("$.items[0].externalId").value("world"))
+                    .andExpect(jsonPath("$.items[0].distanceKm").value(0.0))
+                    .andExpect(jsonPath("$.items[1].externalId").value("a"));
+            mvc.perform(get("/v1/records").param("near", "-95.37,29.76").param("radiusKm", "50"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.items", hasSize(1)))
+                    .andExpect(jsonPath("$.items[0].externalId").value("world"));
+        }
+
+        @Test
         @DisplayName("asOf through the API echoes asOf, horizon and approximate")
         void asOf() throws Exception {
             seed();

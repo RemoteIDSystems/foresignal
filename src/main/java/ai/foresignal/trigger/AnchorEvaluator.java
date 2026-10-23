@@ -214,8 +214,8 @@ public class AnchorEvaluator {
         p.addValue(prefix + "DLat", degrees[1]);
         p.addValue(prefix + "M", anchor.radiusMeters());
         return "(l.geom IS NOT NULL AND l.geom && ST_Expand(" + at + ", CAST(:" + prefix + "DLon AS double precision),"
-                + " CAST(:" + prefix + "DLat AS double precision)) AND ST_DWithin(l.geom::geography, " + at
-                + "::geography, CAST(:" + prefix + "M AS double precision)))";
+                + " CAST(:" + prefix + "DLat AS double precision)) AND fs_dwithin(l.geom, " + at
+                + ", CAST(:" + prefix + "M AS double precision)))";
     }
 
     // ------------------------------------------------------------------------- state

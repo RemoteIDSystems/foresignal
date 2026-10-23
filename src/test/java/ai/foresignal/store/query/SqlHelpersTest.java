@@ -52,7 +52,8 @@ class SqlHelpersTest {
     @Test
     void nearClausePrefiltersThenUsesGeography() {
         String sql = RecordQueryService.nearClause("l.geom", new NearFilter(0, 0, 10), new SqlParams());
-        assertThat(sql).contains("l.geom && ST_MakeEnvelope(").contains("ST_DWithin(l.geom::geography, ");
+        // fs_dwithin (migration V7) is ST_DWithin on geography, guarded against shapes the cast refuses.
+        assertThat(sql).contains("l.geom && ST_MakeEnvelope(").contains("fs_dwithin(l.geom, ");
     }
 
     @Test

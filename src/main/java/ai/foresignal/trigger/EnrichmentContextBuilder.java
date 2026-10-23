@@ -291,7 +291,7 @@ public class EnrichmentContextBuilder {
         String prefilter = envelope.isPresent() ? " AND v.geom && ST_MakeEnvelope(:minx, :miny, :maxx, :maxy, 4326)" : "";
         List<Long> seqs = jdbc.queryForList("SELECT seq FROM (SELECT DISTINCT ON (v.source_id, v.external_id)"
                 + " v.seq, v.observed_at FROM record_version v WHERE v.geom IS NOT NULL" + prefilter
-                + " AND ST_DWithin(v.geom::geography, " + ANCHOR + "::geography, :radius)"
+                + " AND fs_dwithin(v.geom, " + ANCHOR + ", :radius)"
                 + " AND v.observed_at BETWEEN :from AND :to AND v.persist_reason <> " + HEARTBEAT
                 + " AND NOT (v.source_id = :source AND v.external_id = :externalId)" + excluded
                 + " ORDER BY v.source_id, v.external_id, v.observed_at DESC, v.seq DESC) latest"
@@ -311,7 +311,7 @@ public class EnrichmentContextBuilder {
         List<Map.Entry<String, String>> liveKeys = jdbc.query("SELECT h.source_id, h.external_id FROM record_head h"
                 + " JOIN record_live l ON l.source_id = h.source_id AND l.external_id = h.external_id"
                 + " WHERE l.geom IS NOT NULL" + livePrefilter
-                + " AND ST_DWithin(l.geom::geography, " + ANCHOR + "::geography, :radius)"
+                + " AND fs_dwithin(l.geom, " + ANCHOR + ", :radius)"
                 + " AND l.observed_at BETWEEN :from AND :to AND NOT h.tombstone"
                 + " AND NOT (h.source_id = :source AND h.external_id = :externalId)" + liveExcluded
                 + " ORDER BY l.observed_at DESC LIMIT " + NEARBY_LIMIT, p,
@@ -351,7 +351,7 @@ public class EnrichmentContextBuilder {
         List<Long> ids = jdbc.queryForList("SELECT a.id FROM alert a WHERE a.id <> :alertId AND NOT a.suppressed AND NOT a.exercise"
                 + " AND a.fired_at >= :from AND a.observed_at BETWEEN :from AND :to"
                 + " AND jsonb_typeof(a.record_snapshot -> 'geometry') = 'object'"
-                + " AND ST_DWithin(" + geom + "::geography, " + ANCHOR + "::geography, :radius)" + excluded
+                + " AND fs_dwithin(" + geom + ", " + ANCHOR + ", :radius)" + excluded
                 + " ORDER BY a.observed_at DESC, a.id DESC LIMIT " + ALERT_LIMIT, p, Long.class);
         List<AlertView> views = egress.filter(alerts.findAll(ids), AlertView::sourceId, anchor.destination());
         List<Item> out = new ArrayList<>();
@@ -421,7 +421,7 @@ public class EnrichmentContextBuilder {
             p.addValue("seqs", PgArrays.bigint(seqs));
             inRadius = new HashSet<>(jdbc.queryForList("SELECT v.seq FROM record_version v"
                     + " WHERE v.seq = ANY(CAST(:seqs AS bigint[])) AND v.geom IS NOT NULL"
-                    + " AND ST_DWithin(v.geom::geography, " + ANCHOR + "::geography, :radius)", p, Long.class));
+                    + " AND fs_dwithin(v.geom, " + ANCHOR + ", :radius)", p, Long.class));
         }
         List<Item> out = new ArrayList<>();
         for (Map<?, ?> item : candidates) {
