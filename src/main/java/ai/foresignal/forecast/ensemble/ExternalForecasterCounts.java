@@ -8,7 +8,7 @@ package ai.foresignal.forecast.ensemble;
  */
 public interface ExternalForecasterCounts {
 
-    /** True when this counter answers for {@code forecasterId} ({@code edp:{sourceId}/{streamId}}). */
+    /** True when this counter answers for {@code forecasterId} ({@code edp:{sourceId}:{streamId}}). */
     boolean handles(String forecasterId);
 
     /** The resolved linked questions of {@code forecasterId}. */

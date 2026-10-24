@@ -27,7 +27,7 @@ class ExternalRetrospectiveRunnerTest {
     private ForecasterEntity external(Map<String, Object> config) {
         ForecasterEntity f = mock(ForecasterEntity.class);
         when(f.getType()).thenReturn("external");
-        when(f.getId()).thenReturn("edp:ext-timesfm/transits");
+        when(f.getId()).thenReturn("edp:ext-timesfm:transits");
         when(f.getConfig()).thenReturn(config);
         return f;
     }

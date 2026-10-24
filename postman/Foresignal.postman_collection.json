@@ -3180,7 +3180,7 @@
                 }
               ]
             },
-            "description": "Precision with a Wilson interval (null when fewer than 5 labelled), time to ack and resolve, flapping, duplicates and severity distribution.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getTriggerQuality`",
+            "description": "Precision with a Wilson interval (null when fewer than 5 labeled), time to ack and resolve, flapping, duplicates and severity distribution.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getTriggerQuality`",
             "auth": {
               "type": "noauth"
             }
@@ -3830,7 +3830,7 @@
                 }
               ]
             },
-            "description": "Returns the top k past situations by fused feature and embedding similarity, excluding time overlap and the situation's own merges, with outcomes, the count found and, for `outcome`, a distribution shrunk toward the base rate. Without embeddings, feature similarity only (labelled).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSituationAnalogs`",
+            "description": "Returns the top k past situations by fused feature and embedding similarity, excluding time overlap and the situation's own merges, with outcomes, the count found and, for `outcome`, a distribution shrunk toward the base rate. Without embeddings, feature similarity only (labeled).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSituationAnalogs`",
             "auth": {
               "type": "noauth"
             }
@@ -5919,7 +5919,7 @@
               ],
               "query": []
             },
-            "description": "Retires a precursor with a reason, or pins it as operator-validated (`operatorValidated`, logged and labelled).\n\n**Scope:** `agent` or `admin`.\n\noperationId: `updatePrecursor`",
+            "description": "Retires a precursor with a reason, or pins it as operator-validated (`operatorValidated`, logged and labeled).\n\n**Scope:** `agent` or `admin`.\n\noperationId: `updatePrecursor`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -22219,7 +22219,7 @@
               ],
               "query": []
             },
-            "description": "Pre-registers, names and configures a first-class external forecaster (155) \u2014 a display name and a per-forecaster `externalMinResolved` \u2014 independent of the auto-derived `edp:{sourceId}/{streamId}` id, before any forecast arrives. An existing forecaster with that id is renamed and reconfigured in place (its type is kept).\n\n**Scope:** `admin`.\n\noperationId: `registerExternalForecaster`",
+            "description": "Pre-registers, names and configures a first-class external forecaster (155) \u2014 a display name and a per-forecaster `externalMinResolved` \u2014 independent of the auto-derived `edp:{sourceId}:{streamId}` id, before any forecast arrives. An existing forecaster with that id is renamed and reconfigured in place (its type is kept).\n\n**Scope:** `admin`.\n\noperationId: `registerExternalForecaster`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -22984,7 +22984,7 @@
                 }
               ]
             },
-            "description": "`date_bin` histogram over record versions (HEARTBEAT and KEYFRAME excluded unless `includeKeyframes`), optionally grouped and with alert counts. \u2264 1,000 buckets (400 TIMELINE_TOO_LARGE); 10 s timeout (503 QUERY_TIMEOUT). `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d, 14d, 30d giving at most 200 buckets; buckets start at `from` and every bucket in range is returned, empty ones included. Without `source` or `kind`, every source the caller may see is counted. `timeField=ingested` is translated to seq bounds through seq_clock. `retainedFrom` is the latest of now \u2212 window over the involved sources. Not the same as /v1/products/timeline (051).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getTimeline`",
+            "description": "`date_bin` histogram over record versions (HEARTBEAT and KEYFRAME excluded unless `includeKeyframes`), optionally grouped and with alert counts. \u2264 1,000 buckets (400 TIMELINE_TOO_LARGE); 10 s timeout (503 QUERY_TIMEOUT). A range whose raw read the hourly activity rollup estimates above 3,000,000 record versions (from the later of `from` and `retainedFrom`, for the involved sources and kinds) is refused up front with 422 TIMELINE_RANGE_UNSUPPORTED instead of running into the timeout; narrow the range, the sources or the kinds, or use getStatsTimeseries, which serves long ranges from the rollups. `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d, 14d, 30d giving at most 200 buckets; buckets start at `from` and every bucket in range is returned, empty ones included. Without `source` or `kind`, every source the caller may see is counted. `timeField=ingested` is translated to seq bounds through seq_clock. `retainedFrom` is the latest of now \u2212 window over the involved sources. Not the same as /v1/products/timeline (051).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getTimeline`",
             "auth": {
               "type": "noauth"
             }
@@ -23428,7 +23428,7 @@
               ],
               "query": []
             },
-            "description": "Records a revision with cause `review` (or `operator`) and a rationale, or confirms an analyst proposal. A review may change LRs, assumptions or probabilities directly; overrides above a speculative-link cap are logged and labelled.\n\n**Scope:** `agent`.\n\noperationId: `reviewHypothesisSet`",
+            "description": "Records a revision with cause `review` (or `operator`) and a rationale, or confirms an analyst proposal. A review may change LRs, assumptions or probabilities directly; overrides above a speculative-link cap are logged and labeled.\n\n**Scope:** `agent`.\n\noperationId: `reviewHypothesisSet`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -24138,7 +24138,7 @@
     },
     {
       "name": "Infrastructure",
-      "description": "Facility dependency graph from open data with labelled, evidenced edges and affected-dependents queries",
+      "description": "Facility dependency graph from open data with labeled, evidenced edges and affected-dependents queries",
       "item": [
         {
           "name": "List infrastructure nodes",
@@ -30322,7 +30322,7 @@
                 }
               ]
             },
-            "description": "Basemap-free server-rendered PNG: Natural Earth land, water and boundaries, product frames, alert geometry, place marker and range rings, scale bar, frame valid times (UTC plus the place's local time), legend, attribution and an \"Automated \u2014 not an official warning\" footer. The box is `bbox`, else `center` with `radiusKm` (default 50 km), else the alert's record geometry, else the place; it is snapped outwards to 0.01\u00b0 once and widened to the map area's aspect, and `Foresignal-Image-Bounds` gives the result. Missing or stale frames are drawn as a labelled note (\"\u2026 unavailable \u2014 not evidence of clear weather\"), never omitted; a concrete ISO time at which an enabled product has no frame is 404 UNKNOWN_FRAME. Nothing fetches third-party tiles (an operator's LAN tile server, `FORESIGNAL_MAPS_BASEMAP_URL_TEMPLATE`, may replace the Natural Earth fills). Immutable only when every frame is pinned: a concrete ISO `time`, complete current frames, a pinned run for forecasts, a versioned style for every product and no `place`; otherwise a short max-age with an ETag checked before rendering. Rendered on the render pool within 2 s, else 503 RENDER_BUSY.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getStaticMap`",
+            "description": "Basemap-free server-rendered PNG: Natural Earth land, water and boundaries, product frames, alert geometry, place marker and range rings, scale bar, frame valid times (UTC plus the place's local time), legend, attribution and an \"Automated \u2014 not an official warning\" footer. The box is `bbox`, else `center` with `radiusKm` (default 50 km), else the alert's record geometry, else the place; it is snapped outwards to 0.01\u00b0 once and widened to the map area's aspect, and `Foresignal-Image-Bounds` gives the result. Missing or stale frames are drawn as a labeled note (\"\u2026 unavailable \u2014 not evidence of clear weather\"), never omitted; a concrete ISO time at which an enabled product has no frame is 404 UNKNOWN_FRAME. Nothing fetches third-party tiles (an operator's LAN tile server, `FORESIGNAL_MAPS_BASEMAP_URL_TEMPLATE`, may replace the Natural Earth fills). Immutable only when every frame is pinned: a concrete ISO `time`, complete current frames, a pinned run for forecasts, a versioned style for every product and no `place`; otherwise a short max-age with an ETag checked before rendering. Rendered on the render pool within 2 s, else 503 RENDER_BUSY.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getStaticMap`",
             "auth": {
               "type": "noauth"
             }
@@ -33139,7 +33139,7 @@
               ],
               "query": []
             },
-            "description": "Adds an operator or agent relation (`provenance.operator`). `causes` is labelled at most `possible` unless the caller confirms as operator.\n\n**Scope:** `agent`.\n\noperationId: `createRelation`",
+            "description": "Adds an operator or agent relation (`provenance.operator`). `causes` is labeled at most `possible` unless the caller confirms as operator.\n\n**Scope:** `agent`.\n\noperationId: `createRelation`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -33477,7 +33477,7 @@
                 }
               ]
             },
-            "description": "For findings (by detector), intel events (by recipe), situations (linker) and precursor-active findings: the share confirmed among verdicts with a Wilson interval and counts; `needs-review` counts as unlabelled.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getPrecision`",
+            "description": "For findings (by detector), intel events (by recipe), situations (linker) and precursor-active findings: the share confirmed among verdicts with a Wilson interval and counts; `needs-review` counts as unlabeled.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getPrecision`",
             "auth": {
               "type": "noauth"
             }
@@ -39775,7 +39775,7 @@
               ],
               "query": []
             },
-            "description": "Builds a deterministic draft (templates `situation-brief`, `investigation-summary`, `chronicle-recap`, `weekly-assessment`, `custom`) from a selection, tag, investigation, chronicle, situation or workspace and stores it as a `draft`. `narrative=true` adds a labelled LLM narrative block via the 028 tool loop with verified citations; it needs agent scope and LLM budget (026 budgets; `LLM_NOT_CONFIGURED`).\n\n**Scope:** `read`.\n\noperationId: `draftReport`",
+            "description": "Builds a deterministic draft (templates `situation-brief`, `investigation-summary`, `chronicle-recap`, `weekly-assessment`, `custom`) from a selection, tag, investigation, chronicle, situation or workspace and stores it as a `draft`. `narrative=true` adds a labeled LLM narrative block via the 028 tool loop with verified citations; it needs agent scope and LLM budget (026 budgets; `LLM_NOT_CONFIGURED`).\n\n**Scope:** `read`.\n\noperationId: `draftReport`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -43923,7 +43923,7 @@
               ],
               "query": []
             },
-            "description": "Returns the situation evidence first (members grouped by signal family, corroboration roll-up), then inference (status, severity, deterministic summary), then the optional LLM brief labelled as speculation.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSituation`",
+            "description": "Returns the situation evidence first (members grouped by signal family, corroboration roll-up), then inference (status, severity, deterministic summary), then the optional LLM brief labeled as speculation.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getSituation`",
             "auth": {
               "type": "noauth"
             }

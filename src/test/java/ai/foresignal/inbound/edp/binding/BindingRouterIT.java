@@ -293,7 +293,7 @@ class BindingRouterIT {
                 .isEqualTo(HypothesisVocabulary.REPORTED);
 
         // forecast: the external forecaster, made_at never before receipt (EXT-3)
-        String forecaster = "edp:" + p.sourceId() + "/odds";
+        String forecaster = "edp:" + p.sourceId() + ":odds";
         assertThat(jdbc.queryForObject("select type from forecaster where id = ?", String.class, forecaster))
                 .isEqualTo("external");
         assertThat(jdbc.queryForObject("select count(*) from forecast where forecaster_id = ? and question_id = ?",

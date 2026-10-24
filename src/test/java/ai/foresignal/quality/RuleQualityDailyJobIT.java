@@ -137,6 +137,8 @@ class RuleQualityDailyJobIT {
         assertThat(daily.getFirst()).containsEntry("fired", 3).containsEntry("day", "2026-09-04");
         assertThat((Map<String, Object>) daily.getFirst().get("feedback")).containsEntry("useful", 1);
         assertThat(report.get("precision")).as("feedback precision is separate (fewer than five labels)").isNull();
+        // RuleQuality's keys are spelled in US English (they were the British forms before the cleanup pass).
+        assertThat(report).containsKeys("labeled", "labeledShare");
     }
 
     @Test

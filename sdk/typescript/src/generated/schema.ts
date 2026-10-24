@@ -3573,7 +3573,7 @@ export interface paths {
         };
         /**
          * Event-density timeline
-         * @description `date_bin` histogram over record versions (HEARTBEAT and KEYFRAME excluded unless `includeKeyframes`), optionally grouped and with alert counts. ≤ 1,000 buckets (400 TIMELINE_TOO_LARGE); 10 s timeout (503 QUERY_TIMEOUT). `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d, 14d, 30d giving at most 200 buckets; buckets start at `from` and every bucket in range is returned, empty ones included. Without `source` or `kind`, every source the caller may see is counted. `timeField=ingested` is translated to seq bounds through seq_clock. `retainedFrom` is the latest of now − window over the involved sources. Not the same as /v1/products/timeline (051).
+         * @description `date_bin` histogram over record versions (HEARTBEAT and KEYFRAME excluded unless `includeKeyframes`), optionally grouped and with alert counts. ≤ 1,000 buckets (400 TIMELINE_TOO_LARGE); 10 s timeout (503 QUERY_TIMEOUT). A range whose raw read the hourly activity rollup estimates above 3,000,000 record versions (from the later of `from` and `retainedFrom`, for the involved sources and kinds) is refused up front with 422 TIMELINE_RANGE_UNSUPPORTED instead of running into the timeout; narrow the range, the sources or the kinds, or use getStatsTimeseries, which serves long ranges from the rollups. `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d, 14d, 30d giving at most 200 buckets; buckets start at `from` and every bucket in range is returned, empty ones included. Without `source` or `kind`, every source the caller may see is counted. `timeField=ingested` is translated to seq bounds through seq_clock. `retainedFrom` is the latest of now − window over the involved sources. Not the same as /v1/products/timeline (051).
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
          */
@@ -4762,7 +4762,7 @@ export interface paths {
         };
         /**
          * Render a static map
-         * @description Basemap-free server-rendered PNG: Natural Earth land, water and boundaries, product frames, alert geometry, place marker and range rings, scale bar, frame valid times (UTC plus the place's local time), legend, attribution and an "Automated — not an official warning" footer. The box is `bbox`, else `center` with `radiusKm` (default 50 km), else the alert's record geometry, else the place; it is snapped outwards to 0.01° once and widened to the map area's aspect, and `Foresignal-Image-Bounds` gives the result. Missing or stale frames are drawn as a labelled note ("… unavailable — not evidence of clear weather"), never omitted; a concrete ISO time at which an enabled product has no frame is 404 UNKNOWN_FRAME. Nothing fetches third-party tiles (an operator's LAN tile server, `FORESIGNAL_MAPS_BASEMAP_URL_TEMPLATE`, may replace the Natural Earth fills). Immutable only when every frame is pinned: a concrete ISO `time`, complete current frames, a pinned run for forecasts, a versioned style for every product and no `place`; otherwise a short max-age with an ETag checked before rendering. Rendered on the render pool within 2 s, else 503 RENDER_BUSY.
+         * @description Basemap-free server-rendered PNG: Natural Earth land, water and boundaries, product frames, alert geometry, place marker and range rings, scale bar, frame valid times (UTC plus the place's local time), legend, attribution and an "Automated — not an official warning" footer. The box is `bbox`, else `center` with `radiusKm` (default 50 km), else the alert's record geometry, else the place; it is snapped outwards to 0.01° once and widened to the map area's aspect, and `Foresignal-Image-Bounds` gives the result. Missing or stale frames are drawn as a labeled note ("… unavailable — not evidence of clear weather"), never omitted; a concrete ISO time at which an enabled product has no frame is 404 UNKNOWN_FRAME. Nothing fetches third-party tiles (an operator's LAN tile server, `FORESIGNAL_MAPS_BASEMAP_URL_TEMPLATE`, may replace the Natural Earth fills). Immutable only when every frame is pinned: a concrete ISO `time`, complete current frames, a pinned run for forecasts, a versioned style for every product and no `place`; otherwise a short max-age with an ETag checked before rendering. Rendered on the render pool within 2 s, else 503 RENDER_BUSY.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
          */
@@ -6464,7 +6464,7 @@ export interface paths {
         };
         /**
          * Alert quality of a rule
-         * @description Precision with a Wilson interval (null when fewer than 5 labelled), time to ack and resolve, flapping, duplicates and severity distribution.
+         * @description Precision with a Wilson interval (null when fewer than 5 labeled), time to ack and resolve, flapping, duplicates and severity distribution.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
          */
@@ -9278,7 +9278,7 @@ export interface paths {
         };
         /**
          * Get a situation
-         * @description Returns the situation evidence first (members grouped by signal family, corroboration roll-up), then inference (status, severity, deterministic summary), then the optional LLM brief labelled as speculation.
+         * @description Returns the situation evidence first (members grouped by signal family, corroboration roll-up), then inference (status, severity, deterministic summary), then the optional LLM brief labeled as speculation.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
          */
@@ -9650,7 +9650,7 @@ export interface paths {
         head?: never;
         /**
          * Retire or pin a precursor
-         * @description Retires a precursor with a reason, or pins it as operator-validated (`operatorValidated`, logged and labelled).
+         * @description Retires a precursor with a reason, or pins it as operator-validated (`operatorValidated`, logged and labeled).
          *
          *     **Scope:** `agent` or `admin`.
          */
@@ -9960,7 +9960,7 @@ export interface paths {
         };
         /**
          * Find historical analogs of a situation
-         * @description Returns the top k past situations by fused feature and embedding similarity, excluding time overlap and the situation's own merges, with outcomes, the count found and, for `outcome`, a distribution shrunk toward the base rate. Without embeddings, feature similarity only (labelled).
+         * @description Returns the top k past situations by fused feature and embedding similarity, excluding time overlap and the situation's own merges, with outcomes, the count found and, for `outcome`, a distribution shrunk toward the base rate. Without embeddings, feature similarity only (labeled).
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
          */
@@ -10162,7 +10162,7 @@ export interface paths {
         put?: never;
         /**
          * Register an external forecaster
-         * @description Pre-registers, names and configures a first-class external forecaster (155) — a display name and a per-forecaster `externalMinResolved` — independent of the auto-derived `edp:{sourceId}/{streamId}` id, before any forecast arrives. An existing forecaster with that id is renamed and reconfigured in place (its type is kept).
+         * @description Pre-registers, names and configures a first-class external forecaster (155) — a display name and a per-forecaster `externalMinResolved` — independent of the auto-derived `edp:{sourceId}:{streamId}` id, before any forecast arrives. An existing forecaster with that id is renamed and reconfigured in place (its type is kept).
          *
          *     **Scope:** `admin`.
          */
@@ -10582,7 +10582,7 @@ export interface paths {
         put?: never;
         /**
          * Record a hypothesis set review
-         * @description Records a revision with cause `review` (or `operator`) and a rationale, or confirms an analyst proposal. A review may change LRs, assumptions or probabilities directly; overrides above a speculative-link cap are logged and labelled.
+         * @description Records a revision with cause `review` (or `operator`) and a rationale, or confirms an analyst proposal. A review may change LRs, assumptions or probabilities directly; overrides above a speculative-link cap are logged and labeled.
          *
          *     **Scope:** `agent`.
          */
@@ -11580,7 +11580,7 @@ export interface paths {
         put?: never;
         /**
          * Add an operator relation
-         * @description Adds an operator or agent relation (`provenance.operator`). `causes` is labelled at most `possible` unless the caller confirms as operator.
+         * @description Adds an operator or agent relation (`provenance.operator`). `causes` is labeled at most `possible` unless the caller confirms as operator.
          *
          *     **Scope:** `agent`.
          */
@@ -11678,7 +11678,7 @@ export interface paths {
         };
         /**
          * Get precision from analyst verdicts
-         * @description For findings (by detector), intel events (by recipe), situations (linker) and precursor-active findings: the share confirmed among verdicts with a Wilson interval and counts; `needs-review` counts as unlabelled.
+         * @description For findings (by detector), intel events (by recipe), situations (linker) and precursor-active findings: the share confirmed among verdicts with a Wilson interval and counts; `needs-review` counts as unlabeled.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
          */
@@ -13442,7 +13442,7 @@ export interface paths {
         put?: never;
         /**
          * Draft a report from a source
-         * @description Builds a deterministic draft (templates `situation-brief`, `investigation-summary`, `chronicle-recap`, `weekly-assessment`, `custom`) from a selection, tag, investigation, chronicle, situation or workspace and stores it as a `draft`. `narrative=true` adds a labelled LLM narrative block via the 028 tool loop with verified citations; it needs agent scope and LLM budget (026 budgets; `LLM_NOT_CONFIGURED`).
+         * @description Builds a deterministic draft (templates `situation-brief`, `investigation-summary`, `chronicle-recap`, `weekly-assessment`, `custom`) from a selection, tag, investigation, chronicle, situation or workspace and stores it as a `draft`. `narrative=true` adds a labeled LLM narrative block via the 028 tool loop with verified citations; it needs agent scope and LLM budget (026 budgets; `LLM_NOT_CONFIGURED`).
          *
          *     **Scope:** `read`.
          */
@@ -19293,8 +19293,57 @@ export interface components {
              * @description Notification id
              */
             id: number;
+            /** @description Grows as the server adds events: a client must accept a value not listed here. */
+            event: string;
             /**
-             * @description Grows as the server adds events: a receiver must accept a value not listed here. Kept as `enum`, not `x-extensible-enum`, because this schema is also the `notification` webhook's payload, which the compatibility check cannot mark extensible.
+             * @description e.g. alert.fired, alert.acknowledged, alert.snoozed, alert.resolved, alert.digest (a quiet-hours, pause, backlog or grouping digest), system.source_failing, system.rule_storm, system.delivery_failed, system.push_provider_failed (032), briefing.run (029)
+             * @example alert.fired
+             */
+            subtype: string;
+            title: string;
+            /** @description ≤ 40 chars, for watches, mesh and push */
+            shortTitle?: string | null;
+            /** @description Foresignal markdown subset */
+            bodyMarkdown?: string | null;
+            /** @enum {string} */
+            severity: "info" | "warning" | "critical";
+            /**
+             * Format: uri
+             * @description API link, e.g. `{publicBaseUrl}/v1/alerts/{id}`
+             */
+            url?: string | null;
+            links?: components["schemas"]["NotificationLink"][];
+            /** @description Full event data (alert or briefing-run JSON). Alert data carries `context` (056): the computed alert context with `context.weather` (`WeatherContext`, its `summary` sentence and sections) when the alert has one */
+            data?: {
+                [key: string]: unknown;
+            } | null;
+            tags?: string[];
+            /** @description Image attachments as media references (filled by 055) */
+            attachments?: components["schemas"]["Attachment"][];
+            /**
+             * Format: int64
+             * @description Notification this one updates (lifecycle updates)
+             */
+            updateOf?: number | null;
+            /** @description Install id of the sending instance (loop guard) */
+            origin?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /**
+             * @description Title prefixed [EXERCISE] and exercise footer appended
+             * @default false
+             */
+            exercise: boolean;
+        };
+        /** @description The notification as the `notification` webhook delivers it (`WebhookEnvelope.message`): the same members as NotificationMessage, kept as its own schema so its `event` list stays `enum` (the compatibility check cannot mark a webhook payload's list extensible) while the event stream's is `x-extensible-enum`. */
+        NotificationWebhookMessage: {
+            /**
+             * Format: int64
+             * @description Notification id
+             */
+            id: number;
+            /**
+             * @description Grows as the server adds events: a receiver must accept a value not listed here. Kept as `enum` because this is the `notification` webhook's payload, which the compatibility check cannot mark extensible.
              * @enum {string}
              */
             event: "alert" | "briefing" | "system" | "chronicle.proposed" | "chronicle.cap_warning" | "chronicle.gap" | "social.divergence" | "social.attention_gap" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolved" | "forecast.resolution_needed" | "hypothesis.band_changed" | "indicator.observed" | "assumption.broken" | "assessment.published" | "mention" | "share" | "report.received" | "package.received" | "chronicle.access.requested" | "saved-search.matches" | "test" | "personal";
@@ -19393,7 +19442,7 @@ export interface components {
             event: "alert" | "briefing" | "system" | "chronicle.proposed" | "chronicle.cap_warning" | "chronicle.gap" | "social.divergence" | "social.attention_gap" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolved" | "forecast.resolution_needed" | "hypothesis.band_changed" | "indicator.observed" | "assumption.broken" | "assessment.published" | "mention" | "share" | "report.received" | "package.received" | "chronicle.access.requested" | "saved-search.matches" | "test" | "personal";
             /** @example alert.fired */
             subtype: string;
-            message: components["schemas"]["NotificationMessage"];
+            message: components["schemas"]["NotificationWebhookMessage"];
             data?: {
                 [key: string]: unknown;
             } | null;
@@ -24418,7 +24467,7 @@ export interface components {
             /** @enum {string} */
             status: "new" | "read" | "dismissed";
             model?: string | null;
-            /** @example Automated analysis by <model>. Evidence is cited; inference and speculation are labelled. Verify before acting. */
+            /** @example Automated analysis by <model>. Evidence is cited; inference and speculation are labeled. Verify before acting. */
             footer?: string;
             /** Format: date-time */
             createdAt: string;
@@ -26179,7 +26228,7 @@ export interface components {
                 /** @description Deterministic templated text citing members */
                 explanation: string;
             };
-            /** @description Alternatives and any LLM narrative, always labelled */
+            /** @description Alternatives and any LLM narrative, always labeled */
             speculation: {
                 /** @constant */
                 label: "speculation";
@@ -26982,12 +27031,12 @@ export interface components {
             /** Format: date-time */
             since: string;
             alerts: number;
-            labelled: number;
-            labelledShare?: number;
+            labeled: number;
+            labeledShare?: number;
             positive: number;
             negative: number;
             neutral: number;
-            /** @description positive ÷ (positive + negative); null when labelled < 5 */
+            /** @description positive ÷ (positive + negative); null when labeled < 5 */
             precision?: number | null;
             precisionCi?: {
                 lower?: number;
@@ -29608,7 +29657,7 @@ export interface components {
             /** @description Cursor for the next page; null on the last page */
             nextCursor?: string | null;
         };
-        /** @description A persistent storyline: evidence (members), inference (status, severity, summary) and labelled speculation (brief) */
+        /** @description A persistent storyline: evidence (members), inference (status, severity, summary) and labeled speculation (brief) */
         Situation: {
             id: components["schemas"]["Ulid"];
             title: string;
@@ -29699,7 +29748,7 @@ export interface components {
                 linker?: components["schemas"]["DetectorRef"];
                 manifestId?: components["schemas"]["Ulid"] | null;
             };
-            /** @description Optional LLM brief, labelled speculation-capable narrative; never changes members, status or severity */
+            /** @description Optional LLM brief, labeled speculation-capable narrative; never changes members, status or severity */
             speculation: {
                 /** @constant */
                 label: "speculation";
@@ -30308,7 +30357,7 @@ export interface components {
             /** @enum {string} */
             status: "candidate" | "validated" | "stale" | "retired";
             statusReason?: string | null;
-            /** @description Pinned as validated by an operator (logged and labelled) */
+            /** @description Pinned as validated by an operator (logged and labeled) */
             operatorValidated?: boolean;
             detector: components["schemas"]["DetectorRef"];
             /** Format: date-time */
@@ -31094,9 +31143,9 @@ export interface components {
             /** @description Optional display name; set for a first-class external forecaster (155). */
             name?: string;
         };
-        /** @description Pre-registers, names and configures a first-class external forecaster (155), independent of the auto-derived edp:{sourceId}/{streamId} id. */
+        /** @description Pre-registers, names and configures a first-class external forecaster (155), independent of the auto-derived edp:{sourceId}:{streamId} id. */
         ExternalForecasterRegistration: {
-            /** @description Forecaster id, conventionally edp:{sourceId}/{streamId}. */
+            /** @description Forecaster id, conventionally edp:{sourceId}:{streamId}. */
             id: string;
             /** @description Optional display name (defaults to the id). */
             name?: string;
@@ -31107,7 +31156,7 @@ export interface components {
         };
         /** @description Requests an on-demand forecast of a ledger question from an external forecaster (155). */
         AnalysisRequestSubmission: {
-            /** @description The external forecaster id, edp:{sourceId}/{streamId}. */
+            /** @description The external forecaster id, edp:{sourceId}:{streamId}. */
             forecasterId: string;
             /** @description The ledger question to forecast; must be open. */
             questionId: string;
@@ -31862,7 +31911,7 @@ export interface components {
                 probability: components["schemas"]["Probability"];
                 rationale: string;
                 /**
-                 * @description Allow a speculative link above its cap (logged and labelled)
+                 * @description Allow a speculative link above its cap (logged and labeled)
                  * @default false
                  */
                 exceedCap: boolean;
@@ -33325,7 +33374,7 @@ export interface components {
             }[];
             citations?: components["schemas"]["ObjectRef"][];
             lintWarnings?: string[];
-            /** @default Automated analysis. Probabilities use ICD 203 terms; evidence is cited; speculation is labelled. Verify before acting. */
+            /** @default Automated analysis. Probabilities use ICD 203 terms; evidence is cited; speculation is labeled. Verify before acting. */
             footer: string;
             private: boolean;
             /** Format: date-time */
@@ -33925,9 +33974,9 @@ export interface components {
                 confirmed: number;
                 rejected: number;
                 duplicate?: number;
-                /** @description Counted as unlabelled */
+                /** @description Counted as unlabeled */
                 needsReview?: number;
-                labelled: number;
+                labeled: number;
                 precision?: number | null;
                 interval?: {
                     lo: number;
@@ -35759,7 +35808,7 @@ export interface components {
             type: "markdown" | "bluf" | "objects" | "map" | "timeline" | "hypotheses" | "forecasts" | "evidence" | "coverage" | "attachments" | "sources";
             title?: string | null;
             /**
-             * @description `llm` blocks are labelled narrative from the optional 028 tool loop
+             * @description `llm` blocks are labeled narrative from the optional 028 tool loop
              * @enum {string}
              */
             textOrigin?: "author" | "deterministic" | "llm";
@@ -35946,7 +35995,7 @@ export interface components {
             timeWindow?: components["schemas"]["TimeRange"] | null;
             area?: components["schemas"]["Geometry"] | null;
             /**
-             * @description Add a labelled LLM narrative block (agent scope, budgeted)
+             * @description Add a labeled LLM narrative block (agent scope, budgeted)
              * @default false
              */
             narrative: boolean;
@@ -38932,7 +38981,7 @@ export interface components {
         ExternalQuestionLink: components["schemas"]["ExternalQuestionLinkInput"] & {
             id: components["schemas"]["Ulid"];
             sourceId: string;
-            /** @example edp:ext-markets/kalshi */
+            /** @example edp:ext-markets:kalshi */
             forecasterId: string;
             /** Format: date-time */
             createdAt: string;
@@ -51874,6 +51923,15 @@ export interface operations {
             };
             /** @description Unknown source, or a private source the caller may not see */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The raw read would cover more record versions than one request can count within the timeout, by the hourly rollup's estimate (TIMELINE_RANGE_UNSUPPORTED; `estimatedVersions` and `maxVersions` in the problem) */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

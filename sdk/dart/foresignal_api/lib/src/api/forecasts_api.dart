@@ -1202,7 +1202,7 @@ _responseData = rawData == null ? null : deserialize<EnsembleRefitResult, Ensemb
   }
 
   /// Register an external forecaster
-  /// Pre-registers, names and configures a first-class external forecaster (155) — a display name and a per-forecaster &#x60;externalMinResolved&#x60; — independent of the auto-derived &#x60;edp:{sourceId}/{streamId}&#x60; id, before any forecast arrives. An existing forecaster with that id is renamed and reconfigured in place (its type is kept).  **Scope:** &#x60;admin&#x60;.
+  /// Pre-registers, names and configures a first-class external forecaster (155) — a display name and a per-forecaster &#x60;externalMinResolved&#x60; — independent of the auto-derived &#x60;edp:{sourceId}:{streamId}&#x60; id, before any forecast arrives. An existing forecaster with that id is renamed and reconfigured in place (its type is kept).  **Scope:** &#x60;admin&#x60;.
   ///
   /// Parameters:
   /// * [externalForecasterRegistration] 

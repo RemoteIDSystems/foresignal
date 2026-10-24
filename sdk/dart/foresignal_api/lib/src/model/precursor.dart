@@ -396,7 +396,7 @@ class Precursor {
 
 
 
-      /// Pinned as validated by an operator (logged and labelled)
+      /// Pinned as validated by an operator (logged and labeled)
   @JsonKey(
     
     name: r'operatorValidated',

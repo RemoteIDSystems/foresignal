@@ -77,7 +77,7 @@ class Precursor:
         last_retest (None | PrecursorWindowStats | Unset): Statistics of the latest monthly re-test window (newest third
             of the range), or null before the first re-test
         status_reason (None | str | Unset):
-        operator_validated (bool | Unset): Pinned as validated by an operator (logged and labelled)
+        operator_validated (bool | Unset): Pinned as validated by an operator (logged and labeled)
         first_validated_at (datetime.datetime | None | Unset):
         last_tested_at (datetime.datetime | None | Unset):
         history (list[PrecursorHistoryItem] | Unset): Status changes, oldest first (who, when, from, to, why); operator

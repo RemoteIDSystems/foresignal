@@ -1512,7 +1512,7 @@ _responseData = rawData == null ? null : deserialize<ReferenceImport, ReferenceI
   }
 
   /// Find historical analogs of a situation
-  /// Returns the top k past situations by fused feature and embedding similarity, excluding time overlap and the situation&#39;s own merges, with outcomes, the count found and, for &#x60;outcome&#x60;, a distribution shrunk toward the base rate. Without embeddings, feature similarity only (labelled).  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// Returns the top k past situations by fused feature and embedding similarity, excluding time overlap and the situation&#39;s own merges, with outcomes, the count found and, for &#x60;outcome&#x60;, a distribution shrunk toward the base rate. Without embeddings, feature similarity only (labeled).  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
   ///
   /// Parameters:
   /// * [situationId] - Situation id
@@ -1600,7 +1600,7 @@ _responseData = rawData == null ? null : deserialize<AnalogResult, AnalogResult>
   }
 
   /// Alert quality of a rule
-  /// Precision with a Wilson interval (null when fewer than 5 labelled), time to ack and resolve, flapping, duplicates and severity distribution.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// Precision with a Wilson interval (null when fewer than 5 labeled), time to ack and resolve, flapping, duplicates and severity distribution.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
   ///
   /// Parameters:
   /// * [ruleId] - Trigger rule id

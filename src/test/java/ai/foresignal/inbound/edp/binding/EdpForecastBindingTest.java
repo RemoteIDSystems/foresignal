@@ -41,7 +41,7 @@ class EdpForecastBindingTest {
 
     private static final Instant NOW = BindingFixtures.RECEIVED.plusSeconds(30);
     private static final String QUESTION = "01JA8Q3V7S2K9W4T6Y1B5N0M3Q";
-    private static final String FORECASTER = "edp:" + BindingFixtures.SOURCE + "/odds";
+    private static final String FORECASTER = "edp:" + BindingFixtures.SOURCE + ":odds";
 
     // ------------------------------------------------------------------------- policy
 
@@ -231,7 +231,7 @@ class EdpForecastBindingTest {
         assertThat(counter.handles(FORECASTER)).isTrue();
         assertThat(counter.handles("operator:admin")).isFalse();
         assertThat(counter.handles(null)).isFalse();
-        assertThat(BindingVocabulary.forecasterId("ext-markets", "kalshi")).isEqualTo("edp:ext-markets/kalshi");
+        assertThat(BindingVocabulary.forecasterId("ext-markets", "kalshi")).isEqualTo("edp:ext-markets:kalshi");
     }
 
     /** Five required quantiles. */

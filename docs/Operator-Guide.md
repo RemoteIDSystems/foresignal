@@ -2477,7 +2477,7 @@ POST /v1/external/sources/ext-oref-sirens/bindings
 ```
 
 **`forecast`** (forecast streams): forecast items become forecasts of the external forecaster
-`edp:{sourceId}/{streamId}` (type `external`, registered on first use) on ledger questions, scored like every
+`edp:{sourceId}:{streamId}` (type `external`, registered on first use) on ledger questions, scored like every
 forecaster. An item with `questionRef` names its ledger question directly; an item with `question.externalId` needs a
 **question link** (below). A forecast is recorded on the first item for a question, on a material move (a probability
 change of at least 0.02, or a quantile moving by at least 2% of the previous 5–95% range), and otherwise at least

@@ -44,7 +44,7 @@ class IntelligenceEvent:
             updated_at (datetime.datetime):
             evidence (IntelligenceEventEvidence): Observed members
             inference (IntelligenceEventInference): What the detector derived
-            speculation (IntelligenceEventSpeculation): Alternatives and any LLM narrative, always labelled
+            speculation (IntelligenceEventSpeculation): Alternatives and any LLM narrative, always labeled
             severity_overridden (bool | Unset): True when an operator override sets the severity; `severity: null` in
                 `IntelEventPatch` clears it and restores the computed severity
             private (bool | Unset): True when any member comes from a private source

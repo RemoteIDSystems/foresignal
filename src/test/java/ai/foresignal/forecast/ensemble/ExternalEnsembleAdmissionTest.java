@@ -35,7 +35,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 class ExternalEnsembleAdmissionTest {
 
     private static final Instant NOW = Instant.parse("2026-10-18T06:00:00Z");
-    private static final String EDP = "edp:ext-markets/kalshi";
+    private static final String EDP = "edp:ext-markets:kalshi";
 
     /** The members of one question with one external forecast, given the linked count. */
     @SuppressWarnings("unchecked")

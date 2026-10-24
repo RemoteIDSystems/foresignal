@@ -1,7 +1,7 @@
 from enum import StrEnum
 
 
-class NotificationMessageEvent(StrEnum):
+class NotificationWebhookMessageEvent(StrEnum):
     ALERT = "alert"
     ANALYST_NOTE = "analyst.note"
     ASSESSMENT_PUBLISHED = "assessment.published"

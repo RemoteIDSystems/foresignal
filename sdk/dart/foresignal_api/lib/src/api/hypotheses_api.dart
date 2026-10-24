@@ -1366,7 +1366,7 @@ _responseData = rawData == null ? null : deserialize<Indicator, Indicator>(rawDa
   }
 
   /// Record a hypothesis set review
-  /// Records a revision with cause &#x60;review&#x60; (or &#x60;operator&#x60;) and a rationale, or confirms an analyst proposal. A review may change LRs, assumptions or probabilities directly; overrides above a speculative-link cap are logged and labelled.  **Scope:** &#x60;agent&#x60;.
+  /// Records a revision with cause &#x60;review&#x60; (or &#x60;operator&#x60;) and a rationale, or confirms an analyst proposal. A review may change LRs, assumptions or probabilities directly; overrides above a speculative-link cap are logged and labeled.  **Scope:** &#x60;agent&#x60;.
   ///
   /// Parameters:
   /// * [setId] - Hypothesis set id

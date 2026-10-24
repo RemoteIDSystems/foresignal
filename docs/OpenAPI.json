@@ -687,6 +687,11 @@
         "version": "1.3.0",
         "date": "2026-10-23",
         "note": "Contract reconciliation from a live check of the admin client (additive): ServerSettings.publicBaseUrl is nullable (null uses the request's own address, as implemented since 018). ChannelType.events lists every Channel.events value. Channel.events gains `personal` (a principal's personal channel, prompt 130; never accepted by createChannel or updateChannel). The nine personal-notice events in Channel.events (mention, share, report.received, package.received, chronicle.proposed, chronicle.cap_warning, chronicle.gap, chronicle.access.requested, saved-search.matches) are now implemented on instance channels: each notice is copied, once per addressee, to enabled instance channels subscribed to it, and never to the device inbox or the instance SSE topics. Notification.event and listNotifications `events` list the ten inbox events. NotificationMessage.event, WebhookEnvelope.event and the notification webhook's X-Foresignal-Event list every channel event plus `test` and `personal`. NotificationDelivery.event gains `personal`. Server conformance (no contract change): Attribution.requiredDisplay is now sent on every record-page attribution, and IntelEventMember.id is sent as a string. Record.attribution, SourceHealth.statusReason, SourceDescriptor.defaultInterval and minInterval, CorrelationRecipe.params and CorrelationRecipeUpdate.params are nullable, as served (no attribution line; healthy; not polled; no overrides, or null to remove them). The full IntelligenceEvent (getIntelEvent) now sends createdAt, context as an object, inference.rawConfidence, confidenceMethod, calibrated, evidenceQuality, lastEvidenceAt, centroid, regionTags and explanation, inference.geometry and centroid as GeoJSON (the geometry was WKT text), evidence.signalFamilies, and speculation.label and narrativeOrigin. Alert list items keep `context.weather.status` beside `summary`, as `WeatherContext` requires it. IntelligenceEvent.severityOverridden is described; the server now returns it and honors `severity: null`. getAttributions honors repeated/comma-separated `source` and `kind`, the license policy and token restrictions, and sends `Foresignal-Attribution` and `Link` as documented. listIntelEvents `type`/`status` and removeGroupMembers `principalId` take arrays as documented. SourceSettings.reliability is returned. LeadTimeStats.trainingCutoff is null until there is a comparison to set it, instead of the epoch. listPromptTemplates (GET /v1/prompt-templates, read) lists the bundled templates with their roles and versions, so a client can discover the ids getPromptTemplate takes. `edpProviderSearch` is implemented: cues call each provider's `transport.search` and report the outcome in `SocialCue.externalResults` (additive). The `workspace.context` and `workspace.presence` stream events carry no id, as the server sends them. `Budget.monthlyCapUsd` is enforced: set per source with `updateSource`, reported in `SourceHealth.budget`, and a source that reaches it is refused until the next UTC month. The value lists that grow as the server adds features are declared with `x-extensible-enum` instead of `enum`, so a new value is additive: the notification and channel event names (ChannelType.events, Channel.events, Notification.event, NotificationDelivery.event), Entity.type, EntityKey.keyType, EntityLink.keyType, Relation.type, CommonDependencies relationTypes, Forecast.forecasterType, Forecaster.type and ScorecardEntry.forecasterType. The values are unchanged; a client must accept one it does not know. NotificationMessage.event and WebhookEnvelope.event, the `notification` webhook's payload, keep `enum` and say in their descriptions that the list grows. getStatsTimeseries gains 422 STATS_MEASURE_UNSUPPORTED: `measure=entities` with `bucket=1d` over a day the daily rollup does not hold yet is refused up front instead of timing out (503 QUERY_TIMEOUT) on raw history. CoordinationIndicators come from `CoordinationDetector` 1.1.0: the synchrony null shifts each author's posts by one random offset within the window instead of shuffling post times among the posts, which could not detect a coordinated cluster that made up most of a narrative (no schema change). Report.machineGenerated and the rendition footer no longer count the deterministic sources block the publisher appends to every revision, so a hand-written report is not machine-generated (no schema change)."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-24",
+        "note": "Cleanup pass. getTimeline gains 422 TIMELINE_RANGE_UNSUPPORTED: a range whose raw read the hourly activity rollup estimates above 1,000,000 record versions (200,000 with timeField=ingested) is refused up front instead of running into the 10 s timeout (503 QUERY_TIMEOUT); the problem carries estimatedVersions and maxVersions. External forecaster ids are edp:{sourceId}:{streamId} (were edp:{sourceId}/{streamId}), one path segment matching the Forecaster id pattern, so updateForecaster can address them; registerExternalForecaster now enforces that pattern, and migration V12 rewrites stored ids. US English on the wire (breaking, accepted before release with no external consumers): RuleQuality.labelled and labelledShare are labeled and labeledShare, Precision components[].labelled is labeled, and the assessment and analyst-note footers say “speculation is labeled” / “are labeled”. NotificationMessage.event is x-extensible-enum; the notification webhook's payload is the new NotificationWebhookMessage (the same members, its event list still enum), so WebhookEnvelope.message refers to it; neither change alters what the server sends."
       }
     ]
   },
@@ -823,7 +828,7 @@
     },
     {
       "name": "Infrastructure",
-      "description": "Facility dependency graph from open data with labelled, evidenced edges and affected-dependents queries"
+      "description": "Facility dependency graph from open data with labeled, evidenced edges and affected-dependents queries"
     },
     {
       "name": "Ingest",
@@ -23791,7 +23796,7 @@
         ],
         "operationId": "getTimeline",
         "summary": "Event-density timeline",
-        "description": "`date_bin` histogram over record versions (HEARTBEAT and KEYFRAME excluded unless `includeKeyframes`), optionally grouped and with alert counts. ≤ 1,000 buckets (400 TIMELINE_TOO_LARGE); 10 s timeout (503 QUERY_TIMEOUT). `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d, 14d, 30d giving at most 200 buckets; buckets start at `from` and every bucket in range is returned, empty ones included. Without `source` or `kind`, every source the caller may see is counted. `timeField=ingested` is translated to seq bounds through seq_clock. `retainedFrom` is the latest of now − window over the involved sources. Not the same as /v1/products/timeline (051).\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "`date_bin` histogram over record versions (HEARTBEAT and KEYFRAME excluded unless `includeKeyframes`), optionally grouped and with alert counts. ≤ 1,000 buckets (400 TIMELINE_TOO_LARGE); 10 s timeout (503 QUERY_TIMEOUT). A range whose raw read the hourly activity rollup estimates above 1,000,000 record versions (200,000 with `timeField=ingested`, which counts far slower), from the later of `from` and `retainedFrom` for the involved sources and kinds, is refused up front with 422 TIMELINE_RANGE_UNSUPPORTED instead of running into the timeout; narrow the range, the sources or the kinds, or use getStatsTimeseries, which serves long ranges from the rollups. `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d, 14d, 30d giving at most 200 buckets; buckets start at `from` and every bucket in range is returned, empty ones included. Without `source` or `kind`, every source the caller may see is counted. `timeField=ingested` is translated to seq bounds through seq_clock. `retainedFrom` is the latest of now − window over the involved sources. Not the same as /v1/products/timeline (051).\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "source",
@@ -23956,6 +23961,16 @@
           },
           "400": {
             "description": "Validation failed (TIMELINE_TOO_LARGE; VALIDATION_FAILED for a bad window or bucket)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The raw read would cover more record versions than one request can count within the timeout, by the hourly rollup's estimate (TIMELINE_RANGE_UNSUPPORTED; `estimatedVersions` and `maxVersions` in the problem)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -31986,7 +32001,7 @@
         ],
         "operationId": "getStaticMap",
         "summary": "Render a static map",
-        "description": "Basemap-free server-rendered PNG: Natural Earth land, water and boundaries, product frames, alert geometry, place marker and range rings, scale bar, frame valid times (UTC plus the place's local time), legend, attribution and an \"Automated — not an official warning\" footer. The box is `bbox`, else `center` with `radiusKm` (default 50 km), else the alert's record geometry, else the place; it is snapped outwards to 0.01° once and widened to the map area's aspect, and `Foresignal-Image-Bounds` gives the result. Missing or stale frames are drawn as a labelled note (\"… unavailable — not evidence of clear weather\"), never omitted; a concrete ISO time at which an enabled product has no frame is 404 UNKNOWN_FRAME. Nothing fetches third-party tiles (an operator's LAN tile server, `FORESIGNAL_MAPS_BASEMAP_URL_TEMPLATE`, may replace the Natural Earth fills). Immutable only when every frame is pinned: a concrete ISO `time`, complete current frames, a pinned run for forecasts, a versioned style for every product and no `place`; otherwise a short max-age with an ETag checked before rendering. Rendered on the render pool within 2 s, else 503 RENDER_BUSY.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Basemap-free server-rendered PNG: Natural Earth land, water and boundaries, product frames, alert geometry, place marker and range rings, scale bar, frame valid times (UTC plus the place's local time), legend, attribution and an \"Automated — not an official warning\" footer. The box is `bbox`, else `center` with `radiusKm` (default 50 km), else the alert's record geometry, else the place; it is snapped outwards to 0.01° once and widened to the map area's aspect, and `Foresignal-Image-Bounds` gives the result. Missing or stale frames are drawn as a labeled note (\"… unavailable — not evidence of clear weather\"), never omitted; a concrete ISO time at which an enabled product has no frame is 404 UNKNOWN_FRAME. Nothing fetches third-party tiles (an operator's LAN tile server, `FORESIGNAL_MAPS_BASEMAP_URL_TEMPLATE`, may replace the Natural Earth fills). Immutable only when every frame is pinned: a concrete ISO `time`, complete current frames, a pinned run for forecasts, a versioned style for every product and no `place`; otherwise a short max-age with an ETag checked before rendering. Rendered on the render pool within 2 s, else 503 RENDER_BUSY.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "products",
@@ -40860,7 +40875,7 @@
         ],
         "operationId": "getTriggerQuality",
         "summary": "Alert quality of a rule",
-        "description": "Precision with a Wilson interval (null when fewer than 5 labelled), time to ack and resolve, flapping, duplicates and severity distribution.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Precision with a Wilson interval (null when fewer than 5 labeled), time to ack and resolve, flapping, duplicates and severity distribution.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "ruleId",
@@ -55575,7 +55590,7 @@
         ],
         "operationId": "getSituation",
         "summary": "Get a situation",
-        "description": "Returns the situation evidence first (members grouped by signal family, corroboration roll-up), then inference (status, severity, deterministic summary), then the optional LLM brief labelled as speculation.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Returns the situation evidence first (members grouped by signal family, corroboration roll-up), then inference (status, severity, deterministic summary), then the optional LLM brief labeled as speculation.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "situationId",
@@ -57786,7 +57801,7 @@
         ],
         "operationId": "updatePrecursor",
         "summary": "Retire or pin a precursor",
-        "description": "Retires a precursor with a reason, or pins it as operator-validated (`operatorValidated`, logged and labelled).\n\n**Scope:** `agent` or `admin`.",
+        "description": "Retires a precursor with a reason, or pins it as operator-validated (`operatorValidated`, logged and labeled).\n\n**Scope:** `agent` or `admin`.",
         "parameters": [
           {
             "name": "precursorId",
@@ -59154,7 +59169,7 @@
         ],
         "operationId": "getSituationAnalogs",
         "summary": "Find historical analogs of a situation",
-        "description": "Returns the top k past situations by fused feature and embedding similarity, excluding time overlap and the situation's own merges, with outcomes, the count found and, for `outcome`, a distribution shrunk toward the base rate. Without embeddings, feature similarity only (labelled).\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Returns the top k past situations by fused feature and embedding similarity, excluding time overlap and the situation's own merges, with outcomes, the count found and, for `outcome`, a distribution shrunk toward the base rate. Without embeddings, feature similarity only (labeled).\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "situationId",
@@ -60429,7 +60444,7 @@
         ],
         "operationId": "registerExternalForecaster",
         "summary": "Register an external forecaster",
-        "description": "Pre-registers, names and configures a first-class external forecaster (155) — a display name and a per-forecaster `externalMinResolved` — independent of the auto-derived `edp:{sourceId}/{streamId}` id, before any forecast arrives. An existing forecaster with that id is renamed and reconfigured in place (its type is kept).\n\n**Scope:** `admin`.",
+        "description": "Pre-registers, names and configures a first-class external forecaster (155) — a display name and a per-forecaster `externalMinResolved` — independent of the auto-derived `edp:{sourceId}:{streamId}` id, before any forecast arrives. An existing forecaster with that id is renamed and reconfigured in place (its type is kept).\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -62397,7 +62412,7 @@
         ],
         "operationId": "reviewHypothesisSet",
         "summary": "Record a hypothesis set review",
-        "description": "Records a revision with cause `review` (or `operator`) and a rationale, or confirms an analyst proposal. A review may change LRs, assumptions or probabilities directly; overrides above a speculative-link cap are logged and labelled.\n\n**Scope:** `agent`.",
+        "description": "Records a revision with cause `review` (or `operator`) and a rationale, or confirms an analyst proposal. A review may change LRs, assumptions or probabilities directly; overrides above a speculative-link cap are logged and labeled.\n\n**Scope:** `agent`.",
         "parameters": [
           {
             "name": "setId",
@@ -67148,7 +67163,7 @@
         ],
         "operationId": "createRelation",
         "summary": "Add an operator relation",
-        "description": "Adds an operator or agent relation (`provenance.operator`). `causes` is labelled at most `possible` unless the caller confirms as operator.\n\n**Scope:** `agent`.",
+        "description": "Adds an operator or agent relation (`provenance.operator`). `causes` is labeled at most `possible` unless the caller confirms as operator.\n\n**Scope:** `agent`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -67757,7 +67772,7 @@
         ],
         "operationId": "getPrecision",
         "summary": "Get precision from analyst verdicts",
-        "description": "For findings (by detector), intel events (by recipe), situations (linker) and precursor-active findings: the share confirmed among verdicts with a Wilson interval and counts; `needs-review` counts as unlabelled.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "For findings (by detector), intel events (by recipe), situations (linker) and precursor-active findings: the share confirmed among verdicts with a Wilson interval and counts; `needs-review` counts as unlabeled.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "component",
@@ -77306,7 +77321,7 @@
         ],
         "operationId": "draftReport",
         "summary": "Draft a report from a source",
-        "description": "Builds a deterministic draft (templates `situation-brief`, `investigation-summary`, `chronicle-recap`, `weekly-assessment`, `custom`) from a selection, tag, investigation, chronicle, situation or workspace and stores it as a `draft`. `narrative=true` adds a labelled LLM narrative block via the 028 tool loop with verified citations; it needs agent scope and LLM budget (026 budgets; `LLM_NOT_CONFIGURED`).\n\n**Scope:** `read`.",
+        "description": "Builds a deterministic draft (templates `situation-brief`, `investigation-summary`, `chronicle-recap`, `weekly-assessment`, `custom`) from a selection, tag, investigation, chronicle, situation or workspace and stores it as a `draft`. `narrative=true` adds a labeled LLM narrative block via the 028 tool loop with verified citations; it needs agent scope and LLM budget (026 budgets; `LLM_NOT_CONFIGURED`).\n\n**Scope:** `read`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -88361,6 +88376,12 @@
             "code": "TIMELINE_TOO_LARGE",
             "status": 400,
             "prompt": "037"
+          },
+          {
+            "code": "TIMELINE_RANGE_UNSUPPORTED",
+            "status": 422,
+            "prompt": "037",
+            "note": "A timeline whose raw read the hourly activity rollup estimates above 1,000,000 record versions (200,000 on the ingested axis), refused before it runs into the 10 s statement timeout"
           },
           {
             "code": "STATS_TOO_LARGE",
@@ -102756,6 +102777,146 @@
           },
           "event": {
             "type": "string",
+            "x-extensible-enum": [
+              "alert",
+              "briefing",
+              "system",
+              "chronicle.proposed",
+              "chronicle.cap_warning",
+              "chronicle.gap",
+              "social.divergence",
+              "social.attention_gap",
+              "analyst.note",
+              "situation.activated",
+              "situation.escalated",
+              "finding.significant",
+              "forecast.resolved",
+              "forecast.resolution_needed",
+              "hypothesis.band_changed",
+              "indicator.observed",
+              "assumption.broken",
+              "assessment.published",
+              "mention",
+              "share",
+              "report.received",
+              "package.received",
+              "chronicle.access.requested",
+              "saved-search.matches",
+              "test",
+              "personal"
+            ],
+            "description": "Grows as the server adds events: a client must accept a value not listed here."
+          },
+          "subtype": {
+            "type": "string",
+            "description": "e.g. alert.fired, alert.acknowledged, alert.snoozed, alert.resolved, alert.digest (a quiet-hours, pause, backlog or grouping digest), system.source_failing, system.rule_storm, system.delivery_failed, system.push_provider_failed (032), briefing.run (029)",
+            "example": "alert.fired",
+            "maxLength": 64
+          },
+          "title": {
+            "type": "string"
+          },
+          "shortTitle": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "≤ 40 chars, for watches, mesh and push",
+            "maxLength": 40
+          },
+          "bodyMarkdown": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Foresignal markdown subset"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning",
+              "critical"
+            ]
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "API link, e.g. `{publicBaseUrl}/v1/alerts/{id}`",
+            "format": "uri"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationLink"
+            },
+            "maxItems": 3
+          },
+          "data": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": true,
+            "description": "Full event data (alert or briefing-run JSON). Alert data carries `context` (056): the computed alert context with `context.weather` (`WeatherContext`, its `summary` sentence and sections) when the alert has one"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Attachment"
+            },
+            "description": "Image attachments as media references (filled by 055)"
+          },
+          "updateOf": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Notification this one updates (lifecycle updates)"
+          },
+          "origin": {
+            "type": "string",
+            "description": "Install id of the sending instance (loop guard)"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "exercise": {
+            "type": "boolean",
+            "description": "Title prefixed [EXERCISE] and exercise footer appended",
+            "default": false,
+            "x-foresignal-prompt": "115"
+          }
+        },
+        "required": [
+          "id",
+          "event",
+          "subtype",
+          "title",
+          "severity"
+        ]
+      },
+      "NotificationWebhookMessage": {
+        "type": "object",
+        "description": "The notification as the `notification` webhook delivers it (`WebhookEnvelope.message`): the same members as NotificationMessage, kept as its own schema so its `event` list stays `enum` (the compatibility check cannot mark a webhook payload's list extensible) while the event stream's is `x-extensible-enum`.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Notification id"
+          },
+          "event": {
+            "type": "string",
             "enum": [
               "alert",
               "briefing",
@@ -102784,7 +102945,7 @@
               "test",
               "personal"
             ],
-            "description": "Grows as the server adds events: a receiver must accept a value not listed here. Kept as `enum`, not `x-extensible-enum`, because this schema is also the `notification` webhook's payload, which the compatibility check cannot mark extensible."
+            "description": "Grows as the server adds events: a receiver must accept a value not listed here. Kept as `enum` because this is the `notification` webhook's payload, which the compatibility check cannot mark extensible."
           },
           "subtype": {
             "type": "string",
@@ -103027,7 +103188,7 @@
             "example": "alert.fired"
           },
           "message": {
-            "$ref": "#/components/schemas/NotificationMessage"
+            "$ref": "#/components/schemas/NotificationWebhookMessage"
           },
           "data": {
             "type": [
@@ -117685,7 +117846,7 @@
           },
           "footer": {
             "type": "string",
-            "example": "Automated analysis by <model>. Evidence is cited; inference and speculation are labelled. Verify before acting."
+            "example": "Automated analysis by <model>. Evidence is cited; inference and speculation are labeled. Verify before acting."
           },
           "createdAt": {
             "type": "string",
@@ -123400,7 +123561,7 @@
           },
           "speculation": {
             "type": "object",
-            "description": "Alternatives and any LLM narrative, always labelled",
+            "description": "Alternatives and any LLM narrative, always labeled",
             "properties": {
               "label": {
                 "type": "string",
@@ -125983,10 +126144,10 @@
           "alerts": {
             "type": "integer"
           },
-          "labelled": {
+          "labeled": {
             "type": "integer"
           },
-          "labelledShare": {
+          "labeledShare": {
             "type": "number"
           },
           "positive": {
@@ -126003,7 +126164,7 @@
               "number",
               "null"
             ],
-            "description": "positive ÷ (positive + negative); null when labelled < 5"
+            "description": "positive ÷ (positive + negative); null when labeled < 5"
           },
           "precisionCi": {
             "type": [
@@ -126112,7 +126273,7 @@
           "ruleId",
           "since",
           "alerts",
-          "labelled",
+          "labeled",
           "positive",
           "negative",
           "neutral"
@@ -134330,7 +134491,7 @@
       },
       "Situation": {
         "type": "object",
-        "description": "A persistent storyline: evidence (members), inference (status, severity, summary) and labelled speculation (brief)",
+        "description": "A persistent storyline: evidence (members), inference (status, severity, summary) and labeled speculation (brief)",
         "properties": {
           "id": {
             "$ref": "#/components/schemas/Ulid"
@@ -134646,7 +134807,7 @@
           },
           "speculation": {
             "type": "object",
-            "description": "Optional LLM brief, labelled speculation-capable narrative; never changes members, status or severity",
+            "description": "Optional LLM brief, labeled speculation-capable narrative; never changes members, status or severity",
             "properties": {
               "label": {
                 "type": "string",
@@ -136969,7 +137130,7 @@
           },
           "operatorValidated": {
             "type": "boolean",
-            "description": "Pinned as validated by an operator (logged and labelled)"
+            "description": "Pinned as validated by an operator (logged and labeled)"
           },
           "detector": {
             "$ref": "#/components/schemas/DetectorRef"
@@ -139820,12 +139981,12 @@
       },
       "ExternalForecasterRegistration": {
         "type": "object",
-        "description": "Pre-registers, names and configures a first-class external forecaster (155), independent of the auto-derived edp:{sourceId}/{streamId} id.",
+        "description": "Pre-registers, names and configures a first-class external forecaster (155), independent of the auto-derived edp:{sourceId}:{streamId} id.",
         "properties": {
           "id": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
-            "description": "Forecaster id, conventionally edp:{sourceId}/{streamId}."
+            "description": "Forecaster id, conventionally edp:{sourceId}:{streamId}."
           },
           "name": {
             "type": "string",
@@ -139849,7 +140010,7 @@
         "properties": {
           "forecasterId": {
             "type": "string",
-            "description": "The external forecaster id, edp:{sourceId}/{streamId}."
+            "description": "The external forecaster id, edp:{sourceId}:{streamId}."
           },
           "questionId": {
             "type": "string",
@@ -142705,7 +142866,7 @@
                   "exceedCap": {
                     "type": "boolean",
                     "default": false,
-                    "description": "Allow a speculative link above its cap (logged and labelled)"
+                    "description": "Allow a speculative link above its cap (logged and labeled)"
                   }
                 },
                 "required": [
@@ -148591,7 +148752,7 @@
           },
           "footer": {
             "type": "string",
-            "default": "Automated analysis. Probabilities use ICD 203 terms; evidence is cited; speculation is labelled. Verify before acting."
+            "default": "Automated analysis. Probabilities use ICD 203 terms; evidence is cited; speculation is labeled. Verify before acting."
           },
           "private": {
             "type": "boolean"
@@ -150917,9 +151078,9 @@
                 },
                 "needsReview": {
                   "type": "integer",
-                  "description": "Counted as unlabelled"
+                  "description": "Counted as unlabeled"
                 },
-                "labelled": {
+                "labeled": {
                   "type": "integer"
                 },
                 "precision": {
@@ -150957,7 +151118,7 @@
                 "key",
                 "confirmed",
                 "rejected",
-                "labelled"
+                "labeled"
               ]
             }
           }
@@ -157672,7 +157833,7 @@
               "deterministic",
               "llm"
             ],
-            "description": "`llm` blocks are labelled narrative from the optional 028 tool loop"
+            "description": "`llm` blocks are labeled narrative from the optional 028 tool loop"
           },
           "updatedAt": {
             "type": "string",
@@ -157697,7 +157858,7 @@
         "description": "One report block (one variant by `type`)",
         "oneOf": [
           {
-            "description": "Author or labelled LLM text; may contain `[[ref]]` object links",
+            "description": "Author or labeled LLM text; may contain `[[ref]]` object links",
             "allOf": [
               {
                 "$ref": "#/components/schemas/ReportBlockBase"
@@ -158586,7 +158747,7 @@
           "narrative": {
             "type": "boolean",
             "default": false,
-            "description": "Add a labelled LLM narrative block (agent scope, budgeted)"
+            "description": "Add a labeled LLM narrative block (agent scope, budgeted)"
           },
           "assessmentId": {
             "oneOf": [
@@ -168932,7 +169093,7 @@
               },
               "forecasterId": {
                 "type": "string",
-                "example": "edp:ext-markets/kalshi"
+                "example": "edp:ext-markets:kalshi"
               },
               "createdAt": {
                 "type": "string",

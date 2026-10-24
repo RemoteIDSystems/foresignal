@@ -294,7 +294,7 @@ class ExternalBindingControllersIT {
         MockHttpServletResponse linked = send(agent, post(path), input);
         assertThat(linked.getStatus()).as(linked.getContentAsString()).isEqualTo(201);
         JsonNode link = body(linked);
-        assertThat(link.get("forecasterId").asString()).isEqualTo("edp:" + source + "/odds");
+        assertThat(link.get("forecasterId").asString()).isEqualTo("edp:" + source + ":odds");
         assertThat(link.get("orientation").asString()).isEqualTo("same");
         assertThat(link.get("questionId").asString()).isEqualTo(binaryId);
         assertThat(link.get("lastForecastAt").isNull()).isTrue();

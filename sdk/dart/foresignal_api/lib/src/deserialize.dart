@@ -989,6 +989,7 @@ import 'package:foresignal_api/src/model/notification_read_request_one_of.dart';
 import 'package:foresignal_api/src/model/notification_read_request_one_of1.dart';
 import 'package:foresignal_api/src/model/notification_settings.dart';
 import 'package:foresignal_api/src/model/notification_settings_chatops.dart';
+import 'package:foresignal_api/src/model/notification_webhook_message.dart';
 import 'package:foresignal_api/src/model/ntfy_message.dart';
 import 'package:foresignal_api/src/model/ntfy_publish_request.dart';
 import 'package:foresignal_api/src/model/nws_alert_payload.dart';
@@ -3784,6 +3785,8 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return NotificationSettings.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'NotificationSettingsChatops':
           return NotificationSettingsChatops.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'NotificationWebhookMessage':
+          return NotificationWebhookMessage.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'NtfyMessage':
           return NtfyMessage.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'NtfyPublishRequest':

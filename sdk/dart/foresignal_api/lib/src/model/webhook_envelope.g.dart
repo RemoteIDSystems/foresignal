@@ -11,7 +11,7 @@ abstract class _$WebhookEnvelopeCWProxy {
 
   WebhookEnvelope subtype(String subtype);
 
-  WebhookEnvelope message(NotificationMessage message);
+  WebhookEnvelope message(NotificationWebhookMessage message);
 
   WebhookEnvelope data(Map<String, Object>? data);
 
@@ -30,7 +30,7 @@ abstract class _$WebhookEnvelopeCWProxy {
   WebhookEnvelope call({
     WebhookEnvelopeEventEnum event,
     String subtype,
-    NotificationMessage message,
+    NotificationWebhookMessage message,
     Map<String, Object>? data,
     String foresignalOrigin,
     bool? exercise,
@@ -51,7 +51,7 @@ class _$WebhookEnvelopeCWProxyImpl implements _$WebhookEnvelopeCWProxy {
   WebhookEnvelope subtype(String subtype) => call(subtype: subtype);
 
   @override
-  WebhookEnvelope message(NotificationMessage message) =>
+  WebhookEnvelope message(NotificationWebhookMessage message) =>
       call(message: message);
 
   @override
@@ -93,7 +93,7 @@ class _$WebhookEnvelopeCWProxyImpl implements _$WebhookEnvelopeCWProxy {
       message: message == const $CopyWithPlaceholder() || message == null
           ? _value.message
           // ignore: cast_nullable_to_non_nullable
-          : message as NotificationMessage,
+          : message as NotificationWebhookMessage,
       data: data == const $CopyWithPlaceholder()
           ? _value.data
           // ignore: cast_nullable_to_non_nullable
@@ -138,7 +138,7 @@ WebhookEnvelope _$WebhookEnvelopeFromJson(
     subtype: $checkedConvert('subtype', (v) => v as String),
     message: $checkedConvert(
       'message',
-      (v) => NotificationMessage.fromJson(v as Map<String, dynamic>),
+      (v) => NotificationWebhookMessage.fromJson(v as Map<String, dynamic>),
     ),
     data: $checkedConvert(
       'data',

@@ -2485,7 +2485,6 @@ from .notification_detail import NotificationDetail
 from .notification_link import NotificationLink
 from .notification_message import NotificationMessage
 from .notification_message_data_type_0 import NotificationMessageDataType0
-from .notification_message_event import NotificationMessageEvent
 from .notification_message_severity import NotificationMessageSeverity
 from .notification_page import NotificationPage
 from .notification_preference import NotificationPreference
@@ -2524,6 +2523,12 @@ from .notification_settings_pause_bypass_severity_type_3_type_1 import (
     NotificationSettingsPauseBypassSeverityType3Type1,
 )
 from .notification_severity import NotificationSeverity
+from .notification_webhook_message import NotificationWebhookMessage
+from .notification_webhook_message_data_type_0 import (
+    NotificationWebhookMessageDataType0,
+)
+from .notification_webhook_message_event import NotificationWebhookMessageEvent
+from .notification_webhook_message_severity import NotificationWebhookMessageSeverity
 from .ntfy_message import NtfyMessage
 from .ntfy_message_event import NtfyMessageEvent
 from .ntfy_publish_request import NtfyPublishRequest
@@ -6126,7 +6131,6 @@ __all__ = (
     "NotificationLink",
     "NotificationMessage",
     "NotificationMessageDataType0",
-    "NotificationMessageEvent",
     "NotificationMessageSeverity",
     "NotificationPage",
     "NotificationPreference",
@@ -6149,6 +6153,10 @@ __all__ = (
     "NotificationSettingsPauseBypassSeverityType2Type1",
     "NotificationSettingsPauseBypassSeverityType3Type1",
     "NotificationSeverity",
+    "NotificationWebhookMessage",
+    "NotificationWebhookMessageDataType0",
+    "NotificationWebhookMessageEvent",
+    "NotificationWebhookMessageSeverity",
     "NtfyMessage",
     "NtfyMessageEvent",
     "NtfyPublishRequest",

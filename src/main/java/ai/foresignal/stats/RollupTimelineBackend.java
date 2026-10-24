@@ -1,5 +1,7 @@
 package ai.foresignal.stats;
 
+import ai.foresignal.api.error.ErrorCodes;
+import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.api.support.TimeField;
 import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.settings.RetentionSettings;
@@ -17,10 +19,12 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 /**
@@ -34,10 +38,29 @@ import org.springframework.stereotype.Component;
  * whole multiples of an hour starting on an hour ({@code measure=versions}), or exactly an hour or a UTC
  * day ({@code measure=entities}, which is not additive). The document says {@code backend: rollup} when
  * every bucket came from the rollup and {@code mixed} when some did.
+ *
+ * <p>Raw history is read first, so a range holding more record versions than one request can count within the
+ * statement timeout is refused up front with {@code 422 TIMELINE_RANGE_UNSUPPORTED} instead of failing after
+ * {@value RawTimelineBackend#TIMEOUT_SECONDS} s with {@code 503 QUERY_TIMEOUT}: the hourly rollup's version counts
+ * estimate the raw read before it runs (see {@link #refuseUnservable}).
  */
 @Component
 @Primary
 public class RollupTimelineBackend implements TimelineBackend {
+
+    /**
+     * The most record versions, by the hourly rollup's estimate, a raw timeline read on the observed, effective or
+     * event axis may cover. Measured on a live database under ingest load (2026-10-24): 583,000 versions counted in
+     * 1 to 3 s by either measure, 2.5 million in 5 to 9 s or past the 10 s timeout, 1.5 million past it while a
+     * catch-up scan held the disk.
+     */
+    public static final long MAX_RAW_VERSIONS = 1_000_000;
+
+    /**
+     * The same limit on the ingested axis, which counts far slower (a seq range over every partition): 91,000
+     * versions in 1.6 s, 243,000 in 6.7 s, 368,000 in 9.0 s and 583,000 past the timeout on the same database.
+     */
+    public static final long MAX_RAW_VERSIONS_INGESTED = 200_000;
 
     private final RawTimelineBackend raw;
     private final RollupJob rollup;
@@ -59,6 +82,7 @@ public class RollupTimelineBackend implements TimelineBackend {
 
     @Override
     public Timeline timeline(TimelineQuery q) {
+        refuseUnservable(q);
         Timeline base = raw.timeline(q);
         Instant retainedFrom = base.retainedFrom();
         RollupResolution resolution = resolution(q);
@@ -126,6 +150,54 @@ public class RollupTimelineBackend implements TimelineBackend {
         String backend = replaced.size() == buckets.size() ? "rollup" : "mixed";
         return new Timeline(base.from(), base.to(), base.bucket(), base.timeField(), base.measure(), base.groupBy(),
                 List.copyOf(buckets), base.alerts(), max, base.approximate(), retainedFrom, backend);
+    }
+
+    /** The limit of {@code q}'s axis: {@link #MAX_RAW_VERSIONS_INGESTED} or {@link #MAX_RAW_VERSIONS}. */
+    static long limit(TimelineQuery q) {
+        return q.timeField() == TimeField.INGESTED ? MAX_RAW_VERSIONS_INGESTED : MAX_RAW_VERSIONS;
+    }
+
+    /**
+     * Refuses {@code q} when its raw read would cover more record versions than its axis's {@link #limit}: the sum
+     * of the hourly rollup's {@code versions} for the involved sources (and kinds) over the part of the range raw
+     * history still holds, from the hour of {@code max(from, retainedFrom)} to {@code to}. The rollup counts by
+     * ingest hour, which matches the ingested axis and tracks the observed one closely; the open hour and sources the
+     * rollup skips are not in the estimate, so it errs toward serving. Nothing is refused before the rollup has run.
+     *
+     * @throws ForesignalException {@code 422 TIMELINE_RANGE_UNSUPPORTED}
+     */
+    void refuseUnservable(TimelineQuery q) {
+        if (q.sources().isEmpty() || rollup.cursor() == null) {
+            return;
+        }
+        Instant retainedFrom = raw.retainedFrom(q.sources());
+        Instant from = retainedFrom != null && retainedFrom.isAfter(q.from()) ? retainedFrom : q.from();
+        if (!from.isBefore(q.to())) {
+            return;
+        }
+        Instant hour = RollupResolution.HOUR.floor(from);
+        long estimate = runner.read(RawTimelineBackend.TIMEOUT, jdbc -> {
+            SqlParams p = new SqlParams();
+            // The per-(source, kind) totals rows only: the per-cell rows count the same versions again.
+            String sql = "SELECT COALESCE(sum(r.versions), 0) FROM activity_rollup r WHERE r.resolution = "
+                    + p.add(RollupResolution.HOUR.code()) + " AND r.cell = " + H3Cells.ALL_CELLS
+                    + " AND r.source_id = ANY(" + p.textArray(q.sources())
+                    + ") AND r.bucket_start >= " + p.instant(hour) + " AND r.bucket_start < " + p.instant(q.to())
+                    + (q.kinds().isEmpty() ? "" : " AND r.kind = ANY(" + p.textArray(q.kinds()) + ")");
+            Long n = jdbc.queryForObject(sql, p.source(), Long.class);
+            return n == null ? 0L : n;
+        });
+        long limit = limit(q);
+        if (estimate > limit) {
+            throw new ForesignalException(HttpStatus.UNPROCESSABLE_CONTENT, ErrorCodes.TIMELINE_RANGE_UNSUPPORTED,
+                    String.format(Locale.ROOT, "The timeline isn't servable over this range: about %,d record versions"
+                            + " from %s to %s would be counted from raw history, more than the %,d one request can"
+                            + " count within its %d s timeout. Narrow the range, the sources or the kinds;"
+                            + " /v1/stats/timeseries serves long ranges from the rollups.", estimate, from, q.to(),
+                            limit, RawTimelineBackend.TIMEOUT_SECONDS))
+                    .withProperty("estimatedVersions", estimate)
+                    .withProperty("maxVersions", limit);
+        }
     }
 
     /**

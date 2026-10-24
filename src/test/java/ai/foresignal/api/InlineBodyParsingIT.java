@@ -68,11 +68,11 @@ class InlineBodyParsingIT {
     @DisplayName("requestAnalysis: forecasterId and questionId are required; a well-formed body reaches the service")
     void requestAnalysis() throws Exception {
         refused(send("/v1/external/analysis/requests", "{}"), "forecasterId");
-        refused(send("/v1/external/analysis/requests", "{'forecasterId':'edp:ext-timesfm/transits'}"),
+        refused(send("/v1/external/analysis/requests", "{'forecasterId':'edp:ext-timesfm:transits'}"),
                 "forecasterId");
 
         MockHttpServletResponse unknown = send("/v1/external/analysis/requests",
-                "{'forecasterId':'edp:ext-timesfm/transits','questionId':'" + ULID + "','orientation':'same',"
+                "{'forecasterId':'edp:ext-timesfm:transits','questionId':'" + ULID + "','orientation':'same',"
                         + "'horizon':'P7D'}");
         // No such forecaster here: the service refuses it, which a parse failure never reaches.
         assertThat(unknown.getStatus()).as(unknown.getContentAsString()).isEqualTo(400);

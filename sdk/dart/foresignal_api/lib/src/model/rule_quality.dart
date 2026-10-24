@@ -30,9 +30,9 @@ class RuleQuality {
 
     required  this.alerts,
 
-    required  this.labelled,
+    required  this.labeled,
 
-     this.labelledShare,
+     this.labeledShare,
 
     required  this.positive,
 
@@ -105,25 +105,25 @@ class RuleQuality {
 
   @JsonKey(
     
-    name: r'labelled',
+    name: r'labeled',
     required: true,
     includeIfNull: false,
   )
 
 
-  final int labelled;
+  final int labeled;
 
 
 
   @JsonKey(
     
-    name: r'labelledShare',
+    name: r'labeledShare',
     required: false,
     includeIfNull: false,
   )
 
 
-  final num? labelledShare;
+  final num? labeledShare;
 
 
 
@@ -163,7 +163,7 @@ class RuleQuality {
 
 
 
-      /// positive ÷ (positive + negative); null when labelled < 5
+      /// positive ÷ (positive + negative); null when labeled < 5
   @JsonKey(
     
     name: r'precision',
@@ -334,8 +334,8 @@ class RuleQuality {
       other.ruleId == ruleId &&
       other.since == since &&
       other.alerts == alerts &&
-      other.labelled == labelled &&
-      other.labelledShare == labelledShare &&
+      other.labeled == labeled &&
+      other.labeledShare == labeledShare &&
       other.positive == positive &&
       other.negative == negative &&
       other.neutral == neutral &&
@@ -358,8 +358,8 @@ class RuleQuality {
         ruleId.hashCode +
         since.hashCode +
         alerts.hashCode +
-        labelled.hashCode +
-        labelledShare.hashCode +
+        labeled.hashCode +
+        labeledShare.hashCode +
         positive.hashCode +
         negative.hashCode +
         neutral.hashCode +

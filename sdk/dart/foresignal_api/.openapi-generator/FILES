@@ -1083,6 +1083,7 @@ lib/src/model/notification_read_request_one_of.dart
 lib/src/model/notification_read_request_one_of1.dart
 lib/src/model/notification_settings.dart
 lib/src/model/notification_settings_chatops.dart
+lib/src/model/notification_webhook_message.dart
 lib/src/model/ntfy_message.dart
 lib/src/model/ntfy_publish_request.dart
 lib/src/model/nws_alert_payload.dart

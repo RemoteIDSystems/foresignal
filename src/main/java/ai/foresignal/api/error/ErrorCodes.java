@@ -75,6 +75,12 @@ public final class ErrorCodes {
     public static final String TIMELINE_TOO_LARGE = "TIMELINE_TOO_LARGE";
 
     /**
+     * 422: a timeline whose raw read would scan more record versions than one request can count within its statement
+     * timeout (estimated up front from the hourly activity rollup).
+     */
+    public static final String TIMELINE_RANGE_UNSUPPORTED = "TIMELINE_RANGE_UNSUPPORTED";
+
+    /**
      * 400: a stats request would return more than 2,000 buckets or 10,000 cells, or a raw grid would
      * generate too many hexagons (prompt 038).
      */

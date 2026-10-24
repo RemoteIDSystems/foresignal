@@ -28,8 +28,11 @@ class BindingVocabularyTest {
     }
 
     @Test
-    @DisplayName("external forecasters are edp:{sourceId}/{streamId}")
+    @DisplayName("external forecasters are edp:{sourceId}:{streamId}, one path segment matching the contract pattern")
     void forecasterIds() {
-        assertThat(BindingVocabulary.forecasterId("ext-markets", "kalshi")).isEqualTo("edp:ext-markets/kalshi");
+        String id = BindingVocabulary.forecasterId("ext-markets", "kalshi");
+        assertThat(id).isEqualTo("edp:ext-markets:kalshi");
+        // Forecaster.id and the updateForecaster path parameter: ^[a-z0-9][a-z0-9._:-]{0,127}$ (no '/').
+        assertThat(id).matches("^[a-z0-9][a-z0-9._:-]{0,127}$");
     }
 }

@@ -57,7 +57,7 @@ class Assessment:
         citations (list[str] | Unset):
         lint_warnings (list[str] | Unset):
         footer (str | Unset):  Default: 'Automated analysis. Probabilities use ICD 203 terms; evidence is cited;
-            speculation is labelled. Verify before acting.'.
+            speculation is labeled. Verify before acting.'.
         coverage (AssessmentCoverageType0 | None | Unset):
         social (None | SocialVersusObserved | Unset): "What people are saying versus what we observe" (137)
     """
@@ -87,7 +87,7 @@ class Assessment:
     citations: list[str] | Unset = UNSET
     lint_warnings: list[str] | Unset = UNSET
     footer: str | Unset = (
-        "Automated analysis. Probabilities use ICD 203 terms; evidence is cited; speculation is labelled. Verify before acting."
+        "Automated analysis. Probabilities use ICD 203 terms; evidence is cited; speculation is labeled. Verify before acting."
     )
     coverage: AssessmentCoverageType0 | None | Unset = UNSET
     social: None | SocialVersusObserved | Unset = UNSET

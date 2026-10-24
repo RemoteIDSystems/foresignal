@@ -29,7 +29,7 @@ class AnalysisRequestSubmission {
      this.horizon,
   });
 
-      /// The external forecaster id, edp:{sourceId}/{streamId}.
+      /// The external forecaster id, edp:{sourceId}:{streamId}.
   @JsonKey(
     
     name: r'forecasterId',

@@ -73,7 +73,7 @@ class ReportBlockOneOf9 {
 
 
 
-      /// `llm` blocks are labelled narrative from the optional 028 tool loop
+      /// `llm` blocks are labeled narrative from the optional 028 tool loop
   @JsonKey(
     
     name: r'textOrigin',
@@ -168,7 +168,7 @@ String toString() => value;
 }
 
 
-/// `llm` blocks are labelled narrative from the optional 028 tool loop
+/// `llm` blocks are labeled narrative from the optional 028 tool loop
 enum ReportBlockOneOf9TextOriginEnum {
 @JsonValue(r'author')
 author(r'author'),

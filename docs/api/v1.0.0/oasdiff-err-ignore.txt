@@ -1,67 +1,97 @@
 # Accepted oasdiff errors for checkApiCompat (docs/api/v1.0.0/OpenAPI.json -> docs/OpenAPI.json).
 # Each line is `METHOD PATH description`, as oasdiff prints it. A breaking change not listed here still fails the gate.
 # The frozen v1.0.0 contract is not re-frozen.
+#
+# What is not here: additive growth of a value list. Every list that grows as the server adds features is declared
+# `x-extensible-enum` in docs/OpenAPI.json, which oasdiff treats as open, so a new value needs no entry. That includes
+# NotificationMessage.event on the event stream. The `notification` webhook's payload is its own schema,
+# NotificationWebhookMessage, whose list stays `enum` (oasdiff cannot mark a webhook payload extensible); oasdiff
+# reports no error for its additions. Each entry below is a change oasdiff cannot be told is safe, with its reason.
 
-# NotificationMessage.event on the event stream: the same schema is the notification webhook's payload, which oasdiff
-# cannot mark x-extensible-enum (it reads a dropped enum there as a request narrowing, and ignores no webhook
-# finding), so the list keeps `enum` and its added event names are accepted here. Every other growing list is
-# x-extensible-enum in docs/OpenAPI.json.
-GET /v1/events/stream added the new `analyst.note` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `assessment.published` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `assumption.broken` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `chronicle.access.requested` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `chronicle.cap_warning` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `chronicle.gap` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `chronicle.proposed` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `finding.significant` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `forecast.resolution_needed` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `forecast.resolved` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `hypothesis.band_changed` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `indicator.observed` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `mention` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `package.received` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `personal` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `report.received` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `saved-search.matches` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `share` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `situation.activated` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `situation.escalated` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `social.attention_gap` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
-GET /v1/events/stream added the new `social.divergence` enum value to the `anyOf[#/components/schemas/NotificationMessage]/event` response property for the response status `200`
+# --- Contract corrections: nullable as served -------------------------------------------------------------------
+# The server has always sent null for these fields; the frozen contract said non-null. The contract was corrected to
+# say so (changelog 2026-10-23) and no server response changed, so a client that worked against the server still
+# works. oasdiff rightly reads "became nullable" as a weaker response guarantee; it cannot know the old guarantee was
+# never kept, so each correction is accepted here.
 
-# Nullable as served: the server has always sent null for these (no attribution line, a healthy source, a source
-# that is not polled, a recipe with no overrides, no public base URL set, no comparison yet). The contract was
-# corrected to say so (changelog 2026-10-23); no server response changed.
+# Record.attribution: null when a source has no attribution line to show.
 GET /v1/entities/{entityId}/records the response property `items/items/record/attribution` became nullable for the status `200`
-GET /v1/intel/recipes the response property `items/params` became nullable for the status `200`
-PUT /v1/intel/recipes/{recipeId} the response property `params` became nullable for the status `200`
 GET /v1/places/{placeId}/weather the response property `record/oneOf[#/components/schemas/Record]/attribution` became nullable for the status `200`
 GET /v1/records the response property `oneOf[#/components/schemas/RecordPage]/items/items/attribution` became nullable for the status `200`
 GET /v1/records/{sourceId}/{externalId} the response property `attribution` became nullable for the status `200`
 GET /v1/search the response property `oneOf[#/components/schemas/SearchResults]/items/items/record/oneOf[#/components/schemas/Record]/attribution` became nullable for the status `200`
+GET /v1/views/{viewId}/records the response property `items/items/attribution` became nullable for the status `200`
+POST /v1/triggers/{ruleId}/test the response property `matches/items/attribution` became nullable for the status `200`
+
+# CorrelationRecipe.params: null when a recipe has no parameter overrides.
+GET /v1/intel/recipes the response property `items/params` became nullable for the status `200`
+PUT /v1/intel/recipes/{recipeId} the response property `params` became nullable for the status `200`
+
+# ServerSettings.publicBaseUrl: null until one is set (the server then uses the request's own address).
 GET /v1/settings/export the response property `server/publicBaseUrl` became nullable for the status `200`
 GET /v1/settings/server the response property `publicBaseUrl` became nullable for the status `200`
 PUT /v1/settings/server the response property `publicBaseUrl` became nullable for the status `200`
+
+# LeadTimeStats.trainingCutoff: null until there is a comparison to set it (it was the epoch before).
 GET /v1/social/lead-times the response property `trainingCutoff` became nullable for the status `200`
+
+# SourceHealth.statusReason: null for a healthy source.
 GET /v1/social/platforms the response property `items/health/oneOf[#/components/schemas/SourceHealth]/statusReason` became nullable for the status `200`
 GET /v1/social/platforms/{platformId} the response property `health/oneOf[#/components/schemas/SourceHealth]/statusReason` became nullable for the status `200`
-PUT /v1/social/platforms/{platformId} the response property `health/oneOf[#/components/schemas/SourceHealth]/statusReason` became nullable for the status `200`
 GET /v1/sources/health the response property `items/statusReason` became nullable for the status `200`
+GET /v1/sources/{sourceId} the response property `health/statusReason` became nullable for the status `200`
+GET /v1/sources/{sourceId}/health the response property `statusReason` became nullable for the status `200`
+PUT /v1/social/platforms/{platformId} the response property `health/oneOf[#/components/schemas/SourceHealth]/statusReason` became nullable for the status `200`
+PUT /v1/sources/{sourceId} the response property `health/statusReason` became nullable for the status `200`
+
+# SourceDescriptor.defaultInterval and minInterval: null for a source that is not polled (streaming or push).
 GET /v1/sources/{sourceId} the response property `descriptor/defaultInterval` became nullable for the status `200`
 GET /v1/sources/{sourceId} the response property `descriptor/minInterval` became nullable for the status `200`
-GET /v1/sources/{sourceId} the response property `health/statusReason` became nullable for the status `200`
 PUT /v1/sources/{sourceId} the response property `descriptor/defaultInterval` became nullable for the status `200`
 PUT /v1/sources/{sourceId} the response property `descriptor/minInterval` became nullable for the status `200`
-PUT /v1/sources/{sourceId} the response property `health/statusReason` became nullable for the status `200`
-GET /v1/sources/{sourceId}/health the response property `statusReason` became nullable for the status `200`
-POST /v1/triggers/{ruleId}/test the response property `matches/items/attribution` became nullable for the status `200`
-GET /v1/views/{viewId}/records the response property `items/items/attribution` became nullable for the status `200`
 
-# Event confidence reaches 1.00: calibrated confidence is not capped at the 0.95 the frozen contract states.
+# --- Contract correction: event confidence reaches 1.00 ---------------------------------------------------------
+# Calibrated confidence is not capped at the 0.95 the frozen contract states; the server has sent values above it
+# since calibration shipped (V2__intel_calibration). A wider numeric range is accepted here for the same reason.
 GET /v1/events/stream the `anyOf[#/components/schemas/IntelEventStreamEvent]/summary/confidence` response property's max was increased from `0.95` to `1.00` for the response status `200`
 GET /v1/intel/events the `items/items/confidence` response property's max was increased from `0.95` to `1.00` for the response status `200`
-POST /v1/intel/events the `inference/confidence` response property's max was increased from `0.95` to `1.00` for the response status `201`
 GET /v1/intel/events/{eventId} the `inference/confidence` response property's max was increased from `0.95` to `1.00` for the response status `200`
 PATCH /v1/intel/events/{eventId} the `inference/confidence` response property's max was increased from `0.95` to `1.00` for the response status `200`
+POST /v1/intel/events the `inference/confidence` response property's max was increased from `0.95` to `1.00` for the response status `201`
 POST /v1/intel/events/{eventId}/merge the `inference/confidence` response property's max was increased from `0.95` to `1.00` for the response status `200`
 POST /v1/intel/recipes/{recipeId}/test the `events/items/inference/confidence` response property's max was increased from `0.95` to `1.00` for the response status `200`
+
+# --- Deliberate pre-release rename: US English keys (owner decision, 2026-10-24) -----------------------------------
+# RuleQuality.labelled and labelledShare and Precision components[].labelled are now labeled and labeledShare (US
+# English, the project's only spelling). There are no external consumers before release, so the keys were corrected
+# rather than carried as an exception. oasdiff reports the required key as removed wherever RuleQuality appears (rule
+# quality, job, backtest and precursor results); labeledShare is optional, so its rename is not flagged.
+DELETE /v1/backtests/{backtestId} removed the required property `result/oneOf[#/components/schemas/RuleQuality]/labelled` from the response with the `200` status
+GET /v1/analytics/precision removed the required property `components/items/labelled` from the response with the `200` status
+GET /v1/backtests removed the required property `items/items/result/oneOf[#/components/schemas/RuleQuality]/labelled` from the response with the `200` status
+GET /v1/backtests/{backtestId} removed the required property `result/oneOf[#/components/schemas/RuleQuality]/labelled` from the response with the `200` status
+GET /v1/jobs/{jobId} removed the required property `result/oneOf[#/components/schemas/RuleQuality]/labelled` from the response with the `200` status
+GET /v1/triggers/{ruleId}/quality removed the required property `labelled` from the response with the `200` status
+POST /v1/analytics/event-studies removed the required property `result/oneOf[#/components/schemas/RuleQuality]/labelled` from the response with the `202` status
+POST /v1/backtests removed the required property `result/oneOf[#/components/schemas/RuleQuality]/labelled` from the response with the `202` status
+POST /v1/base-rates/refresh removed the required property `result/oneOf[#/components/schemas/RuleQuality]/labelled` from the response with the `202` status
+POST /v1/precursor-tests/{precursorTestId}/test removed the required property `result/oneOf[#/components/schemas/RuleQuality]/labelled` from the response with the `202` status
+POST /v1/precursors/mine removed the required property `result/oneOf[#/components/schemas/RuleQuality]/labelled` from the response with the `202` status
+POST /v1/precursors/retest removed the required property `result/oneOf[#/components/schemas/RuleQuality]/labelled` from the response with the `202` status
+
+# --- oasdiff limitation: description-only edits inside anonymous oneOf branches ------------------------------------
+# The report block union is a oneOf of eleven inline schemas. oasdiff matches inline branches by their whole content,
+# descriptions included, so the US English fix to three descriptions the branches share ("labeled narrative",
+# "labeled LLM text") reads as every branch removed from requests and added to responses. No type, property, enum or
+# constraint changed.
+GET /v1/exchange/received/{receivedId}/rendition added `subschema #1, subschema #2, subschema #3, subschema #4, subschema #5, subschema #6, subschema #7, subschema #8, subschema #9, subschema #10, subschema #11` to the `report/blocks/items/` response property `oneOf` list for the response status `200`
+GET /v1/reports added `subschema #1, subschema #2, subschema #3, subschema #4, subschema #5, subschema #6, subschema #7, subschema #8, subschema #9, subschema #10, subschema #11` to the `items/items/blocks/items/` response property `oneOf` list for the response status `200`
+GET /v1/reports/{reportId} added `subschema #1, subschema #2, subschema #3, subschema #4, subschema #5, subschema #6, subschema #7, subschema #8, subschema #9, subschema #10, subschema #11` to the `blocks/items/` response property `oneOf` list for the response status `200`
+GET /v1/reports/{reportId}/rendition added `subschema #1, subschema #2, subschema #3, subschema #4, subschema #5, subschema #6, subschema #7, subschema #8, subschema #9, subschema #10, subschema #11` to the `report/blocks/items/` response property `oneOf` list for the response status `200`
+PATCH /v1/reports/{reportId} added `subschema #1, subschema #2, subschema #3, subschema #4, subschema #5, subschema #6, subschema #7, subschema #8, subschema #9, subschema #10, subschema #11` to the `blocks/items/` response property `oneOf` list for the response status `200`
+PATCH /v1/reports/{reportId}/blocks/{blockId} added `subschema #1, subschema #2, subschema #3, subschema #4, subschema #5, subschema #6, subschema #7, subschema #8, subschema #9, subschema #10, subschema #11` to the response body `oneOf` list for the response status `200`
+POST /v1/reports added `subschema #1, subschema #2, subschema #3, subschema #4, subschema #5, subschema #6, subschema #7, subschema #8, subschema #9, subschema #10, subschema #11` to the `blocks/items/` response property `oneOf` list for the response status `201`
+POST /v1/reports removed `subschema #1, subschema #2, subschema #3, subschema #4, subschema #5, subschema #6, subschema #7, subschema #8, subschema #9, subschema #10, subschema #11` from the `blocks/items/` request property `oneOf` list
+POST /v1/reports/draft added `subschema #1, subschema #2, subschema #3, subschema #4, subschema #5, subschema #6, subschema #7, subschema #8, subschema #9, subschema #10, subschema #11` to the `blocks/items/` response property `oneOf` list for the response status `201`
+POST /v1/reports/{reportId}/blocks added `subschema #1, subschema #2, subschema #3, subschema #4, subschema #5, subschema #6, subschema #7, subschema #8, subschema #9, subschema #10, subschema #11` to the response body `oneOf` list for the response status `201`
+POST /v1/reports/{reportId}/blocks removed `subschema #1, subschema #2, subschema #3, subschema #4, subschema #5, subschema #6, subschema #7, subschema #8, subschema #9, subschema #10, subschema #11` from the request body `oneOf` list

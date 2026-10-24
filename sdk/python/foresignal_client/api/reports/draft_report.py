@@ -88,7 +88,7 @@ def sync_detailed(
 
      Builds a deterministic draft (templates `situation-brief`, `investigation-summary`, `chronicle-
     recap`, `weekly-assessment`, `custom`) from a selection, tag, investigation, chronicle, situation or
-    workspace and stores it as a `draft`. `narrative=true` adds a labelled LLM narrative block via the
+    workspace and stores it as a `draft`. `narrative=true` adds a labeled LLM narrative block via the
     028 tool loop with verified citations; it needs agent scope and LLM budget (026 budgets;
     `LLM_NOT_CONFIGURED`).
 
@@ -125,7 +125,7 @@ def sync(
 
      Builds a deterministic draft (templates `situation-brief`, `investigation-summary`, `chronicle-
     recap`, `weekly-assessment`, `custom`) from a selection, tag, investigation, chronicle, situation or
-    workspace and stores it as a `draft`. `narrative=true` adds a labelled LLM narrative block via the
+    workspace and stores it as a `draft`. `narrative=true` adds a labeled LLM narrative block via the
     028 tool loop with verified citations; it needs agent scope and LLM budget (026 budgets;
     `LLM_NOT_CONFIGURED`).
 
@@ -157,7 +157,7 @@ async def asyncio_detailed(
 
      Builds a deterministic draft (templates `situation-brief`, `investigation-summary`, `chronicle-
     recap`, `weekly-assessment`, `custom`) from a selection, tag, investigation, chronicle, situation or
-    workspace and stores it as a `draft`. `narrative=true` adds a labelled LLM narrative block via the
+    workspace and stores it as a `draft`. `narrative=true` adds a labeled LLM narrative block via the
     028 tool loop with verified citations; it needs agent scope and LLM budget (026 budgets;
     `LLM_NOT_CONFIGURED`).
 
@@ -192,7 +192,7 @@ async def asyncio(
 
      Builds a deterministic draft (templates `situation-brief`, `investigation-summary`, `chronicle-
     recap`, `weekly-assessment`, `custom`) from a selection, tag, investigation, chronicle, situation or
-    workspace and stores it as a `draft`. `narrative=true` adds a labelled LLM narrative block via the
+    workspace and stores it as a `draft`. `narrative=true` adds a labeled LLM narrative block via the
     028 tool loop with verified citations; it needs agent scope and LLM budget (026 budgets;
     `LLM_NOT_CONFIGURED`).
 

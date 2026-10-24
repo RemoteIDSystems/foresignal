@@ -1086,6 +1086,7 @@ export 'package:foresignal_api/src/model/notification_read_request_one_of.dart';
 export 'package:foresignal_api/src/model/notification_read_request_one_of1.dart';
 export 'package:foresignal_api/src/model/notification_settings.dart';
 export 'package:foresignal_api/src/model/notification_settings_chatops.dart';
+export 'package:foresignal_api/src/model/notification_webhook_message.dart';
 export 'package:foresignal_api/src/model/ntfy_message.dart';
 export 'package:foresignal_api/src/model/ntfy_publish_request.dart';
 export 'package:foresignal_api/src/model/nws_alert_payload.dart';

@@ -107,7 +107,7 @@ class AnnotationIT extends ObjectItSupport {
         assertThat(cusum.get("confirmed").asLong()).isEqualTo(2);
         assertThat(cusum.get("rejected").asLong()).isEqualTo(1);
         assertThat(cusum.get("needsReview").asLong()).isEqualTo(1);
-        assertThat(cusum.get("labelled").asLong()).isEqualTo(3);
+        assertThat(cusum.get("labeled").asLong()).isEqualTo(3);
         assertThat(cusum.get("precision").asDouble()).isEqualTo(2.0 / 3.0);
         double[] wilson = ai.foresignal.analytics.math.Wilson.interval(2, 3);
         assertThat(cusum.get("interval").get("lo").asDouble()).isEqualTo(wilson[0]);

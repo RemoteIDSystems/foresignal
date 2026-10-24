@@ -83,9 +83,9 @@ abstract class _$BacktestJobResultCWProxy {
 
   BacktestJobResult alerts(int alerts);
 
-  BacktestJobResult labelled(int labelled);
+  BacktestJobResult labeled(int labeled);
 
-  BacktestJobResult labelledShare(num? labelledShare);
+  BacktestJobResult labeledShare(num? labeledShare);
 
   BacktestJobResult positive(int positive);
 
@@ -277,8 +277,8 @@ abstract class _$BacktestJobResultCWProxy {
     String ruleId,
     DateTime since,
     int alerts,
-    int labelled,
-    num? labelledShare,
+    int labeled,
+    num? labeledShare,
     int positive,
     int negative,
     int neutral,
@@ -492,11 +492,11 @@ class _$BacktestJobResultCWProxyImpl implements _$BacktestJobResultCWProxy {
   BacktestJobResult alerts(int alerts) => call(alerts: alerts);
 
   @override
-  BacktestJobResult labelled(int labelled) => call(labelled: labelled);
+  BacktestJobResult labeled(int labeled) => call(labeled: labeled);
 
   @override
-  BacktestJobResult labelledShare(num? labelledShare) =>
-      call(labelledShare: labelledShare);
+  BacktestJobResult labeledShare(num? labeledShare) =>
+      call(labeledShare: labeledShare);
 
   @override
   BacktestJobResult positive(int positive) => call(positive: positive);
@@ -789,8 +789,8 @@ class _$BacktestJobResultCWProxyImpl implements _$BacktestJobResultCWProxy {
     Object? ruleId = const $CopyWithPlaceholder(),
     Object? since = const $CopyWithPlaceholder(),
     Object? alerts = const $CopyWithPlaceholder(),
-    Object? labelled = const $CopyWithPlaceholder(),
-    Object? labelledShare = const $CopyWithPlaceholder(),
+    Object? labeled = const $CopyWithPlaceholder(),
+    Object? labeledShare = const $CopyWithPlaceholder(),
     Object? positive = const $CopyWithPlaceholder(),
     Object? negative = const $CopyWithPlaceholder(),
     Object? neutral = const $CopyWithPlaceholder(),
@@ -1007,14 +1007,14 @@ class _$BacktestJobResultCWProxyImpl implements _$BacktestJobResultCWProxy {
           ? _value.alerts
           // ignore: cast_nullable_to_non_nullable
           : alerts as int,
-      labelled: labelled == const $CopyWithPlaceholder() || labelled == null
-          ? _value.labelled
+      labeled: labeled == const $CopyWithPlaceholder() || labeled == null
+          ? _value.labeled
           // ignore: cast_nullable_to_non_nullable
-          : labelled as int,
-      labelledShare: labelledShare == const $CopyWithPlaceholder()
-          ? _value.labelledShare
+          : labeled as int,
+      labeledShare: labeledShare == const $CopyWithPlaceholder()
+          ? _value.labeledShare
           // ignore: cast_nullable_to_non_nullable
-          : labelledShare as num?,
+          : labeledShare as num?,
       positive: positive == const $CopyWithPlaceholder() || positive == null
           ? _value.positive
           // ignore: cast_nullable_to_non_nullable
@@ -1338,7 +1338,7 @@ BacktestJobResult _$BacktestJobResultFromJson(
       'ruleId',
       'since',
       'alerts',
-      'labelled',
+      'labeled',
       'positive',
       'negative',
       'neutral',
@@ -1523,8 +1523,8 @@ BacktestJobResult _$BacktestJobResultFromJson(
     ruleId: $checkedConvert('ruleId', (v) => v as String),
     since: $checkedConvert('since', (v) => DateTime.parse(v as String)),
     alerts: $checkedConvert('alerts', (v) => (v as num).toInt()),
-    labelled: $checkedConvert('labelled', (v) => (v as num).toInt()),
-    labelledShare: $checkedConvert('labelledShare', (v) => v as num?),
+    labeled: $checkedConvert('labeled', (v) => (v as num).toInt()),
+    labeledShare: $checkedConvert('labeledShare', (v) => v as num?),
     positive: $checkedConvert('positive', (v) => (v as num).toInt()),
     negative: $checkedConvert('negative', (v) => (v as num).toInt()),
     neutral: $checkedConvert('neutral', (v) => (v as num).toInt()),
@@ -1740,8 +1740,8 @@ Map<String, dynamic> _$BacktestJobResultToJson(BacktestJobResult instance) =>
       'ruleId': instance.ruleId,
       'since': instance.since.toIso8601String(),
       'alerts': instance.alerts,
-      'labelled': instance.labelled,
-      'labelledShare': ?instance.labelledShare,
+      'labeled': instance.labeled,
+      'labeledShare': ?instance.labeledShare,
       'positive': instance.positive,
       'negative': instance.negative,
       'neutral': instance.neutral,

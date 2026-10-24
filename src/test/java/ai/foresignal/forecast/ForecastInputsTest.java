@@ -114,6 +114,16 @@ class ForecastInputsTest {
                 .isInstanceOf(ValidationException.class);
     }
 
+    @Test
+    @DisplayName("an external forecaster registration id matches the contract pattern; the slash form is refused")
+    void externalForecasterId() {
+        assertThat(ForecastInputs.externalForecasterRegistration(json("{\"id\":\"edp:ext-markets:kalshi\"}")))
+                .containsEntry("id", "edp:ext-markets:kalshi");
+        assertThatThrownBy(() -> ForecastInputs.externalForecasterRegistration(json("{\"id\":\"edp:ext-markets/kalshi\"}")))
+                .isInstanceOfSatisfying(ValidationException.class,
+                        e -> assertThat(e.getErrors()).extracting(f -> f.field()).containsExactly("id"));
+    }
+
     static void invalid(Runnable call) {
         assertThatThrownBy(call::run).isInstanceOfSatisfying(ValidationException.class,
                 e -> assertThat(e.getCode()).isEqualTo(ErrorCodes.FORECAST_INVALID));

@@ -10,7 +10,7 @@ from ..models.webhook_envelope_event import WebhookEnvelopeEvent
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.notification_message import NotificationMessage
+    from ..models.notification_webhook_message import NotificationWebhookMessage
     from ..models.webhook_envelope_data_type_0 import WebhookEnvelopeDataType0
 
 
@@ -26,8 +26,10 @@ class WebhookEnvelope:
             Kept as `enum`, not `x-extensible-enum`, because this schema is also the `notification` webhook's payload, which
             the compatibility check cannot mark extensible.
         subtype (str):  Example: alert.fired.
-        message (NotificationMessage): Persisted notification (one `notification` row) delivered to channels and the
-            notification topics
+        message (NotificationWebhookMessage): The notification as the `notification` webhook delivers it
+            (`WebhookEnvelope.message`): the same members as NotificationMessage, kept as its own schema so its `event` list
+            stays `enum` (the compatibility check cannot mark a webhook payload's list extensible) while the event stream's
+            is `x-extensible-enum`.
         foresignal_origin (str): Install id of the sending instance
         data (None | Unset | WebhookEnvelopeDataType0):
         exercise (bool | Unset): Exercise delivery; also header X-Foresignal-Exercise: true Default: False.
@@ -35,7 +37,7 @@ class WebhookEnvelope:
 
     event: WebhookEnvelopeEvent
     subtype: str
-    message: NotificationMessage
+    message: NotificationWebhookMessage
     foresignal_origin: str
     data: None | Unset | WebhookEnvelopeDataType0 = UNSET
     exercise: bool | Unset = False
@@ -81,7 +83,7 @@ class WebhookEnvelope:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
-        from ..models.notification_message import NotificationMessage
+        from ..models.notification_webhook_message import NotificationWebhookMessage
         from ..models.webhook_envelope_data_type_0 import WebhookEnvelopeDataType0
 
         d = dict(src_dict)
@@ -89,7 +91,7 @@ class WebhookEnvelope:
 
         subtype = d.pop("subtype")
 
-        message = NotificationMessage.from_dict(d.pop("message"))
+        message = NotificationWebhookMessage.from_dict(d.pop("message"))
 
         foresignal_origin = d.pop("foresignalOrigin")
 

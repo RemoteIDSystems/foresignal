@@ -87,7 +87,7 @@ def sync_detailed(
 ) -> Response[Problem | RuleQuality]:
     """Alert quality of a rule
 
-     Precision with a Wilson interval (null when fewer than 5 labelled), time to ack and resolve,
+     Precision with a Wilson interval (null when fewer than 5 labeled), time to ack and resolve,
     flapping, duplicates and severity distribution.
 
     **Scope:** `read` (open while `security.openReads` is on).
@@ -124,7 +124,7 @@ def sync(
 ) -> Problem | RuleQuality | None:
     """Alert quality of a rule
 
-     Precision with a Wilson interval (null when fewer than 5 labelled), time to ack and resolve,
+     Precision with a Wilson interval (null when fewer than 5 labeled), time to ack and resolve,
     flapping, duplicates and severity distribution.
 
     **Scope:** `read` (open while `security.openReads` is on).
@@ -156,7 +156,7 @@ async def asyncio_detailed(
 ) -> Response[Problem | RuleQuality]:
     """Alert quality of a rule
 
-     Precision with a Wilson interval (null when fewer than 5 labelled), time to ack and resolve,
+     Precision with a Wilson interval (null when fewer than 5 labeled), time to ack and resolve,
     flapping, duplicates and severity distribution.
 
     **Scope:** `read` (open while `security.openReads` is on).
@@ -191,7 +191,7 @@ async def asyncio(
 ) -> Problem | RuleQuality | None:
     """Alert quality of a rule
 
-     Precision with a Wilson interval (null when fewer than 5 labelled), time to ack and resolve,
+     Precision with a Wilson interval (null when fewer than 5 labeled), time to ack and resolve,
     flapping, duplicates and severity distribution.
 
     **Scope:** `read` (open while `security.openReads` is on).

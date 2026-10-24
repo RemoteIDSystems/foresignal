@@ -67,18 +67,10 @@ public class RawTimelineBackend implements TimelineBackend {
 
     @Override
     public Timeline timeline(TimelineQuery q) {
-        Instant now = clock.instant();
-        Instant retainedFrom = null;
+        Instant retainedFrom = retainedFrom(q.sources());
         boolean approximate = false;
         Set<HistoryTier> tiers = EnumSet.noneOf(HistoryTier.class);
         for (String id : q.sources()) {
-            Duration window = retention.window(id);
-            if (window != null) {
-                Instant start = now.minus(window);
-                if (retainedFrom == null || start.isAfter(retainedFrom)) {
-                    retainedFrom = start;
-                }
-            }
             approximate |= asOf.sampled(id);
             tiers.add(registry.descriptor(id).historyTier());
         }
@@ -135,6 +127,25 @@ public class RawTimelineBackend implements TimelineBackend {
         return new Timeline(q.from(), q.to(), q.bucket(), q.timeField().wireValue(), q.measure(), q.groupBy(),
                 List.copyOf(buckets), alertBuckets == null ? null : List.copyOf(alertBuckets), max,
                 approximate || downsampled, retainedFrom, "raw");
+    }
+
+    /**
+     * The latest of {@code now − window} over {@code sources} with a retention window: raw history before it is
+     * incomplete. Null when none has a window.
+     */
+    public Instant retainedFrom(List<String> sources) {
+        Instant now = clock.instant();
+        Instant retainedFrom = null;
+        for (String id : sources) {
+            Duration window = retention.window(id);
+            if (window != null) {
+                Instant start = now.minus(window);
+                if (retainedFrom == null || start.isAfter(retainedFrom)) {
+                    retainedFrom = start;
+                }
+            }
+        }
+        return retainedFrom;
     }
 
     /** The bucket counts: one total row per bucket ({@code grp = 1}) and, when grouped, one per group. */

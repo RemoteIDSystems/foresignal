@@ -78,7 +78,7 @@ def sync_detailed(
     """Register an external forecaster
 
      Pre-registers, names and configures a first-class external forecaster (155) — a display name and a
-    per-forecaster `externalMinResolved` — independent of the auto-derived `edp:{sourceId}/{streamId}`
+    per-forecaster `externalMinResolved` — independent of the auto-derived `edp:{sourceId}:{streamId}`
     id, before any forecast arrives. An existing forecaster with that id is renamed and reconfigured in
     place (its type is kept).
 
@@ -86,7 +86,7 @@ def sync_detailed(
 
     Args:
         body (ExternalForecasterRegistration): Pre-registers, names and configures a first-class
-            external forecaster (155), independent of the auto-derived edp:{sourceId}/{streamId} id.
+            external forecaster (155), independent of the auto-derived edp:{sourceId}:{streamId} id.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -115,7 +115,7 @@ def sync(
     """Register an external forecaster
 
      Pre-registers, names and configures a first-class external forecaster (155) — a display name and a
-    per-forecaster `externalMinResolved` — independent of the auto-derived `edp:{sourceId}/{streamId}`
+    per-forecaster `externalMinResolved` — independent of the auto-derived `edp:{sourceId}:{streamId}`
     id, before any forecast arrives. An existing forecaster with that id is renamed and reconfigured in
     place (its type is kept).
 
@@ -123,7 +123,7 @@ def sync(
 
     Args:
         body (ExternalForecasterRegistration): Pre-registers, names and configures a first-class
-            external forecaster (155), independent of the auto-derived edp:{sourceId}/{streamId} id.
+            external forecaster (155), independent of the auto-derived edp:{sourceId}:{streamId} id.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -147,7 +147,7 @@ async def asyncio_detailed(
     """Register an external forecaster
 
      Pre-registers, names and configures a first-class external forecaster (155) — a display name and a
-    per-forecaster `externalMinResolved` — independent of the auto-derived `edp:{sourceId}/{streamId}`
+    per-forecaster `externalMinResolved` — independent of the auto-derived `edp:{sourceId}:{streamId}`
     id, before any forecast arrives. An existing forecaster with that id is renamed and reconfigured in
     place (its type is kept).
 
@@ -155,7 +155,7 @@ async def asyncio_detailed(
 
     Args:
         body (ExternalForecasterRegistration): Pre-registers, names and configures a first-class
-            external forecaster (155), independent of the auto-derived edp:{sourceId}/{streamId} id.
+            external forecaster (155), independent of the auto-derived edp:{sourceId}:{streamId} id.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -182,7 +182,7 @@ async def asyncio(
     """Register an external forecaster
 
      Pre-registers, names and configures a first-class external forecaster (155) — a display name and a
-    per-forecaster `externalMinResolved` — independent of the auto-derived `edp:{sourceId}/{streamId}`
+    per-forecaster `externalMinResolved` — independent of the auto-derived `edp:{sourceId}:{streamId}`
     id, before any forecast arrives. An existing forecaster with that id is renamed and reconfigured in
     place (its type is kept).
 
@@ -190,7 +190,7 @@ async def asyncio(
 
     Args:
         body (ExternalForecasterRegistration): Pre-registers, names and configures a first-class
-            external forecaster (155), independent of the auto-derived edp:{sourceId}/{streamId} id.
+            external forecaster (155), independent of the auto-derived edp:{sourceId}:{streamId} id.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

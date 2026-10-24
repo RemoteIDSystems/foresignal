@@ -18,7 +18,7 @@ class HypothesisPatchProbabilityOverrideType0:
     Attributes:
         probability (float):
         rationale (str):
-        exceed_cap (bool | Unset): Allow a speculative link above its cap (logged and labelled) Default: False.
+        exceed_cap (bool | Unset): Allow a speculative link above its cap (logged and labeled) Default: False.
     """
 
     probability: float

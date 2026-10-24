@@ -28,7 +28,7 @@ T = TypeVar("T", bound="Situation")
 
 @_attrs_define
 class Situation:
-    """A persistent storyline: evidence (members), inference (status, severity, summary) and labelled speculation (brief)
+    """A persistent storyline: evidence (members), inference (status, severity, summary) and labeled speculation (brief)
 
     Attributes:
         id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
@@ -50,7 +50,7 @@ class Situation:
         evidence (SituationEvidence): Evidence: members grouped by signal family, with the corroboration roll-up
         inference (SituationInference): Inference by named, versioned components: status, severity and the deterministic
             summary
-        speculation (SituationSpeculation): Optional LLM brief, labelled speculation-capable narrative; never changes
+        speculation (SituationSpeculation): Optional LLM brief, labeled speculation-capable narrative; never changes
             members, status or severity
         severity_overridden (bool | Unset): True when an operator override sets the severity
         bbox (list[float] | None | Unset): minLon, minLat, maxLon, maxLat of the geometry

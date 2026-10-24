@@ -92,7 +92,7 @@ def sync_detailed(
 
      For findings (by detector), intel events (by recipe), situations (linker) and precursor-active
     findings: the share confirmed among verdicts with a Wilson interval and counts; `needs-review`
-    counts as unlabelled.
+    counts as unlabeled.
 
     **Scope:** `read` (open while `security.openReads` is on).
 
@@ -130,7 +130,7 @@ def sync(
 
      For findings (by detector), intel events (by recipe), situations (linker) and precursor-active
     findings: the share confirmed among verdicts with a Wilson interval and counts; `needs-review`
-    counts as unlabelled.
+    counts as unlabeled.
 
     **Scope:** `read` (open while `security.openReads` is on).
 
@@ -163,7 +163,7 @@ async def asyncio_detailed(
 
      For findings (by detector), intel events (by recipe), situations (linker) and precursor-active
     findings: the share confirmed among verdicts with a Wilson interval and counts; `needs-review`
-    counts as unlabelled.
+    counts as unlabeled.
 
     **Scope:** `read` (open while `security.openReads` is on).
 
@@ -199,7 +199,7 @@ async def asyncio(
 
      For findings (by detector), intel events (by recipe), situations (linker) and precursor-active
     findings: the share confirmed among verdicts with a Wilson interval and counts; `needs-review`
-    counts as unlabelled.
+    counts as unlabeled.
 
     **Scope:** `read` (open while `security.openReads` is on).
 

@@ -73,7 +73,7 @@ def sync_detailed(
     """Get a situation
 
      Returns the situation evidence first (members grouped by signal family, corroboration roll-up), then
-    inference (status, severity, deterministic summary), then the optional LLM brief labelled as
+    inference (status, severity, deterministic summary), then the optional LLM brief labeled as
     speculation.
 
     **Scope:** `read` (open while `security.openReads` is on).
@@ -108,7 +108,7 @@ def sync(
     """Get a situation
 
      Returns the situation evidence first (members grouped by signal family, corroboration roll-up), then
-    inference (status, severity, deterministic summary), then the optional LLM brief labelled as
+    inference (status, severity, deterministic summary), then the optional LLM brief labeled as
     speculation.
 
     **Scope:** `read` (open while `security.openReads` is on).
@@ -138,7 +138,7 @@ async def asyncio_detailed(
     """Get a situation
 
      Returns the situation evidence first (members grouped by signal family, corroboration roll-up), then
-    inference (status, severity, deterministic summary), then the optional LLM brief labelled as
+    inference (status, severity, deterministic summary), then the optional LLM brief labeled as
     speculation.
 
     **Scope:** `read` (open while `security.openReads` is on).
@@ -171,7 +171,7 @@ async def asyncio(
     """Get a situation
 
      Returns the situation evidence first (members grouped by signal family, corroboration roll-up), then
-    inference (status, severity, deterministic summary), then the optional LLM brief labelled as
+    inference (status, severity, deterministic summary), then the optional LLM brief labeled as
     speculation.
 
     **Scope:** `read` (open while `security.openReads` is on).

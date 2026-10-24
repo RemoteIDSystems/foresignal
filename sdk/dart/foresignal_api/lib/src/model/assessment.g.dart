@@ -452,7 +452,7 @@ Assessment _$AssessmentFromJson(
       'footer',
       (v) =>
           v as String? ??
-          'Automated analysis. Probabilities use ICD 203 terms; evidence is cited; speculation is labelled. Verify before acting.',
+          'Automated analysis. Probabilities use ICD 203 terms; evidence is cited; speculation is labeled. Verify before acting.',
     ),
     private: $checkedConvert('private', (v) => v as bool),
     createdAt: $checkedConvert('createdAt', (v) => DateTime.parse(v as String)),

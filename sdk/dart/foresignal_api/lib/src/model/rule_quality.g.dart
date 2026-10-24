@@ -13,9 +13,9 @@ abstract class _$RuleQualityCWProxy {
 
   RuleQuality alerts(int alerts);
 
-  RuleQuality labelled(int labelled);
+  RuleQuality labeled(int labeled);
 
-  RuleQuality labelledShare(num? labelledShare);
+  RuleQuality labeledShare(num? labeledShare);
 
   RuleQuality positive(int positive);
 
@@ -63,8 +63,8 @@ abstract class _$RuleQualityCWProxy {
     String ruleId,
     DateTime since,
     int alerts,
-    int labelled,
-    num? labelledShare,
+    int labeled,
+    num? labeledShare,
     int positive,
     int negative,
     int neutral,
@@ -101,11 +101,11 @@ class _$RuleQualityCWProxyImpl implements _$RuleQualityCWProxy {
   RuleQuality alerts(int alerts) => call(alerts: alerts);
 
   @override
-  RuleQuality labelled(int labelled) => call(labelled: labelled);
+  RuleQuality labeled(int labeled) => call(labeled: labeled);
 
   @override
-  RuleQuality labelledShare(num? labelledShare) =>
-      call(labelledShare: labelledShare);
+  RuleQuality labeledShare(num? labeledShare) =>
+      call(labeledShare: labeledShare);
 
   @override
   RuleQuality positive(int positive) => call(positive: positive);
@@ -175,8 +175,8 @@ class _$RuleQualityCWProxyImpl implements _$RuleQualityCWProxy {
     Object? ruleId = const $CopyWithPlaceholder(),
     Object? since = const $CopyWithPlaceholder(),
     Object? alerts = const $CopyWithPlaceholder(),
-    Object? labelled = const $CopyWithPlaceholder(),
-    Object? labelledShare = const $CopyWithPlaceholder(),
+    Object? labeled = const $CopyWithPlaceholder(),
+    Object? labeledShare = const $CopyWithPlaceholder(),
     Object? positive = const $CopyWithPlaceholder(),
     Object? negative = const $CopyWithPlaceholder(),
     Object? neutral = const $CopyWithPlaceholder(),
@@ -207,14 +207,14 @@ class _$RuleQualityCWProxyImpl implements _$RuleQualityCWProxy {
           ? _value.alerts
           // ignore: cast_nullable_to_non_nullable
           : alerts as int,
-      labelled: labelled == const $CopyWithPlaceholder() || labelled == null
-          ? _value.labelled
+      labeled: labeled == const $CopyWithPlaceholder() || labeled == null
+          ? _value.labeled
           // ignore: cast_nullable_to_non_nullable
-          : labelled as int,
-      labelledShare: labelledShare == const $CopyWithPlaceholder()
-          ? _value.labelledShare
+          : labeled as int,
+      labeledShare: labeledShare == const $CopyWithPlaceholder()
+          ? _value.labeledShare
           // ignore: cast_nullable_to_non_nullable
-          : labelledShare as num?,
+          : labeledShare as num?,
       positive: positive == const $CopyWithPlaceholder() || positive == null
           ? _value.positive
           // ignore: cast_nullable_to_non_nullable
@@ -304,7 +304,7 @@ RuleQuality _$RuleQualityFromJson(Map<String, dynamic> json) => $checkedCreate(
         'ruleId',
         'since',
         'alerts',
-        'labelled',
+        'labeled',
         'positive',
         'negative',
         'neutral',
@@ -314,8 +314,8 @@ RuleQuality _$RuleQualityFromJson(Map<String, dynamic> json) => $checkedCreate(
       ruleId: $checkedConvert('ruleId', (v) => v as String),
       since: $checkedConvert('since', (v) => DateTime.parse(v as String)),
       alerts: $checkedConvert('alerts', (v) => (v as num).toInt()),
-      labelled: $checkedConvert('labelled', (v) => (v as num).toInt()),
-      labelledShare: $checkedConvert('labelledShare', (v) => v as num?),
+      labeled: $checkedConvert('labeled', (v) => (v as num).toInt()),
+      labeledShare: $checkedConvert('labeledShare', (v) => v as num?),
       positive: $checkedConvert('positive', (v) => (v as num).toInt()),
       negative: $checkedConvert('negative', (v) => (v as num).toInt()),
       neutral: $checkedConvert('neutral', (v) => (v as num).toInt()),
@@ -382,8 +382,8 @@ Map<String, dynamic> _$RuleQualityToJson(RuleQuality instance) =>
       'ruleId': instance.ruleId,
       'since': instance.since.toIso8601String(),
       'alerts': instance.alerts,
-      'labelled': instance.labelled,
-      'labelledShare': ?instance.labelledShare,
+      'labeled': instance.labeled,
+      'labeledShare': ?instance.labeledShare,
       'positive': instance.positive,
       'negative': instance.negative,
       'neutral': instance.neutral,

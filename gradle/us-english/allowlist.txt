@@ -106,8 +106,6 @@ src/main/java/ai/foresignal/source/DescriptorValidator.java | text:.colour ' | [
 src/test/java/ai/foresignal/api/RecordsControllerIT.java | text:.display.colour | [wire] a JSONPath to the colour key
 src/test/java/ai/foresignal/{notify/push/PushSubscriptionsIT,security/pairing/PairingIT,settings/SecuritySettingsServiceTest,settings/ServerSettingsServiceTest}.java | text:\"colour\" | [data] an unknown-property fixture: a request body the API must reject
 docs/*.md | code:colour | [wire] a code span naming the colour key
-src/**/*.java | ident:labelledShare | [wire] an alert-quality JSON key (docs/OpenAPI.json)
-src/**/*.java | text:"labelled" | [wire] an alert-quality or precision JSON key (docs/OpenAPI.json)
 src/**/*.java | text:"normalised" | [wire] the regional index component's normalised JSON key (docs/OpenAPI.json), also stored in fits
 src/main/java/ai/foresignal/outlook/index/{IndexComputer,IndexFitService}.java | code:normalised | [wire] names the normalised JSON key
 src/**/*.java | text:"summarised" | [wire] the propagation graph's summarised JSON key (docs/OpenAPI.json)
@@ -121,9 +119,6 @@ src/**/*.java | text:L2-regularised NB regression | [wire] IndexFitResult.method
 src/**/*.java | text:modelled; heuristic links may be wrong | [wire] ImpactProjector.LABEL, stored in every projection's labels and quoted verbatim by clients
 docs/*.md | text:modelled; heuristic links may be wrong | [wire] quotes ImpactProjector.LABEL
 src/main/java/ai/foresignal/intel/PopulationPackService.java | text:modelled residential population | [wire] the estimate's note value (docs/OpenAPI.json)
-src/**/*.java | text:speculation is labelled. Verify before acting. | [wire] the assessment footer (docs/OpenAPI.json Assessment.footer default)
-src/**/*.java | text:speculation are labelled. Verify before acting. | [wire] the analyst note footer (docs/OpenAPI.json AnalystNote.footer example)
-docs/*.md | text:speculation is labelled. Verify before acting. | [wire] quotes the assessment footer
 
 # --- External data, dependency APIs and proper nouns -----------------------------------------------------------
 src/**/*.java | text:.centre() | [vendored] JTS's Envelope.centre()

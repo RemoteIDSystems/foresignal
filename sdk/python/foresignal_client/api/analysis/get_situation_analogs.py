@@ -93,7 +93,7 @@ def sync_detailed(
 
      Returns the top k past situations by fused feature and embedding similarity, excluding time overlap
     and the situation's own merges, with outcomes, the count found and, for `outcome`, a distribution
-    shrunk toward the base rate. Without embeddings, feature similarity only (labelled).
+    shrunk toward the base rate. Without embeddings, feature similarity only (labeled).
 
     **Scope:** `read` (open while `security.openReads` is on).
 
@@ -135,7 +135,7 @@ def sync(
 
      Returns the top k past situations by fused feature and embedding similarity, excluding time overlap
     and the situation's own merges, with outcomes, the count found and, for `outcome`, a distribution
-    shrunk toward the base rate. Without embeddings, feature similarity only (labelled).
+    shrunk toward the base rate. Without embeddings, feature similarity only (labeled).
 
     **Scope:** `read` (open while `security.openReads` is on).
 
@@ -172,7 +172,7 @@ async def asyncio_detailed(
 
      Returns the top k past situations by fused feature and embedding similarity, excluding time overlap
     and the situation's own merges, with outcomes, the count found and, for `outcome`, a distribution
-    shrunk toward the base rate. Without embeddings, feature similarity only (labelled).
+    shrunk toward the base rate. Without embeddings, feature similarity only (labeled).
 
     **Scope:** `read` (open while `security.openReads` is on).
 
@@ -212,7 +212,7 @@ async def asyncio(
 
      Returns the top k past situations by fused feature and embedding similarity, excluding time overlap
     and the situation's own merges, with outcomes, the count found and, for `outcome`, a distribution
-    shrunk toward the base rate. Without embeddings, feature similarity only (labelled).
+    shrunk toward the base rate. Without embeddings, feature similarity only (labeled).
 
     **Scope:** `read` (open while `security.openReads` is on).
 

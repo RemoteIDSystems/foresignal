@@ -1664,7 +1664,7 @@ _responseData = rawData == null ? null : deserialize<AnalyticFinding, AnalyticFi
   }
 
   /// Retire or pin a precursor
-  /// Retires a precursor with a reason, or pins it as operator-validated (&#x60;operatorValidated&#x60;, logged and labelled).  **Scope:** &#x60;agent&#x60; or &#x60;admin&#x60;.
+  /// Retires a precursor with a reason, or pins it as operator-validated (&#x60;operatorValidated&#x60;, logged and labeled).  **Scope:** &#x60;agent&#x60; or &#x60;admin&#x60;.
   ///
   /// Parameters:
   /// * [precursorId] - Precursor id

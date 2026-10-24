@@ -769,7 +769,7 @@ Note: a tombstone counts as an exit when P(previous) held. Deleting a place can 
 - **Briefings.**
   - Scope gains `places` and `weatherProducts`.
   - The digest gets a "Weather at places" section: **now** (radar, lightning, alerts); **the period** (max dBZ, max MESH, lightning total, hazards that entered the radius); **next 24–72 h** (NWS gridpoints plus GFS and HRRR).
-  - Stale sections are labelled stale.
+  - Stale sections are labeled stale.
 - **Ask.** Tools: `sample_weather`, `weather_forecast`, `area_weather_stats`, `get_map_image`. Answers must cite run, validTime and age, and must never present no-coverage as clear.
 
 ---

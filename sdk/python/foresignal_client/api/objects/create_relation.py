@@ -82,7 +82,7 @@ def sync_detailed(
 ) -> Response[Problem | Relation]:
     """Add an operator relation
 
-     Adds an operator or agent relation (`provenance.operator`). `causes` is labelled at most `possible`
+     Adds an operator or agent relation (`provenance.operator`). `causes` is labeled at most `possible`
     unless the caller confirms as operator.
 
     **Scope:** `agent`.
@@ -117,7 +117,7 @@ def sync(
 ) -> Problem | Relation | None:
     """Add an operator relation
 
-     Adds an operator or agent relation (`provenance.operator`). `causes` is labelled at most `possible`
+     Adds an operator or agent relation (`provenance.operator`). `causes` is labeled at most `possible`
     unless the caller confirms as operator.
 
     **Scope:** `agent`.
@@ -147,7 +147,7 @@ async def asyncio_detailed(
 ) -> Response[Problem | Relation]:
     """Add an operator relation
 
-     Adds an operator or agent relation (`provenance.operator`). `causes` is labelled at most `possible`
+     Adds an operator or agent relation (`provenance.operator`). `causes` is labeled at most `possible`
     unless the caller confirms as operator.
 
     **Scope:** `agent`.
@@ -180,7 +180,7 @@ async def asyncio(
 ) -> Problem | Relation | None:
     """Add an operator relation
 
-     Adds an operator or agent relation (`provenance.operator`). `causes` is labelled at most `possible`
+     Adds an operator or agent relation (`provenance.operator`). `causes` is labeled at most `possible`
     unless the caller confirms as operator.
 
     **Scope:** `agent`.

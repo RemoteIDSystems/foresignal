@@ -33,7 +33,7 @@ class PrecisionComponentsInner {
 
      this.needsReview,
 
-    required  this.labelled,
+    required  this.labeled,
 
      this.precision,
 
@@ -101,7 +101,7 @@ class PrecisionComponentsInner {
 
 
 
-      /// Counted as unlabelled
+      /// Counted as unlabeled
   @JsonKey(
     
     name: r'needsReview',
@@ -116,13 +116,13 @@ class PrecisionComponentsInner {
 
   @JsonKey(
     
-    name: r'labelled',
+    name: r'labeled',
     required: true,
     includeIfNull: false,
   )
 
 
-  final int labelled;
+  final int labeled;
 
 
 
@@ -160,7 +160,7 @@ class PrecisionComponentsInner {
       other.rejected == rejected &&
       other.duplicate == duplicate &&
       other.needsReview == needsReview &&
-      other.labelled == labelled &&
+      other.labeled == labeled &&
       other.precision == precision &&
       other.interval == interval;
 
@@ -172,7 +172,7 @@ class PrecisionComponentsInner {
         rejected.hashCode +
         duplicate.hashCode +
         needsReview.hashCode +
-        labelled.hashCode +
+        labeled.hashCode +
         (precision == null ? 0 : precision.hashCode) +
         (interval == null ? 0 : interval.hashCode);
 

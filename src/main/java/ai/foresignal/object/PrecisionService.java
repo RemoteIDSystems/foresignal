@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
  * Precision from analyst verdicts ({@code getPrecision}, prompt 129): for findings (by detector), intel events (by
  * recipe), situations (the linker) and precursor-active findings (by precursor), the share confirmed among labeled
  * verdicts with a 95% Wilson interval. Only the latest live verdict per object counts; {@code needs-review} counts as
- * unlabelled; {@code duplicate-of} counts as labeled but not confirmed. Private verdicts count only for callers with
+ * unlabeled; {@code duplicate-of} counts as labeled but not confirmed. Private verdicts count only for callers with
  * private access.
  */
 @Service
@@ -111,7 +111,7 @@ public class PrecisionService {
         row.put("duplicate", t.duplicate);
         row.put("needsReview", t.needsReview);
         long labeled = t.labeled();
-        row.put("labelled", labeled);
+        row.put("labeled", labeled);
         if (labeled == 0) {
             row.put("precision", null);
             row.put("interval", null);

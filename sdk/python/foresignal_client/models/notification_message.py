@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, Self, TypeVar, cast
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.notification_message_event import NotificationMessageEvent
 from ..models.notification_message_severity import NotificationMessageSeverity
 from ..types import UNSET, Unset
 
@@ -26,9 +25,7 @@ class NotificationMessage:
 
     Attributes:
         id (int): Notification id
-        event (NotificationMessageEvent): Grows as the server adds events: a receiver must accept a value not listed
-            here. Kept as `enum`, not `x-extensible-enum`, because this schema is also the `notification` webhook's payload,
-            which the compatibility check cannot mark extensible.
+        event (str): Grows as the server adds events: a client must accept a value not listed here.
         subtype (str): e.g. alert.fired, alert.acknowledged, alert.snoozed, alert.resolved, alert.digest (a quiet-hours,
             pause, backlog or grouping digest), system.source_failing, system.rule_storm, system.delivery_failed,
             system.push_provider_failed (032), briefing.run (029) Example: alert.fired.
@@ -50,7 +47,7 @@ class NotificationMessage:
     """
 
     id: int
-    event: NotificationMessageEvent
+    event: str
     subtype: str
     title: str
     severity: NotificationMessageSeverity
@@ -74,7 +71,7 @@ class NotificationMessage:
 
         id = self.id
 
-        event = self.event.value
+        event = self.event
 
         subtype = self.subtype
 
@@ -187,7 +184,7 @@ class NotificationMessage:
         d = dict(src_dict)
         id = d.pop("id")
 
-        event = NotificationMessageEvent(d.pop("event"))
+        event = d.pop("event")
 
         subtype = d.pop("subtype")
 

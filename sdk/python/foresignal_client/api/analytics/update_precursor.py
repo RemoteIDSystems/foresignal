@@ -88,7 +88,7 @@ def sync_detailed(
     """Retire or pin a precursor
 
      Retires a precursor with a reason, or pins it as operator-validated (`operatorValidated`, logged and
-    labelled).
+    labeled).
 
     **Scope:** `agent` or `admin`.
 
@@ -126,7 +126,7 @@ def sync(
     """Retire or pin a precursor
 
      Retires a precursor with a reason, or pins it as operator-validated (`operatorValidated`, logged and
-    labelled).
+    labeled).
 
     **Scope:** `agent` or `admin`.
 
@@ -159,7 +159,7 @@ async def asyncio_detailed(
     """Retire or pin a precursor
 
      Retires a precursor with a reason, or pins it as operator-validated (`operatorValidated`, logged and
-    labelled).
+    labeled).
 
     **Scope:** `agent` or `admin`.
 
@@ -195,7 +195,7 @@ async def asyncio(
     """Retire or pin a precursor
 
      Retires a precursor with a reason, or pins it as operator-validated (`operatorValidated`, logged and
-    labelled).
+    labeled).
 
     **Scope:** `agent` or `admin`.
 

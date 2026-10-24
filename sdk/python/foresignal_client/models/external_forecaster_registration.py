@@ -20,10 +20,10 @@ T = TypeVar("T", bound="ExternalForecasterRegistration")
 @_attrs_define
 class ExternalForecasterRegistration:
     """Pre-registers, names and configures a first-class external forecaster (155), independent of the auto-derived
-    edp:{sourceId}/{streamId} id.
+    edp:{sourceId}:{streamId} id.
 
         Attributes:
-            id (str): Forecaster id, conventionally edp:{sourceId}/{streamId}.
+            id (str): Forecaster id, conventionally edp:{sourceId}:{streamId}.
             name (str | Unset): Optional display name (defaults to the id).
             config (ExternalForecasterRegistrationConfig | Unset): Optional configuration; `sourceId` and `streamId` pin the
                 provider for backtests, and `externalMinResolved` (integer) overrides the ensemble's global minimum resolved

@@ -26,7 +26,7 @@ class ReportBlockBase:
         type_ (ReportBlockBaseType):
         id (str | Unset): Server-assigned; comment on a block with `report:{id}#{blockId}`
         title (None | str | Unset):
-        text_origin (ReportBlockBaseTextOrigin | Unset): `llm` blocks are labelled narrative from the optional 028 tool
+        text_origin (ReportBlockBaseTextOrigin | Unset): `llm` blocks are labeled narrative from the optional 028 tool
             loop
         updated_at (datetime.datetime | Unset):
         updated_by (None | PrincipalSummary | Unset):

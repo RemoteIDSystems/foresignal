@@ -19,7 +19,7 @@ class AnalysisRequestSubmission:
     """Requests an on-demand forecast of a ledger question from an external forecaster (155).
 
     Attributes:
-        forecaster_id (str): The external forecaster id, edp:{sourceId}/{streamId}.
+        forecaster_id (str): The external forecaster id, edp:{sourceId}:{streamId}.
         question_id (str): The ledger question to forecast; must be open.
         orientation (AnalysisRequestSubmissionOrientation | Unset): Whether the provider's probability is for the
             question as stated (same) or its negation (inverse). Default: AnalysisRequestSubmissionOrientation.SAME.

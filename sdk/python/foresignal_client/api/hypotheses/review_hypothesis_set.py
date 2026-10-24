@@ -94,7 +94,7 @@ def sync_detailed(
 
      Records a revision with cause `review` (or `operator`) and a rationale, or confirms an analyst
     proposal. A review may change LRs, assumptions or probabilities directly; overrides above a
-    speculative-link cap are logged and labelled.
+    speculative-link cap are logged and labeled.
 
     **Scope:** `agent`.
 
@@ -132,7 +132,7 @@ def sync(
 
      Records a revision with cause `review` (or `operator`) and a rationale, or confirms an analyst
     proposal. A review may change LRs, assumptions or probabilities directly; overrides above a
-    speculative-link cap are logged and labelled.
+    speculative-link cap are logged and labeled.
 
     **Scope:** `agent`.
 
@@ -165,7 +165,7 @@ async def asyncio_detailed(
 
      Records a revision with cause `review` (or `operator`) and a rationale, or confirms an analyst
     proposal. A review may change LRs, assumptions or probabilities directly; overrides above a
-    speculative-link cap are logged and labelled.
+    speculative-link cap are logged and labeled.
 
     **Scope:** `agent`.
 
@@ -201,7 +201,7 @@ async def asyncio(
 
      Records a revision with cause `review` (or `operator`) and a rationale, or confirms an analyst
     proposal. A review may change LRs, assumptions or probabilities directly; overrides above a
-    speculative-link cap are logged and labelled.
+    speculative-link cap are logged and labeled.
 
     **Scope:** `agent`.
 

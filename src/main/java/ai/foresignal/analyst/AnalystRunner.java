@@ -109,7 +109,7 @@ public class AnalystRunner {
 
     /** The note footer. */
     public static final String FOOTER =
-            "Automated analysis by %s. Evidence is cited; inference and speculation are labelled. Verify before acting.";
+            "Automated analysis by %s. Evidence is cited; inference and speculation are labeled. Verify before acting.";
 
     /** The transport tag for tool calls. */
     static final String TRANSPORT = "analyst";

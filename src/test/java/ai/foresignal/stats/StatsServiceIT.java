@@ -339,4 +339,36 @@ class StatsServiceIT extends StatsItSupport {
                 List.of(), null, T0, H1, Duration.ofMinutes(30), TimeField.INGESTED, "versions", "none", false, false,
                 null))).as("a half-hour bucket cannot come from hourly rows").isNull();
     }
+
+    @Test
+    @DisplayName("a timeline whose raw read the rollup estimates above the limit is 422 TIMELINE_RANGE_UNSUPPORTED")
+    void timelineRefusedUpFront() {
+        seedHours();
+        // Stand in for a busy day: the two closed hours report more versions than one request can count.
+        jdbc.update("UPDATE activity_rollup SET versions = ? WHERE source_id = ? AND resolution = ?",
+                RollupTimelineBackend.MAX_RAW_VERSIONS / 2 + 1, POINTS, RollupResolution.HOUR.code());
+
+        assertThatThrownBy(() -> timelines.timeline(List.of(POINTS), List.of(), null, T0, T0.plus(Duration.ofHours(3)),
+                Duration.ofHours(1), TimeField.OBSERVED, "entities", "none", false, false, Set.of(),
+                ReadRestriction.NONE)).isInstanceOfSatisfying(ForesignalException.class, e -> {
+                    assertThat(e.getStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
+                    assertThat(e.getCode()).isEqualTo(ErrorCodes.TIMELINE_RANGE_UNSUPPORTED);
+                    assertThat(e.getMessage()).contains("isn't servable over this range");
+                });
+
+        // A kind filter, or a range past the busy hours, keeps the estimate under the limit and is served.
+        Timeline otherKind = timelines.timeline(List.of(POINTS), List.of(OTHER_KIND), null, T0,
+                T0.plus(Duration.ofHours(3)), Duration.ofHours(1), TimeField.OBSERVED, "versions", "none", false,
+                false, Set.of(), ReadRestriction.NONE);
+        assertThat(otherKind.buckets()).extracting(Timeline.Bucket::total).containsExactly(1L, 0L, 0L);
+        Timeline later = timelines.timeline(List.of(POINTS), List.of(), null, T0.plus(Duration.ofHours(2)),
+                T0.plus(Duration.ofHours(4)), Duration.ofHours(1), TimeField.OBSERVED, "versions", "none", false,
+                false, Set.of(), ReadRestriction.NONE);
+        assertThat(later.buckets()).extracting(Timeline.Bucket::total).containsExactly(0L, 1L);
+        // The ingested axis counts far slower, so its limit is lower.
+        assertThat(RollupTimelineBackend.limit(new ai.foresignal.store.timeline.TimelineQuery(List.of(POINTS),
+                List.of(), null, T0, H1, Duration.ofHours(1), TimeField.INGESTED, "versions", "none", false, false,
+                null))).isEqualTo(RollupTimelineBackend.MAX_RAW_VERSIONS_INGESTED).isLessThan(
+                        RollupTimelineBackend.MAX_RAW_VERSIONS);
+    }
 }

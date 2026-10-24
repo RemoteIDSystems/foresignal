@@ -36,7 +36,7 @@ class AnalystNote:
         private (bool | Unset): True when it cites anything private
         model (None | str | Unset):
         footer (str | Unset):  Example: Automated analysis by <model>. Evidence is cited; inference and speculation are
-            labelled. Verify before acting..
+            labeled. Verify before acting..
     """
 
     id: str

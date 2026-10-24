@@ -27,7 +27,7 @@ class ExternalForecasterRegistration {
      this.config,
   });
 
-      /// Forecaster id, conventionally edp:{sourceId}/{streamId}.
+      /// Forecaster id, conventionally edp:{sourceId}:{streamId}.
   @JsonKey(
     
     name: r'id',

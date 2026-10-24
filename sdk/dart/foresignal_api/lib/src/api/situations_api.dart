@@ -230,7 +230,7 @@ _responseData = rawData == null ? null : deserialize<Situation, Situation>(rawDa
   }
 
   /// Get a situation
-  /// Returns the situation evidence first (members grouped by signal family, corroboration roll-up), then inference (status, severity, deterministic summary), then the optional LLM brief labelled as speculation.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// Returns the situation evidence first (members grouped by signal family, corroboration roll-up), then inference (status, severity, deterministic summary), then the optional LLM brief labeled as speculation.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
   ///
   /// Parameters:
   /// * [situationId] - Situation id

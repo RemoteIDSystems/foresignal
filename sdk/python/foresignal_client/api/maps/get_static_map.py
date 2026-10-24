@@ -173,7 +173,7 @@ def sync_detailed(
     time), legend, attribution and an "Automated — not an official warning" footer. The box is `bbox`,
     else `center` with `radiusKm` (default 50 km), else the alert's record geometry, else the place; it
     is snapped outwards to 0.01° once and widened to the map area's aspect, and `Foresignal-Image-
-    Bounds` gives the result. Missing or stale frames are drawn as a labelled note ("… unavailable — not
+    Bounds` gives the result. Missing or stale frames are drawn as a labeled note ("… unavailable — not
     evidence of clear weather"), never omitted; a concrete ISO time at which an enabled product has no
     frame is 404 UNKNOWN_FRAME. Nothing fetches third-party tiles (an operator's LAN tile server,
     `FORESIGNAL_MAPS_BASEMAP_URL_TEMPLATE`, may replace the Natural Earth fills). Immutable only when
@@ -256,7 +256,7 @@ def sync(
     time), legend, attribution and an "Automated — not an official warning" footer. The box is `bbox`,
     else `center` with `radiusKm` (default 50 km), else the alert's record geometry, else the place; it
     is snapped outwards to 0.01° once and widened to the map area's aspect, and `Foresignal-Image-
-    Bounds` gives the result. Missing or stale frames are drawn as a labelled note ("… unavailable — not
+    Bounds` gives the result. Missing or stale frames are drawn as a labeled note ("… unavailable — not
     evidence of clear weather"), never omitted; a concrete ISO time at which an enabled product has no
     frame is 404 UNKNOWN_FRAME. Nothing fetches third-party tiles (an operator's LAN tile server,
     `FORESIGNAL_MAPS_BASEMAP_URL_TEMPLATE`, may replace the Natural Earth fills). Immutable only when
@@ -334,7 +334,7 @@ async def asyncio_detailed(
     time), legend, attribution and an "Automated — not an official warning" footer. The box is `bbox`,
     else `center` with `radiusKm` (default 50 km), else the alert's record geometry, else the place; it
     is snapped outwards to 0.01° once and widened to the map area's aspect, and `Foresignal-Image-
-    Bounds` gives the result. Missing or stale frames are drawn as a labelled note ("… unavailable — not
+    Bounds` gives the result. Missing or stale frames are drawn as a labeled note ("… unavailable — not
     evidence of clear weather"), never omitted; a concrete ISO time at which an enabled product has no
     frame is 404 UNKNOWN_FRAME. Nothing fetches third-party tiles (an operator's LAN tile server,
     `FORESIGNAL_MAPS_BASEMAP_URL_TEMPLATE`, may replace the Natural Earth fills). Immutable only when
@@ -415,7 +415,7 @@ async def asyncio(
     time), legend, attribution and an "Automated — not an official warning" footer. The box is `bbox`,
     else `center` with `radiusKm` (default 50 km), else the alert's record geometry, else the place; it
     is snapped outwards to 0.01° once and widened to the map area's aspect, and `Foresignal-Image-
-    Bounds` gives the result. Missing or stale frames are drawn as a labelled note ("… unavailable — not
+    Bounds` gives the result. Missing or stale frames are drawn as a labeled note ("… unavailable — not
     evidence of clear weather"), never omitted; a concrete ISO time at which an enabled product has no
     frame is 404 UNKNOWN_FRAME. Nothing fetches third-party tiles (an operator's LAN tile server,
     `FORESIGNAL_MAPS_BASEMAP_URL_TEMPLATE`, may replace the Natural Earth fills). Immutable only when

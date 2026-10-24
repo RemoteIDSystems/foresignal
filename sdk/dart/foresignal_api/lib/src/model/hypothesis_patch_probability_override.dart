@@ -53,7 +53,7 @@ class HypothesisPatchProbabilityOverride {
 
 
 
-      /// Allow a speculative link above its cap (logged and labelled)
+      /// Allow a speculative link above its cap (logged and labeled)
   @JsonKey(
     defaultValue: false,
     name: r'exceedCap',

@@ -295,6 +295,21 @@ class ForecastControllersIT {
     }
 
     @Test
+    @DisplayName("an external forecaster id is one path segment: registered, then updated by PUT at its own path")
+    void externalForecasterPut() throws Exception {
+        String id = "edp:ext-markets:kalshi";
+        assertThat(call(admin, post("/v1/forecasts/forecasters").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"id\":\"" + id + "\",\"name\":\"Kalshi\"}")).getStatus()).isEqualTo(200);
+        JsonNode updated = body(call(admin, put("/v1/forecasts/forecasters/" + id).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"active\":true,\"name\":\"Kalshi odds\",\"config\":{\"externalMinResolved\":5}}")));
+        assertThat(updated.get("id").asString()).isEqualTo(id);
+        assertThat(updated.get("name").asString()).isEqualTo("Kalshi odds");
+        // The retired slash form is refused at registration, so no id that PUT cannot route is stored.
+        assertThat(call(admin, post("/v1/forecasts/forecasters").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"id\":\"edp:ext-markets/kalshi\"}")).getStatus()).isEqualTo(400);
+    }
+
+    @Test
     @DisplayName("the resolution job closes past-due questions and asks for manual resolutions once")
     void resolutionJob() throws Exception {
         String id = open(null);

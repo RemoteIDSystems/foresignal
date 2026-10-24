@@ -29,9 +29,9 @@ class PrecisionComponentsItem:
         key (str): Detector, recipe or linker id and version Example: cusum 1.0.0.
         confirmed (int):
         rejected (int):
-        labelled (int):
+        labeled (int):
         duplicate (int | Unset):
-        needs_review (int | Unset): Counted as unlabelled
+        needs_review (int | Unset): Counted as unlabeled
         precision (float | None | Unset):
         interval (None | PrecisionComponentsItemIntervalType0 | Unset):
     """
@@ -40,7 +40,7 @@ class PrecisionComponentsItem:
     key: str
     confirmed: int
     rejected: int
-    labelled: int
+    labeled: int
     duplicate: int | Unset = UNSET
     needs_review: int | Unset = UNSET
     precision: float | None | Unset = UNSET
@@ -60,7 +60,7 @@ class PrecisionComponentsItem:
 
         rejected = self.rejected
 
-        labelled = self.labelled
+        labeled = self.labeled
 
         duplicate = self.duplicate
 
@@ -88,7 +88,7 @@ class PrecisionComponentsItem:
                 "key": key,
                 "confirmed": confirmed,
                 "rejected": rejected,
-                "labelled": labelled,
+                "labeled": labeled,
             }
         )
         if duplicate is not UNSET:
@@ -117,7 +117,7 @@ class PrecisionComponentsItem:
 
         rejected = d.pop("rejected")
 
-        labelled = d.pop("labelled")
+        labeled = d.pop("labeled")
 
         duplicate = d.pop("duplicate", UNSET)
 
@@ -156,7 +156,7 @@ class PrecisionComponentsItem:
             key=key,
             confirmed=confirmed,
             rejected=rejected,
-            labelled=labelled,
+            labeled=labeled,
             duplicate=duplicate,
             needs_review=needs_review,
             precision=precision,

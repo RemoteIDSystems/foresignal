@@ -80,7 +80,7 @@ public final class CycleVocabulary {
 
     /** The footer of every assessment. */
     public static final String FOOTER = "Automated analysis. Probabilities use ICD 203 terms; evidence is cited;"
-            + " speculation is labelled. Verify before acting.";
+            + " speculation is labeled. Verify before acting.";
 
     private CycleVocabulary() {}
 

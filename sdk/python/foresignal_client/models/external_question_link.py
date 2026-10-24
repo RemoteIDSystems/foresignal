@@ -25,7 +25,7 @@ class ExternalQuestionLink:
         question_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
         id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
         source_id (str):
-        forecaster_id (str):  Example: edp:ext-markets/kalshi.
+        forecaster_id (str):  Example: edp:ext-markets:kalshi.
         created_at (datetime.datetime):
         orientation (ExternalQuestionLinkInputOrientation | Unset):  Default: ExternalQuestionLinkInputOrientation.SAME.
         last_forecast_at (datetime.datetime | None | Unset):

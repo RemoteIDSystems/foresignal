@@ -125,7 +125,7 @@ public class AlertQualityService {
         Map<String, Instant> lastByEntity = new LinkedHashMap<>();
         long duplicates = 0;
         for (AlertView alert : rows) {
-            String feedbackClass = alert.feedback() == null ? "unlabelled"
+            String feedbackClass = alert.feedback() == null ? "unlabeled"
                     : FEEDBACK_CLASSES.getOrDefault(alert.feedback(), "neutral");
             switch (feedbackClass) {
                 case "positive" -> {
@@ -161,11 +161,11 @@ public class AlertQualityService {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("ruleId", ruleId);
         out.put("alerts", rows.size());
-        out.put("labelled", labeled);
+        out.put("labeled", labeled);
         if (labeled == 0) {
-            out.put("labelledShare", 0.0);
+            out.put("labeledShare", 0.0);
         } else {
-            out.put("labelledShare", (double) labeled / rows.size());
+            out.put("labeledShare", (double) labeled / rows.size());
         }
         if (labeled < MIN_LABELED) {
             out.put("precision", null);

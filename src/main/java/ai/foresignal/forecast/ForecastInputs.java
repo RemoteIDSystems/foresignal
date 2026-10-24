@@ -613,6 +613,10 @@ public final class ForecastInputs {
         List<FieldError> errors = new ArrayList<>();
         unknown(body, Set.of("id", "name", "config"), errors);
         String id = text(body, "id", 1, 128, true, errors);
+        if (id != null && !FORECASTER_ID.matcher(id).matches()) {
+            // The contract's pattern: one path segment, so updateForecaster can address it.
+            errors.add(new FieldError("id", "must match " + FORECASTER_ID.pattern()));
+        }
         if (body.hasNonNull("name") && (!body.get("name").isString() || body.get("name").asString().isBlank()
                 || body.get("name").asString().length() > 200)) {
             errors.add(new FieldError("name", "must be 1 to 200 characters"));

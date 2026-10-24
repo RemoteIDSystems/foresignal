@@ -84,6 +84,14 @@ public final class BindingVocabulary {
     /** The prefix of external forecaster ids. */
     public static final String FORECASTER_PREFIX = "edp:";
 
+    /**
+     * Separates the source from the stream in an external forecaster id. Source and stream ids are slugs
+     * ({@code [a-z0-9-]}), so the first {@code :} after the prefix splits the id unambiguously, and the id stays one
+     * path segment matching the contract's forecaster id pattern ({@code ^[a-z0-9][a-z0-9._:-]{0,127}$}); a
+     * {@code /} broke both.
+     */
+    public static final char FORECASTER_SEPARATOR = ':';
+
     /** The item types each target accepts. */
     public static final Map<String, Set<String>> ITEM_TYPES;
 
@@ -111,9 +119,9 @@ public final class BindingVocabulary {
         };
     }
 
-    /** The external forecaster of a forecast stream: {@code edp:{sourceId}/{streamId}}. */
+    /** The external forecaster of a forecast stream: {@code edp:{sourceId}:{streamId}}. */
     public static String forecasterId(String sourceId, String streamId) {
-        return FORECASTER_PREFIX + sourceId + "/" + streamId;
+        return FORECASTER_PREFIX + sourceId + FORECASTER_SEPARATOR + streamId;
     }
 
     /** The requirement of {@code target} in words, for {@code BINDING_TARGET_INVALID}. */

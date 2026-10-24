@@ -36,7 +36,7 @@ import tools.jackson.databind.json.JsonMapper;
  * result. A provider that answers synchronously returns the forecast in the HTTP response (used by the
  * retrospective backtest runner); one that answers asynchronously posts it to the callback endpoint, which calls
  * {@link #fulfill}. Either way the returned forecast is recorded as the external forecaster
- * {@code edp:{sourceId}/{streamId}}, exactly like a pushed or pulled forecast item, decile output mapped onto the
+ * {@code edp:{sourceId}:{streamId}}, exactly like a pushed or pulled forecast item, decile output mapped onto the
  * ledger's required quantiles.
  *
  * <p>TimesFM and every other forecaster stay external services; this is only the transport and the correlation.
@@ -90,7 +90,7 @@ public class AnalysisRequestService {
 
     /**
      * Requests an on-demand forecast of {@code questionId} from the external forecaster {@code forecasterId}
-     * ({@code edp:{sourceId}/{streamId}}). Persists the correlation, posts the request, and — if the provider
+     * ({@code edp:{sourceId}:{streamId}}). Persists the correlation, posts the request, and — if the provider
      * answers synchronously — records the forecast at once.
      *
      * @throws IllegalArgumentException when the forecaster id, the provider or its analysis-request transport is
@@ -253,15 +253,15 @@ public class AnalysisRequestService {
         return base == null ? null : base + CALLBACK_PATH;
     }
 
-    /** {@code edp:{sourceId}/{streamId}} → {@code [sourceId, streamId]}. */
+    /** {@code edp:{sourceId}:{streamId}} → {@code [sourceId, streamId]}. */
     static String[] parse(String forecasterId) {
         String prefix = BindingVocabulary.FORECASTER_PREFIX;
-        if (forecasterId == null || !forecasterId.startsWith(prefix) || !forecasterId.contains("/")) {
+        int separator = forecasterId == null || !forecasterId.startsWith(prefix) ? -1
+                : forecasterId.indexOf(BindingVocabulary.FORECASTER_SEPARATOR, prefix.length());
+        if (separator <= prefix.length() || separator == forecasterId.length() - 1) {
             throw new IllegalArgumentException("'" + forecasterId + "' is not an external forecaster id");
         }
-        String rest = forecasterId.substring(prefix.length());
-        int slash = rest.indexOf('/');
-        return new String[] {rest.substring(0, slash), rest.substring(slash + 1)};
+        return new String[] {forecasterId.substring(prefix.length(), separator), forecasterId.substring(separator + 1)};
     }
 
     private static Double probability(JsonNode node) {

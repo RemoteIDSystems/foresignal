@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Target {@code forecast} (prompt 138, Intelligence-Design §8.6): forecast items become forecasts of the external
- * forecaster {@code edp:{sourceId}/{streamId}} ({@code type=external}, registered on first use) on ledger questions,
+ * forecaster {@code edp:{sourceId}:{streamId}} ({@code type=external}, registered on first use) on ledger questions,
  * scored like every forecaster. The question is the item's {@code questionRef}, else the question its
  * {@code question.externalId} is linked to ({@code external_question_link}, with its orientation). A forecast is
  * recorded on the first item, on a material move and at least daily ({@link ExternalForecastPolicy}). The ledger

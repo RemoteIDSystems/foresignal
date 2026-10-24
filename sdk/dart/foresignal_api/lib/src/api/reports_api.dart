@@ -443,7 +443,7 @@ _responseData = rawData == null ? null : deserialize<ShareLink, ShareLink>(rawDa
   }
 
   /// Draft a report from a source
-  /// Builds a deterministic draft (templates &#x60;situation-brief&#x60;, &#x60;investigation-summary&#x60;, &#x60;chronicle-recap&#x60;, &#x60;weekly-assessment&#x60;, &#x60;custom&#x60;) from a selection, tag, investigation, chronicle, situation or workspace and stores it as a &#x60;draft&#x60;. &#x60;narrative&#x3D;true&#x60; adds a labelled LLM narrative block via the 028 tool loop with verified citations; it needs agent scope and LLM budget (026 budgets; &#x60;LLM_NOT_CONFIGURED&#x60;).  **Scope:** &#x60;read&#x60;.
+  /// Builds a deterministic draft (templates &#x60;situation-brief&#x60;, &#x60;investigation-summary&#x60;, &#x60;chronicle-recap&#x60;, &#x60;weekly-assessment&#x60;, &#x60;custom&#x60;) from a selection, tag, investigation, chronicle, situation or workspace and stores it as a &#x60;draft&#x60;. &#x60;narrative&#x3D;true&#x60; adds a labeled LLM narrative block via the 028 tool loop with verified citations; it needs agent scope and LLM budget (026 budgets; &#x60;LLM_NOT_CONFIGURED&#x60;).  **Scope:** &#x60;read&#x60;.
   ///
   /// Parameters:
   /// * [reportDraftRequest] 

@@ -21,7 +21,7 @@ abstract class _$PrecisionComponentsInnerCWProxy {
 
   PrecisionComponentsInner needsReview(int? needsReview);
 
-  PrecisionComponentsInner labelled(int labelled);
+  PrecisionComponentsInner labeled(int labeled);
 
   PrecisionComponentsInner precision(num? precision);
 
@@ -42,7 +42,7 @@ abstract class _$PrecisionComponentsInnerCWProxy {
     int rejected,
     int? duplicate,
     int? needsReview,
-    int labelled,
+    int labeled,
     num? precision,
     ImpactRateInterval? interval,
   });
@@ -80,7 +80,7 @@ class _$PrecisionComponentsInnerCWProxyImpl
       call(needsReview: needsReview);
 
   @override
-  PrecisionComponentsInner labelled(int labelled) => call(labelled: labelled);
+  PrecisionComponentsInner labeled(int labeled) => call(labeled: labeled);
 
   @override
   PrecisionComponentsInner precision(num? precision) =>
@@ -106,7 +106,7 @@ class _$PrecisionComponentsInnerCWProxyImpl
     Object? rejected = const $CopyWithPlaceholder(),
     Object? duplicate = const $CopyWithPlaceholder(),
     Object? needsReview = const $CopyWithPlaceholder(),
-    Object? labelled = const $CopyWithPlaceholder(),
+    Object? labeled = const $CopyWithPlaceholder(),
     Object? precision = const $CopyWithPlaceholder(),
     Object? interval = const $CopyWithPlaceholder(),
   }) {
@@ -135,10 +135,10 @@ class _$PrecisionComponentsInnerCWProxyImpl
           ? _value.needsReview
           // ignore: cast_nullable_to_non_nullable
           : needsReview as int?,
-      labelled: labelled == const $CopyWithPlaceholder() || labelled == null
-          ? _value.labelled
+      labeled: labeled == const $CopyWithPlaceholder() || labeled == null
+          ? _value.labeled
           // ignore: cast_nullable_to_non_nullable
-          : labelled as int,
+          : labeled as int,
       precision: precision == const $CopyWithPlaceholder()
           ? _value.precision
           // ignore: cast_nullable_to_non_nullable
@@ -173,7 +173,7 @@ PrecisionComponentsInner _$PrecisionComponentsInnerFromJson(
       'key',
       'confirmed',
       'rejected',
-      'labelled',
+      'labeled',
     ],
   );
   final val = PrecisionComponentsInner(
@@ -186,7 +186,7 @@ PrecisionComponentsInner _$PrecisionComponentsInnerFromJson(
     rejected: $checkedConvert('rejected', (v) => (v as num).toInt()),
     duplicate: $checkedConvert('duplicate', (v) => (v as num?)?.toInt()),
     needsReview: $checkedConvert('needsReview', (v) => (v as num?)?.toInt()),
-    labelled: $checkedConvert('labelled', (v) => (v as num).toInt()),
+    labeled: $checkedConvert('labeled', (v) => (v as num).toInt()),
     precision: $checkedConvert('precision', (v) => v as num?),
     interval: $checkedConvert(
       'interval',
@@ -208,7 +208,7 @@ Map<String, dynamic> _$PrecisionComponentsInnerToJson(
   'rejected': instance.rejected,
   'duplicate': ?instance.duplicate,
   'needsReview': ?instance.needsReview,
-  'labelled': instance.labelled,
+  'labeled': instance.labeled,
   'precision': ?instance.precision,
   'interval': ?instance.interval?.toJson(),
 };

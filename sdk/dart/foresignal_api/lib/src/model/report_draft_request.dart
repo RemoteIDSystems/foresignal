@@ -98,7 +98,7 @@ class ReportDraftRequest {
 
 
 
-      /// Add a labelled LLM narrative block (agent scope, budgeted)
+      /// Add a labeled LLM narrative block (agent scope, budgeted)
   @JsonKey(
     defaultValue: false,
     name: r'narrative',

@@ -70,7 +70,7 @@ class Assessment {
 
      this.lintWarnings,
 
-     this.footer = 'Automated analysis. Probabilities use ICD 203 terms; evidence is cited; speculation is labelled. Verify before acting.',
+     this.footer = 'Automated analysis. Probabilities use ICD 203 terms; evidence is cited; speculation is labeled. Verify before acting.',
 
     required  this.private,
 
@@ -358,7 +358,7 @@ class Assessment {
 
 
   @JsonKey(
-    defaultValue: 'Automated analysis. Probabilities use ICD 203 terms; evidence is cited; speculation is labelled. Verify before acting.',
+    defaultValue: 'Automated analysis. Probabilities use ICD 203 terms; evidence is cited; speculation is labeled. Verify before acting.',
     name: r'footer',
     required: false,
     includeIfNull: false,

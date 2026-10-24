@@ -11,7 +11,7 @@ import java.time.Instant;
 /**
  * A provider question linked to a ledger question (prompt 138, table {@code external_question_link}): forecast items
  * of the stream whose {@code question.externalId} is {@code externalQuestionId} become forecasts of the external
- * forecaster {@code edp:{sourceId}/{streamId}} on {@code questionId}, inverted for orientation {@code inverse}.
+ * forecaster {@code edp:{sourceId}:{streamId}} on {@code questionId}, inverted for orientation {@code inverse}.
  */
 @Entity
 @Table(name = "external_question_link", uniqueConstraints = @UniqueConstraint(

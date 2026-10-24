@@ -188,7 +188,7 @@ A continuous forecaster pushes or is pulled like any stream, and a pushed `forec
 - The provider answers either way, or both:
   - **Synchronously** — the forecast (`probability` and/or `quantiles`, deciles accepted) in the HTTP response body. Used for backtests and recorded at once.
   - **Asynchronously** — a later `POST {callbackUrl}` (`/v1/external/analysis/callback`) carrying the `correlationId` and the forecast. Foresignal resolves the correlation to its question and external forecaster and records the forecast through the usual binding path.
-- The returned forecast is recorded as the external forecaster `edp:{sourceId}/{streamId}`, scored like any forecaster (122). Decile output is mapped to the ledger's required quantiles (§5).
+- The returned forecast is recorded as the external forecaster `edp:{sourceId}:{streamId}`, scored like any forecaster (122). Decile output is mapped to the ledger's required quantiles (§5).
 - **Backtesting:** because the request can be answered synchronously, Foresignal can backtest an external forecaster by issuing an **as-of** analysis request per question in an evaluation window (`createForecastEvaluation`); a provider that answers only asynchronously cannot be backtested and those questions are skipped.
 - **First-class config:** an operator can pre-register, name and configure an external forecaster (display name; a per-forecaster `externalMinResolved`) independent of the auto-derived `edp:{…}` id (`POST /v1/forecasts/forecasters`, `PUT /v1/forecasts/forecasters/{id}`).
 

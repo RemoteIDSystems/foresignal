@@ -28,7 +28,7 @@ class ReportDraftRequest:
         title (None | str | Unset):
         time_window (None | TimeRange | Unset):
         area (Geometry | None | Unset):
-        narrative (bool | Unset): Add a labelled LLM narrative block (agent scope, budgeted) Default: False.
+        narrative (bool | Unset): Add a labeled LLM narrative block (agent scope, budgeted) Default: False.
         assessment_id (None | str | Unset):
     """
 

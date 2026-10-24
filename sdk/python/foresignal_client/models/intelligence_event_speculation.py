@@ -33,7 +33,7 @@ T = TypeVar("T", bound="IntelligenceEventSpeculation")
 
 @_attrs_define
 class IntelligenceEventSpeculation:
-    """Alternatives and any LLM narrative, always labelled
+    """Alternatives and any LLM narrative, always labeled
 
     Attributes:
         label (Literal['speculation']):

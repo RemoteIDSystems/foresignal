@@ -20,7 +20,7 @@ T = TypeVar("T", bound="SituationSpeculation")
 
 @_attrs_define
 class SituationSpeculation:
-    """Optional LLM brief, labelled speculation-capable narrative; never changes members, status or severity
+    """Optional LLM brief, labeled speculation-capable narrative; never changes members, status or severity
 
     Attributes:
         label (Literal['speculation']):

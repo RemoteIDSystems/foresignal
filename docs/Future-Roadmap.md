@@ -148,3 +148,32 @@ organizations are first-class entities with corporate keys, ownership/affiliatio
 ownership-chain / shared-attribute queries work. What remains is **data, not an engine** — sourcing
 the corporate-registry / GLEIF / UBO / PEP / public-records / leak feeds above via the EDP and
 adapters. Owner's call whether to pursue that domain.
+
+---
+
+## Timeline from rollups — serve `/v1/timeline` over any range
+
+_Added 2026-10-24._
+
+**Today.** `/v1/timeline` counts record versions from raw history (`RawTimelineBackend`), inside
+the 10 s statement timeout. Measured on the local database on 2026-10-24: on the observed axis,
+583,000 versions counted in 1 to 3 s and 2.5 million in 5 to 9 s or past the timeout. On the
+ingested axis, 91,000 counted in 1.6 s, 368,000 in 9.0 s and 583,000 past the timeout. So
+`RollupTimelineBackend` estimates the count from the hourly `activity_rollup` totals before it
+starts. Above 1 million versions (observed) or 200,000 (ingested), it refuses with
+`422 TIMELINE_RANGE_UNSUPPORTED` instead of failing with a 503 after about 10 s. Those limits are
+heuristics: under heavy database load, a range below them can still time out.
+
+**Candidate.** Serve the timeline's counts from `activity_rollup` itself, as `/v1/stats/timeseries`
+already does for long ranges, and keep raw history only for buckets the rollup cannot answer
+(finer than an hour, or newer than the rollup cursor). Then no range is refused.
+
+**To settle first.**
+- Whether the rollup's counts match what the timeline counts from raw history for every filter
+  the timeline accepts, including both time axes.
+- How raw retention interacts with the rollup's longer reach.
+- Why the ingested axis is about 10 times slower than the observed axis on raw history; an index
+  may close most of the gap on its own.
+
+**Status.** Candidate. The fail-fast refusal is in place; the rollup-backed timeline is not built.
+Owner's call.

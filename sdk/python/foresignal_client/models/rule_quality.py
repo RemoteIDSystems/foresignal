@@ -34,12 +34,12 @@ class RuleQuality:
             rule_id (UUID):
             since (datetime.datetime):
             alerts (int):
-            labelled (int):
+            labeled (int):
             positive (int):
             negative (int):
             neutral (int):
-            labelled_share (float | Unset):
-            precision (float | None | Unset): positive ÷ (positive + negative); null when labelled < 5
+            labeled_share (float | Unset):
+            precision (float | None | Unset): positive ÷ (positive + negative); null when labeled < 5
             precision_ci (None | RuleQualityPrecisionCiType0 | Unset):
             median_time_to_ack (None | str | Unset): ISO-8601 duration
             median_time_to_resolve (None | str | Unset): ISO-8601 duration
@@ -59,11 +59,11 @@ class RuleQuality:
     rule_id: UUID
     since: datetime.datetime
     alerts: int
-    labelled: int
+    labeled: int
     positive: int
     negative: int
     neutral: int
-    labelled_share: float | Unset = UNSET
+    labeled_share: float | Unset = UNSET
     precision: float | None | Unset = UNSET
     precision_ci: None | RuleQualityPrecisionCiType0 | Unset = UNSET
     median_time_to_ack: None | str | Unset = UNSET
@@ -90,7 +90,7 @@ class RuleQuality:
 
         alerts = self.alerts
 
-        labelled = self.labelled
+        labeled = self.labeled
 
         positive = self.positive
 
@@ -98,7 +98,7 @@ class RuleQuality:
 
         neutral = self.neutral
 
-        labelled_share = self.labelled_share
+        labeled_share = self.labeled_share
 
         precision: float | None | Unset
         if isinstance(self.precision, Unset):
@@ -173,14 +173,14 @@ class RuleQuality:
                 "ruleId": rule_id,
                 "since": since,
                 "alerts": alerts,
-                "labelled": labelled,
+                "labeled": labeled,
                 "positive": positive,
                 "negative": negative,
                 "neutral": neutral,
             }
         )
-        if labelled_share is not UNSET:
-            field_dict["labelledShare"] = labelled_share
+        if labeled_share is not UNSET:
+            field_dict["labeledShare"] = labeled_share
         if precision is not UNSET:
             field_dict["precision"] = precision
         if precision_ci is not UNSET:
@@ -231,7 +231,7 @@ class RuleQuality:
 
         alerts = d.pop("alerts")
 
-        labelled = d.pop("labelled")
+        labeled = d.pop("labeled")
 
         positive = d.pop("positive")
 
@@ -239,7 +239,7 @@ class RuleQuality:
 
         neutral = d.pop("neutral")
 
-        labelled_share = d.pop("labelledShare", UNSET)
+        labeled_share = d.pop("labeledShare", UNSET)
 
         def _parse_precision(data: object) -> float | None | Unset:
             if data is None:
@@ -354,11 +354,11 @@ class RuleQuality:
             rule_id=rule_id,
             since=since,
             alerts=alerts,
-            labelled=labelled,
+            labeled=labeled,
             positive=positive,
             negative=negative,
             neutral=neutral,
-            labelled_share=labelled_share,
+            labeled_share=labeled_share,
             precision=precision,
             precision_ci=precision_ci,
             median_time_to_ack=median_time_to_ack,

@@ -43,7 +43,7 @@ import tools.jackson.databind.json.JsonMapper;
  */
 class AnalysisRequestServiceTest {
 
-    private static final String FORECASTER = "edp:ext-timesfm/transits";
+    private static final String FORECASTER = "edp:ext-timesfm:transits";
     private static final String QUESTION = "01HQWERTYQUESTION000000001";
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-10-22T12:00:00Z"), ZoneOffset.UTC);
@@ -213,5 +213,10 @@ class AnalysisRequestServiceTest {
         assertThat(AnalysisRequestService.parse(FORECASTER)).containsExactly("ext-timesfm", "transits");
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> AnalysisRequestService.parse("base-rate"))
                 .isInstanceOf(IllegalArgumentException.class);
+        // The retired slash form, and ids missing a source or a stream.
+        for (String bad : new String[] {"edp:ext-timesfm/transits", "edp::transits", "edp:ext-timesfm:", "edp:"}) {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> AnalysisRequestService.parse(bad))
+                    .as(bad).isInstanceOf(IllegalArgumentException.class);
+        }
     }
 }
