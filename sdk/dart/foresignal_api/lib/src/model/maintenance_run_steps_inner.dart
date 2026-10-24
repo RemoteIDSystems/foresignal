@@ -103,7 +103,7 @@ class MaintenanceRunStepsInner {
   )
 
 
-  final Object? result;
+  final Map<String, Object>? result;
 
 
 

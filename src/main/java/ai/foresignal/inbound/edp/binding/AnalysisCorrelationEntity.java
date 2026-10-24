@@ -6,6 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import org.hibernate.annotations.ColumnDefault;
 
 /**
  * A pending on-demand analysis request (prompt 155, table {@code analysis_correlation}): Foresignal asked an
@@ -41,6 +42,7 @@ public class AnalysisCorrelationEntity {
     @Column(name = "question_id", length = 26, nullable = false)
     private String questionId;
 
+    @ColumnDefault("'same'")
     @Column(name = "orientation", length = 8, nullable = false)
     private String orientation = BindingVocabulary.SAME;
 
@@ -50,6 +52,7 @@ public class AnalysisCorrelationEntity {
     @Column(name = "horizon", length = 32)
     private String horizon;
 
+    @ColumnDefault("'requested'")
     @Column(name = "status", length = 16, nullable = false)
     private String status = REQUESTED;
 

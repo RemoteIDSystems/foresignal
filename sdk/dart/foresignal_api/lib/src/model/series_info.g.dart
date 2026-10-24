@@ -25,7 +25,7 @@ abstract class _$SeriesInfoCWProxy {
 
   SeriesInfo latestValue(num? latestValue);
 
-  SeriesInfo status(Object? status);
+  SeriesInfo status(SeriesInfoStatusEnum? status);
 
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
@@ -45,7 +45,7 @@ abstract class _$SeriesInfoCWProxy {
     String? area,
     String? latestPeriod,
     num? latestValue,
-    Object? status,
+    SeriesInfoStatusEnum? status,
   });
 }
 
@@ -86,7 +86,7 @@ class _$SeriesInfoCWProxyImpl implements _$SeriesInfoCWProxy {
   SeriesInfo latestValue(num? latestValue) => call(latestValue: latestValue);
 
   @override
-  SeriesInfo status(Object? status) => call(status: status);
+  SeriesInfo status(SeriesInfoStatusEnum? status) => call(status: status);
 
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
@@ -150,7 +150,7 @@ class _$SeriesInfoCWProxyImpl implements _$SeriesInfoCWProxy {
       status: status == const $CopyWithPlaceholder()
           ? _value.status
           // ignore: cast_nullable_to_non_nullable
-          : status as Object?,
+          : status as SeriesInfoStatusEnum?,
     );
   }
 }
@@ -191,7 +191,10 @@ SeriesInfo _$SeriesInfoFromJson(Map<String, dynamic> json) =>
         area: $checkedConvert('area', (v) => v as String?),
         latestPeriod: $checkedConvert('latestPeriod', (v) => v as String?),
         latestValue: $checkedConvert('latestValue', (v) => v as num?),
-        status: $checkedConvert('status', (v) => v),
+        status: $checkedConvert(
+          'status',
+          (v) => $enumDecodeNullable(_$SeriesInfoStatusEnumEnumMap, v),
+        ),
       );
       return val;
     });
@@ -207,7 +210,7 @@ Map<String, dynamic> _$SeriesInfoToJson(SeriesInfo instance) =>
       'area': ?instance.area,
       'latestPeriod': ?instance.latestPeriod,
       'latestValue': ?instance.latestValue,
-      'status': ?instance.status,
+      'status': ?_$SeriesInfoStatusEnumEnumMap[instance.status],
     };
 
 const _$SeriesInfoFrequencyEnumEnumMap = {
@@ -220,4 +223,11 @@ const _$SeriesInfoFrequencyEnumEnumMap = {
   SeriesInfoFrequencyEnum.P1M: 'P1M',
   SeriesInfoFrequencyEnum.P3M: 'P3M',
   SeriesInfoFrequencyEnum.P1Y: 'P1Y',
+};
+
+const _$SeriesInfoStatusEnumEnumMap = {
+  SeriesInfoStatusEnum.final_: 'final',
+  SeriesInfoStatusEnum.preliminary: 'preliminary',
+  SeriesInfoStatusEnum.estimated: 'estimated',
+  SeriesInfoStatusEnum.forecast: 'forecast',
 };

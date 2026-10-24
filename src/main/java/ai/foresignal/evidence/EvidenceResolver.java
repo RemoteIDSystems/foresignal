@@ -100,6 +100,8 @@ public class EvidenceResolver implements ChangeListener, DisposableBean, ai.fore
     private volatile Subscription subscription;
     private volatile Thread thread;
     private volatile boolean running;
+    /** Set by {@link #destroy()}: a catch-up pass in flight stops at its next chunk. */
+    private volatile boolean stopping;
     private volatile long cursor = -1;
 
     /** Creates the resolver. */
@@ -143,6 +145,7 @@ public class EvidenceResolver implements ChangeListener, DisposableBean, ai.fore
     @EventListener(ApplicationReadyEvent.class)
     @Order(StartupOrder.INTEL)
     public synchronized void start() {
+        stopping = false;
         if (running || !autoStart) {
             return;
         }
@@ -151,9 +154,13 @@ public class EvidenceResolver implements ChangeListener, DisposableBean, ai.fore
         thread = Thread.ofVirtual().name("evidence-resolver").start(this::loop);
     }
 
-    /** Stops the resolver. */
+    /**
+     * Stops the resolver. Not synchronized: a catch-up pass holds the monitor for its whole run, so a stop that waited
+     * for it would hold up shutdown until the pass ended; {@code stopping} ends the pass at its next chunk instead.
+     */
     @Override
-    public synchronized void destroy() {
+    public void destroy() {
+        stopping = true;
         running = false;
         if (subscription != null) {
             subscription.close();
@@ -219,7 +226,7 @@ public class EvidenceResolver implements ChangeListener, DisposableBean, ai.fore
         long watermark = changeBus.lastPublishedSeq();
         long from = cursor();
         List<String> kinds = new ArrayList<>(rules.kinds());
-        while (from < watermark) {
+        while (from < watermark && !stopping) {
             long to = Math.min(from + CHUNK, watermark);
             for (VersionRow row : versions(kinds, from, to)) {
                 try {

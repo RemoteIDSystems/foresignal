@@ -9,9 +9,7 @@ part of 'scorecard_entry.dart';
 abstract class _$ScorecardEntryCWProxy {
   ScorecardEntry forecasterId(String forecasterId);
 
-  ScorecardEntry forecasterType(
-    ScorecardEntryForecasterTypeEnum? forecasterType,
-  );
+  ScorecardEntry forecasterType(String? forecasterType);
 
   ScorecardEntry category(String? category);
 
@@ -55,7 +53,7 @@ abstract class _$ScorecardEntryCWProxy {
   /// ```
   ScorecardEntry call({
     String forecasterId,
-    ScorecardEntryForecasterTypeEnum? forecasterType,
+    String? forecasterType,
     String? category,
     int nResolved,
     int? nForecasts,
@@ -86,9 +84,8 @@ class _$ScorecardEntryCWProxyImpl implements _$ScorecardEntryCWProxy {
       call(forecasterId: forecasterId);
 
   @override
-  ScorecardEntry forecasterType(
-    ScorecardEntryForecasterTypeEnum? forecasterType,
-  ) => call(forecasterType: forecasterType);
+  ScorecardEntry forecasterType(String? forecasterType) =>
+      call(forecasterType: forecasterType);
 
   @override
   ScorecardEntry category(String? category) => call(category: category);
@@ -177,7 +174,7 @@ class _$ScorecardEntryCWProxyImpl implements _$ScorecardEntryCWProxy {
       forecasterType: forecasterType == const $CopyWithPlaceholder()
           ? _value.forecasterType
           // ignore: cast_nullable_to_non_nullable
-          : forecasterType as ScorecardEntryForecasterTypeEnum?,
+          : forecasterType as String?,
       category: category == const $CopyWithPlaceholder()
           ? _value.category
           // ignore: cast_nullable_to_non_nullable
@@ -259,10 +256,7 @@ ScorecardEntry _$ScorecardEntryFromJson(
   $checkKeys(json, requiredKeys: const ['forecasterId', 'nResolved', 'label']);
   final val = ScorecardEntry(
     forecasterId: $checkedConvert('forecasterId', (v) => v as String),
-    forecasterType: $checkedConvert(
-      'forecasterType',
-      (v) => $enumDecodeNullable(_$ScorecardEntryForecasterTypeEnumEnumMap, v),
-    ),
+    forecasterType: $checkedConvert('forecasterType', (v) => v as String?),
     category: $checkedConvert('category', (v) => v as String?),
     nResolved: $checkedConvert('nResolved', (v) => (v as num).toInt()),
     nForecasts: $checkedConvert('nForecasts', (v) => (v as num?)?.toInt()),
@@ -313,8 +307,7 @@ ScorecardEntry _$ScorecardEntryFromJson(
 Map<String, dynamic> _$ScorecardEntryToJson(ScorecardEntry instance) =>
     <String, dynamic>{
       'forecasterId': instance.forecasterId,
-      'forecasterType':
-          ?_$ScorecardEntryForecasterTypeEnumEnumMap[instance.forecasterType],
+      'forecasterType': ?instance.forecasterType,
       'category': ?instance.category,
       'nResolved': instance.nResolved,
       'nForecasts': ?instance.nForecasts,
@@ -331,22 +324,6 @@ Map<String, dynamic> _$ScorecardEntryToJson(ScorecardEntry instance) =>
       'recalibration': ?instance.recalibration?.toJson(),
       'ensembleWeight': ?instance.ensembleWeight,
     };
-
-const _$ScorecardEntryForecasterTypeEnumEnumMap = {
-  ScorecardEntryForecasterTypeEnum.baseRate: 'base-rate',
-  ScorecardEntryForecasterTypeEnum.climatology: 'climatology',
-  ScorecardEntryForecasterTypeEnum.persistence: 'persistence',
-  ScorecardEntryForecasterTypeEnum.statistical: 'statistical',
-  ScorecardEntryForecasterTypeEnum.precursor: 'precursor',
-  ScorecardEntryForecasterTypeEnum.analog: 'analog',
-  ScorecardEntryForecasterTypeEnum.threshold: 'threshold',
-  ScorecardEntryForecasterTypeEnum.impact: 'impact',
-  ScorecardEntryForecasterTypeEnum.indicatorBayes: 'indicator-bayes',
-  ScorecardEntryForecasterTypeEnum.llm: 'llm',
-  ScorecardEntryForecasterTypeEnum.operator_: 'operator',
-  ScorecardEntryForecasterTypeEnum.external_: 'external',
-  ScorecardEntryForecasterTypeEnum.ensemble: 'ensemble',
-};
 
 const _$ScorecardEntryLabelEnumEnumMap = {
   ScorecardEntryLabelEnum.ok: 'ok',

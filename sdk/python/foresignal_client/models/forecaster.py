@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, Self, TypeVar, cast
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.forecaster_type import ForecasterType
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -24,7 +23,7 @@ class Forecaster:
 
     Attributes:
         id (str): Slug, e.g. `base-rate`, `ensemble`, `operator:jsmith`, `llm:daily-analyst`
-        type_ (ForecasterType):
+        type_ (str): Expected to grow (`x-extensible-enum`): a client must accept a value not listed here.
         name (str):
         version (str):
         active (bool):
@@ -34,7 +33,7 @@ class Forecaster:
     """
 
     id: str
-    type_: ForecasterType
+    type_: str
     name: str
     version: str
     active: bool
@@ -48,7 +47,7 @@ class Forecaster:
 
         id = self.id
 
-        type_ = self.type_.value
+        type_ = self.type_
 
         name = self.name
 
@@ -97,7 +96,7 @@ class Forecaster:
         d = dict(src_dict)
         id = d.pop("id")
 
-        type_ = ForecasterType(d.pop("type"))
+        type_ = d.pop("type")
 
         name = d.pop("name")
 

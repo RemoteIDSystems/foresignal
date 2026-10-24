@@ -91,14 +91,18 @@ class ImpactProjectorIT extends AnalyticsItSupport {
         rates.clearCache();
         rules.reset();
         forecasters.registerBuiltIns();
-        // The 104 graph: a plant at (-95, 32) supplying a substation, which supplies a hospital.
+        // The 104 graph: a plant just inside the advisory's south edge (29°N) supplying a substation 4.4 km south,
+        // which supplies a hospital 3.3 km further on. Facilities within the 5 km asset buffer of the published
+        // polygons are exposed and are the traversal's seeds, so the dependency path is the one to the hospital
+        // beyond the buffer, from an exposed facility. (The plant's own substation always lies within the buffer:
+        // the plant-substation rule reaches at most 5 km too.)
         Instant built = ADVISORY.minus(Duration.ofDays(60));
         ingestAt("wri-power-plants", built, NormalizedRecord.builder("pp1", "power-plant").observedAt(built)
-                .point(-95, 32).put("name", "Plant").put("capacityMw", 500).build());
+                .point(-97.5, 29.02).put("name", "Plant").put("capacityMw", 500).build());
         ingestAt("osm-infrastructure", built,
-                NormalizedRecord.builder("n10", "substation").observedAt(built).point(-94.98, 32)
+                NormalizedRecord.builder("n10", "substation").observedAt(built).point(-97.5, 28.98)
                         .put("name", "Oak substation").build(),
-                NormalizedRecord.builder("n11", "hospital").observedAt(built).point(-94.95, 32)
+                NormalizedRecord.builder("n11", "hospital").observedAt(built).point(-97.5, 28.95)
                         .put("name", "County hospital").build());
         infra.rebuild(Map.of());
         // History: 25 advisory days with a likely (≥ 50%) 34-kt band over east Texas; 14 followed by an outage.
@@ -118,7 +122,7 @@ class ImpactProjectorIT extends AnalyticsItSupport {
         String id = "34kt:" + Math.round(innerMin * 100) + "-" + Math.round(innerMax * 100);
         ingestAt("nhc-wind-probs", issued,
                 band("34kt:10-20", "10-20%", 0.1, 0.2, square(-98, 29, 5), issued),
-                band(id, innerBand, innerMin, innerMax, square(-95.5, 31.5, 1), issued));
+                band(id, innerBand, innerMin, innerMax, square(-97.75, 29, 0.5), issued));
     }
 
     @Test
@@ -149,19 +153,25 @@ class ImpactProjectorIT extends AnalyticsItSupport {
         assertThat(stats.get("labels")).isEqualTo(List.of(ImpactProjector.LABEL));
         assertThat((List<?>) stats.get("exposedAssets")).anySatisfy(a -> assertThat(((Map<?, ?>) a).get("ref"))
                 .isEqualTo("record:wri-power-plants/pp1"));
+        List<String> exposed = ((List<?>) stats.get("exposedAssets")).stream()
+                .map(a -> String.valueOf(((Map<?, ?>) a).get("ref"))).toList();
         assertThat((List<?>) stats.get("dependencyPaths")).anySatisfy(p -> {
             Map<?, ?> path = (Map<?, ?>) p;
-            assertThat(path.get("from")).isEqualTo("record:wri-power-plants/pp1");
+            assertThat(path.get("to")).isEqualTo("record:osm-infrastructure/n11");
+            assertThat(exposed).contains(String.valueOf(path.get("from")));
             assertThat(path.get("weakestEdgeLabel")).isEqualTo("possible");
         });
         assertThat(f.getManifestId()).isNotNull();
         assertThat(f.getCaveats()).anySatisfy(c -> assertThat(c.get("code")).isEqualTo("MODELED"));
 
-        // Ground stops have no history: skipped, never guessed.
-        assertThat(run.skipped()).anySatisfy(s -> {
-            assertThat(s.impactFamily()).isEqualTo("ground-stop");
-            assertThat(s.reason()).isEqualTo("insufficient-history");
-        });
+        // Ground stops never followed the 25 hazard days: a measured rate of 0 (n is above MIN_N, so it is not
+        // insufficient), whose projection falls below the minimum probability and is not made.
+        ImpactRateService.ImpactRate groundStops = rates.rate("tropical-wind-34", "ground-stop", "continent:NA");
+        assertThat(groundStops.usable()).isTrue();
+        assertThat(groundStops.n()).isEqualTo(25);
+        assertThat(groundStops.impacts()).isZero();
+        assertThat(run.projected()).noneSatisfy(id -> assertThat(findings.findById(id).orElseThrow().getStats()
+                .get("impactFamily")).isEqualTo("ground-stop"));
 
         // 22% ≥ 10%: a binary weather-impact question forecast by impact (and the baselines).
         assertThat(f.getQuestionIds()).hasSize(1);

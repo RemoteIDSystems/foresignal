@@ -16,6 +16,7 @@ import ai.foresignal.benchmark.component.EvidenceBenchmark;
 import ai.foresignal.benchmark.component.ForecasterBenchmark;
 import ai.foresignal.benchmark.component.PrecursorBenchmark;
 import ai.foresignal.benchmark.component.SituationLinkerBenchmark;
+import ai.foresignal.benchmark.component.SocialPhysicalBenchmark;
 import ai.foresignal.evidence.CanonicalRules;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,6 +54,7 @@ class SyntheticBaselineTest {
         for (ForecasterBenchmark.Kind kind : ForecasterBenchmark.Kind.values()) {
             out.add(new ForecasterBenchmark(kind));
         }
+        out.add(new SocialPhysicalBenchmark());
         return out;
     }
 

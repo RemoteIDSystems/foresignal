@@ -10,6 +10,9 @@ public interface EvidenceItemRepository extends JpaRepository<EvidenceItemEntity
     /** Evidence items before a cursor id, newest first. */
     List<EvidenceItemEntity> findByIdLessThanOrderByIdDesc(String before, Limit limit);
 
+    /** The newest evidence items, for the first page (no cursor). */
+    List<EvidenceItemEntity> findAllByOrderByIdDesc(Limit limit);
+
     /** Evidence items citing an attachment (a JSON containment test). */
     @org.springframework.data.jpa.repository.Query(value = "SELECT * FROM evidence_item WHERE attachment_ids @>"
             + " CAST(:json AS jsonb)", nativeQuery = true)

@@ -454,7 +454,9 @@ public class BindingService {
             return;
         }
         try {
-            service.publish(disabledMessage(b, reason), null);
+            // This runs after the manifest update committed: a plain write would join that finished transaction
+            // and never commit, so the notification gets a transaction of its own.
+            tx.executeWithoutResult(status -> service.publish(disabledMessage(b, reason), null));
         } catch (RuntimeException e) {
             log.warn("The notification for disabled binding {} failed: {}", b.getId(), e.toString());
         }
@@ -576,19 +578,31 @@ public class BindingService {
 
     // ------------------------------------------------------------------------- helpers
 
-    /** Runs a backfill in the background when the router runs, else at once (tests drive the router themselves). */
+    /**
+     * Runs a backfill in the background when the router runs, else at once (tests drive the router themselves).
+     * It is started after the binding's transaction commits, where a plain write would join that finished
+     * transaction and never commit: the applier writes in transactions of its own, and the end of the backfill
+     * ({@code backfilling} to {@code active}) is written here in one, from the row as the applier left it.
+     */
     void startBackfill(String bindingId) {
         Runnable task = () -> {
             try {
                 int n = router.backfill(bindingId);
+                tx.executeWithoutResult(status -> bindings.findById(bindingId).ifPresent(b -> {
+                    if (BindingVocabulary.BACKFILLING.equals(b.getState())) {
+                        b.setState(BindingVocabulary.ACTIVE);
+                        b.setUpdatedAt(clock.instant());
+                        bindings.save(b);
+                    }
+                }));
                 log.info("Binding {} backfilled {} stored item(s)", bindingId, n);
             } catch (RuntimeException e) {
                 log.warn("Binding {} backfill failed: {}", bindingId, e.toString());
-                bindings.findById(bindingId).ifPresent(b -> {
+                tx.executeWithoutResult(status -> bindings.findById(bindingId).ifPresent(b -> {
                     b.setState(BindingVocabulary.ACTIVE);
                     b.setLastError("backfill failed: " + e.getMessage());
                     bindings.save(b);
-                });
+                }));
             }
         };
         if (router.autoStart()) {

@@ -305,7 +305,7 @@ _responseData = rawData == null ? null : deserialize<StatsGrid, StatsGrid>(rawDa
   }
 
   /// Activity time series
-  /// &#x60;timeField&#x3D;ingested&#x60; reads the rollup (plus raw rows for the open hour); other time fields read raw history and need &#x60;from ≥ retainedFrom&#x60;; &#x60;alerts&#x60; reads alert fire times. ≤ 2,000 buckets. 10 s timeout (503 QUERY_TIMEOUT).  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// &#x60;timeField&#x3D;ingested&#x60; reads the rollup (plus raw rows for the open hour); other time fields read raw history and need &#x60;from ≥ retainedFrom&#x60;; &#x60;alerts&#x60; reads alert fire times. ≤ 2,000 buckets. 10 s timeout (503 QUERY_TIMEOUT). &#x60;measure&#x3D;entities&#x60; with &#x60;bucket&#x3D;1d&#x60; over a day the daily rollup does not hold yet (the current UTC day) is 422 STATS_MEASURE_UNSUPPORTED: distinct entities cannot be summed from hours, so use &#x60;bucket&#x3D;1h&#x60; or end the range at that day&#39;s start.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
   ///
   /// Parameters:
   /// * [from] - Start

@@ -41,7 +41,7 @@ abstract class _$AssessmentCWProxy {
 
   Assessment model(String? model);
 
-  Assessment effort(Object? effort);
+  Assessment effort(AssessmentEffortEnum? effort);
 
   Assessment manifestId(String? manifestId);
 
@@ -89,7 +89,7 @@ abstract class _$AssessmentCWProxy {
     String? packetRef,
     Map<String, CycleRunRolesInner>? roles,
     String? model,
-    Object? effort,
+    AssessmentEffortEnum? effort,
     String? manifestId,
     List<AssessmentPromptTemplatesInner>? promptTemplates,
     List<String>? citations,
@@ -165,7 +165,7 @@ class _$AssessmentCWProxyImpl implements _$AssessmentCWProxy {
   Assessment model(String? model) => call(model: model);
 
   @override
-  Assessment effort(Object? effort) => call(effort: effort);
+  Assessment effort(AssessmentEffortEnum? effort) => call(effort: effort);
 
   @override
   Assessment manifestId(String? manifestId) => call(manifestId: manifestId);
@@ -308,7 +308,7 @@ class _$AssessmentCWProxyImpl implements _$AssessmentCWProxy {
       effort: effort == const $CopyWithPlaceholder()
           ? _value.effort
           // ignore: cast_nullable_to_non_nullable
-          : effort as Object?,
+          : effort as AssessmentEffortEnum?,
       manifestId: manifestId == const $CopyWithPlaceholder()
           ? _value.manifestId
           // ignore: cast_nullable_to_non_nullable
@@ -425,7 +425,10 @@ Assessment _$AssessmentFromJson(
       ),
     ),
     model: $checkedConvert('model', (v) => v as String?),
-    effort: $checkedConvert('effort', (v) => v),
+    effort: $checkedConvert(
+      'effort',
+      (v) => $enumDecodeNullable(_$AssessmentEffortEnumEnumMap, v),
+    ),
     manifestId: $checkedConvert('manifestId', (v) => v as String?),
     promptTemplates: $checkedConvert(
       'promptTemplates',
@@ -489,7 +492,7 @@ Map<String, dynamic> _$AssessmentToJson(
   'packetRef': ?instance.packetRef,
   'roles': ?instance.roles?.map((k, e) => MapEntry(k, e.toJson())),
   'model': ?instance.model,
-  'effort': ?instance.effort,
+  'effort': ?_$AssessmentEffortEnumEnumMap[instance.effort],
   'manifestId': ?instance.manifestId,
   'promptTemplates': ?instance.promptTemplates?.map((e) => e.toJson()).toList(),
   'citations': ?instance.citations,
@@ -513,4 +516,10 @@ const _$AssessmentStatusEnumEnumMap = {
   AssessmentStatusEnum.partial: 'partial',
   AssessmentStatusEnum.digestOnly: 'digest-only',
   AssessmentStatusEnum.failed: 'failed',
+};
+
+const _$AssessmentEffortEnumEnumMap = {
+  AssessmentEffortEnum.low: 'low',
+  AssessmentEffortEnum.medium: 'medium',
+  AssessmentEffortEnum.high: 'high',
 };

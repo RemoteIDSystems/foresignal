@@ -27,7 +27,7 @@ abstract class _$LedgerQuestionBriefCWProxy {
 
   LedgerQuestionBrief estimativeTerm(IcdTerm? estimativeTerm);
 
-  LedgerQuestionBrief distribution(Object? distribution);
+  LedgerQuestionBrief distribution(Map<String, num>? distribution);
 
   LedgerQuestionBrief quantiles(Quantiles? quantiles);
 
@@ -62,7 +62,7 @@ abstract class _$LedgerQuestionBriefCWProxy {
     String? resolutionCriteria,
     num? probability,
     IcdTerm? estimativeTerm,
-    Object? distribution,
+    Map<String, num>? distribution,
     Quantiles? quantiles,
     String issuer,
     List<LedgerQuestionBriefForecastersInner>? forecasters,
@@ -116,7 +116,7 @@ class _$LedgerQuestionBriefCWProxyImpl implements _$LedgerQuestionBriefCWProxy {
       call(estimativeTerm: estimativeTerm);
 
   @override
-  LedgerQuestionBrief distribution(Object? distribution) =>
+  LedgerQuestionBrief distribution(Map<String, num>? distribution) =>
       call(distribution: distribution);
 
   @override
@@ -214,7 +214,7 @@ class _$LedgerQuestionBriefCWProxyImpl implements _$LedgerQuestionBriefCWProxy {
       distribution: distribution == const $CopyWithPlaceholder()
           ? _value.distribution
           // ignore: cast_nullable_to_non_nullable
-          : distribution as Object?,
+          : distribution as Map<String, num>?,
       quantiles: quantiles == const $CopyWithPlaceholder()
           ? _value.quantiles
           // ignore: cast_nullable_to_non_nullable
@@ -290,7 +290,12 @@ LedgerQuestionBrief _$LedgerQuestionBriefFromJson(Map<String, dynamic> json) =>
           'estimativeTerm',
           (v) => $enumDecodeNullable(_$IcdTermEnumMap, v),
         ),
-        distribution: $checkedConvert('distribution', (v) => v),
+        distribution: $checkedConvert(
+          'distribution',
+          (v) => (v as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as num),
+          ),
+        ),
         quantiles: $checkedConvert(
           'quantiles',
           (v) =>

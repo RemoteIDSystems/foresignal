@@ -81,6 +81,12 @@ public final class ErrorCodes {
     public static final String STATS_TOO_LARGE = "STATS_TOO_LARGE";
 
     /**
+     * 422: a stats time series of {@code measure=entities} with {@code bucket=1d} over a day the daily rollup does
+     * not hold, whose distinct entities would be counted from raw history.
+     */
+    public static final String STATS_MEASURE_UNSUPPORTED = "STATS_MEASURE_UNSUPPORTED";
+
+    /**
      * 503 (server-wide {@code maxClients}) or 429 (per-principal stream count, with
      * {@code Retry-After}): no further SSE stream may be opened now (prompt 015).
      */

@@ -75,6 +75,7 @@ class Entity {
 
 
 
+      /// Expected to grow (`x-extensible-enum`): a client must accept a value not listed here.
   @JsonKey(
     
     name: r'type',
@@ -83,7 +84,7 @@ class Entity {
   )
 
 
-  final EntityTypeEnum type;
+  final String type;
 
 
 
@@ -256,29 +257,6 @@ class Entity {
   }
 
 }
-
-enum EntityTypeEnum {
-@JsonValue(r'aircraft')
-aircraft(r'aircraft'),
-@JsonValue(r'vessel')
-vessel(r'vessel'),
-@JsonValue(r'satellite')
-satellite(r'satellite'),
-@JsonValue(r'station')
-station(r'station'),
-@JsonValue(r'person')
-person(r'person'),
-@JsonValue(r'organization')
-organization(r'organization');
-
-const EntityTypeEnum(this.value);
-
-final String value;
-
-@override
-String toString() => value;
-}
-
 
 enum EntityStatusEnum {
 @JsonValue(r'ACTIVE')

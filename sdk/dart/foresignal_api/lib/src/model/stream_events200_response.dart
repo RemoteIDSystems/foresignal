@@ -2658,7 +2658,7 @@ class StreamEvents200Response {
   )
 
 
-  final Object? cause;
+  final StreamEvents200ResponseCauseEnum? cause;
 
 
 
@@ -2731,7 +2731,7 @@ class StreamEvents200Response {
   )
 
 
-  final Object? evidence;
+  final Map<String, Object>? evidence;
 
 
 
@@ -3977,6 +3977,33 @@ alertSnoozed(r'alert_snoozed'),
 ruleSnoozed(r'rule_snoozed');
 
 const StreamEvents200ResponseSuppressedReasonEnum(this.value);
+
+final String value;
+
+@override
+String toString() => value;
+}
+
+
+enum StreamEvents200ResponseCauseEnum {
+@JsonValue(r'indicator-observed')
+indicatorObserved(r'indicator-observed'),
+@JsonValue(r'indicator-absent')
+indicatorAbsent(r'indicator-absent'),
+@JsonValue(r'evidence-added')
+evidenceAdded(r'evidence-added'),
+@JsonValue(r'evidence-removed')
+evidenceRemoved(r'evidence-removed'),
+@JsonValue(r'base-rate-refresh')
+baseRateRefresh(r'base-rate-refresh'),
+@JsonValue(r'review')
+review(r'review'),
+@JsonValue(r'operator')
+operator_(r'operator'),
+@JsonValue(r'created')
+created(r'created');
+
+const StreamEvents200ResponseCauseEnum(this.value);
 
 final String value;
 

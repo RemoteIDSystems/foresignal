@@ -1,5 +1,6 @@
 package ai.foresignal.inbound.edp.binding;
 
+import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.forecast.ForecastEntity;
 import ai.foresignal.forecast.ForecastInputs;
 import ai.foresignal.forecast.ForecastQuestionEntity;
@@ -101,7 +102,13 @@ public class AnalysisRequestService {
         String[] parts = parse(forecasterId);
         String sourceId = parts[0];
         String streamId = parts[1];
-        ExternalSourceEntity ext = manifests.require(sourceId);
+        ExternalSourceEntity ext;
+        try {
+            ext = manifests.require(sourceId);
+        } catch (ForesignalException e) {
+            // requestAnalysis answers an unknown provider like any other unusable forecaster id: 400.
+            throw new IllegalArgumentException("There is no external source '" + sourceId + "'");
+        }
         EdpManifestModel model = manifests.model(ext);
         EdpManifestModel.AnalysisRequest transport = model.analysisRequest();
         if (transport == null) {

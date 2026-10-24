@@ -686,7 +686,7 @@
       {
         "version": "1.3.0",
         "date": "2026-10-23",
-        "note": "Contract reconciliation from a live check of the admin client (additive): ServerSettings.publicBaseUrl is nullable (null uses the request's own address, as implemented since 018). ChannelType.events lists every Channel.events value. Channel.events gains `personal` (a principal's personal channel, prompt 130; never accepted by createChannel or updateChannel). The nine personal-notice events in Channel.events (mention, share, report.received, package.received, chronicle.proposed, chronicle.cap_warning, chronicle.gap, chronicle.access.requested, saved-search.matches) are now implemented on instance channels: each notice is copied, once per addressee, to enabled instance channels subscribed to it, and never to the device inbox or the instance SSE topics. Notification.event and listNotifications `events` list the ten inbox events. NotificationMessage.event, WebhookEnvelope.event and the notification webhook's X-Foresignal-Event list every channel event plus `test` and `personal`. NotificationDelivery.event gains `personal`. Server conformance (no contract change): Attribution.requiredDisplay is now sent on every record-page attribution, and IntelEventMember.id is sent as a string. Record.attribution, SourceHealth.statusReason, SourceDescriptor.defaultInterval and minInterval, CorrelationRecipe.params and CorrelationRecipeUpdate.params are nullable, as served (no attribution line; healthy; not polled; no overrides, or null to remove them). The full IntelligenceEvent (getIntelEvent) now sends createdAt, context as an object, inference.rawConfidence, confidenceMethod, calibrated, evidenceQuality, lastEvidenceAt, centroid, regionTags and explanation, inference.geometry and centroid as GeoJSON (the geometry was WKT text), evidence.signalFamilies, and speculation.label and narrativeOrigin. Alert list items keep `context.weather.status` beside `summary`, as `WeatherContext` requires it. IntelligenceEvent.severityOverridden is described; the server now returns it and honors `severity: null`. getAttributions honors repeated/comma-separated `source` and `kind`, the license policy and token restrictions, and sends `Foresignal-Attribution` and `Link` as documented. listIntelEvents `type`/`status` and removeGroupMembers `principalId` take arrays as documented. SourceSettings.reliability is returned. LeadTimeStats.trainingCutoff is null until there is a comparison to set it, instead of the epoch. listPromptTemplates (GET /v1/prompt-templates, read) lists the bundled templates with their roles and versions, so a client can discover the ids getPromptTemplate takes. `edpProviderSearch` is implemented: cues call each provider's `transport.search` and report the outcome in `SocialCue.externalResults` (additive). The `workspace.context` and `workspace.presence` stream events carry no id, as the server sends them. `Budget.monthlyCapUsd` is enforced: set per source with `updateSource`, reported in `SourceHealth.budget`, and a source that reaches it is refused until the next UTC month."
+        "note": "Contract reconciliation from a live check of the admin client (additive): ServerSettings.publicBaseUrl is nullable (null uses the request's own address, as implemented since 018). ChannelType.events lists every Channel.events value. Channel.events gains `personal` (a principal's personal channel, prompt 130; never accepted by createChannel or updateChannel). The nine personal-notice events in Channel.events (mention, share, report.received, package.received, chronicle.proposed, chronicle.cap_warning, chronicle.gap, chronicle.access.requested, saved-search.matches) are now implemented on instance channels: each notice is copied, once per addressee, to enabled instance channels subscribed to it, and never to the device inbox or the instance SSE topics. Notification.event and listNotifications `events` list the ten inbox events. NotificationMessage.event, WebhookEnvelope.event and the notification webhook's X-Foresignal-Event list every channel event plus `test` and `personal`. NotificationDelivery.event gains `personal`. Server conformance (no contract change): Attribution.requiredDisplay is now sent on every record-page attribution, and IntelEventMember.id is sent as a string. Record.attribution, SourceHealth.statusReason, SourceDescriptor.defaultInterval and minInterval, CorrelationRecipe.params and CorrelationRecipeUpdate.params are nullable, as served (no attribution line; healthy; not polled; no overrides, or null to remove them). The full IntelligenceEvent (getIntelEvent) now sends createdAt, context as an object, inference.rawConfidence, confidenceMethod, calibrated, evidenceQuality, lastEvidenceAt, centroid, regionTags and explanation, inference.geometry and centroid as GeoJSON (the geometry was WKT text), evidence.signalFamilies, and speculation.label and narrativeOrigin. Alert list items keep `context.weather.status` beside `summary`, as `WeatherContext` requires it. IntelligenceEvent.severityOverridden is described; the server now returns it and honors `severity: null`. getAttributions honors repeated/comma-separated `source` and `kind`, the license policy and token restrictions, and sends `Foresignal-Attribution` and `Link` as documented. listIntelEvents `type`/`status` and removeGroupMembers `principalId` take arrays as documented. SourceSettings.reliability is returned. LeadTimeStats.trainingCutoff is null until there is a comparison to set it, instead of the epoch. listPromptTemplates (GET /v1/prompt-templates, read) lists the bundled templates with their roles and versions, so a client can discover the ids getPromptTemplate takes. `edpProviderSearch` is implemented: cues call each provider's `transport.search` and report the outcome in `SocialCue.externalResults` (additive). The `workspace.context` and `workspace.presence` stream events carry no id, as the server sends them. `Budget.monthlyCapUsd` is enforced: set per source with `updateSource`, reported in `SourceHealth.budget`, and a source that reaches it is refused until the next UTC month. The value lists that grow as the server adds features are declared with `x-extensible-enum` instead of `enum`, so a new value is additive: the notification and channel event names (ChannelType.events, Channel.events, Notification.event, NotificationDelivery.event), Entity.type, EntityKey.keyType, EntityLink.keyType, Relation.type, CommonDependencies relationTypes, Forecast.forecasterType, Forecaster.type and ScorecardEntry.forecasterType. The values are unchanged; a client must accept one it does not know. NotificationMessage.event and WebhookEnvelope.event, the `notification` webhook's payload, keep `enum` and say in their descriptions that the list grows. getStatsTimeseries gains 422 STATS_MEASURE_UNSUPPORTED: `measure=entities` with `bucket=1d` over a day the daily rollup does not hold yet is refused up front instead of timing out (503 QUERY_TIMEOUT) on raw history. CoordinationIndicators come from `CoordinationDetector` 1.1.0: the synchrony null shifts each author's posts by one random offset within the window instead of shuffling post times among the posts, which could not detect a coordinated cluster that made up most of a narrative (no schema change). Report.machineGenerated and the rendition footer no longer count the deterministic sources block the publisher appends to every revision, so a hand-written report is not machine-generated (no schema change)."
       }
     ]
   },
@@ -24049,7 +24049,7 @@
         ],
         "operationId": "getStatsTimeseries",
         "summary": "Activity time series",
-        "description": "`timeField=ingested` reads the rollup (plus raw rows for the open hour); other time fields read raw history and need `from ≥ retainedFrom`; `alerts` reads alert fire times. ≤ 2,000 buckets. 10 s timeout (503 QUERY_TIMEOUT).\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "`timeField=ingested` reads the rollup (plus raw rows for the open hour); other time fields read raw history and need `from ≥ retainedFrom`; `alerts` reads alert fire times. ≤ 2,000 buckets. 10 s timeout (503 QUERY_TIMEOUT). `measure=entities` with `bucket=1d` over a day the daily rollup does not hold yet (the current UTC day) is 422 STATS_MEASURE_UNSUPPORTED: distinct entities cannot be summed from hours, so use `bucket=1h` or end the range at that day's start.\n\n**Scope:** `read` (open while `security.openReads` is on).",
         "parameters": [
           {
             "name": "source",
@@ -24272,6 +24272,16 @@
           },
           "404": {
             "description": "Unknown source, or a private source the caller may not see",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`measure=entities` with `bucket=1d` over a day the daily rollup does not hold yet (STATS_MEASURE_UNSUPPORTED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -88359,6 +88369,12 @@
             "note": "A time series above 2,000 buckets, a grid above 10,000 cells, or a raw grid whose bbox holds too many hexagons"
           },
           {
+            "code": "STATS_MEASURE_UNSUPPORTED",
+            "status": 422,
+            "prompt": "038",
+            "note": "A day time series of measure=entities over a day the daily rollup does not hold yet, whose distinct entities would be counted from raw history"
+          },
+          {
             "code": "DEVICE_ENTITY_MISMATCH",
             "status": 403,
             "prompt": "039",
@@ -97702,7 +97718,7 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
+              "x-extensible-enum": [
                 "alert",
                 "briefing",
                 "system",
@@ -97727,7 +97743,8 @@
                 "package.received",
                 "chronicle.access.requested",
                 "saved-search.matches"
-              ]
+              ],
+              "description": "Expected to grow (`x-extensible-enum`): a client must accept a value not listed here."
             },
             "description": "The events a channel of this type can subscribe to: every `Channel.events` value an instance channel accepts"
           },
@@ -98126,7 +98143,7 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
+              "x-extensible-enum": [
                 "alert",
                 "briefing",
                 "system",
@@ -98152,7 +98169,8 @@
                 "chronicle.access.requested",
                 "saved-search.matches",
                 "personal"
-              ]
+              ],
+              "description": "Expected to grow (`x-extensible-enum`): a client must accept a value not listed here."
             },
             "description": "The subscribed events. `personal` marks a principal's personal channel (prompt 130), which carries only that principal's notifications; createChannel and updateChannel never accept it. `mention`, `share`, `report.received`, `package.received`, `chronicle.proposed`, `chronicle.cap_warning`, `chronicle.gap`, `chronicle.access.requested` and `saved-search.matches` on an instance channel receive a copy of each such personal notice, once per addressee, with its TLP label at the head; the copies never reach the device inbox or the instance SSE topics"
           },
@@ -98360,7 +98378,7 @@
           },
           "event": {
             "type": "string",
-            "enum": [
+            "x-extensible-enum": [
               "alert",
               "briefing",
               "system",
@@ -98386,7 +98404,8 @@
               "chronicle.access.requested",
               "saved-search.matches",
               "personal"
-            ]
+            ],
+            "description": "Expected to grow (`x-extensible-enum`): a client must accept a value not listed here."
           },
           "alertId": {
             "type": [
@@ -102764,7 +102783,8 @@
               "saved-search.matches",
               "test",
               "personal"
-            ]
+            ],
+            "description": "Grows as the server adds events: a receiver must accept a value not listed here. Kept as `enum`, not `x-extensible-enum`, because this schema is also the `notification` webhook's payload, which the compatibility check cannot mark extensible."
           },
           "subtype": {
             "type": "string",
@@ -102999,7 +103019,8 @@
               "saved-search.matches",
               "test",
               "personal"
-            ]
+            ],
+            "description": "Grows as the server adds events: a receiver must accept a value not listed here. Kept as `enum`, not `x-extensible-enum`, because this schema is also the `notification` webhook's payload, which the compatibility check cannot mark extensible."
           },
           "subtype": {
             "type": "string",
@@ -106130,7 +106151,7 @@
           },
           "event": {
             "type": "string",
-            "enum": [
+            "x-extensible-enum": [
               "alert",
               "briefing",
               "system",
@@ -106141,7 +106162,8 @@
               "forecast.resolution_needed",
               "hypothesis.band_changed",
               "assessment.published"
-            ]
+            ],
+            "description": "Expected to grow (`x-extensible-enum`): a client must accept a value not listed here."
           },
           "subtype": {
             "type": [
@@ -120384,14 +120406,15 @@
           },
           "type": {
             "type": "string",
-            "enum": [
+            "x-extensible-enum": [
               "aircraft",
               "vessel",
               "satellite",
               "station",
               "person",
               "organization"
-            ]
+            ],
+            "description": "Expected to grow (`x-extensible-enum`): a client must accept a value not listed here."
           },
           "displayName": {
             "type": [
@@ -120526,7 +120549,7 @@
           },
           "keyType": {
             "type": "string",
-            "enum": [
+            "x-extensible-enum": [
               "airframe",
               "icao24",
               "registration",
@@ -120541,7 +120564,7 @@
               "officer-id",
               "person-key"
             ],
-            "description": "Key type. `callsign` values are domain-prefixed (`air:`, `sea:`, `ham:`). Corporate and person keys (prompt 158): `lei`, `company-number` (`JURISDICTION:NUMBER`), `tax-id`, `officer-id` (`REGISTRY:ID`) for organizations; `person-key` (a normalized name key) for people"
+            "description": "Key type. `callsign` values are domain-prefixed (`air:`, `sea:`, `ham:`). Corporate and person keys (prompt 158): `lei`, `company-number` (`JURISDICTION:NUMBER`), `tax-id`, `officer-id` (`REGISTRY:ID`) for organizations; `person-key` (a normalized name key) for people. Expected to grow (`x-extensible-enum`): a client must accept a value not listed here."
           },
           "keyValue": {
             "type": "string",
@@ -120676,7 +120699,7 @@
           },
           "keyType": {
             "type": "string",
-            "enum": [
+            "x-extensible-enum": [
               "airframe",
               "icao24",
               "registration",
@@ -120690,7 +120713,8 @@
               "tax-id",
               "officer-id",
               "person-key"
-            ]
+            ],
+            "description": "Expected to grow (`x-extensible-enum`): a client must accept a value not listed here."
           },
           "keyValue": {
             "type": "string",
@@ -138993,7 +139017,7 @@
           },
           "forecasterType": {
             "type": "string",
-            "enum": [
+            "x-extensible-enum": [
               "base-rate",
               "climatology",
               "persistence",
@@ -139007,7 +139031,8 @@
               "operator",
               "external",
               "ensemble"
-            ]
+            ],
+            "description": "Expected to grow (`x-extensible-enum`): a client must accept a value not listed here."
           },
           "madeAt": {
             "type": "string",
@@ -139671,7 +139696,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
+            "x-extensible-enum": [
               "base-rate",
               "climatology",
               "persistence",
@@ -139685,7 +139710,8 @@
               "operator",
               "external",
               "ensemble"
-            ]
+            ],
+            "description": "Expected to grow (`x-extensible-enum`): a client must accept a value not listed here."
           },
           "name": {
             "type": "string"
@@ -139908,7 +139934,7 @@
           },
           "forecasterType": {
             "type": "string",
-            "enum": [
+            "x-extensible-enum": [
               "base-rate",
               "climatology",
               "persistence",
@@ -139922,7 +139948,8 @@
               "operator",
               "external",
               "ensemble"
-            ]
+            ],
+            "description": "Expected to grow (`x-extensible-enum`): a client must accept a value not listed here."
           },
           "category": {
             "type": [
@@ -149935,7 +149962,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
+            "x-extensible-enum": [
               "member-of",
               "observed-by",
               "same-as",
@@ -149957,7 +149984,7 @@
               "beneficial-owner",
               "affiliated-with"
             ],
-            "description": "Client-Contract §4 relation type"
+            "description": "Client-Contract §4 relation type. Expected to grow (`x-extensible-enum`): a client must accept a value not listed here."
           },
           "validFrom": {
             "type": "string",
@@ -150353,7 +150380,7 @@
                         "type": "array",
                         "items": {
                           "type": "string",
-                          "enum": [
+                          "x-extensible-enum": [
                             "member-of",
                             "observed-by",
                             "same-as",
@@ -150375,7 +150402,7 @@
                             "beneficial-owner",
                             "affiliated-with"
                           ],
-                          "description": "Client-Contract §4 relation type"
+                          "description": "Client-Contract §4 relation type Expected to grow (`x-extensible-enum`): a client must accept a value not listed here."
                         }
                       },
                       "weakestEdgeLabel": {
@@ -158302,7 +158329,7 @@
           },
           "machineGenerated": {
             "type": "boolean",
-            "description": "Any block is deterministic-generated or LLM"
+            "description": "Any block is deterministic-generated or LLM, apart from the sources block the publisher appends to every revision"
           },
           "version": {
             "type": "integer",
@@ -164818,7 +164845,7 @@
       },
       "CoordinationIndicators": {
         "type": "object",
-        "description": "Coordinated-amplification indicators of a narrative (`CoordinationDetector` 1.0.0): statistics, never labels on accounts",
+        "description": "Coordinated-amplification indicators of a narrative (`CoordinationDetector` 1.1.0): statistics, never labels on accounts",
         "properties": {
           "narrativeId": {
             "$ref": "#/components/schemas/Ulid"

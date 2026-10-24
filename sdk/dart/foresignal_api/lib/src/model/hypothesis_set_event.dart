@@ -113,7 +113,7 @@ class HypothesisSetEvent {
   )
 
 
-  final Object? cause;
+  final HypothesisSetEventCauseEnum? cause;
 
 
 
@@ -213,6 +213,33 @@ resolved(r'resolved'),
 archived(r'archived');
 
 const HypothesisSetEventStatusEnum(this.value);
+
+final String value;
+
+@override
+String toString() => value;
+}
+
+
+enum HypothesisSetEventCauseEnum {
+@JsonValue(r'indicator-observed')
+indicatorObserved(r'indicator-observed'),
+@JsonValue(r'indicator-absent')
+indicatorAbsent(r'indicator-absent'),
+@JsonValue(r'evidence-added')
+evidenceAdded(r'evidence-added'),
+@JsonValue(r'evidence-removed')
+evidenceRemoved(r'evidence-removed'),
+@JsonValue(r'base-rate-refresh')
+baseRateRefresh(r'base-rate-refresh'),
+@JsonValue(r'review')
+review(r'review'),
+@JsonValue(r'operator')
+operator_(r'operator'),
+@JsonValue(r'created')
+created(r'created');
+
+const HypothesisSetEventCauseEnum(this.value);
 
 final String value;
 

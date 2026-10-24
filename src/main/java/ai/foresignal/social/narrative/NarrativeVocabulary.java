@@ -40,7 +40,7 @@ public final class NarrativeVocabulary {
     public static final String COORDINATION = "CoordinationDetector";
 
     /** The coordination detector's version. */
-    public static final String COORDINATION_VERSION = "1.0.0";
+    public static final String COORDINATION_VERSION = "1.1.0";
 
     /** The LLM role of claim extraction (026). */
     public static final String LLM_ROLE = "claim-extraction";

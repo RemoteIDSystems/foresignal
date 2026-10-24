@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, Self, TypeVar, cast
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.scorecard_entry_forecaster_type import ScorecardEntryForecasterType
 from ..models.scorecard_entry_label import ScorecardEntryLabel
 from ..types import UNSET, Unset
 
@@ -33,7 +32,8 @@ class ScorecardEntry:
         forecaster_id (str):
         n_resolved (int):
         label (ScorecardEntryLabel): `insufficient` under 20 resolved questions
-        forecaster_type (ScorecardEntryForecasterType | Unset):
+        forecaster_type (str | Unset): Expected to grow (`x-extensible-enum`): a client must accept a value not listed
+            here.
         category (None | str | Unset): Null = all categories
         n_forecasts (int | Unset):
         brier (float | None | Unset):
@@ -52,7 +52,7 @@ class ScorecardEntry:
     forecaster_id: str
     n_resolved: int
     label: ScorecardEntryLabel
-    forecaster_type: ScorecardEntryForecasterType | Unset = UNSET
+    forecaster_type: str | Unset = UNSET
     category: None | str | Unset = UNSET
     n_forecasts: int | Unset = UNSET
     brier: float | None | Unset = UNSET
@@ -82,9 +82,7 @@ class ScorecardEntry:
 
         label = self.label.value
 
-        forecaster_type: str | Unset = UNSET
-        if not isinstance(self.forecaster_type, Unset):
-            forecaster_type = self.forecaster_type.value
+        forecaster_type = self.forecaster_type
 
         category: None | str | Unset
         if isinstance(self.category, Unset):
@@ -225,12 +223,7 @@ class ScorecardEntry:
 
         label = ScorecardEntryLabel(d.pop("label"))
 
-        _forecaster_type = d.pop("forecasterType", UNSET)
-        forecaster_type: ScorecardEntryForecasterType | Unset
-        if isinstance(_forecaster_type, Unset):
-            forecaster_type = UNSET
-        else:
-            forecaster_type = ScorecardEntryForecasterType(_forecaster_type)
+        forecaster_type = d.pop("forecasterType", UNSET)
 
         def _parse_category(data: object) -> None | str | Unset:
             if data is None:

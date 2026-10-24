@@ -555,7 +555,6 @@ from .channel_type import ChannelType
 from .channel_type_capabilities import ChannelTypeCapabilities
 from .channel_type_config_fields_item import ChannelTypeConfigFieldsItem
 from .channel_type_config_fields_item_type import ChannelTypeConfigFieldsItemType
-from .channel_type_events_item import ChannelTypeEventsItem
 from .channel_type_id import ChannelTypeId
 from .channel_type_secret_fields_item import ChannelTypeSecretFieldsItem
 from .channel_type_secret_fields_item_type import ChannelTypeSecretFieldsItemType
@@ -755,9 +754,6 @@ from .common_dependencies import CommonDependencies
 from .common_dependencies_dependencies_item import CommonDependenciesDependenciesItem
 from .common_dependencies_dependencies_item_paths_item import (
     CommonDependenciesDependenciesItemPathsItem,
-)
-from .common_dependencies_dependencies_item_paths_item_relation_types_item import (
-    CommonDependenciesDependenciesItemPathsItemRelationTypesItem,
 )
 from .common_dependencies_dependencies_item_paths_item_weakest_edge_label import (
     CommonDependenciesDependenciesItemPathsItemWeakestEdgeLabel,
@@ -1194,18 +1190,15 @@ from .entity_attributes import EntityAttributes
 from .entity_key import EntityKey
 from .entity_key_input import EntityKeyInput
 from .entity_key_input_key_type import EntityKeyInputKeyType
-from .entity_key_key_type import EntityKeyKeyType
 from .entity_key_origin import EntityKeyOrigin
 from .entity_key_role import EntityKeyRole
 from .entity_link import EntityLink
-from .entity_link_key_type import EntityLinkKeyType
 from .entity_merge_input import EntityMergeInput
 from .entity_open_link_counts import EntityOpenLinkCounts
 from .entity_page import EntityPage
 from .entity_record import EntityRecord
 from .entity_record_list import EntityRecordList
 from .entity_status import EntityStatus
-from .entity_type import EntityType
 from .escalation import Escalation
 from .escalation_policy import EscalationPolicy
 from .escalation_policy_input import EscalationPolicyInput
@@ -1470,7 +1463,6 @@ from .forecast_evaluation import ForecastEvaluation
 from .forecast_evaluation_request import ForecastEvaluationRequest
 from .forecast_evaluation_skipped import ForecastEvaluationSkipped
 from .forecast_evaluation_status import ForecastEvaluationStatus
-from .forecast_forecaster_type import ForecastForecasterType
 from .forecast_history import ForecastHistory
 from .forecast_history_series_item import ForecastHistorySeriesItem
 from .forecast_history_series_item_points_item import (
@@ -1535,7 +1527,6 @@ from .forecaster_config import ForecasterConfig
 from .forecaster_page import ForecasterPage
 from .forecaster_track_record_type_0 import ForecasterTrackRecordType0
 from .forecaster_track_record_type_0_label import ForecasterTrackRecordType0Label
-from .forecaster_type import ForecasterType
 from .forecaster_update import ForecasterUpdate
 from .forecaster_update_config import ForecasterUpdateConfig
 from .frame_item import FrameItem
@@ -2487,12 +2478,10 @@ from .notification_delivery_deferred_reason_type_2_type_1 import (
 from .notification_delivery_deferred_reason_type_3_type_1 import (
     NotificationDeliveryDeferredReasonType3Type1,
 )
-from .notification_delivery_event import NotificationDeliveryEvent
 from .notification_delivery_kind import NotificationDeliveryKind
 from .notification_delivery_page import NotificationDeliveryPage
 from .notification_delivery_status import NotificationDeliveryStatus
 from .notification_detail import NotificationDetail
-from .notification_event import NotificationEvent
 from .notification_link import NotificationLink
 from .notification_message import NotificationMessage
 from .notification_message_data_type_0 import NotificationMessageDataType0
@@ -3233,7 +3222,6 @@ from .relation_input_label import RelationInputLabel
 from .relation_input_type import RelationInputType
 from .relation_label import RelationLabel
 from .relation_provenance import RelationProvenance
-from .relation_type import RelationType
 from .remote_media_accepted import RemoteMediaAccepted
 from .remote_media_meta import RemoteMediaMeta
 from .remote_media_upload import RemoteMediaUpload
@@ -3376,7 +3364,6 @@ from .saved_view_input_time_field import SavedViewInputTimeField
 from .saved_view_page import SavedViewPage
 from .scorecard_entry import ScorecardEntry
 from .scorecard_entry_bias_type_0 import ScorecardEntryBiasType0
-from .scorecard_entry_forecaster_type import ScorecardEntryForecasterType
 from .scorecard_entry_interval_coverage import ScorecardEntryIntervalCoverage
 from .scorecard_entry_label import ScorecardEntryLabel
 from .scorecard_entry_murphy_type_0 import ScorecardEntryMurphyType0
@@ -4529,7 +4516,6 @@ __all__ = (
     "ChannelTypeCapabilities",
     "ChannelTypeConfigFieldsItem",
     "ChannelTypeConfigFieldsItemType",
-    "ChannelTypeEventsItem",
     "ChannelTypeId",
     "ChannelTypeSecretFieldsItem",
     "ChannelTypeSecretFieldsItemType",
@@ -4682,7 +4668,6 @@ __all__ = (
     "CommonDependencies",
     "CommonDependenciesDependenciesItem",
     "CommonDependenciesDependenciesItemPathsItem",
-    "CommonDependenciesDependenciesItemPathsItemRelationTypesItem",
     "CommonDependenciesDependenciesItemPathsItemWeakestEdgeLabel",
     "CommonDependenciesDependenciesItemWeakestEdgeLabel",
     "CommonDependenciesRequest",
@@ -5024,18 +5009,15 @@ __all__ = (
     "EntityKey",
     "EntityKeyInput",
     "EntityKeyInputKeyType",
-    "EntityKeyKeyType",
     "EntityKeyOrigin",
     "EntityKeyRole",
     "EntityLink",
-    "EntityLinkKeyType",
     "EntityMergeInput",
     "EntityOpenLinkCounts",
     "EntityPage",
     "EntityRecord",
     "EntityRecordList",
     "EntityStatus",
-    "EntityType",
     "Escalation",
     "EscalationPolicy",
     "EscalationPolicyInput",
@@ -5268,7 +5250,6 @@ __all__ = (
     "ForecastEvaluationRequest",
     "ForecastEvaluationSkipped",
     "ForecastEvaluationStatus",
-    "ForecastForecasterType",
     "ForecastHistory",
     "ForecastHistorySeriesItem",
     "ForecastHistorySeriesItemPointsItem",
@@ -5325,7 +5306,6 @@ __all__ = (
     "ForecasterPage",
     "ForecasterTrackRecordType0",
     "ForecasterTrackRecordType0Label",
-    "ForecasterType",
     "ForecasterUpdate",
     "ForecasterUpdateConfig",
     "FrameItem",
@@ -6139,12 +6119,10 @@ __all__ = (
     "NotificationDeliveryDeferredReasonType1",
     "NotificationDeliveryDeferredReasonType2Type1",
     "NotificationDeliveryDeferredReasonType3Type1",
-    "NotificationDeliveryEvent",
     "NotificationDeliveryKind",
     "NotificationDeliveryPage",
     "NotificationDeliveryStatus",
     "NotificationDetail",
-    "NotificationEvent",
     "NotificationLink",
     "NotificationMessage",
     "NotificationMessageDataType0",
@@ -6757,7 +6735,6 @@ __all__ = (
     "RelationInputType",
     "RelationLabel",
     "RelationProvenance",
-    "RelationType",
     "RemoteMediaAccepted",
     "RemoteMediaMeta",
     "RemoteMediaUpload",
@@ -6880,7 +6857,6 @@ __all__ = (
     "SavedViewPage",
     "ScorecardEntry",
     "ScorecardEntryBiasType0",
-    "ScorecardEntryForecasterType",
     "ScorecardEntryIntervalCoverage",
     "ScorecardEntryLabel",
     "ScorecardEntryMurphyType0",

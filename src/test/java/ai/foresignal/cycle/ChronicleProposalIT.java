@@ -9,6 +9,10 @@ import ai.foresignal.analyst.AnalystActions;
 import ai.foresignal.analyst.AnalystProfileEntity;
 import ai.foresignal.analyst.AnalystProposalEntity;
 import ai.foresignal.analyst.AnalystProposalRepository;
+import ai.foresignal.benchmark.BenchmarkGate;
+import ai.foresignal.benchmark.BenchmarkRunEntity;
+import ai.foresignal.benchmark.BenchmarkRunRepository;
+import ai.foresignal.benchmark.BenchmarkThresholds;
 import ai.foresignal.chronicle.ChronicleEntity;
 import ai.foresignal.chronicle.ChronicleProposals;
 import ai.foresignal.chronicle.ChronicleRepository;
@@ -34,6 +38,7 @@ import ai.foresignal.situation.SituationEntity;
 import ai.foresignal.situation.SituationEvent;
 import ai.foresignal.test.IntegrationTest;
 import ai.foresignal.testsupport.ask.AskTestSources;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -65,6 +70,9 @@ class ChronicleProposalIT extends CycleItSupport {
     @Autowired AnalysisCycleRepository cycleRows;
     @Autowired PrincipalRepository principalRows;
     @Autowired PrincipalService principals;
+    @Autowired BenchmarkRunRepository benchmarkRuns;
+    @Autowired BenchmarkThresholds thresholds;
+    @Autowired BenchmarkGate gate;
 
     private SituationEvent activated(SituationEntity s, String severity) {
         return new SituationEvent(1, SituationEvent.ACTIVATED, s.getId(), 1,
@@ -74,6 +82,29 @@ class ChronicleProposalIT extends CycleItSupport {
 
     private List<ChronicleEntity> proposedFor(String situationId) {
         return chronicleRows.findAll().stream().filter(c -> c.getSituationIds().contains(situationId)).toList();
+    }
+
+    /**
+     * A finished benchmark run in which every component the proposer's auto-execution depends on passed: the 123
+     * gate holds auto-execution while any of them is unknown or failing.
+     */
+    void proposerGateOpen() {
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (String component : thresholds.dependencies(BenchmarkGate.PROPOSER_AUTO_EXECUTION)) {
+            results.add(Map.of("component", component, "status", "pass"));
+        }
+        BenchmarkRunEntity run = new BenchmarkRunEntity(Ulids.next(clock.instant()), "synthetic", clock.instant());
+        run.setStatus("pass");
+        run.setSuiteVersion("1.0.0");
+        run.setScorerVersion("1.0.0");
+        run.setThresholdsVersion("1.0.0");
+        run.setTrigger("manual");
+        run.setResults(results);
+        run.setStartedAt(clock.instant());
+        run.setFinishedAt(clock.instant());
+        benchmarkRuns.saveAndFlush(run);
+        gate.invalidate();
+        assertThat(gate.proposerAutoExecutionAllowed(null)).isTrue();
     }
 
     @Test
@@ -170,6 +201,7 @@ class ChronicleProposalIT extends CycleItSupport {
         cycle.setEnabled(true);
         cycleRows.save(cycle);
         settings.put(SettingKeys.CHRONICLE_AUTO_ACTIVATE_PER_DAY, 1.0);
+        proposerGateOpen();
 
         SituationEntity first = situation("First front", "warning");
         SituationEntity second = situation("Second front", "warning");

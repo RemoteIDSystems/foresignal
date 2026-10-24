@@ -20,6 +20,9 @@ import ai.foresignal.security.Scope;
 import ai.foresignal.security.TokenRestrictions;
 import ai.foresignal.security.TokenService;
 import ai.foresignal.security.restrict.ReadRestriction;
+import ai.foresignal.settings.AppSettingService;
+import ai.foresignal.settings.SecuritySettings;
+import ai.foresignal.settings.SettingKeys;
 import ai.foresignal.test.IntegrationTest;
 import ai.foresignal.testsupport.analytics.AnalyticsItSupport;
 import ai.foresignal.testsupport.analytics.AnalyticsTestSources;
@@ -62,6 +65,7 @@ class ImpactControllersIT extends AnalyticsItSupport {
     @Autowired ImpactRateService rates;
     @Autowired ListProjectedImpactsTool listTool;
     @Autowired GetImpactRateTool rateTool;
+    @Autowired AppSettingService settings;
 
     String read;
 
@@ -167,7 +171,12 @@ class ImpactControllersIT extends AnalyticsItSupport {
         assertThat(call(read, get("/v1/analytics/impacts").param("region", "texas")).getStatus()).isEqualTo(400);
         assertThat(call(read, get("/v1/analytics/impacts").param("minProbability", "2")).getStatus()).isEqualTo(400);
         assertThat(call(read, get("/v1/analytics/impacts").param("cursor", "%%%")).getStatus()).isEqualTo(400);
+        // listProjectedImpacts is a read ([{}, bearerToken]): open while openReads is on (the default), a token
+        // once it is off.
+        assertThat(call(null, get("/v1/analytics/impacts")).getStatus()).isEqualTo(200);
+        settings.put(SettingKeys.SECURITY, new SecuritySettings(false));
         assertThat(call(null, get("/v1/analytics/impacts")).getStatus()).isEqualTo(401);
+        assertThat(call(read, get("/v1/analytics/impacts")).getStatus()).isEqualTo(200);
     }
 
     @Test

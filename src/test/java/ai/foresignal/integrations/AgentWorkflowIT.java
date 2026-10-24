@@ -243,7 +243,10 @@ class AgentWorkflowIT {
 
         assertThat(names).as("agent tools").contains("create_watch", "acknowledge_alert", "snooze_alert",
                 "create_briefing", "run_briefing");
-        assertThat(names).filteredOn(n -> n.contains("source")).containsOnly("list_sources", "source_health");
+        // Read-only source tools only; the external-provider pair is prompt 138's (read scope, no manifests or
+        // credentials).
+        assertThat(names).filteredOn(n -> n.contains("source")).containsOnly("list_sources", "source_health",
+                "list_external_sources", "get_external_source");
         assertThat(names).noneMatch(n -> n.matches(".*(credential|channel|provider|token|setting|ingest|llm|secret).*"));
         // Every tool the skill names is served to an agent token.
         assertThat(names).containsAll(IntegrationDocs.toolNames(

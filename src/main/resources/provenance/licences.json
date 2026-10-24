@@ -374,6 +374,7 @@
         "GDACS terms of use (disclaimer; no explicit licence)",
         "UN terms of use (public information)",
         "various (OpenAQ providers)",
+        "per provider (see /v1/media/providers)",
         "per-record CC licence (iNaturalist; see licenseCode)",
         "Copernicus EMS (attribution)",
         "Caltrans conditions of use",

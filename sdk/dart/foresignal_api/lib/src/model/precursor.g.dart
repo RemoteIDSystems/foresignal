@@ -23,7 +23,7 @@ abstract class _$PrecursorCWProxy {
 
   Precursor lagMax(String lagMax);
 
-  Precursor bestLag(Object? bestLag);
+  Precursor bestLag(String? bestLag);
 
   Precursor lagDistribution(PrecursorLagDistribution? lagDistribution);
 
@@ -96,7 +96,7 @@ abstract class _$PrecursorCWProxy {
     List<String>? regionCodes,
     String lagMin,
     String lagMax,
-    Object? bestLag,
+    String? bestLag,
     PrecursorLagDistribution? lagDistribution,
     num? hitRate,
     StatInterval? hitRateInterval,
@@ -162,7 +162,7 @@ class _$PrecursorCWProxyImpl implements _$PrecursorCWProxy {
   Precursor lagMax(String lagMax) => call(lagMax: lagMax);
 
   @override
-  Precursor bestLag(Object? bestLag) => call(bestLag: bestLag);
+  Precursor bestLag(String? bestLag) => call(bestLag: bestLag);
 
   @override
   Precursor lagDistribution(PrecursorLagDistribution? lagDistribution) =>
@@ -342,7 +342,7 @@ class _$PrecursorCWProxyImpl implements _$PrecursorCWProxy {
       bestLag: bestLag == const $CopyWithPlaceholder()
           ? _value.bestLag
           // ignore: cast_nullable_to_non_nullable
-          : bestLag as Object?,
+          : bestLag as String?,
       lagDistribution: lagDistribution == const $CopyWithPlaceholder()
           ? _value.lagDistribution
           // ignore: cast_nullable_to_non_nullable
@@ -521,7 +521,7 @@ Precursor _$PrecursorFromJson(
     ),
     lagMin: $checkedConvert('lagMin', (v) => v as String),
     lagMax: $checkedConvert('lagMax', (v) => v as String),
-    bestLag: $checkedConvert('bestLag', (v) => v),
+    bestLag: $checkedConvert('bestLag', (v) => v as String?),
     lagDistribution: $checkedConvert(
       'lagDistribution',
       (v) => v == null

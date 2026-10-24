@@ -182,6 +182,7 @@ class LedgerQuestionBrief {
 
 
 
+      /// Ensemble probability per outcome (multiple, ordered)
   @JsonKey(
     
     name: r'distribution',
@@ -190,7 +191,7 @@ class LedgerQuestionBrief {
   )
 
 
-  final Object? distribution;
+  final Map<String, num>? distribution;
 
 
 

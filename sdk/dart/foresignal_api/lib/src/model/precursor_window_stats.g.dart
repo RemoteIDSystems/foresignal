@@ -23,7 +23,7 @@ abstract class _$PrecursorWindowStatsCWProxy {
 
   PrecursorWindowStats correlation(num? correlation);
 
-  PrecursorWindowStats bestLag(Object? bestLag);
+  PrecursorWindowStats bestLag(String? bestLag);
 
   PrecursorWindowStats p(num? p);
 
@@ -58,7 +58,7 @@ abstract class _$PrecursorWindowStatsCWProxy {
     num? baseRate,
     num? lift,
     num? correlation,
-    Object? bestLag,
+    String? bestLag,
     num? p,
     num? adjustedP,
     PrecursorWindowStatsVerdictEnum verdict,
@@ -105,7 +105,7 @@ class _$PrecursorWindowStatsCWProxyImpl
       call(correlation: correlation);
 
   @override
-  PrecursorWindowStats bestLag(Object? bestLag) => call(bestLag: bestLag);
+  PrecursorWindowStats bestLag(String? bestLag) => call(bestLag: bestLag);
 
   @override
   PrecursorWindowStats p(num? p) => call(p: p);
@@ -201,7 +201,7 @@ class _$PrecursorWindowStatsCWProxyImpl
       bestLag: bestLag == const $CopyWithPlaceholder()
           ? _value.bestLag
           // ignore: cast_nullable_to_non_nullable
-          : bestLag as Object?,
+          : bestLag as String?,
       p: p == const $CopyWithPlaceholder()
           ? _value.p
           // ignore: cast_nullable_to_non_nullable
@@ -271,7 +271,7 @@ PrecursorWindowStats _$PrecursorWindowStatsFromJson(
     baseRate: $checkedConvert('baseRate', (v) => v as num?),
     lift: $checkedConvert('lift', (v) => v as num?),
     correlation: $checkedConvert('correlation', (v) => v as num?),
-    bestLag: $checkedConvert('bestLag', (v) => v),
+    bestLag: $checkedConvert('bestLag', (v) => v as String?),
     p: $checkedConvert('p', (v) => v as num?),
     adjustedP: $checkedConvert('adjustedP', (v) => v as num?),
     verdict: $checkedConvert(

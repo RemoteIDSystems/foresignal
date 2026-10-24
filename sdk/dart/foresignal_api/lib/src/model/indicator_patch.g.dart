@@ -25,7 +25,7 @@ abstract class _$IndicatorPatchCWProxy {
 
   IndicatorPatch state(IndicatorPatchStateEnum? state);
 
-  IndicatorPatch observedEvidence(Object? observedEvidence);
+  IndicatorPatch observedEvidence(Map<String, Object>? observedEvidence);
 
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
@@ -45,7 +45,7 @@ abstract class _$IndicatorPatchCWProxy {
     Map<String, IndicatorLikelihood>? lr,
     Map<String, num>? absenceLr,
     IndicatorPatchStateEnum? state,
-    Object? observedEvidence,
+    Map<String, Object>? observedEvidence,
   });
 }
 
@@ -90,7 +90,7 @@ class _$IndicatorPatchCWProxyImpl implements _$IndicatorPatchCWProxy {
   IndicatorPatch state(IndicatorPatchStateEnum? state) => call(state: state);
 
   @override
-  IndicatorPatch observedEvidence(Object? observedEvidence) =>
+  IndicatorPatch observedEvidence(Map<String, Object>? observedEvidence) =>
       call(observedEvidence: observedEvidence);
 
   /// Creates a new instance with the provided field values.
@@ -154,7 +154,7 @@ class _$IndicatorPatchCWProxyImpl implements _$IndicatorPatchCWProxy {
       observedEvidence: observedEvidence == const $CopyWithPlaceholder()
           ? _value.observedEvidence
           // ignore: cast_nullable_to_non_nullable
-          : observedEvidence as Object?,
+          : observedEvidence as Map<String, Object>?,
     );
   }
 }
@@ -170,52 +170,55 @@ extension $IndicatorPatchCopyWith on IndicatorPatch {
 // JsonSerializableGenerator
 // **************************************************************************
 
-IndicatorPatch _$IndicatorPatchFromJson(Map<String, dynamic> json) =>
-    $checkedCreate('IndicatorPatch', json, ($checkedConvert) {
-      final val = IndicatorPatch(
-        description: $checkedConvert('description', (v) => v as String?),
-        signal: $checkedConvert(
-          'signal',
-          (v) => v == null
-              ? null
-              : IndicatorSignal.fromJson(v as Map<String, dynamic>),
+IndicatorPatch _$IndicatorPatchFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate('IndicatorPatch', json, ($checkedConvert) {
+  final val = IndicatorPatch(
+    description: $checkedConvert('description', (v) => v as String?),
+    signal: $checkedConvert(
+      'signal',
+      (v) => v == null
+          ? null
+          : IndicatorSignal.fromJson(v as Map<String, dynamic>),
+    ),
+    signalFamily: $checkedConvert('signalFamily', (v) => v as String?),
+    credibility: $checkedConvert(
+      'credibility',
+      (v) => $enumDecodeNullable(_$IndicatorPatchCredibilityEnumEnumMap, v),
+    ),
+    relevance: $checkedConvert(
+      'relevance',
+      (v) => $enumDecodeNullable(_$IndicatorPatchRelevanceEnumEnumMap, v),
+    ),
+    expectedBy: $checkedConvert(
+      'expectedBy',
+      (v) => v == null ? null : DateTime.parse(v as String),
+    ),
+    lr: $checkedConvert(
+      'lr',
+      (v) => (v as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(
+          k,
+          IndicatorLikelihood.fromJson(e as Map<String, dynamic>),
         ),
-        signalFamily: $checkedConvert('signalFamily', (v) => v as String?),
-        credibility: $checkedConvert(
-          'credibility',
-          (v) => $enumDecodeNullable(_$IndicatorPatchCredibilityEnumEnumMap, v),
-        ),
-        relevance: $checkedConvert(
-          'relevance',
-          (v) => $enumDecodeNullable(_$IndicatorPatchRelevanceEnumEnumMap, v),
-        ),
-        expectedBy: $checkedConvert(
-          'expectedBy',
-          (v) => v == null ? null : DateTime.parse(v as String),
-        ),
-        lr: $checkedConvert(
-          'lr',
-          (v) => (v as Map<String, dynamic>?)?.map(
-            (k, e) => MapEntry(
-              k,
-              IndicatorLikelihood.fromJson(e as Map<String, dynamic>),
-            ),
-          ),
-        ),
-        absenceLr: $checkedConvert(
-          'absenceLr',
-          (v) => (v as Map<String, dynamic>?)?.map(
-            (k, e) => MapEntry(k, e as num),
-          ),
-        ),
-        state: $checkedConvert(
-          'state',
-          (v) => $enumDecodeNullable(_$IndicatorPatchStateEnumEnumMap, v),
-        ),
-        observedEvidence: $checkedConvert('observedEvidence', (v) => v),
-      );
-      return val;
-    });
+      ),
+    ),
+    absenceLr: $checkedConvert(
+      'absenceLr',
+      (v) => (v as Map<String, dynamic>?)?.map((k, e) => MapEntry(k, e as num)),
+    ),
+    state: $checkedConvert(
+      'state',
+      (v) => $enumDecodeNullable(_$IndicatorPatchStateEnumEnumMap, v),
+    ),
+    observedEvidence: $checkedConvert(
+      'observedEvidence',
+      (v) =>
+          (v as Map<String, dynamic>?)?.map((k, e) => MapEntry(k, e as Object)),
+    ),
+  );
+  return val;
+});
 
 Map<String, dynamic> _$IndicatorPatchToJson(
   IndicatorPatch instance,

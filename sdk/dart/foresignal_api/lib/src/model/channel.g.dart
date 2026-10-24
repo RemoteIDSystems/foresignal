@@ -17,7 +17,7 @@ abstract class _$ChannelCWProxy {
 
   Channel secretFields(List<String>? secretFields);
 
-  Channel events(List<ChannelEventsEnum> events);
+  Channel events(List<String> events);
 
   Channel ruleIds(List<String>? ruleIds);
 
@@ -75,7 +75,7 @@ abstract class _$ChannelCWProxy {
     ChannelTypeEnum type,
     ChannelInputConfig? config,
     List<String>? secretFields,
-    List<ChannelEventsEnum> events,
+    List<String> events,
     List<String>? ruleIds,
     ChannelMinSeverityEnum? minSeverity,
     String? titleTemplate,
@@ -124,7 +124,7 @@ class _$ChannelCWProxyImpl implements _$ChannelCWProxy {
       call(secretFields: secretFields);
 
   @override
-  Channel events(List<ChannelEventsEnum> events) => call(events: events);
+  Channel events(List<String> events) => call(events: events);
 
   @override
   Channel ruleIds(List<String>? ruleIds) => call(ruleIds: ruleIds);
@@ -263,7 +263,7 @@ class _$ChannelCWProxyImpl implements _$ChannelCWProxy {
       events: events == const $CopyWithPlaceholder() || events == null
           ? _value.events
           // ignore: cast_nullable_to_non_nullable
-          : events as List<ChannelEventsEnum>,
+          : events as List<String>,
       ruleIds: ruleIds == const $CopyWithPlaceholder()
           ? _value.ruleIds
           // ignore: cast_nullable_to_non_nullable
@@ -391,9 +391,7 @@ Channel _$ChannelFromJson(
     ),
     events: $checkedConvert(
       'events',
-      (v) => (v as List<dynamic>)
-          .map((e) => $enumDecode(_$ChannelEventsEnumEnumMap, e))
-          .toList(),
+      (v) => (v as List<dynamic>).map((e) => e as String).toList(),
     ),
     ruleIds: $checkedConvert(
       'ruleIds',
@@ -472,7 +470,7 @@ Map<String, dynamic> _$ChannelToJson(Channel instance) => <String, dynamic>{
   'type': _$ChannelTypeEnumEnumMap[instance.type]!,
   'config': ?instance.config?.toJson(),
   'secretFields': ?instance.secretFields,
-  'events': instance.events.map((e) => _$ChannelEventsEnumEnumMap[e]!).toList(),
+  'events': instance.events,
   'ruleIds': ?instance.ruleIds,
   'minSeverity': ?_$ChannelMinSeverityEnumEnumMap[instance.minSeverity],
   'titleTemplate': ?instance.titleTemplate,
@@ -516,36 +514,6 @@ const _$ChannelTypeEnumEnumMap = {
   ChannelTypeEnum.mqtt: 'mqtt',
   ChannelTypeEnum.meshtastic: 'meshtastic',
   ChannelTypeEnum.meshcore: 'meshcore',
-};
-
-const _$ChannelEventsEnumEnumMap = {
-  ChannelEventsEnum.alert: 'alert',
-  ChannelEventsEnum.briefing: 'briefing',
-  ChannelEventsEnum.system: 'system',
-  ChannelEventsEnum.chroniclePeriodProposed: 'chronicle.proposed',
-  ChannelEventsEnum.chroniclePeriodCapWarning: 'chronicle.cap_warning',
-  ChannelEventsEnum.chroniclePeriodGap: 'chronicle.gap',
-  ChannelEventsEnum.socialPeriodDivergence: 'social.divergence',
-  ChannelEventsEnum.socialPeriodAttentionGap: 'social.attention_gap',
-  ChannelEventsEnum.analystPeriodNote: 'analyst.note',
-  ChannelEventsEnum.situationPeriodActivated: 'situation.activated',
-  ChannelEventsEnum.situationPeriodEscalated: 'situation.escalated',
-  ChannelEventsEnum.findingPeriodSignificant: 'finding.significant',
-  ChannelEventsEnum.forecastPeriodResolved: 'forecast.resolved',
-  ChannelEventsEnum.forecastPeriodResolutionNeeded:
-      'forecast.resolution_needed',
-  ChannelEventsEnum.hypothesisPeriodBandChanged: 'hypothesis.band_changed',
-  ChannelEventsEnum.indicatorPeriodObserved: 'indicator.observed',
-  ChannelEventsEnum.assumptionPeriodBroken: 'assumption.broken',
-  ChannelEventsEnum.assessmentPeriodPublished: 'assessment.published',
-  ChannelEventsEnum.mention: 'mention',
-  ChannelEventsEnum.share: 'share',
-  ChannelEventsEnum.reportPeriodReceived: 'report.received',
-  ChannelEventsEnum.packagePeriodReceived: 'package.received',
-  ChannelEventsEnum.chroniclePeriodAccessPeriodRequested:
-      'chronicle.access.requested',
-  ChannelEventsEnum.savedSearchPeriodMatches: 'saved-search.matches',
-  ChannelEventsEnum.personal: 'personal',
 };
 
 const _$ChannelMinSeverityEnumEnumMap = {

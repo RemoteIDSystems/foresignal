@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -264,5 +265,20 @@ class CorrelationEngineIT {
         engine.catchUp();
 
         assertThat(only().isPrivateEvent()).isTrue();
+    }
+
+    @Test
+    @DisplayName("a stop does not wait for a catch-up pass in flight")
+    void stopDoesNotWaitForAPass() {
+        try {
+            // A pass holds the monitor for its whole run; shutdown waited behind it for a catch-up of the history.
+            synchronized (engine) {
+                assertThat(CompletableFuture.runAsync(engine::destroy)).succeedsWithin(Duration.ofSeconds(5));
+            }
+            assertThat(engine.running()).isFalse();
+        } finally {
+            engine.start();
+        }
+        assertThat(engine.running()).isTrue();
     }
 }

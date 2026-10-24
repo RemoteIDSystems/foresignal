@@ -557,7 +557,7 @@ public class SocialPlatformService {
         return view(platformId);
     }
 
-        /** The source's current {@code Budget.monthlyCapUsd}, or null. */
+    /** The source's current {@code Budget.monthlyCapUsd}, or null. */
     private BigDecimal sourceMonthlyCap(String platformId) {
         try {
             Budget current = sources.view(platformId).budget();
@@ -567,7 +567,7 @@ public class SocialPlatformService {
         }
     }
 
-/**
+    /**
      * A parsed body.
      *
      * @param settings the settings

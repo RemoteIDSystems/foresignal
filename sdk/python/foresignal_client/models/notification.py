@@ -15,7 +15,6 @@ from ..models.notification_alert_state_type_2_type_1 import (
 from ..models.notification_alert_state_type_3_type_1 import (
     NotificationAlertStateType3Type1,
 )
-from ..models.notification_event import NotificationEvent
 from ..models.notification_severity import NotificationSeverity
 from ..types import UNSET, Unset
 
@@ -28,7 +27,7 @@ class Notification:
 
     Attributes:
         id (int):
-        event (NotificationEvent):
+        event (str): Expected to grow (`x-extensible-enum`): a client must accept a value not listed here.
         severity (NotificationSeverity):
         title (str):
         created_at (datetime.datetime):
@@ -43,7 +42,7 @@ class Notification:
     """
 
     id: int
-    event: NotificationEvent
+    event: str
     severity: NotificationSeverity
     title: str
     created_at: datetime.datetime
@@ -65,7 +64,7 @@ class Notification:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        event = self.event.value
+        event = self.event
 
         severity = self.severity.value
 
@@ -149,7 +148,7 @@ class Notification:
         d = dict(src_dict)
         id = d.pop("id")
 
-        event = NotificationEvent(d.pop("event"))
+        event = d.pop("event")
 
         severity = NotificationSeverity(d.pop("severity"))
 

@@ -13,7 +13,7 @@ abstract class _$RelationCWProxy {
 
   Relation toRef(String toRef);
 
-  Relation type(RelationTypeEnum type);
+  Relation type(String type);
 
   Relation validFrom(DateTime validFrom);
 
@@ -45,7 +45,7 @@ abstract class _$RelationCWProxy {
     String id,
     String fromRef,
     String toRef,
-    RelationTypeEnum type,
+    String type,
     DateTime validFrom,
     DateTime? validTo,
     num confidence,
@@ -75,7 +75,7 @@ class _$RelationCWProxyImpl implements _$RelationCWProxy {
   Relation toRef(String toRef) => call(toRef: toRef);
 
   @override
-  Relation type(RelationTypeEnum type) => call(type: type);
+  Relation type(String type) => call(type: type);
 
   @override
   Relation validFrom(DateTime validFrom) => call(validFrom: validFrom);
@@ -145,7 +145,7 @@ class _$RelationCWProxyImpl implements _$RelationCWProxy {
       type: type == const $CopyWithPlaceholder() || type == null
           ? _value.type
           // ignore: cast_nullable_to_non_nullable
-          : type as RelationTypeEnum,
+          : type as String,
       validFrom: validFrom == const $CopyWithPlaceholder() || validFrom == null
           ? _value.validFrom
           // ignore: cast_nullable_to_non_nullable
@@ -221,10 +221,7 @@ Relation _$RelationFromJson(
     id: $checkedConvert('id', (v) => v as String),
     fromRef: $checkedConvert('fromRef', (v) => v as String),
     toRef: $checkedConvert('toRef', (v) => v as String),
-    type: $checkedConvert(
-      'type',
-      (v) => $enumDecode(_$RelationTypeEnumEnumMap, v),
-    ),
+    type: $checkedConvert('type', (v) => v as String),
     validFrom: $checkedConvert('validFrom', (v) => DateTime.parse(v as String)),
     validTo: $checkedConvert(
       'validTo',
@@ -254,7 +251,7 @@ Map<String, dynamic> _$RelationToJson(Relation instance) => <String, dynamic>{
   'id': instance.id,
   'fromRef': instance.fromRef,
   'toRef': instance.toRef,
-  'type': _$RelationTypeEnumEnumMap[instance.type]!,
+  'type': instance.type,
   'validFrom': instance.validFrom.toIso8601String(),
   'validTo': ?instance.validTo?.toIso8601String(),
   'confidence': instance.confidence,
@@ -264,29 +261,6 @@ Map<String, dynamic> _$RelationToJson(Relation instance) => <String, dynamic>{
   'private': ?instance.private,
   'createdAt': instance.createdAt.toIso8601String(),
   'retiredAt': ?instance.retiredAt?.toIso8601String(),
-};
-
-const _$RelationTypeEnumEnumMap = {
-  RelationTypeEnum.memberOf: 'member-of',
-  RelationTypeEnum.observedBy: 'observed-by',
-  RelationTypeEnum.sameAs: 'same-as',
-  RelationTypeEnum.locatedIn: 'located-in',
-  RelationTypeEnum.near: 'near',
-  RelationTypeEnum.dependsOn: 'depends-on',
-  RelationTypeEnum.affects: 'affects',
-  RelationTypeEnum.derivedFrom: 'derived-from',
-  RelationTypeEnum.evidenceFor: 'evidence-for',
-  RelationTypeEnum.evidenceAgainst: 'evidence-against',
-  RelationTypeEnum.about: 'about',
-  RelationTypeEnum.mentions: 'mentions',
-  RelationTypeEnum.precedes: 'precedes',
-  RelationTypeEnum.causes: 'causes',
-  RelationTypeEnum.relatedTo: 'related-to',
-  RelationTypeEnum.owns: 'owns',
-  RelationTypeEnum.controls: 'controls',
-  RelationTypeEnum.officerOf: 'officer-of',
-  RelationTypeEnum.beneficialOwner: 'beneficial-owner',
-  RelationTypeEnum.affiliatedWith: 'affiliated-with',
 };
 
 const _$RelationLabelEnumEnumMap = {

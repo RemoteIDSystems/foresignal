@@ -16,13 +16,16 @@ import java.util.Random;
 import java.util.Set;
 
 /**
- * Coordinated-amplification indicators of a narrative (prompt 136, {@code CoordinationDetector} 1.0.0): statistics on
+ * Coordinated-amplification indicators of a narrative (prompt 136, {@code CoordinationDetector} 1.1.0): statistics on
  * the narrative against null models, never labels on accounts.
  *
  * <ul>
  *   <li><strong>Synchrony:</strong> the share of distinct authors who posted near-identical text (MinHash Jaccard
  *       ≥ {@value #NEAR_IDENTICAL}) within {@value #SYNC_SECONDS} s of another author, against the same narrative with
- *       its post times shuffled ({@value #SHUFFLES} shuffles).
+ *       each author's post times shifted by one random offset, circularly within the window ({@value #SHUFFLES}
+ *       shuffles). The shift keeps every author's own rhythm and breaks only the alignment between authors; shuffling
+ *       post times among the posts did not, because a cluster that is most of the narrative keeps its burst times
+ *       under any permutation of them (1.1.0).
  *   <li><strong>Text duplication:</strong> the share of distinct authors in the largest near-duplicate cluster, against
  *       the day's other narratives (their median and scaled MAD).
  *   <li><strong>Account-age skew:</strong> the share of authors whose account was created within
@@ -229,7 +232,7 @@ public final class CoordinationDetector {
             authors.add(p.authorKey());
         }
         int[] cluster = clusters(sample);
-        Indicator synchrony = synchrony(sample, cluster, authors.size(), seed);
+        Indicator synchrony = synchrony(sample, cluster, authors.size(), windowStart, windowEnd, seed);
         Indicator duplication = duplication(sample, cluster, authors.size());
         Indicator age = accountAge(sample, newAccountBaseline);
         Indicator coRepost = coReposts(sample, seed);
@@ -336,7 +339,15 @@ public final class CoordinationDetector {
         return i;
     }
 
-    static Indicator synchrony(List<Post> posts, int[] cluster, int authorCount, long seed) {
+    /**
+     * Synchrony against its author-shift null: each shuffle moves every author's posts by one offset drawn uniformly
+     * from the window, wrapping past its end, so authors keep their own spacing but no longer line up with each other.
+     *
+     * @param windowStart the window start, or null for the first post
+     * @param windowEnd the window end, or null for the last post
+     */
+    static Indicator synchrony(List<Post> posts, int[] cluster, int authorCount, Instant windowStart, Instant windowEnd,
+            long seed) {
         if (authorCount < MIN_AUTHORS) {
             return Indicator.unavailable(authorCount);
         }
@@ -345,17 +356,25 @@ public final class CoordinationDetector {
             times[i] = posts.get(i).createdAt();
         }
         double observed = synchronyValue(posts, cluster, times, authorCount);
+        Instant start = windowStart;
+        Instant end = windowEnd;
+        for (Instant t : times) {
+            start = start == null || t.isBefore(start) ? t : start;
+            end = end == null || t.isAfter(end) ? t : end;
+        }
+        long span = Math.max(1, Duration.between(start, end).getSeconds());
         Random random = new Random(seed);
         double[] nulls = new double[SHUFFLES];
-        Instant[] shuffled = times.clone();
+        Instant[] shifted = new Instant[times.length];
+        Map<String, Long> offsets = new HashMap<>();
         for (int r = 0; r < SHUFFLES; r++) {
-            for (int i = shuffled.length - 1; i > 0; i--) {
-                int j = random.nextInt(i + 1);
-                Instant t = shuffled[i];
-                shuffled[i] = shuffled[j];
-                shuffled[j] = t;
+            offsets.clear();
+            for (int i = 0; i < times.length; i++) {
+                long offset = offsets.computeIfAbsent(posts.get(i).authorKey(), a -> (long) (random.nextDouble() * span));
+                long at = Math.floorMod(Duration.between(start, times[i]).getSeconds() + offset, span);
+                shifted[i] = start.plusSeconds(at);
             }
-            nulls[r] = synchronyValue(posts, cluster, shuffled, authorCount);
+            nulls[r] = synchronyValue(posts, cluster, shifted, authorCount);
         }
         return permutationIndicator(observed, nulls, authorCount);
     }

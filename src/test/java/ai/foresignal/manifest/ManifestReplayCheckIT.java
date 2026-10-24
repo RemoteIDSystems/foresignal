@@ -123,7 +123,20 @@ class ManifestReplayCheckIT {
                     + " (RegionalOutlookIT publishes after a refit)"),
             Map.entry("regional_index_value.manifest_id", "RegionalIndexService.computeDays writes one manifest per"
                     + " computation; IndexFitIT plants rows by hand"),
-            Map.entry("regional_index_fit.manifest_id", "IndexFitIT (a finished fit carries its manifest)")));
+            Map.entry("regional_index_fit.manifest_id", "IndexFitIT (a finished fit carries its manifest)"),
+            // 128: analysis cycles.
+            Map.entry("assessment.manifest_id", "CycleRunIT (a digest-only assessment carries its manifest)"),
+            Map.entry("cycle_run.manifest_id", "CycleRunner gives the run its assessment's manifest"),
+            // 132: reports.
+            Map.entry("report.manifest_id", "ReportPublisher.publish writes the publication's manifest"),
+            Map.entry("report_revision.manifest_id", "ReportPublisher.publish writes it with each revision"),
+            // 136/137: social narratives, claims, comparisons and cues.
+            Map.entry("social_narrative.manifest_id", "NarrativeClusterer records the clustering manifest"),
+            Map.entry("social_claim.manifest_id", "LlmClaimExtractionTest (a stored claim carries the extraction"
+                    + " manifest)"),
+            Map.entry("social_comparison.manifest_id", "ComparisonService records the evaluation's manifest"),
+            Map.entry("social_comparison_revision.manifest_id", "ComparisonService writes it with each revision"),
+            Map.entry("social_cue.manifest_id", "SocialCueService records the cue's manifest")));
 
     @Autowired TriggerRuleService rules;
     @Autowired WindowEngine engine;

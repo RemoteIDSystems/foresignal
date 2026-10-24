@@ -8,7 +8,6 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
 from ..models.entity_status import EntityStatus
-from ..models.entity_type import EntityType
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -28,7 +27,7 @@ class Entity:
 
         Attributes:
             id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
-            type_ (EntityType):
+            type_ (str): Expected to grow (`x-extensible-enum`): a client must accept a value not listed here.
             provisional (bool): True when created from weak keys only
             status (EntityStatus):
             created_at (datetime.datetime):
@@ -45,7 +44,7 @@ class Entity:
     """
 
     id: str
-    type_: EntityType
+    type_: str
     provisional: bool
     status: EntityStatus
     created_at: datetime.datetime
@@ -62,7 +61,7 @@ class Entity:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        type_ = self.type_.value
+        type_ = self.type_
 
         provisional = self.provisional
 
@@ -151,7 +150,7 @@ class Entity:
         d = dict(src_dict)
         id = d.pop("id")
 
-        type_ = EntityType(d.pop("type"))
+        type_ = d.pop("type")
 
         provisional = d.pop("provisional")
 

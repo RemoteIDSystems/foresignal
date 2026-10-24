@@ -220,9 +220,13 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
         thread = Thread.ofVirtual().name("intel-correlation").start(this::loop);
     }
 
-    /** Stops the engine. */
+    /**
+     * Stops the engine. Not synchronized: a catch-up pass holds the monitor for its whole run, so a stop that waited for
+     * it would hold up shutdown until the pass ended. Clearing {@code running} (volatile) ends the pass at its next
+     * chunk.
+     */
     @Override
-    public synchronized void destroy() {
+    public void destroy() {
         running = false;
         if (subscription != null) {
             subscription.close();

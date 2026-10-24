@@ -7,7 +7,6 @@ from typing import Any, Self, TypeVar, cast
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.entity_key_key_type import EntityKeyKeyType
 from ..models.entity_key_origin import EntityKeyOrigin
 from ..models.entity_key_role import EntityKeyRole
 from ..types import UNSET, Unset
@@ -23,9 +22,10 @@ class EntityKey:
         Attributes:
             id (int): Key row id
             entity_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
-            key_type (EntityKeyKeyType): Key type. `callsign` values are domain-prefixed (`air:`, `sea:`, `ham:`). Corporate
-                and person keys (prompt 158): `lei`, `company-number` (`JURISDICTION:NUMBER`), `tax-id`, `officer-id`
-                (`REGISTRY:ID`) for organizations; `person-key` (a normalized name key) for people
+            key_type (str): Key type. `callsign` values are domain-prefixed (`air:`, `sea:`, `ham:`). Corporate and person
+                keys (prompt 158): `lei`, `company-number` (`JURISDICTION:NUMBER`), `tax-id`, `officer-id` (`REGISTRY:ID`) for
+                organizations; `person-key` (a normalized name key) for people. Expected to grow (`x-extensible-enum`): a client
+                must accept a value not listed here.
             key_value (str): Normalised value (e.g. icao24 lowercase hex, registration without spaces or hyphens) Example:
                 ae1234.
             role (EntityKeyRole): ANCHOR keys (airframe, imo, norad, cospar, lei, company-number, tax-id, officer-id)
@@ -40,7 +40,7 @@ class EntityKey:
 
     id: int
     entity_id: str
-    key_type: EntityKeyKeyType
+    key_type: str
     key_value: str
     role: EntityKeyRole
     confidence: float
@@ -56,7 +56,7 @@ class EntityKey:
 
         entity_id = self.entity_id
 
-        key_type = self.key_type.value
+        key_type = self.key_type
 
         key_value = self.key_value
 
@@ -113,7 +113,7 @@ class EntityKey:
 
         entity_id = d.pop("entityId")
 
-        key_type = EntityKeyKeyType(d.pop("keyType"))
+        key_type = d.pop("keyType")
 
         key_value = d.pop("keyValue")
 

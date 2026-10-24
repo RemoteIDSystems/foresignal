@@ -21,7 +21,7 @@ abstract class _$IndicatorSignalCWProxy {
 
   IndicatorSignal question(IndicatorSignalQuestion? question);
 
-  IndicatorSignal emerging(Object? emerging);
+  IndicatorSignal emerging(Map<String, Object>? emerging);
 
   IndicatorSignal baseRate(num? baseRate);
 
@@ -41,7 +41,7 @@ abstract class _$IndicatorSignalCWProxy {
     IndicatorSignalIntelEvent? intelEvent,
     IndicatorSignalSituation? situation,
     IndicatorSignalQuestion? question,
-    Object? emerging,
+    Map<String, Object>? emerging,
     num? baseRate,
   });
 }
@@ -79,7 +79,8 @@ class _$IndicatorSignalCWProxyImpl implements _$IndicatorSignalCWProxy {
       call(question: question);
 
   @override
-  IndicatorSignal emerging(Object? emerging) => call(emerging: emerging);
+  IndicatorSignal emerging(Map<String, Object>? emerging) =>
+      call(emerging: emerging);
 
   @override
   IndicatorSignal baseRate(num? baseRate) => call(baseRate: baseRate);
@@ -136,7 +137,7 @@ class _$IndicatorSignalCWProxyImpl implements _$IndicatorSignalCWProxy {
       emerging: emerging == const $CopyWithPlaceholder()
           ? _value.emerging
           // ignore: cast_nullable_to_non_nullable
-          : emerging as Object?,
+          : emerging as Map<String, Object>?,
       baseRate: baseRate == const $CopyWithPlaceholder()
           ? _value.baseRate
           // ignore: cast_nullable_to_non_nullable
@@ -195,7 +196,12 @@ IndicatorSignal _$IndicatorSignalFromJson(Map<String, dynamic> json) =>
               ? null
               : IndicatorSignalQuestion.fromJson(v as Map<String, dynamic>),
         ),
-        emerging: $checkedConvert('emerging', (v) => v),
+        emerging: $checkedConvert(
+          'emerging',
+          (v) => (v as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as Object),
+          ),
+        ),
         baseRate: $checkedConvert('baseRate', (v) => v as num?),
       );
       return val;

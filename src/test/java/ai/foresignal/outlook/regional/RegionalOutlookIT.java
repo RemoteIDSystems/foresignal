@@ -175,14 +175,17 @@ class RegionalOutlookIT {
         ForecastQuestionEntity q = ledger.find(first.get("questionId").toString()).orElseThrow();
         assertThat(q.getStatus()).isEqualTo("resolved");
         assertThat(((Number) q.getResolution().get("value")).doubleValue()).isEqualTo(1600.0);
-        service.onResolved(q, after);
+        // The resolution listener already recorded it; a second notice changes nothing (one finding below).
+        assertThat(service.onResolved(q, after)).isNull();
         RegionalOutlookEntity updated = outlooks.findById(ye.getId()).orElseThrow();
         Map<String, Object> w = updated.getWindows().get(0);
         assertThat(w).containsEntry("status", "resolved").containsEntry("exceedance", "above-p95")
                 .containsEntry("withinP10P90", false);
         assertThat(((Number) w.get("actual")).longValue()).isEqualTo(1600L);
         List<AnalyticFindingEntity> exceedances = findings.findAll().stream()
-                .filter(f -> "outlook-exceedance".equals(f.getFindingType())).toList();
+                .filter(f -> "outlook-exceedance".equals(f.getFindingType()))
+                // The resolution run settles the other regions' first windows too, each on its own outlook.
+                .filter(f -> ye.getId().equals(f.getStats().get("outlookId"))).toList();
         assertThat(exceedances).hasSize(1);
         assertThat(exceedances.get(0).getRegionCodes()).containsExactly("YE");
     }
@@ -197,7 +200,8 @@ class RegionalOutlookIT {
         ForecastQuestionEntity q = ledger.find(first.get("questionId").toString()).orElseThrow();
         ledger.annul(q, "OPERATOR", "annulled by the test", "operator");
         RegionalOutlookEntity updated = outlooks.findById(ye.getId()).orElseThrow();
-        assertThat(updated.getWindows().get(0)).containsEntry("status", "annulled").doesNotContainKey("actual");
+        // Every window carries actual; an annulled one never gets a value.
+        assertThat(updated.getWindows().get(0)).containsEntry("status", "annulled").containsEntry("actual", null);
         assertThat(updated.getWindows().get(1)).containsEntry("status", "open");
     }
 

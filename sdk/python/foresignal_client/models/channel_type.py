@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Self, TypeVar
+from typing import TYPE_CHECKING, Any, Self, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.channel_type_events_item import ChannelTypeEventsItem
 from ..models.channel_type_id import ChannelTypeId
 from ..types import UNSET, Unset
 
@@ -29,8 +28,8 @@ class ChannelType:
         secret_fields (list[ChannelTypeSecretFieldsItem]): Write-only fields; a name of the form `prefix.<Name>` is a
             wildcard (webhook `header.<Name>` sends any such secret as the header <Name>)
         description (str | Unset):
-        events (list[ChannelTypeEventsItem] | Unset): The events a channel of this type can subscribe to: every
-            `Channel.events` value an instance channel accepts
+        events (list[str] | Unset): The events a channel of this type can subscribe to: every `Channel.events` value an
+            instance channel accepts
         capabilities (ChannelTypeCapabilities | Unset):
     """
 
@@ -39,7 +38,7 @@ class ChannelType:
     config_fields: list[ChannelTypeConfigFieldsItem]
     secret_fields: list[ChannelTypeSecretFieldsItem]
     description: str | Unset = UNSET
-    events: list[ChannelTypeEventsItem] | Unset = UNSET
+    events: list[str] | Unset = UNSET
     capabilities: ChannelTypeCapabilities | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -62,10 +61,7 @@ class ChannelType:
 
         events: list[str] | Unset = UNSET
         if not isinstance(self.events, Unset):
-            events = []
-            for events_item_data in self.events:
-                events_item = events_item_data.value
-                events.append(events_item)
+            events = self.events
 
         capabilities: dict[str, Any] | Unset = UNSET
         if not isinstance(self.capabilities, Unset):
@@ -121,14 +117,7 @@ class ChannelType:
 
         description = d.pop("description", UNSET)
 
-        _events = d.pop("events", UNSET)
-        events: list[ChannelTypeEventsItem] | Unset = UNSET
-        if _events is not UNSET:
-            events = []
-            for events_item_data in _events:
-                events_item = ChannelTypeEventsItem(events_item_data)
-
-                events.append(events_item)
+        events = cast(list[str], d.pop("events", UNSET))
 
         _capabilities = d.pop("capabilities", UNSET)
         capabilities: ChannelTypeCapabilities | Unset

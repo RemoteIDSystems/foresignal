@@ -65,10 +65,16 @@ class ObjectRefTest {
         assertThat(ref.sensorId()).isEqualTo("satdump-home");
     }
 
+    @Test
+    @DisplayName("chronicle (prompt 131), once a later prompt's type, is a known type")
+    void chronicleIsKnown() {
+        assertThat(ObjectRef.parse("chronicle:01J").type()).isEqualTo(ObjectTypes.CHRONICLE);
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"", "situation", "situation:", ":01J", "unknown:01J", "Situation:01J", "record:src",
         "record:/ext", "record:src/", "record:src/a@b@1", "record:src/a@x", "record:src/a%zz", "sensor:robot:1",
-        "sensor:satellite", "situation:01J A", "chronicle:01J"})
+        "sensor:satellite", "situation:01J A", "sketch:01J"})
     @DisplayName("malformed refs and unknown types are OBJECT_REF_INVALID")
     void invalidRefsRejected(String text) {
         assertThatThrownBy(() -> ObjectRef.parse(text)).isInstanceOf(ValidationException.class)

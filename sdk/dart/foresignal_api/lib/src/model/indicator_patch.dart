@@ -162,7 +162,7 @@ class IndicatorPatch {
   )
 
 
-  final Object? observedEvidence;
+  final Map<String, Object>? observedEvidence;
 
 
 

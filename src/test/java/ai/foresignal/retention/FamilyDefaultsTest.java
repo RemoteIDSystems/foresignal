@@ -290,6 +290,18 @@ class FamilyDefaultsTest {
                     new ai.foresignal.source.adapters.adsbfi.AdsbFiMilAdapter("").descriptor(), "track")),
             Map.entry("AdsbFiRegionAdapter", new Entry(new ai.foresignal.source.adapters.adsbfi.AdsbFiRegionFamily("")
                     .adapters().getFirst().descriptor(), "track")),
+            // Prompt 150's region sources are aircraft positions like their siblings.
+            Map.entry("AdsbFiBlindSpotAdapter", new Entry(
+                    new ai.foresignal.source.adapters.adsbfi.AdsbFiBlindSpotAdapter("").descriptor(), "track")),
+            Map.entry("AdsbLolWorldAdapter", new Entry(
+                    new ai.foresignal.source.adapters.adsblol.AdsbLolWorldAdapter("").descriptor(), "track")),
+            Map.entry("AirplanesLiveBlindSpotAdapter", new Entry(
+                    new ai.foresignal.source.adapters.airplaneslive.AirplanesLiveBlindSpotAdapter("").descriptor(),
+                    "track")),
+            // Prompt 127: NHC wind-speed probabilities, the event class (1825 days) like the other NHC products.
+            Map.entry("NhcWindProbsAdapter", new Entry(new ai.foresignal.source.adapters.nhc.NhcWindProbsAdapter(
+                    "", (java.util.function.Supplier<io.micrometer.core.instrument.MeterRegistry>) null).descriptor(),
+                    "event")),
             Map.entry("DigitrafficRailAdapter", new Entry(new ai.foresignal.source.adapters.digitraffic.rail
                     .DigitrafficRailAdapter("", () -> "dev").descriptor(), "track")),
             Map.entry("AmtrakerAdapter", new Entry(

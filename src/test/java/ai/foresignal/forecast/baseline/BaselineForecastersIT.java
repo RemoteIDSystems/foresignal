@@ -312,8 +312,10 @@ class BaselineForecastersIT {
         ForecastQuestionEntity numeric = open(Ledger.NUMERIC, seriesValue(ref, null), Map.of(), List.of());
         BaselineForecaster.Outcome o = forecaster.forecast(numeric, NOW, false);
         assertThat(o.value().quantiles()).hasSize(7).allSatisfy((k, v) -> assertThat(v).isEqualTo(26.0));
+        // Prompt 156: a binary series-value threshold question is the threshold forecaster's, not persistence's.
         ForecastQuestionEntity binary = open(Ledger.BINARY, seriesValue(ref, 20.0), Map.of(), List.of());
-        assertThat(forecaster.forecast(binary, NOW, false).value().probability()).isCloseTo(0.9, within(1e-12));
+        assertThat(forecaster.supports(binary)).isFalse();
+        assertThat(forecaster.forecast(binary, NOW, false).skipped()).isTrue();
         when(reader.read(any(), any(), any(), any())).thenReturn(new SeriesData(SeriesRef.parse(ref), NOW, NOW
                 .plus(Duration.ofDays(1)), NOW, 1L, SeriesFrequency.DAY, null, null, null, null, 0, null, null,
                 Set.of(), false, List.of(), List.of()));

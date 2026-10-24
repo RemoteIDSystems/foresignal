@@ -10,9 +10,14 @@ import ai.foresignal.test.schema.ApplicationHibernateSettings;
 import ai.foresignal.test.schema.PreCutoverSchema;
 import ai.foresignal.test.schema.ScratchDatabase;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.output.MigrateResult;
 import org.hibernate.boot.Metadata;
@@ -34,12 +39,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.hibernate.autoconfigure.HibernateProperties;
 import org.springframework.boot.hibernate.autoconfigure.HibernatePropertiesCustomizer;
 import org.springframework.boot.jpa.autoconfigure.JpaProperties;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * The Flyway baseline on an empty database (prompt 144, Architecture §25): it migrates, Hibernate's {@code validate}
- * accepts it, {@code record_version} is the tiered partitioned table with its three partitioned indexes and no leaf,
- * the {@link PartitionManager} attaches leaves afterwards, and there is never a DEFAULT partition.
+ * The Flyway migrations on an empty database (prompt 144, Architecture §25): {@code V1__baseline.sql} and every
+ * later migration apply in order, Hibernate's {@code validate} accepts the result, {@code record_version} is the
+ * tiered partitioned table with its three partitioned indexes and no leaf, the {@link PartitionManager} attaches
+ * leaves afterwards, and there is never a DEFAULT partition.
  *
  * <p>Runs against a scratch database in the shared container, migrated once for the class; the application's own
  * database is checked only for its Flyway history.
@@ -79,20 +87,47 @@ class FlywayBaselineIT {
         }
     }
 
-    @Test
-    @DisplayName("the application's database was built by Flyway: version 1 applied successfully")
-    void applicationDatabaseIsMigrated() {
-        assertThat(jdbc.queryForObject(
-                        "select count(*) from flyway_schema_history where version = '1' and success", Long.class))
-                .isEqualTo(1L);
+    /**
+     * The versions of the migrations on the classpath ({@code V1__baseline.sql} and the ones after it), in order.
+     */
+    static List<Integer> migrationVersions() {
+        try {
+            Pattern name = Pattern.compile("V(\\d+)__.+\\.sql");
+            List<Integer> versions = new ArrayList<>();
+            for (Resource r : new PathMatchingResourcePatternResolver().getResources("classpath:db/migration/V*__*.sql")) {
+                Matcher m = name.matcher(r.getFilename());
+                if (m.matches()) {
+                    versions.add(Integer.parseInt(m.group(1)));
+                }
+            }
+            versions.sort(null);
+            return versions;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Test
-    @DisplayName("an empty database migrates to version 1 by running V1__baseline.sql")
+    @DisplayName("the application's database was built by Flyway: every migration applied successfully")
+    void applicationDatabaseIsMigrated() {
+        List<Integer> versions = migrationVersions();
+        assertThat(versions).first().isEqualTo(1);
+        for (int version : versions) {
+            assertThat(jdbc.queryForObject("select count(*) from flyway_schema_history where version = ? and success",
+                    Long.class, String.valueOf(version))).as("V%d", version).isEqualTo(1L);
+        }
+    }
+
+    @Test
+    @DisplayName("an empty database migrates to the latest version by running V1__baseline.sql and every later "
+            + "migration in order")
     void emptyDatabaseMigrates() {
+        List<Integer> versions = migrationVersions();
+        assertThat(versions).as("migrations V1..Vn without gaps")
+                .containsExactlyElementsOf(java.util.stream.IntStream.rangeClosed(1, versions.size()).boxed().toList());
         assertThat(migration.success).isTrue();
-        assertThat(migration.migrationsExecuted).isEqualTo(1);
-        assertThat(migration.targetSchemaVersion).isEqualTo("1");
+        assertThat(migration.migrationsExecuted).isEqualTo(versions.size());
+        assertThat(migration.targetSchemaVersion).isEqualTo(String.valueOf(versions.getLast()));
         assertThat(scratch.jdbc().queryForList("select extname from pg_extension", String.class))
                 .contains("postgis", "vector");
     }

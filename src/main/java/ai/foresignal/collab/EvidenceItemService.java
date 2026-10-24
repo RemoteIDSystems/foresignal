@@ -169,12 +169,15 @@ public class EvidenceItemService {
             }
         }
         String needle = q == null || q.isBlank() ? null : q.strip().toLowerCase(Locale.ROOT);
-        String before = cursor == null || cursor.isBlank() ? "~" : cursor.strip();
+        // No cursor reads from the newest item. A sentinel bound such as "~" would compare under the database's
+        // collation, where punctuation sorts before letters and digits (en_US: '01M…' < '~' is false).
+        String before = cursor == null || cursor.isBlank() ? null : cursor.strip();
         List<Map<String, Object>> out = new ArrayList<>();
         String last = null;
         boolean more = false;
         while (true) {
-            List<EvidenceItemEntity> page = items.findByIdLessThanOrderByIdDesc(before, Limit.of(200));
+            List<EvidenceItemEntity> page = before == null ? items.findAllByOrderByIdDesc(Limit.of(200))
+                    : items.findByIdLessThanOrderByIdDesc(before, Limit.of(200));
             Map<String, AclRole> roles = access.roles(caller, page.stream().map(e -> ref(e.getId())).toList());
             for (EvidenceItemEntity e : page) {
                 before = e.getId();

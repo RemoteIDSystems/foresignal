@@ -139,9 +139,16 @@ public final class ReportBlocks {
         return ReportVocabulary.DETERMINISTIC.equals(origin) || ReportVocabulary.LLM.equals(origin);
     }
 
-    /** True when any block was written by a machine. */
+    /**
+     * True when any block was written by a machine. The deterministic {@code sources} block the publisher appends
+     * to every revision lists attributions rather than analysis, so it does not count: otherwise every published
+     * report would be machine-generated and carry the footer.
+     */
     public static boolean machineGenerated(List<Map<String, Object>> blocks) {
         for (Map<String, Object> b : blocks) {
+            if ("sources".equals(b.get("type")) && ReportVocabulary.DETERMINISTIC.equals(b.get("textOrigin"))) {
+                continue;
+            }
             if (machineGenerated(b)) {
                 return true;
             }

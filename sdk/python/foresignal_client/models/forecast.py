@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, Self, TypeVar, cast
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.forecast_forecaster_type import ForecastForecasterType
 from ..models.icd_term import IcdTerm
 from ..types import UNSET, Unset
 
@@ -30,7 +29,7 @@ class Forecast:
         id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
         question_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
         forecaster_id (str):
-        forecaster_type (ForecastForecasterType):
+        forecaster_type (str): Expected to grow (`x-extensible-enum`): a client must accept a value not listed here.
         made_at (datetime.datetime): Server-set
         as_of_seq (int): Server-set knowledge cutoff in seq
         recalibrated (bool): True for Platt-recalibrated ensemble inputs
@@ -52,7 +51,7 @@ class Forecast:
     id: str
     question_id: str
     forecaster_id: str
-    forecaster_type: ForecastForecasterType
+    forecaster_type: str
     made_at: datetime.datetime
     as_of_seq: int
     recalibrated: bool
@@ -79,7 +78,7 @@ class Forecast:
 
         forecaster_id = self.forecaster_id
 
-        forecaster_type = self.forecaster_type.value
+        forecaster_type = self.forecaster_type
 
         made_at = self.made_at.isoformat()
 
@@ -209,7 +208,7 @@ class Forecast:
 
         forecaster_id = d.pop("forecasterId")
 
-        forecaster_type = ForecastForecasterType(d.pop("forecasterType"))
+        forecaster_type = d.pop("forecasterType")
 
         made_at = datetime.datetime.fromisoformat(d.pop("madeAt"))
 

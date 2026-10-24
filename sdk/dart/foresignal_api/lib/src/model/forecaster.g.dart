@@ -9,7 +9,7 @@ part of 'forecaster.dart';
 abstract class _$ForecasterCWProxy {
   Forecaster id(String id);
 
-  Forecaster type(ForecasterTypeEnum type);
+  Forecaster type(String type);
 
   Forecaster name(String name);
 
@@ -33,7 +33,7 @@ abstract class _$ForecasterCWProxy {
   /// ```
   Forecaster call({
     String id,
-    ForecasterTypeEnum type,
+    String type,
     String name,
     Map<String, Object>? config,
     String version,
@@ -54,7 +54,7 @@ class _$ForecasterCWProxyImpl implements _$ForecasterCWProxy {
   Forecaster id(String id) => call(id: id);
 
   @override
-  Forecaster type(ForecasterTypeEnum type) => call(type: type);
+  Forecaster type(String type) => call(type: type);
 
   @override
   Forecaster name(String name) => call(name: name);
@@ -102,7 +102,7 @@ class _$ForecasterCWProxyImpl implements _$ForecasterCWProxy {
       type: type == const $CopyWithPlaceholder() || type == null
           ? _value.type
           // ignore: cast_nullable_to_non_nullable
-          : type as ForecasterTypeEnum,
+          : type as String,
       name: name == const $CopyWithPlaceholder() || name == null
           ? _value.name
           // ignore: cast_nullable_to_non_nullable
@@ -158,10 +158,7 @@ Forecaster _$ForecasterFromJson(
   );
   final val = Forecaster(
     id: $checkedConvert('id', (v) => v as String),
-    type: $checkedConvert(
-      'type',
-      (v) => $enumDecode(_$ForecasterTypeEnumEnumMap, v),
-    ),
+    type: $checkedConvert('type', (v) => v as String),
     name: $checkedConvert('name', (v) => v as String),
     config: $checkedConvert(
       'config',
@@ -184,7 +181,7 @@ Forecaster _$ForecasterFromJson(
 Map<String, dynamic> _$ForecasterToJson(Forecaster instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'type': _$ForecasterTypeEnumEnumMap[instance.type]!,
+      'type': instance.type,
       'name': instance.name,
       'config': ?instance.config,
       'version': instance.version,
@@ -192,19 +189,3 @@ Map<String, dynamic> _$ForecasterToJson(Forecaster instance) =>
       'trackRecord': ?instance.trackRecord?.toJson(),
       'createdAt': instance.createdAt.toIso8601String(),
     };
-
-const _$ForecasterTypeEnumEnumMap = {
-  ForecasterTypeEnum.baseRate: 'base-rate',
-  ForecasterTypeEnum.climatology: 'climatology',
-  ForecasterTypeEnum.persistence: 'persistence',
-  ForecasterTypeEnum.statistical: 'statistical',
-  ForecasterTypeEnum.precursor: 'precursor',
-  ForecasterTypeEnum.analog: 'analog',
-  ForecasterTypeEnum.threshold: 'threshold',
-  ForecasterTypeEnum.impact: 'impact',
-  ForecasterTypeEnum.indicatorBayes: 'indicator-bayes',
-  ForecasterTypeEnum.llm: 'llm',
-  ForecasterTypeEnum.operator_: 'operator',
-  ForecasterTypeEnum.external_: 'external',
-  ForecasterTypeEnum.ensemble: 'ensemble',
-};

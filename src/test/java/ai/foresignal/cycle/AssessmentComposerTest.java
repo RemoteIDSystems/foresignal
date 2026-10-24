@@ -78,7 +78,8 @@ class AssessmentComposerTest {
         assertThat(c.headline()).isEqualTo("Situation Red Sea shipping escalated to critical.");
         assertThat(c.markdown()).contains("## Bottom line up front").contains("## Speculation")
                 .contains("Speculative link: advance knowledge").contains("Operator vs machine")
-                .contains("LATE_DATA").contains(CycleVocabulary.FOOTER).contains("first assessment");
+                // Markdown text is escaped, so the caveat code's underscore is too.
+                .contains("LATE\\_DATA").contains(CycleVocabulary.FOOTER).contains("first assessment");
         assertThat(c.llmContributed()).isFalse();
         for (Map<String, Object> j : c.bluf()) {
             Double p = j.get("probability") instanceof Number n ? n.doubleValue() : null;

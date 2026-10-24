@@ -17,7 +17,7 @@ abstract class _$HypothesisSetEventCWProxy {
 
   HypothesisSetEvent revisionId(String? revisionId);
 
-  HypothesisSetEvent cause(Object? cause);
+  HypothesisSetEvent cause(HypothesisSetEventCauseEnum? cause);
 
   HypothesisSetEvent hypotheses(List<HypothesisProbabilityState>? hypotheses);
 
@@ -43,7 +43,7 @@ abstract class _$HypothesisSetEventCWProxy {
     String? question,
     HypothesisSetEventStatusEnum status,
     String? revisionId,
-    Object? cause,
+    HypothesisSetEventCauseEnum? cause,
     List<HypothesisProbabilityState>? hypotheses,
     List<HypothesisSetEventBandChangesInner>? bandChanges,
     bool? private,
@@ -76,7 +76,8 @@ class _$HypothesisSetEventCWProxyImpl implements _$HypothesisSetEventCWProxy {
       call(revisionId: revisionId);
 
   @override
-  HypothesisSetEvent cause(Object? cause) => call(cause: cause);
+  HypothesisSetEvent cause(HypothesisSetEventCauseEnum? cause) =>
+      call(cause: cause);
 
   @override
   HypothesisSetEvent hypotheses(List<HypothesisProbabilityState>? hypotheses) =>
@@ -138,7 +139,7 @@ class _$HypothesisSetEventCWProxyImpl implements _$HypothesisSetEventCWProxy {
       cause: cause == const $CopyWithPlaceholder()
           ? _value.cause
           // ignore: cast_nullable_to_non_nullable
-          : cause as Object?,
+          : cause as HypothesisSetEventCauseEnum?,
       hypotheses: hypotheses == const $CopyWithPlaceholder()
           ? _value.hypotheses
           // ignore: cast_nullable_to_non_nullable
@@ -184,7 +185,10 @@ HypothesisSetEvent _$HypothesisSetEventFromJson(
       (v) => $enumDecode(_$HypothesisSetEventStatusEnumEnumMap, v),
     ),
     revisionId: $checkedConvert('revisionId', (v) => v as String?),
-    cause: $checkedConvert('cause', (v) => v),
+    cause: $checkedConvert(
+      'cause',
+      (v) => $enumDecodeNullable(_$HypothesisSetEventCauseEnumEnumMap, v),
+    ),
     hypotheses: $checkedConvert(
       'hypotheses',
       (v) => (v as List<dynamic>?)
@@ -217,7 +221,7 @@ Map<String, dynamic> _$HypothesisSetEventToJson(HypothesisSetEvent instance) =>
       'question': ?instance.question,
       'status': _$HypothesisSetEventStatusEnumEnumMap[instance.status]!,
       'revisionId': ?instance.revisionId,
-      'cause': ?instance.cause,
+      'cause': ?_$HypothesisSetEventCauseEnumEnumMap[instance.cause],
       'hypotheses': ?instance.hypotheses?.map((e) => e.toJson()).toList(),
       'bandChanges': ?instance.bandChanges?.map((e) => e.toJson()).toList(),
       'private': ?instance.private,
@@ -228,4 +232,15 @@ const _$HypothesisSetEventStatusEnumEnumMap = {
   HypothesisSetEventStatusEnum.active: 'active',
   HypothesisSetEventStatusEnum.resolved: 'resolved',
   HypothesisSetEventStatusEnum.archived: 'archived',
+};
+
+const _$HypothesisSetEventCauseEnumEnumMap = {
+  HypothesisSetEventCauseEnum.indicatorObserved: 'indicator-observed',
+  HypothesisSetEventCauseEnum.indicatorAbsent: 'indicator-absent',
+  HypothesisSetEventCauseEnum.evidenceAdded: 'evidence-added',
+  HypothesisSetEventCauseEnum.evidenceRemoved: 'evidence-removed',
+  HypothesisSetEventCauseEnum.baseRateRefresh: 'base-rate-refresh',
+  HypothesisSetEventCauseEnum.review: 'review',
+  HypothesisSetEventCauseEnum.operator_: 'operator',
+  HypothesisSetEventCauseEnum.created: 'created',
 };

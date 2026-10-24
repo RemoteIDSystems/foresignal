@@ -8,7 +8,6 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
 from ..models.relation_label import RelationLabel
-from ..models.relation_type import RelationType
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -32,7 +31,8 @@ class Relation:
             `record:{sourceId}/{externalId}[@{seq}]` with the external id percent-encoded. Remote refs (132) are
             `remote:{instanceId}/{type}:{id}`: read-only material received from another instance. Example:
             situation:01JA8Q3V7S2K9W4T6Y1B5N0M3C.
-        type_ (RelationType): Client-Contract §4 relation type
+        type_ (str): Client-Contract §4 relation type. Expected to grow (`x-extensible-enum`): a client must accept a
+            value not listed here.
         valid_from (datetime.datetime):
         confidence (float):
         label (RelationLabel): Relation or dependency label (104 vocabulary)
@@ -47,7 +47,7 @@ class Relation:
     id: str
     from_ref: str
     to_ref: str
-    type_: RelationType
+    type_: str
     valid_from: datetime.datetime
     confidence: float
     label: RelationLabel
@@ -66,7 +66,7 @@ class Relation:
 
         to_ref = self.to_ref
 
-        type_ = self.type_.value
+        type_ = self.type_
 
         valid_from = self.valid_from.isoformat()
 
@@ -134,7 +134,7 @@ class Relation:
 
         to_ref = d.pop("toRef")
 
-        type_ = RelationType(d.pop("type"))
+        type_ = d.pop("type")
 
         valid_from = datetime.datetime.fromisoformat(d.pop("validFrom"))
 

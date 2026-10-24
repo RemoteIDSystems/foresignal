@@ -68,6 +68,7 @@ class NotificationMessage {
 
 
 
+      /// Grows as the server adds events: a receiver must accept a value not listed here. Kept as `enum`, not `x-extensible-enum`, because this schema is also the `notification` webhook's payload, which the compatibility check cannot mark extensible.
   @JsonKey(
     
     name: r'event',
@@ -308,6 +309,7 @@ class NotificationMessage {
 
 }
 
+/// Grows as the server adds events: a receiver must accept a value not listed here. Kept as `enum`, not `x-extensible-enum`, because this schema is also the `notification` webhook's payload, which the compatibility check cannot mark extensible.
 enum NotificationMessageEventEnum {
 @JsonValue(r'alert')
 alert(r'alert'),

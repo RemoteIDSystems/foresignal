@@ -222,6 +222,11 @@ class PostmanCollectionContractTest {
             Map.entry("purgeDevice", body -> ai.foresignal.inbound.device.IngestDevicesController.purgeAlerts(body)),
             // 056: the weather settings (production parser).
             Map.entry("updateWeatherSettings", ai.foresignal.weather.WeatherSettingsService::parse),
+            // 150: the collector settings (production parser).
+            Map.entry("updateCollectorSettings", ai.foresignal.settings.CollectorSettingsService::parse),
+            // 155: the external forecaster registration (production parser).
+            Map.entry("registerExternalForecaster",
+                    ai.foresignal.forecast.ForecastInputs::externalForecasterRegistration),
             Map.entry("purgeRecord", body -> ai.foresignal.inbound.device.IngestDevicesController.purgeAlerts(body)),
             // 040: the production body reader, and every named dataset is in the bundled manifest.
             Map.entry("loadReference", body -> assertThat(ai.foresignal.api.ReferenceController.datasets(body))
@@ -365,7 +370,14 @@ class PostmanCollectionContractTest {
             if (op == null) {
                 continue;
             }
-            boolean always = op.node().path("x-foresignal-always-authenticated").asBoolean(false);
+            // Always authenticated: the explicit flag, or a security list without the anonymous {} alternative (the
+            // per-caller reads of 129 onward: workspaces, annotations, the inbox), which the controllers enforce.
+            JsonNode security = op.node().path("security");
+            boolean anonymous = !security.isArray() || security.isEmpty();
+            for (JsonNode alternative : security) {
+                anonymous |= alternative.isObject() && alternative.isEmpty();
+            }
+            boolean always = op.node().path("x-foresignal-always-authenticated").asBoolean(false) || !anonymous;
             boolean federationFeed = op.path().startsWith("/v1/federation/") && "read".equals(op.scope())
                     && op.node().path("security").size() == 1 && op.node().path("security").get(0).has("bearerToken");
             String expected = switch (op.scope()) {
@@ -409,7 +421,7 @@ class PostmanCollectionContractTest {
         int checked = 0;
         for (Request request : requests) {
             SpecOperation op = byId.get(request.operationId());
-            JsonNode body = request.body();
+            JsonNode body = withIds(request.body());
             if (op == null || body == null || pending.contains(op.operationId()) || !op.implemented()) {
                 continue;
             }
@@ -537,7 +549,55 @@ class PostmanCollectionContractTest {
                 "updateToken",
                 // 121: reference imports and analog queries are parsed by instance methods of database-backed
                 // services (BaseRateControllersIT).
-                "createReferenceImport", "queryAnalogs");
+                "createReferenceImport", "queryAnalogs",
+                // 128: cycles and assessments are parsed by database-backed services (CycleControllersIT).
+                "createAnalysisCycle", "updateAnalysisCycle", "submitAssessmentFeedback", "createSituationAssessment",
+                // 129: objects, the graph, relations, annotations and workspaces resolve refs against the stored objects
+                // under the caller's access (ObjectControllersIT, WorkspaceSyncIT, CommentThreadIT).
+                "resolveObjects", "summarizeContext", "queryGraph", "findCommonDependencies", "createRelation",
+                "createAnnotation", "updateAnnotation", "createWorkspace", "updateWorkspace", "putWorkspaceLayout",
+                "patchWorkspaceContext", "createContextLink", "shareWorkspace",
+                // 130: principals, groups, ACLs, tags, threads, attachments, evidence items and saved searches check the
+                // stored principals and objects (CollaborationControllersIT, TagIT, CommentThreadIT, AttachmentIT,
+                // EvidenceItemIT, SavedSearchIT, InvestigationSharingIT); uploadAttachment is multipart.
+                "replaceMyNotificationPreferences", "createPrincipal", "updatePrincipal", "createPrincipalToken",
+                "createGroup", "updateGroup", "addGroupMembers", "replaceObjectAcl", "shareObject", "createTag",
+                "updateTag", "assignTag", "unassignTag", "replyToAnnotation", "resolveAnnotation", "uploadAttachment",
+                "createEvidenceItem", "updateEvidenceItem", "createSavedSearch", "updateSavedSearch",
+                // 131: chronicles and their layers validate selectors against the registry and stored objects
+                // (ChronicleControllersIT; ChronicleSelectorTest covers the selector parser).
+                "createChronicle", "suggestChronicle", "updateChronicle", "createChronicleLayer", "updateChronicleLayer",
+                "activateChronicle", "exportChronicle", "markChronicleThreadRead",
+                // 132: reports and exchange packages read stored reports, principals and peers (ReportControllersIT,
+                // ReportDraftIT, ReportPublishIT, ShareLinkReportIT, ExchangeRoundTripIT); importExchangePackage is
+                // multipart.
+                "createReport", "draftReport", "updateReport", "createReportBlock", "updateReportBlock", "retractReport",
+                "sendReport", "createReportShareLink", "createExchangePackage", "receiveExchangePackage",
+                "receiveExchangeReceipt", "importExchangePackage",
+                // 133: outlets and rating providers are stored rows (NewsControllersIT).
+                "updateMediaOutlet", "updateMediaProvider", "importMediaRatings",
+                // 134: discoverability, access requests, salts and peer sketches read stored chronicles and peers
+                // (ChronicleNetworkControllersIT, AccessRequestIT, FederatedSketchIT).
+                "setChronicleDiscoverability", "requestChronicleAccess", "grantChronicleAccessRequest",
+                "setChronicleNetworkSalt", "receiveChronicleSketches",
+                // 135-137: platform, narrative, media and cue bodies are read by database-backed services
+                // (SocialControllersIT, NarrativeControllersIT, SocialCorrelationControllersIT); matchMedia is multipart.
+                "updateSocialPlatform", "mergeNarratives", "splitNarrative", "matchMedia", "createSocialCue",
+                "updateSocialSettings",
+                // 138: bindings and question links check the provider's stored manifest (ExternalBindingControllersIT,
+                // BindingRouterIT).
+                "createExternalBinding", "updateExternalBinding", "createExternalQuestionLink",
+                // 140: the doctor's options are read by DoctorService against the stored source (DoctorServiceIT).
+                "runSourceDoctor",
+                // 141: MCP auth and plugin settings are stored settings (McpOAuthIT, PluginControllerIT).
+                "updateMcpAuthSettings", "updatePluginSettings", "updatePlugin",
+                // 154: IntelCorroborationService.put is an instance method over the stored policy
+                // (IntelCorroborationServiceTest).
+                "updateIntelCorroboration",
+                // 157: RecipeRegistry validates the definition against the installed kinds (RecipeAuthoringTest).
+                "createRecipe",
+                // 155 and 158: read inline by the controller and the services (InlineBodyParsingIT).
+                "requestAnalysis", "analysisCallback", "ownershipChain");
         List<String> uncovered = OpenApiSpec.routes().stream()
                 .filter(SpecOperation::implemented)
                 .filter(op -> op.node().has("requestBody"))
@@ -600,6 +660,26 @@ class PostmanCollectionContractTest {
         }
         return OpenApiSpec.JSON.readValue(node.toString(),
                 new tools.jackson.core.type.TypeReference<java.util.LinkedHashMap<String, Object>>() {});
+    }
+
+    /** The collection variables that hold ULIDs (the ids requests create and later requests name). */
+    static final List<String> ULID_VARIABLES = List.of("situationId", "attachmentId", "tagId", "packageId", "groupId",
+            "reportId", "chronicleId", "hypothesisSetId", "evidenceItemId", "workspaceId", "questionId");
+
+    /**
+     * {@code body} with the ULID-valued collection variables replaced by an example ULID and {@code {{networkSalt}}}
+     * by a 32-character reference, as Postman substitutes them at run time, so the schema sees the values it checks.
+     */
+    static JsonNode withIds(JsonNode body) {
+        if (body == null) {
+            return null;
+        }
+        String text = body.toString();
+        for (String variable : ULID_VARIABLES) {
+            text = text.replace("{{" + variable + "}}", "01JA8Q3V7S2K9W4T6Y1B5N0M3C");
+        }
+        text = text.replace("{{networkSalt}}", "salt-gulf-analysts-2026-10-0001");
+        return OpenApiSpec.JSON.readTree(text);
     }
 
     /** A registry holding the USGS source, as the metric-settings entry builds it. */

@@ -200,6 +200,7 @@ class Precursor {
 
 
 
+      /// ISO-8601 duration
   @JsonKey(
     
     name: r'bestLag',
@@ -208,7 +209,7 @@ class Precursor {
   )
 
 
-  final Object? bestLag;
+  final String? bestLag;
 
 
 

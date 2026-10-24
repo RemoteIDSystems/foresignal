@@ -13,7 +13,7 @@ abstract class _$ForecastCWProxy {
 
   Forecast forecasterId(String forecasterId);
 
-  Forecast forecasterType(ForecastForecasterTypeEnum forecasterType);
+  Forecast forecasterType(String forecasterType);
 
   Forecast madeAt(DateTime madeAt);
 
@@ -55,7 +55,7 @@ abstract class _$ForecastCWProxy {
     String id,
     String questionId,
     String forecasterId,
-    ForecastForecasterTypeEnum forecasterType,
+    String forecasterType,
     DateTime madeAt,
     int asOfSeq,
     DateTime? knowledgeCutoff,
@@ -91,7 +91,7 @@ class _$ForecastCWProxyImpl implements _$ForecastCWProxy {
       call(forecasterId: forecasterId);
 
   @override
-  Forecast forecasterType(ForecastForecasterTypeEnum forecasterType) =>
+  Forecast forecasterType(String forecasterType) =>
       call(forecasterType: forecasterType);
 
   @override
@@ -190,7 +190,7 @@ class _$ForecastCWProxyImpl implements _$ForecastCWProxy {
               forecasterType == null
           ? _value.forecasterType
           // ignore: cast_nullable_to_non_nullable
-          : forecasterType as ForecastForecasterTypeEnum,
+          : forecasterType as String,
       madeAt: madeAt == const $CopyWithPlaceholder() || madeAt == null
           ? _value.madeAt
           // ignore: cast_nullable_to_non_nullable
@@ -284,10 +284,7 @@ Forecast _$ForecastFromJson(
     id: $checkedConvert('id', (v) => v as String),
     questionId: $checkedConvert('questionId', (v) => v as String),
     forecasterId: $checkedConvert('forecasterId', (v) => v as String),
-    forecasterType: $checkedConvert(
-      'forecasterType',
-      (v) => $enumDecode(_$ForecastForecasterTypeEnumEnumMap, v),
-    ),
+    forecasterType: $checkedConvert('forecasterType', (v) => v as String),
     madeAt: $checkedConvert('madeAt', (v) => DateTime.parse(v as String)),
     asOfSeq: $checkedConvert('asOfSeq', (v) => (v as num).toInt()),
     knowledgeCutoff: $checkedConvert(
@@ -342,8 +339,7 @@ Map<String, dynamic> _$ForecastToJson(Forecast instance) => <String, dynamic>{
   'id': instance.id,
   'questionId': instance.questionId,
   'forecasterId': instance.forecasterId,
-  'forecasterType':
-      _$ForecastForecasterTypeEnumEnumMap[instance.forecasterType]!,
+  'forecasterType': instance.forecasterType,
   'madeAt': instance.madeAt.toIso8601String(),
   'asOfSeq': instance.asOfSeq,
   'knowledgeCutoff': ?instance.knowledgeCutoff?.toIso8601String(),
@@ -358,22 +354,6 @@ Map<String, dynamic> _$ForecastToJson(Forecast instance) => <String, dynamic>{
   'supersedesId': ?instance.supersedesId,
   'recalibrated': instance.recalibrated,
   'manifestId': instance.manifestId,
-};
-
-const _$ForecastForecasterTypeEnumEnumMap = {
-  ForecastForecasterTypeEnum.baseRate: 'base-rate',
-  ForecastForecasterTypeEnum.climatology: 'climatology',
-  ForecastForecasterTypeEnum.persistence: 'persistence',
-  ForecastForecasterTypeEnum.statistical: 'statistical',
-  ForecastForecasterTypeEnum.precursor: 'precursor',
-  ForecastForecasterTypeEnum.analog: 'analog',
-  ForecastForecasterTypeEnum.threshold: 'threshold',
-  ForecastForecasterTypeEnum.impact: 'impact',
-  ForecastForecasterTypeEnum.indicatorBayes: 'indicator-bayes',
-  ForecastForecasterTypeEnum.llm: 'llm',
-  ForecastForecasterTypeEnum.operator_: 'operator',
-  ForecastForecasterTypeEnum.external_: 'external',
-  ForecastForecasterTypeEnum.ensemble: 'ensemble',
 };
 
 const _$IcdTermEnumMap = {

@@ -33,6 +33,35 @@
   ],
   "additionalProperties": true,
   "$defs": {
+    "EdpAnalysisRequest": {
+      "type": "object",
+      "description": "Optional on-demand analysis-request endpoint (155): Foresignal posts {questionId, horizon, correlationId, callbackUrl} (asOf for a backtest) and the provider answers synchronously in the response and/or asynchronously to the callback. Enables on-demand forecasts and backtesting of a first-class external forecaster such as TimesFM.",
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "auth": {
+          "type": "string",
+          "enum": [
+            "none",
+            "bearer",
+            "header",
+            "basic"
+          ],
+          "default": "none"
+        },
+        "header": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "url"
+      ]
+    },
     "EdpCoverage": {
       "type": "object",
       "description": "Declared footprint and detection probability (low-confidence observability)",
@@ -168,35 +197,6 @@
     "EdpSearch": {
       "type": "object",
       "description": "Optional provider search endpoint used by cues (137)",
-      "properties": {
-        "url": {
-          "type": "string",
-          "format": "uri"
-        },
-        "auth": {
-          "type": "string",
-          "enum": [
-            "none",
-            "bearer",
-            "header",
-            "basic"
-          ],
-          "default": "none"
-        },
-        "header": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "url"
-      ]
-    },
-    "EdpAnalysisRequest": {
-      "type": "object",
-      "description": "Optional on-demand analysis-request endpoint (155): Foresignal posts {questionId, horizon, correlationId, callbackUrl} and the provider answers synchronously in the response and/or asynchronously to the callback",
       "properties": {
         "url": {
           "type": "string",

@@ -42,6 +42,7 @@ class AnalogResultTarget {
 
 
 
+      /// 040 region code: ISO 3166-1 alpha-2 country, `CC-admin1`, or `ZZ` for untagged
   @JsonKey(
     
     name: r'regionCode',
@@ -50,7 +51,7 @@ class AnalogResultTarget {
   )
 
 
-  final Object? regionCode;
+  final String? regionCode;
 
 
 

@@ -166,10 +166,18 @@ public class MediaReuseDetector {
                         + " attached to the earlier narrative %s (first observed %s, regions %s) in a different place.",
                         n.id(), n.regionCodes(), e.id(), e.firstObservedAt(), e.regionCodes());
         return new FindingDraft(NarrativeVocabulary.MEDIA_REUSE_FINDING, NarrativeStore.clip(title, 200), "notable",
-                null, n.regionCodes(), fp.firstSeenAt(), now, now, List.of(), members, 0, stats, Map.of(),
+                null, n.regionCodes(), fp.firstSeenAt(), windowEnd(fp, n), now, List.of(), members, 0, stats, Map.of(),
                 List.of(referenceWindowCaveat(storeStart)), NarrativeVocabulary.FINGERPRINTER,
                 NarrativeVocabulary.FINGERPRINTER_VERSION, params, explanation, false, "attention", List.of(),
                 List.of(), fp.id() + "/" + n.id());
+    }
+
+    /**
+     * The end of a reuse finding's window: the narrative's first observation, from the image's first sighting. Fixed,
+     * so a second check of the same fingerprint and narrative is the same finding rather than one that supersedes it.
+     */
+    static Instant windowEnd(NarrativeStore.Fingerprint fp, NarrativeStore.Narrative n) {
+        return n.firstObservedAt().isBefore(fp.firstSeenAt()) ? fp.firstSeenAt() : n.firstObservedAt();
     }
 
     /** The {@code MediaReuseEvent} body. */

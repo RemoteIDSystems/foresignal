@@ -33,7 +33,9 @@ import org.testcontainers.utility.DockerImageName;
  *
  * <p>Each cached context holds its own Hikari pool (10 connections by default), so PostgreSQL's
  * default {@code max_connections=100} was exhausted by the eleventh context ("sorry, too many
- * clients already"). The server is started with room for the context cache's full 32 contexts.
+ * clients already"). Since the work pools (prompt 150: {@code foresignal.db.pools}, api 10, collect 20, ingest 4) each
+ * context can hold up to 44, so the cache's 12 contexts alone could take 528 and 500 was exhausted late in the run.
+ * The server is started with room for twice that.
  * {@code max_locks_per_transaction} matches {@code docker-compose.yml}.
  */
 public final class PostgisContainers {
@@ -56,7 +58,7 @@ public final class PostgisContainers {
             .withCommand(
                     "postgres",
                     "-c", "fsync=off",
-                    "-c", "max_connections=500",
+                    "-c", "max_connections=1100",
                     "-c", "max_locks_per_transaction=256");
 
     private PostgisContainers() {}

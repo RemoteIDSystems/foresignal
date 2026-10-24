@@ -17,7 +17,7 @@ abstract class _$CycleRunRolesInnerCWProxy {
 
   CycleRunRolesInner model(String? model);
 
-  CycleRunRolesInner effort(Object? effort);
+  CycleRunRolesInner effort(CycleRunRolesInnerEffortEnum? effort);
 
   CycleRunRolesInner inputTokens(int? inputTokens);
 
@@ -49,7 +49,7 @@ abstract class _$CycleRunRolesInnerCWProxy {
     String? reason,
     String? provider,
     String? model,
-    Object? effort,
+    CycleRunRolesInnerEffortEnum? effort,
     int? inputTokens,
     int? outputTokens,
     int? cachedTokens,
@@ -84,7 +84,8 @@ class _$CycleRunRolesInnerCWProxyImpl implements _$CycleRunRolesInnerCWProxy {
   CycleRunRolesInner model(String? model) => call(model: model);
 
   @override
-  CycleRunRolesInner effort(Object? effort) => call(effort: effort);
+  CycleRunRolesInner effort(CycleRunRolesInnerEffortEnum? effort) =>
+      call(effort: effort);
 
   @override
   CycleRunRolesInner inputTokens(int? inputTokens) =>
@@ -163,7 +164,7 @@ class _$CycleRunRolesInnerCWProxyImpl implements _$CycleRunRolesInnerCWProxy {
       effort: effort == const $CopyWithPlaceholder()
           ? _value.effort
           // ignore: cast_nullable_to_non_nullable
-          : effort as Object?,
+          : effort as CycleRunRolesInnerEffortEnum?,
       inputTokens: inputTokens == const $CopyWithPlaceholder()
           ? _value.inputTokens
           // ignore: cast_nullable_to_non_nullable
@@ -224,7 +225,10 @@ CycleRunRolesInner _$CycleRunRolesInnerFromJson(
     reason: $checkedConvert('reason', (v) => v as String?),
     provider: $checkedConvert('provider', (v) => v as String?),
     model: $checkedConvert('model', (v) => v as String?),
-    effort: $checkedConvert('effort', (v) => v),
+    effort: $checkedConvert(
+      'effort',
+      (v) => $enumDecodeNullable(_$CycleRunRolesInnerEffortEnumEnumMap, v),
+    ),
     inputTokens: $checkedConvert('inputTokens', (v) => (v as num?)?.toInt()),
     outputTokens: $checkedConvert('outputTokens', (v) => (v as num?)?.toInt()),
     cachedTokens: $checkedConvert('cachedTokens', (v) => (v as num?)?.toInt()),
@@ -259,7 +263,7 @@ Map<String, dynamic> _$CycleRunRolesInnerToJson(CycleRunRolesInner instance) =>
       'reason': ?instance.reason,
       'provider': ?instance.provider,
       'model': ?instance.model,
-      'effort': ?instance.effort,
+      'effort': ?_$CycleRunRolesInnerEffortEnumEnumMap[instance.effort],
       'inputTokens': ?instance.inputTokens,
       'outputTokens': ?instance.outputTokens,
       'cachedTokens': ?instance.cachedTokens,
@@ -281,4 +285,10 @@ const _$CycleRunRolesInnerStatusEnumEnumMap = {
   CycleRunRolesInnerStatusEnum.skipped: 'skipped',
   CycleRunRolesInnerStatusEnum.failed: 'failed',
   CycleRunRolesInnerStatusEnum.notConfigured: 'not-configured',
+};
+
+const _$CycleRunRolesInnerEffortEnumEnumMap = {
+  CycleRunRolesInnerEffortEnum.low: 'low',
+  CycleRunRolesInnerEffortEnum.medium: 'medium',
+  CycleRunRolesInnerEffortEnum.high: 'high',
 };

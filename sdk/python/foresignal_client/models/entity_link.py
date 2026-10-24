@@ -7,7 +7,6 @@ from typing import Any, Self, TypeVar, cast
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.entity_link_key_type import EntityLinkKeyType
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="EntityLink")
@@ -20,7 +19,7 @@ class EntityLink:
     Attributes:
         source_id (str):  Example: adsblol-mil.
         external_id (str):
-        key_type (EntityLinkKeyType):
+        key_type (str): Expected to grow (`x-extensible-enum`): a client must accept a value not listed here.
         key_value (str):
         confidence (float):
         valid_from (datetime.datetime):
@@ -30,7 +29,7 @@ class EntityLink:
 
     source_id: str
     external_id: str
-    key_type: EntityLinkKeyType
+    key_type: str
     key_value: str
     confidence: float
     valid_from: datetime.datetime
@@ -43,7 +42,7 @@ class EntityLink:
 
         external_id = self.external_id
 
-        key_type = self.key_type.value
+        key_type = self.key_type
 
         key_value = self.key_value
 
@@ -87,7 +86,7 @@ class EntityLink:
 
         external_id = d.pop("externalId")
 
-        key_type = EntityLinkKeyType(d.pop("keyType"))
+        key_type = d.pop("keyType")
 
         key_value = d.pop("keyValue")
 

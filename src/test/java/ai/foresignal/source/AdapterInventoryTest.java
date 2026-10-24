@@ -75,7 +75,11 @@ class AdapterInventoryTest {
             "station-readsb-1", "station-readsb-2", "status-anthropic", "status-atlassian",
             "status-cloudflare", "status-digitalocean", "status-discord", "status-dropbox",
             "status-openai", "status-reddit", "status-twilio", "status-zoom",
-            "wxstation-davis-1", "wxstation-davis-2", "wxstation-ecowitt-1", "wxstation-ecowitt-2");
+            "wxstation-davis-1", "wxstation-davis-2", "wxstation-ecowitt-1", "wxstation-ecowitt-2",
+            // Prompt 150's region sources serve the readsb v2 format their siblings capture: adsblol-world is tested
+            // against adsblol-area and adsblol-mil, adsbfi-blindspots against adsbfi-region and adsbfi-mil, and
+            // airplaneslive-blindspots against airplaneslive-mil.
+            "adsblol-world", "adsbfi-blindspots", "airplaneslive-blindspots");
 
     /**
      * Adapter packages whose contract test lives elsewhere: the local receivers' codecs/mappers are

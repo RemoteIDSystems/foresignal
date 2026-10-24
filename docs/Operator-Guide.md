@@ -9327,11 +9327,12 @@ gives the totals. Its provenance chain starts at the narrative.
 
 ### Coordination indicators and their limits
 
-Every day at 05:10 UTC `CoordinationDetector` 1.0.0 looks at each narrative active in the last 24 hours (its latest
+Every day at 05:10 UTC `CoordinationDetector` 1.1.0 looks at each narrative active in the last 24 hours (its latest
 2,000 posts) and computes four statistics against null models:
 
 - **synchrony**: the share of distinct authors who posted near-identical text (MinHash Jaccard 0.9) within 60 seconds
-  of another author, against the same narrative with its post times shuffled 200 times;
+  of another author, against the same narrative with each author's posts shifted by one random offset within the
+  window, wrapping past its end, 200 times (authors keep their own rhythm but stop lining up with each other);
 - **text duplication**: the share of distinct authors in the largest near-duplicate cluster, against the day's other
   narratives (their median and robust spread);
 - **account-age skew**: the share of authors whose account was created within 30 days of their post, where the

@@ -1,6 +1,7 @@
 package ai.foresignal.inbound.edp.binding;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -32,6 +33,7 @@ import ai.foresignal.test.MutableClock;
 import ai.foresignal.testsupport.collect.CollectorTestSources;
 import ai.foresignal.testsupport.security.TestTokens;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -138,10 +140,17 @@ class BindingRouterIT {
         assertThat(body(response).get("rejected")).as(response.getContentAsString()).isEmpty();
     }
 
+    /**
+     * Creates a binding and waits until it leaves {@code backfilling}: {@code BindingService} backfills after the
+     * creation commits, on a background thread when the router auto-starts.
+     */
     JsonNode bind(Provider p, String input) throws Exception {
         MockHttpServletResponse response = postJson(admin, "/v1/external/sources/" + p.sourceId() + "/bindings", input);
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(201);
-        return body(response);
+        JsonNode created = body(response);
+        String id = created.get("id").asString();
+        await().atMost(Duration.ofSeconds(10)).until(() -> !"backfilling".equals(binding(id).get("state").asString()));
+        return created;
     }
 
     JsonNode binding(String id) throws Exception {

@@ -9,9 +9,7 @@ part of 'stream_notifications200_response.dart';
 abstract class _$StreamNotifications200ResponseCWProxy {
   StreamNotifications200Response id(int id);
 
-  StreamNotifications200Response event(
-    StreamNotifications200ResponseEventEnum event,
-  );
+  StreamNotifications200Response event(String event);
 
   StreamNotifications200Response subtype(String? subtype);
 
@@ -53,7 +51,7 @@ abstract class _$StreamNotifications200ResponseCWProxy {
   /// ```
   StreamNotifications200Response call({
     int id,
-    StreamNotifications200ResponseEventEnum event,
+    String event,
     String? subtype,
     StreamNotifications200ResponseSeverityEnum severity,
     String title,
@@ -82,9 +80,7 @@ class _$StreamNotifications200ResponseCWProxyImpl
   StreamNotifications200Response id(int id) => call(id: id);
 
   @override
-  StreamNotifications200Response event(
-    StreamNotifications200ResponseEventEnum event,
-  ) => call(event: event);
+  StreamNotifications200Response event(String event) => call(event: event);
 
   @override
   StreamNotifications200Response subtype(String? subtype) =>
@@ -169,7 +165,7 @@ class _$StreamNotifications200ResponseCWProxyImpl
       event: event == const $CopyWithPlaceholder() || event == null
           ? _value.event
           // ignore: cast_nullable_to_non_nullable
-          : event as StreamNotifications200ResponseEventEnum,
+          : event as String,
       subtype: subtype == const $CopyWithPlaceholder()
           ? _value.subtype
           // ignore: cast_nullable_to_non_nullable
@@ -259,10 +255,7 @@ StreamNotifications200Response _$StreamNotifications200ResponseFromJson(
   );
   final val = StreamNotifications200Response(
     id: $checkedConvert('id', (v) => (v as num).toInt()),
-    event: $checkedConvert(
-      'event',
-      (v) => $enumDecode(_$StreamNotifications200ResponseEventEnumEnumMap, v),
-    ),
+    event: $checkedConvert('event', (v) => v as String),
     subtype: $checkedConvert('subtype', (v) => v as String?),
     severity: $checkedConvert(
       'severity',
@@ -297,7 +290,7 @@ Map<String, dynamic> _$StreamNotifications200ResponseToJson(
   StreamNotifications200Response instance,
 ) => <String, dynamic>{
   'id': instance.id,
-  'event': _$StreamNotifications200ResponseEventEnumEnumMap[instance.event]!,
+  'event': instance.event,
   'subtype': ?instance.subtype,
   'severity':
       _$StreamNotifications200ResponseSeverityEnumEnumMap[instance.severity]!,
@@ -314,25 +307,6 @@ Map<String, dynamic> _$StreamNotifications200ResponseToJson(
   'unread': instance.unread,
   'unreadCritical': instance.unreadCritical,
   'latestId': ?instance.latestId,
-};
-
-const _$StreamNotifications200ResponseEventEnumEnumMap = {
-  StreamNotifications200ResponseEventEnum.alert: 'alert',
-  StreamNotifications200ResponseEventEnum.briefing: 'briefing',
-  StreamNotifications200ResponseEventEnum.system: 'system',
-  StreamNotifications200ResponseEventEnum.analystPeriodNote: 'analyst.note',
-  StreamNotifications200ResponseEventEnum.situationPeriodActivated:
-      'situation.activated',
-  StreamNotifications200ResponseEventEnum.situationPeriodEscalated:
-      'situation.escalated',
-  StreamNotifications200ResponseEventEnum.findingPeriodSignificant:
-      'finding.significant',
-  StreamNotifications200ResponseEventEnum.forecastPeriodResolutionNeeded:
-      'forecast.resolution_needed',
-  StreamNotifications200ResponseEventEnum.hypothesisPeriodBandChanged:
-      'hypothesis.band_changed',
-  StreamNotifications200ResponseEventEnum.assessmentPeriodPublished:
-      'assessment.published',
 };
 
 const _$StreamNotifications200ResponseSeverityEnumEnumMap = {

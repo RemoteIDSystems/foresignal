@@ -172,7 +172,7 @@ class SeriesCatalogEntry {
   )
 
 
-  final Object? status;
+  final SeriesCatalogEntryStatusEnum? status;
 
 
 
@@ -341,6 +341,25 @@ P3M(r'P3M'),
 P1Y(r'P1Y');
 
 const SeriesCatalogEntryFrequencyEnum(this.value);
+
+final String value;
+
+@override
+String toString() => value;
+}
+
+
+enum SeriesCatalogEntryStatusEnum {
+@JsonValue(r'final')
+final_(r'final'),
+@JsonValue(r'preliminary')
+preliminary(r'preliminary'),
+@JsonValue(r'estimated')
+estimated(r'estimated'),
+@JsonValue(r'forecast')
+forecast(r'forecast');
+
+const SeriesCatalogEntryStatusEnum(this.value);
 
 final String value;
 

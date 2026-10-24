@@ -47,7 +47,7 @@ public class SourceSettingsEntity {
      * The money cap per UTC calendar month in US dollars (OpenAPI {@code Budget.monthlyCapUsd}); null means the
      * descriptor's default cap.
      */
-    @Column(name = "budget_monthly_cap_usd")
+    @Column(name = "budget_monthly_cap_usd", precision = 12, scale = 4)
     private java.math.BigDecimal budgetMonthlyCapUsd;
 
     /** Per-source retention override as a duration string; null means the global default. */

@@ -6,9 +6,6 @@ from typing import Any, Self, TypeVar, cast
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.common_dependencies_dependencies_item_paths_item_relation_types_item import (
-    CommonDependenciesDependenciesItemPathsItemRelationTypesItem,
-)
 from ..models.common_dependencies_dependencies_item_paths_item_weakest_edge_label import (
     CommonDependenciesDependenciesItemPathsItemWeakestEdgeLabel,
 )
@@ -29,15 +26,13 @@ class CommonDependenciesDependenciesItemPathsItem:
         hops (list[str]):
         weakest_edge_label (CommonDependenciesDependenciesItemPathsItemWeakestEdgeLabel): Relation or dependency label
             (104 vocabulary)
-        relation_types (list[CommonDependenciesDependenciesItemPathsItemRelationTypesItem] | Unset):
+        relation_types (list[str] | Unset):
     """
 
     from_: str
     hops: list[str]
     weakest_edge_label: CommonDependenciesDependenciesItemPathsItemWeakestEdgeLabel
-    relation_types: (
-        list[CommonDependenciesDependenciesItemPathsItemRelationTypesItem] | Unset
-    ) = UNSET
+    relation_types: list[str] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -49,10 +44,7 @@ class CommonDependenciesDependenciesItemPathsItem:
 
         relation_types: list[str] | Unset = UNSET
         if not isinstance(self.relation_types, Unset):
-            relation_types = []
-            for relation_types_item_data in self.relation_types:
-                relation_types_item = relation_types_item_data.value
-                relation_types.append(relation_types_item)
+            relation_types = self.relation_types
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -81,20 +73,7 @@ class CommonDependenciesDependenciesItemPathsItem:
             )
         )
 
-        _relation_types = d.pop("relationTypes", UNSET)
-        relation_types: (
-            list[CommonDependenciesDependenciesItemPathsItemRelationTypesItem] | Unset
-        ) = UNSET
-        if _relation_types is not UNSET:
-            relation_types = []
-            for relation_types_item_data in _relation_types:
-                relation_types_item = (
-                    CommonDependenciesDependenciesItemPathsItemRelationTypesItem(
-                        relation_types_item_data
-                    )
-                )
-
-                relation_types.append(relation_types_item)
+        relation_types = cast(list[str], d.pop("relationTypes", UNSET))
 
         common_dependencies_dependencies_item_paths_item = cls(
             from_=from_,

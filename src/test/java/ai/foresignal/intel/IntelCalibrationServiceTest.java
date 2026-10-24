@@ -1,6 +1,7 @@
 package ai.foresignal.intel;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -46,7 +47,7 @@ class IntelCalibrationServiceTest {
         assertThat(IntelCalibrationService.interpolate(curve, 0.0)).isEqualTo(0.1);
         assertThat(IntelCalibrationService.interpolate(curve, 1.0)).isEqualTo(0.95);
         // Halfway between forecast 0.2→0.6 maps halfway between calibrated 0.1→0.5.
-        assertThat(IntelCalibrationService.interpolate(curve, 0.4)).isEqualTo(0.3);
+        assertThat(IntelCalibrationService.interpolate(curve, 0.4)).isCloseTo(0.3, within(1e-12));
     }
 
     @Test
@@ -70,7 +71,8 @@ class IntelCalibrationServiceTest {
         row.setFit(List.of(point(0.2, 0.1), point(0.8, 0.9)), List.of(), 0.1, Calibration.CORP_MIN, true,
                 CLOCK.instant());
         when(calibrations.findById(IntelCalibrationService.SCOPE_EVENT)).thenReturn(Optional.of(row));
-        assertThat(service.calibrate(IntelCalibrationService.SCOPE_EVENT, 0.5)).contains(0.5);
+        assertThat(service.calibrate(IntelCalibrationService.SCOPE_EVENT, 0.5))
+                .hasValueSatisfying(p -> assertThat(p).isCloseTo(0.5, within(1e-12)));
     }
 
     /** Runs a refit over {@code n} outcomes and returns the saved calibration entity. */

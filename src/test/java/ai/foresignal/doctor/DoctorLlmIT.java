@@ -87,12 +87,18 @@ class DoctorLlmIT extends WireMockSupport {
                 body, false);
     }
 
+    /**
+     * The injected text sits inside the data block: the system prompt names both markers, so the block is the
+     * opening marker nearest before the injection and the closing marker nearest after it, with no close between.
+     */
     static void assertContained(String requestBody) {
-        int open = requestBody.indexOf("UNTRUSTED_UPSTREAM_DATA>>>");
-        int close = requestBody.indexOf("<<<END_UNTRUSTED_UPSTREAM_DATA");
         int injected = requestBody.indexOf("Ignore previous instructions");
+        assertThat(injected).isPositive();
+        int open = requestBody.lastIndexOf("<<<UNTRUSTED_UPSTREAM_DATA>>>", injected);
+        int close = requestBody.indexOf("<<<END_UNTRUSTED_UPSTREAM_DATA", injected);
         assertThat(open).isPositive();
-        assertThat(injected).isGreaterThan(open).isLessThan(close);
+        assertThat(close).isGreaterThan(injected);
+        assertThat(requestBody.indexOf("<<<END_UNTRUSTED_UPSTREAM_DATA", open)).isEqualTo(close);
     }
 
     @Test

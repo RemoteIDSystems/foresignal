@@ -31,7 +31,8 @@ class SavedSearchIT extends CollabItSupport {
     @Test
     @DisplayName("results are the matching envelopes the caller can see")
     void results() throws Exception {
-        Person jo = person("jo-s", Scope.READ, null);
+        // jo shares the search below, and shareObject needs the agent scope.
+        Person jo = person("jo-s", Scope.AGENT, null);
         Person sam = person("sam-s", Scope.READ, null);
         String mine = evidence(jo, "Berth closure at Aden", "AMBER");
         String green = evidence(jo, "Berth closure confirmed by harbor master", "GREEN");
@@ -49,8 +50,12 @@ class SavedSearchIT extends CollabItSupport {
         MockHttpServletResponse hidden = call(sam.bearer(), get("/v1/saved-searches/" + id + "/results"));
         assertThat(hidden.getStatus()).isEqualTo(404);
         assertThat(body(hidden).get("code").asString()).isEqualTo("UNKNOWN_SAVED_SEARCH");
-        call(jo.bearer(), json(post(objectPath("saved-search:" + id, "/share")), "{'grantees':['principal:sam-s']}"));
-        JsonNode forSam = body(call(sam.bearer(), get("/v1/saved-searches/" + id + "/results")));
+        MockHttpServletResponse shared = call(jo.bearer(), json(post(objectPath("saved-search:" + id, "/share")),
+                "{'grantees':['principal:sam-s']}"));
+        assertThat(shared.getStatus()).as(shared.getContentAsString()).isEqualTo(200);
+        MockHttpServletResponse samResults = call(sam.bearer(), get("/v1/saved-searches/" + id + "/results"));
+        assertThat(samResults.getStatus()).as(samResults.getContentAsString()).isEqualTo(200);
+        JsonNode forSam = body(samResults);
         assertThat(forSam.get("items")).extracting(i -> i.get("envelope").get("ref").asString())
                 .contains("evidence-item:" + theirs).doesNotContain("evidence-item:" + mine);
     }

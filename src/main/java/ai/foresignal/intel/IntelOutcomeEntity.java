@@ -3,7 +3,9 @@ package ai.foresignal.intel;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 
 /**
@@ -16,7 +18,10 @@ import java.time.Instant;
  * re-resolving the same subject updates its row rather than double-counting.
  */
 @Entity
-@Table(name = "intel_outcome")
+@Table(name = "intel_outcome",
+        uniqueConstraints = @UniqueConstraint(name = "intel_outcome_subject_uq",
+                columnNames = {"subject_kind", "subject_id"}),
+        indexes = @Index(name = "intel_outcome_scope_idx", columnList = "scope"))
 public class IntelOutcomeEntity {
 
     /** An intel event resolved or dismissed. */

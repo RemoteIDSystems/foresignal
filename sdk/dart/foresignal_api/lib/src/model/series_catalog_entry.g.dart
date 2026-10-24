@@ -25,7 +25,7 @@ abstract class _$SeriesCatalogEntryCWProxy {
 
   SeriesCatalogEntry latestValue(num? latestValue);
 
-  SeriesCatalogEntry status(Object? status);
+  SeriesCatalogEntry status(SeriesCatalogEntryStatusEnum? status);
 
   SeriesCatalogEntry family(SeriesCatalogEntryFamilyEnum family);
 
@@ -59,7 +59,7 @@ abstract class _$SeriesCatalogEntryCWProxy {
     String? area,
     String? latestPeriod,
     num? latestValue,
-    Object? status,
+    SeriesCatalogEntryStatusEnum? status,
     SeriesCatalogEntryFamilyEnum family,
     SeriesCatalogEntryTransformEnum transform,
     num releaseLagDays,
@@ -109,7 +109,8 @@ class _$SeriesCatalogEntryCWProxyImpl implements _$SeriesCatalogEntryCWProxy {
       call(latestValue: latestValue);
 
   @override
-  SeriesCatalogEntry status(Object? status) => call(status: status);
+  SeriesCatalogEntry status(SeriesCatalogEntryStatusEnum? status) =>
+      call(status: status);
 
   @override
   SeriesCatalogEntry family(SeriesCatalogEntryFamilyEnum family) =>
@@ -207,7 +208,7 @@ class _$SeriesCatalogEntryCWProxyImpl implements _$SeriesCatalogEntryCWProxy {
       status: status == const $CopyWithPlaceholder()
           ? _value.status
           // ignore: cast_nullable_to_non_nullable
-          : status as Object?,
+          : status as SeriesCatalogEntryStatusEnum?,
       family: family == const $CopyWithPlaceholder() || family == null
           ? _value.family
           // ignore: cast_nullable_to_non_nullable
@@ -283,7 +284,10 @@ SeriesCatalogEntry _$SeriesCatalogEntryFromJson(Map<String, dynamic> json) =>
         area: $checkedConvert('area', (v) => v as String?),
         latestPeriod: $checkedConvert('latestPeriod', (v) => v as String?),
         latestValue: $checkedConvert('latestValue', (v) => v as num?),
-        status: $checkedConvert('status', (v) => v),
+        status: $checkedConvert(
+          'status',
+          (v) => $enumDecodeNullable(_$SeriesCatalogEntryStatusEnumEnumMap, v),
+        ),
         family: $checkedConvert(
           'family',
           (v) => $enumDecode(_$SeriesCatalogEntryFamilyEnumEnumMap, v),
@@ -316,7 +320,7 @@ Map<String, dynamic> _$SeriesCatalogEntryToJson(
   'area': ?instance.area,
   'latestPeriod': ?instance.latestPeriod,
   'latestValue': ?instance.latestValue,
-  'status': ?instance.status,
+  'status': ?_$SeriesCatalogEntryStatusEnumEnumMap[instance.status],
   'family': _$SeriesCatalogEntryFamilyEnumEnumMap[instance.family]!,
   'transform': _$SeriesCatalogEntryTransformEnumEnumMap[instance.transform]!,
   'releaseLagDays': instance.releaseLagDays,
@@ -336,6 +340,13 @@ const _$SeriesCatalogEntryFrequencyEnumEnumMap = {
   SeriesCatalogEntryFrequencyEnum.P1M: 'P1M',
   SeriesCatalogEntryFrequencyEnum.P3M: 'P3M',
   SeriesCatalogEntryFrequencyEnum.P1Y: 'P1Y',
+};
+
+const _$SeriesCatalogEntryStatusEnumEnumMap = {
+  SeriesCatalogEntryStatusEnum.final_: 'final',
+  SeriesCatalogEntryStatusEnum.preliminary: 'preliminary',
+  SeriesCatalogEntryStatusEnum.estimated: 'estimated',
+  SeriesCatalogEntryStatusEnum.forecast: 'forecast',
 };
 
 const _$SeriesCatalogEntryFamilyEnumEnumMap = {

@@ -370,7 +370,7 @@ abstract class _$StreamEvents200ResponseCWProxy {
 
   StreamEvents200Response revisionId(String? revisionId);
 
-  StreamEvents200Response cause(Object? cause);
+  StreamEvents200Response cause(StreamEvents200ResponseCauseEnum? cause);
 
   StreamEvents200Response hypotheses(
     List<HypothesisProbabilityState>? hypotheses,
@@ -386,7 +386,7 @@ abstract class _$StreamEvents200ResponseCWProxy {
 
   StreamEvents200Response signalFamily(String? signalFamily);
 
-  StreamEvents200Response evidence(Object? evidence);
+  StreamEvents200Response evidence(Map<String, Object>? evidence);
 
   StreamEvents200Response assumptionId(String assumptionId);
 
@@ -646,13 +646,13 @@ abstract class _$StreamEvents200ResponseCWProxy {
     bool? private,
     String setId,
     String? revisionId,
-    Object? cause,
+    StreamEvents200ResponseCauseEnum? cause,
     List<HypothesisProbabilityState>? hypotheses,
     List<HypothesisSetEventBandChangesInner>? bandChanges,
     String indicatorId,
     String? description,
     String? signalFamily,
-    Object? evidence,
+    Map<String, Object>? evidence,
     String assumptionId,
     String? text,
     bool? linchpin,
@@ -1337,7 +1337,8 @@ class _$StreamEvents200ResponseCWProxyImpl
       call(revisionId: revisionId);
 
   @override
-  StreamEvents200Response cause(Object? cause) => call(cause: cause);
+  StreamEvents200Response cause(StreamEvents200ResponseCauseEnum? cause) =>
+      call(cause: cause);
 
   @override
   StreamEvents200Response hypotheses(
@@ -1362,7 +1363,7 @@ class _$StreamEvents200ResponseCWProxyImpl
       call(signalFamily: signalFamily);
 
   @override
-  StreamEvents200Response evidence(Object? evidence) =>
+  StreamEvents200Response evidence(Map<String, Object>? evidence) =>
       call(evidence: evidence);
 
   @override
@@ -2445,7 +2446,7 @@ class _$StreamEvents200ResponseCWProxyImpl
       cause: cause == const $CopyWithPlaceholder()
           ? _value.cause
           // ignore: cast_nullable_to_non_nullable
-          : cause as Object?,
+          : cause as StreamEvents200ResponseCauseEnum?,
       hypotheses: hypotheses == const $CopyWithPlaceholder()
           ? _value.hypotheses
           // ignore: cast_nullable_to_non_nullable
@@ -2470,7 +2471,7 @@ class _$StreamEvents200ResponseCWProxyImpl
       evidence: evidence == const $CopyWithPlaceholder()
           ? _value.evidence
           // ignore: cast_nullable_to_non_nullable
-          : evidence as Object?,
+          : evidence as Map<String, Object>?,
       assumptionId:
           assumptionId == const $CopyWithPlaceholder() || assumptionId == null
           ? _value.assumptionId
@@ -3230,7 +3231,10 @@ StreamEvents200Response _$StreamEvents200ResponseFromJson(
     private: $checkedConvert('private', (v) => v as bool?),
     setId: $checkedConvert('setId', (v) => v as String),
     revisionId: $checkedConvert('revisionId', (v) => v as String?),
-    cause: $checkedConvert('cause', (v) => v),
+    cause: $checkedConvert(
+      'cause',
+      (v) => $enumDecodeNullable(_$StreamEvents200ResponseCauseEnumEnumMap, v),
+    ),
     hypotheses: $checkedConvert(
       'hypotheses',
       (v) => (v as List<dynamic>?)
@@ -3253,7 +3257,11 @@ StreamEvents200Response _$StreamEvents200ResponseFromJson(
     indicatorId: $checkedConvert('indicatorId', (v) => v as String),
     description: $checkedConvert('description', (v) => v as String?),
     signalFamily: $checkedConvert('signalFamily', (v) => v as String?),
-    evidence: $checkedConvert('evidence', (v) => v),
+    evidence: $checkedConvert(
+      'evidence',
+      (v) =>
+          (v as Map<String, dynamic>?)?.map((k, e) => MapEntry(k, e as Object)),
+    ),
     assumptionId: $checkedConvert('assumptionId', (v) => v as String),
     text: $checkedConvert('text', (v) => v as String?),
     linchpin: $checkedConvert('linchpin', (v) => v as bool?),
@@ -3535,7 +3543,7 @@ Map<String, dynamic> _$StreamEvents200ResponseToJson(
   'private': ?instance.private,
   'setId': instance.setId,
   'revisionId': ?instance.revisionId,
-  'cause': ?instance.cause,
+  'cause': ?_$StreamEvents200ResponseCauseEnumEnumMap[instance.cause],
   'hypotheses': ?instance.hypotheses?.map((e) => e.toJson()).toList(),
   'bandChanges': ?instance.bandChanges?.map((e) => e.toJson()).toList(),
   'indicatorId': instance.indicatorId,
@@ -3775,6 +3783,17 @@ const _$IcdTermEnumMap = {
   IcdTerm.likely: 'likely',
   IcdTerm.veryLikely: 'very likely',
   IcdTerm.almostCertain: 'almost certain',
+};
+
+const _$StreamEvents200ResponseCauseEnumEnumMap = {
+  StreamEvents200ResponseCauseEnum.indicatorObserved: 'indicator-observed',
+  StreamEvents200ResponseCauseEnum.indicatorAbsent: 'indicator-absent',
+  StreamEvents200ResponseCauseEnum.evidenceAdded: 'evidence-added',
+  StreamEvents200ResponseCauseEnum.evidenceRemoved: 'evidence-removed',
+  StreamEvents200ResponseCauseEnum.baseRateRefresh: 'base-rate-refresh',
+  StreamEvents200ResponseCauseEnum.review: 'review',
+  StreamEvents200ResponseCauseEnum.operator_: 'operator',
+  StreamEvents200ResponseCauseEnum.created: 'created',
 };
 
 const _$StreamEvents200ResponseWeightsOriginEnumEnumMap = {

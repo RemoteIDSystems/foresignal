@@ -17,7 +17,7 @@ abstract class _$AssessmentSectionsInnerCWProxy {
     AssessmentSectionsInnerTextOriginEnum textOrigin,
   );
 
-  AssessmentSectionsInner data(Object? data);
+  AssessmentSectionsInner data(Map<String, Object>? data);
 
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
@@ -32,7 +32,7 @@ abstract class _$AssessmentSectionsInnerCWProxy {
     String title,
     String markdown,
     AssessmentSectionsInnerTextOriginEnum textOrigin,
-    Object? data,
+    Map<String, Object>? data,
   });
 }
 
@@ -60,7 +60,7 @@ class _$AssessmentSectionsInnerCWProxyImpl
   ) => call(textOrigin: textOrigin);
 
   @override
-  AssessmentSectionsInner data(Object? data) => call(data: data);
+  AssessmentSectionsInner data(Map<String, Object>? data) => call(data: data);
 
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
@@ -99,7 +99,7 @@ class _$AssessmentSectionsInnerCWProxyImpl
       data: data == const $CopyWithPlaceholder()
           ? _value.data
           // ignore: cast_nullable_to_non_nullable
-          : data as Object?,
+          : data as Map<String, Object>?,
     );
   }
 }
@@ -134,7 +134,11 @@ AssessmentSectionsInner _$AssessmentSectionsInnerFromJson(
       'textOrigin',
       (v) => $enumDecode(_$AssessmentSectionsInnerTextOriginEnumEnumMap, v),
     ),
-    data: $checkedConvert('data', (v) => v),
+    data: $checkedConvert(
+      'data',
+      (v) =>
+          (v as Map<String, dynamic>?)?.map((k, e) => MapEntry(k, e as Object)),
+    ),
   );
   return val;
 });

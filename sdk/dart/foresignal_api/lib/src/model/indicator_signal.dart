@@ -129,6 +129,7 @@ class IndicatorSignal {
 
 
 
+      /// Optional first-stage threshold; when met the indicator is `emerging`
   @JsonKey(
     
     name: r'emerging',
@@ -137,7 +138,7 @@ class IndicatorSignal {
   )
 
 
-  final Object? emerging;
+  final Map<String, Object>? emerging;
 
 
 

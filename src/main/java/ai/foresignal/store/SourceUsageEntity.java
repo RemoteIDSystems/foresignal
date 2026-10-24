@@ -3,6 +3,7 @@ package ai.foresignal.store;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
 /**
@@ -13,7 +14,8 @@ import jakarta.persistence.Table;
  * declined, which distinguishes "we chose not to ask" from "the upstream failed".
  */
 @Entity
-@Table(name = "source_usage")
+@Table(name = "source_usage",
+        indexes = @Index(name = "source_usage_source_minute_idx", columnList = "source_id, minute"))
 public class SourceUsageEntity {
 
     @EmbeddedId

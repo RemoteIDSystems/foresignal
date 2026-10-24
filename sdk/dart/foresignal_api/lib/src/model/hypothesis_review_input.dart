@@ -79,6 +79,7 @@ class HypothesisReviewInput {
 
 
 
+      /// Direct probability changes per hypothesis id (logged)
   @JsonKey(
     
     name: r'probabilities',
@@ -87,7 +88,7 @@ class HypothesisReviewInput {
   )
 
 
-  final Object? probabilities;
+  final Map<String, num>? probabilities;
 
 
 

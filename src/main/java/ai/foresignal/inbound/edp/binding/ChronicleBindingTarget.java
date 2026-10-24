@@ -1,6 +1,7 @@
 package ai.foresignal.inbound.edp.binding;
 
 import ai.foresignal.api.error.FieldError;
+import ai.foresignal.chronicle.CaptureMode;
 import ai.foresignal.chronicle.ChronicleLayerEntity;
 import ai.foresignal.chronicle.ChronicleSelector;
 import ai.foresignal.chronicle.ChronicleService;
@@ -68,6 +69,8 @@ public class ChronicleBindingTarget implements BindingTargetHandler {
         selector.put("sourceId", binding.getSourceId());
         selector.put("streamId", binding.getStreamId());
         selector.set("filter", json.valueToTree(binding.getFilter() == null ? List.of() : binding.getFilter()));
+        // ChronicleLayerInput requires capture; the layer keeps a copy of every item of the stream.
+        layer.set("capture", json.valueToTree(CaptureMode.FULL_MODE.toMap()));
         ChronicleLayerEntity created = service.addLayer(chronicleId, layer, ObjectCaller.system());
         return ObjectTypes.CHRONICLE + ":" + chronicleId + "/layers/" + created.getId();
     }

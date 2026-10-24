@@ -232,7 +232,11 @@ class ClientRateLimitFilterIT {
     void anonymousClass() throws Exception {
         limits(100, 100, 100, 8, 100, 100, 2, null);
         assertThat(get("/v1/records").statusCode()).isEqualTo(200);
-        assertThat(get("/v1/tiles.json").statusCode()).isNotEqualTo(429);
+        // Tiles are limited by their own class only, never charged to anonymous (a map view would use it up).
+        for (int i = 0; i < 3; i++) {
+            assertThat(get("/v1/tiles.json").statusCode()).isNotEqualTo(429);
+        }
+        assertThat(get("/v1/records").statusCode()).isEqualTo(200);
 
         assertLimited(get("/v1/records"), "anonymous", 30);
     }

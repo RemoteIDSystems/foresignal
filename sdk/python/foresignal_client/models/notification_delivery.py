@@ -26,7 +26,6 @@ from ..models.notification_delivery_deferred_reason_type_2_type_1 import (
 from ..models.notification_delivery_deferred_reason_type_3_type_1 import (
     NotificationDeliveryDeferredReasonType3Type1,
 )
-from ..models.notification_delivery_event import NotificationDeliveryEvent
 from ..models.notification_delivery_kind import NotificationDeliveryKind
 from ..models.notification_delivery_status import NotificationDeliveryStatus
 from ..types import UNSET, Unset
@@ -43,7 +42,7 @@ class NotificationDelivery:
     """
     Attributes:
         id (int):
-        event (NotificationDeliveryEvent):
+        event (str): Expected to grow (`x-extensible-enum`): a client must accept a value not listed here.
         status (NotificationDeliveryStatus):
         attempts (int):
         alert_id (int | None | Unset):
@@ -69,7 +68,7 @@ class NotificationDelivery:
     """
 
     id: int
-    event: NotificationDeliveryEvent
+    event: str
     status: NotificationDeliveryStatus
     attempts: int
     alert_id: int | None | Unset = UNSET
@@ -103,7 +102,7 @@ class NotificationDelivery:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        event = self.event.value
+        event = self.event
 
         status = self.status.value
 
@@ -258,7 +257,7 @@ class NotificationDelivery:
         d = dict(src_dict)
         id = d.pop("id")
 
-        event = NotificationDeliveryEvent(d.pop("event"))
+        event = d.pop("event")
 
         status = NotificationDeliveryStatus(d.pop("status"))
 

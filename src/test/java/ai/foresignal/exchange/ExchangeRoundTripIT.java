@@ -128,7 +128,10 @@ class ExchangeRoundTripIT extends ReportItSupport {
         assertThat(seen.get().tlp()).isEqualTo("AMBER");
         assertThat(seen.get().summary()).startsWith("Received from");
         assertThat(objects.find(ObjectRef.parse(remoteSituation), new ResolveContext(carol.caller(), null))).isEmpty();
-        assertThat(call(bob.bearer(), get(remotePath(remoteSituation))).getStatus()).isEqualTo(200);
+        // As a URI, so the encoded "/" of the remote ref is sent as is rather than encoded again.
+        MockHttpServletResponse remoteRead = call(bob.bearer(),
+                get(java.net.URI.create(remotePath(remoteSituation))));
+        assertThat(remoteRead.getStatus()).as(remoteRead.getContentAsString()).isEqualTo(200);
         assertThat(receivedObjects.findByReceivedId(receivedId)).hasSize(2);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM evidence_group", Long.class))
                 .as("imported material never enters local evidence").isZero();

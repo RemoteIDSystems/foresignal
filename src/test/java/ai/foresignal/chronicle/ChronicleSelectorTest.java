@@ -87,11 +87,12 @@ class ChronicleSelectorTest {
     }
 
     @Test
-    @DisplayName("malformed selectors name the field, and later prompts' types are refused with their prompt")
+    @DisplayName("malformed selectors name the field; an unknown type is refused on selector.type")
     void malformedSelectors() {
         invalid("{'sources':['acled']}", "selector.type");
         invalid("{'type':'nope'}", "selector.type");
-        invalid("{'type':'social-narratives','narrativeIds':['x']}", "selector.type");
+        // social-narratives was a later prompt's type here; 137 implemented it, so it is checked like the others.
+        invalid("{'type':'social-narratives','statuses':['nope']}", "selector.statuses");
         invalid("{'type':'records'}", "selector");
         invalid("{'type':'records','sources':['a'],'extra':1}", "selector.extra");
         invalid("{'type':'records','sources':'acled'}", "selector.sources");

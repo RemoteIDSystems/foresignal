@@ -255,8 +255,9 @@ class SourceServiceIT {
             SourceView view = service.view(POLLING);
 
             assertThat(view.descriptor().id()).isEqualTo(POLLING);
-            // A free source is seeded enabled (prompt 145).
-            assertThat(view.enabled()).isTrue();
+            // A free source outside the core set is seeded disabled (prompt 150, revising 145).
+            assertThat(registry.isCore(POLLING)).isFalse();
+            assertThat(view.enabled()).isFalse();
             assertThat(view.credentialsSet()).isFalse();
             assertThat(view.interval()).isEqualTo(registry.descriptor(POLLING).defaultInterval());
             assertThat(view.ingestPolicy()).isNotNull();

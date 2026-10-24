@@ -106,6 +106,19 @@ public class SocialClaimEntity {
     @Column(name = "tlp", length = 16, nullable = false)
     private String tlp;
 
+    @Column(name = "restatement", length = 240)
+    private String restatement;
+
+    @Column(name = "framing_score")
+    private Double framingScore;
+
+    @Column(name = "framing_label", length = 16)
+    private String framingLabel;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "reputation", columnDefinition = "jsonb")
+    private Map<String, Object> reputation;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 

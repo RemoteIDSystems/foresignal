@@ -98,6 +98,7 @@ class Forecast {
 
 
 
+      /// Expected to grow (`x-extensible-enum`): a client must accept a value not listed here.
   @JsonKey(
     
     name: r'forecasterType',
@@ -106,7 +107,7 @@ class Forecast {
   )
 
 
-  final ForecastForecasterTypeEnum forecasterType;
+  final String forecasterType;
 
 
 
@@ -346,41 +347,4 @@ class Forecast {
   }
 
 }
-
-enum ForecastForecasterTypeEnum {
-@JsonValue(r'base-rate')
-baseRate(r'base-rate'),
-@JsonValue(r'climatology')
-climatology(r'climatology'),
-@JsonValue(r'persistence')
-persistence(r'persistence'),
-@JsonValue(r'statistical')
-statistical(r'statistical'),
-@JsonValue(r'precursor')
-precursor(r'precursor'),
-@JsonValue(r'analog')
-analog(r'analog'),
-@JsonValue(r'threshold')
-threshold(r'threshold'),
-@JsonValue(r'impact')
-impact(r'impact'),
-@JsonValue(r'indicator-bayes')
-indicatorBayes(r'indicator-bayes'),
-@JsonValue(r'llm')
-llm(r'llm'),
-@JsonValue(r'operator')
-operator_(r'operator'),
-@JsonValue(r'external')
-external_(r'external'),
-@JsonValue(r'ensemble')
-ensemble(r'ensemble');
-
-const ForecastForecasterTypeEnum(this.value);
-
-final String value;
-
-@override
-String toString() => value;
-}
-
 

@@ -261,7 +261,7 @@ class Report {
 
 
 
-      /// Any block is deterministic-generated or LLM
+      /// Any block is deterministic-generated or LLM, apart from the sources block the publisher appends to every revision
   @JsonKey(
     
     name: r'machineGenerated',

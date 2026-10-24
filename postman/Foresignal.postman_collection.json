@@ -4877,7 +4877,14 @@
             },
             "description": "Changes the note status.\n\n**Scope:** `read` (token required; not covered by `security.openReads`).\n\noperationId: `updateAnalystNote`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -4931,7 +4938,14 @@
             },
             "description": "Records useful, not_useful or wrong with an optional comment for the evaluation log.\n\n**Scope:** `read` (token required; not covered by `security.openReads`).\n\noperationId: `analystNoteFeedback`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -8080,7 +8094,14 @@
             },
             "description": "Records `useful`, `not_useful` or `wrong` into 102's analyst feedback.\n\n**Scope:** `read` (token required).\n\noperationId: `submitAssessmentFeedback`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "raw",
@@ -13376,7 +13397,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"instanceId\": \"fs-eu-1\",\n  \"networkId\": \"gulf-analysts\",\n  \"sketches\": [],\n  \"withdrawn\": [\n    \"sk-gulf-0001\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -18389,7 +18410,14 @@
             },
             "description": "Downloads one file of a finished job.\n\n**Scope:** `read` (token required; not covered by `security.openReads`).\n\noperationId: `downloadExportFile`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -18962,7 +18990,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"forecasterId\": \"timesfm-transits\",\n  \"questionId\": \"{{questionId}}\",\n  \"orientation\": \"same\",\n  \"horizon\": \"P7D\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -19015,7 +19043,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"correlationId\": \"01JA8Q3V7S2K9W4T6Y1B5N0M3C\",\n  \"probability\": 0.61\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -19878,7 +19906,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"streamId\": \"transits\",\n  \"target\": \"series\",\n  \"config\": {},\n  \"enabled\": true,\n  \"backfill\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -20034,7 +20062,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"streamId\": \"transits\",\n  \"target\": \"series\",\n  \"config\": {},\n  \"enabled\": false,\n  \"backfill\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -20226,7 +20254,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"streamId\": \"questions\",\n  \"externalQuestionId\": \"pm-hormuz-closure\",\n  \"questionId\": \"{{questionId}}\",\n  \"orientation\": \"same\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -22204,7 +22232,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"id\": \"timesfm-transits\",\n  \"name\": \"TimesFM transits\",\n  \"config\": {\n    \"sourceId\": \"ext-timesfm\",\n    \"streamId\": \"transits\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -27812,7 +27840,14 @@
             },
             "description": "How calibrated intelligence confidence is (151): the calibration of every scope, each with whether it is calibrated, the resolved sample size, the Brier score, the 10-bin reliability table and the CORP recalibration curve.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getIntelCalibration`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -27852,7 +27887,14 @@
             },
             "description": "The calibration of one scope (151): `intel-event` or `precursor-active`. An unknown scope returns the empty, uncalibrated state.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getIntelCalibrationScope`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -27891,7 +27933,14 @@
             },
             "description": "The tunable \"promote to a trusted signal\" gates (154): the event evidence-quality thresholds (with an optional cross-modality requirement), the situation activation rule, and the automatic corroboration of lone events. Every gate defaults to its historical constant.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getIntelCorroboration`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -28043,7 +28092,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"id\": \"shell-companies\",\n  \"enabled\": true,\n  \"definition\": {\n    \"type\": \"custom\",\n    \"seed\": {\n      \"kinds\": [\n        \"company\"\n      ]\n    },\n    \"joins\": [\n      {\n        \"kinds\": [\n          \"company\"\n        ],\n        \"sharedAttribute\": \"registeredAddress\"\n      }\n    ],\n    \"quietPeriod\": \"6h\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -28232,7 +28281,14 @@
             },
             "description": "Investigations visible to the caller (130 adds `scope=mine|shared|all` and access lists).\n\n**Scope:** `read` (token required; not covered by `security.openReads`).\n\noperationId: `listInvestigations`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -28329,7 +28385,14 @@
             },
             "description": "Investigation with its items and snapshots.\n\n**Scope:** `read` (token required; not covered by `security.openReads`).\n\noperationId: `getInvestigation`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -28579,7 +28642,14 @@
             },
             "description": "JSON, Markdown report with citations `[source/externalId@vN]`, or GeoJSON. Every format carries the header \"Automated analysis inputs; verify before acting\" and licence attributions.\n\n**Scope:** `read` (token required; not covered by `security.openReads`).\n\noperationId: `exportInvestigation`",
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -29650,6 +29720,44 @@
                   "type": "string"
                 }
               ]
+            }
+          }
+        },
+        {
+          "name": "List the LLM prompt templates",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/prompt-templates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "prompt-templates"
+              ],
+              "query": []
+            },
+            "description": "Every bundled prompt template: its id, LLM role, newest version and all versions, so a client can offer them to getPromptTemplate. Texts are not included.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listPromptTemplates`",
+            "auth": {
+              "type": "noauth"
             }
           }
         },
@@ -32983,7 +33091,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"refs\": [\n    \"entity:01JA8Q3V7S2K9W4T6Y1B5N0M3C\"\n  ],\n  \"depth\": 3,\n  \"direction\": \"both\",\n  \"types\": [\n    \"owns\",\n    \"controls\",\n    \"beneficial-owner\"\n  ],\n  \"minConfidence\": 0.5\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -42343,7 +42451,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"maxConcurrentPulls\": 2\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -45175,7 +45283,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"narrativeIds\": [\n    \"01JA8Q3V7S2K9W4T6Y1B5N0M3C\"\n  ],\n  \"reason\": \"The same port-closure story on two platforms.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -45236,7 +45344,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"postRefs\": [\n    \"record:bluesky-jetstream/bluesky%3Apost-1\"\n  ],\n  \"reason\": \"These posts are about a different port.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -45432,10 +45540,6 @@
               {
                 "key": "Accept",
                 "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
             "url": {
@@ -45463,13 +45567,25 @@
               ]
             },
             "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "The image (pick it in Postman)"
+                },
+                {
+                  "key": "maxDistance",
+                  "type": "text",
+                  "value": "31"
+                },
+                {
+                  "key": "limit",
+                  "type": "text",
+                  "value": "20"
                 }
-              }
+              ]
             }
           }
         },
@@ -45721,7 +45837,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"regionCode\": \"YE\",\n  \"terms\": [\n    \"Bab el-Mandeb\"\n  ],\n  \"window\": {\n    \"start\": \"2026-10-17T00:00:00Z\",\n    \"end\": null\n  },\n  \"maxCostUsd\": 0.5\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -47711,7 +47827,7 @@
                 }
               ]
             },
-            "description": "`timeField=ingested` reads the rollup (plus raw rows for the open hour); other time fields read raw history and need `from \u2265 retainedFrom`; `alerts` reads alert fire times. \u2264 2,000 buckets. 10 s timeout (503 QUERY_TIMEOUT).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getStatsTimeseries`",
+            "description": "`timeField=ingested` reads the rollup (plus raw rows for the open hour); other time fields read raw history and need `from \u2265 retainedFrom`; `alerts` reads alert fire times. \u2264 2,000 buckets. 10 s timeout (503 QUERY_TIMEOUT). `measure=entities` with `bucket=1d` over a day the daily rollup does not hold yet (the current UTC day) is 422 STATS_MEASURE_UNSUPPORTED: distinct entities cannot be summed from hours, so use `bucket=1h` or end the range at that day's start.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getStatsTimeseries`",
             "auth": {
               "type": "noauth"
             }

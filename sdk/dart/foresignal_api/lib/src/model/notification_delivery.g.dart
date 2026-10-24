@@ -9,7 +9,7 @@ part of 'notification_delivery.dart';
 abstract class _$NotificationDeliveryCWProxy {
   NotificationDelivery id(int id);
 
-  NotificationDelivery event(NotificationDeliveryEventEnum event);
+  NotificationDelivery event(String event);
 
   NotificationDelivery alertId(int? alertId);
 
@@ -57,7 +57,7 @@ abstract class _$NotificationDeliveryCWProxy {
   /// ```
   NotificationDelivery call({
     int id,
-    NotificationDeliveryEventEnum event,
+    String event,
     int? alertId,
     String? briefingRunId,
     NotificationDeliveryStatusEnum status,
@@ -89,8 +89,7 @@ class _$NotificationDeliveryCWProxyImpl
   NotificationDelivery id(int id) => call(id: id);
 
   @override
-  NotificationDelivery event(NotificationDeliveryEventEnum event) =>
-      call(event: event);
+  NotificationDelivery event(String event) => call(event: event);
 
   @override
   NotificationDelivery alertId(int? alertId) => call(alertId: alertId);
@@ -191,7 +190,7 @@ class _$NotificationDeliveryCWProxyImpl
       event: event == const $CopyWithPlaceholder() || event == null
           ? _value.event
           // ignore: cast_nullable_to_non_nullable
-          : event as NotificationDeliveryEventEnum,
+          : event as String,
       alertId: alertId == const $CopyWithPlaceholder()
           ? _value.alertId
           // ignore: cast_nullable_to_non_nullable
@@ -278,10 +277,7 @@ NotificationDelivery _$NotificationDeliveryFromJson(
   $checkKeys(json, requiredKeys: const ['id', 'event', 'status', 'attempts']);
   final val = NotificationDelivery(
     id: $checkedConvert('id', (v) => (v as num).toInt()),
-    event: $checkedConvert(
-      'event',
-      (v) => $enumDecode(_$NotificationDeliveryEventEnumEnumMap, v),
-    ),
+    event: $checkedConvert('event', (v) => v as String),
     alertId: $checkedConvert('alertId', (v) => (v as num?)?.toInt()),
     briefingRunId: $checkedConvert('briefingRunId', (v) => v as String?),
     status: $checkedConvert(
@@ -341,7 +337,7 @@ Map<String, dynamic> _$NotificationDeliveryToJson(
   NotificationDelivery instance,
 ) => <String, dynamic>{
   'id': instance.id,
-  'event': _$NotificationDeliveryEventEnumEnumMap[instance.event]!,
+  'event': instance.event,
   'alertId': ?instance.alertId,
   'briefingRunId': ?instance.briefingRunId,
   'status': _$NotificationDeliveryStatusEnumEnumMap[instance.status]!,
@@ -361,41 +357,6 @@ Map<String, dynamic> _$NotificationDeliveryToJson(
           .attachmentLevel],
   'attachments': ?instance.attachments?.map((e) => e.toJson()).toList(),
   'shortCode': ?instance.shortCode,
-};
-
-const _$NotificationDeliveryEventEnumEnumMap = {
-  NotificationDeliveryEventEnum.alert: 'alert',
-  NotificationDeliveryEventEnum.briefing: 'briefing',
-  NotificationDeliveryEventEnum.system: 'system',
-  NotificationDeliveryEventEnum.socialPeriodDivergence: 'social.divergence',
-  NotificationDeliveryEventEnum.socialPeriodAttentionGap:
-      'social.attention_gap',
-  NotificationDeliveryEventEnum.analystPeriodNote: 'analyst.note',
-  NotificationDeliveryEventEnum.situationPeriodActivated: 'situation.activated',
-  NotificationDeliveryEventEnum.situationPeriodEscalated: 'situation.escalated',
-  NotificationDeliveryEventEnum.findingPeriodSignificant: 'finding.significant',
-  NotificationDeliveryEventEnum.forecastPeriodResolved: 'forecast.resolved',
-  NotificationDeliveryEventEnum.forecastPeriodResolutionNeeded:
-      'forecast.resolution_needed',
-  NotificationDeliveryEventEnum.hypothesisPeriodBandChanged:
-      'hypothesis.band_changed',
-  NotificationDeliveryEventEnum.indicatorPeriodObserved: 'indicator.observed',
-  NotificationDeliveryEventEnum.assumptionPeriodBroken: 'assumption.broken',
-  NotificationDeliveryEventEnum.assessmentPeriodPublished:
-      'assessment.published',
-  NotificationDeliveryEventEnum.chroniclePeriodProposed: 'chronicle.proposed',
-  NotificationDeliveryEventEnum.chroniclePeriodCapWarning:
-      'chronicle.cap_warning',
-  NotificationDeliveryEventEnum.chroniclePeriodGap: 'chronicle.gap',
-  NotificationDeliveryEventEnum.mention: 'mention',
-  NotificationDeliveryEventEnum.share: 'share',
-  NotificationDeliveryEventEnum.reportPeriodReceived: 'report.received',
-  NotificationDeliveryEventEnum.packagePeriodReceived: 'package.received',
-  NotificationDeliveryEventEnum.chroniclePeriodAccessPeriodRequested:
-      'chronicle.access.requested',
-  NotificationDeliveryEventEnum.savedSearchPeriodMatches:
-      'saved-search.matches',
-  NotificationDeliveryEventEnum.personal: 'personal',
 };
 
 const _$NotificationDeliveryStatusEnumEnumMap = {

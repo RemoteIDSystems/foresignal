@@ -9,7 +9,7 @@ part of 'notification.dart';
 abstract class _$NotificationCWProxy {
   Notification id(int id);
 
-  Notification event(NotificationEventEnum event);
+  Notification event(String event);
 
   Notification subtype(String? subtype);
 
@@ -41,7 +41,7 @@ abstract class _$NotificationCWProxy {
   /// ```
   Notification call({
     int id,
-    NotificationEventEnum event,
+    String event,
     String? subtype,
     NotificationSeverityEnum severity,
     String title,
@@ -66,7 +66,7 @@ class _$NotificationCWProxyImpl implements _$NotificationCWProxy {
   Notification id(int id) => call(id: id);
 
   @override
-  Notification event(NotificationEventEnum event) => call(event: event);
+  Notification event(String event) => call(event: event);
 
   @override
   Notification subtype(String? subtype) => call(subtype: subtype);
@@ -132,7 +132,7 @@ class _$NotificationCWProxyImpl implements _$NotificationCWProxy {
       event: event == const $CopyWithPlaceholder() || event == null
           ? _value.event
           // ignore: cast_nullable_to_non_nullable
-          : event as NotificationEventEnum,
+          : event as String,
       subtype: subtype == const $CopyWithPlaceholder()
           ? _value.subtype
           // ignore: cast_nullable_to_non_nullable
@@ -203,10 +203,7 @@ Notification _$NotificationFromJson(Map<String, dynamic> json) =>
       );
       final val = Notification(
         id: $checkedConvert('id', (v) => (v as num).toInt()),
-        event: $checkedConvert(
-          'event',
-          (v) => $enumDecode(_$NotificationEventEnumEnumMap, v),
-        ),
+        event: $checkedConvert('event', (v) => v as String),
         subtype: $checkedConvert('subtype', (v) => v as String?),
         severity: $checkedConvert(
           'severity',
@@ -233,7 +230,7 @@ Notification _$NotificationFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$NotificationToJson(Notification instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'event': _$NotificationEventEnumEnumMap[instance.event]!,
+      'event': instance.event,
       'subtype': ?instance.subtype,
       'severity': _$NotificationSeverityEnumEnumMap[instance.severity]!,
       'title': instance.title,
@@ -245,20 +242,6 @@ Map<String, dynamic> _$NotificationToJson(Notification instance) =>
       'read': instance.read,
       'alertState': ?_$NotificationAlertStateEnumEnumMap[instance.alertState],
     };
-
-const _$NotificationEventEnumEnumMap = {
-  NotificationEventEnum.alert: 'alert',
-  NotificationEventEnum.briefing: 'briefing',
-  NotificationEventEnum.system: 'system',
-  NotificationEventEnum.analystPeriodNote: 'analyst.note',
-  NotificationEventEnum.situationPeriodActivated: 'situation.activated',
-  NotificationEventEnum.situationPeriodEscalated: 'situation.escalated',
-  NotificationEventEnum.findingPeriodSignificant: 'finding.significant',
-  NotificationEventEnum.forecastPeriodResolutionNeeded:
-      'forecast.resolution_needed',
-  NotificationEventEnum.hypothesisPeriodBandChanged: 'hypothesis.band_changed',
-  NotificationEventEnum.assessmentPeriodPublished: 'assessment.published',
-};
 
 const _$NotificationSeverityEnumEnumMap = {
   NotificationSeverityEnum.info: 'info',

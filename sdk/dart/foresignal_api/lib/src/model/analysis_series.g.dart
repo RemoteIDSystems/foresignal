@@ -17,7 +17,7 @@ abstract class _$AnalysisSeriesCWProxy {
 
   AnalysisSeries family(String? family);
 
-  AnalysisSeries regionCode(Object? regionCode);
+  AnalysisSeries regionCode(String? regionCode);
 
   AnalysisSeries watchPairs(List<WatchPair>? watchPairs);
 
@@ -43,7 +43,7 @@ abstract class _$AnalysisSeriesCWProxy {
     List<AnalysisSeriesDetectorsEnum> detectors,
     AnalysisSeriesFrequencyEnum frequency,
     String? family,
-    Object? regionCode,
+    String? regionCode,
     List<WatchPair>? watchPairs,
     AnalysisSeriesOriginEnum origin,
     DateTime? createdAt,
@@ -77,7 +77,7 @@ class _$AnalysisSeriesCWProxyImpl implements _$AnalysisSeriesCWProxy {
   AnalysisSeries family(String? family) => call(family: family);
 
   @override
-  AnalysisSeries regionCode(Object? regionCode) => call(regionCode: regionCode);
+  AnalysisSeries regionCode(String? regionCode) => call(regionCode: regionCode);
 
   @override
   AnalysisSeries watchPairs(List<WatchPair>? watchPairs) =>
@@ -142,7 +142,7 @@ class _$AnalysisSeriesCWProxyImpl implements _$AnalysisSeriesCWProxy {
       regionCode: regionCode == const $CopyWithPlaceholder()
           ? _value.regionCode
           // ignore: cast_nullable_to_non_nullable
-          : regionCode as Object?,
+          : regionCode as String?,
       watchPairs: watchPairs == const $CopyWithPlaceholder()
           ? _value.watchPairs
           // ignore: cast_nullable_to_non_nullable
@@ -204,7 +204,7 @@ AnalysisSeries _$AnalysisSeriesFromJson(Map<String, dynamic> json) =>
           (v) => $enumDecode(_$AnalysisSeriesFrequencyEnumEnumMap, v),
         ),
         family: $checkedConvert('family', (v) => v as String?),
-        regionCode: $checkedConvert('regionCode', (v) => v),
+        regionCode: $checkedConvert('regionCode', (v) => v as String?),
         watchPairs: $checkedConvert(
           'watchPairs',
           (v) => (v as List<dynamic>?)

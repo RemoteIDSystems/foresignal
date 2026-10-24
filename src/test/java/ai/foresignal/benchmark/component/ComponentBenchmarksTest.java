@@ -44,6 +44,7 @@ class ComponentBenchmarksTest {
         for (ForecasterBenchmark.Kind kind : ForecasterBenchmark.Kind.values()) {
             out.add(new ForecasterBenchmark(kind));
         }
+        out.add(new SocialPhysicalBenchmark());
         return out;
     }
 

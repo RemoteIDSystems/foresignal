@@ -149,7 +149,7 @@ class Channel {
   )
 
 
-  final List<ChannelEventsEnum> events;
+  final List<String> events;
 
 
 
@@ -533,67 +533,6 @@ meshtastic(r'meshtastic'),
 meshcore(r'meshcore');
 
 const ChannelTypeEnum(this.value);
-
-final String value;
-
-@override
-String toString() => value;
-}
-
-
-enum ChannelEventsEnum {
-@JsonValue(r'alert')
-alert(r'alert'),
-@JsonValue(r'briefing')
-briefing(r'briefing'),
-@JsonValue(r'system')
-system(r'system'),
-@JsonValue(r'chronicle.proposed')
-chroniclePeriodProposed(r'chronicle.proposed'),
-@JsonValue(r'chronicle.cap_warning')
-chroniclePeriodCapWarning(r'chronicle.cap_warning'),
-@JsonValue(r'chronicle.gap')
-chroniclePeriodGap(r'chronicle.gap'),
-@JsonValue(r'social.divergence')
-socialPeriodDivergence(r'social.divergence'),
-@JsonValue(r'social.attention_gap')
-socialPeriodAttentionGap(r'social.attention_gap'),
-@JsonValue(r'analyst.note')
-analystPeriodNote(r'analyst.note'),
-@JsonValue(r'situation.activated')
-situationPeriodActivated(r'situation.activated'),
-@JsonValue(r'situation.escalated')
-situationPeriodEscalated(r'situation.escalated'),
-@JsonValue(r'finding.significant')
-findingPeriodSignificant(r'finding.significant'),
-@JsonValue(r'forecast.resolved')
-forecastPeriodResolved(r'forecast.resolved'),
-@JsonValue(r'forecast.resolution_needed')
-forecastPeriodResolutionNeeded(r'forecast.resolution_needed'),
-@JsonValue(r'hypothesis.band_changed')
-hypothesisPeriodBandChanged(r'hypothesis.band_changed'),
-@JsonValue(r'indicator.observed')
-indicatorPeriodObserved(r'indicator.observed'),
-@JsonValue(r'assumption.broken')
-assumptionPeriodBroken(r'assumption.broken'),
-@JsonValue(r'assessment.published')
-assessmentPeriodPublished(r'assessment.published'),
-@JsonValue(r'mention')
-mention(r'mention'),
-@JsonValue(r'share')
-share(r'share'),
-@JsonValue(r'report.received')
-reportPeriodReceived(r'report.received'),
-@JsonValue(r'package.received')
-packagePeriodReceived(r'package.received'),
-@JsonValue(r'chronicle.access.requested')
-chroniclePeriodAccessPeriodRequested(r'chronicle.access.requested'),
-@JsonValue(r'saved-search.matches')
-savedSearchPeriodMatches(r'saved-search.matches'),
-@JsonValue(r'personal')
-personal(r'personal');
-
-const ChannelEventsEnum(this.value);
 
 final String value;
 

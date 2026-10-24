@@ -33,7 +33,7 @@ abstract class _$IndicatorCWProxy {
 
   Indicator pDetect(num? pDetect);
 
-  Indicator observedEvidence(Object? observedEvidence);
+  Indicator observedEvidence(Map<String, Object>? observedEvidence);
 
   Indicator lastStateChangeAt(DateTime? lastStateChangeAt);
 
@@ -63,7 +63,7 @@ abstract class _$IndicatorCWProxy {
     IndicatorStateEnum state,
     String? watchRuleId,
     num? pDetect,
-    Object? observedEvidence,
+    Map<String, Object>? observedEvidence,
     DateTime? lastStateChangeAt,
     IndicatorOriginEnum origin,
     int? version,
@@ -121,7 +121,7 @@ class _$IndicatorCWProxyImpl implements _$IndicatorCWProxy {
   Indicator pDetect(num? pDetect) => call(pDetect: pDetect);
 
   @override
-  Indicator observedEvidence(Object? observedEvidence) =>
+  Indicator observedEvidence(Map<String, Object>? observedEvidence) =>
       call(observedEvidence: observedEvidence);
 
   @override
@@ -221,7 +221,7 @@ class _$IndicatorCWProxyImpl implements _$IndicatorCWProxy {
       observedEvidence: observedEvidence == const $CopyWithPlaceholder()
           ? _value.observedEvidence
           // ignore: cast_nullable_to_non_nullable
-          : observedEvidence as Object?,
+          : observedEvidence as Map<String, Object>?,
       lastStateChangeAt: lastStateChangeAt == const $CopyWithPlaceholder()
           ? _value.lastStateChangeAt
           // ignore: cast_nullable_to_non_nullable
@@ -249,80 +249,81 @@ extension $IndicatorCopyWith on Indicator {
 // JsonSerializableGenerator
 // **************************************************************************
 
-Indicator _$IndicatorFromJson(Map<String, dynamic> json) => $checkedCreate(
-  'Indicator',
-  json,
-  ($checkedConvert) {
-    $checkKeys(
-      json,
-      requiredKeys: const [
-        'id',
-        'setId',
-        'description',
-        'signal',
-        'signalFamily',
-        'credibility',
-        'relevance',
-        'lr',
-        'state',
-        'origin',
-      ],
-    );
-    final val = Indicator(
-      id: $checkedConvert('id', (v) => v as String),
-      setId: $checkedConvert('setId', (v) => v as String),
-      description: $checkedConvert('description', (v) => v as String),
-      signal: $checkedConvert(
-        'signal',
-        (v) => IndicatorSignal.fromJson(v as Map<String, dynamic>),
-      ),
-      signalFamily: $checkedConvert('signalFamily', (v) => v as String),
-      credibility: $checkedConvert(
-        'credibility',
-        (v) => $enumDecode(_$IndicatorCredibilityEnumEnumMap, v),
-      ),
-      relevance: $checkedConvert(
-        'relevance',
-        (v) => $enumDecode(_$IndicatorRelevanceEnumEnumMap, v),
-      ),
-      expectedBy: $checkedConvert(
-        'expectedBy',
-        (v) => v == null ? null : DateTime.parse(v as String),
-      ),
-      lr: $checkedConvert(
-        'lr',
-        (v) => (v as Map<String, dynamic>).map(
-          (k, e) => MapEntry(
-            k,
-            IndicatorLikelihood.fromJson(e as Map<String, dynamic>),
-          ),
+Indicator _$IndicatorFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate('Indicator', json, ($checkedConvert) {
+  $checkKeys(
+    json,
+    requiredKeys: const [
+      'id',
+      'setId',
+      'description',
+      'signal',
+      'signalFamily',
+      'credibility',
+      'relevance',
+      'lr',
+      'state',
+      'origin',
+    ],
+  );
+  final val = Indicator(
+    id: $checkedConvert('id', (v) => v as String),
+    setId: $checkedConvert('setId', (v) => v as String),
+    description: $checkedConvert('description', (v) => v as String),
+    signal: $checkedConvert(
+      'signal',
+      (v) => IndicatorSignal.fromJson(v as Map<String, dynamic>),
+    ),
+    signalFamily: $checkedConvert('signalFamily', (v) => v as String),
+    credibility: $checkedConvert(
+      'credibility',
+      (v) => $enumDecode(_$IndicatorCredibilityEnumEnumMap, v),
+    ),
+    relevance: $checkedConvert(
+      'relevance',
+      (v) => $enumDecode(_$IndicatorRelevanceEnumEnumMap, v),
+    ),
+    expectedBy: $checkedConvert(
+      'expectedBy',
+      (v) => v == null ? null : DateTime.parse(v as String),
+    ),
+    lr: $checkedConvert(
+      'lr',
+      (v) => (v as Map<String, dynamic>).map(
+        (k, e) => MapEntry(
+          k,
+          IndicatorLikelihood.fromJson(e as Map<String, dynamic>),
         ),
       ),
-      absenceLr: $checkedConvert(
-        'absenceLr',
-        (v) =>
-            (v as Map<String, dynamic>?)?.map((k, e) => MapEntry(k, e as num)),
-      ),
-      state: $checkedConvert(
-        'state',
-        (v) => $enumDecode(_$IndicatorStateEnumEnumMap, v),
-      ),
-      watchRuleId: $checkedConvert('watchRuleId', (v) => v as String?),
-      pDetect: $checkedConvert('pDetect', (v) => v as num?),
-      observedEvidence: $checkedConvert('observedEvidence', (v) => v),
-      lastStateChangeAt: $checkedConvert(
-        'lastStateChangeAt',
-        (v) => v == null ? null : DateTime.parse(v as String),
-      ),
-      origin: $checkedConvert(
-        'origin',
-        (v) => $enumDecode(_$IndicatorOriginEnumEnumMap, v),
-      ),
-      version: $checkedConvert('version', (v) => (v as num?)?.toInt()),
-    );
-    return val;
-  },
-);
+    ),
+    absenceLr: $checkedConvert(
+      'absenceLr',
+      (v) => (v as Map<String, dynamic>?)?.map((k, e) => MapEntry(k, e as num)),
+    ),
+    state: $checkedConvert(
+      'state',
+      (v) => $enumDecode(_$IndicatorStateEnumEnumMap, v),
+    ),
+    watchRuleId: $checkedConvert('watchRuleId', (v) => v as String?),
+    pDetect: $checkedConvert('pDetect', (v) => v as num?),
+    observedEvidence: $checkedConvert(
+      'observedEvidence',
+      (v) =>
+          (v as Map<String, dynamic>?)?.map((k, e) => MapEntry(k, e as Object)),
+    ),
+    lastStateChangeAt: $checkedConvert(
+      'lastStateChangeAt',
+      (v) => v == null ? null : DateTime.parse(v as String),
+    ),
+    origin: $checkedConvert(
+      'origin',
+      (v) => $enumDecode(_$IndicatorOriginEnumEnumMap, v),
+    ),
+    version: $checkedConvert('version', (v) => (v as num?)?.toInt()),
+  );
+  return val;
+});
 
 Map<String, dynamic> _$IndicatorToJson(Indicator instance) => <String, dynamic>{
   'id': instance.id,

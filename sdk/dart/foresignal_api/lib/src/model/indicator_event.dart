@@ -123,7 +123,7 @@ class IndicatorEvent {
   )
 
 
-  final Object? evidence;
+  final Map<String, Object>? evidence;
 
 
 

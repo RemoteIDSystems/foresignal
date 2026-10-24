@@ -87,7 +87,7 @@ class AssessmentSectionsInner {
   )
 
 
-  final Object? data;
+  final Map<String, Object>? data;
 
 
 

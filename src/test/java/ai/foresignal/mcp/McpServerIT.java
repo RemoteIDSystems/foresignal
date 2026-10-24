@@ -505,8 +505,10 @@ class McpServerIT {
         JsonNode sources = structured(call(client, "list_sources", Map.of()));
         // Checkpoint 057: prompts 042-056 registered about twenty more sources (disabled here), so the short list
         // now reaches its byte budget before "test-standard" (sorted by id) and says so; source_health below
-        // still reaches it by id.
-        assertThat(sources.get("items").toString()).contains("awc-metars");
+        // still reaches it by id. Which ids fit depends on how many sort first, so the check is the order.
+        List<String> ids = new ArrayList<>();
+        sources.get("items").forEach(i -> ids.add(i.get("id").asString()));
+        assertThat(ids).isNotEmpty().isSorted();
         if (!sources.get("items").toString().contains(STANDARD)) {
             assertThat(sources.get("truncated").asBoolean()).isTrue();
             assertThat(sources.get("notice").asString()).contains("detail=long");

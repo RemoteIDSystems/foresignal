@@ -71,10 +71,11 @@ class CycleRunIT extends CycleItSupport {
         assertThat(a.getHtml()).contains("<html");
         assertThat(a.getManifestId()).isNotNull();
         assertThat(a.getEffort()).isNull();
-        assertThat(jdbc.queryForObject("select count(*) from notification where event = 'assessment.published'",
-                Long.class)).isEqualTo(1);
-        assertThat(jdbc.queryForObject("select count(*) from assessment_log where event = 'assessment.published'",
-                Long.class)).isEqualTo(1);
+        // Both counts are scoped to this run's assessment: other tests in the shared context publish assessments.
+        assertThat(jdbc.queryForObject("select count(*) from notification where event = 'assessment.published' "
+                + "and data->>'assessmentId' = ?", Long.class, a.getId())).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from assessment_log where event = 'assessment.published' "
+                + "and payload->>'assessmentId' = ?", Long.class, a.getId())).isEqualTo(1);
         assertThat(fakes.client(CHAT).requests()).isEmpty();
 
         AnalysisCycleEntity noRoles = cycle("daily", "[]", null, null);

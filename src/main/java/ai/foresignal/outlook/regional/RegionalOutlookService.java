@@ -59,6 +59,9 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Regional outlooks (prompt 126, {@code regional-outlook} 1.0.0, Intelligence-Design §9.2).
@@ -116,6 +119,7 @@ public class RegionalOutlookService implements QuestionResolutionListener {
     private final SeqClockQuery seqClock;
     private final NamedParameterJdbcTemplate jdbc;
     private final Clock clock;
+    private final TransactionTemplate fresh;
 
     /** Creates the service. */
     public RegionalOutlookService(OutlookFamilies families, ReferenceCounts counts, RegionNeighbors neighbors,
@@ -125,7 +129,7 @@ public class RegionalOutlookService implements QuestionResolutionListener {
             ObjectProvider<ForecastService> ledger, ObjectProvider<ForecasterRegistry> forecasters,
             ObjectProvider<ManifestService> manifests, ObjectProvider<ObservabilityService> observability,
             ObjectProvider<CountryCentroids> countries, SeqClockQuery seqClock, NamedParameterJdbcTemplate jdbc,
-            Clock clock) {
+            Clock clock, PlatformTransactionManager transactions) {
         this.families = families;
         this.counts = counts;
         this.neighbors = neighbors;
@@ -144,6 +148,10 @@ public class RegionalOutlookService implements QuestionResolutionListener {
         this.seqClock = seqClock;
         this.jdbc = jdbc;
         this.clock = clock;
+        // The ledger calls the resolution listeners after its transaction commits; a write there would join that
+        // finished transaction and never commit, so the outlook update runs in a transaction of its own.
+        this.fresh = new TransactionTemplate(transactions);
+        this.fresh.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     /**
@@ -667,7 +675,7 @@ public class RegionalOutlookService implements QuestionResolutionListener {
             return;
         }
         try {
-            onResolved(q, clock.instant());
+            fresh.executeWithoutResult(status -> onResolved(q, clock.instant()));
         } catch (RuntimeException e) {
             log.warn("Outlook resolution of question {} failed: {}", questionId, e.toString());
         }
@@ -695,6 +703,10 @@ public class RegionalOutlookService implements QuestionResolutionListener {
         FindingService.Outcome finding = null;
         for (Map<String, Object> w : windows) {
             if (!q.getId().equals(w.get("questionId"))) {
+                continue;
+            }
+            if ("resolved".equals(w.get("status")) || "annulled".equals(w.get("status"))) {
+                // Already settled: a second notice of the same resolution writes nothing again.
                 continue;
             }
             if (!"resolved".equals(q.getStatus()) || !(value instanceof Number number)) {

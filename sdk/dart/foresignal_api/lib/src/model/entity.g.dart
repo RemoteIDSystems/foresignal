@@ -11,7 +11,7 @@ abstract class _$EntityCWProxy {
 
   Entity requestedId(String? requestedId);
 
-  Entity type(EntityTypeEnum type);
+  Entity type(String type);
 
   Entity displayName(String? displayName);
 
@@ -44,7 +44,7 @@ abstract class _$EntityCWProxy {
   Entity call({
     String id,
     String? requestedId,
-    EntityTypeEnum type,
+    String type,
     String? displayName,
     Map<String, Object>? attributes,
     bool provisional,
@@ -72,7 +72,7 @@ class _$EntityCWProxyImpl implements _$EntityCWProxy {
   Entity requestedId(String? requestedId) => call(requestedId: requestedId);
 
   @override
-  Entity type(EntityTypeEnum type) => call(type: type);
+  Entity type(String type) => call(type: type);
 
   @override
   Entity displayName(String? displayName) => call(displayName: displayName);
@@ -142,7 +142,7 @@ class _$EntityCWProxyImpl implements _$EntityCWProxy {
       type: type == const $CopyWithPlaceholder() || type == null
           ? _value.type
           // ignore: cast_nullable_to_non_nullable
-          : type as EntityTypeEnum,
+          : type as String,
       displayName: displayName == const $CopyWithPlaceholder()
           ? _value.displayName
           // ignore: cast_nullable_to_non_nullable
@@ -216,10 +216,7 @@ Entity _$EntityFromJson(
   final val = Entity(
     id: $checkedConvert('id', (v) => v as String),
     requestedId: $checkedConvert('requestedId', (v) => v as String?),
-    type: $checkedConvert(
-      'type',
-      (v) => $enumDecode(_$EntityTypeEnumEnumMap, v),
-    ),
+    type: $checkedConvert('type', (v) => v as String),
     displayName: $checkedConvert('displayName', (v) => v as String?),
     attributes: $checkedConvert(
       'attributes',
@@ -259,7 +256,7 @@ Entity _$EntityFromJson(
 Map<String, dynamic> _$EntityToJson(Entity instance) => <String, dynamic>{
   'id': instance.id,
   'requestedId': ?instance.requestedId,
-  'type': _$EntityTypeEnumEnumMap[instance.type]!,
+  'type': instance.type,
   'displayName': ?instance.displayName,
   'attributes': ?instance.attributes,
   'provisional': instance.provisional,
@@ -270,15 +267,6 @@ Map<String, dynamic> _$EntityToJson(Entity instance) => <String, dynamic>{
   'openLinkCounts': ?instance.openLinkCounts,
   'createdAt': instance.createdAt.toIso8601String(),
   'updatedAt': instance.updatedAt.toIso8601String(),
-};
-
-const _$EntityTypeEnumEnumMap = {
-  EntityTypeEnum.aircraft: 'aircraft',
-  EntityTypeEnum.vessel: 'vessel',
-  EntityTypeEnum.satellite: 'satellite',
-  EntityTypeEnum.station: 'station',
-  EntityTypeEnum.person: 'person',
-  EntityTypeEnum.organization: 'organization',
 };
 
 const _$EntityStatusEnumEnumMap = {

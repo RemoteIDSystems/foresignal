@@ -157,6 +157,7 @@ class PrecursorWindowStats {
 
 
 
+      /// ISO-8601 duration
   @JsonKey(
     
     name: r'bestLag',
@@ -165,7 +166,7 @@ class PrecursorWindowStats {
   )
 
 
-  final Object? bestLag;
+  final String? bestLag;
 
 
 

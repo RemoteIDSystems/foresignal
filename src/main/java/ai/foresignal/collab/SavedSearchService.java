@@ -317,7 +317,7 @@ public class SavedSearchService {
             }
             if (types.isEmpty() || types.contains(ObjectTypes.EVIDENCE_ITEM)) {
                 String needle = text.strip().toLowerCase(Locale.ROOT);
-                for (EvidenceItemEntity e : evidence.findByIdLessThanOrderByIdDesc("~",
+                for (EvidenceItemEntity e : evidence.findAllByOrderByIdDesc(
                         org.springframework.data.domain.Limit.of(MAX_MATCHES))) {
                     if (e.getTitle().toLowerCase(Locale.ROOT).contains(needle) || (e.getDescription() != null
                             && e.getDescription().toLowerCase(Locale.ROOT).contains(needle))) {

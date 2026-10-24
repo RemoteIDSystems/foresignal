@@ -9,7 +9,7 @@ part of 'analog_result_target.dart';
 abstract class _$AnalogResultTargetCWProxy {
   AnalogResultTarget situationId(String? situationId);
 
-  AnalogResultTarget regionCode(Object? regionCode);
+  AnalogResultTarget regionCode(String? regionCode);
 
   AnalogResultTarget from(DateTime? from);
 
@@ -25,7 +25,7 @@ abstract class _$AnalogResultTargetCWProxy {
   /// ```
   AnalogResultTarget call({
     String? situationId,
-    Object? regionCode,
+    String? regionCode,
     DateTime? from,
     DateTime? to,
   });
@@ -43,7 +43,7 @@ class _$AnalogResultTargetCWProxyImpl implements _$AnalogResultTargetCWProxy {
       call(situationId: situationId);
 
   @override
-  AnalogResultTarget regionCode(Object? regionCode) =>
+  AnalogResultTarget regionCode(String? regionCode) =>
       call(regionCode: regionCode);
 
   @override
@@ -75,7 +75,7 @@ class _$AnalogResultTargetCWProxyImpl implements _$AnalogResultTargetCWProxy {
       regionCode: regionCode == const $CopyWithPlaceholder()
           ? _value.regionCode
           // ignore: cast_nullable_to_non_nullable
-          : regionCode as Object?,
+          : regionCode as String?,
       from: from == const $CopyWithPlaceholder()
           ? _value.from
           // ignore: cast_nullable_to_non_nullable
@@ -104,7 +104,7 @@ AnalogResultTarget _$AnalogResultTargetFromJson(Map<String, dynamic> json) =>
     $checkedCreate('AnalogResultTarget', json, ($checkedConvert) {
       final val = AnalogResultTarget(
         situationId: $checkedConvert('situationId', (v) => v as String?),
-        regionCode: $checkedConvert('regionCode', (v) => v),
+        regionCode: $checkedConvert('regionCode', (v) => v as String?),
         from: $checkedConvert(
           'from',
           (v) => v == null ? null : DateTime.parse(v as String),

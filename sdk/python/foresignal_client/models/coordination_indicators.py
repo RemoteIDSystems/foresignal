@@ -20,7 +20,7 @@ T = TypeVar("T", bound="CoordinationIndicators")
 
 @_attrs_define
 class CoordinationIndicators:
-    """Coordinated-amplification indicators of a narrative (`CoordinationDetector` 1.0.0): statistics, never labels on
+    """Coordinated-amplification indicators of a narrative (`CoordinationDetector` 1.1.0): statistics, never labels on
     accounts
 
         Attributes:

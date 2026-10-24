@@ -84,7 +84,7 @@ class StatsServiceIT extends StatsItSupport {
     }
 
     @Test
-    @DisplayName("a day still open is served from its closed hours and only the open hour raw; entities stay raw")
+    @DisplayName("a day still open is served from its closed hours and only the open hour raw; entities are refused")
     void openDayFromHours() {
         seedHours();
         Instant day = T0.plus(Duration.ofDays(1));
@@ -104,10 +104,20 @@ class StatsServiceIT extends StatsItSupport {
         assertThat(plan.raw()).containsExactly(new StatsService.RawPart(List.of(POINTS), T0.plus(Duration.ofHours(3)),
                 day));
 
-        StatsSeries entities = stats.timeseries(List.of(POINTS), List.of(), null, T0, day, "1d", StatsMeasure.ENTITIES,
+        // Distinct entities of the open day cannot be summed from its hours; counting them raw timed out on a busy
+        // day, so the query is refused up front.
+        assertThatThrownBy(() -> stats.timeseries(List.of(POINTS), List.of(), null, T0, day, "1d",
+                StatsMeasure.ENTITIES, "none", TimeField.INGESTED, Set.of(), ReadRestriction.NONE))
+                .isInstanceOfSatisfying(ForesignalException.class, e -> {
+                    assertThat(e.getStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
+                    assertThat(e.getCode()).isEqualTo(ErrorCodes.STATS_MEASURE_UNSUPPORTED);
+                    assertThat(e.getMessage()).contains("bucket=1h").contains("end the range at " + T0);
+                });
+        // The same day by the hour is still served.
+        StatsSeries hourly = stats.timeseries(List.of(POINTS), List.of(), null, T0, day, "1h", StatsMeasure.ENTITIES,
                 "none", TimeField.INGESTED, Set.of(), ReadRestriction.NONE);
-        assertThat(entities.backend()).isEqualTo("raw");
-        assertThat(values(entities.series().getFirst())).containsExactly(4L);
+        assertThat(hourly.bucket()).isEqualTo("1h");
+        assertThat(values(hourly.series().getFirst()).stream().mapToLong(Long::longValue).sum()).isPositive();
     }
 
     @Test

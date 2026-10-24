@@ -11,7 +11,7 @@ abstract class _$EntityLinkCWProxy {
 
   EntityLink externalId(String externalId);
 
-  EntityLink keyType(EntityLinkKeyTypeEnum keyType);
+  EntityLink keyType(String keyType);
 
   EntityLink keyValue(String keyValue);
 
@@ -34,7 +34,7 @@ abstract class _$EntityLinkCWProxy {
   EntityLink call({
     String sourceId,
     String externalId,
-    EntityLinkKeyTypeEnum keyType,
+    String keyType,
     String keyValue,
     num confidence,
     DateTime validFrom,
@@ -57,7 +57,7 @@ class _$EntityLinkCWProxyImpl implements _$EntityLinkCWProxy {
   EntityLink externalId(String externalId) => call(externalId: externalId);
 
   @override
-  EntityLink keyType(EntityLinkKeyTypeEnum keyType) => call(keyType: keyType);
+  EntityLink keyType(String keyType) => call(keyType: keyType);
 
   @override
   EntityLink keyValue(String keyValue) => call(keyValue: keyValue);
@@ -106,7 +106,7 @@ class _$EntityLinkCWProxyImpl implements _$EntityLinkCWProxy {
       keyType: keyType == const $CopyWithPlaceholder() || keyType == null
           ? _value.keyType
           // ignore: cast_nullable_to_non_nullable
-          : keyType as EntityLinkKeyTypeEnum,
+          : keyType as String,
       keyValue: keyValue == const $CopyWithPlaceholder() || keyValue == null
           ? _value.keyValue
           // ignore: cast_nullable_to_non_nullable
@@ -159,10 +159,7 @@ EntityLink _$EntityLinkFromJson(Map<String, dynamic> json) =>
       final val = EntityLink(
         sourceId: $checkedConvert('sourceId', (v) => v as String),
         externalId: $checkedConvert('externalId', (v) => v as String),
-        keyType: $checkedConvert(
-          'keyType',
-          (v) => $enumDecode(_$EntityLinkKeyTypeEnumEnumMap, v),
-        ),
+        keyType: $checkedConvert('keyType', (v) => v as String),
         keyValue: $checkedConvert('keyValue', (v) => v as String),
         confidence: $checkedConvert('confidence', (v) => v as num),
         validFrom: $checkedConvert(
@@ -182,26 +179,10 @@ Map<String, dynamic> _$EntityLinkToJson(EntityLink instance) =>
     <String, dynamic>{
       'sourceId': instance.sourceId,
       'externalId': instance.externalId,
-      'keyType': _$EntityLinkKeyTypeEnumEnumMap[instance.keyType]!,
+      'keyType': instance.keyType,
       'keyValue': instance.keyValue,
       'confidence': instance.confidence,
       'validFrom': instance.validFrom.toIso8601String(),
       'validTo': ?instance.validTo?.toIso8601String(),
       'firstSeq': ?instance.firstSeq,
     };
-
-const _$EntityLinkKeyTypeEnumEnumMap = {
-  EntityLinkKeyTypeEnum.airframe: 'airframe',
-  EntityLinkKeyTypeEnum.icao24: 'icao24',
-  EntityLinkKeyTypeEnum.registration: 'registration',
-  EntityLinkKeyTypeEnum.imo: 'imo',
-  EntityLinkKeyTypeEnum.mmsi: 'mmsi',
-  EntityLinkKeyTypeEnum.norad: 'norad',
-  EntityLinkKeyTypeEnum.cospar: 'cospar',
-  EntityLinkKeyTypeEnum.callsign: 'callsign',
-  EntityLinkKeyTypeEnum.lei: 'lei',
-  EntityLinkKeyTypeEnum.companyNumber: 'company-number',
-  EntityLinkKeyTypeEnum.taxId: 'tax-id',
-  EntityLinkKeyTypeEnum.officerId: 'officer-id',
-  EntityLinkKeyTypeEnum.personKey: 'person-key',
-};

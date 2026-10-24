@@ -222,6 +222,7 @@ class Indicator {
 
 
 
+      /// Alert, finding or record that observed the indicator
   @JsonKey(
     
     name: r'observedEvidence',
@@ -230,7 +231,7 @@ class Indicator {
   )
 
 
-  final Object? observedEvidence;
+  final Map<String, Object>? observedEvidence;
 
 
 

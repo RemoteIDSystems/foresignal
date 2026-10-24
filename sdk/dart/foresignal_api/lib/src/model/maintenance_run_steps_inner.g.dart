@@ -17,7 +17,7 @@ abstract class _$MaintenanceRunStepsInnerCWProxy {
 
   MaintenanceRunStepsInner jobId(String? jobId);
 
-  MaintenanceRunStepsInner result(Object? result);
+  MaintenanceRunStepsInner result(Map<String, Object>? result);
 
   MaintenanceRunStepsInner error(String? error);
 
@@ -35,7 +35,7 @@ abstract class _$MaintenanceRunStepsInnerCWProxy {
     DateTime? startedAt,
     DateTime? finishedAt,
     String? jobId,
-    Object? result,
+    Map<String, Object>? result,
     String? error,
   });
 }
@@ -68,7 +68,8 @@ class _$MaintenanceRunStepsInnerCWProxyImpl
   MaintenanceRunStepsInner jobId(String? jobId) => call(jobId: jobId);
 
   @override
-  MaintenanceRunStepsInner result(Object? result) => call(result: result);
+  MaintenanceRunStepsInner result(Map<String, Object>? result) =>
+      call(result: result);
 
   @override
   MaintenanceRunStepsInner error(String? error) => call(error: error);
@@ -115,7 +116,7 @@ class _$MaintenanceRunStepsInnerCWProxyImpl
       result: result == const $CopyWithPlaceholder()
           ? _value.result
           // ignore: cast_nullable_to_non_nullable
-          : result as Object?,
+          : result as Map<String, Object>?,
       error: error == const $CopyWithPlaceholder()
           ? _value.error
           // ignore: cast_nullable_to_non_nullable
@@ -158,7 +159,11 @@ MaintenanceRunStepsInner _$MaintenanceRunStepsInnerFromJson(
       (v) => v == null ? null : DateTime.parse(v as String),
     ),
     jobId: $checkedConvert('jobId', (v) => v as String?),
-    result: $checkedConvert('result', (v) => v),
+    result: $checkedConvert(
+      'result',
+      (v) =>
+          (v as Map<String, dynamic>?)?.map((k, e) => MapEntry(k, e as Object)),
+    ),
     error: $checkedConvert('error', (v) => v as String?),
   );
   return val;

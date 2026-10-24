@@ -22,7 +22,9 @@ class WebhookEnvelope:
     """Default body of the generic `webhook` channel (overridable by `bodyTemplate`)
 
     Attributes:
-        event (WebhookEnvelopeEvent):
+        event (WebhookEnvelopeEvent): Grows as the server adds events: a receiver must accept a value not listed here.
+            Kept as `enum`, not `x-extensible-enum`, because this schema is also the `notification` webhook's payload, which
+            the compatibility check cannot mark extensible.
         subtype (str):  Example: alert.fired.
         message (NotificationMessage): Persisted notification (one `notification` row) delivered to channels and the
             notification topics

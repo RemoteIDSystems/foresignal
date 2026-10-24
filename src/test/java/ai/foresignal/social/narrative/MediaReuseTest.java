@@ -90,11 +90,25 @@ class MediaReuseTest {
         assertThat(reuse.judge(fp, store.narrative("01JA8Q3V7S2K9W4T6Y1B5N0M3D").orElseThrow())).isNull();
     }
 
+    /**
+     * A gradient with a bright disc and a dark block; {@code shade} brightens it and moves the disc by
+     * {@code shade / 2} pixels. (A checkerboard is a poor PDQ subject: its DCT coefficients sit at the median, so
+     * a uniform brightness change flips most bits.) Shade 0 and 8 are 18 bits apart at quality 79 and 78.
+     */
     private static byte[] png(int shade) throws IOException {
         BufferedImage img = new BufferedImage(320, 240, BufferedImage.TYPE_INT_RGB);
         for (int y = 0; y < 240; y++) {
             for (int x = 0; x < 320; x++) {
-                int v = ((x / 40 + y / 30) % 2 == 0) ? 30 : Math.min(255, 200 + shade);
+                int base = x * 160 / 320 + y * 60 / 240;
+                double dx = x - (210 + shade / 2);
+                double dy = y - 100;
+                if (dx * dx + dy * dy < 55 * 55) {
+                    base = 230;
+                }
+                if (x > 30 && x < 120 && y > 150 && y < 210) {
+                    base = 15;
+                }
+                int v = Math.max(0, Math.min(255, base + shade));
                 img.setRGB(x, y, v << 16 | v << 8 | v);
             }
         }

@@ -42,9 +42,9 @@ class SeasonalNaiveTest {
     @Test
     @DisplayName("intervals: normal with the seasonal-difference SD scaled by √⌈h/m⌉ (hand-computed)")
     void intervals() {
-        // Seasonal differences (m = 2): y[t] − y[t−2] = 1, 3, 1, 3 → mean 2, SD √(4/3).
+        // Seasonal differences (m = 2): y[t] − y[t−2] for t = 2..7 = 1, 3, 1, 3, 1, 3 → mean 2, sample SD √(6/5).
         double[] y = {0, 0, 1, 3, 2, 6, 3, 9};
-        double sd = Math.sqrt(4.0 / 3.0);
+        double sd = Math.sqrt(6.0 / 5.0);
         assertThat(SeasonalNaive.residualSd(y, 2)).isCloseTo(sd, within(1e-12));
         ForecastMethod.MethodForecast f = new SeasonalNaive().forecast(y, 2, false, new int[] {1, 3});
         double z95 = QuantileSet.z(0.95);

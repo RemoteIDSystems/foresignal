@@ -12,8 +12,7 @@ abstract class _$CommonDependenciesDependenciesInnerPathsInnerCWProxy {
   CommonDependenciesDependenciesInnerPathsInner hops(List<String> hops);
 
   CommonDependenciesDependenciesInnerPathsInner relationTypes(
-    List<CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum>?
-    relationTypes,
+    List<String>? relationTypes,
   );
 
   CommonDependenciesDependenciesInnerPathsInner weakestEdgeLabel(
@@ -32,8 +31,7 @@ abstract class _$CommonDependenciesDependenciesInnerPathsInnerCWProxy {
   CommonDependenciesDependenciesInnerPathsInner call({
     String from,
     List<String> hops,
-    List<CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum>?
-    relationTypes,
+    List<String>? relationTypes,
     CommonDependenciesDependenciesInnerPathsInnerWeakestEdgeLabelEnum
     weakestEdgeLabel,
   });
@@ -57,8 +55,7 @@ class _$CommonDependenciesDependenciesInnerPathsInnerCWProxyImpl
 
   @override
   CommonDependenciesDependenciesInnerPathsInner relationTypes(
-    List<CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum>?
-    relationTypes,
+    List<String>? relationTypes,
   ) => call(relationTypes: relationTypes);
 
   @override
@@ -94,10 +91,7 @@ class _$CommonDependenciesDependenciesInnerPathsInnerCWProxyImpl
       relationTypes: relationTypes == const $CopyWithPlaceholder()
           ? _value.relationTypes
           // ignore: cast_nullable_to_non_nullable
-          : relationTypes
-                as List<
-                  CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum
-                >?,
+          : relationTypes as List<String>?,
       weakestEdgeLabel:
           weakestEdgeLabel == const $CopyWithPlaceholder() ||
               weakestEdgeLabel == null
@@ -137,14 +131,7 @@ _$CommonDependenciesDependenciesInnerPathsInnerFromJson(
     ),
     relationTypes: $checkedConvert(
       'relationTypes',
-      (v) => (v as List<dynamic>?)
-          ?.map(
-            (e) => $enumDecode(
-              _$CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnumEnumMap,
-              e,
-            ),
-          )
-          .toList(),
+      (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
     ),
     weakestEdgeLabel: $checkedConvert(
       'weakestEdgeLabel',
@@ -162,65 +149,11 @@ Map<String, dynamic> _$CommonDependenciesDependenciesInnerPathsInnerToJson(
 ) => <String, dynamic>{
   'from': instance.from,
   'hops': instance.hops,
-  'relationTypes': ?instance.relationTypes
-      ?.map(
-        (e) =>
-            _$CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnumEnumMap[e]!,
-      )
-      .toList(),
+  'relationTypes': ?instance.relationTypes,
   'weakestEdgeLabel':
       _$CommonDependenciesDependenciesInnerPathsInnerWeakestEdgeLabelEnumEnumMap[instance
           .weakestEdgeLabel]!,
 };
-
-const _$CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnumEnumMap =
-    {
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.memberOf:
-          'member-of',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.observedBy:
-          'observed-by',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.sameAs:
-          'same-as',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.locatedIn:
-          'located-in',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.near:
-          'near',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.dependsOn:
-          'depends-on',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.affects:
-          'affects',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum
-              .derivedFrom:
-          'derived-from',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum
-              .evidenceFor:
-          'evidence-for',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum
-              .evidenceAgainst:
-          'evidence-against',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.about:
-          'about',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.mentions:
-          'mentions',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.precedes:
-          'precedes',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.causes:
-          'causes',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.relatedTo:
-          'related-to',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.owns:
-          'owns',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.controls:
-          'controls',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.officerOf:
-          'officer-of',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum
-              .beneficialOwner:
-          'beneficial-owner',
-      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum
-              .affiliatedWith:
-          'affiliated-with',
-    };
 
 const _$CommonDependenciesDependenciesInnerPathsInnerWeakestEdgeLabelEnumEnumMap =
     {

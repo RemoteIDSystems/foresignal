@@ -17,7 +17,7 @@ abstract class _$CyclePacketItemCWProxy {
 
   CyclePacketItem at(DateTime? at);
 
-  CyclePacketItem detail(Object? detail);
+  CyclePacketItem detail(Map<String, Object>? detail);
 
   CyclePacketItem rank(int? rank);
 
@@ -35,7 +35,7 @@ abstract class _$CyclePacketItemCWProxy {
     String change,
     String? severity,
     DateTime? at,
-    Object? detail,
+    Map<String, Object>? detail,
     int? rank,
   });
 }
@@ -63,7 +63,7 @@ class _$CyclePacketItemCWProxyImpl implements _$CyclePacketItemCWProxy {
   CyclePacketItem at(DateTime? at) => call(at: at);
 
   @override
-  CyclePacketItem detail(Object? detail) => call(detail: detail);
+  CyclePacketItem detail(Map<String, Object>? detail) => call(detail: detail);
 
   @override
   CyclePacketItem rank(int? rank) => call(rank: rank);
@@ -110,7 +110,7 @@ class _$CyclePacketItemCWProxyImpl implements _$CyclePacketItemCWProxy {
       detail: detail == const $CopyWithPlaceholder()
           ? _value.detail
           // ignore: cast_nullable_to_non_nullable
-          : detail as Object?,
+          : detail as Map<String, Object>?,
       rank: rank == const $CopyWithPlaceholder()
           ? _value.rank
           // ignore: cast_nullable_to_non_nullable
@@ -142,7 +142,12 @@ CyclePacketItem _$CyclePacketItemFromJson(Map<String, dynamic> json) =>
           'at',
           (v) => v == null ? null : DateTime.parse(v as String),
         ),
-        detail: $checkedConvert('detail', (v) => v),
+        detail: $checkedConvert(
+          'detail',
+          (v) => (v as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as Object),
+          ),
+        ),
         rank: $checkedConvert('rank', (v) => (v as num?)?.toInt()),
       );
       return val;

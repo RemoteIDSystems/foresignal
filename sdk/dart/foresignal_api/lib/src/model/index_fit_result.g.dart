@@ -25,7 +25,7 @@ abstract class _$IndexFitResultCWProxy {
 
   IndexFitResult origins(int? origins);
 
-  IndexFitResult proposedWeights(Object? proposedWeights);
+  IndexFitResult proposedWeights(Map<String, num>? proposedWeights);
 
   IndexFitResult weightsVersion(int? weightsVersion);
 
@@ -59,7 +59,7 @@ abstract class _$IndexFitResultCWProxy {
     num? lambda,
     int? regions,
     int? origins,
-    Object? proposedWeights,
+    Map<String, num>? proposedWeights,
     int? weightsVersion,
     RegionalIndexDefSkill? skill,
     List<IndexFitResultComponentsInner>? components,
@@ -107,7 +107,7 @@ class _$IndexFitResultCWProxyImpl implements _$IndexFitResultCWProxy {
   IndexFitResult origins(int? origins) => call(origins: origins);
 
   @override
-  IndexFitResult proposedWeights(Object? proposedWeights) =>
+  IndexFitResult proposedWeights(Map<String, num>? proposedWeights) =>
       call(proposedWeights: proposedWeights);
 
   @override
@@ -201,7 +201,7 @@ class _$IndexFitResultCWProxyImpl implements _$IndexFitResultCWProxy {
       proposedWeights: proposedWeights == const $CopyWithPlaceholder()
           ? _value.proposedWeights
           // ignore: cast_nullable_to_non_nullable
-          : proposedWeights as Object?,
+          : proposedWeights as Map<String, num>?,
       weightsVersion: weightsVersion == const $CopyWithPlaceholder()
           ? _value.weightsVersion
           // ignore: cast_nullable_to_non_nullable
@@ -270,7 +270,12 @@ IndexFitResult _$IndexFitResultFromJson(Map<String, dynamic> json) =>
         lambda: $checkedConvert('lambda', (v) => v as num?),
         regions: $checkedConvert('regions', (v) => (v as num?)?.toInt()),
         origins: $checkedConvert('origins', (v) => (v as num?)?.toInt()),
-        proposedWeights: $checkedConvert('proposedWeights', (v) => v),
+        proposedWeights: $checkedConvert(
+          'proposedWeights',
+          (v) => (v as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as num),
+          ),
+        ),
         weightsVersion: $checkedConvert(
           'weightsVersion',
           (v) => (v as num?)?.toInt(),

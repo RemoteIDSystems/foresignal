@@ -26,7 +26,9 @@ class NotificationMessage:
 
     Attributes:
         id (int): Notification id
-        event (NotificationMessageEvent):
+        event (NotificationMessageEvent): Grows as the server adds events: a receiver must accept a value not listed
+            here. Kept as `enum`, not `x-extensible-enum`, because this schema is also the `notification` webhook's payload,
+            which the compatibility check cannot mark extensible.
         subtype (str): e.g. alert.fired, alert.acknowledged, alert.snoozed, alert.resolved, alert.digest (a quiet-hours,
             pause, backlog or grouping digest), system.source_failing, system.rule_storm, system.delivery_failed,
             system.push_provider_failed (032), briefing.run (029) Example: alert.fired.

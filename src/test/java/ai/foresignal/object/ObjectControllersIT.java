@@ -44,7 +44,9 @@ class ObjectControllersIT extends ObjectItSupport {
         JsonNode contract = body(call(reader, get("/v1/contract")));
         assertThat(contract.get("contractVersion").asString()).isEqualTo(ObjectTypes.CONTRACT_VERSION);
         assertThat(contract.get("objectTypes")).hasSize(ObjectTypes.ALL.size());
-        assertThat(contract.get("relationTypes")).hasSize(15);
+        // The relation types grow (158 added the five ownership and affiliation types): the contract lists them all.
+        assertThat(contract.get("relationTypes")).extracting(JsonNode::asString)
+                .containsExactlyElementsOf(ObjectTypes.RELATION_TYPES);
 
         MockHttpServletResponse envelope = call(reader, getObject(Q1, ""));
         assertThat(envelope.getStatus()).isEqualTo(200);

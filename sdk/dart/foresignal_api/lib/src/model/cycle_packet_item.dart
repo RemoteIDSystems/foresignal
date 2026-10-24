@@ -104,7 +104,7 @@ class CyclePacketItem {
   )
 
 
-  final Object? detail;
+  final Map<String, Object>? detail;
 
 
 

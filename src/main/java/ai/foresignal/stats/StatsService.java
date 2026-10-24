@@ -1,6 +1,7 @@
 package ai.foresignal.stats;
 
 import ai.foresignal.api.error.ErrorCodes;
+import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.api.support.BboxFilter;
 import ai.foresignal.api.support.TimeField;
@@ -32,6 +33,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import org.locationtech.jts.geom.Envelope;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.json.JsonMapper;
@@ -54,7 +56,9 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code entities} sums per-cell distinct counts, so an entity that crossed cells counts once per cell.
  *
  * <p>Every query runs with {@code SET LOCAL statement_timeout} = {@code foresignal.stats.queryTimeout}
- * (10 s); a timeout is {@code 503 QUERY_TIMEOUT} with {@code Retry-After}.
+ * (10 s); a timeout is {@code 503 QUERY_TIMEOUT} with {@code Retry-After}. A day series of {@code entities} that
+ * would count a day the daily rollup does not hold from raw history is refused up front instead ({@code 422
+ * STATS_MEASURE_UNSUPPORTED}, see {@link #entitiesDaysHeld}).
  */
 @Service
 public class StatsService {
@@ -197,6 +201,7 @@ public class StatsService {
                 });
             } else {
                 Plan plan = withClosedHours(q, plan(q, q.bucket(), q.from(), q.to(), now), now);
+                entitiesDaysHeld(q, plan, now);
                 runner.read(timeout, jdbc -> {
                     execute(jdbc, q, plan, false, values);
                     return null;
@@ -415,6 +420,30 @@ public class StatsService {
         }
         return new Plan(plan.rollupSources(), plan.resolution(), plan.rollupFrom(), plan.rollupTo(), List.copyOf(raw),
                 List.copyOf(hours));
+    }
+
+    /**
+     * Refuses a day series of {@code entities} whose raw parts cover hours the hourly rollup has closed: a day the
+     * daily rollup does not hold yet (the current UTC day, or one past the daily cursor). Distinct entities per day
+     * cannot be summed from hours, so that day would be counted from {@code record_version}, which on a busy day
+     * runs past the statement timeout. The open hour alone, and sources the rollup skips, are still read raw.
+     *
+     * @throws ForesignalException {@code 422 STATS_MEASURE_UNSUPPORTED}
+     */
+    void entitiesDaysHeld(StatsQuery q, Plan plan, Instant now) {
+        if (q.measure() != StatsMeasure.ENTITIES || plan.resolution() != RollupResolution.DAY) {
+            return;
+        }
+        for (RawPart part : plan.raw()) {
+            Plan hourly = plan(q, part.sources(), RollupResolution.HOUR, part.from(), part.to(), now);
+            if (hourly.rollupFrom() != null) {
+                throw new ForesignalException(HttpStatus.UNPROCESSABLE_CONTENT, ErrorCodes.STATS_MEASURE_UNSUPPORTED,
+                        "The entities measure isn't supported over this range with bucket=1d: distinct entities from "
+                                + hourly.rollupFrom() + " to " + hourly.rollupTo() + " are in no daily rollup yet and "
+                                + "would be counted from raw history. Use bucket=1h, or end the range at "
+                                + RollupResolution.DAY.floor(hourly.rollupFrom()) + ".");
+            }
+        }
     }
 
     private void execute(NamedParameterJdbcTemplate jdbc, StatsQuery q, Plan plan, boolean single,

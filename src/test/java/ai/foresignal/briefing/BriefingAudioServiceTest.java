@@ -121,8 +121,10 @@ class BriefingAudioServiceTest {
 
         doThrow(new LlmProviderException(LlmProviderException.Kind.OVERLOADED, "speech", "HTTP 503"))
                 .when(tts).synthesize(anyList(), any(), any());
-        assertThat(service.synthesize("T", "b", new BriefingInput.Audio("v", "mp3")))
-                .containsEntry("status", "failed").containsEntry("error", "HTTP 503");
+        Map<String, Object> overloaded = service.synthesize("T", "b", new BriefingInput.Audio("v", "mp3"));
+        // LlmProviderException's message names the provider (026): "LLM provider 'speech': HTTP 503".
+        assertThat(overloaded).containsEntry("status", "failed");
+        assertThat((String) overloaded.get("error")).contains("'speech'").endsWith("HTTP 503");
 
         doThrow(new LlmBudgetExceededException("speech", "no characters left", Duration.ofHours(1)))
                 .when(tts).synthesize(anyList(), any(), any());

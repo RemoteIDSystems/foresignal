@@ -126,11 +126,17 @@ class NotificationTranslationIT extends BriefingItSupport {
 
         publish("Disk almost full", "Ten percent left");
         worker.runOnce();
+        // Slack takes one message a second per channel (018): the second one is due a second later.
+        clock.advanceSeconds(1);
         publish("Disk almost full", "Ten percent left");
         worker.runOnce();
 
         assertThat(chat().requests()).hasSize(2);
-        assertThat(SLACK.findAll(postRequestedFor(urlEqualTo("/slack/de")))).hasSize(2)
+        List<String> states = notify.deliveries(german).stream().map(d -> d.getStatus() + "/" + d.getDeferredReason()
+                + "/" + d.getNote() + "/" + d.getLastError() + "/" + d.getFoldedInto() + "/" + d.getNextAttemptAt())
+                .toList();
+        assertThat(SLACK.findAll(postRequestedFor(urlEqualTo("/slack/de")))).as("the de deliveries: %s", states)
+                .hasSize(2)
                 .allSatisfy(r -> assertThat(r.getBodyAsString()).contains("Festplatte fast voll"));
         assertThat(translator.cacheSize()).isEqualTo(2);
     }

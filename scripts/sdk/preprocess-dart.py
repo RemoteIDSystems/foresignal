@@ -67,9 +67,20 @@ OTHER_OPAQUE_KEYS = ("example", "default", "enum", "value")
 
 
 def is_null_schema(node: Any) -> bool:
-    """Returns whether ``node`` is the JSON Schema ``{type: "null"}`` branch (description allowed)."""
-    return isinstance(node, dict) and node.get("type") == "null" and all(
-        k in ("type", "description", "title") or k.startswith("x-") for k in node)
+    """Returns whether ``node`` is the null branch of a union (description allowed).
+
+    The branches are converted before the union is, so the 3.1 ``{type: "null"}`` arrives here as
+    ``{nullable: true}``; both forms are the null branch.
+    """
+    if not isinstance(node, dict):
+        return False
+    if node.get("type") == "null":
+        marker = "type"
+    elif node.get("nullable") is True and "type" not in node:
+        marker = "nullable"
+    else:
+        return False
+    return all(k in (marker, "description", "title") or k.startswith("x-") for k in node)
 
 
 def convert_schema(node: Any) -> Any:

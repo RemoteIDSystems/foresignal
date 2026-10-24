@@ -106,7 +106,10 @@ class DisclosureTest {
         assertThat(Disclosure.timeOverlap(d1, d2, d3, d4, d4)).isEqualTo("none");
         assertThat(Disclosure.timeOverlap(d1, d3, d2, d4, d4)).isEqualTo("partial");
         assertThat(Disclosure.timeOverlap(d1, d4, d2, d3, d4)).isEqualTo("full");
-        assertThat(Disclosure.timeOverlap(d1, null, d2, null, d4)).as("both running").isEqualTo("partial");
+        // Both running end now, so the one that started first contains the other.
+        assertThat(Disclosure.timeOverlap(d1, null, d2, null, d4)).as("both running").isEqualTo("full");
+        assertThat(Disclosure.timeOverlap(d1, d3, d2, null, d4)).as("one running past the other's end")
+                .isEqualTo("partial");
         assertThat(Disclosure.timeOverlap(null, null, d2, d3, d4)).isEqualTo("none");
     }
 

@@ -151,8 +151,10 @@ class AnalysisRequestServiceTest {
         when(correlations.save(any())).thenAnswer(inv -> inv.getArgument(0));
         ForecastQuestionEntity q = binaryQuestion();
         when(ledger.find(QUESTION)).thenReturn(Optional.of(q));
-        when(forecasters.ensure(anyString(), anyString(), anyString(), anyString(), any()))
-                .thenReturn(mock(ForecasterEntity.class));
+        // The forecaster needs an id: the standing-forecast lookup is by question and forecaster id.
+        ForecasterEntity forecaster = mock(ForecasterEntity.class);
+        when(forecaster.getId()).thenReturn("ext-timesfm");
+        when(forecasters.ensure(anyString(), anyString(), anyString(), anyString(), any())).thenReturn(forecaster);
 
         // A standing forecast made moments ago at the same probability: no material change within a day.
         ForecastEntity standing = mock(ForecastEntity.class);

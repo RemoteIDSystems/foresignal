@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -89,6 +90,11 @@ public class SocialCueEntity {
 
     @Column(name = "manifest_id", length = 26)
     private String manifestId;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @ColumnDefault("'[]'::jsonb")
+    @Column(name = "external_results", columnDefinition = "jsonb", nullable = false)
+    private List<Map<String, Object>> externalResults = List.of();
 
     /** For JPA. */
     protected SocialCueEntity() {}

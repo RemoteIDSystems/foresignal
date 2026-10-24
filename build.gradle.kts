@@ -440,7 +440,8 @@ tasks.check {
 apply(from = "gradle/sdk.gradle.kts")
 
 // API compatibility gate (prompt 144, NFR-10): /v1 is additive only, so docs/OpenAPI.json must not break the frozen
-// v1.0.0 contract at docs/api/v1.0.0/OpenAPI.json. Runs `oasdiff breaking <frozen> <current> --fail-on ERR` with a
+// v1.0.0 contract at docs/api/v1.0.0/OpenAPI.json. Runs `oasdiff breaking <frozen> <current> --fail-on ERR --err-ignore
+// docs/api/v1.0.0/oasdiff-err-ignore.txt` (the accepted errors, each with its reason) with a
 // local `oasdiff` binary, else the pinned Docker image (tufin/oasdiff:v1.33.0, Apache-2.0, pushed 2026-10-01), else
 // skips with a warning. Not wired to build or check; the proposed CI api stage (docs/CI-Proposal.md) runs it.
 val oasdiffImage = "tufin/oasdiff:v1.33.0"
@@ -448,15 +449,17 @@ tasks.register("checkApiCompat") {
     group = "verification"
     description = "Fails on breaking changes between docs/api/v1.0.0/OpenAPI.json and docs/OpenAPI.json (oasdiff)."
     val projectDir = layout.projectDirectory.asFile
-    inputs.files("docs/api/v1.0.0/OpenAPI.json", "docs/OpenAPI.json")
+    inputs.files("docs/api/v1.0.0/OpenAPI.json", "docs/OpenAPI.json", "docs/api/v1.0.0/oasdiff-err-ignore.txt")
     doLast {
         val frozen = "docs/api/v1.0.0/OpenAPI.json"
         val current = "docs/OpenAPI.json"
+        // The accepted errors, each with its reason; growing value lists are x-extensible-enum in the contract.
+        val ignore = "docs/api/v1.0.0/oasdiff-err-ignore.txt"
         val command: List<String>? = when {
-            onPath("oasdiff") -> listOf("oasdiff", "breaking", frozen, current, "--fail-on", "ERR")
+            onPath("oasdiff") -> listOf("oasdiff", "breaking", frozen, current, "--fail-on", "ERR", "--err-ignore", ignore)
             onPath("docker") -> listOf(
                 "docker", "run", "--rm", "-v", "${projectDir.absolutePath}:/specs:ro", "-w", "/specs",
-                oasdiffImage, "breaking", frozen, current, "--fail-on", "ERR",
+                oasdiffImage, "breaking", frozen, current, "--fail-on", "ERR", "--err-ignore", ignore,
             )
             else -> null
         }

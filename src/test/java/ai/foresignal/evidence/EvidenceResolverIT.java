@@ -7,10 +7,12 @@ import ai.foresignal.test.IntegrationTest;
 import ai.foresignal.test.MutableClock;
 import ai.foresignal.testsupport.evidence.EvidenceTestSources;
 import ai.foresignal.testsupport.ingest.TestRecords;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -137,5 +139,25 @@ class EvidenceResolverIT {
         EvidenceStore.StoredEvent event = store.event(openEvents("seismic").get(0)).orElseThrow();
         assertThat(event.qualityFlags()).contains(QualityFlags.LATE_REVISION);
         assertThat(event.observationCount()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("a stop does not wait for a pass in flight, and a stopped resolver's pass stops at once")
+    void stopDoesNotWaitForAPass() {
+        ingest(EvidenceTestSources.USGS, "us7000stop", "earthquake", T0, 30.00, 38.00, Map.of("mag", 5.1));
+        try {
+            // A pass in flight holds the monitor for its whole run; the stop must not queue behind it (it did, and
+            // shutdown waited for a catch-up of the whole history).
+            synchronized (resolver) {
+                assertThat(CompletableFuture.runAsync(resolver::destroy)).succeedsWithin(Duration.ofSeconds(5));
+            }
+            long before = resolver.cursor();
+            resolver.catchUp();
+            assertThat(resolver.cursor()).isEqualTo(before);
+        } finally {
+            resolver.start();
+        }
+        resolver.catchUp();
+        assertThat(openEvents("seismic")).isNotEmpty();
     }
 }

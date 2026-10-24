@@ -17,7 +17,7 @@ abstract class _$ChannelTypeCWProxy {
 
   ChannelType secretFields(List<ChannelTypeConfigFieldsInner> secretFields);
 
-  ChannelType events(List<ChannelTypeEventsEnum>? events);
+  ChannelType events(List<String>? events);
 
   ChannelType capabilities(ChannelTypeCapabilities? capabilities);
 
@@ -35,7 +35,7 @@ abstract class _$ChannelTypeCWProxy {
     String? description,
     List<ChannelTypeConfigFieldsInner> configFields,
     List<ChannelTypeConfigFieldsInner> secretFields,
-    List<ChannelTypeEventsEnum>? events,
+    List<String>? events,
     ChannelTypeCapabilities? capabilities,
   });
 }
@@ -66,8 +66,7 @@ class _$ChannelTypeCWProxyImpl implements _$ChannelTypeCWProxy {
       call(secretFields: secretFields);
 
   @override
-  ChannelType events(List<ChannelTypeEventsEnum>? events) =>
-      call(events: events);
+  ChannelType events(List<String>? events) => call(events: events);
 
   @override
   ChannelType capabilities(ChannelTypeCapabilities? capabilities) =>
@@ -117,7 +116,7 @@ class _$ChannelTypeCWProxyImpl implements _$ChannelTypeCWProxy {
       events: events == const $CopyWithPlaceholder()
           ? _value.events
           // ignore: cast_nullable_to_non_nullable
-          : events as List<ChannelTypeEventsEnum>?,
+          : events as List<String>?,
       capabilities: capabilities == const $CopyWithPlaceholder()
           ? _value.capabilities
           // ignore: cast_nullable_to_non_nullable
@@ -172,9 +171,7 @@ ChannelType _$ChannelTypeFromJson(Map<String, dynamic> json) =>
         ),
         events: $checkedConvert(
           'events',
-          (v) => (v as List<dynamic>?)
-              ?.map((e) => $enumDecode(_$ChannelTypeEventsEnumEnumMap, e))
-              .toList(),
+          (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
         ),
         capabilities: $checkedConvert(
           'capabilities',
@@ -193,9 +190,7 @@ Map<String, dynamic> _$ChannelTypeToJson(ChannelType instance) =>
       'description': ?instance.description,
       'configFields': instance.configFields.map((e) => e.toJson()).toList(),
       'secretFields': instance.secretFields.map((e) => e.toJson()).toList(),
-      'events': ?instance.events
-          ?.map((e) => _$ChannelTypeEventsEnumEnumMap[e]!)
-          .toList(),
+      'events': ?instance.events,
       'capabilities': ?instance.capabilities?.toJson(),
     };
 
@@ -219,33 +214,4 @@ const _$ChannelTypeIdEnumEnumMap = {
   ChannelTypeIdEnum.mqtt: 'mqtt',
   ChannelTypeIdEnum.meshtastic: 'meshtastic',
   ChannelTypeIdEnum.meshcore: 'meshcore',
-};
-
-const _$ChannelTypeEventsEnumEnumMap = {
-  ChannelTypeEventsEnum.alert: 'alert',
-  ChannelTypeEventsEnum.briefing: 'briefing',
-  ChannelTypeEventsEnum.system: 'system',
-  ChannelTypeEventsEnum.chroniclePeriodProposed: 'chronicle.proposed',
-  ChannelTypeEventsEnum.chroniclePeriodCapWarning: 'chronicle.cap_warning',
-  ChannelTypeEventsEnum.chroniclePeriodGap: 'chronicle.gap',
-  ChannelTypeEventsEnum.socialPeriodDivergence: 'social.divergence',
-  ChannelTypeEventsEnum.socialPeriodAttentionGap: 'social.attention_gap',
-  ChannelTypeEventsEnum.analystPeriodNote: 'analyst.note',
-  ChannelTypeEventsEnum.situationPeriodActivated: 'situation.activated',
-  ChannelTypeEventsEnum.situationPeriodEscalated: 'situation.escalated',
-  ChannelTypeEventsEnum.findingPeriodSignificant: 'finding.significant',
-  ChannelTypeEventsEnum.forecastPeriodResolved: 'forecast.resolved',
-  ChannelTypeEventsEnum.forecastPeriodResolutionNeeded:
-      'forecast.resolution_needed',
-  ChannelTypeEventsEnum.hypothesisPeriodBandChanged: 'hypothesis.band_changed',
-  ChannelTypeEventsEnum.indicatorPeriodObserved: 'indicator.observed',
-  ChannelTypeEventsEnum.assumptionPeriodBroken: 'assumption.broken',
-  ChannelTypeEventsEnum.assessmentPeriodPublished: 'assessment.published',
-  ChannelTypeEventsEnum.mention: 'mention',
-  ChannelTypeEventsEnum.share: 'share',
-  ChannelTypeEventsEnum.reportPeriodReceived: 'report.received',
-  ChannelTypeEventsEnum.packagePeriodReceived: 'package.received',
-  ChannelTypeEventsEnum.chroniclePeriodAccessPeriodRequested:
-      'chronicle.access.requested',
-  ChannelTypeEventsEnum.savedSearchPeriodMatches: 'saved-search.matches',
 };

@@ -61,6 +61,7 @@ class EntityLink {
 
 
 
+      /// Expected to grow (`x-extensible-enum`): a client must accept a value not listed here.
   @JsonKey(
     
     name: r'keyType',
@@ -69,7 +70,7 @@ class EntityLink {
   )
 
 
-  final EntityLinkKeyTypeEnum keyType;
+  final String keyType;
 
 
 
@@ -171,41 +172,4 @@ class EntityLink {
   }
 
 }
-
-enum EntityLinkKeyTypeEnum {
-@JsonValue(r'airframe')
-airframe(r'airframe'),
-@JsonValue(r'icao24')
-icao24(r'icao24'),
-@JsonValue(r'registration')
-registration(r'registration'),
-@JsonValue(r'imo')
-imo(r'imo'),
-@JsonValue(r'mmsi')
-mmsi(r'mmsi'),
-@JsonValue(r'norad')
-norad(r'norad'),
-@JsonValue(r'cospar')
-cospar(r'cospar'),
-@JsonValue(r'callsign')
-callsign(r'callsign'),
-@JsonValue(r'lei')
-lei(r'lei'),
-@JsonValue(r'company-number')
-companyNumber(r'company-number'),
-@JsonValue(r'tax-id')
-taxId(r'tax-id'),
-@JsonValue(r'officer-id')
-officerId(r'officer-id'),
-@JsonValue(r'person-key')
-personKey(r'person-key');
-
-const EntityLinkKeyTypeEnum(this.value);
-
-final String value;
-
-@override
-String toString() => value;
-}
-
 

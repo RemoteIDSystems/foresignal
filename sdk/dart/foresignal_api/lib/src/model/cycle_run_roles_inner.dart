@@ -108,6 +108,7 @@ class CycleRunRolesInner {
 
 
 
+      /// LLM effort
   @JsonKey(
     
     name: r'effort',
@@ -116,7 +117,7 @@ class CycleRunRolesInner {
   )
 
 
-  final Object? effort;
+  final CycleRunRolesInnerEffortEnum? effort;
 
 
 
@@ -279,6 +280,24 @@ failed(r'failed'),
 notConfigured(r'not-configured');
 
 const CycleRunRolesInnerStatusEnum(this.value);
+
+final String value;
+
+@override
+String toString() => value;
+}
+
+
+/// LLM effort
+enum CycleRunRolesInnerEffortEnum {
+@JsonValue(r'low')
+low(r'low'),
+@JsonValue(r'medium')
+medium(r'medium'),
+@JsonValue(r'high')
+high(r'high');
+
+const CycleRunRolesInnerEffortEnum(this.value);
 
 final String value;
 

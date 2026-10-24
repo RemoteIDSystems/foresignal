@@ -3595,7 +3595,7 @@ export interface paths {
         };
         /**
          * Activity time series
-         * @description `timeField=ingested` reads the rollup (plus raw rows for the open hour); other time fields read raw history and need `from ≥ retainedFrom`; `alerts` reads alert fire times. ≤ 2,000 buckets. 10 s timeout (503 QUERY_TIMEOUT).
+         * @description `timeField=ingested` reads the rollup (plus raw rows for the open hour); other time fields read raw history and need `from ≥ retainedFrom`; `alerts` reads alert fire times. ≤ 2,000 buckets. 10 s timeout (503 QUERY_TIMEOUT). `measure=entities` with `bucket=1d` over a day the daily rollup does not hold yet (the current UTC day) is 422 STATS_MEASURE_UNSUPPORTED: distinct entities cannot be summed from hours, so use `bucket=1h` or end the range at that day's start.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
          */
@@ -17645,7 +17645,7 @@ export interface components {
                 allowed?: string[];
             }[];
             /** @description The events a channel of this type can subscribe to: every `Channel.events` value an instance channel accepts */
-            events?: ("alert" | "briefing" | "system" | "chronicle.proposed" | "chronicle.cap_warning" | "chronicle.gap" | "social.divergence" | "social.attention_gap" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolved" | "forecast.resolution_needed" | "hypothesis.band_changed" | "indicator.observed" | "assumption.broken" | "assessment.published" | "mention" | "share" | "report.received" | "package.received" | "chronicle.access.requested" | "saved-search.matches")[];
+            events?: string[];
             capabilities?: {
                 editInPlace?: boolean;
                 attachments?: boolean;
@@ -17768,7 +17768,7 @@ export interface components {
             /** @description Names of the secret fields that are set (values are never returned) */
             secretFields?: string[];
             /** @description The subscribed events. `personal` marks a principal's personal channel (prompt 130), which carries only that principal's notifications; createChannel and updateChannel never accept it. `mention`, `share`, `report.received`, `package.received`, `chronicle.proposed`, `chronicle.cap_warning`, `chronicle.gap`, `chronicle.access.requested` and `saved-search.matches` on an instance channel receive a copy of each such personal notice, once per addressee, with its TLP label at the head; the copies never reach the device inbox or the instance SSE topics */
-            events: ("alert" | "briefing" | "system" | "chronicle.proposed" | "chronicle.cap_warning" | "chronicle.gap" | "social.divergence" | "social.attention_gap" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolved" | "forecast.resolution_needed" | "hypothesis.band_changed" | "indicator.observed" | "assumption.broken" | "assessment.published" | "mention" | "share" | "report.received" | "package.received" | "chronicle.access.requested" | "saved-search.matches" | "personal")[];
+            events: string[];
             ruleIds?: string[] | null;
             /** @enum {string} */
             minSeverity?: "info" | "warning" | "critical";
@@ -17836,8 +17836,8 @@ export interface components {
         NotificationDelivery: {
             /** Format: int64 */
             id: number;
-            /** @enum {string} */
-            event: "alert" | "briefing" | "system" | "social.divergence" | "social.attention_gap" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolved" | "forecast.resolution_needed" | "hypothesis.band_changed" | "indicator.observed" | "assumption.broken" | "assessment.published" | "chronicle.proposed" | "chronicle.cap_warning" | "chronicle.gap" | "mention" | "share" | "report.received" | "package.received" | "chronicle.access.requested" | "saved-search.matches" | "personal";
+            /** @description Expected to grow (`x-extensible-enum`): a client must accept a value not listed here. */
+            event: string;
             /** Format: int64 */
             alertId?: number | null;
             /** Format: uuid */
@@ -19293,7 +19293,10 @@ export interface components {
              * @description Notification id
              */
             id: number;
-            /** @enum {string} */
+            /**
+             * @description Grows as the server adds events: a receiver must accept a value not listed here. Kept as `enum`, not `x-extensible-enum`, because this schema is also the `notification` webhook's payload, which the compatibility check cannot mark extensible.
+             * @enum {string}
+             */
             event: "alert" | "briefing" | "system" | "chronicle.proposed" | "chronicle.cap_warning" | "chronicle.gap" | "social.divergence" | "social.attention_gap" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolved" | "forecast.resolution_needed" | "hypothesis.band_changed" | "indicator.observed" | "assumption.broken" | "assessment.published" | "mention" | "share" | "report.received" | "package.received" | "chronicle.access.requested" | "saved-search.matches" | "test" | "personal";
             /**
              * @description e.g. alert.fired, alert.acknowledged, alert.snoozed, alert.resolved, alert.digest (a quiet-hours, pause, backlog or grouping digest), system.source_failing, system.rule_storm, system.delivery_failed, system.push_provider_failed (032), briefing.run (029)
@@ -19383,7 +19386,10 @@ export interface components {
         };
         /** @description Default body of the generic `webhook` channel (overridable by `bodyTemplate`) */
         WebhookEnvelope: {
-            /** @enum {string} */
+            /**
+             * @description Grows as the server adds events: a receiver must accept a value not listed here. Kept as `enum`, not `x-extensible-enum`, because this schema is also the `notification` webhook's payload, which the compatibility check cannot mark extensible.
+             * @enum {string}
+             */
             event: "alert" | "briefing" | "system" | "chronicle.proposed" | "chronicle.cap_warning" | "chronicle.gap" | "social.divergence" | "social.attention_gap" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolved" | "forecast.resolution_needed" | "hypothesis.band_changed" | "indicator.observed" | "assumption.broken" | "assessment.published" | "mention" | "share" | "report.received" | "package.received" | "chronicle.access.requested" | "saved-search.matches" | "test" | "personal";
             /** @example alert.fired */
             subtype: string;
@@ -20517,8 +20523,8 @@ export interface components {
         Notification: {
             /** Format: int64 */
             id: number;
-            /** @enum {string} */
-            event: "alert" | "briefing" | "system" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolution_needed" | "hypothesis.band_changed" | "assessment.published";
+            /** @description Expected to grow (`x-extensible-enum`): a client must accept a value not listed here. */
+            event: string;
             /** @example alert.fired */
             subtype?: string | null;
             /** @enum {string} */
@@ -25255,8 +25261,8 @@ export interface components {
             id: components["schemas"]["Ulid"];
             /** @description Set when the requested id was merged into this canonical entity */
             requestedId?: components["schemas"]["Ulid"] | null;
-            /** @enum {string} */
-            type: "aircraft" | "vessel" | "satellite" | "station" | "person" | "organization";
+            /** @description Expected to grow (`x-extensible-enum`): a client must accept a value not listed here. */
+            type: string;
             /** @description Precedence: registration > vessel name > satellite name > key */
             displayName?: string | null;
             /** @description Declared attributes copied from records (≤ 16 KB); registry origin wins over observations. Never owner PII. */
@@ -25302,11 +25308,8 @@ export interface components {
              */
             id: number;
             entityId: components["schemas"]["Ulid"];
-            /**
-             * @description Key type. `callsign` values are domain-prefixed (`air:`, `sea:`, `ham:`). Corporate and person keys (prompt 158): `lei`, `company-number` (`JURISDICTION:NUMBER`), `tax-id`, `officer-id` (`REGISTRY:ID`) for organizations; `person-key` (a normalized name key) for people
-             * @enum {string}
-             */
-            keyType: "airframe" | "icao24" | "registration" | "imo" | "mmsi" | "norad" | "cospar" | "callsign" | "lei" | "company-number" | "tax-id" | "officer-id" | "person-key";
+            /** @description Key type. `callsign` values are domain-prefixed (`air:`, `sea:`, `ham:`). Corporate and person keys (prompt 158): `lei`, `company-number` (`JURISDICTION:NUMBER`), `tax-id`, `officer-id` (`REGISTRY:ID`) for organizations; `person-key` (a normalized name key) for people. Expected to grow (`x-extensible-enum`): a client must accept a value not listed here. */
+            keyType: string;
             /**
              * @description Normalised value (e.g. icao24 lowercase hex, registration without spaces or hyphens)
              * @example ae1234
@@ -25358,8 +25361,8 @@ export interface components {
             /** @example adsblol-mil */
             sourceId: string;
             externalId: string;
-            /** @enum {string} */
-            keyType: "airframe" | "icao24" | "registration" | "imo" | "mmsi" | "norad" | "cospar" | "callsign" | "lei" | "company-number" | "tax-id" | "officer-id" | "person-key";
+            /** @description Expected to grow (`x-extensible-enum`): a client must accept a value not listed here. */
+            keyType: string;
             keyValue: string;
             confidence: number;
             /** Format: date-time */
@@ -30880,8 +30883,8 @@ export interface components {
             id: components["schemas"]["Ulid"];
             questionId: components["schemas"]["Ulid"];
             forecasterId: string;
-            /** @enum {string} */
-            forecasterType: "base-rate" | "climatology" | "persistence" | "statistical" | "precursor" | "analog" | "threshold" | "impact" | "indicator-bayes" | "llm" | "operator" | "external" | "ensemble";
+            /** @description Expected to grow (`x-extensible-enum`): a client must accept a value not listed here. */
+            forecasterType: string;
             /**
              * Format: date-time
              * @description Server-set
@@ -31058,8 +31061,8 @@ export interface components {
         Forecaster: {
             /** @description Slug, e.g. `base-rate`, `ensemble`, `operator:jsmith`, `llm:daily-analyst` */
             id: string;
-            /** @enum {string} */
-            type: "base-rate" | "climatology" | "persistence" | "statistical" | "precursor" | "analog" | "threshold" | "impact" | "indicator-bayes" | "llm" | "operator" | "external" | "ensemble";
+            /** @description Expected to grow (`x-extensible-enum`): a client must accept a value not listed here. */
+            type: string;
             name: string;
             config?: {
                 [key: string]: unknown;
@@ -31140,8 +31143,8 @@ export interface components {
         /** @description Scores, calibration, skill and bias of one forecaster in one category */
         ScorecardEntry: {
             forecasterId: string;
-            /** @enum {string} */
-            forecasterType?: "base-rate" | "climatology" | "persistence" | "statistical" | "precursor" | "analog" | "threshold" | "impact" | "indicator-bayes" | "llm" | "operator" | "external" | "ensemble";
+            /** @description Expected to grow (`x-extensible-enum`): a client must accept a value not listed here. */
+            forecasterType?: string;
             /** @description Null = all categories */
             category?: string | null;
             nResolved: number;
@@ -33671,11 +33674,8 @@ export interface components {
             id: components["schemas"]["Ulid"];
             fromRef: components["schemas"]["ObjectRef"];
             toRef: components["schemas"]["ObjectRef"];
-            /**
-             * @description Client-Contract §4 relation type
-             * @enum {string}
-             */
-            type: "member-of" | "observed-by" | "same-as" | "located-in" | "near" | "depends-on" | "affects" | "derived-from" | "evidence-for" | "evidence-against" | "about" | "mentions" | "precedes" | "causes" | "related-to" | "owns" | "controls" | "officer-of" | "beneficial-owner" | "affiliated-with";
+            /** @description Client-Contract §4 relation type. Expected to grow (`x-extensible-enum`): a client must accept a value not listed here. */
+            type: string;
             /** Format: date-time */
             validFrom: string;
             /** Format: date-time */
@@ -33779,7 +33779,7 @@ export interface components {
                 paths: {
                     from: components["schemas"]["ObjectRef"];
                     hops: components["schemas"]["ObjectRef"][];
-                    relationTypes?: ("member-of" | "observed-by" | "same-as" | "located-in" | "near" | "depends-on" | "affects" | "derived-from" | "evidence-for" | "evidence-against" | "about" | "mentions" | "precedes" | "causes" | "related-to" | "owns" | "controls" | "officer-of" | "beneficial-owner" | "affiliated-with")[];
+                    relationTypes?: string[];
                     /**
                      * @description Relation or dependency label (104 vocabulary)
                      * @enum {string}
@@ -35885,7 +35885,7 @@ export interface components {
             area?: components["schemas"]["Geometry"] | null;
             /** @description Ordered blocks (stored as `sections`) */
             blocks: components["schemas"]["ReportBlock"][];
-            /** @description Any block is deterministic-generated or LLM */
+            /** @description Any block is deterministic-generated or LLM, apart from the sources block the publisher appends to every revision */
             machineGenerated?: boolean;
             /** @description Optimistic-lock version of the draft */
             version: number;
@@ -37744,7 +37744,7 @@ export interface components {
             /** @description False when the platform does not provide the data (e.g. account creation dates) */
             available: boolean;
         };
-        /** @description Coordinated-amplification indicators of a narrative (`CoordinationDetector` 1.0.0): statistics, never labels on accounts */
+        /** @description Coordinated-amplification indicators of a narrative (`CoordinationDetector` 1.1.0): statistics, never labels on accounts */
         CoordinationIndicators: {
             narrativeId: components["schemas"]["Ulid"];
             window: components["schemas"]["TimeRange"];
@@ -51981,6 +51981,15 @@ export interface operations {
             };
             /** @description Unknown source, or a private source the caller may not see */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `measure=entities` with `bucket=1d` over a day the daily rollup does not hold yet (STATS_MEASURE_UNSUPPORTED) */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

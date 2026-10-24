@@ -158,7 +158,7 @@ class SeriesInfo {
   )
 
 
-  final Object? status;
+  final SeriesInfoStatusEnum? status;
 
 
 
@@ -222,6 +222,25 @@ P3M(r'P3M'),
 P1Y(r'P1Y');
 
 const SeriesInfoFrequencyEnum(this.value);
+
+final String value;
+
+@override
+String toString() => value;
+}
+
+
+enum SeriesInfoStatusEnum {
+@JsonValue(r'final')
+final_(r'final'),
+@JsonValue(r'preliminary')
+preliminary(r'preliminary'),
+@JsonValue(r'estimated')
+estimated(r'estimated'),
+@JsonValue(r'forecast')
+forecast(r'forecast');
+
+const SeriesInfoStatusEnum(this.value);
 
 final String value;
 

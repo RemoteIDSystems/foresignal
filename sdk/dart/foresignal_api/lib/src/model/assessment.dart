@@ -295,6 +295,7 @@ class Assessment {
 
 
 
+      /// LLM effort
   @JsonKey(
     
     name: r'effort',
@@ -303,7 +304,7 @@ class Assessment {
   )
 
 
-  final Object? effort;
+  final AssessmentEffortEnum? effort;
 
 
 
@@ -520,6 +521,24 @@ digestOnly(r'digest-only'),
 failed(r'failed');
 
 const AssessmentStatusEnum(this.value);
+
+final String value;
+
+@override
+String toString() => value;
+}
+
+
+/// LLM effort
+enum AssessmentEffortEnum {
+@JsonValue(r'low')
+low(r'low'),
+@JsonValue(r'medium')
+medium(r'medium'),
+@JsonValue(r'high')
+high(r'high');
+
+const AssessmentEffortEnum(this.value);
 
 final String value;
 

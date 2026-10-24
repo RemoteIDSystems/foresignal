@@ -11,7 +11,7 @@ abstract class _$EntityKeyCWProxy {
 
   EntityKey entityId(String entityId);
 
-  EntityKey keyType(EntityKeyKeyTypeEnum keyType);
+  EntityKey keyType(String keyType);
 
   EntityKey keyValue(String keyValue);
 
@@ -40,7 +40,7 @@ abstract class _$EntityKeyCWProxy {
   EntityKey call({
     int id,
     String entityId,
-    EntityKeyKeyTypeEnum keyType,
+    String keyType,
     String keyValue,
     EntityKeyRoleEnum role,
     num confidence,
@@ -66,7 +66,7 @@ class _$EntityKeyCWProxyImpl implements _$EntityKeyCWProxy {
   EntityKey entityId(String entityId) => call(entityId: entityId);
 
   @override
-  EntityKey keyType(EntityKeyKeyTypeEnum keyType) => call(keyType: keyType);
+  EntityKey keyType(String keyType) => call(keyType: keyType);
 
   @override
   EntityKey keyValue(String keyValue) => call(keyValue: keyValue);
@@ -126,7 +126,7 @@ class _$EntityKeyCWProxyImpl implements _$EntityKeyCWProxy {
       keyType: keyType == const $CopyWithPlaceholder() || keyType == null
           ? _value.keyType
           // ignore: cast_nullable_to_non_nullable
-          : keyType as EntityKeyKeyTypeEnum,
+          : keyType as String,
       keyValue: keyValue == const $CopyWithPlaceholder() || keyValue == null
           ? _value.keyValue
           // ignore: cast_nullable_to_non_nullable
@@ -194,10 +194,7 @@ EntityKey _$EntityKeyFromJson(Map<String, dynamic> json) =>
       final val = EntityKey(
         id: $checkedConvert('id', (v) => (v as num).toInt()),
         entityId: $checkedConvert('entityId', (v) => v as String),
-        keyType: $checkedConvert(
-          'keyType',
-          (v) => $enumDecode(_$EntityKeyKeyTypeEnumEnumMap, v),
-        ),
+        keyType: $checkedConvert('keyType', (v) => v as String),
         keyValue: $checkedConvert('keyValue', (v) => v as String),
         role: $checkedConvert(
           'role',
@@ -225,7 +222,7 @@ EntityKey _$EntityKeyFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$EntityKeyToJson(EntityKey instance) => <String, dynamic>{
   'id': instance.id,
   'entityId': instance.entityId,
-  'keyType': _$EntityKeyKeyTypeEnumEnumMap[instance.keyType]!,
+  'keyType': instance.keyType,
   'keyValue': instance.keyValue,
   'role': _$EntityKeyRoleEnumEnumMap[instance.role]!,
   'confidence': instance.confidence,
@@ -234,22 +231,6 @@ Map<String, dynamic> _$EntityKeyToJson(EntityKey instance) => <String, dynamic>{
   'validFrom': instance.validFrom.toIso8601String(),
   'validTo': ?instance.validTo?.toIso8601String(),
   'retracted': instance.retracted,
-};
-
-const _$EntityKeyKeyTypeEnumEnumMap = {
-  EntityKeyKeyTypeEnum.airframe: 'airframe',
-  EntityKeyKeyTypeEnum.icao24: 'icao24',
-  EntityKeyKeyTypeEnum.registration: 'registration',
-  EntityKeyKeyTypeEnum.imo: 'imo',
-  EntityKeyKeyTypeEnum.mmsi: 'mmsi',
-  EntityKeyKeyTypeEnum.norad: 'norad',
-  EntityKeyKeyTypeEnum.cospar: 'cospar',
-  EntityKeyKeyTypeEnum.callsign: 'callsign',
-  EntityKeyKeyTypeEnum.lei: 'lei',
-  EntityKeyKeyTypeEnum.companyNumber: 'company-number',
-  EntityKeyKeyTypeEnum.taxId: 'tax-id',
-  EntityKeyKeyTypeEnum.officerId: 'officer-id',
-  EntityKeyKeyTypeEnum.personKey: 'person-key',
 };
 
 const _$EntityKeyRoleEnumEnumMap = {

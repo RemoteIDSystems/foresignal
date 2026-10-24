@@ -149,6 +149,11 @@ def _parse_response(
 
         return response_404
 
+    if response.status_code == 422:
+        response_422 = Problem.from_dict(response.json())
+
+        return response_422
+
     if response.status_code == 429:
         response_429 = Problem.from_dict(response.json())
 
@@ -199,7 +204,9 @@ def sync_detailed(
 
      `timeField=ingested` reads the rollup (plus raw rows for the open hour); other time fields read raw
     history and need `from ≥ retainedFrom`; `alerts` reads alert fire times. ≤ 2,000 buckets. 10 s
-    timeout (503 QUERY_TIMEOUT).
+    timeout (503 QUERY_TIMEOUT). `measure=entities` with `bucket=1d` over a day the daily rollup does
+    not hold yet (the current UTC day) is 422 STATS_MEASURE_UNSUPPORTED: distinct entities cannot be
+    summed from hours, so use `bucket=1h` or end the range at that day's start.
 
     **Scope:** `read` (open while `security.openReads` is on).
 
@@ -275,7 +282,9 @@ def sync(
 
      `timeField=ingested` reads the rollup (plus raw rows for the open hour); other time fields read raw
     history and need `from ≥ retainedFrom`; `alerts` reads alert fire times. ≤ 2,000 buckets. 10 s
-    timeout (503 QUERY_TIMEOUT).
+    timeout (503 QUERY_TIMEOUT). `measure=entities` with `bucket=1d` over a day the daily rollup does
+    not hold yet (the current UTC day) is 422 STATS_MEASURE_UNSUPPORTED: distinct entities cannot be
+    summed from hours, so use `bucket=1h` or end the range at that day's start.
 
     **Scope:** `read` (open while `security.openReads` is on).
 
@@ -346,7 +355,9 @@ async def asyncio_detailed(
 
      `timeField=ingested` reads the rollup (plus raw rows for the open hour); other time fields read raw
     history and need `from ≥ retainedFrom`; `alerts` reads alert fire times. ≤ 2,000 buckets. 10 s
-    timeout (503 QUERY_TIMEOUT).
+    timeout (503 QUERY_TIMEOUT). `measure=entities` with `bucket=1d` over a day the daily rollup does
+    not hold yet (the current UTC day) is 422 STATS_MEASURE_UNSUPPORTED: distinct entities cannot be
+    summed from hours, so use `bucket=1h` or end the range at that day's start.
 
     **Scope:** `read` (open while `security.openReads` is on).
 
@@ -420,7 +431,9 @@ async def asyncio(
 
      `timeField=ingested` reads the rollup (plus raw rows for the open hour); other time fields read raw
     history and need `from ≥ retainedFrom`; `alerts` reads alert fire times. ≤ 2,000 buckets. 10 s
-    timeout (503 QUERY_TIMEOUT).
+    timeout (503 QUERY_TIMEOUT). `measure=entities` with `bucket=1d` over a day the daily rollup does
+    not hold yet (the current UTC day) is 422 STATS_MEASURE_UNSUPPORTED: distinct entities cannot be
+    summed from hours, so use `bucket=1h` or end the range at that day's start.
 
     **Scope:** `read` (open while `security.openReads` is on).
 

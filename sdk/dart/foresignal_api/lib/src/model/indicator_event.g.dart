@@ -19,7 +19,7 @@ abstract class _$IndicatorEventCWProxy {
 
   IndicatorEvent previousState(IndicatorEventPreviousStateEnum? previousState);
 
-  IndicatorEvent evidence(Object? evidence);
+  IndicatorEvent evidence(Map<String, Object>? evidence);
 
   IndicatorEvent revisionId(String? revisionId);
 
@@ -42,7 +42,7 @@ abstract class _$IndicatorEventCWProxy {
     String? signalFamily,
     IndicatorEventStateEnum state,
     IndicatorEventPreviousStateEnum? previousState,
-    Object? evidence,
+    Map<String, Object>? evidence,
     String? revisionId,
     bool? private,
     DateTime at,
@@ -80,7 +80,8 @@ class _$IndicatorEventCWProxyImpl implements _$IndicatorEventCWProxy {
   ) => call(previousState: previousState);
 
   @override
-  IndicatorEvent evidence(Object? evidence) => call(evidence: evidence);
+  IndicatorEvent evidence(Map<String, Object>? evidence) =>
+      call(evidence: evidence);
 
   @override
   IndicatorEvent revisionId(String? revisionId) => call(revisionId: revisionId);
@@ -141,7 +142,7 @@ class _$IndicatorEventCWProxyImpl implements _$IndicatorEventCWProxy {
       evidence: evidence == const $CopyWithPlaceholder()
           ? _value.evidence
           // ignore: cast_nullable_to_non_nullable
-          : evidence as Object?,
+          : evidence as Map<String, Object>?,
       revisionId: revisionId == const $CopyWithPlaceholder()
           ? _value.revisionId
           // ignore: cast_nullable_to_non_nullable
@@ -169,33 +170,34 @@ extension $IndicatorEventCopyWith on IndicatorEvent {
 // JsonSerializableGenerator
 // **************************************************************************
 
-IndicatorEvent _$IndicatorEventFromJson(Map<String, dynamic> json) =>
-    $checkedCreate('IndicatorEvent', json, ($checkedConvert) {
-      $checkKeys(
-        json,
-        requiredKeys: const ['indicatorId', 'setId', 'state', 'at'],
-      );
-      final val = IndicatorEvent(
-        indicatorId: $checkedConvert('indicatorId', (v) => v as String),
-        setId: $checkedConvert('setId', (v) => v as String),
-        description: $checkedConvert('description', (v) => v as String?),
-        signalFamily: $checkedConvert('signalFamily', (v) => v as String?),
-        state: $checkedConvert(
-          'state',
-          (v) => $enumDecode(_$IndicatorEventStateEnumEnumMap, v),
-        ),
-        previousState: $checkedConvert(
-          'previousState',
-          (v) =>
-              $enumDecodeNullable(_$IndicatorEventPreviousStateEnumEnumMap, v),
-        ),
-        evidence: $checkedConvert('evidence', (v) => v),
-        revisionId: $checkedConvert('revisionId', (v) => v as String?),
-        private: $checkedConvert('private', (v) => v as bool?),
-        at: $checkedConvert('at', (v) => DateTime.parse(v as String)),
-      );
-      return val;
-    });
+IndicatorEvent _$IndicatorEventFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate('IndicatorEvent', json, ($checkedConvert) {
+  $checkKeys(json, requiredKeys: const ['indicatorId', 'setId', 'state', 'at']);
+  final val = IndicatorEvent(
+    indicatorId: $checkedConvert('indicatorId', (v) => v as String),
+    setId: $checkedConvert('setId', (v) => v as String),
+    description: $checkedConvert('description', (v) => v as String?),
+    signalFamily: $checkedConvert('signalFamily', (v) => v as String?),
+    state: $checkedConvert(
+      'state',
+      (v) => $enumDecode(_$IndicatorEventStateEnumEnumMap, v),
+    ),
+    previousState: $checkedConvert(
+      'previousState',
+      (v) => $enumDecodeNullable(_$IndicatorEventPreviousStateEnumEnumMap, v),
+    ),
+    evidence: $checkedConvert(
+      'evidence',
+      (v) =>
+          (v as Map<String, dynamic>?)?.map((k, e) => MapEntry(k, e as Object)),
+    ),
+    revisionId: $checkedConvert('revisionId', (v) => v as String?),
+    private: $checkedConvert('private', (v) => v as bool?),
+    at: $checkedConvert('at', (v) => DateTime.parse(v as String)),
+  );
+  return val;
+});
 
 Map<String, dynamic> _$IndicatorEventToJson(IndicatorEvent instance) =>
     <String, dynamic>{

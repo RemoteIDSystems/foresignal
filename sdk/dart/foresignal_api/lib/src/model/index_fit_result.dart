@@ -174,7 +174,7 @@ class IndexFitResult {
   )
 
 
-  final Object? proposedWeights;
+  final Map<String, num>? proposedWeights;
 
 
 

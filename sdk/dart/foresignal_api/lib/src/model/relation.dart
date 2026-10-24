@@ -87,7 +87,7 @@ class Relation {
 
 
 
-      /// Client-Contract §4 relation type
+      /// Client-Contract §4 relation type. Expected to grow (`x-extensible-enum`): a client must accept a value not listed here.
   @JsonKey(
     
     name: r'type',
@@ -96,7 +96,7 @@ class Relation {
   )
 
 
-  final RelationTypeEnum type;
+  final String type;
 
 
 
@@ -256,58 +256,6 @@ class Relation {
   }
 
 }
-
-/// Client-Contract §4 relation type
-enum RelationTypeEnum {
-@JsonValue(r'member-of')
-memberOf(r'member-of'),
-@JsonValue(r'observed-by')
-observedBy(r'observed-by'),
-@JsonValue(r'same-as')
-sameAs(r'same-as'),
-@JsonValue(r'located-in')
-locatedIn(r'located-in'),
-@JsonValue(r'near')
-near(r'near'),
-@JsonValue(r'depends-on')
-dependsOn(r'depends-on'),
-@JsonValue(r'affects')
-affects(r'affects'),
-@JsonValue(r'derived-from')
-derivedFrom(r'derived-from'),
-@JsonValue(r'evidence-for')
-evidenceFor(r'evidence-for'),
-@JsonValue(r'evidence-against')
-evidenceAgainst(r'evidence-against'),
-@JsonValue(r'about')
-about(r'about'),
-@JsonValue(r'mentions')
-mentions(r'mentions'),
-@JsonValue(r'precedes')
-precedes(r'precedes'),
-@JsonValue(r'causes')
-causes(r'causes'),
-@JsonValue(r'related-to')
-relatedTo(r'related-to'),
-@JsonValue(r'owns')
-owns(r'owns'),
-@JsonValue(r'controls')
-controls(r'controls'),
-@JsonValue(r'officer-of')
-officerOf(r'officer-of'),
-@JsonValue(r'beneficial-owner')
-beneficialOwner(r'beneficial-owner'),
-@JsonValue(r'affiliated-with')
-affiliatedWith(r'affiliated-with');
-
-const RelationTypeEnum(this.value);
-
-final String value;
-
-@override
-String toString() => value;
-}
-
 
 /// Relation or dependency label (104 vocabulary)
 enum RelationLabelEnum {

@@ -13,7 +13,7 @@ abstract class _$HypothesisReviewInputCWProxy {
 
   HypothesisReviewInput proposalId(String? proposalId);
 
-  HypothesisReviewInput probabilities(Object? probabilities);
+  HypothesisReviewInput probabilities(Map<String, num>? probabilities);
 
   HypothesisReviewInput lr(List<HypothesisReviewInputLrInner>? lr);
 
@@ -39,7 +39,7 @@ abstract class _$HypothesisReviewInputCWProxy {
     HypothesisReviewInputCauseEnum? cause,
     String rationale,
     String? proposalId,
-    Object? probabilities,
+    Map<String, num>? probabilities,
     List<HypothesisReviewInputLrInner>? lr,
     List<HypothesisReviewInputAssumptionsInner>? assumptions,
     bool? exceedCap,
@@ -69,7 +69,7 @@ class _$HypothesisReviewInputCWProxyImpl
       call(proposalId: proposalId);
 
   @override
-  HypothesisReviewInput probabilities(Object? probabilities) =>
+  HypothesisReviewInput probabilities(Map<String, num>? probabilities) =>
       call(probabilities: probabilities);
 
   @override
@@ -128,7 +128,7 @@ class _$HypothesisReviewInputCWProxyImpl
       probabilities: probabilities == const $CopyWithPlaceholder()
           ? _value.probabilities
           // ignore: cast_nullable_to_non_nullable
-          : probabilities as Object?,
+          : probabilities as Map<String, num>?,
       lr: lr == const $CopyWithPlaceholder()
           ? _value.lr
           // ignore: cast_nullable_to_non_nullable
@@ -176,7 +176,10 @@ HypothesisReviewInput _$HypothesisReviewInputFromJson(
     ),
     rationale: $checkedConvert('rationale', (v) => v as String),
     proposalId: $checkedConvert('proposalId', (v) => v as String?),
-    probabilities: $checkedConvert('probabilities', (v) => v),
+    probabilities: $checkedConvert(
+      'probabilities',
+      (v) => (v as Map<String, dynamic>?)?.map((k, e) => MapEntry(k, e as num)),
+    ),
     lr: $checkedConvert(
       'lr',
       (v) => (v as List<dynamic>?)

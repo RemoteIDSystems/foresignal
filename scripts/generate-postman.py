@@ -234,6 +234,12 @@ FORMDATA_BODIES = {
     {"key": "file", "type": "file", "src": "", "description": "The package ZIP (pick it in Postman)"},
     {"key": "jwks", "type": "text", "value": "{\"keys\":[]}", "description": "The sender's JWKS (optional)"},
   ],
+  # 136: match an image against the stored fingerprints (PNG or JPEG; at most 31 bits apart, 20 matches).
+  "matchMedia": [
+    {"key": "file", "type": "file", "src": "", "description": "The image (pick it in Postman)"},
+    {"key": "maxDistance", "type": "text", "value": "31"},
+    {"key": "limit", "type": "text", "value": "20"},
+  ],
   # 130: an attachment upload (PNG, JPEG, PDF or UTF-8 text, CSV, JSON, GeoJSON, KML, Markdown; at most 50 MB).
   "uploadAttachment": [
     {"key": "file", "type": "file", "src": "", "description": "The document or image (pick it in Postman)"},
@@ -983,6 +989,43 @@ BODIES = {
   "grantChronicleAccessRequest": {"role": "viewer", "expiresAt": None, "deliverAs": "chronicle-extract",
                                   "message": None},
   "setChronicleNetworkSalt": {"networkId": "gulf-analysts", "saltRef": "{{networkSalt}}"},
+  # 134: a peer's sketch batch (the 113 peer channel signs it; this unsigned example shows the shape and withdraws
+  # one sketch).
+  "receiveChronicleSketches": {"instanceId": "fs-eu-1", "networkId": "gulf-analysts", "sketches": [],
+                               "withdrawn": ["sk-gulf-0001"]},
+  # 136: merge another narrative into this one (replace the example ULID with its id), and split member posts off
+  # into a new narrative.
+  "mergeNarratives": {"narrativeIds": ["01JA8Q3V7S2K9W4T6Y1B5N0M3C"],
+                      "reason": "The same port-closure story on two platforms."},
+  "splitNarrative": {"postRefs": ["record:bluesky-jetstream/bluesky%3Apost-1"],
+                     "reason": "These posts are about a different port."},
+  # 137: a manual cue around Yemen for the last day, capped at half a dollar.
+  "createSocialCue": {"regionCode": "YE", "terms": ["Bab el-Mandeb"],
+                      "window": {"start": "2026-10-17T00:00:00Z", "end": None}, "maxCostUsd": 0.5},
+  # 138: bind a provider's transits stream to a series, and link a provider question to a ledger question.
+  "createExternalBinding": {"streamId": "transits", "target": "series", "config": {}, "enabled": True,
+                            "backfill": True},
+  "updateExternalBinding": {"streamId": "transits", "target": "series", "config": {}, "enabled": False,
+                            "backfill": False},
+  "createExternalQuestionLink": {"streamId": "questions", "externalQuestionId": "pm-hormuz-closure",
+                                 "questionId": "{{questionId}}", "orientation": "same"},
+  # 150: two upstream pulls at once across every source (the default).
+  "updateCollectorSettings": {"maxConcurrentPulls": 2},
+  # 155: name an external forecaster (an id of its own; config pins the provider stream), ask it for a forecast now,
+  # and the provider's asynchronous answer.
+  "registerExternalForecaster": {"id": "timesfm-transits", "name": "TimesFM transits",
+                                 "config": {"sourceId": "ext-timesfm", "streamId": "transits"}},
+  "requestAnalysis": {"forecasterId": "timesfm-transits", "questionId": "{{questionId}}",
+                      "orientation": "same", "horizon": "P7D"},
+  "analysisCallback": {"correlationId": "01JA8Q3V7S2K9W4T6Y1B5N0M3C", "probability": 0.61},
+  # 157: a relationship recipe joining companies that share a registered address.
+  "createRecipe": {"id": "shell-companies", "enabled": True,
+                   "definition": {"type": "custom", "seed": {"kinds": ["company"]},
+                                  "joins": [{"kinds": ["company"], "sharedAttribute": "registeredAddress"}],
+                                  "quietPeriod": "6h"}},
+  # 158: who owns and controls an organization, three hops each way (replace the example ULID with an entity id).
+  "ownershipChain": {"refs": ["entity:01JA8Q3V7S2K9W4T6Y1B5N0M3C"], "depth": 3, "direction": "both",
+                     "types": ["owns", "controls", "beneficial-owner"], "minConfidence": 0.5},
   # Vessels in a box around Rotterdam's approaches, against one subject vessel: the 20 closest approaches within
   # one nautical mile in the next hour.
   "cpaBatch": {"subject": "aisstream/244660000", "filter": {"kinds": ["vessel"], "sources": [],
@@ -1273,13 +1316,6 @@ def example_for(schema):
     if schema.get("format") == "date-time": return "2026-10-10T00:00:00Z"
     return {"integer": "", "number": "", "boolean": "false"}.get(t, "")
 
-# 129: read-scope operations whose controller requires a token (security without the anonymous alternative).
-TOKEN_REQUIRED_READS = {"listObjectAnnotations", "createAnnotation", "updateAnnotation", "deleteAnnotation",
-                        "listWorkspaces", "createWorkspace", "getWorkspace", "updateWorkspace", "deleteWorkspace",
-                        "putWorkspaceLayout", "patchWorkspaceContext", "getWorkspaceSummary",
-                        "getWorkspaceContextLink"}
-
-
 def req_item(path, method, op):
     opid = op["operationId"]
     scope = op.get("x-foresignal-scope", "open")
@@ -1332,8 +1368,9 @@ def req_item(path, method, op):
         var = "{{agentToken}}" if scope == "agent" else "{{adminToken}}"
         request["auth"] = {"type": "bearer", "bearer": [{"key": "token", "value": var, "type": "string"}]}
     elif scope == "read" and (op.get("x-foresignal-always-authenticated")
-                              or (opid in TOKEN_REQUIRED_READS and op.get("security") == [{"bearerToken": []}])):
-        # Always authenticated (023): a token is needed even while openReads is on.
+                              or not any(alt == {} for alt in op.get("security", [{}]))):
+        # Always authenticated (023), or a security list without the anonymous {} alternative (the per-caller reads
+        # of 129 onward): a token is needed even while openReads is on.
         request["auth"] = {"type": "bearer", "bearer": [{"key": "token", "value": "{{readToken}}", "type": "string"}]}
     else:
         request["auth"] = {"type": "noauth"}

@@ -276,8 +276,8 @@ public class DossierService {
                 out.put("resolutionCriteria", q.getResolutionCriteria());
                 out.put("ensembleProbability", q.getEnsembleProbability());
             });
-            case ObjectTypes.SITUATION -> jdbc.query("SELECT theme, member_count, region_codes::text,"
-                    + " signal_families::text FROM situation WHERE id = ?", rs -> {
+            case ObjectTypes.SITUATION -> jdbc.query("SELECT theme, member_count, to_jsonb(region_codes)::text,"
+                    + " to_jsonb(signal_families)::text FROM situation WHERE id = ?", rs -> {
                         out.put("theme", rs.getString(1));
                         out.put("memberCount", rs.getInt(2));
                         out.put("regionCodes", readList(rs.getString(3)));

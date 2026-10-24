@@ -17,6 +17,7 @@ import ai.foresignal.api.error.ConflictException;
 import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.collect.BackoffRegistry;
 import ai.foresignal.collect.BudgetGovernor;
+import ai.foresignal.collect.UsageMeter;
 import ai.foresignal.security.AdminTokenService;
 import ai.foresignal.security.Scope;
 import ai.foresignal.security.TokenService;
@@ -75,6 +76,7 @@ class DoctorServiceIT extends WireMockSupport {
     @Autowired DoctorService doctor;
     @Autowired SourceService sources;
     @Autowired BudgetGovernor budgets;
+    @Autowired UsageMeter usage;
     @Autowired BackoffRegistry backoff;
     @Autowired MutableClock clock;
     @Autowired JdbcTemplate jdbc;
@@ -173,8 +175,11 @@ class DoctorServiceIT extends WireMockSupport {
     @DisplayName("out of budget: the probe is skipped (PROBE_SKIPPED_BUDGET) and nothing is sent")
     void probeSkippedOutOfBudget() {
         serve(200, "application/json", fixture());
-        budget(Budget.of(1, 1));
-        assertThat(budgets.tryConsume(ID)).isTrue();
+        // One request a minute, taken here: the day's budget is ample because the earlier tests of this class
+        // probe the same source on the same (fixed) day, and their requests count against it.
+        budget(Budget.of(1, 100_000));
+        assertThat(budgets.tryConsume(ID)).as("requests already counted today: %d", usage.requestsToday(ID))
+                .isTrue();
 
         DoctorReportView report = doctor.run(ID, NO_LLM, DoctorTrigger.MANUAL);
 

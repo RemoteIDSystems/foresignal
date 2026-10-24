@@ -143,8 +143,10 @@ class PlatformAdaptersTest extends WireMockSupport {
         json("/search", "{\"kind\":\"Listing\",\"data\":{\"after\":null,\"children\":[" + link("t3_c", now - 30,
                 "Houthi claim near Bab el-Mandeb") + "]}}");
         FetchResult result = adapter.fetch(harness.context(adapter, Map.of()));
+        // r/shipping is a channel of the red-sea topic, so every new post there matches it ("Port news" too, by
+        // channel); t3_old is before the last run.
         assertThat(result.records()).extracting(NormalizedRecord::externalId)
-                .containsExactlyInAnyOrder("reddit:t3_a", "reddit:t3_c");
+                .containsExactlyInAnyOrder("reddit:t3_a", "reddit:t3_b", "reddit:t3_c");
         WIREMOCK.verify(getRequestedFor(urlPathEqualTo("/r/shipping/new")).withHeader("Authorization",
                 equalTo("Bearer tok")).withQueryParam("limit", equalTo("100")));
         assertThat(quotas.used("reddit", "queries", Duration.ofMinutes(1))).isGreaterThanOrEqualTo(2);
