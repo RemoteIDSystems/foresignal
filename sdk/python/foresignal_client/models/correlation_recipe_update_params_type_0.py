@@ -6,12 +6,12 @@ from typing import Any, Self, TypeVar
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-T = TypeVar("T", bound="CorrelationRecipeUpdateParams")
+T = TypeVar("T", bound="CorrelationRecipeUpdateParamsType0")
 
 
 @_attrs_define
-class CorrelationRecipeUpdateParams:
-    """Parameter overrides"""
+class CorrelationRecipeUpdateParamsType0:
+    """Parameter overrides; null removes them"""
 
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -25,10 +25,10 @@ class CorrelationRecipeUpdateParams:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         d = dict(src_dict)
-        correlation_recipe_update_params = cls()
+        correlation_recipe_update_params_type_0 = cls()
 
-        correlation_recipe_update_params.additional_properties = d
-        return correlation_recipe_update_params
+        correlation_recipe_update_params_type_0.additional_properties = d
+        return correlation_recipe_update_params_type_0
 
     @property
     def additional_keys(self) -> list[str]:

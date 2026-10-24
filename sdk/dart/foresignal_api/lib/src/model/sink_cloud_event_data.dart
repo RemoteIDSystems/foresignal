@@ -241,6 +241,7 @@ class SinkCloudEventData {
 
 
 
+      /// null when the source has no attribution line
   @JsonKey(
     
     name: r'attribution',
@@ -562,7 +563,7 @@ class SinkCloudEventData {
         tombstone.hashCode +
         (geometry == null ? 0 : geometry.hashCode) +
         payload.hashCode +
-        attribution.hashCode +
+        (attribution == null ? 0 : attribution.hashCode) +
         (title == null ? 0 : title.hashCode) +
         persistedObservedAt.hashCode +
         (eventTime == null ? 0 : eventTime.hashCode) +

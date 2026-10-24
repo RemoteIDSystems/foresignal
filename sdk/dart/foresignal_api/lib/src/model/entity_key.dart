@@ -69,7 +69,7 @@ class EntityKey {
 
 
 
-      /// Key type. `callsign` values are domain-prefixed (`air:`, `sea:`, `ham:`)
+      /// Key type. `callsign` values are domain-prefixed (`air:`, `sea:`, `ham:`). Corporate and person keys (prompt 158): `lei`, `company-number` (`JURISDICTION:NUMBER`), `tax-id`, `officer-id` (`REGISTRY:ID`) for organizations; `person-key` (a normalized name key) for people
   @JsonKey(
     
     name: r'keyType',
@@ -95,7 +95,7 @@ class EntityKey {
 
 
 
-      /// ANCHOR keys (airframe, imo, norad, cospar) identify an entity on their own; WEAK keys can be re-assigned
+      /// ANCHOR keys (airframe, imo, norad, cospar, lei, company-number, tax-id, officer-id) identify an entity on their own; WEAK keys (callsign, person-key) can be re-assigned
   @JsonKey(
     
     name: r'role',
@@ -226,7 +226,7 @@ class EntityKey {
 
 }
 
-/// Key type. `callsign` values are domain-prefixed (`air:`, `sea:`, `ham:`)
+/// Key type. `callsign` values are domain-prefixed (`air:`, `sea:`, `ham:`). Corporate and person keys (prompt 158): `lei`, `company-number` (`JURISDICTION:NUMBER`), `tax-id`, `officer-id` (`REGISTRY:ID`) for organizations; `person-key` (a normalized name key) for people
 enum EntityKeyKeyTypeEnum {
 @JsonValue(r'airframe')
 airframe(r'airframe'),
@@ -243,7 +243,17 @@ norad(r'norad'),
 @JsonValue(r'cospar')
 cospar(r'cospar'),
 @JsonValue(r'callsign')
-callsign(r'callsign');
+callsign(r'callsign'),
+@JsonValue(r'lei')
+lei(r'lei'),
+@JsonValue(r'company-number')
+companyNumber(r'company-number'),
+@JsonValue(r'tax-id')
+taxId(r'tax-id'),
+@JsonValue(r'officer-id')
+officerId(r'officer-id'),
+@JsonValue(r'person-key')
+personKey(r'person-key');
 
 const EntityKeyKeyTypeEnum(this.value);
 
@@ -254,7 +264,7 @@ String toString() => value;
 }
 
 
-/// ANCHOR keys (airframe, imo, norad, cospar) identify an entity on their own; WEAK keys can be re-assigned
+/// ANCHOR keys (airframe, imo, norad, cospar, lei, company-number, tax-id, officer-id) identify an entity on their own; WEAK keys (callsign, person-key) can be re-assigned
 enum EntityKeyRoleEnum {
 @JsonValue(r'ANCHOR')
 ANCHOR(r'ANCHOR'),

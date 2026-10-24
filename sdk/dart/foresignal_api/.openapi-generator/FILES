@@ -127,6 +127,7 @@ lib/src/model/analog_result.dart
 lib/src/model/analog_result_outcome_distribution.dart
 lib/src/model/analog_result_signature.dart
 lib/src/model/analog_result_target.dart
+lib/src/model/analysis_callback.dart
 lib/src/model/analysis_cycle.dart
 lib/src/model/analysis_cycle_input.dart
 lib/src/model/analysis_cycle_input_schedule.dart
@@ -136,6 +137,8 @@ lib/src/model/analysis_manifest_build.dart
 lib/src/model/analysis_manifest_inputs.dart
 lib/src/model/analysis_manifest_model.dart
 lib/src/model/analysis_manifest_model_templates_inner.dart
+lib/src/model/analysis_request_result.dart
+lib/src/model/analysis_request_submission.dart
 lib/src/model/analysis_series.dart
 lib/src/model/analysis_series_input.dart
 lib/src/model/analysis_series_page.dart
@@ -370,6 +373,7 @@ lib/src/model/claim_event_time.dart
 lib/src/model/claim_extracted_event.dart
 lib/src/model/claim_page.dart
 lib/src/model/claim_place.dart
+lib/src/model/claim_reputation.dart
 lib/src/model/client_links.dart
 lib/src/model/client_presence.dart
 lib/src/model/client_presence_input.dart
@@ -382,6 +386,8 @@ lib/src/model/collab_attachment_links.dart
 lib/src/model/collection_gap.dart
 lib/src/model/collection_gap_page.dart
 lib/src/model/collection_gap_recommendations_inner.dart
+lib/src/model/collector_settings.dart
+lib/src/model/collector_status.dart
 lib/src/model/comment_event.dart
 lib/src/model/common_dependencies.dart
 lib/src/model/common_dependencies_dependencies_inner.dart
@@ -404,6 +410,7 @@ lib/src/model/coordination_detected_event.dart
 lib/src/model/coordination_indicator.dart
 lib/src/model/coordination_indicators.dart
 lib/src/model/correlation_recipe.dart
+lib/src/model/correlation_recipe_create.dart
 lib/src/model/correlation_recipe_definition.dart
 lib/src/model/correlation_recipe_definition_activate_at.dart
 lib/src/model/correlation_recipe_definition_contradictions_inner.dart
@@ -512,6 +519,7 @@ lib/src/model/dossier_sections_overview_links.dart
 lib/src/model/dossier_sections_related.dart
 lib/src/model/dossier_sections_timeline.dart
 lib/src/model/dossier_sections_timeline_items_inner.dart
+lib/src/model/edp_analysis_request.dart
 lib/src/model/edp_batch.dart
 lib/src/model/edp_coverage.dart
 lib/src/model/edp_delete_item.dart
@@ -554,6 +562,8 @@ lib/src/model/emergency_squawk_payload.dart
 lib/src/model/emwin_product_payload.dart
 lib/src/model/emwin_warning_payload.dart
 lib/src/model/emwin_warning_payload_duplicate_of.dart
+lib/src/model/enable_core_sources_result.dart
+lib/src/model/enable_free_sources_result.dart
 lib/src/model/ensemble_refit_result.dart
 lib/src/model/ensemble_refit_result_extremizing.dart
 lib/src/model/ensemble_refit_result_platt_inner.dart
@@ -641,6 +651,7 @@ lib/src/model/external_binding_preview.dart
 lib/src/model/external_binding_preview_effects_inner.dart
 lib/src/model/external_catalogue_entry.dart
 lib/src/model/external_catalogue_entry_time_dimension.dart
+lib/src/model/external_forecaster_registration.dart
 lib/src/model/external_question_link.dart
 lib/src/model/external_question_link_input.dart
 lib/src/model/external_source.dart
@@ -705,6 +716,11 @@ lib/src/model/forecast_history.dart
 lib/src/model/forecast_history_series_inner.dart
 lib/src/model/forecast_history_series_inner_points_inner.dart
 lib/src/model/forecast_input.dart
+lib/src/model/forecast_numeric_calibration.dart
+lib/src/model/forecast_numeric_calibration_pit.dart
+lib/src/model/forecast_numeric_calibration_pit_bins_inner.dart
+lib/src/model/forecast_numeric_calibration_quantile_reliability_inner.dart
+lib/src/model/forecast_numeric_calibration_summary.dart
 lib/src/model/forecast_page.dart
 lib/src/model/forecast_question.dart
 lib/src/model/forecast_question_event.dart
@@ -730,6 +746,8 @@ lib/src/model/frame_item.dart
 lib/src/model/frame_stats.dart
 lib/src/model/geofence_ref.dart
 lib/src/model/geometry.dart
+lib/src/model/get_forecast_calibration200_response.dart
+lib/src/model/get_intel_calibration200_response.dart
 lib/src/model/get_principal200_response.dart
 lib/src/model/get_vapid_public_key200_response.dart
 lib/src/model/glance.dart
@@ -874,6 +892,13 @@ lib/src/model/intel_board_forecasts_due_inner.dart
 lib/src/model/intel_board_indicators_observed_inner.dart
 lib/src/model/intel_board_latest_assessments_inner.dart
 lib/src/model/intel_board_situations_inner.dart
+lib/src/model/intel_calibration.dart
+lib/src/model/intel_calibration_bins_inner.dart
+lib/src/model/intel_calibration_curve_inner.dart
+lib/src/model/intel_corroboration.dart
+lib/src/model/intel_corroboration_auto_corroborate.dart
+lib/src/model/intel_corroboration_event_quality.dart
+lib/src/model/intel_corroboration_situation_activation.dart
 lib/src/model/intel_event_alternative.dart
 lib/src/model/intel_event_input.dart
 lib/src/model/intel_event_log_entry.dart
@@ -1126,6 +1151,10 @@ lib/src/model/overland_batch.dart
 lib/src/model/overland_batch_locations_inner.dart
 lib/src/model/overland_batch_locations_inner_properties.dart
 lib/src/model/own_tracks_message.dart
+lib/src/model/ownership_chain.dart
+lib/src/model/ownership_chain_node.dart
+lib/src/model/ownership_chain_node_paths_inner.dart
+lib/src/model/ownership_chain_request.dart
 lib/src/model/pack_spec.dart
 lib/src/model/pack_spec_raster.dart
 lib/src/model/pack_spec_vector.dart
@@ -1274,6 +1303,8 @@ lib/src/model/projected_impact_page.dart
 lib/src/model/projected_impact_question_window.dart
 lib/src/model/projected_impact_skipped_inner.dart
 lib/src/model/prompt_template.dart
+lib/src/model/prompt_template_list.dart
+lib/src/model/prompt_template_summary.dart
 lib/src/model/propagation_edge.dart
 lib/src/model/propagation_graph.dart
 lib/src/model/propagation_graph_cross_platform_order_inner.dart
@@ -1598,6 +1629,7 @@ lib/src/model/social_coverage_bucket.dart
 lib/src/model/social_coverage_page.dart
 lib/src/model/social_cue.dart
 lib/src/model/social_cue_event.dart
+lib/src/model/social_cue_external_results_inner.dart
 lib/src/model/social_cue_input.dart
 lib/src/model/social_cue_page.dart
 lib/src/model/social_cue_query.dart

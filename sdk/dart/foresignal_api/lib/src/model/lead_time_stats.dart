@@ -46,16 +46,16 @@ class LeadTimeStats {
 
 
 
-      /// Comparisons evaluated after this are out of sample
+      /// Comparisons evaluated after this are out of sample; null until there is a comparison to set it
   @JsonKey(
     
     name: r'trainingCutoff',
     required: true,
-    includeIfNull: false,
+    includeIfNull: true,
   )
 
 
-  final DateTime trainingCutoff;
+  final DateTime? trainingCutoff;
 
 
 
@@ -108,7 +108,7 @@ class LeadTimeStats {
     @override
     int get hashCode =>
         generatedAt.hashCode +
-        trainingCutoff.hashCode +
+        (trainingCutoff == null ? 0 : trainingCutoff.hashCode) +
         filters.hashCode +
         groups.hashCode +
         caveats.hashCode;

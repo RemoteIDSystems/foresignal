@@ -14,6 +14,7 @@ class ListForecastersTypeItem(StrEnum):
     PERSISTENCE = "persistence"
     PRECURSOR = "precursor"
     STATISTICAL = "statistical"
+    THRESHOLD = "threshold"
 
     def __str__(self) -> str:
         return str(self.value)

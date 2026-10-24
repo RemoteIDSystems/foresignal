@@ -16,6 +16,8 @@ import 'package:foresignal_api/src/model/doctor_options.dart';
 import 'package:foresignal_api/src/model/doctor_report.dart';
 import 'package:foresignal_api/src/model/doctor_report_page.dart';
 import 'package:foresignal_api/src/model/doctor_run_accepted.dart';
+import 'package:foresignal_api/src/model/enable_core_sources_result.dart';
+import 'package:foresignal_api/src/model/enable_free_sources_result.dart';
 import 'package:foresignal_api/src/model/fetch_outcome.dart';
 import 'package:foresignal_api/src/model/fetch_page.dart';
 import 'package:foresignal_api/src/model/probe_result.dart';
@@ -180,6 +182,158 @@ _responseData = rawData == null ? null : deserialize<BackfillJob, BackfillJob>(r
     );
 
     return _response;
+  }
+
+  /// Enable the core sources
+  /// Enables every currently disabled source of the core set that runs without operator input: the small live-tracking set a fresh install seeds enabled (prompt 150): &#x60;adsblol-world&#x60;, &#x60;adsblol-mil&#x60;, &#x60;airplaneslive-mil&#x60;, &#x60;adsbfi-blindspots&#x60;, &#x60;airplaneslive-blindspots&#x60;, &#x60;opensky-states&#x60;, &#x60;derived-aircraft&#x60;, &#x60;celestrak-gp&#x60;, &#x60;usgs-earthquakes&#x60;, &#x60;nws-alerts&#x60;, &#x60;nasa-firms&#x60;, &#x60;meshtastic-map&#x60; and &#x60;meshtastic-mqtt&#x60;. A core source that needs operator input (&#x60;nasa-firms&#x60; without its MAP_KEY) is skipped, as is every source outside the core set. Each source is enabled through the settings-update path, so the collector picks it up within seconds. Disables nothing; enabled sources and custom or external sources are left untouched. Idempotent: a second call enables nothing. This is how an install seeded before prompt 150 adopts the core default without re-seeding.  **Scope:** &#x60;admin&#x60;.
+  ///
+  /// Parameters:
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [EnableCoreSourcesResult] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<EnableCoreSourcesResult>> enableCoreSources({ 
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/sources/enable-core';
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    EnableCoreSourcesResult? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<EnableCoreSourcesResult, EnableCoreSourcesResult>(rawData, 'EnableCoreSourcesResult', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<EnableCoreSourcesResult>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Enable every free source
+  /// Enables every currently disabled built-in source that runs without operator input: no required credential, no required parameter, and parameters that are valid with nothing supplied (the same checks &#x60;PUT /v1/sources/{sourceId}&#x60; applies when enabling), unless the source is held off by default for its bandwidth or terms (prompt 146: &#x60;wiki-edit-surge&#x60;, which the operator enables with &#x60;PUT /v1/sources/wiki-edit-surge&#x60;). Each source is enabled through the settings-update path, so the collector picks it up within seconds and fetches it at its default interval and budget. Enabled sources, credential- or parameter-gated sources, held-off sources and custom or external sources are left untouched. Idempotent: a second call enables nothing. A fresh install seeds only the core set enabled (prompt 150, &#x60;enableCoreSources&#x60;); this call turns on every free source on top of it.  **Scope:** &#x60;admin&#x60;.
+  ///
+  /// Parameters:
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [EnableFreeSourcesResult] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<EnableFreeSourcesResult>> enableFreeSources({ 
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/sources/enable-free';
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    EnableFreeSourcesResult? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<EnableFreeSourcesResult, EnableFreeSourcesResult>(rawData, 'EnableFreeSourcesResult', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<EnableFreeSourcesResult>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
   }
 
   /// Fetch once now

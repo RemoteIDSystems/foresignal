@@ -51,6 +51,14 @@ abstract class _$ClaimCWProxy {
 
   Claim grade(String grade);
 
+  Claim restatement(String? restatement);
+
+  Claim framingScore(num? framingScore);
+
+  Claim framingLabel(ClaimFramingLabelEnum? framingLabel);
+
+  Claim reputation(ClaimReputation? reputation);
+
   Claim tlp(Tlp? tlp);
 
   Claim createdAt(DateTime? createdAt);
@@ -86,6 +94,10 @@ abstract class _$ClaimCWProxy {
     ClaimSourceReliabilityEnum sourceReliability,
     int informationCredibility,
     String grade,
+    String? restatement,
+    num? framingScore,
+    ClaimFramingLabelEnum? framingLabel,
+    ClaimReputation? reputation,
     Tlp? tlp,
     DateTime? createdAt,
   });
@@ -170,6 +182,19 @@ class _$ClaimCWProxyImpl implements _$ClaimCWProxy {
   Claim grade(String grade) => call(grade: grade);
 
   @override
+  Claim restatement(String? restatement) => call(restatement: restatement);
+
+  @override
+  Claim framingScore(num? framingScore) => call(framingScore: framingScore);
+
+  @override
+  Claim framingLabel(ClaimFramingLabelEnum? framingLabel) =>
+      call(framingLabel: framingLabel);
+
+  @override
+  Claim reputation(ClaimReputation? reputation) => call(reputation: reputation);
+
+  @override
   Claim tlp(Tlp? tlp) => call(tlp: tlp);
 
   @override
@@ -207,6 +232,10 @@ class _$ClaimCWProxyImpl implements _$ClaimCWProxy {
     Object? sourceReliability = const $CopyWithPlaceholder(),
     Object? informationCredibility = const $CopyWithPlaceholder(),
     Object? grade = const $CopyWithPlaceholder(),
+    Object? restatement = const $CopyWithPlaceholder(),
+    Object? framingScore = const $CopyWithPlaceholder(),
+    Object? framingLabel = const $CopyWithPlaceholder(),
+    Object? reputation = const $CopyWithPlaceholder(),
     Object? tlp = const $CopyWithPlaceholder(),
     Object? createdAt = const $CopyWithPlaceholder(),
   }) {
@@ -313,6 +342,22 @@ class _$ClaimCWProxyImpl implements _$ClaimCWProxy {
           ? _value.grade
           // ignore: cast_nullable_to_non_nullable
           : grade as String,
+      restatement: restatement == const $CopyWithPlaceholder()
+          ? _value.restatement
+          // ignore: cast_nullable_to_non_nullable
+          : restatement as String?,
+      framingScore: framingScore == const $CopyWithPlaceholder()
+          ? _value.framingScore
+          // ignore: cast_nullable_to_non_nullable
+          : framingScore as num?,
+      framingLabel: framingLabel == const $CopyWithPlaceholder()
+          ? _value.framingLabel
+          // ignore: cast_nullable_to_non_nullable
+          : framingLabel as ClaimFramingLabelEnum?,
+      reputation: reputation == const $CopyWithPlaceholder()
+          ? _value.reputation
+          // ignore: cast_nullable_to_non_nullable
+          : reputation as ClaimReputation?,
       tlp: tlp == const $CopyWithPlaceholder()
           ? _value.tlp
           // ignore: cast_nullable_to_non_nullable
@@ -415,6 +460,18 @@ Claim _$ClaimFromJson(
       (v) => (v as num).toInt(),
     ),
     grade: $checkedConvert('grade', (v) => v as String),
+    restatement: $checkedConvert('restatement', (v) => v as String?),
+    framingScore: $checkedConvert('framingScore', (v) => v as num?),
+    framingLabel: $checkedConvert(
+      'framingLabel',
+      (v) => $enumDecodeNullable(_$ClaimFramingLabelEnumEnumMap, v),
+    ),
+    reputation: $checkedConvert(
+      'reputation',
+      (v) => v == null
+          ? null
+          : ClaimReputation.fromJson(v as Map<String, dynamic>),
+    ),
     tlp: $checkedConvert('tlp', (v) => $enumDecodeNullable(_$TlpEnumMap, v)),
     createdAt: $checkedConvert(
       'createdAt',
@@ -448,6 +505,10 @@ Map<String, dynamic> _$ClaimToJson(Claim instance) => <String, dynamic>{
       _$ClaimSourceReliabilityEnumEnumMap[instance.sourceReliability]!,
   'informationCredibility': instance.informationCredibility,
   'grade': instance.grade,
+  'restatement': ?instance.restatement,
+  'framingScore': ?instance.framingScore,
+  'framingLabel': ?_$ClaimFramingLabelEnumEnumMap[instance.framingLabel],
+  'reputation': ?instance.reputation?.toJson(),
   'tlp': ?_$TlpEnumMap[instance.tlp],
   'createdAt': ?instance.createdAt?.toIso8601String(),
 };
@@ -479,6 +540,12 @@ const _$ClaimSourceReliabilityEnumEnumMap = {
   ClaimSourceReliabilityEnum.D: 'D',
   ClaimSourceReliabilityEnum.E: 'E',
   ClaimSourceReliabilityEnum.F: 'F',
+};
+
+const _$ClaimFramingLabelEnumEnumMap = {
+  ClaimFramingLabelEnum.neutral: 'neutral',
+  ClaimFramingLabelEnum.charged: 'charged',
+  ClaimFramingLabelEnum.inflammatory: 'inflammatory',
 };
 
 const _$TlpEnumMap = {

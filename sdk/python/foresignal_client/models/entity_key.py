@@ -23,11 +23,13 @@ class EntityKey:
         Attributes:
             id (int): Key row id
             entity_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
-            key_type (EntityKeyKeyType): Key type. `callsign` values are domain-prefixed (`air:`, `sea:`, `ham:`)
+            key_type (EntityKeyKeyType): Key type. `callsign` values are domain-prefixed (`air:`, `sea:`, `ham:`). Corporate
+                and person keys (prompt 158): `lei`, `company-number` (`JURISDICTION:NUMBER`), `tax-id`, `officer-id`
+                (`REGISTRY:ID`) for organizations; `person-key` (a normalized name key) for people
             key_value (str): Normalised value (e.g. icao24 lowercase hex, registration without spaces or hyphens) Example:
                 ae1234.
-            role (EntityKeyRole): ANCHOR keys (airframe, imo, norad, cospar) identify an entity on their own; WEAK keys can
-                be re-assigned
+            role (EntityKeyRole): ANCHOR keys (airframe, imo, norad, cospar, lei, company-number, tax-id, officer-id)
+                identify an entity on their own; WEAK keys (callsign, person-key) can be re-assigned
             confidence (float):
             origin (EntityKeyOrigin):
             valid_from (datetime.datetime):

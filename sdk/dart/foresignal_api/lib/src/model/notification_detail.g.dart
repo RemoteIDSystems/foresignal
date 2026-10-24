@@ -289,6 +289,15 @@ const _$NotificationDetailEventEnumEnumMap = {
   NotificationDetailEventEnum.alert: 'alert',
   NotificationDetailEventEnum.briefing: 'briefing',
   NotificationDetailEventEnum.system: 'system',
+  NotificationDetailEventEnum.analystPeriodNote: 'analyst.note',
+  NotificationDetailEventEnum.situationPeriodActivated: 'situation.activated',
+  NotificationDetailEventEnum.situationPeriodEscalated: 'situation.escalated',
+  NotificationDetailEventEnum.findingPeriodSignificant: 'finding.significant',
+  NotificationDetailEventEnum.forecastPeriodResolutionNeeded:
+      'forecast.resolution_needed',
+  NotificationDetailEventEnum.hypothesisPeriodBandChanged:
+      'hypothesis.band_changed',
+  NotificationDetailEventEnum.assessmentPeriodPublished: 'assessment.published',
 };
 
 const _$NotificationDetailSeverityEnumEnumMap = {

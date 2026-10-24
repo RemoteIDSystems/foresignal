@@ -11,6 +11,11 @@ T = TypeVar("T", bound="ForecasterUpdateConfig")
 
 @_attrs_define
 class ForecasterUpdateConfig:
+    """Replaces the forecaster's configuration. For an external forecaster, `externalMinResolved` (integer) overrides the
+    ensemble's global minimum resolved count before the forecaster is weighted (155).
+
+    """
+
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

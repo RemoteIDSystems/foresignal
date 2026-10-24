@@ -3055,6 +3055,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/settings/collector": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get collector settings
+         * @description The collector's runtime settings (prompt 150). `maxConcurrentPulls` is the size of the global pull governor: how many polling fetches may pull from upstream at once across every source (default 2, 1 to 16). Every scheduled and manual fetch, and every polling probe, holds a permit while it pulls; streams are not counted. Per-source intervals, host pacing and budgets apply beneath it unchanged.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["getCollectorSettings"];
+        /**
+         * Set collector settings
+         * @description Replaces the collector settings. The pull governor resizes live: a larger `maxConcurrentPulls` admits waiting fetches at once, a smaller one admits no new pull until enough running ones finish (none is interrupted). A value outside 1 to 16 is clamped; a value that is not an integer, or an unknown member, is 400 VALIDATION_FAILED.
+         *
+         *     **Scope:** `admin`.
+         */
+        put: operations["updateCollectorSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/settings/collector/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get collector status
+         * @description The pull governor's live state (prompt 160), so a client can show it working rather than only its setting: `cap` is the `maxConcurrentPulls` in force (`getCollectorSettings`), `inUse` how many polling fetches hold a permit and are pulling from upstream right now, and `waiting` how many are queued for one. `inUse` may briefly exceed `cap` just after `updateCollectorSettings` lowers it, until running pulls finish. Streams are not counted. Read-only; a snapshot at the time of the request.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["getCollectorStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/places": {
         parameters: {
             query?: never;
@@ -5645,6 +5695,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/intel/calibration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Intelligence calibration state
+         * @description How calibrated intelligence confidence is (151): the calibration of every scope, each with whether it is calibrated, the resolved sample size, the Brier score, the 10-bin reliability table and the CORP recalibration curve.
+         *
+         *     **Scope:** `read` (open while `security.openReads` is on).
+         */
+        get: operations["getIntelCalibration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/intel/calibration/{scope}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Calibration of one scope
+         * @description The calibration of one scope (151): `intel-event` or `precursor-active`. An unknown scope returns the empty, uncalibrated state.
+         *
+         *     **Scope:** `read` (open while `security.openReads` is on).
+         */
+        get: operations["getIntelCalibrationScope"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/intel/corroboration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Corroboration policy
+         * @description The tunable "promote to a trusted signal" gates (154): the event evidence-quality thresholds (with an optional cross-modality requirement), the situation activation rule, and the automatic corroboration of lone events. Every gate defaults to its historical constant.
+         *
+         *     **Scope:** `read` (open while `security.openReads` is on).
+         */
+        get: operations["getIntelCorroboration"];
+        /**
+         * Replace the corroboration policy
+         * @description Replaces the corroboration policy; members left out return to their defaults.
+         *
+         *     **Scope:** `admin`.
+         */
+        put: operations["updateIntelCorroboration"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/intel/recipes": {
         parameters: {
             query?: never;
@@ -5660,7 +5782,13 @@ export interface paths {
          */
         get: operations["listIntelRecipes"];
         put?: never;
-        post?: never;
+        /**
+         * Author a correlation recipe
+         * @description Authors a new operator correlation recipe (prompt 157): the body carries an id (a slug not already in use and not a bundled recipe) and a full definition, validated by the recipe validator. Operator recipes live beside the bundled classpath recipes.
+         *
+         *     **Scope:** `admin`.
+         */
+        post: operations["createRecipe"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5677,7 +5805,7 @@ export interface paths {
         get?: never;
         /**
          * Enable or tune a recipe
-         * @description Sets `enabled` and parameter overrides; overrides survive built-in version updates.
+         * @description Sets `enabled` and parameter overrides; overrides survive built-in version updates. For an operator-authored recipe the body may also carry a full `definition` to replace, validated by the recipe validator (prompt 157); a bundled recipe's definition is managed by the classpath and cannot be replaced here.
          *
          *     **Scope:** `admin`.
          */
@@ -8941,6 +9069,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/prompt-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the LLM prompt templates
+         * @description Every bundled prompt template: its id, LLM role, newest version and all versions, so a client can offer them to getPromptTemplate. Texts are not included.
+         *
+         *     **Scope:** `read` (open while `security.openReads` is on).
+         */
+        get: operations["listPromptTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/prompt-templates/{templateId}": {
         parameters: {
             query?: never;
@@ -9041,6 +9191,50 @@ export interface paths {
          *     **Scope:** `admin`.
          */
         post: operations["backfillCftcCot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sources/enable-free": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enable every free source
+         * @description Enables every currently disabled built-in source that runs without operator input: no required credential, no required parameter, and parameters that are valid with nothing supplied (the same checks `PUT /v1/sources/{sourceId}` applies when enabling), unless the source is held off by default for its bandwidth or terms (prompt 146: `wiki-edit-surge`, which the operator enables with `PUT /v1/sources/wiki-edit-surge`). Each source is enabled through the settings-update path, so the collector picks it up within seconds and fetches it at its default interval and budget. Enabled sources, credential- or parameter-gated sources, held-off sources and custom or external sources are left untouched. Idempotent: a second call enables nothing. A fresh install seeds only the core set enabled (prompt 150, `enableCoreSources`); this call turns on every free source on top of it.
+         *
+         *     **Scope:** `admin`.
+         */
+        post: operations["enableFreeSources"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sources/enable-core": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enable the core sources
+         * @description Enables every currently disabled source of the core set that runs without operator input: the small live-tracking set a fresh install seeds enabled (prompt 150): `adsblol-world`, `adsblol-mil`, `airplaneslive-mil`, `adsbfi-blindspots`, `airplaneslive-blindspots`, `opensky-states`, `derived-aircraft`, `celestrak-gp`, `usgs-earthquakes`, `nws-alerts`, `nasa-firms`, `meshtastic-map` and `meshtastic-mqtt`. A core source that needs operator input (`nasa-firms` without its MAP_KEY) is skipped, as is every source outside the core set. Each source is enabled through the settings-update path, so the collector picks it up within seconds. Disables nothing; enabled sources and custom or external sources are left untouched. Idempotent: a second call enables nothing. This is how an install seeded before prompt 150 adopts the core default without re-seeding.
+         *
+         *     **Scope:** `admin`.
+         */
+        post: operations["enableCoreSources"];
         delete?: never;
         options?: never;
         head?: never;
@@ -9966,7 +10160,13 @@ export interface paths {
          */
         get: operations["listForecasters"];
         put?: never;
-        post?: never;
+        /**
+         * Register an external forecaster
+         * @description Pre-registers, names and configures a first-class external forecaster (155) — a display name and a per-forecaster `externalMinResolved` — independent of the auto-derived `edp:{sourceId}/{streamId}` id, before any forecast arrives. An existing forecaster with that id is renamed and reconfigured in place (its type is kept).
+         *
+         *     **Scope:** `admin`.
+         */
+        post: operations["registerExternalForecaster"];
         delete?: never;
         options?: never;
         head?: never;
@@ -9983,7 +10183,7 @@ export interface paths {
         get?: never;
         /**
          * Update a forecaster
-         * @description Sets a forecaster's `active` flag and configuration.
+         * @description Sets a forecaster's `active` flag, configuration and, for an external forecaster, display `name` (155).
          *
          *     **Scope:** `admin`.
          */
@@ -10026,7 +10226,7 @@ export interface paths {
         };
         /**
          * Get calibration curve and bins
-         * @description CORP reliability curve points (PAV) with the miscalibration, discrimination and uncertainty decomposition, plus a 10-bin table with counts (the fallback when n < 50).
+         * @description For a binary forecaster: CORP reliability curve points (PAV) with the miscalibration, discrimination and uncertainty decomposition, plus a 10-bin table with counts (the fallback when n < 50). For a numeric-only forecaster or question (152): a quantile-reliability diagram (empirical coverage of each stated quantile vs its nominal level), a PIT histogram and a calibration-error summary (`type: numeric`).
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
          */
@@ -11341,6 +11541,28 @@ export interface paths {
          *     **Scope:** `read` (open while `security.openReads` is on).
          */
         post: operations["findCommonDependencies"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/graph/ownership-chain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Walk ownership and affiliation chains
+         * @description People and organizations reached from up to 50 seed entities through the ownership / affiliation edges (`owns`, `controls`, `officer-of`, `beneficial-owner`, `affiliated-with`), each with its strongest, shortest ownership chain (158). An entity reached from two or more seeds is a shared attribute — a common owner, officer, address or affiliate. Model and queries only; the external corporate / UBO / PEP / leak data that populates the edges is deferred (docs/Future-Roadmap.md).
+         *
+         *     **Scope:** `read` (open while `security.openReads` is on).
+         */
+        post: operations["ownershipChain"];
         delete?: never;
         options?: never;
         head?: never;
@@ -14885,6 +15107,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/external/analysis/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request an on-demand forecast
+         * @description Asks a first-class external forecaster (a model like TimesFM) to forecast a ledger question now (155). Resolves the forecaster to its provider, which must declare `transport.analysisRequest`, persists a correlation and posts `{questionId, horizon, correlationId, callbackUrl}` to the provider. A provider that answers synchronously returns the forecast in its response and it is recorded at once (`recorded: true`); one that answers asynchronously posts the result later to `analysisCallback`.
+         *
+         *     **Scope:** `agent`.
+         */
+        post: operations["requestAnalysis"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/external/analysis/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ingest a correlated analysis result
+         * @description The callback a provider posts an asynchronous on-demand forecast to (155). Resolves the `correlationId` to its question and external forecaster and records the forecast through the usual binding path; decile output is mapped to the ledger's required quantiles. An unknown, already-answered or unusable result is accepted and ignored (`recorded: false`).
+         *
+         *     **Scope:** open — the unguessable `correlationId` in the body is the credential (the provider receives it in the request and echoes it back), the same pattern as `register`.
+         */
+        post: operations["analysisCallback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/external/sources": {
         parameters: {
             query?: never;
@@ -15536,7 +15802,7 @@ export interface webhooks {
         };
         /**
          * EDP provider search endpoint
-         * @description Optional; served by a provider whose manifest declares `transport.search`. Foresignal calls it for cue-driven searches (137) and stores the returned items as cue results (docs/External-Data-Protocol.md §4.3).
+         * @description Optional; served by a provider whose manifest declares `transport.search`. Foresignal calls it for each cue (`SocialCueService`, 137): once per query, at most 10 queries a provider a cue, each admitted against the source's budget like a push (a refused call stops that provider for the cue with `BUDGET_EXCEEDED`), authenticated as `transport.search.auth` says. The response is read, validated and mapped like a push batch; a search result is never the end of a snapshot, so nothing it leaves out is deleted. The items are stored on the provider's source as cue results (`payload.collection = cue`, `payload.cueId`), which never feed baselines, and each provider's outcome is reported in `SocialCue.externalResults` (docs/External-Data-Protocol.md §4.3).
          *
          *     **Scope:** `open` (outbound; scope does not apply).
          */
@@ -15613,7 +15879,7 @@ export interface components {
         Budget: {
             perMinute: number;
             perDay: number;
-            /** @description Money cap per calendar month for paid adapters (135; X default 25); refused with BUDGET_EXCEEDED */
+            /** @description Money cap per UTC calendar month for a paid source (135). Set with `updateSource`; the budget object is replaced whole, so leaving it out (or null) removes the cap. Once the month's spend (`SourceHealth.spentUsdThisMonth`) reaches it, the budget governor refuses every request of the source until the next month begins (a push or upload is refused 429 BUDGET_EXCEEDED) and the source's health is `degraded` with the reason. X's own platform cap (`social.x.monthlyCapUsd`, default 25) applies as well. */
             monthlyCapUsd?: number | null;
         };
         ParamSpec: {
@@ -15651,15 +15917,15 @@ export interface components {
             credentialFields: components["schemas"]["CredentialField"][];
             params: components["schemas"]["ParamSpec"][];
             /**
-             * @description ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)
+             * @description ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h); null for a source that is not polled (streaming or push)
              * @example 7d
              */
-            minInterval?: string;
+            minInterval?: string | null;
             /**
-             * @description ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)
+             * @description ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h); null for a source that is not polled (streaming or push)
              * @example 7d
              */
-            defaultInterval?: string;
+            defaultInterval?: string | null;
             defaultBudget: components["schemas"]["Budget"];
             /**
              * @description ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)
@@ -15950,7 +16216,8 @@ export interface components {
         SourceHealth: {
             sourceId: string;
             status: components["schemas"]["HealthStatus"];
-            statusReason?: string;
+            /** @description null while healthy */
+            statusReason?: string | null;
             /** Format: date-time */
             lastAttemptAt?: string | null;
             /** Format: date-time */
@@ -15996,7 +16263,7 @@ export interface components {
                 [key: string]: unknown;
             };
             lastDoctorReport?: components["schemas"]["DoctorReportSummary"] | null;
-            /** @description Paid adapters: money spent this calendar month (135) */
+            /** @description Paid adapters: money spent this UTC calendar month (135), against `budget.monthlyCapUsd` */
             spentUsdThisMonth?: number | null;
         };
         UsagePoint: {
@@ -16125,7 +16392,8 @@ export interface components {
             payload: {
                 [key: string]: unknown;
             };
-            attribution?: string;
+            /** @description null when the source has no attribution line */
+            attribution?: string | null;
             /** @description record_head.title (titleField, else title > name > callsign > place > r > hex > mmsi) */
             title?: string | null;
             /**
@@ -17144,10 +17412,10 @@ export interface components {
         ServerSettings: {
             /**
              * Format: uri
-             * @description Base URL used in notification links
+             * @description Base URL used in notification links; null uses the request's own scheme, host and port
              * @example http://foresignal.local:8080
              */
-            publicBaseUrl: string;
+            publicBaseUrl: string | null;
             /**
              * @description IANA zone; fallback for channel timezones
              * @default UTC
@@ -17376,7 +17644,8 @@ export interface components {
                 default?: unknown;
                 allowed?: string[];
             }[];
-            events?: ("alert" | "briefing" | "system")[];
+            /** @description The events a channel of this type can subscribe to: every `Channel.events` value an instance channel accepts */
+            events?: ("alert" | "briefing" | "system" | "chronicle.proposed" | "chronicle.cap_warning" | "chronicle.gap" | "social.divergence" | "social.attention_gap" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolved" | "forecast.resolution_needed" | "hypothesis.band_changed" | "indicator.observed" | "assumption.broken" | "assessment.published" | "mention" | "share" | "report.received" | "package.received" | "chronicle.access.requested" | "saved-search.matches")[];
             capabilities?: {
                 editInPlace?: boolean;
                 attachments?: boolean;
@@ -17417,7 +17686,7 @@ export interface components {
             secrets?: {
                 [key: string]: string;
             };
-            /** @description Prompt 018 accepts alert, briefing and system (default ["alert"]); the other values are subscribed by the prompts that introduce them */
+            /** @description Default ["alert"]. The personal-notice events (`mention`, `share`, `report.received`, `package.received`, `chronicle.proposed`, `chronicle.cap_warning`, `chronicle.gap`, `chronicle.access.requested`, `saved-search.matches`) deliver a copy of each such notice, once per addressee, with its TLP label at the head */
             events?: ("alert" | "briefing" | "system" | "chronicle.proposed" | "chronicle.cap_warning" | "chronicle.gap" | "social.divergence" | "social.attention_gap" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolved" | "forecast.resolution_needed" | "hypothesis.band_changed" | "indicator.observed" | "assumption.broken" | "assessment.published" | "mention" | "share" | "report.received" | "package.received" | "chronicle.access.requested" | "saved-search.matches")[];
             /** @description null = all rules */
             ruleIds?: string[] | null;
@@ -17498,7 +17767,8 @@ export interface components {
             }) & components["schemas"]["MapAttachmentConfig"];
             /** @description Names of the secret fields that are set (values are never returned) */
             secretFields?: string[];
-            events: ("alert" | "briefing" | "system" | "chronicle.proposed" | "chronicle.cap_warning" | "chronicle.gap" | "social.divergence" | "social.attention_gap" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolved" | "forecast.resolution_needed" | "hypothesis.band_changed" | "indicator.observed" | "assumption.broken" | "assessment.published" | "mention" | "share" | "report.received" | "package.received" | "chronicle.access.requested" | "saved-search.matches")[];
+            /** @description The subscribed events. `personal` marks a principal's personal channel (prompt 130), which carries only that principal's notifications; createChannel and updateChannel never accept it. `mention`, `share`, `report.received`, `package.received`, `chronicle.proposed`, `chronicle.cap_warning`, `chronicle.gap`, `chronicle.access.requested` and `saved-search.matches` on an instance channel receive a copy of each such personal notice, once per addressee, with its TLP label at the head; the copies never reach the device inbox or the instance SSE topics */
+            events: ("alert" | "briefing" | "system" | "chronicle.proposed" | "chronicle.cap_warning" | "chronicle.gap" | "social.divergence" | "social.attention_gap" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolved" | "forecast.resolution_needed" | "hypothesis.band_changed" | "indicator.observed" | "assumption.broken" | "assessment.published" | "mention" | "share" | "report.received" | "package.received" | "chronicle.access.requested" | "saved-search.matches" | "personal")[];
             ruleIds?: string[] | null;
             /** @enum {string} */
             minSeverity?: "info" | "warning" | "critical";
@@ -17567,7 +17837,7 @@ export interface components {
             /** Format: int64 */
             id: number;
             /** @enum {string} */
-            event: "alert" | "briefing" | "system" | "social.divergence" | "social.attention_gap" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolved" | "forecast.resolution_needed" | "hypothesis.band_changed" | "indicator.observed" | "assumption.broken" | "assessment.published" | "chronicle.proposed" | "chronicle.cap_warning" | "chronicle.gap" | "mention" | "share" | "report.received" | "package.received" | "chronicle.access.requested" | "saved-search.matches";
+            event: "alert" | "briefing" | "system" | "social.divergence" | "social.attention_gap" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolved" | "forecast.resolution_needed" | "hypothesis.band_changed" | "indicator.observed" | "assumption.broken" | "assessment.published" | "chronicle.proposed" | "chronicle.cap_warning" | "chronicle.gap" | "mention" | "share" | "report.received" | "package.received" | "chronicle.access.requested" | "saved-search.matches" | "personal";
             /** Format: int64 */
             alertId?: number | null;
             /** Format: uuid */
@@ -18338,6 +18608,27 @@ export interface components {
             sizeField?: string | null;
             /** @description Payload field driving a data-driven colour match (default `severity`); must be in tileProperties */
             colorField?: string | null;
+            /** @description Payload field choosing the icon through `iconCases` (e.g. `chartSymbol`); must be in tileProperties */
+            iconField?: string | null;
+            /**
+             * @description Icon names by lowercase `iconField` value; `icon` is drawn for any other value
+             * @example {
+             *       "major": "airport-major",
+             *       "hard": "airport-hard"
+             *     }
+             */
+            iconCases?: {
+                [key: string]: string;
+            } | null;
+            /**
+             * @description Colors `#RRGGBB` by lowercase `colorField` value, replacing the severity colors; `colour` for any other value
+             * @example {
+             *       "true": "#4F8FE8"
+             *     }
+             */
+            colorCases?: {
+                [key: string]: string;
+            } | null;
         };
         /** @description Observation quality (never hashed); validated on ingest (Core-Data-Model §14) */
         Quality: {
@@ -19003,7 +19294,7 @@ export interface components {
              */
             id: number;
             /** @enum {string} */
-            event: "alert" | "briefing" | "system" | "test";
+            event: "alert" | "briefing" | "system" | "chronicle.proposed" | "chronicle.cap_warning" | "chronicle.gap" | "social.divergence" | "social.attention_gap" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolved" | "forecast.resolution_needed" | "hypothesis.band_changed" | "indicator.observed" | "assumption.broken" | "assessment.published" | "mention" | "share" | "report.received" | "package.received" | "chronicle.access.requested" | "saved-search.matches" | "test" | "personal";
             /**
              * @description e.g. alert.fired, alert.acknowledged, alert.snoozed, alert.resolved, alert.digest (a quiet-hours, pause, backlog or grouping digest), system.source_failing, system.rule_storm, system.delivery_failed, system.push_provider_failed (032), briefing.run (029)
              * @example alert.fired
@@ -19093,7 +19384,7 @@ export interface components {
         /** @description Default body of the generic `webhook` channel (overridable by `bodyTemplate`) */
         WebhookEnvelope: {
             /** @enum {string} */
-            event: "alert" | "briefing" | "system" | "test";
+            event: "alert" | "briefing" | "system" | "chronicle.proposed" | "chronicle.cap_warning" | "chronicle.gap" | "social.divergence" | "social.attention_gap" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolved" | "forecast.resolution_needed" | "hypothesis.band_changed" | "indicator.observed" | "assumption.broken" | "assessment.published" | "mention" | "share" | "report.received" | "package.received" | "chronicle.access.requested" | "saved-search.matches" | "test" | "personal";
             /** @example alert.fired */
             subtype: string;
             message: components["schemas"]["NotificationMessage"];
@@ -20227,7 +20518,7 @@ export interface components {
             /** Format: int64 */
             id: number;
             /** @enum {string} */
-            event: "alert" | "briefing" | "system";
+            event: "alert" | "briefing" | "system" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolution_needed" | "hypothesis.band_changed" | "assessment.published";
             /** @example alert.fired */
             subtype?: string | null;
             /** @enum {string} */
@@ -20470,6 +20761,23 @@ export interface components {
             denyHosts?: string[];
             /** @description Address ranges refused in every profile */
             denyCidrs?: string[];
+        };
+        /** @description The collector's runtime settings (prompt 150). */
+        CollectorSettings: {
+            /**
+             * @description How many polling fetches may pull from upstream at once across every source: the size of the global pull governor. A stored or submitted value outside 1 to 16 is clamped. Streams are not counted.
+             * @default 2
+             */
+            maxConcurrentPulls: number;
+        };
+        /** @description A live snapshot of the pull governor (prompt 160). */
+        CollectorStatus: {
+            /** @description The governor's current cap: the maxConcurrentPulls in force. */
+            cap: number;
+            /** @description How many polling fetches hold a permit and are pulling from upstream now. May briefly exceed cap just after the cap is lowered. */
+            inUse: number;
+            /** @description How many polling fetches are queued for a permit. */
+            waiting: number;
         };
         /** @description Create or replace a named place (036) */
         PlaceInput: {
@@ -22491,7 +22799,7 @@ export interface components {
              */
             summary?: string;
         };
-        /** @description Computed alert context (`alert.context`); `weather` (056) is the deterministic weather context of a geolocated alert, stored before dispatch; list responses carry only `weather.summary` unless `include=context` */
+        /** @description Computed alert context (`alert.context`); `weather` (056) is the deterministic weather context of a geolocated alert, stored before dispatch; list responses carry only `weather.status` and `weather.summary` unless `include=context` */
         AlertContext: {
             weather?: components["schemas"]["WeatherContext"];
             /** @description Places a near rule matched (036): their ids and the versions its fence was materialized from */
@@ -24640,12 +24948,17 @@ export interface components {
             id: string;
             version: number;
             builtIn?: boolean;
+            /**
+             * @description Whether the recipe is a bundled classpath recipe or operator-authored (prompt 157)
+             * @enum {string}
+             */
+            origin?: "bundled" | "operator";
             enabled: boolean;
             definition: components["schemas"]["CorrelationRecipeDefinition"];
-            /** @description Operator overrides */
+            /** @description Operator overrides; null when there are none */
             params?: {
                 [key: string]: unknown;
-            };
+            } | null;
             /** @description e.g. seed kinds missing (recipe loaded disabled with a warning) */
             disabledReason?: string | null;
             /** Format: date-time */
@@ -24669,6 +24982,11 @@ export interface components {
                 /** @enum {string} */
                 sameRegion?: "country" | "admin1";
                 sameEntity?: boolean;
+                /**
+                 * @description A payload dot-path (prompt 157); a candidate joins when its value at that path equals a seed member's — the join a fraud/relationship recipe needs (address, phone, officer, shared id). Matches on the attribute alone; geometry is not required, the time window still applies.
+                 * @example registeredAddress
+                 */
+                sharedAttribute?: string;
                 /** @description Time window around the seed */
                 window?: {
                     /** @description Before the seed. ISO-8601 duration or shorthand (30m, 6h, 7d). */
@@ -24691,6 +25009,8 @@ export interface components {
             activateAt?: {
                 members?: number;
                 confidence?: number;
+                /** @description The distinct sensing modalities activation also requires (154), or absent to not require any */
+                modalities?: number;
             };
             contradictions?: {
                 kinds?: string[];
@@ -24718,13 +25038,23 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /** @description Operator changes to a recipe */
+        /** @description Operator changes to a recipe: the enabled flag and parameter overrides, and for an operator-authored recipe a full definition to replace (prompt 157). */
         CorrelationRecipeUpdate: {
             enabled?: boolean;
-            /** @description Parameter overrides */
+            /** @description Parameter overrides; null removes them */
             params?: {
                 [key: string]: unknown;
-            };
+            } | null;
+            /** @description A full operator-authored definition to replace (prompt 157); rejected for a bundled recipe, whose definition is managed by the classpath */
+            definition?: components["schemas"]["CorrelationRecipeDefinition"];
+        };
+        /** @description Authors a new operator correlation recipe (prompt 157). */
+        CorrelationRecipeCreate: {
+            /** @description A slug not already in use and not a bundled recipe id */
+            id: string;
+            definition: components["schemas"]["CorrelationRecipeDefinition"];
+            /** @description Defaults to true */
+            enabled?: boolean;
         };
         /** @description Kind `corroboration` (`derived-corroboration`): cluster of event records across independent sources with Admiralty credibility */
         CorroborationPayload: components["schemas"]["DerivedPayloadCommon"] & ({
@@ -24920,13 +25250,13 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /** @description A canonical vehicle or object (never a person or organisation) with its keys, aliases and per-source link counts */
+        /** @description A canonical vehicle or object, and (since prompt 158) a person or organization, with its keys, aliases and per-source link counts */
         Entity: {
             id: components["schemas"]["Ulid"];
             /** @description Set when the requested id was merged into this canonical entity */
             requestedId?: components["schemas"]["Ulid"] | null;
             /** @enum {string} */
-            type: "aircraft" | "vessel" | "satellite" | "station";
+            type: "aircraft" | "vessel" | "satellite" | "station" | "person" | "organization";
             /** @description Precedence: registration > vessel name > satellite name > key */
             displayName?: string | null;
             /** @description Declared attributes copied from records (≤ 16 KB); registry origin wins over observations. Never owner PII. */
@@ -24973,17 +25303,17 @@ export interface components {
             id: number;
             entityId: components["schemas"]["Ulid"];
             /**
-             * @description Key type. `callsign` values are domain-prefixed (`air:`, `sea:`, `ham:`)
+             * @description Key type. `callsign` values are domain-prefixed (`air:`, `sea:`, `ham:`). Corporate and person keys (prompt 158): `lei`, `company-number` (`JURISDICTION:NUMBER`), `tax-id`, `officer-id` (`REGISTRY:ID`) for organizations; `person-key` (a normalized name key) for people
              * @enum {string}
              */
-            keyType: "airframe" | "icao24" | "registration" | "imo" | "mmsi" | "norad" | "cospar" | "callsign";
+            keyType: "airframe" | "icao24" | "registration" | "imo" | "mmsi" | "norad" | "cospar" | "callsign" | "lei" | "company-number" | "tax-id" | "officer-id" | "person-key";
             /**
              * @description Normalised value (e.g. icao24 lowercase hex, registration without spaces or hyphens)
              * @example ae1234
              */
             keyValue: string;
             /**
-             * @description ANCHOR keys (airframe, imo, norad, cospar) identify an entity on their own; WEAK keys can be re-assigned
+             * @description ANCHOR keys (airframe, imo, norad, cospar, lei, company-number, tax-id, officer-id) identify an entity on their own; WEAK keys (callsign, person-key) can be re-assigned
              * @enum {string}
              */
             role: "ANCHOR" | "WEAK";
@@ -25005,7 +25335,7 @@ export interface components {
         /** @description Operator assertion of a key on an entity */
         EntityKeyInput: {
             /** @enum {string} */
-            keyType: "airframe" | "icao24" | "registration" | "imo" | "mmsi" | "norad" | "cospar" | "callsign";
+            keyType: "airframe" | "icao24" | "registration" | "imo" | "mmsi" | "norad" | "cospar" | "callsign" | "lei" | "company-number" | "tax-id" | "officer-id" | "person-key";
             /** @description Raw value; normalised and validated like observed keys (400 ENTITY_KEY_INVALID) */
             keyValue: string;
             /** @default 1 */
@@ -25029,7 +25359,7 @@ export interface components {
             sourceId: string;
             externalId: string;
             /** @enum {string} */
-            keyType: "airframe" | "icao24" | "registration" | "imo" | "mmsi" | "norad" | "cospar" | "callsign";
+            keyType: "airframe" | "icao24" | "registration" | "imo" | "mmsi" | "norad" | "cospar" | "callsign" | "lei" | "company-number" | "tax-id" | "officer-id" | "person-key";
             keyValue: string;
             confidence: number;
             /** Format: date-time */
@@ -25677,6 +26007,68 @@ export interface components {
             summary: components["schemas"]["IntelEventSummary"];
             mergedInto?: components["schemas"]["Ulid"] | null;
         };
+        /** @description The tunable corroboration policy (154): the "promote to a trusted signal" gates, each defaulting to its historical constant. A PUT replaces the document; members left out return to their defaults. */
+        IntelCorroboration: {
+            /** @description The thresholds for an intelligence event's evidence-quality label */
+            eventQuality?: {
+                /** @description Distinct signal families a strong event needs (default 3) */
+                strongFamilies?: number;
+                /** @description Independent evidence groups a strong event needs (default 2) */
+                strongGroups?: number;
+                /** @description Distinct signal families a moderate event needs (default 2) */
+                moderateFamilies?: number;
+                /** @description Distinct sensing modalities a strong event also needs, or 0 to not require any (default 0). A modality is sensor, imagery, official, social, media, crowd, operator or derived, derived from the originator class. */
+                requireModalities?: number;
+            };
+            /** @description The rule that moves a situation from emerging to active (118) */
+            situationActivation?: {
+                /** @description Distinct signal families activation needs (default 2) */
+                minFamilies?: number;
+                /** @description Independent evidence groups activation needs (default 2) */
+                minGroups?: number;
+            };
+            /** @description Automatic corroboration of a lone agent/analyst/operator event on creation: it searches for independent observations near it in space and time and attaches them, so it surfaces already corroborated and can auto-activate */
+            autoCorroborate?: {
+                /** @description Whether a lone event searches for corroboration on creation (default true) */
+                enabled?: boolean;
+                /** @description The search radius around the event's members, in kilometers (default 50) */
+                withinKm?: number;
+                /** @description The time window before and after the members' observation span, an ISO-8601 or shorthand duration (default PT24H) */
+                window?: string;
+                /** @description The most corroborating members one search attaches, one per independent originator root (default 10) */
+                maxMembers?: number;
+            };
+        };
+        /** @description The fitted calibration of one scope (151): the CORP recalibration curve, the 10-bin reliability table and the Brier score over resolved outcomes */
+        IntelCalibration: {
+            /** @enum {string} */
+            scope: "intel-event" | "precursor-active";
+            /** @description True once at least `minSamples` outcomes have resolved; until then the raw score is reported unchanged */
+            calibrated: boolean;
+            /** @description Resolved outcomes behind the fit */
+            sampleN: number;
+            /** @description Outcomes needed before a scope is calibrated */
+            minSamples: number;
+            /** @description Mean Brier score of the raw scores against the outcomes */
+            brier?: number | null;
+            /** @description The 10-bin reliability table */
+            bins?: {
+                lower?: number;
+                upper?: number;
+                n?: number;
+                meanForecast?: number | null;
+                observedFrequency?: number | null;
+            }[];
+            /** @description The CORP (PAV) recalibration curve, one point per distinct raw score */
+            curve?: {
+                forecast?: number;
+                calibrated?: number;
+            }[];
+            /** Format: date-time */
+            fittedAt?: string | null;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         /** @description Compact intelligence event for lists and SSE */
         IntelEventSummary: {
             id: components["schemas"]["Ulid"];
@@ -25686,8 +26078,10 @@ export interface components {
             /** @enum {string} */
             status: "emerging" | "active" | "resolved" | "dismissed";
             severity: components["schemas"]["Severity"];
-            /** @description Score from EventScorer; not a calibrated probability unless `calibrated` */
+            /** @description The calibrated probability when `calibrated` is true, otherwise the raw EventScorer score (capped at 0.95) */
             confidence: number;
+            /** @description The uncalibrated EventScorer score behind `confidence` (151); equal to `confidence` until calibrated */
+            rawConfidence?: number | null;
             /**
              * @description low < 0.4 ≤ moderate < 0.7 ≤ high
              * @enum {string}
@@ -25695,7 +26089,7 @@ export interface components {
             confidenceLabel: "low" | "moderate" | "high";
             /** @example event-scorer-1.0.0 */
             confidenceMethod?: string;
-            /** @description Set only by 103 validation */
+            /** @description True when `confidence` is a calibrated probability backed by resolved outcomes (151); until a scope has enough resolved history the raw score stands and this is false */
             calibrated?: boolean;
             /** @enum {string} */
             evidenceQuality: "strong" | "moderate" | "weak" | "insufficient";
@@ -25726,6 +26120,7 @@ export interface components {
             /** @enum {string} */
             status: "emerging" | "active" | "resolved" | "dismissed";
             severity: components["schemas"]["Severity"];
+            /** @description True when an operator override sets the severity; `severity: null` in `IntelEventPatch` clears it and restores the computed severity */
             severityOverridden?: boolean;
             /** @description True when any member comes from a private source */
             private?: boolean;
@@ -25751,8 +26146,10 @@ export interface components {
             };
             /** @description What the detector derived */
             inference: {
-                /** @description Score from EventScorer; not a calibrated probability unless `calibrated` */
+                /** @description The calibrated probability when `calibrated` is true, otherwise the raw EventScorer score (capped at 0.95) */
                 confidence: number;
+                /** @description The uncalibrated EventScorer score behind `confidence` (151); equal to `confidence` until calibrated */
+                rawConfidence?: number | null;
                 /**
                  * @description low < 0.4 ≤ moderate < 0.7 ≤ high
                  * @enum {string}
@@ -25760,7 +26157,7 @@ export interface components {
                 confidenceLabel: "low" | "moderate" | "high";
                 /** @example event-scorer-1.0.0 */
                 confidenceMethod: string;
-                /** @description Set only by 103 validation */
+                /** @description True when `confidence` is a calibrated probability backed by resolved outcomes (151); until a scope has enough resolved history the raw score stands and this is false */
                 calibrated: boolean;
                 /** @enum {string} */
                 evidenceQuality: "strong" | "moderate" | "weak" | "insufficient";
@@ -30484,7 +30881,7 @@ export interface components {
             questionId: components["schemas"]["Ulid"];
             forecasterId: string;
             /** @enum {string} */
-            forecasterType: "base-rate" | "climatology" | "persistence" | "statistical" | "precursor" | "analog" | "impact" | "indicator-bayes" | "llm" | "operator" | "external" | "ensemble";
+            forecasterType: "base-rate" | "climatology" | "persistence" | "statistical" | "precursor" | "analog" | "threshold" | "impact" | "indicator-bayes" | "llm" | "operator" | "external" | "ensemble";
             /**
              * Format: date-time
              * @description Server-set
@@ -30662,7 +31059,7 @@ export interface components {
             /** @description Slug, e.g. `base-rate`, `ensemble`, `operator:jsmith`, `llm:daily-analyst` */
             id: string;
             /** @enum {string} */
-            type: "base-rate" | "climatology" | "persistence" | "statistical" | "precursor" | "analog" | "impact" | "indicator-bayes" | "llm" | "operator" | "external" | "ensemble";
+            type: "base-rate" | "climatology" | "persistence" | "statistical" | "precursor" | "analog" | "threshold" | "impact" | "indicator-bayes" | "llm" | "operator" | "external" | "ensemble";
             name: string;
             config?: {
                 [key: string]: unknown;
@@ -30687,15 +31084,64 @@ export interface components {
         /** @description Replace a forecaster's settings */
         ForecasterUpdate: {
             active: boolean;
+            /** @description Replaces the forecaster's configuration. For an external forecaster, `externalMinResolved` (integer) overrides the ensemble's global minimum resolved count before the forecaster is weighted (155). */
             config?: {
                 [key: string]: unknown;
+            };
+            /** @description Optional display name; set for a first-class external forecaster (155). */
+            name?: string;
+        };
+        /** @description Pre-registers, names and configures a first-class external forecaster (155), independent of the auto-derived edp:{sourceId}/{streamId} id. */
+        ExternalForecasterRegistration: {
+            /** @description Forecaster id, conventionally edp:{sourceId}/{streamId}. */
+            id: string;
+            /** @description Optional display name (defaults to the id). */
+            name?: string;
+            /** @description Optional configuration; `sourceId` and `streamId` pin the provider for backtests, and `externalMinResolved` (integer) overrides the ensemble's global minimum resolved count. */
+            config?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description Requests an on-demand forecast of a ledger question from an external forecaster (155). */
+        AnalysisRequestSubmission: {
+            /** @description The external forecaster id, edp:{sourceId}/{streamId}. */
+            forecasterId: string;
+            /** @description The ledger question to forecast; must be open. */
+            questionId: string;
+            /**
+             * @description Whether the provider's probability is for the question as stated (same) or its negation (inverse).
+             * @default same
+             * @enum {string}
+             */
+            orientation: "same" | "inverse";
+            /** @description Optional forecast horizon passed to the provider (for example an ISO-8601 duration). */
+            horizon?: string | null;
+        };
+        /** @description The outcome of an on-demand analysis request or callback (155). */
+        AnalysisRequestResult: {
+            /** @description The id sent to the provider and echoed in its callback. */
+            correlationId: string;
+            /** @description True when a forecast was recorded at once (a synchronous provider, or a callback that resolved). */
+            recorded: boolean;
+            /** @description The recorded forecast's id, present when recorded is true via the callback. */
+            forecastId?: string;
+        };
+        /** @description A provider's asynchronous answer to an on-demand analysis request (155). */
+        AnalysisCallback: {
+            /** @description The correlation id from the original request; the credential for this callback. */
+            correlationId: string;
+            /** @description The forecast probability for a binary question. */
+            probability?: number;
+            /** @description Quantile levels to values for a numeric question. The ledger's required levels are p05, p25, p50, p75, p95; a decile provider (p10..p90, as TimesFM emits) is accepted and mapped binding-side onto the required set. */
+            quantiles?: {
+                [key: string]: number;
             };
         };
         /** @description Scores, calibration, skill and bias of one forecaster in one category */
         ScorecardEntry: {
             forecasterId: string;
             /** @enum {string} */
-            forecasterType?: "base-rate" | "climatology" | "persistence" | "statistical" | "precursor" | "analog" | "impact" | "indicator-bayes" | "llm" | "operator" | "external" | "ensemble";
+            forecasterType?: "base-rate" | "climatology" | "persistence" | "statistical" | "precursor" | "analog" | "threshold" | "impact" | "indicator-bayes" | "llm" | "operator" | "external" | "ensemble";
             /** @description Null = all categories */
             category?: string | null;
             nResolved: number;
@@ -30756,6 +31202,46 @@ export interface components {
             /** @description True for scorecards from retrospective evaluations */
             retrospective: boolean;
             entries: components["schemas"]["ScorecardEntry"][];
+            scorerVersion: string;
+            /** Format: date-time */
+            computedAt: string;
+        };
+        /** @description Numeric calibration (152): the quantile-reliability diagram, PIT histogram and calibration-error summary over resolved numeric questions */
+        ForecastNumericCalibration: {
+            forecasterId?: string | null;
+            category?: string | null;
+            /** @constant */
+            type: "numeric";
+            /** @description Resolved numeric questions with quantile coverage */
+            n: number;
+            /** @enum {string} */
+            label: "ok" | "insufficient";
+            /** @description Empirical coverage P(y ≤ q) of each stated quantile vs its nominal level */
+            quantileReliability: {
+                level?: number;
+                /** @example p05 */
+                quantile?: string;
+                nominal?: number;
+                empirical?: number;
+                n?: number;
+            }[];
+            /** @description PIT histogram over the required-quantile bins */
+            pit: {
+                n?: number;
+                bins?: {
+                    lower?: number;
+                    upper?: number;
+                    count?: number;
+                    frequency?: number | null;
+                    /** @description The bin width; a calibrated forecaster's frequency is near it */
+                    expected?: number;
+                }[];
+            };
+            summary?: {
+                /** @description Mean |empirical − nominal| over the stated levels */
+                meanAbsoluteCoverageError?: number | null;
+                maxCoverageDeviation?: number | null;
+            };
             scorerVersion: string;
             /** Format: date-time */
             computedAt: string;
@@ -33189,7 +33675,7 @@ export interface components {
              * @description Client-Contract §4 relation type
              * @enum {string}
              */
-            type: "member-of" | "observed-by" | "same-as" | "located-in" | "near" | "depends-on" | "affects" | "derived-from" | "evidence-for" | "evidence-against" | "about" | "mentions" | "precedes" | "causes" | "related-to";
+            type: "member-of" | "observed-by" | "same-as" | "located-in" | "near" | "depends-on" | "affects" | "derived-from" | "evidence-for" | "evidence-against" | "about" | "mentions" | "precedes" | "causes" | "related-to" | "owns" | "controls" | "officer-of" | "beneficial-owner" | "affiliated-with";
             /** Format: date-time */
             validFrom: string;
             /** Format: date-time */
@@ -33217,7 +33703,7 @@ export interface components {
              * @description Client-Contract §4 relation type
              * @enum {string}
              */
-            type: "member-of" | "observed-by" | "same-as" | "located-in" | "near" | "depends-on" | "affects" | "derived-from" | "evidence-for" | "evidence-against" | "about" | "mentions" | "precedes" | "causes" | "related-to";
+            type: "member-of" | "observed-by" | "same-as" | "located-in" | "near" | "depends-on" | "affects" | "derived-from" | "evidence-for" | "evidence-against" | "about" | "mentions" | "precedes" | "causes" | "related-to" | "owns" | "controls" | "officer-of" | "beneficial-owner" | "affiliated-with";
             /** Format: date-time */
             validFrom?: string | null;
             /** Format: date-time */
@@ -33253,7 +33739,7 @@ export interface components {
             refs: components["schemas"]["ObjectRef"][];
             /** @default 1 */
             depth: number;
-            types?: ("member-of" | "observed-by" | "same-as" | "located-in" | "near" | "depends-on" | "affects" | "derived-from" | "evidence-for" | "evidence-against" | "about" | "mentions" | "precedes" | "causes" | "related-to")[];
+            types?: ("member-of" | "observed-by" | "same-as" | "located-in" | "near" | "depends-on" | "affects" | "derived-from" | "evidence-for" | "evidence-against" | "about" | "mentions" | "precedes" | "causes" | "related-to" | "owns" | "controls" | "officer-of" | "beneficial-owner" | "affiliated-with")[];
             /** Format: date-time */
             asOf?: string | null;
             minConfidence?: number;
@@ -33293,13 +33779,66 @@ export interface components {
                 paths: {
                     from: components["schemas"]["ObjectRef"];
                     hops: components["schemas"]["ObjectRef"][];
-                    relationTypes?: ("member-of" | "observed-by" | "same-as" | "located-in" | "near" | "depends-on" | "affects" | "derived-from" | "evidence-for" | "evidence-against" | "about" | "mentions" | "precedes" | "causes" | "related-to")[];
+                    relationTypes?: ("member-of" | "observed-by" | "same-as" | "located-in" | "near" | "depends-on" | "affects" | "derived-from" | "evidence-for" | "evidence-against" | "about" | "mentions" | "precedes" | "causes" | "related-to" | "owns" | "controls" | "officer-of" | "beneficial-owner" | "affiliated-with")[];
                     /**
                      * @description Relation or dependency label (104 vocabulary)
                      * @enum {string}
                      */
                     weakestEdgeLabel: "confirmed" | "likely" | "possible" | "speculative";
                 }[];
+            }[];
+        };
+        /** @description Seed entities (people / organizations) whose ownership and affiliation chains to walk (158) */
+        OwnershipChainRequest: {
+            refs: components["schemas"]["ObjectRef"][];
+            /**
+             * @description Most ownership / affiliation hops to follow
+             * @default 6
+             */
+            depth: number;
+            /**
+             * @description Follow edges out of the seed (what it owns / controls), into it (who owns / controls it), or both
+             * @default both
+             * @enum {string}
+             */
+            direction: "in" | "out" | "both";
+            /** @description Ownership / affiliation edge types to walk; empty or absent walks all five */
+            types?: ("owns" | "controls" | "officer-of" | "beneficial-owner" | "affiliated-with")[];
+            /** @default 0 */
+            minConfidence: number;
+            /** Format: date-time */
+            asOf?: string | null;
+        };
+        /** @description Ownership / affiliation chains from the seeds and the attributes they share (158) */
+        OwnershipChain: {
+            refs: components["schemas"]["ObjectRef"][];
+            /** @enum {string} */
+            direction: "in" | "out" | "both";
+            /** Format: date-time */
+            asOf?: string | null;
+            /** Format: date-time */
+            generatedAt?: string;
+            /** @description Every entity reached from a seed through ownership / affiliation edges, strongest and shortest path first */
+            chains: components["schemas"]["OwnershipChainNode"][];
+            /** @description The subset of `chains` reached from two or more seeds — a shared owner, officer, address or affiliate */
+            shared: components["schemas"]["OwnershipChainNode"][];
+        };
+        /** @description An entity reached through ownership / affiliation edges, with the chain from each seed that reached it */
+        OwnershipChainNode: {
+            node: components["schemas"]["ObjectEnvelope"];
+            /** @description The seeds whose chain reaches this entity */
+            reachedFrom: components["schemas"]["ObjectRef"][];
+            /**
+             * @description Weakest edge across the reaching chains (104 vocabulary)
+             * @enum {string}
+             */
+            weakestEdgeLabel: "confirmed" | "likely" | "possible" | "speculative";
+            paths: {
+                from: components["schemas"]["ObjectRef"];
+                hops: components["schemas"]["ObjectRef"][];
+                relationTypes?: ("owns" | "controls" | "officer-of" | "beneficial-owner" | "affiliated-with")[];
+                /** @enum {string} */
+                weakestEdgeLabel: "confirmed" | "likely" | "possible" | "speculative";
             }[];
         };
         /** @description A note or verdict on any object (labels use 130 tags) */
@@ -37017,9 +37556,31 @@ export interface components {
             informationCredibility: number;
             /** @example F6 */
             grade: string;
+            /** @description The neutral, de-hyped who/what/where/when restatement of the claim: the checkable core stripped of outrage and partisan framing. An LLM proposal is kept only when it re-validates against the lexicon, gazetteer and entity index and carries no hype word or unresolvable specific; otherwise a deterministic restatement synthesized from the validated fields. Null for claims extracted before 153 (153) */
+            restatement?: string | null;
+            /** @description Deterministic, LLM-free framing/partisan intensity of the most central post (0 neutral prose, higher = more outrage, partisan-loaded labels, shouting and emphasis). Measures how the claim is told, not whether it is true. Null for claims extracted before 153 (153) */
+            framingScore?: number | null;
+            /**
+             * @description Band of framingScore: neutral (< 0.12), charged (< 0.28), inflammatory (>= 0.28). Null for claims extracted before 153 (153)
+             * @enum {string|null}
+             */
+            framingLabel?: "neutral" | "charged" | "inflammatory" | null;
+            /** @description The rated-outlet reputation folded into sourceReliability, when the claim's source resolves to a rated outlet (a source key that is a web domain). Null for the common case of a social account with no resolvable outlet (153) */
+            reputation?: components["schemas"]["ClaimReputation"] | null;
             tlp?: components["schemas"]["Tlp"];
             /** Format: date-time */
             createdAt?: string;
+        };
+        /** @description The reputation of a rated outlet as it bears on a social claim: its factuality grade, partisan lean and state-affiliation, mirroring how news reliability is graded. Present only when the claim's source resolves to a rated outlet (153) */
+        ClaimReputation: {
+            /** @description The rated outlet the source resolved to */
+            outletId: string;
+            /** @description The outlet's factuality grade (A best, F worst) */
+            factuality: string;
+            /** @description Consensus partisan lean bucket (e.g. left / center / right), or null when unrated */
+            lean?: string | null;
+            /** @description Whether the outlet is state media */
+            stateAffiliated: boolean;
         };
         /** @description One page of claims */
         ClaimPage: {
@@ -37355,6 +37916,17 @@ export interface components {
                 costUsd?: number;
                 error?: string | null;
             }[];
+            /** @description One item per EDP provider searched */
+            externalResults?: {
+                /** @description The provider's source */
+                sourceId: string;
+                /** @description Queries sent (at most 10) */
+                queries: number;
+                /** @description Records stored as cue results */
+                items: number;
+                /** @description The first failure, e.g. BUDGET_EXCEEDED */
+                error?: string | null;
+            }[];
             narrativeIds: components["schemas"]["Ulid"][];
             costUsd: number;
             maxCostUsd?: number;
@@ -37387,9 +37959,9 @@ export interface components {
             generatedAt: string;
             /**
              * Format: date-time
-             * @description Comparisons evaluated after this are out of sample
+             * @description Comparisons evaluated after this are out of sample; null until there is a comparison to set it
              */
-            trainingCutoff: string;
+            trainingCutoff: string | null;
             /** @description Applied filters */
             filters?: {
                 claimType?: string | null;
@@ -37845,6 +38417,7 @@ export interface components {
             push?: boolean;
             pull?: components["schemas"]["EdpPull"] | null;
             search?: components["schemas"]["EdpSearch"] | null;
+            analysisRequest?: components["schemas"]["EdpAnalysisRequest"] | null;
         } | {
             /** @constant */
             push: true;
@@ -38413,6 +38986,17 @@ export interface components {
             auth: "none" | "bearer" | "header" | "basic";
             header?: string | null;
         };
+        /** @description Optional on-demand analysis-request endpoint (155): Foresignal posts {questionId, horizon, correlationId, callbackUrl} (asOf for a backtest) and the provider answers synchronously in the response and/or asynchronously to the callback. Enables on-demand forecasts and backtesting of a first-class external forecaster such as TimesFM. */
+        EdpAnalysisRequest: {
+            /** Format: uri */
+            url: string;
+            /**
+             * @default none
+             * @enum {string}
+             */
+            auth: "none" | "bearer" | "header" | "basic";
+            header?: string | null;
+        };
         /** @description GeoJSON geometry (RFC 7946, WGS84 lon/lat, optional altitude in metres). GeometryCollection is not accepted. The server also checks bounds, ring closure, vertex count (≤ 10,000) and that the type matches the stream's declared geometry. */
         EdpGeometry: {
             /** @enum {string} */
@@ -38471,6 +39055,37 @@ export interface components {
             /** @description Regions with at least one automatic rate */
             regions?: number;
             computer?: components["schemas"]["DetectorRef"];
+        };
+        /** @description What `POST /v1/sources/enable-free` did (prompt 145). */
+        EnableFreeSourcesResult: {
+            /** @description The source ids enabled by this call, sorted; empty when there was nothing to enable */
+            enabled: string[];
+            /** @description How many sources this call enabled (the length of `enabled`) */
+            count: number;
+            /** @description Disabled built-in sources left disabled: they need a credential or a required parameter, are held off by default (`wiki-edit-surge`), or their stored parameters are not valid */
+            skipped: number;
+        };
+        /** @description What `POST /v1/sources/enable-core` did (prompt 150). */
+        EnableCoreSourcesResult: {
+            /** @description The source ids enabled by this call, sorted; empty when there was nothing to enable */
+            enabled: string[];
+            /** @description How many sources this call enabled (the length of `enabled`) */
+            count: number;
+            /** @description Disabled built-in sources left disabled: outside the core set, a core source that needs a credential or a required parameter (`nasa-firms` without its MAP_KEY), or one whose stored parameters are not valid */
+            skipped: number;
+        };
+        /** @description One bundled prompt template without its text (listPromptTemplates) */
+        PromptTemplateSummary: {
+            id: string;
+            /** @description The LLM role that sends it */
+            role: string | null;
+            /** @description The newest version */
+            version: string;
+            /** @description Every bundled version, oldest first */
+            versions: string[];
+        };
+        PromptTemplateList: {
+            items: components["schemas"]["PromptTemplateSummary"][];
         };
     };
     responses: never;
@@ -47779,7 +48394,7 @@ export interface operations {
                 /** @description Only ids smaller than this (paging) */
                 before?: number;
                 /** @description Event filter */
-                events?: ("alert" | "briefing" | "system")[];
+                events?: ("alert" | "briefing" | "system" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolution_needed" | "hypothesis.band_changed" | "assessment.published")[];
                 /** @description Minimum severity */
                 minSeverity?: "info" | "warning" | "critical";
                 /** @description Only unread on this device */
@@ -49116,6 +49731,166 @@ export interface operations {
                 };
             };
             /** @description Rate limited (RATE_LIMITED); honour Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds to wait before retrying */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getCollectorSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectorSettings"];
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token lacks the required scope (INSUFFICIENT_SCOPE) or the endpoint is outside its restriction (ENDPOINT_NOT_ALLOWED, RESTRICTED) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED); honour Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds to wait before retrying */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateCollectorSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectorSettings"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectorSettings"];
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token lacks the required scope (INSUFFICIENT_SCOPE) or the endpoint is outside its restriction (ENDPOINT_NOT_ALLOWED, RESTRICTED) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED); honour Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds to wait before retrying */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getCollectorStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectorStatus"];
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token lacks the required scope (INSUFFICIENT_SCOPE) or the endpoint is outside its restriction (ENDPOINT_NOT_ALLOWED, RESTRICTED) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED); honor Retry-After */
             429: {
                 headers: {
                     /** @description Seconds to wait before retrying */
@@ -57285,7 +58060,7 @@ export interface operations {
                 /** @description Prefix over aliases and display name (≥ 2 characters) */
                 q?: string;
                 /** @description Entity type */
-                type?: "aircraft" | "vessel" | "satellite" | "station";
+                type?: "aircraft" | "vessel" | "satellite" | "station" | "person" | "organization";
                 /** @description `<keyType>:<value>` */
                 key?: string;
                 /** @description Validity instant for keys and aliases (default now) */
@@ -58389,6 +59164,175 @@ export interface operations {
             };
         };
     };
+    getIntelCalibration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Calibration of every scope */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        scopes: components["schemas"]["IntelCalibration"][];
+                    };
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token lacks the required scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getIntelCalibrationScope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scope: "intel-event" | "precursor-active";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The scope's calibration */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntelCalibration"];
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token lacks the required scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getIntelCorroboration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The corroboration policy in force */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntelCorroboration"];
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token lacks the required scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateIntelCorroboration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntelCorroboration"];
+            };
+        };
+        responses: {
+            /** @description The corroboration policy in force */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntelCorroboration"];
+                };
+            };
+            /** @description Validation failed (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token lacks the required scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     listIntelRecipes: {
         parameters: {
             query?: never;
@@ -58421,6 +59365,57 @@ export interface operations {
                 headers: {
                     /** @description Seconds to wait before retrying */
                     "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    createRecipe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CorrelationRecipeCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CorrelationRecipe"];
+                };
+            };
+            /** @description Validation failed (bad id, id in use, or an invalid definition) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token lacks the required scope */
+            403: {
+                headers: {
                     [name: string]: unknown;
                 };
                 content: {
@@ -68681,6 +69676,46 @@ export interface operations {
             };
         };
     };
+    listPromptTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Templates, by id */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromptTemplateList"];
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED); honour Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds to wait before retrying */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     getPromptTemplate: {
         parameters: {
             query?: {
@@ -69058,6 +70093,82 @@ export interface operations {
             };
             /** @description A backfill is already running (BACKFILL_RUNNING), or the source is disabled (SOURCE_DISABLED) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    enableFreeSources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The sources enabled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnableFreeSourcesResult"];
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token lacks the required scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    enableCoreSources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The sources enabled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnableCoreSourcesResult"];
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token lacks the required scope */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -72183,7 +73294,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description Filter by type */
-                type?: ("base-rate" | "climatology" | "persistence" | "statistical" | "precursor" | "analog" | "impact" | "indicator-bayes" | "llm" | "operator" | "external" | "ensemble")[];
+                type?: ("base-rate" | "climatology" | "persistence" | "statistical" | "precursor" | "analog" | "threshold" | "impact" | "indicator-bayes" | "llm" | "operator" | "external" | "ensemble")[];
                 /** @description Filter by active flag */
                 active?: boolean;
                 /** @description Opaque pagination cursor from a previous response's nextCursor */
@@ -72220,6 +73331,57 @@ export interface operations {
                 headers: {
                     /** @description Seconds to wait before retrying */
                     "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    registerExternalForecaster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExternalForecasterRegistration"];
+            };
+        };
+        responses: {
+            /** @description Registered */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forecaster"];
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token lacks the required scope */
+            403: {
+                headers: {
                     [name: string]: unknown;
                 };
                 content: {
@@ -72372,13 +73534,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Calibration */
+            /** @description Calibration (binary CORP/bins, or numeric PIT/quantile-reliability) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ForecastCalibration"];
+                    "application/json": components["schemas"]["ForecastCalibration"] | components["schemas"]["ForecastNumericCalibration"];
                 };
             };
             /** @description Validation failed */
@@ -76152,7 +77314,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description Relation types (comma-separated) */
-                types?: ("member-of" | "observed-by" | "same-as" | "located-in" | "near" | "depends-on" | "affects" | "derived-from" | "evidence-for" | "evidence-against" | "about" | "mentions" | "precedes" | "causes" | "related-to")[];
+                types?: ("member-of" | "observed-by" | "same-as" | "located-in" | "near" | "depends-on" | "affects" | "derived-from" | "evidence-for" | "evidence-against" | "about" | "mentions" | "precedes" | "causes" | "related-to" | "owns" | "controls" | "officer-of" | "beneficial-owner" | "affiliated-with")[];
                 /** @description Edge direction */
                 direction?: "out" | "in" | "both";
                 /** @description Transaction-time cutoff: answer with what Foresignal knew at this instant (Core-Data-Model §12) */
@@ -76346,6 +77508,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CommonDependencies"];
+                };
+            };
+            /** @description Validation failed (OBJECT_REF_INVALID) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED); honour Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds to wait before retrying */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    ownershipChain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnershipChainRequest"];
+            };
+        };
+        responses: {
+            /** @description Ownership chains and shared attributes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnershipChain"];
                 };
             };
             /** @description Validation failed (OBJECT_REF_INVALID) */
@@ -87605,6 +88820,90 @@ export interface operations {
             };
         };
     };
+    requestAnalysis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalysisRequestSubmission"];
+            };
+        };
+        responses: {
+            /** @description Correlation accepted (recorded true when the provider answered synchronously) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisRequestResult"];
+                };
+            };
+            /** @description Validation failed (unknown forecaster, provider or analysis-request transport; question missing or not open) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token lacks the required scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    analysisCallback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalysisCallback"];
+            };
+        };
+        responses: {
+            /** @description Callback processed (recorded true when a forecast was recorded) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisRequestResult"];
+                };
+            };
+            /** @description Validation failed (correlationId missing) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     listExternalSources: {
         parameters: {
             query?: {
@@ -89164,7 +90463,7 @@ export interface operations {
             query?: never;
             header: {
                 /** @description Event: alert, briefing, system or test */
-                "X-Foresignal-Event": "alert" | "briefing" | "system" | "test";
+                "X-Foresignal-Event": "alert" | "briefing" | "system" | "chronicle.proposed" | "chronicle.cap_warning" | "chronicle.gap" | "social.divergence" | "social.attention_gap" | "analyst.note" | "situation.activated" | "situation.escalated" | "finding.significant" | "forecast.resolved" | "forecast.resolution_needed" | "hypothesis.band_changed" | "indicator.observed" | "assumption.broken" | "assessment.published" | "mention" | "share" | "report.received" | "package.received" | "chronicle.access.requested" | "saved-search.matches" | "test" | "personal";
                 /** @description notification_delivery id (stable across retries) */
                 "X-Foresignal-Delivery": string;
                 /** @description Unix seconds used in the signature */

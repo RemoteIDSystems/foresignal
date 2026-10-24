@@ -18,16 +18,21 @@ class CorrelationRecipeDefinitionActivateAt:
     Attributes:
         members (int | Unset):
         confidence (float | Unset):
+        modalities (int | Unset): The distinct sensing modalities activation also requires (154), or absent to not
+            require any
     """
 
     members: int | Unset = UNSET
     confidence: float | Unset = UNSET
+    modalities: int | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         members = self.members
 
         confidence = self.confidence
+
+        modalities = self.modalities
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -36,6 +41,8 @@ class CorrelationRecipeDefinitionActivateAt:
             field_dict["members"] = members
         if confidence is not UNSET:
             field_dict["confidence"] = confidence
+        if modalities is not UNSET:
+            field_dict["modalities"] = modalities
 
         return field_dict
 
@@ -46,9 +53,12 @@ class CorrelationRecipeDefinitionActivateAt:
 
         confidence = d.pop("confidence", UNSET)
 
+        modalities = d.pop("modalities", UNSET)
+
         correlation_recipe_definition_activate_at = cls(
             members=members,
             confidence=confidence,
+            modalities=modalities,
         )
 
         correlation_recipe_definition_activate_at.additional_properties = d

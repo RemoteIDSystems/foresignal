@@ -113,7 +113,7 @@ class SettingsBundleChannelsInner {
 
 
 
-      /// Prompt 018 accepts alert, briefing and system (default [\"alert\"]); the other values are subscribed by the prompts that introduce them
+      /// Default [\"alert\"]. The personal-notice events (`mention`, `share`, `report.received`, `package.received`, `chronicle.proposed`, `chronicle.cap_warning`, `chronicle.gap`, `chronicle.access.requested`, `saved-search.matches`) deliver a copy of each such notice, once per addressee, with its TLP label at the head
   @JsonKey(
     
     name: r'events',

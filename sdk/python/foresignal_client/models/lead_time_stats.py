@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Self, TypeVar
+from typing import TYPE_CHECKING, Any, Self, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -25,14 +25,15 @@ class LeadTimeStats:
 
         Attributes:
             generated_at (datetime.datetime):
-            training_cutoff (datetime.datetime): Comparisons evaluated after this are out of sample
+            training_cutoff (datetime.datetime | None): Comparisons evaluated after this are out of sample; null until there
+                is a comparison to set it
             groups (list[LeadTimeStatsGroupsItem]):
             filters (LeadTimeStatsFilters | Unset): Applied filters
             caveats (list[Caveat] | Unset):
     """
 
     generated_at: datetime.datetime
-    training_cutoff: datetime.datetime
+    training_cutoff: datetime.datetime | None
     groups: list[LeadTimeStatsGroupsItem]
     filters: LeadTimeStatsFilters | Unset = UNSET
     caveats: list[Caveat] | Unset = UNSET
@@ -41,7 +42,11 @@ class LeadTimeStats:
     def to_dict(self) -> dict[str, Any]:
         generated_at = self.generated_at.isoformat()
 
-        training_cutoff = self.training_cutoff.isoformat()
+        training_cutoff: None | str
+        if isinstance(self.training_cutoff, datetime.datetime):
+            training_cutoff = self.training_cutoff.isoformat()
+        else:
+            training_cutoff = self.training_cutoff
 
         groups = []
         for groups_item_data in self.groups:
@@ -84,7 +89,20 @@ class LeadTimeStats:
         d = dict(src_dict)
         generated_at = datetime.datetime.fromisoformat(d.pop("generatedAt"))
 
-        training_cutoff = datetime.datetime.fromisoformat(d.pop("trainingCutoff"))
+        def _parse_training_cutoff(data: object) -> datetime.datetime | None:
+            if data is None:
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                training_cutoff_type_0 = datetime.datetime.fromisoformat(data)
+
+                return training_cutoff_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None, data)
+
+        training_cutoff = _parse_training_cutoff(d.pop("trainingCutoff"))
 
         groups = []
         _groups = d.pop("groups")

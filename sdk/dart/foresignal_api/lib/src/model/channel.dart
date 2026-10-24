@@ -140,6 +140,7 @@ class Channel {
 
 
 
+      /// The subscribed events. `personal` marks a principal's personal channel (prompt 130), which carries only that principal's notifications; createChannel and updateChannel never accept it. `mention`, `share`, `report.received`, `package.received`, `chronicle.proposed`, `chronicle.cap_warning`, `chronicle.gap`, `chronicle.access.requested` and `saved-search.matches` on an instance channel receive a copy of each such personal notice, once per addressee, with its TLP label at the head; the copies never reach the device inbox or the instance SSE topics
   @JsonKey(
     
     name: r'events',
@@ -588,7 +589,9 @@ packagePeriodReceived(r'package.received'),
 @JsonValue(r'chronicle.access.requested')
 chroniclePeriodAccessPeriodRequested(r'chronicle.access.requested'),
 @JsonValue(r'saved-search.matches')
-savedSearchPeriodMatches(r'saved-search.matches');
+savedSearchPeriodMatches(r'saved-search.matches'),
+@JsonValue(r'personal')
+personal(r'personal');
 
 const ChannelEventsEnum(this.value);
 

@@ -25,6 +25,10 @@ abstract class _$SocialCueCWProxy {
 
   SocialCue results(List<SocialCueResultsInner> results);
 
+  SocialCue externalResults(
+    List<SocialCueExternalResultsInner>? externalResults,
+  );
+
   SocialCue narrativeIds(List<String> narrativeIds);
 
   SocialCue costUsd(num costUsd);
@@ -59,6 +63,7 @@ abstract class _$SocialCueCWProxy {
     SocialCueStatusEnum status,
     String? statusReason,
     List<SocialCueResultsInner> results,
+    List<SocialCueExternalResultsInner>? externalResults,
     List<String> narrativeIds,
     num costUsd,
     num? maxCostUsd,
@@ -108,6 +113,11 @@ class _$SocialCueCWProxyImpl implements _$SocialCueCWProxy {
       call(results: results);
 
   @override
+  SocialCue externalResults(
+    List<SocialCueExternalResultsInner>? externalResults,
+  ) => call(externalResults: externalResults);
+
+  @override
   SocialCue narrativeIds(List<String> narrativeIds) =>
       call(narrativeIds: narrativeIds);
 
@@ -152,6 +162,7 @@ class _$SocialCueCWProxyImpl implements _$SocialCueCWProxy {
     Object? status = const $CopyWithPlaceholder(),
     Object? statusReason = const $CopyWithPlaceholder(),
     Object? results = const $CopyWithPlaceholder(),
+    Object? externalResults = const $CopyWithPlaceholder(),
     Object? narrativeIds = const $CopyWithPlaceholder(),
     Object? costUsd = const $CopyWithPlaceholder(),
     Object? maxCostUsd = const $CopyWithPlaceholder(),
@@ -198,6 +209,10 @@ class _$SocialCueCWProxyImpl implements _$SocialCueCWProxy {
           ? _value.results
           // ignore: cast_nullable_to_non_nullable
           : results as List<SocialCueResultsInner>,
+      externalResults: externalResults == const $CopyWithPlaceholder()
+          ? _value.externalResults
+          // ignore: cast_nullable_to_non_nullable
+          : externalResults as List<SocialCueExternalResultsInner>?,
       narrativeIds:
           narrativeIds == const $CopyWithPlaceholder() || narrativeIds == null
           ? _value.narrativeIds
@@ -303,6 +318,16 @@ SocialCue _$SocialCueFromJson(
           .map((e) => SocialCueResultsInner.fromJson(e as Map<String, dynamic>))
           .toList(),
     ),
+    externalResults: $checkedConvert(
+      'externalResults',
+      (v) => (v as List<dynamic>?)
+          ?.map(
+            (e) => SocialCueExternalResultsInner.fromJson(
+              e as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
+    ),
     narrativeIds: $checkedConvert(
       'narrativeIds',
       (v) => (v as List<dynamic>).map((e) => e as String).toList(),
@@ -336,6 +361,7 @@ Map<String, dynamic> _$SocialCueToJson(SocialCue instance) => <String, dynamic>{
   'status': _$SocialCueStatusEnumEnumMap[instance.status]!,
   'statusReason': ?instance.statusReason,
   'results': instance.results.map((e) => e.toJson()).toList(),
+  'externalResults': ?instance.externalResults?.map((e) => e.toJson()).toList(),
   'narrativeIds': instance.narrativeIds,
   'costUsd': instance.costUsd,
   'maxCostUsd': ?instance.maxCostUsd,

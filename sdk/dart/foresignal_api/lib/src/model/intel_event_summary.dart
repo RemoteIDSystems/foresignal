@@ -34,6 +34,8 @@ class IntelEventSummary {
 
     required  this.confidence,
 
+     this.rawConfidence,
+
     required  this.confidenceLabel,
 
      this.confidenceMethod,
@@ -128,9 +130,9 @@ class IntelEventSummary {
 
 
 
-      /// Score from EventScorer; not a calibrated probability unless `calibrated`
+      /// The calibrated probability when `calibrated` is true, otherwise the raw EventScorer score (capped at 0.95)
           // minimum: 0
-          // maximum: 0.95
+          // maximum: 1
   @JsonKey(
     
     name: r'confidence',
@@ -140,6 +142,21 @@ class IntelEventSummary {
 
 
   final num confidence;
+
+
+
+      /// The uncalibrated EventScorer score behind `confidence` (151); equal to `confidence` until calibrated
+          // minimum: 0
+          // maximum: 0.95
+  @JsonKey(
+    
+    name: r'rawConfidence',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final num? rawConfidence;
 
 
 
@@ -168,7 +185,7 @@ class IntelEventSummary {
 
 
 
-      /// Set only by 103 validation
+      /// True when `confidence` is a calibrated probability backed by resolved outcomes (151); until a scope has enough resolved history the raw score stands and this is false
   @JsonKey(
     
     name: r'calibrated',
@@ -348,6 +365,7 @@ class IntelEventSummary {
       other.status == status &&
       other.severity == severity &&
       other.confidence == confidence &&
+      other.rawConfidence == rawConfidence &&
       other.confidenceLabel == confidenceLabel &&
       other.confidenceMethod == confidenceMethod &&
       other.calibrated == calibrated &&
@@ -373,6 +391,7 @@ class IntelEventSummary {
         status.hashCode +
         severity.hashCode +
         confidence.hashCode +
+        (rawConfidence == null ? 0 : rawConfidence.hashCode) +
         confidenceLabel.hashCode +
         confidenceMethod.hashCode +
         calibrated.hashCode +

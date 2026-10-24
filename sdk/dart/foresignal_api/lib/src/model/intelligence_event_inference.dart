@@ -23,6 +23,8 @@ class IntelligenceEventInference {
 
     required  this.confidence,
 
+     this.rawConfidence,
+
     required  this.confidenceLabel,
 
     required  this.confidenceMethod,
@@ -46,9 +48,9 @@ class IntelligenceEventInference {
     required  this.explanation,
   });
 
-      /// Score from EventScorer; not a calibrated probability unless `calibrated`
+      /// The calibrated probability when `calibrated` is true, otherwise the raw EventScorer score (capped at 0.95)
           // minimum: 0
-          // maximum: 0.95
+          // maximum: 1
   @JsonKey(
     
     name: r'confidence',
@@ -58,6 +60,21 @@ class IntelligenceEventInference {
 
 
   final num confidence;
+
+
+
+      /// The uncalibrated EventScorer score behind `confidence` (151); equal to `confidence` until calibrated
+          // minimum: 0
+          // maximum: 0.95
+  @JsonKey(
+    
+    name: r'rawConfidence',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final num? rawConfidence;
 
 
 
@@ -86,7 +103,7 @@ class IntelligenceEventInference {
 
 
 
-      /// Set only by 103 validation
+      /// True when `confidence` is a calibrated probability backed by resolved outcomes (151); until a scope has enough resolved history the raw score stands and this is false
   @JsonKey(
     
     name: r'calibrated',
@@ -202,6 +219,7 @@ class IntelligenceEventInference {
     @override
     bool operator ==(Object other) => identical(this, other) || other is IntelligenceEventInference &&
       other.confidence == confidence &&
+      other.rawConfidence == rawConfidence &&
       other.confidenceLabel == confidenceLabel &&
       other.confidenceMethod == confidenceMethod &&
       other.calibrated == calibrated &&
@@ -217,6 +235,7 @@ class IntelligenceEventInference {
     @override
     int get hashCode =>
         confidence.hashCode +
+        (rawConfidence == null ? 0 : rawConfidence.hashCode) +
         confidenceLabel.hashCode +
         confidenceMethod.hashCode +
         calibrated.hashCode +

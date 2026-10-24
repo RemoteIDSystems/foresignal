@@ -8,6 +8,9 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
 from ..models.claim_extraction import ClaimExtraction
+from ..models.claim_framing_label_type_1 import ClaimFramingLabelType1
+from ..models.claim_framing_label_type_2_type_1 import ClaimFramingLabelType2Type1
+from ..models.claim_framing_label_type_3_type_1 import ClaimFramingLabelType3Type1
 from ..models.claim_polarity import ClaimPolarity
 from ..models.claim_source_reliability import ClaimSourceReliability
 from ..models.claim_status import ClaimStatus
@@ -17,6 +20,7 @@ from ..types import UNSET, Unset
 if TYPE_CHECKING:
     from ..models.claim_event_time_type_0 import ClaimEventTimeType0
     from ..models.claim_place import ClaimPlace
+    from ..models.claim_reputation import ClaimReputation
 
 
 T = TypeVar("T", bound="Claim")
@@ -54,6 +58,19 @@ class Claim:
             event_time (ClaimEventTimeType0 | None | Unset):
             actor (None | str | Unset): Organisation name if stated
             comparison_id (None | str | Unset): 137 comparison
+            restatement (None | str | Unset): The neutral, de-hyped who/what/where/when restatement of the claim: the
+                checkable core stripped of outrage and partisan framing. An LLM proposal is kept only when it re-validates
+                against the lexicon, gazetteer and entity index and carries no hype word or unresolvable specific; otherwise a
+                deterministic restatement synthesized from the validated fields. Null for claims extracted before 153 (153)
+            framing_score (float | None | Unset): Deterministic, LLM-free framing/partisan intensity of the most central
+                post (0 neutral prose, higher = more outrage, partisan-loaded labels, shouting and emphasis). Measures how the
+                claim is told, not whether it is true. Null for claims extracted before 153 (153)
+            framing_label (ClaimFramingLabelType1 | ClaimFramingLabelType2Type1 | ClaimFramingLabelType3Type1 | None |
+                Unset): Band of framingScore: neutral (< 0.12), charged (< 0.28), inflammatory (>= 0.28). Null for claims
+                extracted before 153 (153)
+            reputation (ClaimReputation | None | Unset): The rated-outlet reputation folded into sourceReliability, when the
+                claim's source resolves to a rated outlet (a source key that is a web domain). Null for the common case of a
+                social account with no resolvable outlet (153)
             tlp (Tlp | Unset): Traffic Light Protocol 2.0 label
             created_at (datetime.datetime | Unset):
     """
@@ -80,6 +97,16 @@ class Claim:
     event_time: ClaimEventTimeType0 | None | Unset = UNSET
     actor: None | str | Unset = UNSET
     comparison_id: None | str | Unset = UNSET
+    restatement: None | str | Unset = UNSET
+    framing_score: float | None | Unset = UNSET
+    framing_label: (
+        ClaimFramingLabelType1
+        | ClaimFramingLabelType2Type1
+        | ClaimFramingLabelType3Type1
+        | None
+        | Unset
+    ) = UNSET
+    reputation: ClaimReputation | None | Unset = UNSET
     tlp: Tlp | Unset = UNSET
     created_at: datetime.datetime | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -87,6 +114,7 @@ class Claim:
     def to_dict(self) -> dict[str, Any]:
         from ..models.claim_event_time_type_0 import ClaimEventTimeType0
         from ..models.claim_place import ClaimPlace
+        from ..models.claim_reputation import ClaimReputation
 
         id = self.id
 
@@ -154,6 +182,38 @@ class Claim:
         else:
             comparison_id = self.comparison_id
 
+        restatement: None | str | Unset
+        if isinstance(self.restatement, Unset):
+            restatement = UNSET
+        else:
+            restatement = self.restatement
+
+        framing_score: float | None | Unset
+        if isinstance(self.framing_score, Unset):
+            framing_score = UNSET
+        else:
+            framing_score = self.framing_score
+
+        framing_label: None | str | Unset
+        if isinstance(self.framing_label, Unset):
+            framing_label = UNSET
+        elif (
+            isinstance(self.framing_label, ClaimFramingLabelType1)
+            or isinstance(self.framing_label, ClaimFramingLabelType2Type1)
+            or isinstance(self.framing_label, ClaimFramingLabelType3Type1)
+        ):
+            framing_label = self.framing_label.value
+        else:
+            framing_label = self.framing_label
+
+        reputation: dict[str, Any] | None | Unset
+        if isinstance(self.reputation, Unset):
+            reputation = UNSET
+        elif isinstance(self.reputation, ClaimReputation):
+            reputation = self.reputation.to_dict()
+        else:
+            reputation = self.reputation
+
         tlp: str | Unset = UNSET
         if not isinstance(self.tlp, Unset):
             tlp = self.tlp.value
@@ -195,6 +255,14 @@ class Claim:
             field_dict["actor"] = actor
         if comparison_id is not UNSET:
             field_dict["comparisonId"] = comparison_id
+        if restatement is not UNSET:
+            field_dict["restatement"] = restatement
+        if framing_score is not UNSET:
+            field_dict["framingScore"] = framing_score
+        if framing_label is not UNSET:
+            field_dict["framingLabel"] = framing_label
+        if reputation is not UNSET:
+            field_dict["reputation"] = reputation
         if tlp is not UNSET:
             field_dict["tlp"] = tlp
         if created_at is not UNSET:
@@ -206,6 +274,7 @@ class Claim:
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.claim_event_time_type_0 import ClaimEventTimeType0
         from ..models.claim_place import ClaimPlace
+        from ..models.claim_reputation import ClaimReputation
 
         d = dict(src_dict)
         id = d.pop("id")
@@ -296,6 +365,89 @@ class Claim:
 
         comparison_id = _parse_comparison_id(d.pop("comparisonId", UNSET))
 
+        def _parse_restatement(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        restatement = _parse_restatement(d.pop("restatement", UNSET))
+
+        def _parse_framing_score(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        framing_score = _parse_framing_score(d.pop("framingScore", UNSET))
+
+        def _parse_framing_label(
+            data: object,
+        ) -> (
+            ClaimFramingLabelType1
+            | ClaimFramingLabelType2Type1
+            | ClaimFramingLabelType3Type1
+            | None
+            | Unset
+        ):
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                framing_label_type_1 = ClaimFramingLabelType1(data)
+
+                return framing_label_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                framing_label_type_2_type_1 = ClaimFramingLabelType2Type1(data)
+
+                return framing_label_type_2_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                framing_label_type_3_type_1 = ClaimFramingLabelType3Type1(data)
+
+                return framing_label_type_3_type_1
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(
+                ClaimFramingLabelType1
+                | ClaimFramingLabelType2Type1
+                | ClaimFramingLabelType3Type1
+                | None
+                | Unset,
+                data,
+            )
+
+        framing_label = _parse_framing_label(d.pop("framingLabel", UNSET))
+
+        def _parse_reputation(data: object) -> ClaimReputation | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                reputation_type_0 = ClaimReputation.from_dict(data)
+
+                return reputation_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(ClaimReputation | None | Unset, data)
+
+        reputation = _parse_reputation(d.pop("reputation", UNSET))
+
         _tlp = d.pop("tlp", UNSET)
         tlp: Tlp | Unset
         if isinstance(_tlp, Unset):
@@ -333,6 +485,10 @@ class Claim:
             event_time=event_time,
             actor=actor,
             comparison_id=comparison_id,
+            restatement=restatement,
+            framing_score=framing_score,
+            framing_label=framing_label,
+            reputation=reputation,
             tlp=tlp,
             created_at=created_at,
         )

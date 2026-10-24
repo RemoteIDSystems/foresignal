@@ -27,6 +27,8 @@ class CorrelationRecipe {
 
      this.builtIn,
 
+     this.origin,
+
     required  this.enabled,
 
     required  this.definition,
@@ -76,6 +78,19 @@ class CorrelationRecipe {
 
 
 
+      /// Whether the recipe is a bundled classpath recipe or operator-authored (prompt 157)
+  @JsonKey(
+    
+    name: r'origin',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final CorrelationRecipeOriginEnum? origin;
+
+
+
   @JsonKey(
     
     name: r'enabled',
@@ -100,7 +115,7 @@ class CorrelationRecipe {
 
 
 
-      /// Operator overrides
+      /// Operator overrides; null when there are none
   @JsonKey(
     
     name: r'params',
@@ -157,6 +172,7 @@ class CorrelationRecipe {
       other.id == id &&
       other.version == version &&
       other.builtIn == builtIn &&
+      other.origin == origin &&
       other.enabled == enabled &&
       other.definition == definition &&
       other.params == params &&
@@ -169,9 +185,10 @@ class CorrelationRecipe {
         id.hashCode +
         version.hashCode +
         builtIn.hashCode +
+        origin.hashCode +
         enabled.hashCode +
         definition.hashCode +
-        params.hashCode +
+        (params == null ? 0 : params.hashCode) +
         (disabledReason == null ? 0 : disabledReason.hashCode) +
         (lastRunAt == null ? 0 : lastRunAt.hashCode) +
         (lastError == null ? 0 : lastError.hashCode);
@@ -186,4 +203,20 @@ class CorrelationRecipe {
   }
 
 }
+
+/// Whether the recipe is a bundled classpath recipe or operator-authored (prompt 157)
+enum CorrelationRecipeOriginEnum {
+@JsonValue(r'bundled')
+bundled(r'bundled'),
+@JsonValue(r'operator')
+operator_(r'operator');
+
+const CorrelationRecipeOriginEnum(this.value);
+
+final String value;
+
+@override
+String toString() => value;
+}
+
 

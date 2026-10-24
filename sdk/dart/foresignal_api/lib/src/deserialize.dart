@@ -38,6 +38,7 @@ import 'package:foresignal_api/src/model/analog_result.dart';
 import 'package:foresignal_api/src/model/analog_result_outcome_distribution.dart';
 import 'package:foresignal_api/src/model/analog_result_signature.dart';
 import 'package:foresignal_api/src/model/analog_result_target.dart';
+import 'package:foresignal_api/src/model/analysis_callback.dart';
 import 'package:foresignal_api/src/model/analysis_cycle.dart';
 import 'package:foresignal_api/src/model/analysis_cycle_input.dart';
 import 'package:foresignal_api/src/model/analysis_cycle_input_schedule.dart';
@@ -47,6 +48,8 @@ import 'package:foresignal_api/src/model/analysis_manifest_build.dart';
 import 'package:foresignal_api/src/model/analysis_manifest_inputs.dart';
 import 'package:foresignal_api/src/model/analysis_manifest_model.dart';
 import 'package:foresignal_api/src/model/analysis_manifest_model_templates_inner.dart';
+import 'package:foresignal_api/src/model/analysis_request_result.dart';
+import 'package:foresignal_api/src/model/analysis_request_submission.dart';
 import 'package:foresignal_api/src/model/analysis_series.dart';
 import 'package:foresignal_api/src/model/analysis_series_input.dart';
 import 'package:foresignal_api/src/model/analysis_series_page.dart';
@@ -281,6 +284,7 @@ import 'package:foresignal_api/src/model/claim_event_time.dart';
 import 'package:foresignal_api/src/model/claim_extracted_event.dart';
 import 'package:foresignal_api/src/model/claim_page.dart';
 import 'package:foresignal_api/src/model/claim_place.dart';
+import 'package:foresignal_api/src/model/claim_reputation.dart';
 import 'package:foresignal_api/src/model/client_links.dart';
 import 'package:foresignal_api/src/model/client_presence.dart';
 import 'package:foresignal_api/src/model/client_presence_input.dart';
@@ -293,6 +297,8 @@ import 'package:foresignal_api/src/model/collab_attachment_links.dart';
 import 'package:foresignal_api/src/model/collection_gap.dart';
 import 'package:foresignal_api/src/model/collection_gap_page.dart';
 import 'package:foresignal_api/src/model/collection_gap_recommendations_inner.dart';
+import 'package:foresignal_api/src/model/collector_settings.dart';
+import 'package:foresignal_api/src/model/collector_status.dart';
 import 'package:foresignal_api/src/model/comment_event.dart';
 import 'package:foresignal_api/src/model/common_dependencies.dart';
 import 'package:foresignal_api/src/model/common_dependencies_dependencies_inner.dart';
@@ -314,6 +320,7 @@ import 'package:foresignal_api/src/model/coordination_detected_event.dart';
 import 'package:foresignal_api/src/model/coordination_indicator.dart';
 import 'package:foresignal_api/src/model/coordination_indicators.dart';
 import 'package:foresignal_api/src/model/correlation_recipe.dart';
+import 'package:foresignal_api/src/model/correlation_recipe_create.dart';
 import 'package:foresignal_api/src/model/correlation_recipe_definition.dart';
 import 'package:foresignal_api/src/model/correlation_recipe_definition_activate_at.dart';
 import 'package:foresignal_api/src/model/correlation_recipe_definition_contradictions_inner.dart';
@@ -422,6 +429,7 @@ import 'package:foresignal_api/src/model/dossier_sections_overview_links.dart';
 import 'package:foresignal_api/src/model/dossier_sections_related.dart';
 import 'package:foresignal_api/src/model/dossier_sections_timeline.dart';
 import 'package:foresignal_api/src/model/dossier_sections_timeline_items_inner.dart';
+import 'package:foresignal_api/src/model/edp_analysis_request.dart';
 import 'package:foresignal_api/src/model/edp_batch.dart';
 import 'package:foresignal_api/src/model/edp_coverage.dart';
 import 'package:foresignal_api/src/model/edp_delete_item.dart';
@@ -464,6 +472,8 @@ import 'package:foresignal_api/src/model/emergency_squawk_payload.dart';
 import 'package:foresignal_api/src/model/emwin_product_payload.dart';
 import 'package:foresignal_api/src/model/emwin_warning_payload.dart';
 import 'package:foresignal_api/src/model/emwin_warning_payload_duplicate_of.dart';
+import 'package:foresignal_api/src/model/enable_core_sources_result.dart';
+import 'package:foresignal_api/src/model/enable_free_sources_result.dart';
 import 'package:foresignal_api/src/model/ensemble_refit_result.dart';
 import 'package:foresignal_api/src/model/ensemble_refit_result_extremizing.dart';
 import 'package:foresignal_api/src/model/ensemble_refit_result_platt_inner.dart';
@@ -551,6 +561,7 @@ import 'package:foresignal_api/src/model/external_binding_preview.dart';
 import 'package:foresignal_api/src/model/external_binding_preview_effects_inner.dart';
 import 'package:foresignal_api/src/model/external_catalogue_entry.dart';
 import 'package:foresignal_api/src/model/external_catalogue_entry_time_dimension.dart';
+import 'package:foresignal_api/src/model/external_forecaster_registration.dart';
 import 'package:foresignal_api/src/model/external_question_link.dart';
 import 'package:foresignal_api/src/model/external_question_link_input.dart';
 import 'package:foresignal_api/src/model/external_source.dart';
@@ -614,6 +625,11 @@ import 'package:foresignal_api/src/model/forecast_history.dart';
 import 'package:foresignal_api/src/model/forecast_history_series_inner.dart';
 import 'package:foresignal_api/src/model/forecast_history_series_inner_points_inner.dart';
 import 'package:foresignal_api/src/model/forecast_input.dart';
+import 'package:foresignal_api/src/model/forecast_numeric_calibration.dart';
+import 'package:foresignal_api/src/model/forecast_numeric_calibration_pit.dart';
+import 'package:foresignal_api/src/model/forecast_numeric_calibration_pit_bins_inner.dart';
+import 'package:foresignal_api/src/model/forecast_numeric_calibration_quantile_reliability_inner.dart';
+import 'package:foresignal_api/src/model/forecast_numeric_calibration_summary.dart';
 import 'package:foresignal_api/src/model/forecast_page.dart';
 import 'package:foresignal_api/src/model/forecast_question.dart';
 import 'package:foresignal_api/src/model/forecast_question_event.dart';
@@ -639,6 +655,8 @@ import 'package:foresignal_api/src/model/frame_item.dart';
 import 'package:foresignal_api/src/model/frame_stats.dart';
 import 'package:foresignal_api/src/model/geofence_ref.dart';
 import 'package:foresignal_api/src/model/geometry.dart';
+import 'package:foresignal_api/src/model/get_forecast_calibration200_response.dart';
+import 'package:foresignal_api/src/model/get_intel_calibration200_response.dart';
 import 'package:foresignal_api/src/model/get_principal200_response.dart';
 import 'package:foresignal_api/src/model/get_vapid_public_key200_response.dart';
 import 'package:foresignal_api/src/model/glance.dart';
@@ -780,6 +798,13 @@ import 'package:foresignal_api/src/model/intel_board_forecasts_due_inner.dart';
 import 'package:foresignal_api/src/model/intel_board_indicators_observed_inner.dart';
 import 'package:foresignal_api/src/model/intel_board_latest_assessments_inner.dart';
 import 'package:foresignal_api/src/model/intel_board_situations_inner.dart';
+import 'package:foresignal_api/src/model/intel_calibration.dart';
+import 'package:foresignal_api/src/model/intel_calibration_bins_inner.dart';
+import 'package:foresignal_api/src/model/intel_calibration_curve_inner.dart';
+import 'package:foresignal_api/src/model/intel_corroboration.dart';
+import 'package:foresignal_api/src/model/intel_corroboration_auto_corroborate.dart';
+import 'package:foresignal_api/src/model/intel_corroboration_event_quality.dart';
+import 'package:foresignal_api/src/model/intel_corroboration_situation_activation.dart';
 import 'package:foresignal_api/src/model/intel_event_alternative.dart';
 import 'package:foresignal_api/src/model/intel_event_input.dart';
 import 'package:foresignal_api/src/model/intel_event_log_entry.dart';
@@ -1032,6 +1057,10 @@ import 'package:foresignal_api/src/model/overland_batch.dart';
 import 'package:foresignal_api/src/model/overland_batch_locations_inner.dart';
 import 'package:foresignal_api/src/model/overland_batch_locations_inner_properties.dart';
 import 'package:foresignal_api/src/model/own_tracks_message.dart';
+import 'package:foresignal_api/src/model/ownership_chain.dart';
+import 'package:foresignal_api/src/model/ownership_chain_node.dart';
+import 'package:foresignal_api/src/model/ownership_chain_node_paths_inner.dart';
+import 'package:foresignal_api/src/model/ownership_chain_request.dart';
 import 'package:foresignal_api/src/model/pack_spec.dart';
 import 'package:foresignal_api/src/model/pack_spec_raster.dart';
 import 'package:foresignal_api/src/model/pack_spec_vector.dart';
@@ -1179,6 +1208,8 @@ import 'package:foresignal_api/src/model/projected_impact_page.dart';
 import 'package:foresignal_api/src/model/projected_impact_question_window.dart';
 import 'package:foresignal_api/src/model/projected_impact_skipped_inner.dart';
 import 'package:foresignal_api/src/model/prompt_template.dart';
+import 'package:foresignal_api/src/model/prompt_template_list.dart';
+import 'package:foresignal_api/src/model/prompt_template_summary.dart';
 import 'package:foresignal_api/src/model/propagation_edge.dart';
 import 'package:foresignal_api/src/model/propagation_graph.dart';
 import 'package:foresignal_api/src/model/propagation_graph_cross_platform_order_inner.dart';
@@ -1497,6 +1528,7 @@ import 'package:foresignal_api/src/model/social_coverage_bucket.dart';
 import 'package:foresignal_api/src/model/social_coverage_page.dart';
 import 'package:foresignal_api/src/model/social_cue.dart';
 import 'package:foresignal_api/src/model/social_cue_event.dart';
+import 'package:foresignal_api/src/model/social_cue_external_results_inner.dart';
 import 'package:foresignal_api/src/model/social_cue_input.dart';
 import 'package:foresignal_api/src/model/social_cue_page.dart';
 import 'package:foresignal_api/src/model/social_cue_query.dart';
@@ -1835,6 +1867,8 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return AnalogResultSignature.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'AnalogResultTarget':
           return AnalogResultTarget.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'AnalysisCallback':
+          return AnalysisCallback.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'AnalysisCycle':
           return AnalysisCycle.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'AnalysisCycleInput':
@@ -1853,6 +1887,10 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return AnalysisManifestModel.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'AnalysisManifestModelTemplatesInner':
           return AnalysisManifestModelTemplatesInner.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'AnalysisRequestResult':
+          return AnalysisRequestResult.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'AnalysisRequestSubmission':
+          return AnalysisRequestSubmission.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'AnalysisSeries':
           return AnalysisSeries.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'AnalysisSeriesInput':
@@ -2321,6 +2359,8 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return ClaimPage.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'ClaimPlace':
           return ClaimPlace.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'ClaimReputation':
+          return ClaimReputation.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'ClientLinks':
           return ClientLinks.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'ClientPresence':
@@ -2345,6 +2385,10 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return CollectionGapPage.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'CollectionGapRecommendationsInner':
           return CollectionGapRecommendationsInner.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'CollectorSettings':
+          return CollectorSettings.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'CollectorStatus':
+          return CollectorStatus.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'CommentEvent':
           return CommentEvent.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'CommonDependencies':
@@ -2390,6 +2434,8 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return CoordinationIndicators.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'CorrelationRecipe':
           return CorrelationRecipe.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'CorrelationRecipeCreate':
+          return CorrelationRecipeCreate.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'CorrelationRecipeDefinition':
           return CorrelationRecipeDefinition.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'CorrelationRecipeDefinitionActivateAt':
@@ -2606,6 +2652,8 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return DossierSectionsTimeline.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'DossierSectionsTimelineItemsInner':
           return DossierSectionsTimelineItemsInner.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'EdpAnalysisRequest':
+          return EdpAnalysisRequest.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'EdpBatch':
           return EdpBatch.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'EdpCoverage':
@@ -2690,6 +2738,10 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return EmwinWarningPayload.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'EmwinWarningPayloadDuplicateOf':
           return EmwinWarningPayloadDuplicateOf.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'EnableCoreSourcesResult':
+          return EnableCoreSourcesResult.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'EnableFreeSourcesResult':
+          return EnableFreeSourcesResult.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'EnsembleRefitResult':
           return EnsembleRefitResult.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'EnsembleRefitResultExtremizing':
@@ -2864,6 +2916,8 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return ExternalCatalogueEntry.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'ExternalCatalogueEntryTimeDimension':
           return ExternalCatalogueEntryTimeDimension.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'ExternalForecasterRegistration':
+          return ExternalForecasterRegistration.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'ExternalQuestionLink':
           return ExternalQuestionLink.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'ExternalQuestionLinkInput':
@@ -2993,6 +3047,16 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return ForecastHistorySeriesInnerPointsInner.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'ForecastInput':
           return ForecastInput.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'ForecastNumericCalibration':
+          return ForecastNumericCalibration.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'ForecastNumericCalibrationPit':
+          return ForecastNumericCalibrationPit.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'ForecastNumericCalibrationPitBinsInner':
+          return ForecastNumericCalibrationPitBinsInner.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'ForecastNumericCalibrationQuantileReliabilityInner':
+          return ForecastNumericCalibrationQuantileReliabilityInner.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'ForecastNumericCalibrationSummary':
+          return ForecastNumericCalibrationSummary.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'ForecastPage':
           return ForecastPage.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'ForecastQuestion':
@@ -3043,6 +3107,10 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return GeofenceRef.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'Geometry':
           return Geometry.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'GetForecastCalibration200Response':
+          return GetForecastCalibration200Response.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'GetIntelCalibration200Response':
+          return GetIntelCalibration200Response.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'GetPrincipal200Response':
           return GetPrincipal200Response.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'GetVapidPublicKey200Response':
@@ -3334,6 +3402,20 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return IntelBoardLatestAssessmentsInner.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'IntelBoardSituationsInner':
           return IntelBoardSituationsInner.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'IntelCalibration':
+          return IntelCalibration.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'IntelCalibrationBinsInner':
+          return IntelCalibrationBinsInner.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'IntelCalibrationCurveInner':
+          return IntelCalibrationCurveInner.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'IntelCorroboration':
+          return IntelCorroboration.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'IntelCorroborationAutoCorroborate':
+          return IntelCorroborationAutoCorroborate.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'IntelCorroborationEventQuality':
+          return IntelCorroborationEventQuality.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'IntelCorroborationSituationActivation':
+          return IntelCorroborationSituationActivation.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'IntelEventAlternative':
           return IntelEventAlternative.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'IntelEventInput':
@@ -3838,6 +3920,14 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return OverlandBatchLocationsInnerProperties.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'OwnTracksMessage':
           return OwnTracksMessage.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'OwnershipChain':
+          return OwnershipChain.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'OwnershipChainNode':
+          return OwnershipChainNode.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'OwnershipChainNodePathsInner':
+          return OwnershipChainNodePathsInner.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'OwnershipChainRequest':
+          return OwnershipChainRequest.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'PackSpec':
           return PackSpec.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'PackSpecRaster':
@@ -4135,6 +4225,10 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return ProjectedImpactSkippedInner.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'PromptTemplate':
           return PromptTemplate.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'PromptTemplateList':
+          return PromptTemplateList.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'PromptTemplateSummary':
+          return PromptTemplateSummary.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'PropagationEdge':
           return PropagationEdge.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'PropagationGraph':
@@ -4789,6 +4883,8 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return SocialCue.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'SocialCueEvent':
           return SocialCueEvent.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'SocialCueExternalResultsInner':
+          return SocialCueExternalResultsInner.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'SocialCueInput':
           return SocialCueInput.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'SocialCuePage':

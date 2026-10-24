@@ -87,7 +87,8 @@ def sync_detailed(
 ) -> Response[Forecaster | Problem]:
     """Update a forecaster
 
-     Sets a forecaster's `active` flag and configuration.
+     Sets a forecaster's `active` flag, configuration and, for an external forecaster, display `name`
+    (155).
 
     **Scope:** `admin`.
 
@@ -123,7 +124,8 @@ def sync(
 ) -> Forecaster | Problem | None:
     """Update a forecaster
 
-     Sets a forecaster's `active` flag and configuration.
+     Sets a forecaster's `active` flag, configuration and, for an external forecaster, display `name`
+    (155).
 
     **Scope:** `admin`.
 
@@ -154,7 +156,8 @@ async def asyncio_detailed(
 ) -> Response[Forecaster | Problem]:
     """Update a forecaster
 
-     Sets a forecaster's `active` flag and configuration.
+     Sets a forecaster's `active` flag, configuration and, for an external forecaster, display `name`
+    (155).
 
     **Scope:** `admin`.
 
@@ -188,7 +191,8 @@ async def asyncio(
 ) -> Forecaster | Problem | None:
     """Update a forecaster
 
-     Sets a forecaster's `active` flag and configuration.
+     Sets a forecaster's `active` flag, configuration and, for an external forecaster, display `name`
+    (155).
 
     **Scope:** `admin`.
 

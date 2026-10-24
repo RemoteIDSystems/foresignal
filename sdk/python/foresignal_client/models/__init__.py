@@ -108,6 +108,8 @@ from .analog_result_outcome_distribution_type_0 import (
 )
 from .analog_result_signature_type_0 import AnalogResultSignatureType0
 from .analog_result_target import AnalogResultTarget
+from .analysis_callback import AnalysisCallback
+from .analysis_callback_quantiles import AnalysisCallbackQuantiles
 from .analysis_cycle import AnalysisCycle
 from .analysis_cycle_cadence import AnalysisCycleCadence
 from .analysis_cycle_input import AnalysisCycleInput
@@ -131,6 +133,11 @@ from .analysis_manifest_model_type_0_templates_item import (
     AnalysisManifestModelType0TemplatesItem,
 )
 from .analysis_manifest_registries import AnalysisManifestRegistries
+from .analysis_request_result import AnalysisRequestResult
+from .analysis_request_submission import AnalysisRequestSubmission
+from .analysis_request_submission_orientation import (
+    AnalysisRequestSubmissionOrientation,
+)
 from .analysis_series import AnalysisSeries
 from .analysis_series_detectors_item import AnalysisSeriesDetectorsItem
 from .analysis_series_frequency import AnalysisSeriesFrequency
@@ -709,10 +716,14 @@ from .claim import Claim
 from .claim_event_time_type_0 import ClaimEventTimeType0
 from .claim_extracted_event import ClaimExtractedEvent
 from .claim_extraction import ClaimExtraction
+from .claim_framing_label_type_1 import ClaimFramingLabelType1
+from .claim_framing_label_type_2_type_1 import ClaimFramingLabelType2Type1
+from .claim_framing_label_type_3_type_1 import ClaimFramingLabelType3Type1
 from .claim_page import ClaimPage
 from .claim_place import ClaimPlace
 from .claim_place_precision import ClaimPlacePrecision
 from .claim_polarity import ClaimPolarity
+from .claim_reputation import ClaimReputation
 from .claim_source_reliability import ClaimSourceReliability
 from .claim_status import ClaimStatus
 from .client_links import ClientLinks
@@ -736,6 +747,8 @@ from .collection_gap_recommendations_item import CollectionGapRecommendationsIte
 from .collection_gap_recommendations_item_type import (
     CollectionGapRecommendationsItemType,
 )
+from .collector_settings import CollectorSettings
+from .collector_status import CollectorStatus
 from .comment_event import CommentEvent
 from .comment_event_reason import CommentEventReason
 from .common_dependencies import CommonDependencies
@@ -784,6 +797,7 @@ from .coordination_detected_event_significant_indicators_item import (
 from .coordination_indicator import CoordinationIndicator
 from .coordination_indicators import CoordinationIndicators
 from .correlation_recipe import CorrelationRecipe
+from .correlation_recipe_create import CorrelationRecipeCreate
 from .correlation_recipe_definition import CorrelationRecipeDefinition
 from .correlation_recipe_definition_activate_at import (
     CorrelationRecipeDefinitionActivateAt,
@@ -809,9 +823,10 @@ from .correlation_recipe_definition_severity_map import (
     CorrelationRecipeDefinitionSeverityMap,
 )
 from .correlation_recipe_definition_type import CorrelationRecipeDefinitionType
-from .correlation_recipe_params import CorrelationRecipeParams
+from .correlation_recipe_origin import CorrelationRecipeOrigin
+from .correlation_recipe_params_type_0 import CorrelationRecipeParamsType0
 from .correlation_recipe_update import CorrelationRecipeUpdate
-from .correlation_recipe_update_params import CorrelationRecipeUpdateParams
+from .correlation_recipe_update_params_type_0 import CorrelationRecipeUpdateParamsType0
 from .corroboration_payload import CorroborationPayload
 from .corroboration_payload_kind_family import CorroborationPayloadKindFamily
 from .corroboration_payload_reliability import CorroborationPayloadReliability
@@ -1083,6 +1098,8 @@ from .dossier_sections_timeline_items_item_kind import (
 from .dossier_sections_timeline_links_type_0 import DossierSectionsTimelineLinksType0
 from .dossier_sections_timeline_status import DossierSectionsTimelineStatus
 from .download_export_bundle import DownloadExportBundle
+from .edp_analysis_request import EdpAnalysisRequest
+from .edp_analysis_request_auth import EdpAnalysisRequestAuth
 from .edp_batch import EdpBatch
 from .edp_coverage import EdpCoverage
 from .edp_delete_item import EdpDeleteItem
@@ -1163,6 +1180,8 @@ from .emwin_warning_payload import EmwinWarningPayload
 from .emwin_warning_payload_duplicate_of_type_0 import (
     EmwinWarningPayloadDuplicateOfType0,
 )
+from .enable_core_sources_result import EnableCoreSourcesResult
+from .enable_free_sources_result import EnableFreeSourcesResult
 from .ensemble_refit_result import EnsembleRefitResult
 from .ensemble_refit_result_extremizing import EnsembleRefitResultExtremizing
 from .ensemble_refit_result_platt_item import EnsembleRefitResultPlattItem
@@ -1341,6 +1360,10 @@ from .external_catalogue_entry_protocol import ExternalCatalogueEntryProtocol
 from .external_catalogue_entry_time_dimension_type_0 import (
     ExternalCatalogueEntryTimeDimensionType0,
 )
+from .external_forecaster_registration import ExternalForecasterRegistration
+from .external_forecaster_registration_config import (
+    ExternalForecasterRegistrationConfig,
+)
 from .external_question_link import ExternalQuestionLink
 from .external_question_link_input import ExternalQuestionLinkInput
 from .external_question_link_input_orientation import (
@@ -1462,6 +1485,16 @@ from .forecast_input import ForecastInput
 from .forecast_input_citations_item import ForecastInputCitationsItem
 from .forecast_input_distribution_type_0 import ForecastInputDistributionType0
 from .forecast_inputs import ForecastInputs
+from .forecast_numeric_calibration import ForecastNumericCalibration
+from .forecast_numeric_calibration_label import ForecastNumericCalibrationLabel
+from .forecast_numeric_calibration_pit import ForecastNumericCalibrationPit
+from .forecast_numeric_calibration_pit_bins_item import (
+    ForecastNumericCalibrationPitBinsItem,
+)
+from .forecast_numeric_calibration_quantile_reliability_item import (
+    ForecastNumericCalibrationQuantileReliabilityItem,
+)
+from .forecast_numeric_calibration_summary import ForecastNumericCalibrationSummary
 from .forecast_page import ForecastPage
 from .forecast_question import ForecastQuestion
 from .forecast_question_baseline_notes import ForecastQuestionBaselineNotes
@@ -1529,6 +1562,8 @@ from .get_glance_format import GetGlanceFormat
 from .get_history_frames_format import GetHistoryFramesFormat
 from .get_history_frames_geometry import GetHistoryFramesGeometry
 from .get_infra_node_format import GetInfraNodeFormat
+from .get_intel_calibration_response_200 import GetIntelCalibrationResponse200
+from .get_intel_calibration_scope_scope import GetIntelCalibrationScopeScope
 from .get_kml_records_format import GetKmlRecordsFormat
 from .get_kml_tracks_format import GetKmlTracksFormat
 from .get_latest_assessment_cadence import GetLatestAssessmentCadence
@@ -1970,6 +2005,16 @@ from .intel_board_latest_assessments_item_cadence import (
     IntelBoardLatestAssessmentsItemCadence,
 )
 from .intel_board_situations_item import IntelBoardSituationsItem
+from .intel_calibration import IntelCalibration
+from .intel_calibration_bins_item import IntelCalibrationBinsItem
+from .intel_calibration_curve_item import IntelCalibrationCurveItem
+from .intel_calibration_scope import IntelCalibrationScope
+from .intel_corroboration import IntelCorroboration
+from .intel_corroboration_auto_corroborate import IntelCorroborationAutoCorroborate
+from .intel_corroboration_event_quality import IntelCorroborationEventQuality
+from .intel_corroboration_situation_activation import (
+    IntelCorroborationSituationActivation,
+)
 from .intel_event_alternative import IntelEventAlternative
 from .intel_event_input import IntelEventInput
 from .intel_event_input_origin import IntelEventInputOrigin
@@ -2075,6 +2120,8 @@ from .key_judgment import KeyJudgment
 from .key_judgment_change_type_0 import KeyJudgmentChangeType0
 from .key_judgment_text_origin import KeyJudgmentTextOrigin
 from .kind_display import KindDisplay
+from .kind_display_color_cases_type_0 import KindDisplayColorCasesType0
+from .kind_display_icon_cases_type_0 import KindDisplayIconCasesType0
 from .kind_schema import KindSchema
 from .kind_schema_properties import KindSchemaProperties
 from .kind_summary import KindSummary
@@ -2646,6 +2693,20 @@ from .overland_batch_locations_item_properties import (
 from .overland_batch_locations_item_type import OverlandBatchLocationsItemType
 from .own_tracks_message import OwnTracksMessage
 from .own_tracks_message_type import OwnTracksMessageType
+from .ownership_chain import OwnershipChain
+from .ownership_chain_direction import OwnershipChainDirection
+from .ownership_chain_node import OwnershipChainNode
+from .ownership_chain_node_paths_item import OwnershipChainNodePathsItem
+from .ownership_chain_node_paths_item_relation_types_item import (
+    OwnershipChainNodePathsItemRelationTypesItem,
+)
+from .ownership_chain_node_paths_item_weakest_edge_label import (
+    OwnershipChainNodePathsItemWeakestEdgeLabel,
+)
+from .ownership_chain_node_weakest_edge_label import OwnershipChainNodeWeakestEdgeLabel
+from .ownership_chain_request import OwnershipChainRequest
+from .ownership_chain_request_direction import OwnershipChainRequestDirection
+from .ownership_chain_request_types_item import OwnershipChainRequestTypesItem
 from .pack_spec import PackSpec
 from .pack_spec_raster_type_0 import PackSpecRasterType0
 from .pack_spec_vector_type_0 import PackSpecVectorType0
@@ -2935,6 +2996,8 @@ from .projected_impact_question_window import ProjectedImpactQuestionWindow
 from .projected_impact_skipped_item import ProjectedImpactSkippedItem
 from .projected_impact_status import ProjectedImpactStatus
 from .prompt_template import PromptTemplate
+from .prompt_template_list import PromptTemplateList
+from .prompt_template_summary import PromptTemplateSummary
 from .propagation_edge import PropagationEdge
 from .propagation_edge_type import PropagationEdgeType
 from .propagation_graph import PropagationGraph
@@ -3558,6 +3621,7 @@ from .social_coverage_page import SocialCoveragePage
 from .social_cue import SocialCue
 from .social_cue_backend import SocialCueBackend
 from .social_cue_event import SocialCueEvent
+from .social_cue_external_results_item import SocialCueExternalResultsItem
 from .social_cue_page import SocialCuePage
 from .social_cue_query import SocialCueQuery
 from .social_cue_results_item import SocialCueResultsItem
@@ -4118,6 +4182,8 @@ __all__ = (
     "AnalogResultOutcomeDistributionType0",
     "AnalogResultSignatureType0",
     "AnalogResultTarget",
+    "AnalysisCallback",
+    "AnalysisCallbackQuantiles",
     "AnalysisCycle",
     "AnalysisCycleCadence",
     "AnalysisCycleInput",
@@ -4137,6 +4203,9 @@ __all__ = (
     "AnalysisManifestModelType0",
     "AnalysisManifestModelType0TemplatesItem",
     "AnalysisManifestRegistries",
+    "AnalysisRequestResult",
+    "AnalysisRequestSubmission",
+    "AnalysisRequestSubmissionOrientation",
     "AnalysisSeries",
     "AnalysisSeriesDetectorsItem",
     "AnalysisSeriesFrequency",
@@ -4577,10 +4646,14 @@ __all__ = (
     "ClaimEventTimeType0",
     "ClaimExtractedEvent",
     "ClaimExtraction",
+    "ClaimFramingLabelType1",
+    "ClaimFramingLabelType2Type1",
+    "ClaimFramingLabelType3Type1",
     "ClaimPage",
     "ClaimPlace",
     "ClaimPlacePrecision",
     "ClaimPolarity",
+    "ClaimReputation",
     "ClaimSourceReliability",
     "ClaimStatus",
     "ClientLinks",
@@ -4602,6 +4675,8 @@ __all__ = (
     "CollectionGapPage",
     "CollectionGapRecommendationsItem",
     "CollectionGapRecommendationsItemType",
+    "CollectorSettings",
+    "CollectorStatus",
     "CommentEvent",
     "CommentEventReason",
     "CommonDependencies",
@@ -4636,6 +4711,7 @@ __all__ = (
     "CoordinationIndicator",
     "CoordinationIndicators",
     "CorrelationRecipe",
+    "CorrelationRecipeCreate",
     "CorrelationRecipeDefinition",
     "CorrelationRecipeDefinitionActivateAt",
     "CorrelationRecipeDefinitionContradictionsItem",
@@ -4647,9 +4723,10 @@ __all__ = (
     "CorrelationRecipeDefinitionSeed",
     "CorrelationRecipeDefinitionSeverityMap",
     "CorrelationRecipeDefinitionType",
-    "CorrelationRecipeParams",
+    "CorrelationRecipeOrigin",
+    "CorrelationRecipeParamsType0",
     "CorrelationRecipeUpdate",
-    "CorrelationRecipeUpdateParams",
+    "CorrelationRecipeUpdateParamsType0",
     "CorroborationPayload",
     "CorroborationPayloadKindFamily",
     "CorroborationPayloadReliability",
@@ -4855,6 +4932,8 @@ __all__ = (
     "DossierSectionsTimelineLinksType0",
     "DossierSectionsTimelineStatus",
     "DownloadExportBundle",
+    "EdpAnalysisRequest",
+    "EdpAnalysisRequestAuth",
     "EdpBatch",
     "EdpCoverage",
     "EdpDeleteItem",
@@ -4931,6 +5010,8 @@ __all__ = (
     "EmwinProductPayload",
     "EmwinWarningPayload",
     "EmwinWarningPayloadDuplicateOfType0",
+    "EnableCoreSourcesResult",
+    "EnableFreeSourcesResult",
     "EnsembleRefitResult",
     "EnsembleRefitResultExtremizing",
     "EnsembleRefitResultPlattItem",
@@ -5089,6 +5170,8 @@ __all__ = (
     "ExternalCatalogueEntryFormat",
     "ExternalCatalogueEntryProtocol",
     "ExternalCatalogueEntryTimeDimensionType0",
+    "ExternalForecasterRegistration",
+    "ExternalForecasterRegistrationConfig",
     "ExternalQuestionLink",
     "ExternalQuestionLinkInput",
     "ExternalQuestionLinkInputOrientation",
@@ -5196,6 +5279,12 @@ __all__ = (
     "ForecastInputCitationsItem",
     "ForecastInputDistributionType0",
     "ForecastInputs",
+    "ForecastNumericCalibration",
+    "ForecastNumericCalibrationLabel",
+    "ForecastNumericCalibrationPit",
+    "ForecastNumericCalibrationPitBinsItem",
+    "ForecastNumericCalibrationQuantileReliabilityItem",
+    "ForecastNumericCalibrationSummary",
     "ForecastPage",
     "ForecastQuestion",
     "ForecastQuestionBaselineNotes",
@@ -5263,6 +5352,8 @@ __all__ = (
     "GetHistoryFramesFormat",
     "GetHistoryFramesGeometry",
     "GetInfraNodeFormat",
+    "GetIntelCalibrationResponse200",
+    "GetIntelCalibrationScopeScope",
     "GetKmlRecordsFormat",
     "GetKmlTracksFormat",
     "GetLatestAssessmentCadence",
@@ -5632,6 +5723,14 @@ __all__ = (
     "IntelBoardLatestAssessmentsItem",
     "IntelBoardLatestAssessmentsItemCadence",
     "IntelBoardSituationsItem",
+    "IntelCalibration",
+    "IntelCalibrationBinsItem",
+    "IntelCalibrationCurveItem",
+    "IntelCalibrationScope",
+    "IntelCorroboration",
+    "IntelCorroborationAutoCorroborate",
+    "IntelCorroborationEventQuality",
+    "IntelCorroborationSituationActivation",
     "IntelEventAlternative",
     "IntelEventInput",
     "IntelEventInputOrigin",
@@ -5723,6 +5822,8 @@ __all__ = (
     "KeyJudgmentChangeType0",
     "KeyJudgmentTextOrigin",
     "KindDisplay",
+    "KindDisplayColorCasesType0",
+    "KindDisplayIconCasesType0",
     "KindSchema",
     "KindSchemaProperties",
     "KindSummary",
@@ -6194,6 +6295,16 @@ __all__ = (
     "OverlandBatchLocationsItemType",
     "OwnTracksMessage",
     "OwnTracksMessageType",
+    "OwnershipChain",
+    "OwnershipChainDirection",
+    "OwnershipChainNode",
+    "OwnershipChainNodePathsItem",
+    "OwnershipChainNodePathsItemRelationTypesItem",
+    "OwnershipChainNodePathsItemWeakestEdgeLabel",
+    "OwnershipChainNodeWeakestEdgeLabel",
+    "OwnershipChainRequest",
+    "OwnershipChainRequestDirection",
+    "OwnershipChainRequestTypesItem",
     "PackSpec",
     "PackSpecRasterType0",
     "PackSpecVectorType0",
@@ -6449,6 +6560,8 @@ __all__ = (
     "ProjectedImpactSkippedItem",
     "ProjectedImpactStatus",
     "PromptTemplate",
+    "PromptTemplateList",
+    "PromptTemplateSummary",
     "PropagationEdge",
     "PropagationEdgeType",
     "PropagationGraph",
@@ -6978,6 +7091,7 @@ __all__ = (
     "SocialCue",
     "SocialCueBackend",
     "SocialCueEvent",
+    "SocialCueExternalResultsItem",
     "SocialCuePage",
     "SocialCueQuery",
     "SocialCueResultsItem",

@@ -42,7 +42,7 @@ class RecordVersion:
         valid_until (datetime.datetime | None | Unset):
         tombstone (bool | Unset):
         geometry (Geometry | None | Unset):
-        attribution (str | Unset):
+        attribution (None | str | Unset): null when the source has no attribution line
         title (None | str | Unset): record_head.title (titleField, else title > name > callsign > place > r > hex >
             mmsi)
         persisted_observed_at (datetime.datetime | Unset): observedAt of the persisted version (observedAt may be newer
@@ -83,7 +83,7 @@ class RecordVersion:
     valid_until: datetime.datetime | None | Unset = UNSET
     tombstone: bool | Unset = UNSET
     geometry: Geometry | None | Unset = UNSET
-    attribution: str | Unset = UNSET
+    attribution: None | str | Unset = UNSET
     title: None | str | Unset = UNSET
     persisted_observed_at: datetime.datetime | Unset = UNSET
     event_time: datetime.datetime | None | Unset = UNSET
@@ -148,7 +148,11 @@ class RecordVersion:
         else:
             geometry = self.geometry
 
-        attribution = self.attribution
+        attribution: None | str | Unset
+        if isinstance(self.attribution, Unset):
+            attribution = UNSET
+        else:
+            attribution = self.attribution
 
         title: None | str | Unset
         if isinstance(self.title, Unset):
@@ -365,7 +369,14 @@ class RecordVersion:
 
         geometry = _parse_geometry(d.pop("geometry", UNSET))
 
-        attribution = d.pop("attribution", UNSET)
+        def _parse_attribution(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        attribution = _parse_attribution(d.pop("attribution", UNSET))
 
         def _parse_title(data: object) -> None | str | Unset:
             if data is None:

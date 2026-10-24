@@ -13,6 +13,7 @@ from ..models.social_platform_id import SocialPlatformId
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
+    from ..models.social_cue_external_results_item import SocialCueExternalResultsItem
     from ..models.social_cue_query import SocialCueQuery
     from ..models.social_cue_results_item import SocialCueResultsItem
     from ..models.social_cue_trigger import SocialCueTrigger
@@ -41,6 +42,7 @@ class SocialCue:
             created_by (str): `system` for automatic cues, else the principal
             created_at (datetime.datetime):
             status_reason (None | str | Unset): e.g. BUDGET_EXCEEDED, PLATFORM_DISABLED
+            external_results (list[SocialCueExternalResultsItem] | Unset): One item per EDP provider searched
             max_cost_usd (float | Unset):
             started_at (datetime.datetime | None | Unset):
             completed_at (datetime.datetime | None | Unset):
@@ -60,6 +62,7 @@ class SocialCue:
     created_by: str
     created_at: datetime.datetime
     status_reason: None | str | Unset = UNSET
+    external_results: list[SocialCueExternalResultsItem] | Unset = UNSET
     max_cost_usd: float | Unset = UNSET
     started_at: datetime.datetime | None | Unset = UNSET
     completed_at: datetime.datetime | None | Unset = UNSET
@@ -106,6 +109,13 @@ class SocialCue:
         else:
             status_reason = self.status_reason
 
+        external_results: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.external_results, Unset):
+            external_results = []
+            for external_results_item_data in self.external_results:
+                external_results_item = external_results_item_data.to_dict()
+                external_results.append(external_results_item)
+
         max_cost_usd = self.max_cost_usd
 
         started_at: None | str | Unset
@@ -150,6 +160,8 @@ class SocialCue:
         )
         if status_reason is not UNSET:
             field_dict["statusReason"] = status_reason
+        if external_results is not UNSET:
+            field_dict["externalResults"] = external_results
         if max_cost_usd is not UNSET:
             field_dict["maxCostUsd"] = max_cost_usd
         if started_at is not UNSET:
@@ -163,6 +175,9 @@ class SocialCue:
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
+        from ..models.social_cue_external_results_item import (
+            SocialCueExternalResultsItem,
+        )
         from ..models.social_cue_query import SocialCueQuery
         from ..models.social_cue_results_item import SocialCueResultsItem
         from ..models.social_cue_trigger import SocialCueTrigger
@@ -216,6 +231,17 @@ class SocialCue:
             return cast(None | str | Unset, data)
 
         status_reason = _parse_status_reason(d.pop("statusReason", UNSET))
+
+        _external_results = d.pop("externalResults", UNSET)
+        external_results: list[SocialCueExternalResultsItem] | Unset = UNSET
+        if _external_results is not UNSET:
+            external_results = []
+            for external_results_item_data in _external_results:
+                external_results_item = SocialCueExternalResultsItem.from_dict(
+                    external_results_item_data
+                )
+
+                external_results.append(external_results_item)
 
         max_cost_usd = d.pop("maxCostUsd", UNSET)
 
@@ -276,6 +302,7 @@ class SocialCue:
             created_by=created_by,
             created_at=created_at,
             status_reason=status_reason,
+            external_results=external_results,
             max_cost_usd=max_cost_usd,
             started_at=started_at,
             completed_at=completed_at,

@@ -4,6 +4,7 @@
 
 // ignore_for_file: unused_element
 import 'package:foresignal_api/src/model/claim_place.dart';
+import 'package:foresignal_api/src/model/claim_reputation.dart';
 import 'package:foresignal_api/src/model/claim_event_time.dart';
 import 'package:foresignal_api/src/model/tlp.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
@@ -66,6 +67,14 @@ class Claim {
     required  this.informationCredibility,
 
     required  this.grade,
+
+     this.restatement,
+
+     this.framingScore,
+
+     this.framingLabel,
+
+     this.reputation,
 
      this.tlp,
 
@@ -356,6 +365,60 @@ class Claim {
 
 
 
+      /// The neutral, de-hyped who/what/where/when restatement of the claim: the checkable core stripped of outrage and partisan framing. An LLM proposal is kept only when it re-validates against the lexicon, gazetteer and entity index and carries no hype word or unresolvable specific; otherwise a deterministic restatement synthesized from the validated fields. Null for claims extracted before 153 (153)
+  @JsonKey(
+    
+    name: r'restatement',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? restatement;
+
+
+
+      /// Deterministic, LLM-free framing/partisan intensity of the most central post (0 neutral prose, higher = more outrage, partisan-loaded labels, shouting and emphasis). Measures how the claim is told, not whether it is true. Null for claims extracted before 153 (153)
+          // minimum: 0
+          // maximum: 1
+  @JsonKey(
+    
+    name: r'framingScore',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final num? framingScore;
+
+
+
+      /// Band of framingScore: neutral (< 0.12), charged (< 0.28), inflammatory (>= 0.28). Null for claims extracted before 153 (153)
+  @JsonKey(
+    
+    name: r'framingLabel',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final ClaimFramingLabelEnum? framingLabel;
+
+
+
+      /// The rated-outlet reputation folded into sourceReliability, when the claim's source resolves to a rated outlet (a source key that is a web domain). Null for the common case of a social account with no resolvable outlet (153)
+  @JsonKey(
+    
+    name: r'reputation',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final ClaimReputation? reputation;
+
+
+
   @JsonKey(
     
     name: r'tlp',
@@ -406,6 +469,10 @@ class Claim {
       other.sourceReliability == sourceReliability &&
       other.informationCredibility == informationCredibility &&
       other.grade == grade &&
+      other.restatement == restatement &&
+      other.framingScore == framingScore &&
+      other.framingLabel == framingLabel &&
+      other.reputation == reputation &&
       other.tlp == tlp &&
       other.createdAt == createdAt;
 
@@ -433,6 +500,10 @@ class Claim {
         sourceReliability.hashCode +
         informationCredibility.hashCode +
         grade.hashCode +
+        (restatement == null ? 0 : restatement.hashCode) +
+        (framingScore == null ? 0 : framingScore.hashCode) +
+        (framingLabel == null ? 0 : framingLabel.hashCode) +
+        (reputation == null ? 0 : reputation.hashCode) +
         tlp.hashCode +
         createdAt.hashCode;
 
@@ -519,6 +590,24 @@ E(r'E'),
 F(r'F');
 
 const ClaimSourceReliabilityEnum(this.value);
+
+final String value;
+
+@override
+String toString() => value;
+}
+
+
+/// Band of framingScore: neutral (< 0.12), charged (< 0.28), inflammatory (>= 0.28). Null for claims extracted before 153 (153)
+enum ClaimFramingLabelEnum {
+@JsonValue(r'neutral')
+neutral(r'neutral'),
+@JsonValue(r'charged')
+charged(r'charged'),
+@JsonValue(r'inflammatory')
+inflammatory(r'inflammatory');
+
+const ClaimFramingLabelEnum(this.value);
 
 final String value;
 

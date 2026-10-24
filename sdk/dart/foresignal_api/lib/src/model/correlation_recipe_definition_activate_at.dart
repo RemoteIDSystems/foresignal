@@ -23,6 +23,8 @@ class CorrelationRecipeDefinitionActivateAt {
      this.members,
 
      this.confidence,
+
+     this.modalities,
   });
 
   @JsonKey(
@@ -49,17 +51,33 @@ class CorrelationRecipeDefinitionActivateAt {
 
 
 
+      /// The distinct sensing modalities activation also requires (154), or absent to not require any
+          // minimum: 1
+  @JsonKey(
+    
+    name: r'modalities',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final int? modalities;
+
+
+
 
 
     @override
     bool operator ==(Object other) => identical(this, other) || other is CorrelationRecipeDefinitionActivateAt &&
       other.members == members &&
-      other.confidence == confidence;
+      other.confidence == confidence &&
+      other.modalities == modalities;
 
     @override
     int get hashCode =>
         members.hashCode +
-        confidence.hashCode;
+        confidence.hashCode +
+        modalities.hashCode;
 
   factory CorrelationRecipeDefinitionActivateAt.fromJson(Map<String, dynamic> json) => _$CorrelationRecipeDefinitionActivateAtFromJson(json);
 

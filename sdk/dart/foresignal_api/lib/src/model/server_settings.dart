@@ -36,16 +36,16 @@ class ServerSettings {
      this.contactEmail,
   });
 
-      /// Base URL used in notification links
+      /// Base URL used in notification links; null uses the request's own scheme, host and port
   @JsonKey(
     
     name: r'publicBaseUrl',
     required: true,
-    includeIfNull: false,
+    includeIfNull: true,
   )
 
 
-  final String publicBaseUrl;
+  final String? publicBaseUrl;
 
 
 
@@ -125,7 +125,7 @@ class ServerSettings {
 
     @override
     int get hashCode =>
-        publicBaseUrl.hashCode +
+        (publicBaseUrl == null ? 0 : publicBaseUrl.hashCode) +
         timezone.hashCode +
         clientLinks.hashCode +
         warnings.hashCode +

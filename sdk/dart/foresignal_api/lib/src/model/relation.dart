@@ -288,7 +288,17 @@ precedes(r'precedes'),
 @JsonValue(r'causes')
 causes(r'causes'),
 @JsonValue(r'related-to')
-relatedTo(r'related-to');
+relatedTo(r'related-to'),
+@JsonValue(r'owns')
+owns(r'owns'),
+@JsonValue(r'controls')
+controls(r'controls'),
+@JsonValue(r'officer-of')
+officerOf(r'officer-of'),
+@JsonValue(r'beneficial-owner')
+beneficialOwner(r'beneficial-owner'),
+@JsonValue(r'affiliated-with')
+affiliatedWith(r'affiliated-with');
 
 const RelationTypeEnum(this.value);
 

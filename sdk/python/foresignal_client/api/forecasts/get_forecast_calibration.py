@@ -6,6 +6,7 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.forecast_calibration import ForecastCalibration
+from ...models.forecast_numeric_calibration import ForecastNumericCalibration
 from ...models.problem import Problem
 from ...types import UNSET, Response, Unset
 
@@ -35,9 +36,27 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ForecastCalibration | Problem | None:
+) -> ForecastCalibration | ForecastNumericCalibration | Problem | None:
     if response.status_code == 200:
-        response_200 = ForecastCalibration.from_dict(response.json())
+
+        def _parse_response_200(
+            data: object,
+        ) -> ForecastCalibration | ForecastNumericCalibration:
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                response_200_type_0 = ForecastCalibration.from_dict(data)
+
+                return response_200_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            if not isinstance(data, dict):
+                raise TypeError()
+            response_200_type_1 = ForecastNumericCalibration.from_dict(data)
+
+            return response_200_type_1
+
+        response_200 = _parse_response_200(response.json())
 
         return response_200
 
@@ -69,7 +88,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ForecastCalibration | Problem]:
+) -> Response[ForecastCalibration | ForecastNumericCalibration | Problem]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -83,11 +102,14 @@ def sync_detailed(
     client: AuthenticatedClient,
     forecaster: str | Unset = UNSET,
     category: str | Unset = UNSET,
-) -> Response[ForecastCalibration | Problem]:
+) -> Response[ForecastCalibration | ForecastNumericCalibration | Problem]:
     """Get calibration curve and bins
 
-     CORP reliability curve points (PAV) with the miscalibration, discrimination and uncertainty
-    decomposition, plus a 10-bin table with counts (the fallback when n < 50).
+     For a binary forecaster: CORP reliability curve points (PAV) with the miscalibration, discrimination
+    and uncertainty decomposition, plus a 10-bin table with counts (the fallback when n < 50). For a
+    numeric-only forecaster or question (152): a quantile-reliability diagram (empirical coverage of
+    each stated quantile vs its nominal level), a PIT histogram and a calibration-error summary (`type:
+    numeric`).
 
     **Scope:** `read` (open while `security.openReads` is on).
 
@@ -100,7 +122,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[ForecastCalibration | Problem]
+        Response[ForecastCalibration | ForecastNumericCalibration | Problem]
     """
 
     kwargs = _get_kwargs(
@@ -120,11 +142,14 @@ def sync(
     client: AuthenticatedClient,
     forecaster: str | Unset = UNSET,
     category: str | Unset = UNSET,
-) -> ForecastCalibration | Problem | None:
+) -> ForecastCalibration | ForecastNumericCalibration | Problem | None:
     """Get calibration curve and bins
 
-     CORP reliability curve points (PAV) with the miscalibration, discrimination and uncertainty
-    decomposition, plus a 10-bin table with counts (the fallback when n < 50).
+     For a binary forecaster: CORP reliability curve points (PAV) with the miscalibration, discrimination
+    and uncertainty decomposition, plus a 10-bin table with counts (the fallback when n < 50). For a
+    numeric-only forecaster or question (152): a quantile-reliability diagram (empirical coverage of
+    each stated quantile vs its nominal level), a PIT histogram and a calibration-error summary (`type:
+    numeric`).
 
     **Scope:** `read` (open while `security.openReads` is on).
 
@@ -137,7 +162,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        ForecastCalibration | Problem
+        ForecastCalibration | ForecastNumericCalibration | Problem
     """
 
     return sync_detailed(
@@ -152,11 +177,14 @@ async def asyncio_detailed(
     client: AuthenticatedClient,
     forecaster: str | Unset = UNSET,
     category: str | Unset = UNSET,
-) -> Response[ForecastCalibration | Problem]:
+) -> Response[ForecastCalibration | ForecastNumericCalibration | Problem]:
     """Get calibration curve and bins
 
-     CORP reliability curve points (PAV) with the miscalibration, discrimination and uncertainty
-    decomposition, plus a 10-bin table with counts (the fallback when n < 50).
+     For a binary forecaster: CORP reliability curve points (PAV) with the miscalibration, discrimination
+    and uncertainty decomposition, plus a 10-bin table with counts (the fallback when n < 50). For a
+    numeric-only forecaster or question (152): a quantile-reliability diagram (empirical coverage of
+    each stated quantile vs its nominal level), a PIT histogram and a calibration-error summary (`type:
+    numeric`).
 
     **Scope:** `read` (open while `security.openReads` is on).
 
@@ -169,7 +197,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[ForecastCalibration | Problem]
+        Response[ForecastCalibration | ForecastNumericCalibration | Problem]
     """
 
     kwargs = _get_kwargs(
@@ -187,11 +215,14 @@ async def asyncio(
     client: AuthenticatedClient,
     forecaster: str | Unset = UNSET,
     category: str | Unset = UNSET,
-) -> ForecastCalibration | Problem | None:
+) -> ForecastCalibration | ForecastNumericCalibration | Problem | None:
     """Get calibration curve and bins
 
-     CORP reliability curve points (PAV) with the miscalibration, discrimination and uncertainty
-    decomposition, plus a 10-bin table with counts (the fallback when n < 50).
+     For a binary forecaster: CORP reliability curve points (PAV) with the miscalibration, discrimination
+    and uncertainty decomposition, plus a 10-bin table with counts (the fallback when n < 50). For a
+    numeric-only forecaster or question (152): a quantile-reliability diagram (empirical coverage of
+    each stated quantile vs its nominal level), a PIT histogram and a calibration-error summary (`type:
+    numeric`).
 
     **Scope:** `read` (open while `security.openReads` is on).
 
@@ -204,7 +235,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        ForecastCalibration | Problem
+        ForecastCalibration | ForecastNumericCalibration | Problem
     """
 
     return (

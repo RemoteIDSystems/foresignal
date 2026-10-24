@@ -11,6 +11,8 @@ abstract class _$CorrelationRecipeDefinitionActivateAtCWProxy {
 
   CorrelationRecipeDefinitionActivateAt confidence(num? confidence);
 
+  CorrelationRecipeDefinitionActivateAt modalities(int? modalities);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `CorrelationRecipeDefinitionActivateAt(...).copyWith.fieldName(value)`.
@@ -19,7 +21,11 @@ abstract class _$CorrelationRecipeDefinitionActivateAtCWProxy {
   /// ```dart
   /// CorrelationRecipeDefinitionActivateAt(...).copyWith(id: 12, name: "My name")
   /// ```
-  CorrelationRecipeDefinitionActivateAt call({int? members, num? confidence});
+  CorrelationRecipeDefinitionActivateAt call({
+    int? members,
+    num? confidence,
+    int? modalities,
+  });
 }
 
 /// Callable proxy for `copyWith` functionality.
@@ -38,6 +44,10 @@ class _$CorrelationRecipeDefinitionActivateAtCWProxyImpl
   CorrelationRecipeDefinitionActivateAt confidence(num? confidence) =>
       call(confidence: confidence);
 
+  @override
+  CorrelationRecipeDefinitionActivateAt modalities(int? modalities) =>
+      call(modalities: modalities);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `CorrelationRecipeDefinitionActivateAt(...).copyWith.fieldName(value)`.
@@ -50,6 +60,7 @@ class _$CorrelationRecipeDefinitionActivateAtCWProxyImpl
   CorrelationRecipeDefinitionActivateAt call({
     Object? members = const $CopyWithPlaceholder(),
     Object? confidence = const $CopyWithPlaceholder(),
+    Object? modalities = const $CopyWithPlaceholder(),
   }) {
     return CorrelationRecipeDefinitionActivateAt(
       members: members == const $CopyWithPlaceholder()
@@ -60,6 +71,10 @@ class _$CorrelationRecipeDefinitionActivateAtCWProxyImpl
           ? _value.confidence
           // ignore: cast_nullable_to_non_nullable
           : confidence as num?,
+      modalities: modalities == const $CopyWithPlaceholder()
+          ? _value.modalities
+          // ignore: cast_nullable_to_non_nullable
+          : modalities as int?,
     );
   }
 }
@@ -85,6 +100,7 @@ _$CorrelationRecipeDefinitionActivateAtFromJson(Map<String, dynamic> json) =>
       final val = CorrelationRecipeDefinitionActivateAt(
         members: $checkedConvert('members', (v) => (v as num?)?.toInt()),
         confidence: $checkedConvert('confidence', (v) => v as num?),
+        modalities: $checkedConvert('modalities', (v) => (v as num?)?.toInt()),
       );
       return val;
     });
@@ -94,4 +110,5 @@ Map<String, dynamic> _$CorrelationRecipeDefinitionActivateAtToJson(
 ) => <String, dynamic>{
   'members': ?instance.members,
   'confidence': ?instance.confidence,
+  'modalities': ?instance.modalities,
 };

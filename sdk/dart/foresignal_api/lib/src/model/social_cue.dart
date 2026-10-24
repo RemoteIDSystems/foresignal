@@ -5,6 +5,7 @@
 // ignore_for_file: unused_element
 import 'package:foresignal_api/src/model/social_cue_results_inner.dart';
 import 'package:foresignal_api/src/model/social_cue_trigger.dart';
+import 'package:foresignal_api/src/model/social_cue_external_results_inner.dart';
 import 'package:foresignal_api/src/model/social_platform_id.dart';
 import 'package:foresignal_api/src/model/time_range.dart';
 import 'package:foresignal_api/src/model/social_cue_query.dart';
@@ -42,6 +43,8 @@ class SocialCue {
      this.statusReason,
 
     required  this.results,
+
+     this.externalResults,
 
     required  this.narrativeIds,
 
@@ -171,6 +174,19 @@ class SocialCue {
 
 
 
+      /// One item per EDP provider searched
+  @JsonKey(
+    
+    name: r'externalResults',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final List<SocialCueExternalResultsInner>? externalResults;
+
+
+
   @JsonKey(
     
     name: r'narrativeIds',
@@ -284,6 +300,7 @@ class SocialCue {
       other.status == status &&
       other.statusReason == statusReason &&
       other.results == results &&
+      other.externalResults == externalResults &&
       other.narrativeIds == narrativeIds &&
       other.costUsd == costUsd &&
       other.maxCostUsd == maxCostUsd &&
@@ -304,6 +321,7 @@ class SocialCue {
         status.hashCode +
         (statusReason == null ? 0 : statusReason.hashCode) +
         results.hashCode +
+        externalResults.hashCode +
         narrativeIds.hashCode +
         costUsd.hashCode +
         maxCostUsd.hashCode +

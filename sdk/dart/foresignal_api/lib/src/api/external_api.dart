@@ -10,6 +10,9 @@ import 'package:foresignal_api/src/deserialize.dart';
 import 'package:dio/dio.dart';
 
 import 'package:foresignal_api/src/model/allow_external_snapshot200_response.dart';
+import 'package:foresignal_api/src/model/analysis_callback.dart';
+import 'package:foresignal_api/src/model/analysis_request_result.dart';
+import 'package:foresignal_api/src/model/analysis_request_submission.dart';
 import 'package:foresignal_api/src/model/edp_batch.dart';
 import 'package:foresignal_api/src/model/edp_ingest_result.dart';
 import 'package:foresignal_api/src/model/edp_manifest.dart';
@@ -183,6 +186,97 @@ _responseData = rawData == null ? null : deserialize<AllowExternalSnapshot200Res
     }
 
     return Response<AllowExternalSnapshot200Response>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Ingest a correlated analysis result
+  /// The callback a provider posts an asynchronous on-demand forecast to (155). Resolves the &#x60;correlationId&#x60; to its question and external forecaster and records the forecast through the usual binding path; decile output is mapped to the ledger&#39;s required quantiles. An unknown, already-answered or unusable result is accepted and ignored (&#x60;recorded: false&#x60;).  **Scope:** open — the unguessable &#x60;correlationId&#x60; in the body is the credential (the provider receives it in the request and echoes it back), the same pattern as &#x60;register&#x60;.
+  ///
+  /// Parameters:
+  /// * [analysisCallback] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [AnalysisRequestResult] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<AnalysisRequestResult>> analysisCallback({ 
+    required AnalysisCallback analysisCallback,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/external/analysis/callback';
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(analysisCallback);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    AnalysisRequestResult? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<AnalysisRequestResult, AnalysisRequestResult>(rawData, 'AnalysisRequestResult', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<AnalysisRequestResult>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -1674,6 +1768,103 @@ _responseData = rawData == null ? null : deserialize<ExternalSourceCreated, Exte
     }
 
     return Response<ExternalSourceCreated>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Request an on-demand forecast
+  /// Asks a first-class external forecaster (a model like TimesFM) to forecast a ledger question now (155). Resolves the forecaster to its provider, which must declare &#x60;transport.analysisRequest&#x60;, persists a correlation and posts &#x60;{questionId, horizon, correlationId, callbackUrl}&#x60; to the provider. A provider that answers synchronously returns the forecast in its response and it is recorded at once (&#x60;recorded: true&#x60;); one that answers asynchronously posts the result later to &#x60;analysisCallback&#x60;.  **Scope:** &#x60;agent&#x60;.
+  ///
+  /// Parameters:
+  /// * [analysisRequestSubmission] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [AnalysisRequestResult] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<AnalysisRequestResult>> requestAnalysis({ 
+    required AnalysisRequestSubmission analysisRequestSubmission,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/external/analysis/requests';
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(analysisRequestSubmission);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    AnalysisRequestResult? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<AnalysisRequestResult, AnalysisRequestResult>(rawData, 'AnalysisRequestResult', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<AnalysisRequestResult>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

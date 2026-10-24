@@ -277,6 +277,8 @@ const _$EntityTypeEnumEnumMap = {
   EntityTypeEnum.vessel: 'vessel',
   EntityTypeEnum.satellite: 'satellite',
   EntityTypeEnum.station: 'station',
+  EntityTypeEnum.person: 'person',
+  EntityTypeEnum.organization: 'organization',
 };
 
 const _$EntityStatusEnumEnumMap = {

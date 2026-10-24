@@ -263,7 +263,7 @@ class SourceDescriptor {
 
 
 
-      /// ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)
+      /// ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h); null for a source that is not polled (streaming or push)
   @JsonKey(
     
     name: r'minInterval',
@@ -276,7 +276,7 @@ class SourceDescriptor {
 
 
 
-      /// ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)
+      /// ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h); null for a source that is not polled (streaming or push)
   @JsonKey(
     
     name: r'defaultInterval',
@@ -899,8 +899,8 @@ class SourceDescriptor {
         custom.hashCode +
         credentialFields.hashCode +
         params.hashCode +
-        minInterval.hashCode +
-        defaultInterval.hashCode +
+        (minInterval == null ? 0 : minInterval.hashCode) +
+        (defaultInterval == null ? 0 : defaultInterval.hashCode) +
         defaultBudget.hashCode +
         (recordTtl == null ? 0 : recordTtl.hashCode) +
         zeroResultsNormal.hashCode +

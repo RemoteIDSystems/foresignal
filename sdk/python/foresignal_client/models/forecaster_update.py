@@ -21,11 +21,15 @@ class ForecasterUpdate:
 
     Attributes:
         active (bool):
-        config (ForecasterUpdateConfig | Unset):
+        config (ForecasterUpdateConfig | Unset): Replaces the forecaster's configuration. For an external forecaster,
+            `externalMinResolved` (integer) overrides the ensemble's global minimum resolved count before the forecaster is
+            weighted (155).
+        name (str | Unset): Optional display name; set for a first-class external forecaster (155).
     """
 
     active: bool
     config: ForecasterUpdateConfig | Unset = UNSET
+    name: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -34,6 +38,8 @@ class ForecasterUpdate:
         config: dict[str, Any] | Unset = UNSET
         if not isinstance(self.config, Unset):
             config = self.config.to_dict()
+
+        name = self.name
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -44,6 +50,8 @@ class ForecasterUpdate:
         )
         if config is not UNSET:
             field_dict["config"] = config
+        if name is not UNSET:
+            field_dict["name"] = name
 
         return field_dict
 
@@ -61,9 +69,12 @@ class ForecasterUpdate:
         else:
             config = ForecasterUpdateConfig.from_dict(_config)
 
+        name = d.pop("name", UNSET)
+
         forecaster_update = cls(
             active=active,
             config=config,
+            name=name,
         )
 
         forecaster_update.additional_properties = d

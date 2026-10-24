@@ -320,6 +320,19 @@ const _$StreamNotifications200ResponseEventEnumEnumMap = {
   StreamNotifications200ResponseEventEnum.alert: 'alert',
   StreamNotifications200ResponseEventEnum.briefing: 'briefing',
   StreamNotifications200ResponseEventEnum.system: 'system',
+  StreamNotifications200ResponseEventEnum.analystPeriodNote: 'analyst.note',
+  StreamNotifications200ResponseEventEnum.situationPeriodActivated:
+      'situation.activated',
+  StreamNotifications200ResponseEventEnum.situationPeriodEscalated:
+      'situation.escalated',
+  StreamNotifications200ResponseEventEnum.findingPeriodSignificant:
+      'finding.significant',
+  StreamNotifications200ResponseEventEnum.forecastPeriodResolutionNeeded:
+      'forecast.resolution_needed',
+  StreamNotifications200ResponseEventEnum.hypothesisPeriodBandChanged:
+      'hypothesis.band_changed',
+  StreamNotifications200ResponseEventEnum.assessmentPeriodPublished:
+      'assessment.published',
 };
 
 const _$StreamNotifications200ResponseSeverityEnumEnumMap = {

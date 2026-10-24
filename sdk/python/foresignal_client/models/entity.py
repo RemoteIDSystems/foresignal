@@ -23,24 +23,25 @@ T = TypeVar("T", bound="Entity")
 
 @_attrs_define
 class Entity:
-    """A canonical vehicle or object (never a person or organisation) with its keys, aliases and per-source link counts
+    """A canonical vehicle or object, and (since prompt 158) a person or organization, with its keys, aliases and per-
+    source link counts
 
-    Attributes:
-        id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
-        type_ (EntityType):
-        provisional (bool): True when created from weak keys only
-        status (EntityStatus):
-        created_at (datetime.datetime):
-        updated_at (datetime.datetime):
-        requested_id (None | str | Unset): Set when the requested id was merged into this canonical entity
-        display_name (None | str | Unset): Precedence: registration > vessel name > satellite name > key
-        attributes (EntityAttributes | Unset): Declared attributes copied from records (≤ 16 KB); registry origin wins
-            over observations. Never owner PII.
-        merged_into (None | str | Unset):
-        keys (list[EntityKey] | Unset):
-        aliases (list[EntityAlias] | Unset):
-        open_link_counts (EntityOpenLinkCounts | Unset): Open links per source id (links from private sources are
-            counted only for admin tokens)
+        Attributes:
+            id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
+            type_ (EntityType):
+            provisional (bool): True when created from weak keys only
+            status (EntityStatus):
+            created_at (datetime.datetime):
+            updated_at (datetime.datetime):
+            requested_id (None | str | Unset): Set when the requested id was merged into this canonical entity
+            display_name (None | str | Unset): Precedence: registration > vessel name > satellite name > key
+            attributes (EntityAttributes | Unset): Declared attributes copied from records (≤ 16 KB); registry origin wins
+                over observations. Never owner PII.
+            merged_into (None | str | Unset):
+            keys (list[EntityKey] | Unset):
+            aliases (list[EntityAlias] | Unset):
+            open_link_counts (EntityOpenLinkCounts | Unset): Open links per source id (links from private sources are
+                counted only for admin tokens)
     """
 
     id: str

@@ -10,10 +10,14 @@ import 'package:foresignal_api/src/deserialize.dart';
 import 'package:dio/dio.dart';
 
 import 'package:foresignal_api/src/model/correlation_recipe.dart';
+import 'package:foresignal_api/src/model/correlation_recipe_create.dart';
 import 'package:foresignal_api/src/model/correlation_recipe_update.dart';
 import 'package:foresignal_api/src/model/exposure.dart';
 import 'package:foresignal_api/src/model/exposure_request.dart';
 import 'package:foresignal_api/src/model/feature_collection.dart';
+import 'package:foresignal_api/src/model/get_intel_calibration200_response.dart';
+import 'package:foresignal_api/src/model/intel_calibration.dart';
+import 'package:foresignal_api/src/model/intel_corroboration.dart';
 import 'package:foresignal_api/src/model/intel_event_input.dart';
 import 'package:foresignal_api/src/model/intel_event_member.dart';
 import 'package:foresignal_api/src/model/intel_event_member_input.dart';
@@ -529,6 +533,103 @@ _responseData = rawData == null ? null : deserialize<Investigation, Investigatio
     );
   }
 
+  /// Author a correlation recipe
+  /// Authors a new operator correlation recipe (prompt 157): the body carries an id (a slug not already in use and not a bundled recipe) and a full definition, validated by the recipe validator. Operator recipes live beside the bundled classpath recipes.  **Scope:** &#x60;admin&#x60;.
+  ///
+  /// Parameters:
+  /// * [correlationRecipeCreate] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [CorrelationRecipe] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<CorrelationRecipe>> createRecipe({ 
+    required CorrelationRecipeCreate correlationRecipeCreate,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/intel/recipes';
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(correlationRecipeCreate);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    CorrelationRecipe? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<CorrelationRecipe, CorrelationRecipe>(rawData, 'CorrelationRecipe', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<CorrelationRecipe>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// Delete an investigation
   /// Deletes the investigation and its items.  **Scope:** &#x60;agent&#x60; or &#x60;admin&#x60;.
   ///
@@ -656,6 +757,236 @@ _responseData = rawData == null ? null : deserialize<InvestigationExport, Invest
     }
 
     return Response<InvestigationExport>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Intelligence calibration state
+  /// How calibrated intelligence confidence is (151): the calibration of every scope, each with whether it is calibrated, the resolved sample size, the Brier score, the 10-bin reliability table and the CORP recalibration curve.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  ///
+  /// Parameters:
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [GetIntelCalibration200Response] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<GetIntelCalibration200Response>> getIntelCalibration({ 
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/intel/calibration';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    GetIntelCalibration200Response? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<GetIntelCalibration200Response, GetIntelCalibration200Response>(rawData, 'GetIntelCalibration200Response', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<GetIntelCalibration200Response>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Calibration of one scope
+  /// The calibration of one scope (151): &#x60;intel-event&#x60; or &#x60;precursor-active&#x60;. An unknown scope returns the empty, uncalibrated state.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  ///
+  /// Parameters:
+  /// * [scope] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [IntelCalibration] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<IntelCalibration>> getIntelCalibrationScope({ 
+    required String scope,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/intel/calibration/{scope}'.replaceAll('{' r'scope' '}', scope.toString());
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    IntelCalibration? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<IntelCalibration, IntelCalibration>(rawData, 'IntelCalibration', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<IntelCalibration>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Corroboration policy
+  /// The tunable \&quot;promote to a trusted signal\&quot; gates (154): the event evidence-quality thresholds (with an optional cross-modality requirement), the situation activation rule, and the automatic corroboration of lone events. Every gate defaults to its historical constant.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  ///
+  /// Parameters:
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [IntelCorroboration] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<IntelCorroboration>> getIntelCorroboration({ 
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/intel/corroboration';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    IntelCorroboration? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<IntelCorroboration, IntelCorroboration>(rawData, 'IntelCorroboration', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<IntelCorroboration>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -1497,6 +1828,103 @@ _responseData = rawData == null ? null : deserialize<RecipeTestResult, RecipeTes
     );
   }
 
+  /// Replace the corroboration policy
+  /// Replaces the corroboration policy; members left out return to their defaults.  **Scope:** &#x60;admin&#x60;.
+  ///
+  /// Parameters:
+  /// * [intelCorroboration] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [IntelCorroboration] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<IntelCorroboration>> updateIntelCorroboration({ 
+    required IntelCorroboration intelCorroboration,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/intel/corroboration';
+    final _options = Options(
+      method: r'PUT',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(intelCorroboration);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    IntelCorroboration? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<IntelCorroboration, IntelCorroboration>(rawData, 'IntelCorroboration', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<IntelCorroboration>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// Update an intelligence event
   /// Changes title, status (dismissed only by operators or agents), a logged severity override and notes. Optimistic locking: a stale &#x60;If-Match&#x60; version is 409 EVENT_VERSION_CONFLICT.  **Scope:** &#x60;agent&#x60; or &#x60;admin&#x60;.
   ///
@@ -1699,7 +2127,7 @@ _responseData = rawData == null ? null : deserialize<Investigation, Investigatio
   }
 
   /// Enable or tune a recipe
-  /// Sets &#x60;enabled&#x60; and parameter overrides; overrides survive built-in version updates.  **Scope:** &#x60;admin&#x60;.
+  /// Sets &#x60;enabled&#x60; and parameter overrides; overrides survive built-in version updates. For an operator-authored recipe the body may also carry a full &#x60;definition&#x60; to replace, validated by the recipe validator (prompt 157); a bundled recipe&#39;s definition is managed by the classpath and cannot be replaced here.  **Scope:** &#x60;admin&#x60;.
   ///
   /// Parameters:
   /// * [recipeId] - Recipe id

@@ -7,11 +7,12 @@ from typing import TYPE_CHECKING, Any, Self, TypeVar, cast
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
+from ..models.correlation_recipe_origin import CorrelationRecipeOrigin
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.correlation_recipe_definition import CorrelationRecipeDefinition
-    from ..models.correlation_recipe_params import CorrelationRecipeParams
+    from ..models.correlation_recipe_params_type_0 import CorrelationRecipeParamsType0
 
 
 T = TypeVar("T", bound="CorrelationRecipe")
@@ -28,7 +29,9 @@ class CorrelationRecipe:
         definition (CorrelationRecipeDefinition): Recipe definition: seed, joins, thresholds, contradictions, dedup and
             lifecycle. Conditions use the 017 condition grammar.
         built_in (bool | Unset):
-        params (CorrelationRecipeParams | Unset): Operator overrides
+        origin (CorrelationRecipeOrigin | Unset): Whether the recipe is a bundled classpath recipe or operator-authored
+            (prompt 157)
+        params (CorrelationRecipeParamsType0 | None | Unset): Operator overrides; null when there are none
         disabled_reason (None | str | Unset): e.g. seed kinds missing (recipe loaded disabled with a warning)
         last_run_at (datetime.datetime | None | Unset):
         last_error (None | str | Unset):
@@ -39,13 +42,18 @@ class CorrelationRecipe:
     enabled: bool
     definition: CorrelationRecipeDefinition
     built_in: bool | Unset = UNSET
-    params: CorrelationRecipeParams | Unset = UNSET
+    origin: CorrelationRecipeOrigin | Unset = UNSET
+    params: CorrelationRecipeParamsType0 | None | Unset = UNSET
     disabled_reason: None | str | Unset = UNSET
     last_run_at: datetime.datetime | None | Unset = UNSET
     last_error: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.correlation_recipe_params_type_0 import (
+            CorrelationRecipeParamsType0,
+        )
+
         id = self.id
 
         version = self.version
@@ -56,9 +64,17 @@ class CorrelationRecipe:
 
         built_in = self.built_in
 
-        params: dict[str, Any] | Unset = UNSET
-        if not isinstance(self.params, Unset):
+        origin: str | Unset = UNSET
+        if not isinstance(self.origin, Unset):
+            origin = self.origin.value
+
+        params: dict[str, Any] | None | Unset
+        if isinstance(self.params, Unset):
+            params = UNSET
+        elif isinstance(self.params, CorrelationRecipeParamsType0):
             params = self.params.to_dict()
+        else:
+            params = self.params
 
         disabled_reason: None | str | Unset
         if isinstance(self.disabled_reason, Unset):
@@ -92,6 +108,8 @@ class CorrelationRecipe:
         )
         if built_in is not UNSET:
             field_dict["builtIn"] = built_in
+        if origin is not UNSET:
+            field_dict["origin"] = origin
         if params is not UNSET:
             field_dict["params"] = params
         if disabled_reason is not UNSET:
@@ -106,7 +124,9 @@ class CorrelationRecipe:
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.correlation_recipe_definition import CorrelationRecipeDefinition
-        from ..models.correlation_recipe_params import CorrelationRecipeParams
+        from ..models.correlation_recipe_params_type_0 import (
+            CorrelationRecipeParamsType0,
+        )
 
         d = dict(src_dict)
         id = d.pop("id")
@@ -119,12 +139,29 @@ class CorrelationRecipe:
 
         built_in = d.pop("builtIn", UNSET)
 
-        _params = d.pop("params", UNSET)
-        params: CorrelationRecipeParams | Unset
-        if isinstance(_params, Unset):
-            params = UNSET
+        _origin = d.pop("origin", UNSET)
+        origin: CorrelationRecipeOrigin | Unset
+        if isinstance(_origin, Unset):
+            origin = UNSET
         else:
-            params = CorrelationRecipeParams.from_dict(_params)
+            origin = CorrelationRecipeOrigin(_origin)
+
+        def _parse_params(data: object) -> CorrelationRecipeParamsType0 | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                params_type_0 = CorrelationRecipeParamsType0.from_dict(data)
+
+                return params_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(CorrelationRecipeParamsType0 | None | Unset, data)
+
+        params = _parse_params(d.pop("params", UNSET))
 
         def _parse_disabled_reason(data: object) -> None | str | Unset:
             if data is None:
@@ -167,6 +204,7 @@ class CorrelationRecipe:
             enabled=enabled,
             definition=definition,
             built_in=built_in,
+            origin=origin,
             params=params,
             disabled_reason=disabled_reason,
             last_run_at=last_run_at,

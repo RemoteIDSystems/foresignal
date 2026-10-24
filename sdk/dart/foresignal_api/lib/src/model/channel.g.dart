@@ -545,6 +545,7 @@ const _$ChannelEventsEnumEnumMap = {
   ChannelEventsEnum.chroniclePeriodAccessPeriodRequested:
       'chronicle.access.requested',
   ChannelEventsEnum.savedSearchPeriodMatches: 'saved-search.matches',
+  ChannelEventsEnum.personal: 'personal',
 };
 
 const _$ChannelMinSeverityEnumEnumMap = {

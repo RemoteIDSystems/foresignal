@@ -197,6 +197,11 @@ const _$RelationInputTypeEnumEnumMap = {
   RelationInputTypeEnum.precedes: 'precedes',
   RelationInputTypeEnum.causes: 'causes',
   RelationInputTypeEnum.relatedTo: 'related-to',
+  RelationInputTypeEnum.owns: 'owns',
+  RelationInputTypeEnum.controls: 'controls',
+  RelationInputTypeEnum.officerOf: 'officer-of',
+  RelationInputTypeEnum.beneficialOwner: 'beneficial-owner',
+  RelationInputTypeEnum.affiliatedWith: 'affiliated-with',
 };
 
 const _$RelationInputLabelEnumEnumMap = {

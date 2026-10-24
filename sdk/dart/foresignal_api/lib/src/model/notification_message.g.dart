@@ -316,7 +316,34 @@ const _$NotificationMessageEventEnumEnumMap = {
   NotificationMessageEventEnum.alert: 'alert',
   NotificationMessageEventEnum.briefing: 'briefing',
   NotificationMessageEventEnum.system: 'system',
+  NotificationMessageEventEnum.chroniclePeriodProposed: 'chronicle.proposed',
+  NotificationMessageEventEnum.chroniclePeriodCapWarning:
+      'chronicle.cap_warning',
+  NotificationMessageEventEnum.chroniclePeriodGap: 'chronicle.gap',
+  NotificationMessageEventEnum.socialPeriodDivergence: 'social.divergence',
+  NotificationMessageEventEnum.socialPeriodAttentionGap: 'social.attention_gap',
+  NotificationMessageEventEnum.analystPeriodNote: 'analyst.note',
+  NotificationMessageEventEnum.situationPeriodActivated: 'situation.activated',
+  NotificationMessageEventEnum.situationPeriodEscalated: 'situation.escalated',
+  NotificationMessageEventEnum.findingPeriodSignificant: 'finding.significant',
+  NotificationMessageEventEnum.forecastPeriodResolved: 'forecast.resolved',
+  NotificationMessageEventEnum.forecastPeriodResolutionNeeded:
+      'forecast.resolution_needed',
+  NotificationMessageEventEnum.hypothesisPeriodBandChanged:
+      'hypothesis.band_changed',
+  NotificationMessageEventEnum.indicatorPeriodObserved: 'indicator.observed',
+  NotificationMessageEventEnum.assumptionPeriodBroken: 'assumption.broken',
+  NotificationMessageEventEnum.assessmentPeriodPublished:
+      'assessment.published',
+  NotificationMessageEventEnum.mention: 'mention',
+  NotificationMessageEventEnum.share: 'share',
+  NotificationMessageEventEnum.reportPeriodReceived: 'report.received',
+  NotificationMessageEventEnum.packagePeriodReceived: 'package.received',
+  NotificationMessageEventEnum.chroniclePeriodAccessPeriodRequested:
+      'chronicle.access.requested',
+  NotificationMessageEventEnum.savedSearchPeriodMatches: 'saved-search.matches',
   NotificationMessageEventEnum.test: 'test',
+  NotificationMessageEventEnum.personal: 'personal',
 };
 
 const _$NotificationMessageSeverityEnumEnumMap = {

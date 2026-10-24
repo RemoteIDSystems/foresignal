@@ -395,6 +395,7 @@ const _$NotificationDeliveryEventEnumEnumMap = {
       'chronicle.access.requested',
   NotificationDeliveryEventEnum.savedSearchPeriodMatches:
       'saved-search.matches',
+  NotificationDeliveryEventEnum.personal: 'personal',
 };
 
 const _$NotificationDeliveryStatusEnumEnumMap = {

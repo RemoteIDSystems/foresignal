@@ -51,8 +51,10 @@ class SourceDescriptor:
         homepage (str | Unset):
         attribution (str | Unset):
         custom (bool | Unset): Runtime-defined custom push source
-        min_interval (str | Unset): ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h) Example: 7d.
-        default_interval (str | Unset): ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h) Example: 7d.
+        min_interval (None | str | Unset): ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h); null for a source
+            that is not polled (streaming or push) Example: 7d.
+        default_interval (None | str | Unset): ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h); null for a
+            source that is not polled (streaming or push) Example: 7d.
         record_ttl (None | str | Unset): ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h) Example: 7d.
         zero_results_normal (bool | Unset):
         tile_properties (list[str] | Unset):
@@ -127,8 +129,8 @@ class SourceDescriptor:
     homepage: str | Unset = UNSET
     attribution: str | Unset = UNSET
     custom: bool | Unset = UNSET
-    min_interval: str | Unset = UNSET
-    default_interval: str | Unset = UNSET
+    min_interval: None | str | Unset = UNSET
+    default_interval: None | str | Unset = UNSET
     record_ttl: None | str | Unset = UNSET
     zero_results_normal: bool | Unset = UNSET
     tile_properties: list[str] | Unset = UNSET
@@ -209,9 +211,17 @@ class SourceDescriptor:
 
         custom = self.custom
 
-        min_interval = self.min_interval
+        min_interval: None | str | Unset
+        if isinstance(self.min_interval, Unset):
+            min_interval = UNSET
+        else:
+            min_interval = self.min_interval
 
-        default_interval = self.default_interval
+        default_interval: None | str | Unset
+        if isinstance(self.default_interval, Unset):
+            default_interval = UNSET
+        else:
+            default_interval = self.default_interval
 
         record_ttl: None | str | Unset
         if isinstance(self.record_ttl, Unset):
@@ -571,9 +581,23 @@ class SourceDescriptor:
 
         custom = d.pop("custom", UNSET)
 
-        min_interval = d.pop("minInterval", UNSET)
+        def _parse_min_interval(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
 
-        default_interval = d.pop("defaultInterval", UNSET)
+        min_interval = _parse_min_interval(d.pop("minInterval", UNSET))
+
+        def _parse_default_interval(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        default_interval = _parse_default_interval(d.pop("defaultInterval", UNSET))
 
         def _parse_record_ttl(data: object) -> None | str | Unset:
             if data is None:

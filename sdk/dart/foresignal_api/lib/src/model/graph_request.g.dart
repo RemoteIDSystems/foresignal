@@ -173,4 +173,9 @@ const _$GraphRequestTypesEnumEnumMap = {
   GraphRequestTypesEnum.precedes: 'precedes',
   GraphRequestTypesEnum.causes: 'causes',
   GraphRequestTypesEnum.relatedTo: 'related-to',
+  GraphRequestTypesEnum.owns: 'owns',
+  GraphRequestTypesEnum.controls: 'controls',
+  GraphRequestTypesEnum.officerOf: 'officer-of',
+  GraphRequestTypesEnum.beneficialOwner: 'beneficial-owner',
+  GraphRequestTypesEnum.affiliatedWith: 'affiliated-with',
 };

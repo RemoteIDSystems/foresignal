@@ -3,6 +3,8 @@ from enum import StrEnum
 
 class EntityType(StrEnum):
     AIRCRAFT = "aircraft"
+    ORGANIZATION = "organization"
+    PERSON = "person"
     SATELLITE = "satellite"
     STATION = "station"
     VESSEL = "vessel"

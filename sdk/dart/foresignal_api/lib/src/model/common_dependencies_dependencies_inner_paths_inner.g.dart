@@ -208,6 +208,18 @@ const _$CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnumEnumMap =
           'causes',
       CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.relatedTo:
           'related-to',
+      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.owns:
+          'owns',
+      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.controls:
+          'controls',
+      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum.officerOf:
+          'officer-of',
+      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum
+              .beneficialOwner:
+          'beneficial-owner',
+      CommonDependenciesDependenciesInnerPathsInnerRelationTypesEnum
+              .affiliatedWith:
+          'affiliated-with',
     };
 
 const _$CommonDependenciesDependenciesInnerPathsInnerWeakestEdgeLabelEnumEnumMap =

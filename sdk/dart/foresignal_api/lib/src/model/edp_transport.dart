@@ -5,6 +5,7 @@
 // ignore_for_file: unused_element
 import 'package:foresignal_api/src/model/edp_search.dart';
 import 'package:foresignal_api/src/model/edp_pull.dart';
+import 'package:foresignal_api/src/model/edp_analysis_request.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -27,6 +28,8 @@ class EdpTransport {
      this.pull,
 
      this.search,
+
+     this.analysisRequest,
   });
 
       /// The provider pushes to POST /v1/external/sources/{id}/items
@@ -66,19 +69,33 @@ class EdpTransport {
 
 
 
+  @JsonKey(
+    
+    name: r'analysisRequest',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final EdpAnalysisRequest? analysisRequest;
+
+
+
 
 
     @override
     bool operator ==(Object other) => identical(this, other) || other is EdpTransport &&
       other.push == push &&
       other.pull == pull &&
-      other.search == search;
+      other.search == search &&
+      other.analysisRequest == analysisRequest;
 
     @override
     int get hashCode =>
         push.hashCode +
         (pull == null ? 0 : pull.hashCode) +
-        (search == null ? 0 : search.hashCode);
+        (search == null ? 0 : search.hashCode) +
+        (analysisRequest == null ? 0 : analysisRequest.hashCode);
 
   factory EdpTransport.fromJson(Map<String, dynamic> json) => _$EdpTransportFromJson(json);
 

@@ -106,6 +106,7 @@ class SourceHealth {
 
 
 
+      /// null while healthy
   @JsonKey(
     
     name: r'statusReason',
@@ -414,7 +415,7 @@ class SourceHealth {
 
 
 
-      /// Paid adapters: money spent this calendar month (135)
+      /// Paid adapters: money spent this UTC calendar month (135), against `budget.monthlyCapUsd`
           // minimum: 0
   @JsonKey(
     
@@ -465,7 +466,7 @@ class SourceHealth {
     int get hashCode =>
         sourceId.hashCode +
         status.hashCode +
-        statusReason.hashCode +
+        (statusReason == null ? 0 : statusReason.hashCode) +
         (lastAttemptAt == null ? 0 : lastAttemptAt.hashCode) +
         (lastSuccessAt == null ? 0 : lastSuccessAt.hashCode) +
         (lastErrorAt == null ? 0 : lastErrorAt.hashCode) +

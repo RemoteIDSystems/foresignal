@@ -241,7 +241,21 @@ alert(r'alert'),
 @JsonValue(r'briefing')
 briefing(r'briefing'),
 @JsonValue(r'system')
-system(r'system');
+system(r'system'),
+@JsonValue(r'analyst.note')
+analystPeriodNote(r'analyst.note'),
+@JsonValue(r'situation.activated')
+situationPeriodActivated(r'situation.activated'),
+@JsonValue(r'situation.escalated')
+situationPeriodEscalated(r'situation.escalated'),
+@JsonValue(r'finding.significant')
+findingPeriodSignificant(r'finding.significant'),
+@JsonValue(r'forecast.resolution_needed')
+forecastPeriodResolutionNeeded(r'forecast.resolution_needed'),
+@JsonValue(r'hypothesis.band_changed')
+hypothesisPeriodBandChanged(r'hypothesis.band_changed'),
+@JsonValue(r'assessment.published')
+assessmentPeriodPublished(r'assessment.published');
 
 const NotificationEventEnum(this.value);
 

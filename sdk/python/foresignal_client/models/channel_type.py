@@ -29,7 +29,8 @@ class ChannelType:
         secret_fields (list[ChannelTypeSecretFieldsItem]): Write-only fields; a name of the form `prefix.<Name>` is a
             wildcard (webhook `header.<Name>` sends any such secret as the header <Name>)
         description (str | Unset):
-        events (list[ChannelTypeEventsItem] | Unset):
+        events (list[ChannelTypeEventsItem] | Unset): The events a channel of this type can subscribe to: every
+            `Channel.events` value an instance channel accepts
         capabilities (ChannelTypeCapabilities | Unset):
     """
 

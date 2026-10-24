@@ -18,6 +18,7 @@ class NotificationDeliveryEvent(StrEnum):
     INDICATOR_OBSERVED = "indicator.observed"
     MENTION = "mention"
     PACKAGE_RECEIVED = "package.received"
+    PERSONAL = "personal"
     REPORT_RECEIVED = "report.received"
     SAVED_SEARCH_MATCHES = "saved-search.matches"
     SHARE = "share"

@@ -10,9 +10,9 @@ import 'package:foresignal_api/src/deserialize.dart';
 import 'package:dio/dio.dart';
 
 import 'package:foresignal_api/src/model/ensemble_refit_result.dart';
+import 'package:foresignal_api/src/model/external_forecaster_registration.dart';
 import 'package:foresignal_api/src/model/forecast.dart';
 import 'package:foresignal_api/src/model/forecast_annul_input.dart';
-import 'package:foresignal_api/src/model/forecast_calibration.dart';
 import 'package:foresignal_api/src/model/forecast_evaluation.dart';
 import 'package:foresignal_api/src/model/forecast_evaluation_request.dart';
 import 'package:foresignal_api/src/model/forecast_history.dart';
@@ -28,6 +28,7 @@ import 'package:foresignal_api/src/model/forecaster.dart';
 import 'package:foresignal_api/src/model/forecaster_comparison.dart';
 import 'package:foresignal_api/src/model/forecaster_page.dart';
 import 'package:foresignal_api/src/model/forecaster_update.dart';
+import 'package:foresignal_api/src/model/get_forecast_calibration200_response.dart';
 import 'package:foresignal_api/src/model/problem.dart';
 
 class ForecastsApi {
@@ -419,7 +420,7 @@ _responseData = rawData == null ? null : deserialize<ForecastQuestion, ForecastQ
   }
 
   /// Get calibration curve and bins
-  /// CORP reliability curve points (PAV) with the miscalibration, discrimination and uncertainty decomposition, plus a 10-bin table with counts (the fallback when n &lt; 50).  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// For a binary forecaster: CORP reliability curve points (PAV) with the miscalibration, discrimination and uncertainty decomposition, plus a 10-bin table with counts (the fallback when n &lt; 50). For a numeric-only forecaster or question (152): a quantile-reliability diagram (empirical coverage of each stated quantile vs its nominal level), a PIT histogram and a calibration-error summary (&#x60;type: numeric&#x60;).  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
   ///
   /// Parameters:
   /// * [forecaster] - Forecaster id
@@ -431,9 +432,9 @@ _responseData = rawData == null ? null : deserialize<ForecastQuestion, ForecastQ
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [ForecastCalibration] as data
+  /// Returns a [Future] containing a [Response] with a [GetForecastCalibration200Response] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<ForecastCalibration>> getForecastCalibration({ 
+  Future<Response<GetForecastCalibration200Response>> getForecastCalibration({ 
     String? forecaster,
     String? category,
     CancelToken? cancelToken,
@@ -476,11 +477,11 @@ _responseData = rawData == null ? null : deserialize<ForecastQuestion, ForecastQ
       onReceiveProgress: onReceiveProgress,
     );
 
-    ForecastCalibration? _responseData;
+    GetForecastCalibration200Response? _responseData;
 
     try {
 final rawData = _response.data;
-_responseData = rawData == null ? null : deserialize<ForecastCalibration, ForecastCalibration>(rawData, 'ForecastCalibration', growable: true);
+_responseData = rawData == null ? null : deserialize<GetForecastCalibration200Response, GetForecastCalibration200Response>(rawData, 'GetForecastCalibration200Response', growable: true);
 
     } catch (error, stackTrace) {
       throw DioException(
@@ -492,7 +493,7 @@ _responseData = rawData == null ? null : deserialize<ForecastCalibration, Foreca
       );
     }
 
-    return Response<ForecastCalibration>(
+    return Response<GetForecastCalibration200Response>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -1200,6 +1201,103 @@ _responseData = rawData == null ? null : deserialize<EnsembleRefitResult, Ensemb
     );
   }
 
+  /// Register an external forecaster
+  /// Pre-registers, names and configures a first-class external forecaster (155) — a display name and a per-forecaster &#x60;externalMinResolved&#x60; — independent of the auto-derived &#x60;edp:{sourceId}/{streamId}&#x60; id, before any forecast arrives. An existing forecaster with that id is renamed and reconfigured in place (its type is kept).  **Scope:** &#x60;admin&#x60;.
+  ///
+  /// Parameters:
+  /// * [externalForecasterRegistration] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [Forecaster] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<Forecaster>> registerExternalForecaster({ 
+    required ExternalForecasterRegistration externalForecasterRegistration,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/forecasts/forecasters';
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(externalForecasterRegistration);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    Forecaster? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<Forecaster, Forecaster>(rawData, 'Forecaster', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<Forecaster>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// Resolve a question manually
   /// Resolves a manual question (or confirms a &#x60;hypothesis-outcome&#x60; one) with pinned evidence; scores are computed and &#x60;question.resolved&#x60; is emitted. Questions with machine resolvers resolve automatically and return 409 &#x60;QUESTION_CLOSED&#x60; here (annul them instead).  **Scope:** &#x60;agent&#x60; or &#x60;admin&#x60;.
   ///
@@ -1498,7 +1596,7 @@ _responseData = rawData == null ? null : deserialize<ForecastQuestion, ForecastQ
   }
 
   /// Update a forecaster
-  /// Sets a forecaster&#39;s &#x60;active&#x60; flag and configuration.  **Scope:** &#x60;admin&#x60;.
+  /// Sets a forecaster&#39;s &#x60;active&#x60; flag, configuration and, for an external forecaster, display &#x60;name&#x60; (155).  **Scope:** &#x60;admin&#x60;.
   ///
   /// Parameters:
   /// * [forecasterId] - Forecaster id

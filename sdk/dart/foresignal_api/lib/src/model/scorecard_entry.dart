@@ -332,6 +332,8 @@ statistical(r'statistical'),
 precursor(r'precursor'),
 @JsonValue(r'analog')
 analog(r'analog'),
+@JsonValue(r'threshold')
+threshold(r'threshold'),
 @JsonValue(r'impact')
 impact(r'impact'),
 @JsonValue(r'indicator-bayes')

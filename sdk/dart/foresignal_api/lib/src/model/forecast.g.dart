@@ -367,6 +367,7 @@ const _$ForecastForecasterTypeEnumEnumMap = {
   ForecastForecasterTypeEnum.statistical: 'statistical',
   ForecastForecasterTypeEnum.precursor: 'precursor',
   ForecastForecasterTypeEnum.analog: 'analog',
+  ForecastForecasterTypeEnum.threshold: 'threshold',
   ForecastForecasterTypeEnum.impact: 'impact',
   ForecastForecasterTypeEnum.indicatorBayes: 'indicator-bayes',
   ForecastForecasterTypeEnum.llm: 'llm',

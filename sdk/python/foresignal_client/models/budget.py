@@ -17,8 +17,11 @@ class Budget:
     Attributes:
         per_minute (int):
         per_day (int):
-        monthly_cap_usd (float | None | Unset): Money cap per calendar month for paid adapters (135; X default 25);
-            refused with BUDGET_EXCEEDED
+        monthly_cap_usd (float | None | Unset): Money cap per UTC calendar month for a paid source (135). Set with
+            `updateSource`; the budget object is replaced whole, so leaving it out (or null) removes the cap. Once the
+            month's spend (`SourceHealth.spentUsdThisMonth`) reaches it, the budget governor refuses every request of the
+            source until the next month begins (a push or upload is refused 429 BUDGET_EXCEEDED) and the source's health is
+            `degraded` with the reason. X's own platform cap (`social.x.monthlyCapUsd`, default 25) applies as well.
     """
 
     per_minute: int

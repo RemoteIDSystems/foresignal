@@ -32,6 +32,8 @@ class CorrelationRecipeDefinitionJoinsInner {
 
      this.sameEntity,
 
+     this.sharedAttribute,
+
      this.window,
 
      this.role,
@@ -101,6 +103,19 @@ class CorrelationRecipeDefinitionJoinsInner {
 
 
 
+      /// A payload dot-path (prompt 157); a candidate joins when its value at that path equals a seed member's — the join a fraud/relationship recipe needs (address, phone, officer, shared id). Matches on the attribute alone; geometry is not required, the time window still applies.
+  @JsonKey(
+    
+    name: r'sharedAttribute',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? sharedAttribute;
+
+
+
   @JsonKey(
     
     name: r'window',
@@ -161,6 +176,7 @@ class CorrelationRecipeDefinitionJoinsInner {
       other.withinKm == withinKm &&
       other.sameRegion == sameRegion &&
       other.sameEntity == sameEntity &&
+      other.sharedAttribute == sharedAttribute &&
       other.window == window &&
       other.role == role &&
       other.signalFamily == signalFamily &&
@@ -173,6 +189,7 @@ class CorrelationRecipeDefinitionJoinsInner {
         withinKm.hashCode +
         sameRegion.hashCode +
         sameEntity.hashCode +
+        sharedAttribute.hashCode +
         window.hashCode +
         role.hashCode +
         signalFamily.hashCode +

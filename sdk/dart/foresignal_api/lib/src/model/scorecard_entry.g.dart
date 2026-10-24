@@ -339,6 +339,7 @@ const _$ScorecardEntryForecasterTypeEnumEnumMap = {
   ScorecardEntryForecasterTypeEnum.statistical: 'statistical',
   ScorecardEntryForecasterTypeEnum.precursor: 'precursor',
   ScorecardEntryForecasterTypeEnum.analog: 'analog',
+  ScorecardEntryForecasterTypeEnum.threshold: 'threshold',
   ScorecardEntryForecasterTypeEnum.impact: 'impact',
   ScorecardEntryForecasterTypeEnum.indicatorBayes: 'indicator-bayes',
   ScorecardEntryForecasterTypeEnum.llm: 'llm',

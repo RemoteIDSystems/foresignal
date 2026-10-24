@@ -21,6 +21,12 @@ abstract class _$KindDisplayCWProxy {
 
   KindDisplay colorField(String? colorField);
 
+  KindDisplay iconField(String? iconField);
+
+  KindDisplay iconCases(Map<String, String>? iconCases);
+
+  KindDisplay colorCases(Map<String, String>? colorCases);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `KindDisplay(...).copyWith.fieldName(value)`.
@@ -37,6 +43,9 @@ abstract class _$KindDisplayCWProxy {
     String? rotateField,
     String? sizeField,
     String? colorField,
+    String? iconField,
+    Map<String, String>? iconCases,
+    Map<String, String>? colorCases,
   });
 }
 
@@ -70,6 +79,17 @@ class _$KindDisplayCWProxyImpl implements _$KindDisplayCWProxy {
   @override
   KindDisplay colorField(String? colorField) => call(colorField: colorField);
 
+  @override
+  KindDisplay iconField(String? iconField) => call(iconField: iconField);
+
+  @override
+  KindDisplay iconCases(Map<String, String>? iconCases) =>
+      call(iconCases: iconCases);
+
+  @override
+  KindDisplay colorCases(Map<String, String>? colorCases) =>
+      call(colorCases: colorCases);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `KindDisplay(...).copyWith.fieldName(value)`.
@@ -87,6 +107,9 @@ class _$KindDisplayCWProxyImpl implements _$KindDisplayCWProxy {
     Object? rotateField = const $CopyWithPlaceholder(),
     Object? sizeField = const $CopyWithPlaceholder(),
     Object? colorField = const $CopyWithPlaceholder(),
+    Object? iconField = const $CopyWithPlaceholder(),
+    Object? iconCases = const $CopyWithPlaceholder(),
+    Object? colorCases = const $CopyWithPlaceholder(),
   }) {
     return KindDisplay(
       titleTemplate: titleTemplate == const $CopyWithPlaceholder()
@@ -117,6 +140,18 @@ class _$KindDisplayCWProxyImpl implements _$KindDisplayCWProxy {
           ? _value.colorField
           // ignore: cast_nullable_to_non_nullable
           : colorField as String?,
+      iconField: iconField == const $CopyWithPlaceholder()
+          ? _value.iconField
+          // ignore: cast_nullable_to_non_nullable
+          : iconField as String?,
+      iconCases: iconCases == const $CopyWithPlaceholder()
+          ? _value.iconCases
+          // ignore: cast_nullable_to_non_nullable
+          : iconCases as Map<String, String>?,
+      colorCases: colorCases == const $CopyWithPlaceholder()
+          ? _value.colorCases
+          // ignore: cast_nullable_to_non_nullable
+          : colorCases as Map<String, String>?,
     );
   }
 }
@@ -132,19 +167,31 @@ extension $KindDisplayCopyWith on KindDisplay {
 // JsonSerializableGenerator
 // **************************************************************************
 
-KindDisplay _$KindDisplayFromJson(Map<String, dynamic> json) =>
-    $checkedCreate('KindDisplay', json, ($checkedConvert) {
-      final val = KindDisplay(
-        titleTemplate: $checkedConvert('titleTemplate', (v) => v as String?),
-        icon: $checkedConvert('icon', (v) => v as String?),
-        colour: $checkedConvert('colour', (v) => v as String?),
-        sidc: $checkedConvert('sidc', (v) => v as String?),
-        rotateField: $checkedConvert('rotateField', (v) => v as String?),
-        sizeField: $checkedConvert('sizeField', (v) => v as String?),
-        colorField: $checkedConvert('colorField', (v) => v as String?),
-      );
-      return val;
-    });
+KindDisplay _$KindDisplayFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate('KindDisplay', json, ($checkedConvert) {
+  final val = KindDisplay(
+    titleTemplate: $checkedConvert('titleTemplate', (v) => v as String?),
+    icon: $checkedConvert('icon', (v) => v as String?),
+    colour: $checkedConvert('colour', (v) => v as String?),
+    sidc: $checkedConvert('sidc', (v) => v as String?),
+    rotateField: $checkedConvert('rotateField', (v) => v as String?),
+    sizeField: $checkedConvert('sizeField', (v) => v as String?),
+    colorField: $checkedConvert('colorField', (v) => v as String?),
+    iconField: $checkedConvert('iconField', (v) => v as String?),
+    iconCases: $checkedConvert(
+      'iconCases',
+      (v) =>
+          (v as Map<String, dynamic>?)?.map((k, e) => MapEntry(k, e as String)),
+    ),
+    colorCases: $checkedConvert(
+      'colorCases',
+      (v) =>
+          (v as Map<String, dynamic>?)?.map((k, e) => MapEntry(k, e as String)),
+    ),
+  );
+  return val;
+});
 
 Map<String, dynamic> _$KindDisplayToJson(KindDisplay instance) =>
     <String, dynamic>{
@@ -155,4 +202,7 @@ Map<String, dynamic> _$KindDisplayToJson(KindDisplay instance) =>
       'rotateField': ?instance.rotateField,
       'sizeField': ?instance.sizeField,
       'colorField': ?instance.colorField,
+      'iconField': ?instance.iconField,
+      'iconCases': ?instance.iconCases,
+      'colorCases': ?instance.colorCases,
     };

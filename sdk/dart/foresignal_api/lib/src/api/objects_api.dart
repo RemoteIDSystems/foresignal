@@ -23,6 +23,8 @@ import 'package:foresignal_api/src/model/graph_result.dart';
 import 'package:foresignal_api/src/model/object_envelope.dart';
 import 'package:foresignal_api/src/model/object_resolve_request.dart';
 import 'package:foresignal_api/src/model/object_resolve_result.dart';
+import 'package:foresignal_api/src/model/ownership_chain.dart';
+import 'package:foresignal_api/src/model/ownership_chain_request.dart';
 import 'package:foresignal_api/src/model/precision.dart';
 import 'package:foresignal_api/src/model/problem.dart';
 import 'package:foresignal_api/src/model/related_objects.dart';
@@ -1051,6 +1053,103 @@ _responseData = rawData == null ? null : deserialize<SensorDiscoveryResult, Sens
     }
 
     return Response<SensorDiscoveryResult>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Walk ownership and affiliation chains
+  /// People and organizations reached from up to 50 seed entities through the ownership / affiliation edges (&#x60;owns&#x60;, &#x60;controls&#x60;, &#x60;officer-of&#x60;, &#x60;beneficial-owner&#x60;, &#x60;affiliated-with&#x60;), each with its strongest, shortest ownership chain (158). An entity reached from two or more seeds is a shared attribute — a common owner, officer, address or affiliate. Model and queries only; the external corporate / UBO / PEP / leak data that populates the edges is deferred (docs/Future-Roadmap.md).  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  ///
+  /// Parameters:
+  /// * [ownershipChainRequest] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [OwnershipChain] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<OwnershipChain>> ownershipChain({ 
+    required OwnershipChainRequest ownershipChainRequest,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/graph/ownership-chain';
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(ownershipChainRequest);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    OwnershipChain? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<OwnershipChain, OwnershipChain>(rawData, 'OwnershipChain', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<OwnershipChain>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

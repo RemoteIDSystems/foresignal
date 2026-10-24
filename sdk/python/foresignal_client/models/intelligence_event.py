@@ -45,7 +45,8 @@ class IntelligenceEvent:
             evidence (IntelligenceEventEvidence): Observed members
             inference (IntelligenceEventInference): What the detector derived
             speculation (IntelligenceEventSpeculation): Alternatives and any LLM narrative, always labelled
-            severity_overridden (bool | Unset):
+            severity_overridden (bool | Unset): True when an operator override sets the severity; `severity: null` in
+                `IntelEventPatch` clears it and restores the computed severity
             private (bool | Unset): True when any member comes from a private source
             recipe_id (None | str | Unset):
             recipe_version (int | None | Unset):

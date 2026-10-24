@@ -23,6 +23,8 @@ class ForecasterUpdate {
     required  this.active,
 
      this.config,
+
+     this.name,
   });
 
   @JsonKey(
@@ -37,6 +39,7 @@ class ForecasterUpdate {
 
 
 
+      /// Replaces the forecaster's configuration. For an external forecaster, `externalMinResolved` (integer) overrides the ensemble's global minimum resolved count before the forecaster is weighted (155).
   @JsonKey(
     
     name: r'config',
@@ -49,17 +52,32 @@ class ForecasterUpdate {
 
 
 
+      /// Optional display name; set for a first-class external forecaster (155).
+  @JsonKey(
+    
+    name: r'name',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? name;
+
+
+
 
 
     @override
     bool operator ==(Object other) => identical(this, other) || other is ForecasterUpdate &&
       other.active == active &&
-      other.config == config;
+      other.config == config &&
+      other.name == name;
 
     @override
     int get hashCode =>
         active.hashCode +
-        config.hashCode;
+        config.hashCode +
+        name.hashCode;
 
   factory ForecasterUpdate.fromJson(Map<String, dynamic> json) => _$ForecasterUpdateFromJson(json);
 

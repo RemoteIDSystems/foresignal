@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Self, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Self, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.kind_display_color_cases_type_0 import KindDisplayColorCasesType0
+    from ..models.kind_display_icon_cases_type_0 import KindDisplayIconCasesType0
+
 
 T = TypeVar("T", bound="KindDisplay")
 
@@ -26,6 +31,12 @@ class KindDisplay:
             tileProperties
         color_field (None | str | Unset): Payload field driving a data-driven colour match (default `severity`); must be
             in tileProperties
+        icon_field (None | str | Unset): Payload field choosing the icon through `iconCases` (e.g. `chartSymbol`); must
+            be in tileProperties
+        icon_cases (KindDisplayIconCasesType0 | None | Unset): Icon names by lowercase `iconField` value; `icon` is
+            drawn for any other value Example: {'major': 'airport-major', 'hard': 'airport-hard'}.
+        color_cases (KindDisplayColorCasesType0 | None | Unset): Colors `#RRGGBB` by lowercase `colorField` value,
+            replacing the severity colors; `colour` for any other value Example: {'true': '#4F8FE8'}.
     """
 
     title_template: None | str | Unset = UNSET
@@ -35,9 +46,15 @@ class KindDisplay:
     rotate_field: None | str | Unset = UNSET
     size_field: None | str | Unset = UNSET
     color_field: None | str | Unset = UNSET
+    icon_field: None | str | Unset = UNSET
+    icon_cases: KindDisplayIconCasesType0 | None | Unset = UNSET
+    color_cases: KindDisplayColorCasesType0 | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.kind_display_color_cases_type_0 import KindDisplayColorCasesType0
+        from ..models.kind_display_icon_cases_type_0 import KindDisplayIconCasesType0
+
         title_template: None | str | Unset
         if isinstance(self.title_template, Unset):
             title_template = UNSET
@@ -80,6 +97,28 @@ class KindDisplay:
         else:
             color_field = self.color_field
 
+        icon_field: None | str | Unset
+        if isinstance(self.icon_field, Unset):
+            icon_field = UNSET
+        else:
+            icon_field = self.icon_field
+
+        icon_cases: dict[str, Any] | None | Unset
+        if isinstance(self.icon_cases, Unset):
+            icon_cases = UNSET
+        elif isinstance(self.icon_cases, KindDisplayIconCasesType0):
+            icon_cases = self.icon_cases.to_dict()
+        else:
+            icon_cases = self.icon_cases
+
+        color_cases: dict[str, Any] | None | Unset
+        if isinstance(self.color_cases, Unset):
+            color_cases = UNSET
+        elif isinstance(self.color_cases, KindDisplayColorCasesType0):
+            color_cases = self.color_cases.to_dict()
+        else:
+            color_cases = self.color_cases
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
@@ -97,11 +136,20 @@ class KindDisplay:
             field_dict["sizeField"] = size_field
         if color_field is not UNSET:
             field_dict["colorField"] = color_field
+        if icon_field is not UNSET:
+            field_dict["iconField"] = icon_field
+        if icon_cases is not UNSET:
+            field_dict["iconCases"] = icon_cases
+        if color_cases is not UNSET:
+            field_dict["colorCases"] = color_cases
 
         return field_dict
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
+        from ..models.kind_display_color_cases_type_0 import KindDisplayColorCasesType0
+        from ..models.kind_display_icon_cases_type_0 import KindDisplayIconCasesType0
+
         d = dict(src_dict)
 
         def _parse_title_template(data: object) -> None | str | Unset:
@@ -167,6 +215,51 @@ class KindDisplay:
 
         color_field = _parse_color_field(d.pop("colorField", UNSET))
 
+        def _parse_icon_field(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        icon_field = _parse_icon_field(d.pop("iconField", UNSET))
+
+        def _parse_icon_cases(data: object) -> KindDisplayIconCasesType0 | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                icon_cases_type_0 = KindDisplayIconCasesType0.from_dict(data)
+
+                return icon_cases_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(KindDisplayIconCasesType0 | None | Unset, data)
+
+        icon_cases = _parse_icon_cases(d.pop("iconCases", UNSET))
+
+        def _parse_color_cases(
+            data: object,
+        ) -> KindDisplayColorCasesType0 | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                color_cases_type_0 = KindDisplayColorCasesType0.from_dict(data)
+
+                return color_cases_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(KindDisplayColorCasesType0 | None | Unset, data)
+
+        color_cases = _parse_color_cases(d.pop("colorCases", UNSET))
+
         kind_display = cls(
             title_template=title_template,
             icon=icon,
@@ -175,6 +268,9 @@ class KindDisplay:
             rotate_field=rotate_field,
             size_field=size_field,
             color_field=color_field,
+            icon_field=icon_field,
+            icon_cases=icon_cases,
+            color_cases=color_cases,
         )
 
         kind_display.additional_properties = d

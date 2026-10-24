@@ -13,6 +13,8 @@ abstract class _$CorrelationRecipeCWProxy {
 
   CorrelationRecipe builtIn(bool? builtIn);
 
+  CorrelationRecipe origin(CorrelationRecipeOriginEnum? origin);
+
   CorrelationRecipe enabled(bool enabled);
 
   CorrelationRecipe definition(CorrelationRecipeDefinition definition);
@@ -37,6 +39,7 @@ abstract class _$CorrelationRecipeCWProxy {
     String id,
     int version,
     bool? builtIn,
+    CorrelationRecipeOriginEnum? origin,
     bool enabled,
     CorrelationRecipeDefinition definition,
     Map<String, Object>? params,
@@ -61,6 +64,10 @@ class _$CorrelationRecipeCWProxyImpl implements _$CorrelationRecipeCWProxy {
 
   @override
   CorrelationRecipe builtIn(bool? builtIn) => call(builtIn: builtIn);
+
+  @override
+  CorrelationRecipe origin(CorrelationRecipeOriginEnum? origin) =>
+      call(origin: origin);
 
   @override
   CorrelationRecipe enabled(bool enabled) => call(enabled: enabled);
@@ -96,6 +103,7 @@ class _$CorrelationRecipeCWProxyImpl implements _$CorrelationRecipeCWProxy {
     Object? id = const $CopyWithPlaceholder(),
     Object? version = const $CopyWithPlaceholder(),
     Object? builtIn = const $CopyWithPlaceholder(),
+    Object? origin = const $CopyWithPlaceholder(),
     Object? enabled = const $CopyWithPlaceholder(),
     Object? definition = const $CopyWithPlaceholder(),
     Object? params = const $CopyWithPlaceholder(),
@@ -116,6 +124,10 @@ class _$CorrelationRecipeCWProxyImpl implements _$CorrelationRecipeCWProxy {
           ? _value.builtIn
           // ignore: cast_nullable_to_non_nullable
           : builtIn as bool?,
+      origin: origin == const $CopyWithPlaceholder()
+          ? _value.origin
+          // ignore: cast_nullable_to_non_nullable
+          : origin as CorrelationRecipeOriginEnum?,
       enabled: enabled == const $CopyWithPlaceholder() || enabled == null
           ? _value.enabled
           // ignore: cast_nullable_to_non_nullable
@@ -167,6 +179,10 @@ CorrelationRecipe _$CorrelationRecipeFromJson(Map<String, dynamic> json) =>
         id: $checkedConvert('id', (v) => v as String),
         version: $checkedConvert('version', (v) => (v as num).toInt()),
         builtIn: $checkedConvert('builtIn', (v) => v as bool?),
+        origin: $checkedConvert(
+          'origin',
+          (v) => $enumDecodeNullable(_$CorrelationRecipeOriginEnumEnumMap, v),
+        ),
         enabled: $checkedConvert('enabled', (v) => v as bool),
         definition: $checkedConvert(
           'definition',
@@ -194,6 +210,7 @@ Map<String, dynamic> _$CorrelationRecipeToJson(CorrelationRecipe instance) =>
       'id': instance.id,
       'version': instance.version,
       'builtIn': ?instance.builtIn,
+      'origin': ?_$CorrelationRecipeOriginEnumEnumMap[instance.origin],
       'enabled': instance.enabled,
       'definition': instance.definition.toJson(),
       'params': ?instance.params,
@@ -201,3 +218,8 @@ Map<String, dynamic> _$CorrelationRecipeToJson(CorrelationRecipe instance) =>
       'lastRunAt': ?instance.lastRunAt?.toIso8601String(),
       'lastError': ?instance.lastError,
     };
+
+const _$CorrelationRecipeOriginEnumEnumMap = {
+  CorrelationRecipeOriginEnum.bundled: 'bundled',
+  CorrelationRecipeOriginEnum.operator_: 'operator',
+};

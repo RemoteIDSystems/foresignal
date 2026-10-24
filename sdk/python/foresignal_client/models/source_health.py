@@ -28,7 +28,7 @@ class SourceHealth:
         source_id (str):
         status (HealthStatus):
         consecutive_failures (int):
-        status_reason (str | Unset):
+        status_reason (None | str | Unset): null while healthy
         last_attempt_at (datetime.datetime | None | Unset):
         last_success_at (datetime.datetime | None | Unset):
         last_error_at (datetime.datetime | None | Unset):
@@ -56,13 +56,14 @@ class SourceHealth:
             (063): `compressionEnabled` (from its SubscriptionConfirmation), `perMessageDeflate` (whether the handshake
             negotiated it; present while connected) and `vessels` (vessels held in the merged state)
         last_doctor_report (DoctorReportSummary | None | Unset):
-        spent_usd_this_month (float | None | Unset): Paid adapters: money spent this calendar month (135)
+        spent_usd_this_month (float | None | Unset): Paid adapters: money spent this UTC calendar month (135), against
+            `budget.monthlyCapUsd`
     """
 
     source_id: str
     status: HealthStatus
     consecutive_failures: int
-    status_reason: str | Unset = UNSET
+    status_reason: None | str | Unset = UNSET
     last_attempt_at: datetime.datetime | None | Unset = UNSET
     last_success_at: datetime.datetime | None | Unset = UNSET
     last_error_at: datetime.datetime | None | Unset = UNSET
@@ -99,7 +100,11 @@ class SourceHealth:
 
         consecutive_failures = self.consecutive_failures
 
-        status_reason = self.status_reason
+        status_reason: None | str | Unset
+        if isinstance(self.status_reason, Unset):
+            status_reason = UNSET
+        else:
+            status_reason = self.status_reason
 
         last_attempt_at: None | str | Unset
         if isinstance(self.last_attempt_at, Unset):
@@ -300,7 +305,14 @@ class SourceHealth:
 
         consecutive_failures = d.pop("consecutiveFailures")
 
-        status_reason = d.pop("statusReason", UNSET)
+        def _parse_status_reason(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        status_reason = _parse_status_reason(d.pop("statusReason", UNSET))
 
         def _parse_last_attempt_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:

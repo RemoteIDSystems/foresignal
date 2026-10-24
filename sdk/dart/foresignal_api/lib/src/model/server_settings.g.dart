@@ -7,7 +7,7 @@ part of 'server_settings.dart';
 // **************************************************************************
 
 abstract class _$ServerSettingsCWProxy {
-  ServerSettings publicBaseUrl(String publicBaseUrl);
+  ServerSettings publicBaseUrl(String? publicBaseUrl);
 
   ServerSettings timezone(String? timezone);
 
@@ -28,7 +28,7 @@ abstract class _$ServerSettingsCWProxy {
   /// ServerSettings(...).copyWith(id: 12, name: "My name")
   /// ```
   ServerSettings call({
-    String publicBaseUrl,
+    String? publicBaseUrl,
     String? timezone,
     ClientLinks? clientLinks,
     List<SettingsWarning>? warnings,
@@ -45,7 +45,7 @@ class _$ServerSettingsCWProxyImpl implements _$ServerSettingsCWProxy {
   final ServerSettings _value;
 
   @override
-  ServerSettings publicBaseUrl(String publicBaseUrl) =>
+  ServerSettings publicBaseUrl(String? publicBaseUrl) =>
       call(publicBaseUrl: publicBaseUrl);
 
   @override
@@ -84,11 +84,10 @@ class _$ServerSettingsCWProxyImpl implements _$ServerSettingsCWProxy {
     Object? contactEmail = const $CopyWithPlaceholder(),
   }) {
     return ServerSettings(
-      publicBaseUrl:
-          publicBaseUrl == const $CopyWithPlaceholder() || publicBaseUrl == null
+      publicBaseUrl: publicBaseUrl == const $CopyWithPlaceholder()
           ? _value.publicBaseUrl
           // ignore: cast_nullable_to_non_nullable
-          : publicBaseUrl as String,
+          : publicBaseUrl as String?,
       timezone: timezone == const $CopyWithPlaceholder()
           ? _value.timezone
           // ignore: cast_nullable_to_non_nullable
@@ -129,7 +128,7 @@ ServerSettings _$ServerSettingsFromJson(
 ) => $checkedCreate('ServerSettings', json, ($checkedConvert) {
   $checkKeys(json, requiredKeys: const ['publicBaseUrl']);
   final val = ServerSettings(
-    publicBaseUrl: $checkedConvert('publicBaseUrl', (v) => v as String),
+    publicBaseUrl: $checkedConvert('publicBaseUrl', (v) => v as String?),
     timezone: $checkedConvert('timezone', (v) => v as String? ?? 'UTC'),
     clientLinks: $checkedConvert(
       'clientLinks',

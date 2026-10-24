@@ -17,6 +17,7 @@ import 'package:foresignal_api/src/model/llm_test_result.dart';
 import 'package:foresignal_api/src/model/llm_usage_series.dart';
 import 'package:foresignal_api/src/model/problem.dart';
 import 'package:foresignal_api/src/model/prompt_template.dart';
+import 'package:foresignal_api/src/model/prompt_template_list.dart';
 
 class LLMApi {
 
@@ -648,6 +649,82 @@ _responseData = rawData == null ? null : deserialize<List<LlmProvider>, LlmProvi
     }
 
     return Response<List<LlmProvider>>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// List the LLM prompt templates
+  /// Every bundled prompt template: its id, LLM role, newest version and all versions, so a client can offer them to getPromptTemplate. Texts are not included.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  ///
+  /// Parameters:
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [PromptTemplateList] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<PromptTemplateList>> listPromptTemplates({ 
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/prompt-templates';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    PromptTemplateList? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<PromptTemplateList, PromptTemplateList>(rawData, 'PromptTemplateList', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<PromptTemplateList>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

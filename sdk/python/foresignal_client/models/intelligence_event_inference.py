@@ -27,13 +27,17 @@ class IntelligenceEventInference:
     """What the detector derived
 
     Attributes:
-        confidence (float): Score from EventScorer; not a calibrated probability unless `calibrated`
+        confidence (float): The calibrated probability when `calibrated` is true, otherwise the raw EventScorer score
+            (capped at 0.95)
         confidence_label (IntelligenceEventInferenceConfidenceLabel): low < 0.4 ≤ moderate < 0.7 ≤ high
         confidence_method (str):  Example: event-scorer-1.0.0.
-        calibrated (bool): Set only by 103 validation
+        calibrated (bool): True when `confidence` is a calibrated probability backed by resolved outcomes (151); until a
+            scope has enough resolved history the raw score stands and this is false
         evidence_quality (IntelligenceEventInferenceEvidenceQuality):
         start_time (datetime.datetime):
         explanation (str): Deterministic templated text citing members
+        raw_confidence (float | None | Unset): The uncalibrated EventScorer score behind `confidence` (151); equal to
+            `confidence` until calibrated
         end_time (datetime.datetime | None | Unset): null while open
         last_evidence_at (datetime.datetime | None | Unset):
         geometry (Geometry | None | Unset):
@@ -48,6 +52,7 @@ class IntelligenceEventInference:
     evidence_quality: IntelligenceEventInferenceEvidenceQuality
     start_time: datetime.datetime
     explanation: str
+    raw_confidence: float | None | Unset = UNSET
     end_time: datetime.datetime | None | Unset = UNSET
     last_evidence_at: datetime.datetime | None | Unset = UNSET
     geometry: Geometry | None | Unset = UNSET
@@ -71,6 +76,12 @@ class IntelligenceEventInference:
         start_time = self.start_time.isoformat()
 
         explanation = self.explanation
+
+        raw_confidence: float | None | Unset
+        if isinstance(self.raw_confidence, Unset):
+            raw_confidence = UNSET
+        else:
+            raw_confidence = self.raw_confidence
 
         end_time: None | str | Unset
         if isinstance(self.end_time, Unset):
@@ -121,6 +132,8 @@ class IntelligenceEventInference:
                 "explanation": explanation,
             }
         )
+        if raw_confidence is not UNSET:
+            field_dict["rawConfidence"] = raw_confidence
         if end_time is not UNSET:
             field_dict["endTime"] = end_time
         if last_evidence_at is not UNSET:
@@ -156,6 +169,15 @@ class IntelligenceEventInference:
         start_time = datetime.datetime.fromisoformat(d.pop("startTime"))
 
         explanation = d.pop("explanation")
+
+        def _parse_raw_confidence(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        raw_confidence = _parse_raw_confidence(d.pop("rawConfidence", UNSET))
 
         def _parse_end_time(data: object) -> datetime.datetime | None | Unset:
             if data is None:
@@ -235,6 +257,7 @@ class IntelligenceEventInference:
             evidence_quality=evidence_quality,
             start_time=start_time,
             explanation=explanation,
+            raw_confidence=raw_confidence,
             end_time=end_time,
             last_evidence_at=last_evidence_at,
             geometry=geometry,

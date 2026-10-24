@@ -87,13 +87,18 @@ def sync_detailed(
 ) -> Response[CorrelationRecipe | Problem]:
     """Enable or tune a recipe
 
-     Sets `enabled` and parameter overrides; overrides survive built-in version updates.
+     Sets `enabled` and parameter overrides; overrides survive built-in version updates. For an operator-
+    authored recipe the body may also carry a full `definition` to replace, validated by the recipe
+    validator (prompt 157); a bundled recipe's definition is managed by the classpath and cannot be
+    replaced here.
 
     **Scope:** `admin`.
 
     Args:
         recipe_id (str):
-        body (CorrelationRecipeUpdate): Operator changes to a recipe
+        body (CorrelationRecipeUpdate): Operator changes to a recipe: the enabled flag and
+            parameter overrides, and for an operator-authored recipe a full definition to replace
+            (prompt 157).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -123,13 +128,18 @@ def sync(
 ) -> CorrelationRecipe | Problem | None:
     """Enable or tune a recipe
 
-     Sets `enabled` and parameter overrides; overrides survive built-in version updates.
+     Sets `enabled` and parameter overrides; overrides survive built-in version updates. For an operator-
+    authored recipe the body may also carry a full `definition` to replace, validated by the recipe
+    validator (prompt 157); a bundled recipe's definition is managed by the classpath and cannot be
+    replaced here.
 
     **Scope:** `admin`.
 
     Args:
         recipe_id (str):
-        body (CorrelationRecipeUpdate): Operator changes to a recipe
+        body (CorrelationRecipeUpdate): Operator changes to a recipe: the enabled flag and
+            parameter overrides, and for an operator-authored recipe a full definition to replace
+            (prompt 157).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -154,13 +164,18 @@ async def asyncio_detailed(
 ) -> Response[CorrelationRecipe | Problem]:
     """Enable or tune a recipe
 
-     Sets `enabled` and parameter overrides; overrides survive built-in version updates.
+     Sets `enabled` and parameter overrides; overrides survive built-in version updates. For an operator-
+    authored recipe the body may also carry a full `definition` to replace, validated by the recipe
+    validator (prompt 157); a bundled recipe's definition is managed by the classpath and cannot be
+    replaced here.
 
     **Scope:** `admin`.
 
     Args:
         recipe_id (str):
-        body (CorrelationRecipeUpdate): Operator changes to a recipe
+        body (CorrelationRecipeUpdate): Operator changes to a recipe: the enabled flag and
+            parameter overrides, and for an operator-authored recipe a full definition to replace
+            (prompt 157).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -188,13 +203,18 @@ async def asyncio(
 ) -> CorrelationRecipe | Problem | None:
     """Enable or tune a recipe
 
-     Sets `enabled` and parameter overrides; overrides survive built-in version updates.
+     Sets `enabled` and parameter overrides; overrides survive built-in version updates. For an operator-
+    authored recipe the body may also carry a full `definition` to replace, validated by the recipe
+    validator (prompt 157); a bundled recipe's definition is managed by the classpath and cannot be
+    replaced here.
 
     **Scope:** `admin`.
 
     Args:
         recipe_id (str):
-        body (CorrelationRecipeUpdate): Operator changes to a recipe
+        body (CorrelationRecipeUpdate): Operator changes to a recipe: the enabled flag and
+            parameter overrides, and for an operator-authored recipe a full definition to replace
+            (prompt 157).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

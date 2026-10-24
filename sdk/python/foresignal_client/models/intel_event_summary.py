@@ -36,15 +36,19 @@ class IntelEventSummary:
         title (str):
         status (IntelEventSummaryStatus):
         severity (Severity):
-        confidence (float): Score from EventScorer; not a calibrated probability unless `calibrated`
+        confidence (float): The calibrated probability when `calibrated` is true, otherwise the raw EventScorer score
+            (capped at 0.95)
         confidence_label (IntelEventSummaryConfidenceLabel): low < 0.4 ≤ moderate < 0.7 ≤ high
         evidence_quality (IntelEventSummaryEvidenceQuality):
         member_count (int):
         start_time (datetime.datetime):
         version (int):
         updated_at (datetime.datetime):
+        raw_confidence (float | None | Unset): The uncalibrated EventScorer score behind `confidence` (151); equal to
+            `confidence` until calibrated
         confidence_method (str | Unset):  Example: event-scorer-1.0.0.
-        calibrated (bool | Unset): Set only by 103 validation
+        calibrated (bool | Unset): True when `confidence` is a calibrated probability backed by resolved outcomes (151);
+            until a scope has enough resolved history the raw score stands and this is false
         signal_families (list[str] | Unset):
         end_time (datetime.datetime | None | Unset):
         last_evidence_at (datetime.datetime | None | Unset):
@@ -67,6 +71,7 @@ class IntelEventSummary:
     start_time: datetime.datetime
     version: int
     updated_at: datetime.datetime
+    raw_confidence: float | None | Unset = UNSET
     confidence_method: str | Unset = UNSET
     calibrated: bool | Unset = UNSET
     signal_families: list[str] | Unset = UNSET
@@ -105,6 +110,12 @@ class IntelEventSummary:
         version = self.version
 
         updated_at = self.updated_at.isoformat()
+
+        raw_confidence: float | None | Unset
+        if isinstance(self.raw_confidence, Unset):
+            raw_confidence = UNSET
+        else:
+            raw_confidence = self.raw_confidence
 
         confidence_method = self.confidence_method
 
@@ -172,6 +183,8 @@ class IntelEventSummary:
                 "updatedAt": updated_at,
             }
         )
+        if raw_confidence is not UNSET:
+            field_dict["rawConfidence"] = raw_confidence
         if confidence_method is not UNSET:
             field_dict["confidenceMethod"] = confidence_method
         if calibrated is not UNSET:
@@ -223,6 +236,15 @@ class IntelEventSummary:
         version = d.pop("version")
 
         updated_at = datetime.datetime.fromisoformat(d.pop("updatedAt"))
+
+        def _parse_raw_confidence(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        raw_confidence = _parse_raw_confidence(d.pop("rawConfidence", UNSET))
 
         confidence_method = d.pop("confidenceMethod", UNSET)
 
@@ -314,6 +336,7 @@ class IntelEventSummary:
             start_time=start_time,
             version=version,
             updated_at=updated_at,
+            raw_confidence=raw_confidence,
             confidence_method=confidence_method,
             calibrated=calibrated,
             signal_families=signal_families,

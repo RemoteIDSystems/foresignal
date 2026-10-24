@@ -21,7 +21,8 @@ T = TypeVar("T", bound="ServerSettings")
 class ServerSettings:
     """
     Attributes:
-        public_base_url (str): Base URL used in notification links Example: http://foresignal.local:8080.
+        public_base_url (None | str): Base URL used in notification links; null uses the request's own scheme, host and
+            port Example: http://foresignal.local:8080.
         timezone (str | Unset): IANA zone; fallback for channel timezones Default: 'UTC'. Example: America/Chicago.
         client_links (ClientLinks | Unset): Deep-link templates clients and notifications use (023). Defaults use the
             `foresignal://` scheme; operators may set verified https links.
@@ -32,7 +33,7 @@ class ServerSettings:
             API asks for a contact); null for none Example: ops@example.org.
     """
 
-    public_base_url: str
+    public_base_url: None | str
     timezone: str | Unset = "UTC"
     client_links: ClientLinks | Unset = UNSET
     warnings: list[SettingsWarning] | Unset = UNSET
@@ -41,6 +42,7 @@ class ServerSettings:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        public_base_url: None | str
         public_base_url = self.public_base_url
 
         timezone = self.timezone
@@ -93,7 +95,13 @@ class ServerSettings:
         from ..models.settings_warning import SettingsWarning
 
         d = dict(src_dict)
-        public_base_url = d.pop("publicBaseUrl")
+
+        def _parse_public_base_url(data: object) -> None | str:
+            if data is None:
+                return data
+            return cast(None | str, data)
+
+        public_base_url = _parse_public_base_url(d.pop("publicBaseUrl"))
 
         timezone = d.pop("timezone", UNSET)
 

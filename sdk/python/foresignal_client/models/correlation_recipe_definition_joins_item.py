@@ -34,6 +34,10 @@ class CorrelationRecipeDefinitionJoinsItem:
         within_km (float | Unset):
         same_region (CorrelationRecipeDefinitionJoinsItemSameRegion | Unset):
         same_entity (bool | Unset):
+        shared_attribute (str | Unset): A payload dot-path (prompt 157); a candidate joins when its value at that path
+            equals a seed member's — the join a fraud/relationship recipe needs (address, phone, officer, shared id).
+            Matches on the attribute alone; geometry is not required, the time window still applies. Example:
+            registeredAddress.
         window (CorrelationRecipeDefinitionJoinsItemWindow | Unset): Time window around the seed
         role (CorrelationRecipeDefinitionJoinsItemRole | Unset):
         signal_family (str | Unset): Signal family from the shared registry (`intel/signal-families.json`, 119), e.g.
@@ -46,6 +50,7 @@ class CorrelationRecipeDefinitionJoinsItem:
     within_km: float | Unset = UNSET
     same_region: CorrelationRecipeDefinitionJoinsItemSameRegion | Unset = UNSET
     same_entity: bool | Unset = UNSET
+    shared_attribute: str | Unset = UNSET
     window: CorrelationRecipeDefinitionJoinsItemWindow | Unset = UNSET
     role: CorrelationRecipeDefinitionJoinsItemRole | Unset = UNSET
     signal_family: str | Unset = UNSET
@@ -72,6 +77,8 @@ class CorrelationRecipeDefinitionJoinsItem:
 
         same_entity = self.same_entity
 
+        shared_attribute = self.shared_attribute
+
         window: dict[str, Any] | Unset = UNSET
         if not isinstance(self.window, Unset):
             window = self.window.to_dict()
@@ -97,6 +104,8 @@ class CorrelationRecipeDefinitionJoinsItem:
             field_dict["sameRegion"] = same_region
         if same_entity is not UNSET:
             field_dict["sameEntity"] = same_entity
+        if shared_attribute is not UNSET:
+            field_dict["sharedAttribute"] = shared_attribute
         if window is not UNSET:
             field_dict["window"] = window
         if role is not UNSET:
@@ -138,6 +147,8 @@ class CorrelationRecipeDefinitionJoinsItem:
 
         same_entity = d.pop("sameEntity", UNSET)
 
+        shared_attribute = d.pop("sharedAttribute", UNSET)
+
         _window = d.pop("window", UNSET)
         window: CorrelationRecipeDefinitionJoinsItemWindow | Unset
         if isinstance(_window, Unset):
@@ -162,6 +173,7 @@ class CorrelationRecipeDefinitionJoinsItem:
             within_km=within_km,
             same_region=same_region,
             same_entity=same_entity,
+            shared_attribute=shared_attribute,
             window=window,
             role=role,
             signal_family=signal_family,

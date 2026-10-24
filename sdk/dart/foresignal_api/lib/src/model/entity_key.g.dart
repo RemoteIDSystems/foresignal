@@ -245,6 +245,11 @@ const _$EntityKeyKeyTypeEnumEnumMap = {
   EntityKeyKeyTypeEnum.norad: 'norad',
   EntityKeyKeyTypeEnum.cospar: 'cospar',
   EntityKeyKeyTypeEnum.callsign: 'callsign',
+  EntityKeyKeyTypeEnum.lei: 'lei',
+  EntityKeyKeyTypeEnum.companyNumber: 'company-number',
+  EntityKeyKeyTypeEnum.taxId: 'tax-id',
+  EntityKeyKeyTypeEnum.officerId: 'officer-id',
+  EntityKeyKeyTypeEnum.personKey: 'person-key',
 };
 
 const _$EntityKeyRoleEnumEnumMap = {

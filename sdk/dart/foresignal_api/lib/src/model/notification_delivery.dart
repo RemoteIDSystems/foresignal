@@ -384,7 +384,9 @@ packagePeriodReceived(r'package.received'),
 @JsonValue(r'chronicle.access.requested')
 chroniclePeriodAccessPeriodRequested(r'chronicle.access.requested'),
 @JsonValue(r'saved-search.matches')
-savedSearchPeriodMatches(r'saved-search.matches');
+savedSearchPeriodMatches(r'saved-search.matches'),
+@JsonValue(r'personal')
+personal(r'personal');
 
 const NotificationDeliveryEventEnum(this.value);
 

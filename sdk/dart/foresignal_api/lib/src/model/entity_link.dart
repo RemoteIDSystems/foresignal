@@ -188,7 +188,17 @@ norad(r'norad'),
 @JsonValue(r'cospar')
 cospar(r'cospar'),
 @JsonValue(r'callsign')
-callsign(r'callsign');
+callsign(r'callsign'),
+@JsonValue(r'lei')
+lei(r'lei'),
+@JsonValue(r'company-number')
+companyNumber(r'company-number'),
+@JsonValue(r'tax-id')
+taxId(r'tax-id'),
+@JsonValue(r'officer-id')
+officerId(r'officer-id'),
+@JsonValue(r'person-key')
+personKey(r'person-key');
 
 const EntityLinkKeyTypeEnum(this.value);
 

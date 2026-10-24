@@ -136,6 +136,7 @@ class IntelligenceEvent {
 
 
 
+      /// True when an operator override sets the severity; `severity: null` in `IntelEventPatch` clears it and restores the computed severity
   @JsonKey(
     
     name: r'severityOverridden',

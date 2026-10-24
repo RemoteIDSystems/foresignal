@@ -33,6 +33,12 @@ class KindDisplay {
      this.sizeField,
 
      this.colorField,
+
+     this.iconField,
+
+     this.iconCases,
+
+     this.colorCases,
   });
 
       /// Client title template with `{field}` placeholders
@@ -126,6 +132,45 @@ class KindDisplay {
 
 
 
+      /// Payload field choosing the icon through `iconCases` (e.g. `chartSymbol`); must be in tileProperties
+  @JsonKey(
+    
+    name: r'iconField',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? iconField;
+
+
+
+      /// Icon names by lowercase `iconField` value; `icon` is drawn for any other value
+  @JsonKey(
+    
+    name: r'iconCases',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final Map<String, String>? iconCases;
+
+
+
+      /// Colors `#RRGGBB` by lowercase `colorField` value, replacing the severity colors; `colour` for any other value
+  @JsonKey(
+    
+    name: r'colorCases',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final Map<String, String>? colorCases;
+
+
+
 
 
     @override
@@ -136,7 +181,10 @@ class KindDisplay {
       other.sidc == sidc &&
       other.rotateField == rotateField &&
       other.sizeField == sizeField &&
-      other.colorField == colorField;
+      other.colorField == colorField &&
+      other.iconField == iconField &&
+      other.iconCases == iconCases &&
+      other.colorCases == colorCases;
 
     @override
     int get hashCode =>
@@ -146,7 +194,10 @@ class KindDisplay {
         (sidc == null ? 0 : sidc.hashCode) +
         (rotateField == null ? 0 : rotateField.hashCode) +
         (sizeField == null ? 0 : sizeField.hashCode) +
-        (colorField == null ? 0 : colorField.hashCode);
+        (colorField == null ? 0 : colorField.hashCode) +
+        (iconField == null ? 0 : iconField.hashCode) +
+        (iconCases == null ? 0 : iconCases.hashCode) +
+        (colorCases == null ? 0 : colorCases.hashCode);
 
   factory KindDisplay.fromJson(Map<String, dynamic> json) => _$KindDisplayFromJson(json);
 

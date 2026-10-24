@@ -9,6 +9,8 @@ part of 'intelligence_event_inference.dart';
 abstract class _$IntelligenceEventInferenceCWProxy {
   IntelligenceEventInference confidence(num confidence);
 
+  IntelligenceEventInference rawConfidence(num? rawConfidence);
+
   IntelligenceEventInference confidenceLabel(
     IntelligenceEventInferenceConfidenceLabelEnum confidenceLabel,
   );
@@ -45,6 +47,7 @@ abstract class _$IntelligenceEventInferenceCWProxy {
   /// ```
   IntelligenceEventInference call({
     num confidence,
+    num? rawConfidence,
     IntelligenceEventInferenceConfidenceLabelEnum confidenceLabel,
     String confidenceMethod,
     bool calibrated,
@@ -70,6 +73,10 @@ class _$IntelligenceEventInferenceCWProxyImpl
   @override
   IntelligenceEventInference confidence(num confidence) =>
       call(confidence: confidence);
+
+  @override
+  IntelligenceEventInference rawConfidence(num? rawConfidence) =>
+      call(rawConfidence: rawConfidence);
 
   @override
   IntelligenceEventInference confidenceLabel(
@@ -128,6 +135,7 @@ class _$IntelligenceEventInferenceCWProxyImpl
   @override
   IntelligenceEventInference call({
     Object? confidence = const $CopyWithPlaceholder(),
+    Object? rawConfidence = const $CopyWithPlaceholder(),
     Object? confidenceLabel = const $CopyWithPlaceholder(),
     Object? confidenceMethod = const $CopyWithPlaceholder(),
     Object? calibrated = const $CopyWithPlaceholder(),
@@ -146,6 +154,10 @@ class _$IntelligenceEventInferenceCWProxyImpl
           ? _value.confidence
           // ignore: cast_nullable_to_non_nullable
           : confidence as num,
+      rawConfidence: rawConfidence == const $CopyWithPlaceholder()
+          ? _value.rawConfidence
+          // ignore: cast_nullable_to_non_nullable
+          : rawConfidence as num?,
       confidenceLabel:
           confidenceLabel == const $CopyWithPlaceholder() ||
               confidenceLabel == null
@@ -231,6 +243,7 @@ IntelligenceEventInference _$IntelligenceEventInferenceFromJson(
   );
   final val = IntelligenceEventInference(
     confidence: $checkedConvert('confidence', (v) => v as num),
+    rawConfidence: $checkedConvert('rawConfidence', (v) => v as num?),
     confidenceLabel: $checkedConvert(
       'confidenceLabel',
       (v) => $enumDecode(
@@ -277,6 +290,7 @@ Map<String, dynamic> _$IntelligenceEventInferenceToJson(
   IntelligenceEventInference instance,
 ) => <String, dynamic>{
   'confidence': instance.confidence,
+  'rawConfidence': ?instance.rawConfidence,
   'confidenceLabel':
       _$IntelligenceEventInferenceConfidenceLabelEnumEnumMap[instance
           .confidenceLabel]!,

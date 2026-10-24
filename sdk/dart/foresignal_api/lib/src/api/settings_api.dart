@@ -9,6 +9,8 @@ import 'dart:convert';
 import 'package:foresignal_api/src/deserialize.dart';
 import 'package:dio/dio.dart';
 
+import 'package:foresignal_api/src/model/collector_settings.dart';
+import 'package:foresignal_api/src/model/collector_status.dart';
 import 'package:foresignal_api/src/model/cors_settings.dart';
 import 'package:foresignal_api/src/model/import_report.dart';
 import 'package:foresignal_api/src/model/infra_rules.dart';
@@ -107,6 +109,158 @@ _responseData = rawData == null ? null : deserialize<SettingsBundle, SettingsBun
     }
 
     return Response<SettingsBundle>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Get collector settings
+  /// The collector&#39;s runtime settings (prompt 150). &#x60;maxConcurrentPulls&#x60; is the size of the global pull governor: how many polling fetches may pull from upstream at once across every source (default 2, 1 to 16). Every scheduled and manual fetch, and every polling probe, holds a permit while it pulls; streams are not counted. Per-source intervals, host pacing and budgets apply beneath it unchanged.  **Scope:** &#x60;admin&#x60;.
+  ///
+  /// Parameters:
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [CollectorSettings] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<CollectorSettings>> getCollectorSettings({ 
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/settings/collector';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    CollectorSettings? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<CollectorSettings, CollectorSettings>(rawData, 'CollectorSettings', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<CollectorSettings>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Get collector status
+  /// The pull governor&#39;s live state (prompt 160), so a client can show it working rather than only its setting: &#x60;cap&#x60; is the &#x60;maxConcurrentPulls&#x60; in force (&#x60;getCollectorSettings&#x60;), &#x60;inUse&#x60; how many polling fetches hold a permit and are pulling from upstream right now, and &#x60;waiting&#x60; how many are queued for one. &#x60;inUse&#x60; may briefly exceed &#x60;cap&#x60; just after &#x60;updateCollectorSettings&#x60; lowers it, until running pulls finish. Streams are not counted. Read-only; a snapshot at the time of the request.  **Scope:** &#x60;admin&#x60;.
+  ///
+  /// Parameters:
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [CollectorStatus] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<CollectorStatus>> getCollectorStatus({ 
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/settings/collector/status';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    CollectorStatus? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<CollectorStatus, CollectorStatus>(rawData, 'CollectorStatus', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<CollectorStatus>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -1192,6 +1346,103 @@ _responseData = rawData == null ? null : deserialize<RetentionRunResult, Retenti
     }
 
     return Response<RetentionRunResult>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Set collector settings
+  /// Replaces the collector settings. The pull governor resizes live: a larger &#x60;maxConcurrentPulls&#x60; admits waiting fetches at once, a smaller one admits no new pull until enough running ones finish (none is interrupted). A value outside 1 to 16 is clamped; a value that is not an integer, or an unknown member, is 400 VALIDATION_FAILED.  **Scope:** &#x60;admin&#x60;.
+  ///
+  /// Parameters:
+  /// * [collectorSettings] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [CollectorSettings] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<CollectorSettings>> updateCollectorSettings({ 
+    required CollectorSettings collectorSettings,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/settings/collector';
+    final _options = Options(
+      method: r'PUT',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(collectorSettings);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    CollectorSettings? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<CollectorSettings, CollectorSettings>(rawData, 'CollectorSettings', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<CollectorSettings>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

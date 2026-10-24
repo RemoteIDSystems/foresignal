@@ -162,4 +162,9 @@ const _$EntityKeyInputKeyTypeEnumEnumMap = {
   EntityKeyInputKeyTypeEnum.norad: 'norad',
   EntityKeyInputKeyTypeEnum.cospar: 'cospar',
   EntityKeyInputKeyTypeEnum.callsign: 'callsign',
+  EntityKeyInputKeyTypeEnum.lei: 'lei',
+  EntityKeyInputKeyTypeEnum.companyNumber: 'company-number',
+  EntityKeyInputKeyTypeEnum.taxId: 'tax-id',
+  EntityKeyInputKeyTypeEnum.officerId: 'officer-id',
+  EntityKeyInputKeyTypeEnum.personKey: 'person-key',
 };

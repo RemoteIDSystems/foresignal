@@ -19,6 +19,10 @@ abstract class _$CorrelationRecipeDefinitionJoinsInnerCWProxy {
 
   CorrelationRecipeDefinitionJoinsInner sameEntity(bool? sameEntity);
 
+  CorrelationRecipeDefinitionJoinsInner sharedAttribute(
+    String? sharedAttribute,
+  );
+
   CorrelationRecipeDefinitionJoinsInner window(
     CorrelationRecipeDefinitionJoinsInnerWindow? window,
   );
@@ -45,6 +49,7 @@ abstract class _$CorrelationRecipeDefinitionJoinsInnerCWProxy {
     num? withinKm,
     CorrelationRecipeDefinitionJoinsInnerSameRegionEnum? sameRegion,
     bool? sameEntity,
+    String? sharedAttribute,
     CorrelationRecipeDefinitionJoinsInnerWindow? window,
     CorrelationRecipeDefinitionJoinsInnerRoleEnum? role,
     String? signalFamily,
@@ -83,6 +88,11 @@ class _$CorrelationRecipeDefinitionJoinsInnerCWProxyImpl
       call(sameEntity: sameEntity);
 
   @override
+  CorrelationRecipeDefinitionJoinsInner sharedAttribute(
+    String? sharedAttribute,
+  ) => call(sharedAttribute: sharedAttribute);
+
+  @override
   CorrelationRecipeDefinitionJoinsInner window(
     CorrelationRecipeDefinitionJoinsInnerWindow? window,
   ) => call(window: window);
@@ -115,6 +125,7 @@ class _$CorrelationRecipeDefinitionJoinsInnerCWProxyImpl
     Object? withinKm = const $CopyWithPlaceholder(),
     Object? sameRegion = const $CopyWithPlaceholder(),
     Object? sameEntity = const $CopyWithPlaceholder(),
+    Object? sharedAttribute = const $CopyWithPlaceholder(),
     Object? window = const $CopyWithPlaceholder(),
     Object? role = const $CopyWithPlaceholder(),
     Object? signalFamily = const $CopyWithPlaceholder(),
@@ -141,6 +152,10 @@ class _$CorrelationRecipeDefinitionJoinsInnerCWProxyImpl
           ? _value.sameEntity
           // ignore: cast_nullable_to_non_nullable
           : sameEntity as bool?,
+      sharedAttribute: sharedAttribute == const $CopyWithPlaceholder()
+          ? _value.sharedAttribute
+          // ignore: cast_nullable_to_non_nullable
+          : sharedAttribute as String?,
       window: window == const $CopyWithPlaceholder()
           ? _value.window
           // ignore: cast_nullable_to_non_nullable
@@ -199,6 +214,10 @@ _$CorrelationRecipeDefinitionJoinsInnerFromJson(Map<String, dynamic> json) =>
           ),
         ),
         sameEntity: $checkedConvert('sameEntity', (v) => v as bool?),
+        sharedAttribute: $checkedConvert(
+          'sharedAttribute',
+          (v) => v as String?,
+        ),
         window: $checkedConvert(
           'window',
           (v) => v == null
@@ -230,6 +249,7 @@ Map<String, dynamic> _$CorrelationRecipeDefinitionJoinsInnerToJson(
       ?_$CorrelationRecipeDefinitionJoinsInnerSameRegionEnumEnumMap[instance
           .sameRegion],
   'sameEntity': ?instance.sameEntity,
+  'sharedAttribute': ?instance.sharedAttribute,
   'window': ?instance.window?.toJson(),
   'role':
       ?_$CorrelationRecipeDefinitionJoinsInnerRoleEnumEnumMap[instance.role],

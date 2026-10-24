@@ -250,6 +250,14 @@ const _$NotificationEventEnumEnumMap = {
   NotificationEventEnum.alert: 'alert',
   NotificationEventEnum.briefing: 'briefing',
   NotificationEventEnum.system: 'system',
+  NotificationEventEnum.analystPeriodNote: 'analyst.note',
+  NotificationEventEnum.situationPeriodActivated: 'situation.activated',
+  NotificationEventEnum.situationPeriodEscalated: 'situation.escalated',
+  NotificationEventEnum.findingPeriodSignificant: 'finding.significant',
+  NotificationEventEnum.forecastPeriodResolutionNeeded:
+      'forecast.resolution_needed',
+  NotificationEventEnum.hypothesisPeriodBandChanged: 'hypothesis.band_changed',
+  NotificationEventEnum.assessmentPeriodPublished: 'assessment.published',
 };
 
 const _$NotificationSeverityEnumEnumMap = {

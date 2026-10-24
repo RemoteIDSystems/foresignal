@@ -21,7 +21,8 @@ T = TypeVar("T", bound="AlertContext")
 @_attrs_define
 class AlertContext:
     """Computed alert context (`alert.context`); `weather` (056) is the deterministic weather context of a geolocated
-    alert, stored before dispatch; list responses carry only `weather.summary` unless `include=context`
+    alert, stored before dispatch; list responses carry only `weather.status` and `weather.summary` unless
+    `include=context`
 
         Attributes:
             weather (WeatherContext | Unset): Deterministic weather facts around an alert geometry (056), computed from

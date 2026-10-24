@@ -265,7 +265,11 @@ vessel(r'vessel'),
 @JsonValue(r'satellite')
 satellite(r'satellite'),
 @JsonValue(r'station')
-station(r'station');
+station(r'station'),
+@JsonValue(r'person')
+person(r'person'),
+@JsonValue(r'organization')
+organization(r'organization');
 
 const EntityTypeEnum(this.value);
 

@@ -11,6 +11,8 @@ abstract class _$CorrelationRecipeUpdateCWProxy {
 
   CorrelationRecipeUpdate params(Map<String, Object>? params);
 
+  CorrelationRecipeUpdate definition(CorrelationRecipeDefinition? definition);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `CorrelationRecipeUpdate(...).copyWith.fieldName(value)`.
@@ -19,7 +21,11 @@ abstract class _$CorrelationRecipeUpdateCWProxy {
   /// ```dart
   /// CorrelationRecipeUpdate(...).copyWith(id: 12, name: "My name")
   /// ```
-  CorrelationRecipeUpdate call({bool? enabled, Map<String, Object>? params});
+  CorrelationRecipeUpdate call({
+    bool? enabled,
+    Map<String, Object>? params,
+    CorrelationRecipeDefinition? definition,
+  });
 }
 
 /// Callable proxy for `copyWith` functionality.
@@ -37,6 +43,10 @@ class _$CorrelationRecipeUpdateCWProxyImpl
   CorrelationRecipeUpdate params(Map<String, Object>? params) =>
       call(params: params);
 
+  @override
+  CorrelationRecipeUpdate definition(CorrelationRecipeDefinition? definition) =>
+      call(definition: definition);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `CorrelationRecipeUpdate(...).copyWith.fieldName(value)`.
@@ -49,6 +59,7 @@ class _$CorrelationRecipeUpdateCWProxyImpl
   CorrelationRecipeUpdate call({
     Object? enabled = const $CopyWithPlaceholder(),
     Object? params = const $CopyWithPlaceholder(),
+    Object? definition = const $CopyWithPlaceholder(),
   }) {
     return CorrelationRecipeUpdate(
       enabled: enabled == const $CopyWithPlaceholder()
@@ -59,6 +70,10 @@ class _$CorrelationRecipeUpdateCWProxyImpl
           ? _value.params
           // ignore: cast_nullable_to_non_nullable
           : params as Map<String, Object>?,
+      definition: definition == const $CopyWithPlaceholder()
+          ? _value.definition
+          // ignore: cast_nullable_to_non_nullable
+          : definition as CorrelationRecipeDefinition?,
     );
   }
 }
@@ -85,6 +100,12 @@ CorrelationRecipeUpdate _$CorrelationRecipeUpdateFromJson(
       (v) =>
           (v as Map<String, dynamic>?)?.map((k, e) => MapEntry(k, e as Object)),
     ),
+    definition: $checkedConvert(
+      'definition',
+      (v) => v == null
+          ? null
+          : CorrelationRecipeDefinition.fromJson(v as Map<String, dynamic>),
+    ),
   );
   return val;
 });
@@ -94,4 +115,5 @@ Map<String, dynamic> _$CorrelationRecipeUpdateToJson(
 ) => <String, dynamic>{
   'enabled': ?instance.enabled,
   'params': ?instance.params,
+  'definition': ?instance.definition?.toJson(),
 };

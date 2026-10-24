@@ -19,6 +19,8 @@ abstract class _$IntelEventSummaryCWProxy {
 
   IntelEventSummary confidence(num confidence);
 
+  IntelEventSummary rawConfidence(num? rawConfidence);
+
   IntelEventSummary confidenceLabel(
     IntelEventSummaryConfidenceLabelEnum confidenceLabel,
   );
@@ -70,6 +72,7 @@ abstract class _$IntelEventSummaryCWProxy {
     IntelEventSummaryStatusEnum status,
     Severity severity,
     num confidence,
+    num? rawConfidence,
     IntelEventSummaryConfidenceLabelEnum confidenceLabel,
     String? confidenceMethod,
     bool? calibrated,
@@ -114,6 +117,10 @@ class _$IntelEventSummaryCWProxyImpl implements _$IntelEventSummaryCWProxy {
 
   @override
   IntelEventSummary confidence(num confidence) => call(confidence: confidence);
+
+  @override
+  IntelEventSummary rawConfidence(num? rawConfidence) =>
+      call(rawConfidence: rawConfidence);
 
   @override
   IntelEventSummary confidenceLabel(
@@ -191,6 +198,7 @@ class _$IntelEventSummaryCWProxyImpl implements _$IntelEventSummaryCWProxy {
     Object? status = const $CopyWithPlaceholder(),
     Object? severity = const $CopyWithPlaceholder(),
     Object? confidence = const $CopyWithPlaceholder(),
+    Object? rawConfidence = const $CopyWithPlaceholder(),
     Object? confidenceLabel = const $CopyWithPlaceholder(),
     Object? confidenceMethod = const $CopyWithPlaceholder(),
     Object? calibrated = const $CopyWithPlaceholder(),
@@ -234,6 +242,10 @@ class _$IntelEventSummaryCWProxyImpl implements _$IntelEventSummaryCWProxy {
           ? _value.confidence
           // ignore: cast_nullable_to_non_nullable
           : confidence as num,
+      rawConfidence: rawConfidence == const $CopyWithPlaceholder()
+          ? _value.rawConfidence
+          // ignore: cast_nullable_to_non_nullable
+          : rawConfidence as num?,
       confidenceLabel:
           confidenceLabel == const $CopyWithPlaceholder() ||
               confidenceLabel == null
@@ -355,6 +367,7 @@ IntelEventSummary _$IntelEventSummaryFromJson(
       (v) => $enumDecode(_$SeverityEnumMap, v),
     ),
     confidence: $checkedConvert('confidence', (v) => v as num),
+    rawConfidence: $checkedConvert('rawConfidence', (v) => v as num?),
     confidenceLabel: $checkedConvert(
       'confidenceLabel',
       (v) => $enumDecode(_$IntelEventSummaryConfidenceLabelEnumEnumMap, v),
@@ -408,6 +421,7 @@ Map<String, dynamic> _$IntelEventSummaryToJson(
   'status': _$IntelEventSummaryStatusEnumEnumMap[instance.status]!,
   'severity': _$SeverityEnumMap[instance.severity]!,
   'confidence': instance.confidence,
+  'rawConfidence': ?instance.rawConfidence,
   'confidenceLabel':
       _$IntelEventSummaryConfidenceLabelEnumEnumMap[instance.confidenceLabel]!,
   'confidenceMethod': ?instance.confidenceMethod,

@@ -282,6 +282,11 @@ const _$RelationTypeEnumEnumMap = {
   RelationTypeEnum.precedes: 'precedes',
   RelationTypeEnum.causes: 'causes',
   RelationTypeEnum.relatedTo: 'related-to',
+  RelationTypeEnum.owns: 'owns',
+  RelationTypeEnum.controls: 'controls',
+  RelationTypeEnum.officerOf: 'officer-of',
+  RelationTypeEnum.beneficialOwner: 'beneficial-owner',
+  RelationTypeEnum.affiliatedWith: 'affiliated-with',
 };
 
 const _$RelationLabelEnumEnumMap = {

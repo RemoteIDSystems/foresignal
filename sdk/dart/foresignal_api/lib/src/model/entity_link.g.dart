@@ -199,4 +199,9 @@ const _$EntityLinkKeyTypeEnumEnumMap = {
   EntityLinkKeyTypeEnum.norad: 'norad',
   EntityLinkKeyTypeEnum.cospar: 'cospar',
   EntityLinkKeyTypeEnum.callsign: 'callsign',
+  EntityLinkKeyTypeEnum.lei: 'lei',
+  EntityLinkKeyTypeEnum.companyNumber: 'company-number',
+  EntityLinkKeyTypeEnum.taxId: 'tax-id',
+  EntityLinkKeyTypeEnum.officerId: 'officer-id',
+  EntityLinkKeyTypeEnum.personKey: 'person-key',
 };

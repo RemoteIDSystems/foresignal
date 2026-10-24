@@ -13,6 +13,8 @@ abstract class _$EdpTransportCWProxy {
 
   EdpTransport search(EdpSearch? search);
 
+  EdpTransport analysisRequest(EdpAnalysisRequest? analysisRequest);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `EdpTransport(...).copyWith.fieldName(value)`.
@@ -21,7 +23,12 @@ abstract class _$EdpTransportCWProxy {
   /// ```dart
   /// EdpTransport(...).copyWith(id: 12, name: "My name")
   /// ```
-  EdpTransport call({bool? push, EdpPull? pull, EdpSearch? search});
+  EdpTransport call({
+    bool? push,
+    EdpPull? pull,
+    EdpSearch? search,
+    EdpAnalysisRequest? analysisRequest,
+  });
 }
 
 /// Callable proxy for `copyWith` functionality.
@@ -40,6 +47,10 @@ class _$EdpTransportCWProxyImpl implements _$EdpTransportCWProxy {
   @override
   EdpTransport search(EdpSearch? search) => call(search: search);
 
+  @override
+  EdpTransport analysisRequest(EdpAnalysisRequest? analysisRequest) =>
+      call(analysisRequest: analysisRequest);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `EdpTransport(...).copyWith.fieldName(value)`.
@@ -53,6 +64,7 @@ class _$EdpTransportCWProxyImpl implements _$EdpTransportCWProxy {
     Object? push = const $CopyWithPlaceholder(),
     Object? pull = const $CopyWithPlaceholder(),
     Object? search = const $CopyWithPlaceholder(),
+    Object? analysisRequest = const $CopyWithPlaceholder(),
   }) {
     return EdpTransport(
       push: push == const $CopyWithPlaceholder()
@@ -67,6 +79,10 @@ class _$EdpTransportCWProxyImpl implements _$EdpTransportCWProxy {
           ? _value.search
           // ignore: cast_nullable_to_non_nullable
           : search as EdpSearch?,
+      analysisRequest: analysisRequest == const $CopyWithPlaceholder()
+          ? _value.analysisRequest
+          // ignore: cast_nullable_to_non_nullable
+          : analysisRequest as EdpAnalysisRequest?,
     );
   }
 }
@@ -95,6 +111,12 @@ EdpTransport _$EdpTransportFromJson(Map<String, dynamic> json) =>
           (v) =>
               v == null ? null : EdpSearch.fromJson(v as Map<String, dynamic>),
         ),
+        analysisRequest: $checkedConvert(
+          'analysisRequest',
+          (v) => v == null
+              ? null
+              : EdpAnalysisRequest.fromJson(v as Map<String, dynamic>),
+        ),
       );
       return val;
     });
@@ -104,4 +126,5 @@ Map<String, dynamic> _$EdpTransportToJson(EdpTransport instance) =>
       'push': ?instance.push,
       'pull': ?instance.pull?.toJson(),
       'search': ?instance.search?.toJson(),
+      'analysisRequest': ?instance.analysisRequest?.toJson(),
     };

@@ -9,7 +9,7 @@ part of 'lead_time_stats.dart';
 abstract class _$LeadTimeStatsCWProxy {
   LeadTimeStats generatedAt(DateTime generatedAt);
 
-  LeadTimeStats trainingCutoff(DateTime trainingCutoff);
+  LeadTimeStats trainingCutoff(DateTime? trainingCutoff);
 
   LeadTimeStats filters(LeadTimeStatsFilters? filters);
 
@@ -27,7 +27,7 @@ abstract class _$LeadTimeStatsCWProxy {
   /// ```
   LeadTimeStats call({
     DateTime generatedAt,
-    DateTime trainingCutoff,
+    DateTime? trainingCutoff,
     LeadTimeStatsFilters? filters,
     List<LeadTimeStatsGroupsInner> groups,
     List<Caveat>? caveats,
@@ -46,7 +46,7 @@ class _$LeadTimeStatsCWProxyImpl implements _$LeadTimeStatsCWProxy {
       call(generatedAt: generatedAt);
 
   @override
-  LeadTimeStats trainingCutoff(DateTime trainingCutoff) =>
+  LeadTimeStats trainingCutoff(DateTime? trainingCutoff) =>
       call(trainingCutoff: trainingCutoff);
 
   @override
@@ -82,12 +82,10 @@ class _$LeadTimeStatsCWProxyImpl implements _$LeadTimeStatsCWProxy {
           ? _value.generatedAt
           // ignore: cast_nullable_to_non_nullable
           : generatedAt as DateTime,
-      trainingCutoff:
-          trainingCutoff == const $CopyWithPlaceholder() ||
-              trainingCutoff == null
+      trainingCutoff: trainingCutoff == const $CopyWithPlaceholder()
           ? _value.trainingCutoff
           // ignore: cast_nullable_to_non_nullable
-          : trainingCutoff as DateTime,
+          : trainingCutoff as DateTime?,
       filters: filters == const $CopyWithPlaceholder()
           ? _value.filters
           // ignore: cast_nullable_to_non_nullable
@@ -128,7 +126,7 @@ LeadTimeStats _$LeadTimeStatsFromJson(Map<String, dynamic> json) =>
         ),
         trainingCutoff: $checkedConvert(
           'trainingCutoff',
-          (v) => DateTime.parse(v as String),
+          (v) => v == null ? null : DateTime.parse(v as String),
         ),
         filters: $checkedConvert(
           'filters',
@@ -159,7 +157,7 @@ LeadTimeStats _$LeadTimeStatsFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$LeadTimeStatsToJson(LeadTimeStats instance) =>
     <String, dynamic>{
       'generatedAt': instance.generatedAt.toIso8601String(),
-      'trainingCutoff': instance.trainingCutoff.toIso8601String(),
+      'trainingCutoff': instance.trainingCutoff?.toIso8601String(),
       'filters': ?instance.filters?.toJson(),
       'groups': instance.groups.map((e) => e.toJson()).toList(),
       'caveats': ?instance.caveats?.map((e) => e.toJson()).toList(),
