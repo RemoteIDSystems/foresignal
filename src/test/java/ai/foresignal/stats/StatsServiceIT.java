@@ -84,6 +84,33 @@ class StatsServiceIT extends StatsItSupport {
     }
 
     @Test
+    @DisplayName("a day still open is served from its closed hours and only the open hour raw; entities stay raw")
+    void openDayFromHours() {
+        seedHours();
+        Instant day = T0.plus(Duration.ofDays(1));
+
+        StatsSeries versions = stats.timeseries(List.of(POINTS), List.of(), null, T0, day, "1d", StatsMeasure.VERSIONS,
+                "none", TimeField.INGESTED, Set.of(), ReadRestriction.NONE);
+        assertThat(versions.backend()).isEqualTo("mixed");
+        assertThat(versions.bucket()).isEqualTo("1d");
+        assertThat(values(versions.series().getFirst())).containsExactly(5L);
+
+        StatsQuery q = new StatsQuery(List.of(POINTS), List.of(), null, ReadRestriction.NONE, T0, day,
+                RollupResolution.DAY, StatsMeasure.VERSIONS, "none", TimeField.INGESTED);
+        StatsService.Plan plan = stats.withClosedHours(q, stats.plan(q, RollupResolution.DAY, T0, day, clock.instant()),
+                clock.instant());
+        assertThat(plan.hours()).containsExactly(new StatsService.HourPart(List.of(POINTS), T0,
+                T0.plus(Duration.ofHours(3))));
+        assertThat(plan.raw()).containsExactly(new StatsService.RawPart(List.of(POINTS), T0.plus(Duration.ofHours(3)),
+                day));
+
+        StatsSeries entities = stats.timeseries(List.of(POINTS), List.of(), null, T0, day, "1d", StatsMeasure.ENTITIES,
+                "none", TimeField.INGESTED, Set.of(), ReadRestriction.NONE);
+        assertThat(entities.backend()).isEqualTo("raw");
+        assertThat(values(entities.series().getFirst())).containsExactly(4L);
+    }
+
+    @Test
     @DisplayName("other time axes read raw history and need from ≥ retainedFrom")
     void rawAxis() {
         seedHours();

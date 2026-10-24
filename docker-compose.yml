@@ -23,8 +23,14 @@ services:
     # postgresql-17-pgvector from the PGDG repository (docker/db/Dockerfile).
     build: docker/db
     image: foresignal-db:17-3.5-pgvector
-    # Sized for sustained history writes (Core-Data-Model §16).
-    command: ["postgres","-c","shared_buffers=512MB","-c","max_wal_size=8GB","-c","checkpoint_timeout=15min","-c","wal_compression=lz4","-c","max_locks_per_transaction=256","-c","autovacuum_vacuum_cost_limit=2000"]
+    # Sized for sustained history writes (Core-Data-Model §16) and for the record, stats and
+    # geography queries on a host of about 24 GB shared with the broker: 2 GB of buffers, a
+    # planner told the OS cache holds about 8 GB, and 32 MB per sort or hash.
+    command: ["postgres","-c","shared_buffers=2GB","-c","effective_cache_size=8GB","-c","work_mem=32MB","-c","maintenance_work_mem=512MB","-c","max_wal_size=8GB","-c","checkpoint_timeout=15min","-c","wal_compression=lz4","-c","max_locks_per_transaction=256","-c","autovacuum_vacuum_cost_limit=2000"]
+    # Parallel queries share their hash tables through /dev/shm. Docker's 64 MB default ran out
+    # ("could not resize shared memory segment ... No space left on device"), failing the stats
+    # time series and slowing /v1/system; 1 GB is only used as queries need it.
+    shm_size: 1gb
     environment:
       POSTGRES_DB: foresignal
       POSTGRES_USER: foresignal

@@ -167,6 +167,11 @@ public class BudgetGovernor {
         return Math.max(1, (nanos + 999_999_999L) / 1_000_000_000L);
     }
 
+    /** The budget the source is governed by (held in memory once the source has been seen). */
+    public Budget budget(String sourceId) {
+        return entry(sourceId).budget;
+    }
+
     /** What the source has left. */
     public BudgetStatus status(String sourceId) {
         Entry entry = entry(sourceId);

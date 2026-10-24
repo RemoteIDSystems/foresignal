@@ -33,6 +33,9 @@ public class BudgetOutlookHealthRule implements HealthRule {
 
     @Override
     public Optional<HealthVerdict> evaluate(HealthRuleContext context) {
+        if (!budgets.budget(context.sourceId()).hasByteBudget()) {
+            return Optional.empty();
+        }
         BudgetStatus budget = budgets.status(context.sourceId());
         if (budget == null || budget.mbPerDay() == null || budget.mbPerDay() <= 0 || budget.megabytesUsedToday() == null
                 || budget.megabytesUsedToday() <= 0) {

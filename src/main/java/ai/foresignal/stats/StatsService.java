@@ -196,7 +196,7 @@ public class StatsService {
                     return null;
                 });
             } else {
-                Plan plan = plan(q, q.bucket(), q.from(), q.to(), now);
+                Plan plan = withClosedHours(q, plan(q, q.bucket(), q.from(), q.to(), now), now);
                 runner.read(timeout, jdbc -> {
                     execute(jdbc, q, plan, false, values);
                     return null;
@@ -312,6 +312,9 @@ public class StatsService {
     /** One raw range over some sources. */
     record RawPart(List<String> sources, Instant from, Instant to) {}
 
+    /** One range of closed hourly rollup rows over some sources, binned into the query's day buckets. */
+    record HourPart(List<String> sources, Instant from, Instant to) {}
+
     /**
      * How a query over {@code [from, to)} is served.
      *
@@ -320,13 +323,20 @@ public class StatsService {
      * @param rollupFrom the rollup range start, or null when the rollup is not used
      * @param rollupTo the rollup range end, or null
      * @param raw the raw parts
+     * @param hours the hourly rollup parts of a day query (see {@link #withClosedHours}), usually none
      */
     record Plan(List<String> rollupSources, RollupResolution resolution, Instant rollupFrom, Instant rollupTo,
-            List<RawPart> raw) {
+            List<RawPart> raw, List<HourPart> hours) {
+
+        /** A plan with no hourly parts. */
+        Plan(List<String> rollupSources, RollupResolution resolution, Instant rollupFrom, Instant rollupTo,
+                List<RawPart> raw) {
+            this(rollupSources, resolution, rollupFrom, rollupTo, raw, List.of());
+        }
 
         /** {@code rollup}, {@code raw} or {@code mixed}. */
         String backend() {
-            boolean usesRollup = rollupFrom != null;
+            boolean usesRollup = rollupFrom != null || !hours.isEmpty();
             if (usesRollup && raw.isEmpty()) {
                 return "rollup";
             }
@@ -340,12 +350,17 @@ public class StatsService {
      * history serves the rest.
      */
     Plan plan(StatsQuery q, RollupResolution resolution, Instant from, Instant to, Instant now) {
+        return plan(q, q.sources(), resolution, from, to, now);
+    }
+
+    private Plan plan(StatsQuery q, List<String> sources, RollupResolution resolution, Instant from, Instant to,
+            Instant now) {
         List<String> rolled = new ArrayList<>();
         List<String> rawOnly = new ArrayList<>();
         RollupCursor cursor = rollup.cursor();
         Set<String> rolledUp = cursor != null && q.rollupUsable() ? Set.copyOf(statsSettings.rolledUpSources())
                 : Set.of();
-        for (String id : q.sources()) {
+        for (String id : sources) {
             (rolledUp.contains(id) ? rolled : rawOnly).add(id);
         }
         Instant rs = null;
@@ -378,10 +393,37 @@ public class StatsService {
         return new Plan(rs == null ? List.of() : List.copyOf(rolled), resolution, rs, re, List.copyOf(raw));
     }
 
+    /**
+     * A day plan whose raw parts are served, where the hourly rollup holds them, by closed hours binned into the
+     * day buckets, so only the open hour (or what no rollup holds) is read raw. Without it, a day query read the
+     * whole current day from {@code record_version}, because the daily rollup closes a day only once it has
+     * ended, and timed out on a busy day. Only for additive measures: distinct entities per day cannot be summed
+     * from hours.
+     */
+    Plan withClosedHours(StatsQuery q, Plan plan, Instant now) {
+        if (plan.resolution() != RollupResolution.DAY || q.measure() == StatsMeasure.ENTITIES || plan.raw().isEmpty()) {
+            return plan;
+        }
+        List<RawPart> raw = new ArrayList<>();
+        List<HourPart> hours = new ArrayList<>(plan.hours());
+        for (RawPart part : plan.raw()) {
+            Plan hourly = plan(q, part.sources(), RollupResolution.HOUR, part.from(), part.to(), now);
+            if (hourly.rollupFrom() != null) {
+                hours.add(new HourPart(hourly.rollupSources(), hourly.rollupFrom(), hourly.rollupTo()));
+            }
+            raw.addAll(hourly.raw());
+        }
+        return new Plan(plan.rollupSources(), plan.resolution(), plan.rollupFrom(), plan.rollupTo(), List.copyOf(raw),
+                List.copyOf(hours));
+    }
+
     private void execute(NamedParameterJdbcTemplate jdbc, StatsQuery q, Plan plan, boolean single,
             Map<Instant, Map<String, Long>> values) {
         if (plan.rollupFrom() != null) {
             rollup(jdbc, q, plan.rollupSources(), plan.resolution(), plan.rollupFrom(), plan.rollupTo(), single, values);
+        }
+        for (HourPart part : plan.hours()) {
+            rollup(jdbc, q, part.sources(), RollupResolution.HOUR, part.from(), part.to(), single, values);
         }
         for (RawPart part : plan.raw()) {
             raw(jdbc, q, part.sources(), part.from(), part.to(), single, values);
@@ -417,9 +459,18 @@ public class StatsService {
         String sql = single
                 ? "SELECT " + g + " AS g, sum(r." + q.measure().column() + ") AS n FROM activity_rollup r WHERE "
                         + String.join(" AND ", where) + " GROUP BY 1"
-                : "SELECT r.bucket_start AS t, " + g + " AS g, sum(r." + q.measure().column()
+                : "SELECT " + rollupBucket(q, resolution, p) + " AS t, " + g + " AS g, sum(r." + q.measure().column()
                         + ") AS n FROM activity_rollup r WHERE " + String.join(" AND ", where) + " GROUP BY 1, 2";
         collect(jdbc, sql, p, single ? q.from() : null, values);
+    }
+
+    /** The bucket of a rollup row: its own start, or the query's bucket when hours serve a day query. */
+    private static String rollupBucket(StatsQuery q, RollupResolution resolution, SqlParams p) {
+        if (resolution == q.bucket()) {
+            return "r.bucket_start";
+        }
+        return "date_bin(CAST(" + p.add(q.bucket().width().toMillis() + " milliseconds") + " AS interval), "
+                + "r.bucket_start, " + p.instant(q.from()) + ")";
     }
 
     /** The rollup filters: resolution, range, sources, kinds, the cell mode, bbox and restriction. */

@@ -25,6 +25,9 @@ public class MonthlyCapHealthRule implements HealthRule {
 
     @Override
     public Optional<HealthVerdict> evaluate(HealthRuleContext context) {
+        if (!budgets.budget(context.sourceId()).hasMonthlyCap()) {
+            return Optional.empty();
+        }
         BudgetStatus budget = budgets.status(context.sourceId());
         if (budget == null || !budget.isMonthlyCapReached()) {
             return Optional.empty();
