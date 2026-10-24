@@ -418,6 +418,8 @@ BODIES = {
   "updateEscalationPolicy": {"name": "Wake me up", "steps": [{"afterMinutes": 15, "channelIds": [], "includePush": True}],
                              "repeat": None, "stopOn": {"resolve": True, "snooze": False}},
   "muteTrigger": {"for": "4h"},
+  # 017: advisory only; the reply rates each source and the rule is not changed.
+  "analyzeTriggerSources": {"sourceIds": ["usgs-earthquakes", "emsc-seismic", "celestrak-gp"]},
   "executeAction": {},
   "updateEventStreamFilter": {"changes": {"bbox": "-97.5,32.5,-96.5,33.2", "live": True}},
   "updateSecuritySettings": {"openReads": True, "exposeObserver": False, "metricsOpen": True},

@@ -174,15 +174,15 @@ def sync_detailed(
      `date_bin` histogram over record versions (HEARTBEAT and KEYFRAME excluded unless
     `includeKeyframes`), optionally grouped and with alert counts. ≤ 1,000 buckets (400
     TIMELINE_TOO_LARGE); 10 s timeout (503 QUERY_TIMEOUT). A range whose raw read the hourly activity
-    rollup estimates above 3,000,000 record versions (from the later of `from` and `retainedFrom`, for
-    the involved sources and kinds) is refused up front with 422 TIMELINE_RANGE_UNSUPPORTED instead of
-    running into the timeout; narrow the range, the sources or the kinds, or use getStatsTimeseries,
-    which serves long ranges from the rollups. `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m,
-    30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d, 14d, 30d giving at most 200 buckets; buckets start at `from`
-    and every bucket in range is returned, empty ones included. Without `source` or `kind`, every source
-    the caller may see is counted. `timeField=ingested` is translated to seq bounds through seq_clock.
-    `retainedFrom` is the latest of now − window over the involved sources. Not the same as
-    /v1/products/timeline (051).
+    rollup estimates above 1,000,000 record versions (200,000 with `timeField=ingested`, which counts
+    far slower), from the later of `from` and `retainedFrom` for the involved sources and kinds, is
+    refused up front with 422 TIMELINE_RANGE_UNSUPPORTED instead of running into the timeout; narrow the
+    range, the sources or the kinds, or use getStatsTimeseries, which serves long ranges from the
+    rollups. `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d,
+    14d, 30d giving at most 200 buckets; buckets start at `from` and every bucket in range is returned,
+    empty ones included. Without `source` or `kind`, every source the caller may see is counted.
+    `timeField=ingested` is translated to seq bounds through seq_clock. `retainedFrom` is the latest of
+    now − window over the involved sources. Not the same as /v1/products/timeline (051).
 
     **Scope:** `read` (open while `security.openReads` is on).
 
@@ -251,15 +251,15 @@ def sync(
      `date_bin` histogram over record versions (HEARTBEAT and KEYFRAME excluded unless
     `includeKeyframes`), optionally grouped and with alert counts. ≤ 1,000 buckets (400
     TIMELINE_TOO_LARGE); 10 s timeout (503 QUERY_TIMEOUT). A range whose raw read the hourly activity
-    rollup estimates above 3,000,000 record versions (from the later of `from` and `retainedFrom`, for
-    the involved sources and kinds) is refused up front with 422 TIMELINE_RANGE_UNSUPPORTED instead of
-    running into the timeout; narrow the range, the sources or the kinds, or use getStatsTimeseries,
-    which serves long ranges from the rollups. `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m,
-    30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d, 14d, 30d giving at most 200 buckets; buckets start at `from`
-    and every bucket in range is returned, empty ones included. Without `source` or `kind`, every source
-    the caller may see is counted. `timeField=ingested` is translated to seq bounds through seq_clock.
-    `retainedFrom` is the latest of now − window over the involved sources. Not the same as
-    /v1/products/timeline (051).
+    rollup estimates above 1,000,000 record versions (200,000 with `timeField=ingested`, which counts
+    far slower), from the later of `from` and `retainedFrom` for the involved sources and kinds, is
+    refused up front with 422 TIMELINE_RANGE_UNSUPPORTED instead of running into the timeout; narrow the
+    range, the sources or the kinds, or use getStatsTimeseries, which serves long ranges from the
+    rollups. `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d,
+    14d, 30d giving at most 200 buckets; buckets start at `from` and every bucket in range is returned,
+    empty ones included. Without `source` or `kind`, every source the caller may see is counted.
+    `timeField=ingested` is translated to seq bounds through seq_clock. `retainedFrom` is the latest of
+    now − window over the involved sources. Not the same as /v1/products/timeline (051).
 
     **Scope:** `read` (open while `security.openReads` is on).
 
@@ -323,15 +323,15 @@ async def asyncio_detailed(
      `date_bin` histogram over record versions (HEARTBEAT and KEYFRAME excluded unless
     `includeKeyframes`), optionally grouped and with alert counts. ≤ 1,000 buckets (400
     TIMELINE_TOO_LARGE); 10 s timeout (503 QUERY_TIMEOUT). A range whose raw read the hourly activity
-    rollup estimates above 3,000,000 record versions (from the later of `from` and `retainedFrom`, for
-    the involved sources and kinds) is refused up front with 422 TIMELINE_RANGE_UNSUPPORTED instead of
-    running into the timeout; narrow the range, the sources or the kinds, or use getStatsTimeseries,
-    which serves long ranges from the rollups. `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m,
-    30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d, 14d, 30d giving at most 200 buckets; buckets start at `from`
-    and every bucket in range is returned, empty ones included. Without `source` or `kind`, every source
-    the caller may see is counted. `timeField=ingested` is translated to seq bounds through seq_clock.
-    `retainedFrom` is the latest of now − window over the involved sources. Not the same as
-    /v1/products/timeline (051).
+    rollup estimates above 1,000,000 record versions (200,000 with `timeField=ingested`, which counts
+    far slower), from the later of `from` and `retainedFrom` for the involved sources and kinds, is
+    refused up front with 422 TIMELINE_RANGE_UNSUPPORTED instead of running into the timeout; narrow the
+    range, the sources or the kinds, or use getStatsTimeseries, which serves long ranges from the
+    rollups. `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d,
+    14d, 30d giving at most 200 buckets; buckets start at `from` and every bucket in range is returned,
+    empty ones included. Without `source` or `kind`, every source the caller may see is counted.
+    `timeField=ingested` is translated to seq bounds through seq_clock. `retainedFrom` is the latest of
+    now − window over the involved sources. Not the same as /v1/products/timeline (051).
 
     **Scope:** `read` (open while `security.openReads` is on).
 
@@ -398,15 +398,15 @@ async def asyncio(
      `date_bin` histogram over record versions (HEARTBEAT and KEYFRAME excluded unless
     `includeKeyframes`), optionally grouped and with alert counts. ≤ 1,000 buckets (400
     TIMELINE_TOO_LARGE); 10 s timeout (503 QUERY_TIMEOUT). A range whose raw read the hourly activity
-    rollup estimates above 3,000,000 record versions (from the later of `from` and `retainedFrom`, for
-    the involved sources and kinds) is refused up front with 422 TIMELINE_RANGE_UNSUPPORTED instead of
-    running into the timeout; narrow the range, the sources or the kinds, or use getStatsTimeseries,
-    which serves long ranges from the rollups. `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m,
-    30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d, 14d, 30d giving at most 200 buckets; buckets start at `from`
-    and every bucket in range is returned, empty ones included. Without `source` or `kind`, every source
-    the caller may see is counted. `timeField=ingested` is translated to seq bounds through seq_clock.
-    `retainedFrom` is the latest of now − window over the involved sources. Not the same as
-    /v1/products/timeline (051).
+    rollup estimates above 1,000,000 record versions (200,000 with `timeField=ingested`, which counts
+    far slower), from the later of `from` and `retainedFrom` for the involved sources and kinds, is
+    refused up front with 422 TIMELINE_RANGE_UNSUPPORTED instead of running into the timeout; narrow the
+    range, the sources or the kinds, or use getStatsTimeseries, which serves long ranges from the
+    rollups. `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d,
+    14d, 30d giving at most 200 buckets; buckets start at `from` and every bucket in range is returned,
+    empty ones included. Without `source` or `kind`, every source the caller may see is counted.
+    `timeField=ingested` is translated to seq bounds through seq_clock. `retainedFrom` is the latest of
+    now − window over the involved sources. Not the same as /v1/products/timeline (051).
 
     **Scope:** `read` (open while `security.openReads` is on).
 

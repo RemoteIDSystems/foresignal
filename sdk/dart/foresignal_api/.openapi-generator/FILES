@@ -1682,6 +1682,11 @@ lib/src/model/source_access.dart
 lib/src/model/source_descriptor.dart
 lib/src/model/source_detail.dart
 lib/src/model/source_health.dart
+lib/src/model/source_relevance.dart
+lib/src/model/source_relevance_analysis.dart
+lib/src/model/source_relevance_analysis_shared.dart
+lib/src/model/source_relevance_analysis_template.dart
+lib/src/model/source_relevance_request.dart
 lib/src/model/source_settings.dart
 lib/src/model/source_settings_update.dart
 lib/src/model/source_storage.dart

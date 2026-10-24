@@ -504,6 +504,8 @@ public class AccessPolicy {
                 // Tuning (115): suggestions and the tuning log are reads; apply, dismiss and undo fall under the
                 // agent rule for /v1/triggers/** below.
                 rule(HttpMethod.GET, "/v1/triggers/*/tuning-log", AccessRequirement.READ),
+                // The advisory source-relevance check spends LLM budget, so it always needs an agent token.
+                rule(HttpMethod.POST, "/v1/triggers/analyze-sources", AccessRequirement.AGENT_ALWAYS_AUTHENTICATED),
                 // ---- Pattern of life, trips and kinematics (prompt 114) ----
                 // Pattern of life and trips are agent operations, reads included (private subjects need admin,
                 // which the service checks); CPA and ETA are reads.

@@ -1580,6 +1580,11 @@ import 'package:foresignal_api/src/model/source_access.dart';
 import 'package:foresignal_api/src/model/source_descriptor.dart';
 import 'package:foresignal_api/src/model/source_detail.dart';
 import 'package:foresignal_api/src/model/source_health.dart';
+import 'package:foresignal_api/src/model/source_relevance.dart';
+import 'package:foresignal_api/src/model/source_relevance_analysis.dart';
+import 'package:foresignal_api/src/model/source_relevance_analysis_shared.dart';
+import 'package:foresignal_api/src/model/source_relevance_analysis_template.dart';
+import 'package:foresignal_api/src/model/source_relevance_request.dart';
 import 'package:foresignal_api/src/model/source_settings.dart';
 import 'package:foresignal_api/src/model/source_settings_update.dart';
 import 'package:foresignal_api/src/model/source_storage.dart';
@@ -4991,6 +4996,16 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return SourceDetail.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'SourceHealth':
           return SourceHealth.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'SourceRelevance':
+          return SourceRelevance.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'SourceRelevanceAnalysis':
+          return SourceRelevanceAnalysis.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'SourceRelevanceAnalysisShared':
+          return SourceRelevanceAnalysisShared.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'SourceRelevanceAnalysisTemplate':
+          return SourceRelevanceAnalysisTemplate.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'SourceRelevanceRequest':
+          return SourceRelevanceRequest.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'SourceSettings':
           return SourceSettings.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'SourceSettingsUpdate':

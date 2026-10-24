@@ -7,6 +7,7 @@ import ai.foresignal.api.support.FieldSelection;
 import ai.foresignal.api.support.QueryParams;
 import ai.foresignal.store.query.RecordRow;
 import ai.foresignal.trigger.TriggerBacktester;
+import ai.foresignal.trigger.SourceRelevanceAnalyzer;
 import ai.foresignal.trigger.TriggerRuleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,7 +33,7 @@ import tools.jackson.databind.JsonNode;
  * The {@code Triggers} operations (prompt 017): {@code listTriggers}, {@code getTrigger},
  * {@code createTrigger}, {@code updateTrigger}, {@code deleteTrigger}, {@code testTrigger},
  * {@code snoozeTrigger} and {@code unsnoozeTrigger}; prompt 033 adds {@code muteTrigger} and
- * {@code unmuteTrigger}.
+ * {@code unmuteTrigger}; the alert builder adds {@code analyzeTriggerSources}, the advisory source-relevance check.
  *
  * <p>Reads need {@code read}; every write and the backtest need {@code agent} ({@code AccessPolicy}).
  * Bodies are taken as JSON trees and validated by {@code RuleValidator}, so every field problem is
@@ -48,15 +49,28 @@ public class TriggersController {
     private final TriggerMapper mapper;
     private final RecordMapper records;
     private final ai.foresignal.trigger.window.WindowTester windowTester;
+    private final SourceRelevanceAnalyzer relevance;
 
     /** Creates the controller. */
     public TriggersController(TriggerRuleService rules, TriggerBacktester backtester, TriggerMapper mapper,
-            RecordMapper records, ai.foresignal.trigger.window.WindowTester windowTester) {
+            RecordMapper records, ai.foresignal.trigger.window.WindowTester windowTester,
+            SourceRelevanceAnalyzer relevance) {
         this.rules = rules;
         this.backtester = backtester;
         this.mapper = mapper;
         this.records = records;
         this.windowTester = windowTester;
+        this.relevance = relevance;
+    }
+
+    /**
+     * {@code analyzeTriggerSources}: how much each source contributes to a dataset built from all of them, as advice
+     * from the chat provider. Nothing is changed.
+     */
+    @PostMapping("/analyze-sources")
+    @Operation(operationId = "analyzeTriggerSources", tags = "Triggers")
+    public Map<String, Object> analyzeTriggerSources(@RequestBody JsonNode body) {
+        return relevance.analyze(relevance.parse(body));
     }
 
     /** {@code listTriggers}. */

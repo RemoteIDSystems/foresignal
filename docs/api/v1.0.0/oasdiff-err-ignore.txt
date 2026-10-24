@@ -6,7 +6,9 @@
 # `x-extensible-enum` in docs/OpenAPI.json, which oasdiff treats as open, so a new value needs no entry. That includes
 # NotificationMessage.event on the event stream. The `notification` webhook's payload is its own schema,
 # NotificationWebhookMessage, whose list stays `enum` (oasdiff cannot mark a webhook payload extensible); oasdiff
-# reports no error for its additions. Each entry below is a change oasdiff cannot be told is safe, with its reason.
+# reports no error for its additions. Each section below says which of two things its entries are: a correction
+# oasdiff cannot be told is safe (the contract now says what the server always did), or a deliberate breaking change
+# the owner accepted before release. Neither is additive growth.
 
 # --- Contract corrections: nullable as served -------------------------------------------------------------------
 # The server has always sent null for these fields; the frozen contract said non-null. The contract was corrected to
@@ -61,11 +63,14 @@ POST /v1/intel/events the `inference/confidence` response property's max was inc
 POST /v1/intel/events/{eventId}/merge the `inference/confidence` response property's max was increased from `0.95` to `1.00` for the response status `200`
 POST /v1/intel/recipes/{recipeId}/test the `events/items/inference/confidence` response property's max was increased from `0.95` to `1.00` for the response status `200`
 
-# --- Deliberate pre-release rename: US English keys (owner decision, 2026-10-24) -----------------------------------
+# --- BREAKING, accepted before release: US English keys (owner decision, 2026-10-24) -------------------------------
+# Not additive and not a correction: these keys were renamed, so a client reading the old names finds them missing.
 # RuleQuality.labelled and labelledShare and Precision components[].labelled are now labeled and labeledShare (US
-# English, the project's only spelling). There are no external consumers before release, so the keys were corrected
-# rather than carried as an exception. oasdiff reports the required key as removed wherever RuleQuality appears (rule
-# quality, job, backtest and precursor results); labeledShare is optional, so its rename is not flagged.
+# English, the project's only spelling). There are no external consumers before release, so the keys were renamed
+# rather than carried as an exception, the version stays 1.3.0, and the changelog entry of 2026-10-24 records the
+# break. oasdiff reports the required key as removed wherever RuleQuality appears (rule quality, job, backtest and
+# precursor results); labeledShare is optional, so oasdiff does not flag its rename, but it breaks a reader the same
+# way. Attribution.licence and every other wire key are unchanged.
 DELETE /v1/backtests/{backtestId} removed the required property `result/oneOf[#/components/schemas/RuleQuality]/labelled` from the response with the `200` status
 GET /v1/analytics/precision removed the required property `components/items/labelled` from the response with the `200` status
 GET /v1/backtests removed the required property `items/items/result/oneOf[#/components/schemas/RuleQuality]/labelled` from the response with the `200` status

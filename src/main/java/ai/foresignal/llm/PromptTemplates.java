@@ -78,6 +78,9 @@ public final class PromptTemplates {
     /** The adapter doctor's explanation and patch proposal (prompt 140, role {@code doctor}). */
     public static final String DOCTOR = "doctor-system";
 
+    /** The advisory relevance of a rule's sources ({@code analyzeTriggerSources}, role {@code source-relevance}). */
+    public static final String SOURCE_RELEVANCE = "source-relevance-system";
+
     /** The LLM role of each template. */
     public static final Map<String, String> ROLES = Map.ofEntries(Map.entry(ASK, "ask"),
             Map.entry(ASK_RETRIEVAL, "ask"), Map.entry(ENRICHMENT, "enrichment"), Map.entry(BRIEFING, "briefing"),
@@ -85,7 +88,8 @@ public final class PromptTemplates {
             Map.entry(ANALYST, "analyst"), Map.entry(SITUATION_BRIEF, "situation-brief"),
             Map.entry(CYCLE_ANALYST, "cycle-analyst"), Map.entry(CYCLE_RED_TEAM, "cycle-red-team"),
             Map.entry(CYCLE_FORECASTER, "cycle-forecaster"), Map.entry(CYCLE_PROPOSER, "cycle-proposer"),
-            Map.entry(CLAIM_EXTRACTION, "claim-extraction"), Map.entry(DOCTOR, "doctor"));
+            Map.entry(CLAIM_EXTRACTION, "claim-extraction"), Map.entry(DOCTOR, "doctor"),
+            Map.entry(SOURCE_RELEVANCE, "source-relevance"));
 
     private static final Pattern FILE = Pattern.compile("([a-z0-9-]+)@([0-9]+\\.[0-9]+\\.[0-9]+)\\.md");
 

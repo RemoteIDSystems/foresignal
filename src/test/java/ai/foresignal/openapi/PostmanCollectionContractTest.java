@@ -498,6 +498,9 @@ class PostmanCollectionContractTest {
                 // 098: entity keys and merges are read inline by EntitiesController (private helpers) and resolved
                 // against stored entities (EntityControllerIT).
                 "addEntityKey", "mergeEntities",
+                // 017: analyzeTriggerSources checks each id against the registered sources, which needs the
+                // application context (AnalyzeTriggerSourcesIT).
+                "analyzeTriggerSources",
                 // 101: intelligence events, recipes, investigations and exposure are parsed by instance methods of
                 // database-backed services or inline in the controllers (IntelControllersIT,
                 // InvestigationsControllerIT, ExposureServiceIT); importPopulationPack reads a file named by the

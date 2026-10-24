@@ -691,7 +691,12 @@
       {
         "version": "1.3.0",
         "date": "2026-10-24",
-        "note": "Cleanup pass. getTimeline gains 422 TIMELINE_RANGE_UNSUPPORTED: a range whose raw read the hourly activity rollup estimates above 1,000,000 record versions (200,000 with timeField=ingested) is refused up front instead of running into the 10 s timeout (503 QUERY_TIMEOUT); the problem carries estimatedVersions and maxVersions. External forecaster ids are edp:{sourceId}:{streamId} (were edp:{sourceId}/{streamId}), one path segment matching the Forecaster id pattern, so updateForecaster can address them; registerExternalForecaster now enforces that pattern, and migration V12 rewrites stored ids. US English on the wire (breaking, accepted before release with no external consumers): RuleQuality.labelled and labelledShare are labeled and labeledShare, Precision components[].labelled is labeled, and the assessment and analyst-note footers say “speculation is labeled” / “are labeled”. NotificationMessage.event is x-extensible-enum; the notification webhook's payload is the new NotificationWebhookMessage (the same members, its event list still enum), so WebhookEnvelope.message refers to it; neither change alters what the server sends."
+        "note": "Cleanup pass. getTimeline gains 422 TIMELINE_RANGE_UNSUPPORTED: a range whose raw read the hourly activity rollup estimates above 1,000,000 record versions (200,000 with timeField=ingested) is refused up front instead of running into the 10 s timeout (503 QUERY_TIMEOUT); the problem carries estimatedVersions and maxVersions. External forecaster ids are edp:{sourceId}:{streamId} (were edp:{sourceId}/{streamId}), one path segment matching the Forecaster id pattern, so updateForecaster can address them; registerExternalForecaster now enforces that pattern, and migration V12 rewrites stored ids. BREAKING CHANGE, accepted before release (not additive): RuleQuality.labelled and labelledShare are renamed labeled and labeledShare, and Precision components[].labelled is renamed labeled, for US English on the wire. A client that reads the old keys finds them missing (labelledShare included, though oasdiff does not flag an optional key); there are no external consumers before release, so the version stays 1.3.0 and the break is listed as accepted in docs/api/v1.0.0/oasdiff-err-ignore.txt. The assessment and analyst-note footers now say “speculation is labeled” / “are labeled”; footers already stored keep the old text. Attribution.licence and every other wire key are unchanged. NotificationMessage.event is x-extensible-enum; the notification webhook's payload is the new NotificationWebhookMessage (the same members, its event list still enum), so WebhookEnvelope.message refers to it; neither change alters what the server sends."
+      },
+      {
+        "version": "1.3.0",
+        "date": "2026-10-24",
+        "note": "Alert builder support (additive): analyzeTriggerSources (POST /v1/triggers/analyze-sources, agent, always authenticated) rates how much each of 2 to 50 sources contributes to a dataset built from all of them, with a one-sentence LLM reason per source; advisory only (nothing is enabled, omitted or stored), every requested source comes back once, and a source withheld by the egress policy or left out by the model is `unrated`. New schemas SourceRelevanceRequest, SourceRelevanceAnalysis and SourceRelevance; new prompt template source-relevance-system@1.0.0 (role source-relevance)."
       }
     ]
   },
@@ -5173,6 +5178,107 @@
           "100"
         ],
         "x-foresignal-status": "implemented"
+      }
+    },
+    "/v1/triggers/analyze-sources": {
+      "post": {
+        "tags": [
+          "Triggers"
+        ],
+        "operationId": "analyzeTriggerSources",
+        "summary": "Rate how much each source contributes to a rule's dataset (advisory)",
+        "description": "Asks the chat provider, through the versioned template `source-relevance-system@1.0.0` and the analyst purpose, how much each of 2 to 50 sources contributes to a dataset built from all of them, with a one-sentence reason per source. The model sees only catalog content, as an untrusted data block: each source's name, description, kinds and entity identity types, and the kinds and identity types two or more of them share (`shared`). The answer is advice: nothing is enabled, omitted or stored, and the caller decides which sources the rule keeps. Every requested source comes back exactly once, in request order. A source the egress policy keeps from the provider (a private source and a remote provider) is not sent and comes back `unrated`, as does one the model left out or rated with another value; when fewer than two sources may be sent, or the answer cannot be read, every source is `unrated` with the reason. Spends LLM budget, so it always needs a token.\n\n**Scope:** `agent`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceRelevanceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The advisory verdicts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceRelevanceAnalysis"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (VALIDATION_FAILED): not 2 to 50 distinct registered source ids",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "LLM not configured (LLM_NOT_CONFIGURED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LLM budget exceeded (LLM_BUDGET_EXCEEDED) or the provider rate-limited the call (LLM_PROVIDER_RATE_LIMITED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The LLM provider failed or could not be reached (LLM_PROVIDER_ERROR)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "agent",
+        "x-foresignal-prompt": "017",
+        "x-foresignal-status": "implemented",
+        "x-foresignal-always-authenticated": true,
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       }
     },
     "/v1/alerts": {
@@ -169573,6 +169679,151 @@
         },
         "required": [
           "items"
+        ]
+      },
+      "SourceRelevanceRequest": {
+        "type": "object",
+        "properties": {
+          "sourceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2,
+            "maxItems": 50,
+            "uniqueItems": true,
+            "description": "Registered source ids, the candidate dataset of a rule (as many as `TriggerRuleInput.sources` takes)",
+            "example": [
+              "usgs-earthquakes",
+              "emsc-earthquakes",
+              "nws-alerts"
+            ]
+          }
+        },
+        "required": [
+          "sourceIds"
+        ],
+        "additionalProperties": false
+      },
+      "SourceRelevance": {
+        "type": "object",
+        "description": "One source's advisory verdict",
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kinds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The kinds the source produces, sorted"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "relevant",
+              "marginal",
+              "not-meaningful",
+              "unrated"
+            ],
+            "description": "relevant: belongs with the others; marginal: related but adds little or mostly noise; not-meaningful: unrelated to the rest; unrated: not judged (withheld by the egress policy, left out by the model, or the set could not be rated), with the reason"
+          },
+          "reason": {
+            "type": "string",
+            "description": "One sentence: the model's reason, or why the source was not rated"
+          }
+        },
+        "required": [
+          "sourceId",
+          "name",
+          "kinds",
+          "verdict",
+          "reason"
+        ]
+      },
+      "SourceRelevanceAnalysis": {
+        "type": "object",
+        "description": "Advisory relevance of a rule's candidate sources (`analyzeTriggerSources`). Nothing is changed by it.",
+        "properties": {
+          "advisory": {
+            "type": "boolean",
+            "const": true,
+            "description": "Always true: the verdicts are suggestions; the caller keeps or omits each source"
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The model's one sentence on what the set as a whole watches; null when it gave none"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceRelevance"
+            },
+            "description": "Every requested source exactly once, in request order"
+          },
+          "shared": {
+            "type": "object",
+            "description": "What two or more of the sources sent to the model declare",
+            "properties": {
+              "kinds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "entityTypes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Entity identity types (descriptor entityKeys), such as icao24 or mmsi"
+              }
+            },
+            "required": [
+              "kinds",
+              "entityTypes"
+            ]
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The model that answered; null when none was asked"
+          },
+          "template": {
+            "type": "object",
+            "description": "The prompt template asked",
+            "properties": {
+              "templateId": {
+                "type": "string",
+                "example": "source-relevance-system"
+              },
+              "version": {
+                "type": "string",
+                "example": "1.0.0"
+              }
+            },
+            "required": [
+              "templateId",
+              "version"
+            ]
+          }
+        },
+        "required": [
+          "advisory",
+          "summary",
+          "sources",
+          "shared",
+          "model",
+          "template"
         ]
       }
     },

@@ -3716,6 +3716,12 @@ from .source_descriptor_ttl_anchor import SourceDescriptorTtlAnchor
 from .source_detail import SourceDetail
 from .source_health import SourceHealth
 from .source_health_details import SourceHealthDetails
+from .source_relevance import SourceRelevance
+from .source_relevance_analysis import SourceRelevanceAnalysis
+from .source_relevance_analysis_shared import SourceRelevanceAnalysisShared
+from .source_relevance_analysis_template import SourceRelevanceAnalysisTemplate
+from .source_relevance_request import SourceRelevanceRequest
+from .source_relevance_verdict import SourceRelevanceVerdict
 from .source_settings import SourceSettings
 from .source_settings_egress_type_1 import SourceSettingsEgressType1
 from .source_settings_egress_type_2_type_1 import SourceSettingsEgressType2Type1
@@ -7158,6 +7164,12 @@ __all__ = (
     "SourceDetail",
     "SourceHealth",
     "SourceHealthDetails",
+    "SourceRelevance",
+    "SourceRelevanceAnalysis",
+    "SourceRelevanceAnalysisShared",
+    "SourceRelevanceAnalysisTemplate",
+    "SourceRelevanceRequest",
+    "SourceRelevanceVerdict",
     "SourceSettings",
     "SourceSettingsEgressType1",
     "SourceSettingsEgressType2Type1",

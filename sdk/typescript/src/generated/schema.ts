@@ -486,6 +486,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/triggers/analyze-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rate how much each source contributes to a rule's dataset (advisory)
+         * @description Asks the chat provider, through the versioned template `source-relevance-system@1.0.0` and the analyst purpose, how much each of 2 to 50 sources contributes to a dataset built from all of them, with a one-sentence reason per source. The model sees only catalog content, as an untrusted data block: each source's name, description, kinds and entity identity types, and the kinds and identity types two or more of them share (`shared`). The answer is advice: nothing is enabled, omitted or stored, and the caller decides which sources the rule keeps. Every requested source comes back exactly once, in request order. A source the egress policy keeps from the provider (a private source and a remote provider) is not sent and comes back `unrated`, as does one the model left out or rated with another value; when fewer than two sources may be sent, or the answer cannot be read, every source is `unrated` with the reason. Spends LLM budget, so it always needs a token.
+         *
+         *     **Scope:** `agent`.
+         */
+        post: operations["analyzeTriggerSources"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/alerts": {
         parameters: {
             query?: never;
@@ -3573,7 +3595,7 @@ export interface paths {
         };
         /**
          * Event-density timeline
-         * @description `date_bin` histogram over record versions (HEARTBEAT and KEYFRAME excluded unless `includeKeyframes`), optionally grouped and with alert counts. ≤ 1,000 buckets (400 TIMELINE_TOO_LARGE); 10 s timeout (503 QUERY_TIMEOUT). A range whose raw read the hourly activity rollup estimates above 3,000,000 record versions (from the later of `from` and `retainedFrom`, for the involved sources and kinds) is refused up front with 422 TIMELINE_RANGE_UNSUPPORTED instead of running into the timeout; narrow the range, the sources or the kinds, or use getStatsTimeseries, which serves long ranges from the rollups. `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d, 14d, 30d giving at most 200 buckets; buckets start at `from` and every bucket in range is returned, empty ones included. Without `source` or `kind`, every source the caller may see is counted. `timeField=ingested` is translated to seq bounds through seq_clock. `retainedFrom` is the latest of now − window over the involved sources. Not the same as /v1/products/timeline (051).
+         * @description `date_bin` histogram over record versions (HEARTBEAT and KEYFRAME excluded unless `includeKeyframes`), optionally grouped and with alert counts. ≤ 1,000 buckets (400 TIMELINE_TOO_LARGE); 10 s timeout (503 QUERY_TIMEOUT). A range whose raw read the hourly activity rollup estimates above 1,000,000 record versions (200,000 with `timeField=ingested`, which counts far slower), from the later of `from` and `retainedFrom` for the involved sources and kinds, is refused up front with 422 TIMELINE_RANGE_UNSUPPORTED instead of running into the timeout; narrow the range, the sources or the kinds, or use getStatsTimeseries, which serves long ranges from the rollups. `bucket=auto` picks the smallest of 1m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 6h, 12h, 1d, 2d, 7d, 14d, 30d giving at most 200 buckets; buckets start at `from` and every bucket in range is returned, empty ones included. Without `source` or `kind`, every source the caller may see is counted. `timeField=ingested` is translated to seq bounds through seq_clock. `retainedFrom` is the latest of now − window over the involved sources. Not the same as /v1/products/timeline (051).
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
          */
@@ -39136,6 +39158,58 @@ export interface components {
         PromptTemplateList: {
             items: components["schemas"]["PromptTemplateSummary"][];
         };
+        SourceRelevanceRequest: {
+            /**
+             * @description Registered source ids, the candidate dataset of a rule (as many as `TriggerRuleInput.sources` takes)
+             * @example [
+             *       "usgs-earthquakes",
+             *       "emsc-earthquakes",
+             *       "nws-alerts"
+             *     ]
+             */
+            sourceIds: string[];
+        };
+        /** @description One source's advisory verdict */
+        SourceRelevance: {
+            sourceId: string;
+            name: string;
+            /** @description The kinds the source produces, sorted */
+            kinds: string[];
+            /**
+             * @description relevant: belongs with the others; marginal: related but adds little or mostly noise; not-meaningful: unrelated to the rest; unrated: not judged (withheld by the egress policy, left out by the model, or the set could not be rated), with the reason
+             * @enum {string}
+             */
+            verdict: "relevant" | "marginal" | "not-meaningful" | "unrated";
+            /** @description One sentence: the model's reason, or why the source was not rated */
+            reason: string;
+        };
+        /** @description Advisory relevance of a rule's candidate sources (`analyzeTriggerSources`). Nothing is changed by it. */
+        SourceRelevanceAnalysis: {
+            /**
+             * @description Always true: the verdicts are suggestions; the caller keeps or omits each source
+             * @constant
+             */
+            advisory: true;
+            /** @description The model's one sentence on what the set as a whole watches; null when it gave none */
+            summary: string | null;
+            /** @description Every requested source exactly once, in request order */
+            sources: components["schemas"]["SourceRelevance"][];
+            /** @description What two or more of the sources sent to the model declare */
+            shared: {
+                kinds: string[];
+                /** @description Entity identity types (descriptor entityKeys), such as icao24 or mmsi */
+                entityTypes: string[];
+            };
+            /** @description The model that answered; null when none was asked */
+            model: string | null;
+            /** @description The prompt template asked */
+            template: {
+                /** @example source-relevance-system */
+                templateId: string;
+                /** @example 1.0.0 */
+                version: string;
+            };
+        };
     };
     responses: never;
     parameters: never;
@@ -41049,6 +41123,84 @@ export interface operations {
             };
             /** @description Not found (NOT_FOUND) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    analyzeTriggerSources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceRelevanceRequest"];
+            };
+        };
+        responses: {
+            /** @description The advisory verdicts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceRelevanceAnalysis"];
+                };
+            };
+            /** @description Validation failed (VALIDATION_FAILED): not 2 to 50 distinct registered source ids */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token lacks the required scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description LLM not configured (LLM_NOT_CONFIGURED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description LLM budget exceeded (LLM_BUDGET_EXCEEDED) or the provider rate-limited the call (LLM_PROVIDER_RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The LLM provider failed or could not be reached (LLM_PROVIDER_ERROR) */
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };

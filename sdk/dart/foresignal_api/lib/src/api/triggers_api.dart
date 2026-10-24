@@ -13,6 +13,8 @@ import 'package:foresignal_api/src/model/anomaly_baseline.dart';
 import 'package:foresignal_api/src/model/baseline_rebuild_result.dart';
 import 'package:foresignal_api/src/model/problem.dart';
 import 'package:foresignal_api/src/model/snooze_input.dart';
+import 'package:foresignal_api/src/model/source_relevance_analysis.dart';
+import 'package:foresignal_api/src/model/source_relevance_request.dart';
 import 'package:foresignal_api/src/model/trigger_mute_input.dart';
 import 'package:foresignal_api/src/model/trigger_rule.dart';
 import 'package:foresignal_api/src/model/trigger_rule_input.dart';
@@ -29,6 +31,103 @@ class TriggersApi {
   final Dio _dio;
 
   const TriggersApi(this._dio);
+
+  /// Rate how much each source contributes to a rule&#39;s dataset (advisory)
+  /// Asks the chat provider, through the versioned template &#x60;source-relevance-system@1.0.0&#x60; and the analyst purpose, how much each of 2 to 50 sources contributes to a dataset built from all of them, with a one-sentence reason per source. The model sees only catalog content, as an untrusted data block: each source&#39;s name, description, kinds and entity identity types, and the kinds and identity types two or more of them share (&#x60;shared&#x60;). The answer is advice: nothing is enabled, omitted or stored, and the caller decides which sources the rule keeps. Every requested source comes back exactly once, in request order. A source the egress policy keeps from the provider (a private source and a remote provider) is not sent and comes back &#x60;unrated&#x60;, as does one the model left out or rated with another value; when fewer than two sources may be sent, or the answer cannot be read, every source is &#x60;unrated&#x60; with the reason. Spends LLM budget, so it always needs a token.  **Scope:** &#x60;agent&#x60;.
+  ///
+  /// Parameters:
+  /// * [sourceRelevanceRequest] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [SourceRelevanceAnalysis] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<SourceRelevanceAnalysis>> analyzeTriggerSources({ 
+    required SourceRelevanceRequest sourceRelevanceRequest,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/triggers/analyze-sources';
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(sourceRelevanceRequest);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    SourceRelevanceAnalysis? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<SourceRelevanceAnalysis, SourceRelevanceAnalysis>(rawData, 'SourceRelevanceAnalysis', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<SourceRelevanceAnalysis>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
 
   /// Apply a tuning suggestion
   /// Applies the suggestion&#39;s patch through the normal updateTrigger path (same validation and events) and writes a tuning log entry with before and after. Refuses with &#x60;409 SUGGESTION_STALE&#x60; when the rule changed since the suggestion was generated. Nothing changes a rule automatically.  **Scope:** &#x60;agent&#x60;.
