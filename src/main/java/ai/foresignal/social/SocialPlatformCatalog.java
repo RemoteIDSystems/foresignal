@@ -78,6 +78,9 @@ public final class SocialPlatformCatalog {
     /** The X prices' source date (docs.x.com/x-api/getting-started/pricing, read 2026-10-17). */
     public static final String X_PRICES_AS_OF = "2026-10-17";
 
+    /** X's default money cap per month in US dollars: the platform's and the source budget's (135). */
+    public static final BigDecimal X_DEFAULT_MONTHLY_CAP_USD = new BigDecimal("25");
+
     /** X: a post read. */
     public static final String POST_READ = "post-read";
 
@@ -180,7 +183,7 @@ public final class SocialPlatformCatalog {
                 "pay-per-use: $0.005 per post read, $0.005 per counts/recent request, $0.010 per counts/all request,"
                         + " $0.010 per user read (pricing page read 2026-10-17); monthly cap social.x.monthlyCapUsd",
                 List.of(new QuotaDef("posts", 3_000_000L, "P1M", false, "X post reads per month")),
-                new BigDecimal("25"), List.of(new Price(POST_READ, new BigDecimal("0.005"), 1),
+                X_DEFAULT_MONTHLY_CAP_USD, List.of(new Price(POST_READ, new BigDecimal("0.005"), 1),
                         new Price(COUNTS_RECENT_REQUEST, new BigDecimal("0.005"), 1),
                         new Price(COUNTS_ALL_REQUEST, new BigDecimal("0.010"), 1),
                         new Price(USER_READ, new BigDecimal("0.010"), 1)), X_PRICES_AS_OF));

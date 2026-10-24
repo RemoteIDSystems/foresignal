@@ -379,6 +379,21 @@ class SourcesControllerIT {
         }
 
         @Test
+        @DisplayName("X's descriptor default cap is 25 US dollars; a cap set replaces it and leaving it out returns to it")
+        void xDefaultCap() throws Exception {
+            mvc.perform(admin(get("/v1/sources/x")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.descriptor.defaultBudget.monthlyCapUsd").value(25))
+                    .andExpect(jsonPath("$.settings.budget.monthlyCapUsd").value(25));
+            putJson("/v1/sources/x", "{\"budget\":{\"perMinute\":30,\"perDay\":2000,\"monthlyCapUsd\":10}}")
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.settings.budget.monthlyCapUsd").value(10));
+            putJson("/v1/sources/x", "{\"budget\":{\"perMinute\":30,\"perDay\":2000}}")
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.settings.budget.monthlyCapUsd").value(25));
+        }
+
+        @Test
         @DisplayName("a negative budget fails Bean Validation with errors[]")
         void negativeBudget() throws Exception {
             putJson("/v1/sources/" + POLL, "{\"budget\":{\"perMinute\":-1,\"perDay\":10}}")

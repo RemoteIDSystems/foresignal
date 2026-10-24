@@ -2,6 +2,7 @@ package ai.foresignal.source.adapters.x;
 
 import ai.foresignal.collect.BudgetExceededException;
 import ai.foresignal.social.CueRequests;
+import ai.foresignal.social.SocialPlatformCatalog;
 import ai.foresignal.social.SocialCollector;
 import ai.foresignal.social.SocialPlatformSettings;
 import ai.foresignal.social.SocialPost;
@@ -497,7 +498,7 @@ public class XAdapter implements PollingAdapter {
                 .mode(Mode.POLLING)
                 .credential(CredentialField.required("bearerToken", "An X API v2 bearer token (developer console)"))
                 .interval(Duration.ofMinutes(15), Duration.ofMinutes(60))
-                .defaultBudget(Budget.of(30, 2000))
+                .defaultBudget(Budget.of(30, 2000).withMonthlyCapUsd(SocialPlatformCatalog.X_DEFAULT_MONTHLY_CAP_USD))
                 .fetchTimeout(Duration.ofMinutes(3));
         return SocialDescriptors.posts(b, SocialVocabulary.X).build();
     }

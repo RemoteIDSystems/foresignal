@@ -43,7 +43,10 @@ public class SourceSettingsEntity {
     @Column(name = "budget_per_day", nullable = false)
     private int budgetPerDay;
 
-    /** The money cap per UTC calendar month in US dollars (OpenAPI {@code Budget.monthlyCapUsd}); null means none. */
+    /**
+     * The money cap per UTC calendar month in US dollars (OpenAPI {@code Budget.monthlyCapUsd}); null means the
+     * descriptor's default cap.
+     */
     @Column(name = "budget_monthly_cap_usd")
     private java.math.BigDecimal budgetMonthlyCapUsd;
 

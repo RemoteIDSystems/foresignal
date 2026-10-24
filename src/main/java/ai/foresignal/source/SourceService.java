@@ -21,6 +21,7 @@ import ai.foresignal.store.SourceCredentialEntity;
 import ai.foresignal.store.SourceCredentialRepository;
 import ai.foresignal.store.SourceSettingsEntity;
 import ai.foresignal.store.SourceSettingsRepository;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -245,7 +246,6 @@ public class SourceService implements ApplicationRunner {
         Budget budget = descriptor.defaultBudget();
         entity.setBudgetPerMinute(budget == null ? 0 : budget.perMinute());
         entity.setBudgetPerDay(budget == null ? 0 : budget.perDay());
-        entity.setBudgetMonthlyCapUsd(budget == null ? null : budget.monthlyCapUsd());
         entity.setRetention(null);
         entity.setIngestPolicy(null);
         entity.setUpdatedAt(clock.instant());
@@ -459,7 +459,7 @@ public class SourceService implements ApplicationRunner {
             if (budget.perMinute() >= 1 && budget.perDay() >= 1 && capValid) {
                 row.setBudgetPerMinute(budget.perMinute());
                 row.setBudgetPerDay(budget.perDay());
-                // The budget object is replaced whole: no monthlyCapUsd means no money cap.
+                // The budget object is replaced whole: no monthlyCapUsd means the descriptor's default cap.
                 row.setBudgetMonthlyCapUsd(budget.monthlyCapUsd());
             }
         }
@@ -1079,6 +1079,7 @@ public class SourceService implements ApplicationRunner {
 
     /**
      * The request limits and the monthly money cap from the settings row, plus the descriptor's byte budget.
+     * A row with no cap takes the descriptor's default cap (X: 25 US dollars; none for free sources).
      *
      * <p>{@code mbPerDay} is not operator-overridable yet: there is no column for it, and it is a
      * property of how large the upstream's objects are rather than a preference.
@@ -1086,7 +1087,9 @@ public class SourceService implements ApplicationRunner {
     private static Budget budgetOf(SourceDescriptor descriptor, SourceSettingsEntity row) {
         Integer mbPerDay =
                 descriptor.defaultBudget() == null ? null : descriptor.defaultBudget().mbPerDay();
-        return new Budget(row.getBudgetPerMinute(), row.getBudgetPerDay(), mbPerDay, row.getBudgetMonthlyCapUsd());
+        BigDecimal cap = row.getBudgetMonthlyCapUsd() != null ? row.getBudgetMonthlyCapUsd()
+                : descriptor.defaultBudget() == null ? null : descriptor.defaultBudget().monthlyCapUsd();
+        return new Budget(row.getBudgetPerMinute(), row.getBudgetPerDay(), mbPerDay, cap);
     }
 
     private IngestPolicy resolveIngestPolicy(SourceDescriptor descriptor, SourceSettingsEntity row) {
