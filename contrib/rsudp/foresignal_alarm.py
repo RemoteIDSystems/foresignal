@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Adam Allard
+# Copyright (c) 2026 RemoteID Systems, LLC.
 #
 # Foresignal rsudp alarm poster (prompt 086). Posts one Raspberry Shake trigger to a Foresignal custom source created
 # from the "rsudp-alarm" preset:

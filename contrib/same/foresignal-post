@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Adam Allard
+# Copyright (c) 2026 RemoteID Systems, LLC.
 #
 # foresignal-post (prompt 086): reads multimon-ng's EAS output on stdin and POSTs every SAME header line to a Foresignal
 # source with the "same" ingest format, one request per line, as text/plain:

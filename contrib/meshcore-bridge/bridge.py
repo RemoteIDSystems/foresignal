@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Adam Allard
+# Copyright (c) 2026 RemoteID Systems, LLC.
 #
 # Foresignal MeshCore bridge (prompt 083): reads the operator's own MeshCore companion radio over USB serial, BLE or
 # TCP with the MIT "meshcore" package (meshcore_py, installed from PyPI, not vendored) and POSTs its events as JSON to

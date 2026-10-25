@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Adam Allard
+# Copyright (c) 2026 RemoteID Systems, LLC.
 #
 # NOAA Weather Radio SAME receiver recipe (prompt 086): an RTL-SDR tuned to your NWR transmitter, demodulated by rtl_fm
 # and decoded by multimon-ng's EAS decoder, posted to Foresignal by foresignal-post.

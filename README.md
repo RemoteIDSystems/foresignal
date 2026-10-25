@@ -276,5 +276,5 @@ The complete list is in the [Operator Guide](docs/Operator-Guide.md) and the
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Third-party notices and Foresignal's code-reuse policy
+MIT © RemoteID Systems, LLC — see [LICENSE](LICENSE). Third-party notices and Foresignal's code-reuse policy
 are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
