@@ -826,9 +826,11 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
         }
         Instant now = clock.instant();
         boolean created = event == null;
+        // The event's pin keys, read once: one query per member line would each flush the transaction first.
+        Set<String> pinned = created ? new java.util.HashSet<>() : new java.util.HashSet<>(pinKeys(event.getId()));
         List<MemberLine> newLines = new ArrayList<>();
         for (MemberLine line : candidate.members()) {
-            if (created || !memberExists(event.getId(), line)) {
+            if (pinned.add(memberKey(line.memberType(), line.sourceId(), line.externalId(), line.seq()))) {
                 newLines.add(line);
             }
         }
@@ -881,7 +883,7 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
         members.flush();
         // Rescore over all members, not the newest candidate, and derive title and explanation from them.
         eventService.rescore(event);
-        List<IntelEventMemberEntity> all = members.findByEventIdOrderByIdAsc(event.getId());
+        List<IntelEventMemberEntity> all = members.readByEventIdOrderByIdAsc(event.getId());
         long supporting = all.stream().filter(m -> !"contradicting".equals(m.getRole())).count();
         boolean active = supporting >= recipe.activateAt().members() && (recipe.activateAt().confidence() == null
                 || (event.getConfidence() != null && event.getConfidence() >= recipe.activateAt().confidence()))
@@ -893,7 +895,7 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
         }
         event.setTitle(titleOf(all));
         event.setExplanation(explanationOf(all, event.getStartTime(), event.getLastEvidenceAt()));
-        applyAnnotators(event, now);
+        applyAnnotators(event, now, pinned);
         // Annotators may add context members after the rescore (checkpoint 124: memberCount).
         event.setMemberCount((int) members.countByEventId(event.getId()));
         events.save(event);
@@ -993,7 +995,7 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
      * every recipe hit, so it is idempotent: context sections are replaced, context members are added once,
      * and an alternative replaces any stored alternative with the same hypothesis.
      */
-    private void applyAnnotators(IntelligenceEventEntity event, Instant now) {
+    private void applyAnnotators(IntelligenceEventEntity event, Instant now, Set<String> pinned) {
         if (annotators.isEmpty() || derivedRecords == null || event.getGeom() == null || event.getGeom().isEmpty()) {
             return;
         }
@@ -1020,7 +1022,7 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
                 }
                 alternatives = mergeAlternatives(alternatives, result.alternatives());
                 for (Map<String, Object> member : result.contextMembers()) {
-                    if (saveContextMember(event.getId(), member, now)) {
+                    if (saveContextMember(event.getId(), member, now, pinned)) {
                         event.setPrivateEvent(true);
                     }
                 }
@@ -1036,15 +1038,17 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
         }
     }
 
-    /** Adds a context member if it is not already attached; true when it came from a private source. */
-    private boolean saveContextMember(String eventId, Map<String, Object> member, Instant now) {
+    /**
+     * Adds a context member if it is not already attached ({@code pinned}, the event's pin keys, which it updates);
+     * true when it came from a private source.
+     */
+    private boolean saveContextMember(String eventId, Map<String, Object> member, Instant now, Set<String> pinned) {
         String memberType = String.valueOf(member.getOrDefault("memberType", "record"));
         String sourceId = String.valueOf(member.get("sourceId"));
         String externalId = String.valueOf(member.get("externalId"));
         long seq = member.get("seq") instanceof Number n ? n.longValue() : 0L;
         boolean privateSource = visibility.isPrivateSource(sourceId);
-        if (!members.findByEventIdAndMemberTypeAndSourceIdAndExternalIdAndSeq(eventId, memberType, sourceId, externalId,
-                seq).isEmpty()) {
+        if (!pinned.add(memberKey(memberType, sourceId, externalId, seq))) {
             return privateSource;
         }
         IntelEventMemberEntity entity = new IntelEventMemberEntity(eventId, memberType, sourceId, externalId, seq);
@@ -1287,17 +1291,13 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
         return null;
     }
 
+    /**
+     * The pin keys of an event's members, read as strings: loading the members as entities here, for every open
+     * event a candidate is compared with, put every open event's members in the transaction, and each later query
+     * dirty-checked all of them (the correlation loop's CPU, 2026-10-25).
+     */
     private Set<String> pinKeys(String eventId) {
-        Set<String> keys = new LinkedHashSet<>();
-        for (IntelEventMemberEntity member : members.findByEventIdOrderByIdAsc(eventId)) {
-            keys.add(memberKey(member.getMemberType(), member.getSourceId(), member.getExternalId(), member.getSeq()));
-        }
-        return keys;
-    }
-
-    private boolean memberExists(String eventId, MemberLine line) {
-        return !members.findByEventIdAndMemberTypeAndSourceIdAndExternalIdAndSeq(eventId, line.memberType(),
-                line.sourceId(), line.externalId(), line.seq()).isEmpty();
+        return new LinkedHashSet<>(members.pinKeys(eventId));
     }
 
     /**

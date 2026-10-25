@@ -532,7 +532,9 @@ public class IntelEventService {
      */
     public void rescore(IntelligenceEventEntity event) {
         List<EventScorer.MemberView> views = new ArrayList<>();
-        List<IntelEventMemberEntity> all = members.findByEventIdOrderByIdAsc(event.getId());
+        // Read-only: scoring only reads the members, and a large event's would otherwise be dirty-checked at
+        // every later flush of the transaction.
+        List<IntelEventMemberEntity> all = members.readByEventIdOrderByIdAsc(event.getId());
         event.setMemberCount(all.size());
         int contradictions = contradictions(all, event.getAlternatives());
         Map<String, ai.foresignal.evidence.EvidenceService.GroupKey> keys = evidenceKeys(all);

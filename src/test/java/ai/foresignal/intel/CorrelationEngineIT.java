@@ -13,18 +13,22 @@ import ai.foresignal.test.MutableClock;
 import ai.foresignal.test.WebIntegrationTest;
 import ai.foresignal.testsupport.ingest.TestIngestSources;
 import ai.foresignal.testsupport.ingest.TestRecords;
+import jakarta.persistence.EntityManager;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.hibernate.Session;
+import org.hibernate.engine.spi.SessionImplementor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * The correlation engine end to end (prompt 101), seeded only through {@code TestRecords}: a recipe
@@ -57,6 +61,8 @@ class CorrelationEngineIT {
     @Autowired MutableClock clock;
     @Autowired SourceVisibility sources;
     @Autowired SourceRegistry registry;
+    @Autowired TransactionTemplate tx;
+    @Autowired EntityManager entityManager;
 
     @BeforeEach
     void registerSecondary() {
@@ -122,6 +128,35 @@ class CorrelationEngineIT {
         List<IntelEventMemberEntity> pinned = members.findByEventIdOrderByIdAsc(event.getId());
         assertThat(pinned).hasSize(2);
         assertThat(pinned.get(0).getJoinReason()).containsKey("matchedKeys");
+    }
+
+    @Test
+    @DisplayName("scoring reads members read-only and dedup reads pin keys without loading members")
+    void membersAreNotDirtyCheckedOnTheHotPath() {
+        save(base());
+        ingest("t1", "test-record", T0, -95.0, 32.0);
+        ingest("t2", "test-record", T0.plusSeconds(60), -95.01, 32.01);
+        engine.catchUp();
+        String id = only().getId();
+
+        tx.executeWithoutResult(status -> {
+            Session session = entityManager.unwrap(Session.class);
+            List<IntelEventMemberEntity> read = members.readByEventIdOrderByIdAsc(id);
+            assertThat(read).hasSize(2).allSatisfy(m -> assertThat(session.isReadOnly(m)).isTrue());
+            // The same keys CorrelationEngine.memberKey builds, and no member entity loaded to read them.
+            session.clear();
+            assertThat(members.pinKeys(id)).containsExactlyInAnyOrderElementsOf(read.stream()
+                    .map(m -> CorrelationEngine.memberKey(m.getMemberType(), m.getSourceId(), m.getExternalId(),
+                            m.getSeq()))
+                    .toList());
+            assertThat(entityManager.unwrap(SessionImplementor.class).getPersistenceContext().getNumberOfManagedEntities())
+                    .isZero();
+        });
+
+        // A second pass over the same range still adds nothing: membership stays exactly-once.
+        engine.rewind(0);
+        engine.catchUp();
+        assertThat(members.findByEventIdOrderByIdAsc(id)).hasSize(2);
     }
 
     @Test
