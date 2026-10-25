@@ -4,6 +4,7 @@ import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.api.support.QueryParams;
 import ai.foresignal.reference.CountryCentroids;
 import ai.foresignal.reference.CountryRef;
+import ai.foresignal.reference.ReferenceAreas;
 import ai.foresignal.reference.ReferenceDataLoader;
 import ai.foresignal.reference.RegionTagger;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,7 +24,8 @@ import tools.jackson.databind.JsonNode;
 
 /**
  * Reference data (prompt 040; OpenAPI tag {@code Reference}): {@code getReference},
- * {@code loadReference}, {@code listReferenceCountries} and {@code reverseGeocode}.
+ * {@code loadReference}, {@code listReferenceCountries} and {@code reverseGeocode}; prompt 161 adds
+ * {@code searchReferenceAreas} and {@code getReferenceArea}, the named areas a rule can be scoped to.
  *
  * <p>Reads need the {@code read} scope (open while {@code security.openReads} is on); loading is
  * {@code admin} and asynchronous (202). Loading accepts only dataset names from the bundled manifest,
@@ -35,12 +38,15 @@ public class ReferenceController {
     private final ReferenceDataLoader loader;
     private final CountryCentroids countries;
     private final RegionTagger tagger;
+    private final ReferenceAreas areas;
 
     /** Creates the controller. */
-    public ReferenceController(ReferenceDataLoader loader, CountryCentroids countries, RegionTagger tagger) {
+    public ReferenceController(ReferenceDataLoader loader, CountryCentroids countries, RegionTagger tagger,
+            ReferenceAreas areas) {
         this.loader = loader;
         this.countries = countries;
         this.tagger = tagger;
+        this.areas = areas;
     }
 
     /** {@code getReference}: datasets, editions, row counts, attributions and load state. */
@@ -81,6 +87,25 @@ public class ReferenceController {
         double x = coordinate("lon", lon, 180);
         double y = coordinate("lat", lat, 90);
         return tagger.tag(x, y).toMap();
+    }
+
+    /**
+     * {@code searchReferenceAreas} (prompt 161): the countries, admin-1 regions and populated places whose names
+     * match {@code q}, best first.
+     */
+    @GetMapping("/v1/reference/areas")
+    @Operation(operationId = "searchReferenceAreas", tags = "Reference")
+    public List<Map<String, Object>> searchReferenceAreas(@RequestParam(required = false) String q,
+            @RequestParam(required = false) String limit) {
+        int max = QueryParams.intInRange("limit", limit, 1, ReferenceAreas.MAX_LIMIT, ReferenceAreas.DEFAULT_LIMIT);
+        return areas.search(q, max);
+    }
+
+    /** {@code getReferenceArea} (prompt 161): the simplified outline of a country or admin-1 region. */
+    @GetMapping("/v1/reference/areas/{code}")
+    @Operation(operationId = "getReferenceArea", tags = "Reference")
+    public Map<String, Object> getReferenceArea(@PathVariable String code) {
+        return areas.outline(code);
     }
 
     /**

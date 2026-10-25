@@ -1384,6 +1384,8 @@ lib/src/model/record_mapping_tombstone.dart
 lib/src/model/record_page.dart
 lib/src/model/record_version.dart
 lib/src/model/record_version_page.dart
+lib/src/model/reference_area.dart
+lib/src/model/reference_area_outline.dart
 lib/src/model/reference_dataset.dart
 lib/src/model/reference_import.dart
 lib/src/model/reference_import_page.dart

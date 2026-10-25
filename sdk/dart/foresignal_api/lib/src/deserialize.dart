@@ -1289,6 +1289,8 @@ import 'package:foresignal_api/src/model/record_mapping_tombstone.dart';
 import 'package:foresignal_api/src/model/record_page.dart';
 import 'package:foresignal_api/src/model/record_version.dart';
 import 'package:foresignal_api/src/model/record_version_page.dart';
+import 'package:foresignal_api/src/model/reference_area.dart';
+import 'package:foresignal_api/src/model/reference_area_outline.dart';
 import 'package:foresignal_api/src/model/reference_dataset.dart';
 import 'package:foresignal_api/src/model/reference_import.dart';
 import 'package:foresignal_api/src/model/reference_import_page.dart';
@@ -4393,6 +4395,10 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return RecordVersion.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'RecordVersionPage':
           return RecordVersionPage.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'ReferenceArea':
+          return ReferenceArea.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'ReferenceAreaOutline':
+          return ReferenceAreaOutline.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'ReferenceDataset':
           return ReferenceDataset.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'ReferenceImport':

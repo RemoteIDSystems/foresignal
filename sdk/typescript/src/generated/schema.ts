@@ -4057,6 +4057,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/reference/areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Find countries, states and places by name
+         * @description Countries, admin-1 regions (states, provinces) and populated places whose names match `q`, for scoping a rule to an area. An exact name ranks before a name that starts with the text, before one that contains it; then countries, admin-1 regions, and places by population. `q` may end with a comma and a qualifier, a country (code or name) or the admin-1 region a place lies in (code or name): `Paris, TX`, `Paris, France`.
+         *
+         *     A country or admin-1 result is what a rule's `geofenceRef` names (`country` takes `code` of a country, `admin1` the `code` of an admin-1 region); a place is a point, which a rule uses as `near.point` with a radius. Countries come from the bundled table and are found with no reference data loaded; admin-1 regions need the loaded admin-1 boundaries and places the loaded gazetteer, and are simply absent without them. A place's admin-1 region is the one its point lies in.
+         *
+         *     **Scope:** `read` (open while `security.openReads` is on).
+         */
+        get: operations["searchReferenceAreas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reference/areas/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Outline of a country or admin-1 region
+         * @description The names, bounding box and outline of a country (ISO 3166-1 alpha-2 code) or admin-1 region (`ref_admin1` code such as `US-TX`), to draw the area a rule's `geofenceRef` names. The outline is simplified to about 0.01° (about 1 km), for display only: a rule always tests the full boundary. A country without loaded boundaries is drawn from the bundled simplified polygons.
+         *
+         *     **Scope:** `read` (open while `security.openReads` is on).
+         */
+        get: operations["getReferenceArea"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/products": {
         parameters: {
             query?: never;
@@ -39210,6 +39256,43 @@ export interface components {
                 version: string;
             };
         };
+        /** @description A named area found by searchReferenceAreas (161): a country, an admin-1 region or a populated place */
+        ReferenceArea: {
+            /**
+             * @description country and admin1 are geofenceRef codes; a place is a point
+             * @enum {string}
+             */
+            kind: "country" | "admin1" | "place";
+            /** @description The geofenceRef code: a country's ISO2 code or an admin-1 code; null for a place */
+            code?: string | null;
+            name: string;
+            /** @description The name with its admin-1 region and country, for display */
+            label: string;
+            countryIso2?: string | null;
+            countryName?: string | null;
+            /** @description The admin-1 code of an admin-1 region, or of the region a place lies in */
+            admin1?: string | null;
+            admin1Name?: string | null;
+            /** @description A point inside the area (a country's label point, an admin-1 region's point on surface, a place's location) */
+            lon: number;
+            lat: number;
+            /** @description A place's GeoNames id */
+            placeId?: number | null;
+            /** @description A place's population, when known */
+            population?: number | null;
+        };
+        /** @description The outline of a country or admin-1 region (161), simplified for display */
+        ReferenceAreaOutline: {
+            /** @enum {string} */
+            kind: "country" | "admin1";
+            code: string;
+            name: string;
+            countryIso2?: string | null;
+            countryName?: string | null;
+            /** @description [west, south, east, north] */
+            bbox: number[];
+            geometry: components["schemas"]["Geometry"];
+        };
     };
     responses: never;
     parameters: never;
@@ -53685,6 +53768,148 @@ export interface operations {
             };
             /** @description Endpoint outside the token's or anonymous profile's restriction (ENDPOINT_NOT_ALLOWED, RESTRICTED) */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED); honour Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds to wait before retrying */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    searchReferenceAreas: {
+        parameters: {
+            query: {
+                /** @description The name, 2 to 100 characters, optionally followed by a comma and a country or admin-1 qualifier */
+                q: string;
+                /** @description Most results (default 10) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matching areas, best first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceArea"][];
+                };
+            };
+            /** @description Validation failed (VALIDATION_FAILED: q missing, shorter than 2 or longer than 100 characters, or limit out of range) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Endpoint outside the token's or anonymous profile's restriction (ENDPOINT_NOT_ALLOWED, RESTRICTED) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED); honour Retry-After */
+            429: {
+                headers: {
+                    /** @description Seconds to wait before retrying */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getReferenceArea: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A country's ISO2 code or an admin-1 code */
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The outline */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceAreaOutline"];
+                };
+            };
+            /** @description Validation failed (VALIDATION_FAILED: code empty or longer than 32 characters) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Endpoint outside the token's or anonymous profile's restriction (ENDPOINT_NOT_ALLOWED, RESTRICTED) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description No country or admin-1 region has the code (NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description An admin-1 code while admin-1 boundaries are not loaded (REFERENCE_DATA_MISSING) */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

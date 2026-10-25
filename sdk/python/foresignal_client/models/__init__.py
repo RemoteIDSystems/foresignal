@@ -3150,6 +3150,10 @@ from .record_page import RecordPage
 from .record_payload import RecordPayload
 from .record_version import RecordVersion
 from .record_version_page import RecordVersionPage
+from .reference_area import ReferenceArea
+from .reference_area_kind import ReferenceAreaKind
+from .reference_area_outline import ReferenceAreaOutline
+from .reference_area_outline_kind import ReferenceAreaOutlineKind
 from .reference_dataset import ReferenceDataset
 from .reference_dataset_state import ReferenceDatasetState
 from .reference_import import ReferenceImport
@@ -6692,6 +6696,10 @@ __all__ = (
     "RecordPayload",
     "RecordVersion",
     "RecordVersionPage",
+    "ReferenceArea",
+    "ReferenceAreaKind",
+    "ReferenceAreaOutline",
+    "ReferenceAreaOutlineKind",
     "ReferenceDataset",
     "ReferenceDatasetState",
     "ReferenceImport",

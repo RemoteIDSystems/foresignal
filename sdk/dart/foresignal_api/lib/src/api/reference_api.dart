@@ -11,6 +11,8 @@ import 'package:dio/dio.dart';
 
 import 'package:foresignal_api/src/model/country_ref.dart';
 import 'package:foresignal_api/src/model/problem.dart';
+import 'package:foresignal_api/src/model/reference_area.dart';
+import 'package:foresignal_api/src/model/reference_area_outline.dart';
 import 'package:foresignal_api/src/model/reference_load_request.dart';
 import 'package:foresignal_api/src/model/reference_status.dart';
 import 'package:foresignal_api/src/model/region_tags.dart';
@@ -86,6 +88,84 @@ _responseData = rawData == null ? null : deserialize<ReferenceStatus, ReferenceS
     }
 
     return Response<ReferenceStatus>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Outline of a country or admin-1 region
+  /// The names, bounding box and outline of a country (ISO 3166-1 alpha-2 code) or admin-1 region (&#x60;ref_admin1&#x60; code such as &#x60;US-TX&#x60;), to draw the area a rule&#39;s &#x60;geofenceRef&#x60; names. The outline is simplified to about 0.01° (about 1 km), for display only: a rule always tests the full boundary. A country without loaded boundaries is drawn from the bundled simplified polygons.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  ///
+  /// Parameters:
+  /// * [code] - A country's ISO2 code or an admin-1 code
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [ReferenceAreaOutline] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<ReferenceAreaOutline>> getReferenceArea({ 
+    required String code,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/reference/areas/{code}'.replaceAll('{' r'code' '}', code.toString());
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    ReferenceAreaOutline? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<ReferenceAreaOutline, ReferenceAreaOutline>(rawData, 'ReferenceAreaOutline', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<ReferenceAreaOutline>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -345,6 +425,92 @@ _responseData = rawData == null ? null : deserialize<RegionTags, RegionTags>(raw
     }
 
     return Response<RegionTags>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Find countries, states and places by name
+  /// Countries, admin-1 regions (states, provinces) and populated places whose names match &#x60;q&#x60;, for scoping a rule to an area. An exact name ranks before a name that starts with the text, before one that contains it; then countries, admin-1 regions, and places by population. &#x60;q&#x60; may end with a comma and a qualifier, a country (code or name) or the admin-1 region a place lies in (code or name): &#x60;Paris, TX&#x60;, &#x60;Paris, France&#x60;.  A country or admin-1 result is what a rule&#39;s &#x60;geofenceRef&#x60; names (&#x60;country&#x60; takes &#x60;code&#x60; of a country, &#x60;admin1&#x60; the &#x60;code&#x60; of an admin-1 region); a place is a point, which a rule uses as &#x60;near.point&#x60; with a radius. Countries come from the bundled table and are found with no reference data loaded; admin-1 regions need the loaded admin-1 boundaries and places the loaded gazetteer, and are simply absent without them. A place&#39;s admin-1 region is the one its point lies in.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  ///
+  /// Parameters:
+  /// * [q] - The name, 2 to 100 characters, optionally followed by a comma and a country or admin-1 qualifier
+  /// * [limit] - Most results (default 10)
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [List<ReferenceArea>] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<List<ReferenceArea>>> searchReferenceAreas({ 
+    required String q,
+    int? limit = 10,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/reference/areas';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _queryParameters = <String, dynamic>{
+      r'q': q,
+      if (limit != null) r'limit': limit,
+    };
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      queryParameters: _queryParameters,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    List<ReferenceArea>? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<List<ReferenceArea>, ReferenceArea>(rawData, 'List<ReferenceArea>', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<List<ReferenceArea>>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

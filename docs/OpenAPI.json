@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Foresignal API",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "summary": "Headless intelligence broker: ingest, version and re-serve public telemetry.",
     "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...`, `/v1/k/{key}/tiles/...`, `/v1/k/{key}/map/...` and `/v1/k/{key}/changes/stream` for map clients (MapLibre, maplibre_gl, Cesium, `EventSource`), share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. A feed key reaches only `GET`/`HEAD` of `read` operations that are not always-authenticated, under the key's path prefixes, with the key's mandatory read restriction (unknown key 401 INVALID_FEED_KEY, expired or revoked 410 FEED_KEY_GONE, another method 405, a path outside the prefixes 403 RESTRICTED). A tile key reaches the same operations under its prefixes (a subset of `/v1/products/`, `/v1/styles`, `/v1/media/`, `/v1/tiles/`, `/v1/maps/static`, `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream`, `/v1/map/`), with its optional restriction and never private sources (unknown, expired or revoked key 401 INVALID_TILE_KEY, another method 405, a path outside the prefixes 403 INSUFFICIENT_SCOPE). Responses carry `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`; `Cache-Control` defaults to `private`, and a tile-key response takes the canonical path's own rule (`public` only while `openReads` covers it). Logs show only the key's first eight characters; the key is never echoed except by `createFeedKey` and `createTileKey`, and in the follow-up URLs of documents requested through it (058: the MapLibre style's sources and sprite, KML NetworkLink and icon hrefs, a feed's own `rel=\"self\"` / `feed_url`), which are then always `Cache-Control: private`. CORS exposes `Foresignal-Frame-Time`, `Foresignal-Image-Bounds`, `Foresignal-Frame-Expired`, `Retry-After`, `Link` and `ETag`, allows `Authorization`, `If-None-Match` and `Foresignal-Prefetch`, and caches preflights for a day; `?prefetch=1` marks a render prefetch without the preflight the header causes.\n\n**Restrictions and limits (035).** Restricted tokens, feed keys and the anonymous profile (`security.anonymous`, applied to tokenless reads while `openReads` is on) see only records and alerts inside their `ReadRestriction` on every read path (records, history, versions, changes, kinds, tiles, streams, search, alerts, the inbox, the digest, briefings, MCP tools and Ask): request filters are intersected with the restriction, and a single record or alert outside it is 404. Every client is rate-limited per class (`RateLimitSettings`); over a limit, or after repeated failed credentials from one address, the answer is 429 RATE_LIMITED with `Retry-After`. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).",
     "license": {
@@ -694,9 +694,14 @@
         "note": "Cleanup pass. getTimeline gains 422 TIMELINE_RANGE_UNSUPPORTED: a range whose raw read the hourly activity rollup estimates above 1,000,000 record versions (200,000 with timeField=ingested) is refused up front instead of running into the 10 s timeout (503 QUERY_TIMEOUT); the problem carries estimatedVersions and maxVersions. External forecaster ids are edp:{sourceId}:{streamId} (were edp:{sourceId}/{streamId}), one path segment matching the Forecaster id pattern, so updateForecaster can address them; registerExternalForecaster now enforces that pattern, and migration V12 rewrites stored ids. BREAKING CHANGE, accepted before release (not additive): RuleQuality.labelled and labelledShare are renamed labeled and labeledShare, and Precision components[].labelled is renamed labeled, for US English on the wire. A client that reads the old keys finds them missing (labelledShare included, though oasdiff does not flag an optional key); there are no external consumers before release, so the version stays 1.3.0 and the break is listed as accepted in docs/api/v1.0.0/oasdiff-err-ignore.txt. The assessment and analyst-note footers now say “speculation is labeled” / “are labeled”; footers already stored keep the old text. Attribution.licence and every other wire key are unchanged. NotificationMessage.event is x-extensible-enum; the notification webhook's payload is the new NotificationWebhookMessage (the same members, its event list still enum), so WebhookEnvelope.message refers to it; neither change alters what the server sends."
       },
       {
-        "version": "1.3.0",
+        "version": "1.4.0",
         "date": "2026-10-24",
         "note": "Alert builder support (additive): analyzeTriggerSources (POST /v1/triggers/analyze-sources, agent, always authenticated) rates how much each of 2 to 50 sources contributes to a dataset built from all of them, with a one-sentence LLM reason per source; advisory only (nothing is enabled, omitted or stored), every requested source comes back once, and a source withheld by the egress policy or left out by the model is `unrated`. New schemas SourceRelevanceRequest, SourceRelevanceAnalysis and SourceRelevance; new prompt template source-relevance-system@1.0.0 (role source-relevance)."
+      },
+      {
+        "version": "1.4.0",
+        "date": "2026-10-24",
+        "note": "161: API 1.4.0 (additive, a minor version: analyzeTriggerSources and the two operations below; nothing changed or removed). Areas for the admin app's Alert Builder: searchReferenceAreas (GET /v1/reference/areas, read) finds countries, admin-1 regions and populated places by name, with an optional `, country or region` qualifier, and getReferenceArea (GET /v1/reference/areas/{code}, read) returns the simplified outline of a country or admin-1 region, with the ReferenceArea and ReferenceAreaOutline schemas. A rule's area itself needs no new member: a country or admin-1 region is a geofenceRef, a place or circle is near.point with radiusKm, a polygon or box is a Polygon geofence, and a route is a LineString geofence with bufferMeters. A rule's area is tested against a record's geometry only, so a record without geometry never matches an area. analyzeTriggerSources is recorded as prompt 161 (it was tagged 017)."
       }
     ]
   },
@@ -5271,7 +5276,7 @@
           }
         },
         "x-foresignal-scope": "agent",
-        "x-foresignal-prompt": "017",
+        "x-foresignal-prompt": "161",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
         "security": [
@@ -27059,6 +27064,225 @@
         },
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "040",
+        "x-foresignal-status": "implemented",
+        "security": [
+          {},
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/reference/areas": {
+      "get": {
+        "tags": [
+          "Reference"
+        ],
+        "operationId": "searchReferenceAreas",
+        "summary": "Find countries, states and places by name",
+        "description": "Countries, admin-1 regions (states, provinces) and populated places whose names match `q`, for scoping a rule to an area. An exact name ranks before a name that starts with the text, before one that contains it; then countries, admin-1 regions, and places by population. `q` may end with a comma and a qualifier, a country (code or name) or the admin-1 region a place lies in (code or name): `Paris, TX`, `Paris, France`.\n\nA country or admin-1 result is what a rule's `geofenceRef` names (`country` takes `code` of a country, `admin1` the `code` of an admin-1 region); a place is a point, which a rule uses as `near.point` with a radius. Countries come from the bundled table and are found with no reference data loaded; admin-1 regions need the loaded admin-1 boundaries and places the loaded gazetteer, and are simply absent without them. A place's admin-1 region is the one its point lies in.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "The name, 2 to 100 characters, optionally followed by a comma and a country or admin-1 qualifier",
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Most results (default 10)",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching areas, best first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReferenceArea"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (VALIDATION_FAILED: q missing, shorter than 2 or longer than 100 characters, or limit out of range)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Endpoint outside the token's or anonymous profile's restriction (ENDPOINT_NOT_ALLOWED, RESTRICTED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited (RATE_LIMITED); honour Retry-After",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-prompt": "161",
+        "x-foresignal-status": "implemented",
+        "security": [
+          {},
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/v1/reference/areas/{code}": {
+      "get": {
+        "tags": [
+          "Reference"
+        ],
+        "operationId": "getReferenceArea",
+        "summary": "Outline of a country or admin-1 region",
+        "description": "The names, bounding box and outline of a country (ISO 3166-1 alpha-2 code) or admin-1 region (`ref_admin1` code such as `US-TX`), to draw the area a rule's `geofenceRef` names. The outline is simplified to about 0.01° (about 1 km), for display only: a rule always tests the full boundary. A country without loaded boundaries is drawn from the bundled simplified polygons.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "description": "A country's ISO2 code or an admin-1 code",
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 32
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The outline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenceAreaOutline"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (VALIDATION_FAILED: code empty or longer than 32 characters)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Endpoint outside the token's or anonymous profile's restriction (ENDPOINT_NOT_ALLOWED, RESTRICTED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No country or admin-1 region has the code (NOT_FOUND)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "An admin-1 code while admin-1 boundaries are not loaded (REFERENCE_DATA_MISSING)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited (RATE_LIMITED); honour Retry-After",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-prompt": "161",
         "x-foresignal-status": "implemented",
         "security": [
           {},
@@ -169825,6 +170049,138 @@
           "model",
           "template"
         ]
+      },
+      "ReferenceArea": {
+        "type": "object",
+        "description": "A named area found by searchReferenceAreas (161): a country, an admin-1 region or a populated place",
+        "required": [
+          "kind",
+          "name",
+          "label",
+          "lon",
+          "lat"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "country",
+              "admin1",
+              "place"
+            ],
+            "description": "country and admin1 are geofenceRef codes; a place is a point"
+          },
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The geofenceRef code: a country's ISO2 code or an admin-1 code; null for a place"
+          },
+          "name": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string",
+            "description": "The name with its admin-1 region and country, for display"
+          },
+          "countryIso2": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "countryName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "admin1": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The admin-1 code of an admin-1 region, or of the region a place lies in"
+          },
+          "admin1Name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lon": {
+            "type": "number",
+            "description": "A point inside the area (a country's label point, an admin-1 region's point on surface, a place's location)"
+          },
+          "lat": {
+            "type": "number"
+          },
+          "placeId": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "A place's GeoNames id"
+          },
+          "population": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "A place's population, when known"
+          }
+        }
+      },
+      "ReferenceAreaOutline": {
+        "type": "object",
+        "description": "The outline of a country or admin-1 region (161), simplified for display",
+        "required": [
+          "kind",
+          "code",
+          "name",
+          "bbox",
+          "geometry"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "country",
+              "admin1"
+            ]
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "countryIso2": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "countryName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bbox": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 4,
+            "maxItems": 4,
+            "description": "[west, south, east, north]"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/Geometry"
+          }
+        }
       }
     },
     "securitySchemes": {

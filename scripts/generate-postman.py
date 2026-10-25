@@ -80,7 +80,9 @@ PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
                        # 126: the region and family of a regional outlook.
                        ("/v1/outlooks/", {"region": "outlookRegion", "family": "outlookFamily"}),
                        # 128: a cycle run is not a briefing run of {{runId}}.
-                       ("/v1/analysis/", {"runId": "cycleRunId"})]
+                       ("/v1/analysis/", {"runId": "cycleRunId"}),
+                       # 161: the code of a country or admin-1 region whose outline is read.
+                       ("/v1/reference/areas/", {"code": "regionCode"})]
 
 # The EDP manifest of docs/External-Data-Protocol.md §2 (024).
 EDP_MANIFEST = {
@@ -1512,7 +1514,8 @@ collection = {
       ("benchmarkRunId", ""), ("benchmarkCaseId", ""),
       ("hypothesisSetId", ""), ("hypothesisId", ""), ("indicatorId", ""), ("achEvidenceId", ""), ("assumptionId", ""),
       ("indexId", "instability"), ("outlookRegion", "YE"), ("outlookFamily", "conflict:battles"),
-      ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0")]],
+      ("tileLayer", "earthquake"), ("tileZ", "0"), ("tileX", "0"), ("tileY", "0"),
+      ("regionCode", "US-TX")]],
 }
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",
        "values": [{"key": "baseUrl", "value": "http://localhost:8080", "type": "default", "enabled": True},

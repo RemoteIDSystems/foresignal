@@ -289,6 +289,15 @@ fraud recipe sets remain in [Future-Roadmap](Future-Roadmap.md).
 | 159 | On-Demand-Forecast-Parity-And-Precursor-Calibration | Unify the on-demand/callback forecast path with the push path's dedup + `lastForecastAt`; apply the precursor calibration curve (as-built review cleanup) | Done |
 | 160 | Collector-Governor-Status | `GET /v1/settings/collector/status` exposing the pull governor's cap/in-use/waiting (for the admin collector screen's live gauges) | Planned |
 
+### Admin app support (API 1.4.0)
+
+Backend additions made for the ForeSignal Admin app, run as interactive sessions rather than numbered prompt
+files. 161 takes the API to **1.4.0** (additive, a minor version).
+
+| # | Prompt | Scope | Status |
+|---|---|---|---|
+| 161 | Alert-Builder | `analyzeTriggerSources` (advisory LLM relevance check of a rule's sources); `searchReferenceAreas` and `getReferenceArea` (countries, admin-1 regions and places by name, and region outlines) for scoping a rule to an area with the existing `geofenceRef`, `near` and `geofence` members; API 1.4.0 | Done |
+
 ## 5. Renumbering map
 
 Some older prompt text, and the design docs, still use earlier numbers. Translate them with these tables.

@@ -1387,6 +1387,8 @@ export 'package:foresignal_api/src/model/record_mapping_tombstone.dart';
 export 'package:foresignal_api/src/model/record_page.dart';
 export 'package:foresignal_api/src/model/record_version.dart';
 export 'package:foresignal_api/src/model/record_version_page.dart';
+export 'package:foresignal_api/src/model/reference_area.dart';
+export 'package:foresignal_api/src/model/reference_area_outline.dart';
 export 'package:foresignal_api/src/model/reference_dataset.dart';
 export 'package:foresignal_api/src/model/reference_import.dart';
 export 'package:foresignal_api/src/model/reference_import_page.dart';
