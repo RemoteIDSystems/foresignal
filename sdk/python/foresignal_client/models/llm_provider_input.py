@@ -11,6 +11,7 @@ from ..models.llm_provider_input_type import LlmProviderInputType
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
+    from ..models.llm_pricing import LlmPricing
     from ..models.llm_provider_input_options import LlmProviderInputOptions
 
 
@@ -33,6 +34,23 @@ class LlmProviderInput:
         tokens_per_day (int | Unset):  Default: 2000000.
         enabled (bool | Unset):  Default: True.
         knowledge_cutoff (datetime.date | None | Unset): Training-data cutoff of the chat model (`YYYY-MM-DD`)
+        pricing (LlmPricing | None | Unset): Prices in USD per million tokens (162); null or omitted means unpriced.
+            Required for a USD cap.
+        hourly_cap_usd (float | None | Unset): The most this provider may spend in the UTC clock hour (it resets at the
+            top of the hour), in USD, at most 4 decimal places; null means no cap (162). Spend is the provider's self-
+            metered tokens at its `pricing`, so a cap needs pricing. Once a window's spend, with the estimated cost of the
+            calls in flight, reaches its cap, calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's
+            reset. Applies on top of requestsPerMinute and tokensPerDay.
+        daily_cap_usd (float | None | Unset): The most this provider may spend in the UTC day (it resets at 00:00 UTC,
+            as tokensPerDay), in USD, at most 4 decimal places; null means no cap (162). Spend is the provider's self-
+            metered tokens at its `pricing`, so a cap needs pricing. Once a window's spend, with the estimated cost of the
+            calls in flight, reaches its cap, calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's
+            reset. Applies on top of requestsPerMinute and tokensPerDay.
+        monthly_cap_usd (float | None | Unset): The most this provider may spend in the UTC calendar month (it resets at
+            00:00 UTC on the 1st), in USD, at most 4 decimal places; null means no cap (162). Spend is the provider's self-
+            metered tokens at its `pricing`, so a cap needs pricing. Once a window's spend, with the estimated cost of the
+            calls in flight, reaches its cap, calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's
+            reset. Applies on top of requestsPerMinute and tokensPerDay.
     """
 
     id: str
@@ -47,9 +65,15 @@ class LlmProviderInput:
     tokens_per_day: int | Unset = 2000000
     enabled: bool | Unset = True
     knowledge_cutoff: datetime.date | None | Unset = UNSET
+    pricing: LlmPricing | None | Unset = UNSET
+    hourly_cap_usd: float | None | Unset = UNSET
+    daily_cap_usd: float | None | Unset = UNSET
+    monthly_cap_usd: float | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.llm_pricing import LlmPricing
+
         id = self.id
 
         type_ = self.type_.value
@@ -98,6 +122,32 @@ class LlmProviderInput:
         else:
             knowledge_cutoff = self.knowledge_cutoff
 
+        pricing: dict[str, Any] | None | Unset
+        if isinstance(self.pricing, Unset):
+            pricing = UNSET
+        elif isinstance(self.pricing, LlmPricing):
+            pricing = self.pricing.to_dict()
+        else:
+            pricing = self.pricing
+
+        hourly_cap_usd: float | None | Unset
+        if isinstance(self.hourly_cap_usd, Unset):
+            hourly_cap_usd = UNSET
+        else:
+            hourly_cap_usd = self.hourly_cap_usd
+
+        daily_cap_usd: float | None | Unset
+        if isinstance(self.daily_cap_usd, Unset):
+            daily_cap_usd = UNSET
+        else:
+            daily_cap_usd = self.daily_cap_usd
+
+        monthly_cap_usd: float | None | Unset
+        if isinstance(self.monthly_cap_usd, Unset):
+            monthly_cap_usd = UNSET
+        else:
+            monthly_cap_usd = self.monthly_cap_usd
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -126,11 +176,20 @@ class LlmProviderInput:
             field_dict["enabled"] = enabled
         if knowledge_cutoff is not UNSET:
             field_dict["knowledgeCutoff"] = knowledge_cutoff
+        if pricing is not UNSET:
+            field_dict["pricing"] = pricing
+        if hourly_cap_usd is not UNSET:
+            field_dict["hourlyCapUsd"] = hourly_cap_usd
+        if daily_cap_usd is not UNSET:
+            field_dict["dailyCapUsd"] = daily_cap_usd
+        if monthly_cap_usd is not UNSET:
+            field_dict["monthlyCapUsd"] = monthly_cap_usd
 
         return field_dict
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
+        from ..models.llm_pricing import LlmPricing
         from ..models.llm_provider_input_options import LlmProviderInputOptions
 
         d = dict(src_dict)
@@ -208,6 +267,50 @@ class LlmProviderInput:
 
         knowledge_cutoff = _parse_knowledge_cutoff(d.pop("knowledgeCutoff", UNSET))
 
+        def _parse_pricing(data: object) -> LlmPricing | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                pricing_type_0 = LlmPricing.from_dict(data)
+
+                return pricing_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(LlmPricing | None | Unset, data)
+
+        pricing = _parse_pricing(d.pop("pricing", UNSET))
+
+        def _parse_hourly_cap_usd(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        hourly_cap_usd = _parse_hourly_cap_usd(d.pop("hourlyCapUsd", UNSET))
+
+        def _parse_daily_cap_usd(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        daily_cap_usd = _parse_daily_cap_usd(d.pop("dailyCapUsd", UNSET))
+
+        def _parse_monthly_cap_usd(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        monthly_cap_usd = _parse_monthly_cap_usd(d.pop("monthlyCapUsd", UNSET))
+
         llm_provider_input = cls(
             id=id,
             type_=type_,
@@ -221,6 +324,10 @@ class LlmProviderInput:
             tokens_per_day=tokens_per_day,
             enabled=enabled,
             knowledge_cutoff=knowledge_cutoff,
+            pricing=pricing,
+            hourly_cap_usd=hourly_cap_usd,
+            daily_cap_usd=daily_cap_usd,
+            monthly_cap_usd=monthly_cap_usd,
         )
 
         llm_provider_input.additional_properties = d

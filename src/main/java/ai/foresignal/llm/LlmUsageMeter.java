@@ -4,6 +4,7 @@ import ai.foresignal.collect.UsageResolution;
 import ai.foresignal.ingest.IngestStateReset;
 import ai.foresignal.llm.client.TokenUsage;
 import jakarta.annotation.PreDestroy;
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
@@ -42,10 +43,12 @@ public class LlmUsageMeter implements IngestStateReset {
         final LongAdder cachedTokens = new LongAdder();
         final LongAdder errors = new LongAdder();
         final LongAdder refused = new LongAdder();
+        /** Written only inside the map's compute for this key, so additions never race. */
+        volatile BigDecimal costUsd = BigDecimal.ZERO;
 
         LlmUsagePoint snapshot(Instant t) {
             return new LlmUsagePoint(t, requests.sum(), inputTokens.sum(), outputTokens.sum(), cachedTokens.sum(),
-                    errors.sum(), refused.sum());
+                    errors.sum(), refused.sum(), costUsd);
         }
     }
 
@@ -62,14 +65,23 @@ public class LlmUsageMeter implements IngestStateReset {
         this.clock = clock;
     }
 
-    /** Records one completed call and its tokens. */
+    /** Records one completed call and its tokens, unpriced. */
     public void recordCall(String providerId, TokenUsage usage) {
+        recordCall(providerId, usage, BigDecimal.ZERO);
+    }
+
+    /** Records one completed call, its tokens and its cost in USD ({@link LlmPricing}). */
+    public void recordCall(String providerId, TokenUsage usage, BigDecimal costUsd) {
         TokenUsage u = usage == null ? TokenUsage.ZERO : usage;
+        BigDecimal cost = costUsd == null || costUsd.signum() < 0 ? BigDecimal.ZERO : costUsd;
         update(providerId, c -> {
             c.requests.increment();
             c.inputTokens.add(Math.max(0, u.inputTokens()));
             c.outputTokens.add(Math.max(0, u.outputTokens()));
             c.cachedTokens.add(Math.max(0, u.cachedTokens()));
+            if (cost.signum() > 0) {
+                c.costUsd = c.costUsd.add(cost);
+            }
         });
     }
 
@@ -105,7 +117,7 @@ public class LlmUsageMeter implements IngestStateReset {
             }
             LlmUsagePoint p = counters.snapshot(key.minute());
             batch.add(new Object[] {key.providerId(), Timestamp.from(key.minute()), p.requests(), p.inputTokens(),
-                p.outputTokens(), p.cachedTokens(), p.errors(), p.refused()});
+                p.outputTokens(), p.cachedTokens(), p.errors(), p.refused(), p.costUsd()});
         }
         if (batch.isEmpty()) {
             return;
@@ -126,15 +138,17 @@ public class LlmUsageMeter implements IngestStateReset {
     }
 
     private static final String UPSERT_SQL = """
-            insert into llm_usage (provider_id, minute, requests, input_tokens, output_tokens, cached_tokens, errors, refused)
-            values (?, ?, ?, ?, ?, ?, ?, ?)
+            insert into llm_usage (provider_id, minute, requests, input_tokens, output_tokens, cached_tokens, errors, refused,
+                                   cost_usd)
+            values (?, ?, ?, ?, ?, ?, ?, ?, ?)
             on conflict (provider_id, minute) do update set
                 requests      = llm_usage.requests      + excluded.requests,
                 input_tokens  = llm_usage.input_tokens  + excluded.input_tokens,
                 output_tokens = llm_usage.output_tokens + excluded.output_tokens,
                 cached_tokens = llm_usage.cached_tokens + excluded.cached_tokens,
                 errors        = llm_usage.errors        + excluded.errors,
-                refused       = llm_usage.refused       + excluded.refused
+                refused       = llm_usage.refused       + excluded.refused,
+                cost_usd      = llm_usage.cost_usd      + excluded.cost_usd
             """;
 
     /**
@@ -147,15 +161,24 @@ public class LlmUsageMeter implements IngestStateReset {
         return totals.inputTokens() + totals.outputTokens();
     }
 
+    /**
+     * USD spent by {@code providerId} from {@code from} up to now, including unflushed counters. Seeds
+     * the spend caps after a restart.
+     */
+    public BigDecimal costSince(String providerId, Instant from) {
+        return totals(providerId, from, clock.instant().plusSeconds(60)).costUsd();
+    }
+
     /** Totals over {@code [from, to)} for one provider, or every provider when null. */
     public LlmUsagePoint totals(String providerId, Instant from, Instant to) {
         LlmUsagePoint total = jdbc.query("""
                 select coalesce(sum(requests), 0), coalesce(sum(input_tokens), 0), coalesce(sum(output_tokens), 0),
-                       coalesce(sum(cached_tokens), 0), coalesce(sum(errors), 0), coalesce(sum(refused), 0)
+                       coalesce(sum(cached_tokens), 0), coalesce(sum(errors), 0), coalesce(sum(refused), 0),
+                       coalesce(sum(cost_usd), 0)
                   from llm_usage
                  where (cast(? as varchar) is null or provider_id = ?) and minute >= ? and minute < ?
                 """, rs -> rs.next() ? new LlmUsagePoint(from, rs.getLong(1), rs.getLong(2), rs.getLong(3),
-                        rs.getLong(4), rs.getLong(5), rs.getLong(6)) : zero(from),
+                        rs.getLong(4), rs.getLong(5), rs.getLong(6), rs.getBigDecimal(7)) : zero(from),
                 providerId, providerId, Timestamp.from(from), Timestamp.from(to));
         if (total == null) {
             total = zero(from);
@@ -176,7 +199,7 @@ public class LlmUsageMeter implements IngestStateReset {
         Map<Instant, LlmUsagePoint> buckets = new TreeMap<>();
         jdbc.query("""
                 select date_trunc(?, minute, 'UTC') as bucket, sum(requests), sum(input_tokens), sum(output_tokens),
-                       sum(cached_tokens), sum(errors), sum(refused)
+                       sum(cached_tokens), sum(errors), sum(refused), sum(cost_usd)
                   from llm_usage
                  where (cast(? as varchar) is null or provider_id = ?) and minute >= ? and minute < ?
                  group by bucket
@@ -184,7 +207,7 @@ public class LlmUsageMeter implements IngestStateReset {
                 """, rs -> {
                     Instant t = rs.getTimestamp(1).toInstant();
                     buckets.put(t, new LlmUsagePoint(t, rs.getLong(2), rs.getLong(3), rs.getLong(4), rs.getLong(5),
-                            rs.getLong(6), rs.getLong(7)));
+                            rs.getLong(6), rs.getLong(7), rs.getBigDecimal(8)));
                 }, resolution.sqlField(), providerId, providerId, Timestamp.from(from), Timestamp.from(to));
         live.forEach((key, counters) -> {
             if (matches(key, providerId, from, to)) {
@@ -209,7 +232,7 @@ public class LlmUsageMeter implements IngestStateReset {
     }
 
     private static LlmUsagePoint zero(Instant t) {
-        return new LlmUsagePoint(t, 0, 0, 0, 0, 0, 0);
+        return new LlmUsagePoint(t, 0, 0, 0, 0, 0, 0, BigDecimal.ZERO);
     }
 
     /** Discards unflushed counters (tests: the database was emptied underneath). */

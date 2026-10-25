@@ -51,6 +51,14 @@ abstract class _$LlmProviderCWProxy {
 
   LlmProvider local(bool? local);
 
+  LlmProvider pricing(LlmPricing? pricing);
+
+  LlmProvider hourlyCapUsd(num? hourlyCapUsd);
+
+  LlmProvider dailyCapUsd(num? dailyCapUsd);
+
+  LlmProvider monthlyCapUsd(num? monthlyCapUsd);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `LlmProvider(...).copyWith.fieldName(value)`.
@@ -82,6 +90,10 @@ abstract class _$LlmProviderCWProxy {
     DateTime? lastErrorAt,
     int? consecutiveFailures,
     bool? local,
+    LlmPricing? pricing,
+    num? hourlyCapUsd,
+    num? dailyCapUsd,
+    num? monthlyCapUsd,
   });
 }
 
@@ -167,6 +179,20 @@ class _$LlmProviderCWProxyImpl implements _$LlmProviderCWProxy {
   @override
   LlmProvider local(bool? local) => call(local: local);
 
+  @override
+  LlmProvider pricing(LlmPricing? pricing) => call(pricing: pricing);
+
+  @override
+  LlmProvider hourlyCapUsd(num? hourlyCapUsd) =>
+      call(hourlyCapUsd: hourlyCapUsd);
+
+  @override
+  LlmProvider dailyCapUsd(num? dailyCapUsd) => call(dailyCapUsd: dailyCapUsd);
+
+  @override
+  LlmProvider monthlyCapUsd(num? monthlyCapUsd) =>
+      call(monthlyCapUsd: monthlyCapUsd);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `LlmProvider(...).copyWith.fieldName(value)`.
@@ -199,6 +225,10 @@ class _$LlmProviderCWProxyImpl implements _$LlmProviderCWProxy {
     Object? lastErrorAt = const $CopyWithPlaceholder(),
     Object? consecutiveFailures = const $CopyWithPlaceholder(),
     Object? local = const $CopyWithPlaceholder(),
+    Object? pricing = const $CopyWithPlaceholder(),
+    Object? hourlyCapUsd = const $CopyWithPlaceholder(),
+    Object? dailyCapUsd = const $CopyWithPlaceholder(),
+    Object? monthlyCapUsd = const $CopyWithPlaceholder(),
   }) {
     return LlmProvider(
       id: id == const $CopyWithPlaceholder() || id == null
@@ -289,6 +319,22 @@ class _$LlmProviderCWProxyImpl implements _$LlmProviderCWProxy {
           ? _value.local
           // ignore: cast_nullable_to_non_nullable
           : local as bool?,
+      pricing: pricing == const $CopyWithPlaceholder()
+          ? _value.pricing
+          // ignore: cast_nullable_to_non_nullable
+          : pricing as LlmPricing?,
+      hourlyCapUsd: hourlyCapUsd == const $CopyWithPlaceholder()
+          ? _value.hourlyCapUsd
+          // ignore: cast_nullable_to_non_nullable
+          : hourlyCapUsd as num?,
+      dailyCapUsd: dailyCapUsd == const $CopyWithPlaceholder()
+          ? _value.dailyCapUsd
+          // ignore: cast_nullable_to_non_nullable
+          : dailyCapUsd as num?,
+      monthlyCapUsd: monthlyCapUsd == const $CopyWithPlaceholder()
+          ? _value.monthlyCapUsd
+          // ignore: cast_nullable_to_non_nullable
+          : monthlyCapUsd as num?,
     );
   }
 }
@@ -367,6 +413,13 @@ LlmProvider _$LlmProviderFromJson(
       (v) => (v as num?)?.toInt(),
     ),
     local: $checkedConvert('local', (v) => v as bool?),
+    pricing: $checkedConvert(
+      'pricing',
+      (v) => v == null ? null : LlmPricing.fromJson(v as Map<String, dynamic>),
+    ),
+    hourlyCapUsd: $checkedConvert('hourlyCapUsd', (v) => v as num?),
+    dailyCapUsd: $checkedConvert('dailyCapUsd', (v) => v as num?),
+    monthlyCapUsd: $checkedConvert('monthlyCapUsd', (v) => v as num?),
   );
   return val;
 });
@@ -397,6 +450,10 @@ Map<String, dynamic> _$LlmProviderToJson(LlmProvider instance) =>
       'lastErrorAt': ?instance.lastErrorAt?.toIso8601String(),
       'consecutiveFailures': ?instance.consecutiveFailures,
       'local': ?instance.local,
+      'pricing': ?instance.pricing?.toJson(),
+      'hourlyCapUsd': ?instance.hourlyCapUsd,
+      'dailyCapUsd': ?instance.dailyCapUsd,
+      'monthlyCapUsd': ?instance.monthlyCapUsd,
     };
 
 const _$LlmProviderTypeEnumEnumMap = {

@@ -1,5 +1,6 @@
 package ai.foresignal.llm;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
@@ -12,19 +13,25 @@ import java.time.Instant;
  * @param cachedTokens cached input tokens
  * @param errors failed calls
  * @param refused calls the budget refused
+ * @param costUsd the calls' cost in USD at the provider's prices when they were made (zero when unpriced)
  */
 public record LlmUsagePoint(Instant t, long requests, long inputTokens, long outputTokens, long cachedTokens,
-        long errors, long refused) {
+        long errors, long refused, BigDecimal costUsd) {
+
+    /** A null cost is zero. */
+    public LlmUsagePoint {
+        costUsd = costUsd == null ? BigDecimal.ZERO : costUsd;
+    }
 
     /** The element-wise sum, keeping this bucket's time. */
     public LlmUsagePoint plus(LlmUsagePoint other) {
         return new LlmUsagePoint(t, requests + other.requests, inputTokens + other.inputTokens,
                 outputTokens + other.outputTokens, cachedTokens + other.cachedTokens, errors + other.errors,
-                refused + other.refused);
+                refused + other.refused, costUsd.add(other.costUsd));
     }
 
     /** This point at another time. */
     public LlmUsagePoint at(Instant time) {
-        return new LlmUsagePoint(time, requests, inputTokens, outputTokens, cachedTokens, errors, refused);
+        return new LlmUsagePoint(time, requests, inputTokens, outputTokens, cachedTokens, errors, refused, costUsd);
     }
 }

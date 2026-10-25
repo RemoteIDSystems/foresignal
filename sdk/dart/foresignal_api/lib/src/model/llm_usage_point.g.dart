@@ -21,6 +21,8 @@ abstract class _$LlmUsagePointCWProxy {
 
   LlmUsagePoint refused(int? refused);
 
+  LlmUsagePoint costUsd(num? costUsd);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `LlmUsagePoint(...).copyWith.fieldName(value)`.
@@ -37,6 +39,7 @@ abstract class _$LlmUsagePointCWProxy {
     int? cachedTokens,
     int? errors,
     int? refused,
+    num? costUsd,
   });
 }
 
@@ -70,6 +73,9 @@ class _$LlmUsagePointCWProxyImpl implements _$LlmUsagePointCWProxy {
   @override
   LlmUsagePoint refused(int? refused) => call(refused: refused);
 
+  @override
+  LlmUsagePoint costUsd(num? costUsd) => call(costUsd: costUsd);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `LlmUsagePoint(...).copyWith.fieldName(value)`.
@@ -87,6 +93,7 @@ class _$LlmUsagePointCWProxyImpl implements _$LlmUsagePointCWProxy {
     Object? cachedTokens = const $CopyWithPlaceholder(),
     Object? errors = const $CopyWithPlaceholder(),
     Object? refused = const $CopyWithPlaceholder(),
+    Object? costUsd = const $CopyWithPlaceholder(),
   }) {
     return LlmUsagePoint(
       t: t == const $CopyWithPlaceholder() || t == null
@@ -119,6 +126,10 @@ class _$LlmUsagePointCWProxyImpl implements _$LlmUsagePointCWProxy {
           ? _value.refused
           // ignore: cast_nullable_to_non_nullable
           : refused as int?,
+      costUsd: costUsd == const $CopyWithPlaceholder()
+          ? _value.costUsd
+          // ignore: cast_nullable_to_non_nullable
+          : costUsd as num?,
     );
   }
 }
@@ -149,6 +160,7 @@ LlmUsagePoint _$LlmUsagePointFromJson(
     cachedTokens: $checkedConvert('cachedTokens', (v) => (v as num?)?.toInt()),
     errors: $checkedConvert('errors', (v) => (v as num?)?.toInt()),
     refused: $checkedConvert('refused', (v) => (v as num?)?.toInt()),
+    costUsd: $checkedConvert('costUsd', (v) => v as num?),
   );
   return val;
 });
@@ -162,4 +174,5 @@ Map<String, dynamic> _$LlmUsagePointToJson(LlmUsagePoint instance) =>
       'cachedTokens': ?instance.cachedTokens,
       'errors': ?instance.errors,
       'refused': ?instance.refused,
+      'costUsd': ?instance.costUsd,
     };

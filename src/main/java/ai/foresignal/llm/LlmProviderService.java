@@ -11,6 +11,7 @@ import ai.foresignal.security.CredentialCipher;
 import ai.foresignal.security.Encrypted;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,6 +22,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * The {@code llm_provider} rows behind {@code /v1/llm/providers} (prompt 026).
@@ -33,6 +35,9 @@ import tools.jackson.databind.JsonNode;
  */
 @Service
 public class LlmProviderService {
+
+    /** The id a {@code probeLlmProvider} body without one is validated under. */
+    static final String PROBE_ID = "probe";
 
     private final LlmProviderRepository repository;
     private final LlmProviderValidator validator;
@@ -192,7 +197,47 @@ public class LlmProviderService {
         String key = apiKeySet(entity)
                 ? cipher.decryptToString(new Encrypted(entity.getSecretCiphertext(), entity.getSecretNonce()))
                 : null;
-        Map<String, Object> options = entity.getOptions() == null ? Map.of() : entity.getOptions();
+        return config(entity.getId(), LlmProviderType.fromWire(entity.getType()), entity.getBaseUrl(),
+                entity.getChatModel(), entity.getEmbeddingModel(), entity.getEmbeddingDimensions(), entity.getOptions(),
+                key, entity.getRequestsPerMinute(), entity.getTokensPerDay(), entity.isEnabled(),
+                entity.getKnowledgeCutoff(), entity.getPricing(), entity.getSpendCaps());
+    }
+
+    /**
+     * The configuration snapshot of an unsaved {@code LlmProviderInput} body, for
+     * {@code probeLlmProvider}; nothing is stored. The body is validated as a create, except that
+     * {@code id} may be left out. Without {@code apiKey}, the stored key of the provider with the
+     * body's {@code id} is used, when there is one, so a saved provider can be tested with edits that are
+     * not saved yet.
+     *
+     * @throws ValidationException when the body is not valid, or an anthropic body has no key
+     */
+    @Transactional(readOnly = true)
+    public LlmProviderConfig probeConfig(JsonNode body) {
+        JsonNode checked = body;
+        if (body != null && body.isObject() && (body.get("id") == null || body.get("id").isNull())) {
+            ObjectNode copy = ((ObjectNode) body).deepCopy();
+            copy.put("id", PROBE_ID);
+            checked = copy;
+        }
+        LlmProviderInput input = validator.parse(checked, null);
+        Optional<LlmProviderEntity> saved = repository.findById(input.id());
+        requireKey(input, saved.orElse(null));
+        String key = input.apiKey();
+        if (key == null && saved.isPresent() && apiKeySet(saved.get())) {
+            LlmProviderEntity entity = saved.get();
+            key = cipher.decryptToString(new Encrypted(entity.getSecretCiphertext(), entity.getSecretNonce()));
+        }
+        return config(input.id(), input.type(), input.baseUrl(), input.chatModel(), input.embeddingModel(),
+                input.embeddingDimensions(), input.options(), key, input.requestsPerMinute(), input.tokensPerDay(),
+                input.enabled(), input.knowledgeCutoff(), input.pricing(), input.spendCaps());
+    }
+
+    private static LlmProviderConfig config(String id, LlmProviderType type, String baseUrl, String chatModel,
+            String embeddingModel, Integer embeddingDimensions, Map<String, Object> storedOptions, String key,
+            int requestsPerMinute, long tokensPerDay, boolean enabled, LocalDate knowledgeCutoff,
+            LlmPricing pricing, LlmSpendCaps spendCaps) {
+        Map<String, Object> options = storedOptions == null ? Map.of() : storedOptions;
         Effort effort = null;
         if (options.get("effort") instanceof String text) {
             try {
@@ -208,10 +253,9 @@ public class LlmProviderService {
             map.forEach((k, v) -> headers.put(String.valueOf(k), String.valueOf(v)));
         }
         boolean local = Boolean.TRUE.equals(options.get("local"));
-        return new LlmProviderConfig(entity.getId(), LlmProviderType.fromWire(entity.getType()), entity.getBaseUrl(),
-                entity.getChatModel(), entity.getEmbeddingModel(), entity.getEmbeddingDimensions(), effort, maxTokens,
-                temperature, headers, local, key, entity.getRequestsPerMinute(), entity.getTokensPerDay(),
-                entity.isEnabled(), entity.getKnowledgeCutoff());
+        return new LlmProviderConfig(id, type, baseUrl, chatModel, embeddingModel, embeddingDimensions, effort,
+                maxTokens, temperature, headers, local, key, requestsPerMinute, tokensPerDay, enabled, knowledgeCutoff,
+                pricing, spendCaps);
     }
 
     /** The configuration snapshot of provider {@code id}. */
@@ -236,6 +280,8 @@ public class LlmProviderService {
         entity.setTokensPerDay(input.tokensPerDay());
         entity.setEnabled(input.enabled());
         entity.setKnowledgeCutoff(input.knowledgeCutoff());
+        entity.setPricing(input.pricing());
+        entity.setSpendCaps(input.spendCaps());
         if (input.apiKey() != null) {
             Encrypted encrypted = cipher.encrypt(input.apiKey());
             entity.setSecret(encrypted.ciphertext(), encrypted.nonce());

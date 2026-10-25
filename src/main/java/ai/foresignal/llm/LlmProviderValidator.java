@@ -4,6 +4,7 @@ import ai.foresignal.api.error.FieldError;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.llm.client.Effort;
 import ai.foresignal.net.OutboundUrlPolicy;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.LocalDate;
@@ -64,11 +65,20 @@ public class LlmProviderValidator {
 
     private static final Set<String> MEMBERS = Set.of("id", "type", "baseUrl", "chatModel", "embeddingModel",
             "embeddingDimensions", "apiKey", "options", "requestsPerMinute", "tokensPerDay", "enabled",
-            "knowledgeCutoff");
+            "knowledgeCutoff", "pricing", "hourlyCapUsd", "dailyCapUsd", "monthlyCapUsd");
 
     /** Output-only members of {@code LlmProvider}, tolerated (and ignored) so an exported provider imports. */
     private static final Set<String> OUTPUT_ONLY = Set.of("apiKeySet", "roles", "status", "tokensToday", "lastError",
             "updatedAt", "supportsTools", "lastSuccessAt", "lastErrorAt", "consecutiveFailures", "local");
+
+    private static final Set<String> PRICING_MEMBERS = Set.of("inputUsdPerMillionTokens", "outputUsdPerMillionTokens",
+            "cachedInputUsdPerMillionTokens", "embeddingUsdPerMillionTokens");
+
+    /** The largest price, in USD per million tokens. */
+    static final BigDecimal MAX_PRICE = BigDecimal.valueOf(100_000);
+
+    /** The largest USD cap of any window. */
+    static final BigDecimal MAX_CAP = BigDecimal.valueOf(10_000_000_000L);
 
     private static final Set<String> OPTION_MEMBERS = Set.of("effort", "maxTokens", "temperature", "extraHeaders",
             "local", "ttsModel", "ttsCharactersPerDay");
@@ -185,6 +195,16 @@ public class LlmProviderValidator {
             }
         }
 
+        LlmPricing pricing = pricing(body.get("pricing"), type, errors);
+        LlmSpendCaps caps = new LlmSpendCaps(cap(body, "hourlyCapUsd", errors), cap(body, "dailyCapUsd", errors),
+                cap(body, "monthlyCapUsd", errors));
+        if (caps.isSet() && !pricing.isSet()) {
+            String field = caps.hourlyUsd() != null ? "hourlyCapUsd" : caps.dailyUsd() != null ? "dailyCapUsd"
+                    : "monthlyCapUsd";
+            errors.add(new FieldError(field, "needs pricing: spend is the metered tokens at the provider's prices,"
+                    + " so a cap without prices could never be reached"));
+        }
+
         if (!errors.isEmpty()) {
             if (urlRefused) {
                 throw OutboundUrlPolicy.notAllowed(errors);
@@ -193,7 +213,7 @@ public class LlmProviderValidator {
         }
         return new LlmProviderInput(id, type, baseUrl, chatModel, embeddingModel, embeddingDimensions, apiKey, options,
                 rpm == null ? DEFAULT_REQUESTS_PER_MINUTE : rpm, tpd == null ? DEFAULT_TOKENS_PER_DAY : tpd, enabled,
-                cutoff);
+                cutoff, pricing, caps);
     }
 
     /**
@@ -325,6 +345,59 @@ public class LlmProviderValidator {
             out.putIfAbsent("maxTokens", DEFAULT_ANTHROPIC_MAX_TOKENS);
         }
         return out;
+    }
+
+    private static LlmPricing pricing(JsonNode node, LlmProviderType type, List<FieldError> errors) {
+        if (node == null || node.isNull()) {
+            return LlmPricing.NONE;
+        }
+        if (!node.isObject()) {
+            errors.add(new FieldError("pricing", "must be an object of prices in USD per million tokens"));
+            return LlmPricing.NONE;
+        }
+        for (String name : node.propertyNames()) {
+            if (!PRICING_MEMBERS.contains(name)) {
+                errors.add(new FieldError("pricing." + name, "is not a price (inputUsdPerMillionTokens,"
+                        + " outputUsdPerMillionTokens, cachedInputUsdPerMillionTokens, embeddingUsdPerMillionTokens)"));
+            }
+        }
+        BigDecimal embedding = price(node, "embeddingUsdPerMillionTokens", errors);
+        if (embedding != null && type == LlmProviderType.ANTHROPIC) {
+            errors.add(new FieldError("pricing.embeddingUsdPerMillionTokens",
+                    "Anthropic has no embeddings endpoint, so it has no embedding price"));
+            embedding = null;
+        }
+        return new LlmPricing(price(node, "inputUsdPerMillionTokens", errors),
+                price(node, "outputUsdPerMillionTokens", errors), price(node, "cachedInputUsdPerMillionTokens", errors),
+                embedding);
+    }
+
+    private static BigDecimal price(JsonNode pricing, String name, List<FieldError> errors) {
+        JsonNode node = pricing.get(name);
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        BigDecimal value = node.isNumber() ? node.decimalValue() : null;
+        if (value == null || value.signum() < 0 || value.compareTo(MAX_PRICE) > 0 || value.stripTrailingZeros().scale() > 6) {
+            errors.add(new FieldError("pricing." + name, "must be a number from 0 to " + MAX_PRICE
+                    + " with at most 6 decimal places, in USD per million tokens"));
+            return null;
+        }
+        return value.stripTrailingZeros().scale() < 0 ? value.setScale(0) : value.stripTrailingZeros();
+    }
+
+    private static BigDecimal cap(JsonNode body, String name, List<FieldError> errors) {
+        JsonNode node = body.get(name);
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        BigDecimal value = node.isNumber() ? node.decimalValue() : null;
+        if (value == null || value.signum() <= 0 || value.compareTo(MAX_CAP) > 0 || value.stripTrailingZeros().scale() > 4) {
+            errors.add(new FieldError(name, "must be a number above 0 and at most " + MAX_CAP.toPlainString()
+                    + " with at most 4 decimal places, in USD, or null for no cap"));
+            return null;
+        }
+        return value.stripTrailingZeros().scale() < 0 ? value.setScale(0) : value.stripTrailingZeros();
     }
 
     private static String optionalString(JsonNode body, String name, List<FieldError> errors) {

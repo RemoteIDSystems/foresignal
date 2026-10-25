@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:foresignal_api/src/model/llm_pricing.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -63,6 +64,14 @@ class LlmProvider {
      this.consecutiveFailures,
 
      this.local,
+
+     this.pricing,
+
+     this.hourlyCapUsd,
+
+     this.dailyCapUsd,
+
+     this.monthlyCapUsd,
   });
 
   @JsonKey(
@@ -332,6 +341,64 @@ class LlmProvider {
 
 
 
+      /// Prices in USD per million tokens (162); every member null when unpriced
+  @JsonKey(
+    
+    name: r'pricing',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final LlmPricing? pricing;
+
+
+
+      /// USD cap of the UTC clock hour (it resets at the top of the hour), or null (162)
+          // minimum: 0
+          // maximum: 10000000000
+  @JsonKey(
+    
+    name: r'hourlyCapUsd',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final num? hourlyCapUsd;
+
+
+
+      /// USD cap of the UTC day (it resets at 00:00 UTC, as tokensPerDay), or null (162)
+          // minimum: 0
+          // maximum: 10000000000
+  @JsonKey(
+    
+    name: r'dailyCapUsd',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final num? dailyCapUsd;
+
+
+
+      /// USD cap of the UTC calendar month (it resets at 00:00 UTC on the 1st), or null (162)
+          // minimum: 0
+          // maximum: 10000000000
+  @JsonKey(
+    
+    name: r'monthlyCapUsd',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final num? monthlyCapUsd;
+
+
+
 
 
     @override
@@ -357,7 +424,11 @@ class LlmProvider {
       other.lastSuccessAt == lastSuccessAt &&
       other.lastErrorAt == lastErrorAt &&
       other.consecutiveFailures == consecutiveFailures &&
-      other.local == local;
+      other.local == local &&
+      other.pricing == pricing &&
+      other.hourlyCapUsd == hourlyCapUsd &&
+      other.dailyCapUsd == dailyCapUsd &&
+      other.monthlyCapUsd == monthlyCapUsd;
 
     @override
     int get hashCode =>
@@ -382,7 +453,11 @@ class LlmProvider {
         (lastSuccessAt == null ? 0 : lastSuccessAt.hashCode) +
         (lastErrorAt == null ? 0 : lastErrorAt.hashCode) +
         consecutiveFailures.hashCode +
-        local.hashCode;
+        local.hashCode +
+        (pricing == null ? 0 : pricing.hashCode) +
+        (hourlyCapUsd == null ? 0 : hourlyCapUsd.hashCode) +
+        (dailyCapUsd == null ? 0 : dailyCapUsd.hashCode) +
+        (monthlyCapUsd == null ? 0 : monthlyCapUsd.hashCode);
 
   factory LlmProvider.fromJson(Map<String, dynamic> json) => _$LlmProviderFromJson(json);
 

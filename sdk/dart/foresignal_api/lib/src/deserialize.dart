@@ -861,10 +861,18 @@ import 'package:foresignal_api/src/model/lightning_cluster_payload.dart';
 import 'package:foresignal_api/src/model/list_records200_response.dart';
 import 'package:foresignal_api/src/model/live_event.dart';
 import 'package:foresignal_api/src/model/llm_model_info.dart';
+import 'package:foresignal_api/src/model/llm_pricing.dart';
+import 'package:foresignal_api/src/model/llm_probe_result.dart';
 import 'package:foresignal_api/src/model/llm_provider.dart';
+import 'package:foresignal_api/src/model/llm_provider_balance.dart';
+import 'package:foresignal_api/src/model/llm_provider_balance_amounts_inner.dart';
+import 'package:foresignal_api/src/model/llm_provider_budget.dart';
+import 'package:foresignal_api/src/model/llm_provider_budget_rate_limits.dart';
+import 'package:foresignal_api/src/model/llm_provider_budget_windows.dart';
 import 'package:foresignal_api/src/model/llm_provider_input.dart';
 import 'package:foresignal_api/src/model/llm_provider_input_options.dart';
 import 'package:foresignal_api/src/model/llm_settings.dart';
+import 'package:foresignal_api/src/model/llm_spend_window.dart';
 import 'package:foresignal_api/src/model/llm_test_result.dart';
 import 'package:foresignal_api/src/model/llm_test_result_chat.dart';
 import 'package:foresignal_api/src/model/llm_test_result_embedding.dart';
@@ -3536,14 +3544,30 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return LiveEvent.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'LlmModelInfo':
           return LlmModelInfo.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'LlmPricing':
+          return LlmPricing.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'LlmProbeResult':
+          return LlmProbeResult.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'LlmProvider':
           return LlmProvider.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'LlmProviderBalance':
+          return LlmProviderBalance.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'LlmProviderBalanceAmountsInner':
+          return LlmProviderBalanceAmountsInner.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'LlmProviderBudget':
+          return LlmProviderBudget.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'LlmProviderBudgetRateLimits':
+          return LlmProviderBudgetRateLimits.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'LlmProviderBudgetWindows':
+          return LlmProviderBudgetWindows.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'LlmProviderInput':
           return LlmProviderInput.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'LlmProviderInputOptions':
           return LlmProviderInputOptions.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'LlmSettings':
           return LlmSettings.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'LlmSpendWindow':
+          return LlmSpendWindow.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'LlmTestResult':
           return LlmTestResult.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'LlmTestResultChat':

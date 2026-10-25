@@ -1250,6 +1250,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/llm/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test an unsaved LLM provider and list its models
+         * @description Dry run for the provider editor: takes an LlmProviderInput that is not saved and, in one round trip, lists the provider's models and runs the testLlmProvider probes (a tiny chat when `chatModel` is set, an embedding when an embedding model and dimensions are). Without a model the model listing is the connection test. Nothing is persisted: no provider, no usage, no health, no budget; the `apiKey` is used for these requests and discarded. Without `apiKey`, the stored key of the saved provider named by `id` is used when there is one, so a saved provider can be tested with edits that are not saved yet. The body is validated as createLlmProvider validates it (400, and 400 URL_NOT_ALLOWED for a base URL the outbound URL policy refuses); the requests go through the same outbound URL policy and pinning as a saved provider's. A provider failure is reported in the result, never as an error status.
+         *
+         *     **Scope:** `admin`.
+         */
+        post: operations["probeLlmProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/llm/providers/{providerId}/budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description LLM provider id */
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * A provider's spend against its USD caps
+         * @description Per window (the UTC hour, day and month) the USD spent, the estimated USD of calls in flight, the cap, what remains and when the window resets; the token and request limits; and, for providers whose API reports one to the same key, the provider-reported balance (DeepSeek, OpenRouter), shown for information and never enforced. Spend is Foresignal's own metered tokens at the provider's `pricing`.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["getLlmProviderBudget"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/llm/settings": {
         parameters: {
             query?: never;
@@ -18000,6 +18047,14 @@ export interface components {
              * @description Training-data cutoff of the chat model (`YYYY-MM-DD`)
              */
             knowledgeCutoff?: string | null;
+            /** @description Prices in USD per million tokens (162); null or omitted means unpriced. Required for a USD cap. */
+            pricing?: components["schemas"]["LlmPricing"] | null;
+            /** @description The most this provider may spend in the UTC clock hour (it resets at the top of the hour), in USD, at most 4 decimal places; null means no cap (162). Spend is the provider's self-metered tokens at its `pricing`, so a cap needs pricing. Once a window's spend, with the estimated cost of the calls in flight, reaches its cap, calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset. Applies on top of requestsPerMinute and tokensPerDay. */
+            hourlyCapUsd?: number | null;
+            /** @description The most this provider may spend in the UTC day (it resets at 00:00 UTC, as tokensPerDay), in USD, at most 4 decimal places; null means no cap (162). Spend is the provider's self-metered tokens at its `pricing`, so a cap needs pricing. Once a window's spend, with the estimated cost of the calls in flight, reaches its cap, calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset. Applies on top of requestsPerMinute and tokensPerDay. */
+            dailyCapUsd?: number | null;
+            /** @description The most this provider may spend in the UTC calendar month (it resets at 00:00 UTC on the 1st), in USD, at most 4 decimal places; null means no cap (162). Spend is the provider's self-metered tokens at its `pricing`, so a cap needs pricing. Once a window's spend, with the estimated cost of the calls in flight, reaches its cap, calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset. Applies on top of requestsPerMinute and tokensPerDay. */
+            monthlyCapUsd?: number | null;
         };
         LlmProvider: {
             id: string;
@@ -18038,6 +18093,14 @@ export interface components {
             consecutiveFailures?: number;
             /** @description Treated as local for LLM egress (ollama, or `options.local=true`) */
             local?: boolean;
+            /** @description Prices in USD per million tokens (162); every member null when unpriced */
+            pricing?: components["schemas"]["LlmPricing"] | null;
+            /** @description USD cap of the UTC clock hour (it resets at the top of the hour), or null (162) */
+            hourlyCapUsd?: number | null;
+            /** @description USD cap of the UTC day (it resets at 00:00 UTC, as tokensPerDay), or null (162) */
+            dailyCapUsd?: number | null;
+            /** @description USD cap of the UTC calendar month (it resets at 00:00 UTC on the 1st), or null (162) */
+            monthlyCapUsd?: number | null;
         };
         LlmSettings: {
             chatProvider?: string | null;
@@ -18098,6 +18161,8 @@ export interface components {
             cachedTokens?: number;
             errors?: number;
             refused?: number;
+            /** @description USD cost of the bucket's calls at the provider's prices when they were made (162); 0 when unpriced */
+            costUsd?: number;
         };
         LlmUsageSeries: {
             provider?: string | null;
@@ -39290,6 +39355,109 @@ export interface components {
             bbox: number[];
             geometry: components["schemas"]["Geometry"];
         };
+        /** @description A provider's prices in USD per million tokens (162). Every price is optional; an unset price counts those tokens at zero. The spend the USD caps enforce is each call's metered tokens at these prices: input at inputUsdPerMillionTokens, output at outputUsdPerMillionTokens, and cached input (Anthropic cache reads, OpenAI `prompt_tokens_details.cached_tokens`) at cachedInputUsdPerMillionTokens, or the input price when that is unset; embedding calls at embeddingUsdPerMillionTokens. Prices take at most 6 decimal places, from 0 to 100000. */
+        LlmPricing: {
+            /**
+             * @description USD per million input tokens
+             * @example 3
+             */
+            inputUsdPerMillionTokens?: number | null;
+            /**
+             * @description USD per million output tokens (thinking included)
+             * @example 15
+             */
+            outputUsdPerMillionTokens?: number | null;
+            /**
+             * @description USD per million cached input tokens; the input price when unset
+             * @example 0.3
+             */
+            cachedInputUsdPerMillionTokens?: number | null;
+            /**
+             * @description USD per million embedding input tokens; refused for anthropic, which has no embeddings endpoint
+             * @example 0.02
+             */
+            embeddingUsdPerMillionTokens?: number | null;
+        };
+        /** @description The result of probeLlmProvider (162): the connection test and the provider's models from one round trip. */
+        LlmProbeResult: {
+            /** @description With a chatModel (or an embedding model and dimensions) the testLlmProvider probes; without one, success reports whether the model list could be read, with its error */
+            test: components["schemas"]["LlmTestResult"];
+            /** @description The provider's models (Anthropic Models API, OpenAI-compatible /models, Ollama /api/tags); empty when it could not list them */
+            models: components["schemas"]["LlmModelInfo"][];
+            /** @description Why the models could not be listed, or null; a provider that cannot enumerate its models answers an empty list with this set */
+            modelsError?: string | null;
+        };
+        /** @description Spend in one window against its cap (162). */
+        LlmSpendWindow: {
+            /** @enum {string} */
+            window: "hour" | "day" | "month";
+            /**
+             * Format: date-time
+             * @description When the window began (UTC boundary)
+             */
+            start: string;
+            /**
+             * Format: date-time
+             * @description When it resets: the next hour, 00:00 UTC, or the 1st
+             */
+            resetsAt: string;
+            /** @description USD spent in the window: settled calls at the provider's prices, seeded from the stored usage after a restart */
+            spentUsd: number;
+            /** @description Estimated USD of the calls in flight, held against the cap until they settle */
+            reservedUsd: number;
+            /** @description The cap, or null when this window has none */
+            capUsd: number | null;
+            /** @description capUsd less spentUsd, never below 0; null without a cap */
+            remainingUsd: number | null;
+            /** @description True when spent plus reserved has reached the cap: calls are refused until resetsAt */
+            exhausted: boolean;
+        };
+        /** @description A balance the provider itself reports for the account behind the key (162). Information only: it is shown beside the caps and never enforced; the caps count Foresignal's own metered spend. Reported by DeepSeek (GET /user/balance, `total_balance` per currency) and OpenRouter (GET /api/v1/credits, total_credits less total_usage, which only a management key may read; otherwise GET /api/v1/key, the key's `limit_remaining`). Other providers expose no balance to the inference key, so they have none. Fetched at most once a minute. */
+        LlmProviderBalance: {
+            /**
+             * @description Who reported it
+             * @example DeepSeek
+             */
+            provider: string;
+            /** @description `account`: the account's balance or credits; `key-limit`: what is left of this key's own spending limit */
+            kind: string;
+            /** @description One amount per currency; empty when it could not be fetched */
+            amounts: {
+                amount: number;
+                /**
+                 * @description ISO 4217 code
+                 * @example USD
+                 */
+                currency: string;
+            }[];
+            /** Format: date-time */
+            fetchedAt: string;
+            /** @description Why it could not be fetched, or null */
+            error?: string | null;
+        };
+        /** @description A provider's spend against its USD caps, its token and request limits, and the balance it reports, when it reports one (162). */
+        LlmProviderBudget: {
+            providerId: string;
+            /** @enum {string} */
+            currency: "USD";
+            /** @description Whether any price is set; without prices spend stays 0 */
+            priced: boolean;
+            pricing: components["schemas"]["LlmPricing"];
+            windows: {
+                hour: components["schemas"]["LlmSpendWindow"];
+                day: components["schemas"]["LlmSpendWindow"];
+                month: components["schemas"]["LlmSpendWindow"];
+            };
+            rateLimits: {
+                requestsPerMinute: number;
+                /** Format: int64 */
+                tokensPerDay: number;
+                /** Format: int64 */
+                tokensToday: number;
+            };
+            /** @description The provider-reported balance, or null when the provider reports none */
+            providerBalance: components["schemas"]["LlmProviderBalance"] | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -43531,7 +43699,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description LLM budget exhausted (LLM_BUDGET_EXCEEDED) */
+            /** @description LLM budget exhausted (LLM_BUDGET_EXCEEDED): the minute's requests, the day's tokens, or a USD cap (162) */
             429: {
                 headers: {
                     /** @description Seconds to wait before retrying */
@@ -43605,6 +43773,107 @@ export interface operations {
             };
             /** @description Provider unreachable or failing (LLM_PROVIDER_ERROR) */
             502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    probeLlmProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LlmProviderInput"];
+            };
+        };
+        responses: {
+            /** @description Result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LlmProbeResult"];
+                };
+            };
+            /** @description Invalid body (VALIDATION_FAILED, URL_NOT_ALLOWED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token lacks the required scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getLlmProviderBudget: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description LLM provider id */
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Budget */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LlmProviderBudget"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token lacks the required scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

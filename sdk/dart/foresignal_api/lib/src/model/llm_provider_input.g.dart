@@ -31,6 +31,14 @@ abstract class _$LlmProviderInputCWProxy {
 
   LlmProviderInput knowledgeCutoff(DateTime? knowledgeCutoff);
 
+  LlmProviderInput pricing(LlmPricing? pricing);
+
+  LlmProviderInput hourlyCapUsd(num? hourlyCapUsd);
+
+  LlmProviderInput dailyCapUsd(num? dailyCapUsd);
+
+  LlmProviderInput monthlyCapUsd(num? monthlyCapUsd);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `LlmProviderInput(...).copyWith.fieldName(value)`.
@@ -52,6 +60,10 @@ abstract class _$LlmProviderInputCWProxy {
     int? tokensPerDay,
     bool? enabled,
     DateTime? knowledgeCutoff,
+    LlmPricing? pricing,
+    num? hourlyCapUsd,
+    num? dailyCapUsd,
+    num? monthlyCapUsd,
   });
 }
 
@@ -104,6 +116,21 @@ class _$LlmProviderInputCWProxyImpl implements _$LlmProviderInputCWProxy {
   LlmProviderInput knowledgeCutoff(DateTime? knowledgeCutoff) =>
       call(knowledgeCutoff: knowledgeCutoff);
 
+  @override
+  LlmProviderInput pricing(LlmPricing? pricing) => call(pricing: pricing);
+
+  @override
+  LlmProviderInput hourlyCapUsd(num? hourlyCapUsd) =>
+      call(hourlyCapUsd: hourlyCapUsd);
+
+  @override
+  LlmProviderInput dailyCapUsd(num? dailyCapUsd) =>
+      call(dailyCapUsd: dailyCapUsd);
+
+  @override
+  LlmProviderInput monthlyCapUsd(num? monthlyCapUsd) =>
+      call(monthlyCapUsd: monthlyCapUsd);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `LlmProviderInput(...).copyWith.fieldName(value)`.
@@ -126,6 +153,10 @@ class _$LlmProviderInputCWProxyImpl implements _$LlmProviderInputCWProxy {
     Object? tokensPerDay = const $CopyWithPlaceholder(),
     Object? enabled = const $CopyWithPlaceholder(),
     Object? knowledgeCutoff = const $CopyWithPlaceholder(),
+    Object? pricing = const $CopyWithPlaceholder(),
+    Object? hourlyCapUsd = const $CopyWithPlaceholder(),
+    Object? dailyCapUsd = const $CopyWithPlaceholder(),
+    Object? monthlyCapUsd = const $CopyWithPlaceholder(),
   }) {
     return LlmProviderInput(
       id: id == const $CopyWithPlaceholder() || id == null
@@ -176,6 +207,22 @@ class _$LlmProviderInputCWProxyImpl implements _$LlmProviderInputCWProxy {
           ? _value.knowledgeCutoff
           // ignore: cast_nullable_to_non_nullable
           : knowledgeCutoff as DateTime?,
+      pricing: pricing == const $CopyWithPlaceholder()
+          ? _value.pricing
+          // ignore: cast_nullable_to_non_nullable
+          : pricing as LlmPricing?,
+      hourlyCapUsd: hourlyCapUsd == const $CopyWithPlaceholder()
+          ? _value.hourlyCapUsd
+          // ignore: cast_nullable_to_non_nullable
+          : hourlyCapUsd as num?,
+      dailyCapUsd: dailyCapUsd == const $CopyWithPlaceholder()
+          ? _value.dailyCapUsd
+          // ignore: cast_nullable_to_non_nullable
+          : dailyCapUsd as num?,
+      monthlyCapUsd: monthlyCapUsd == const $CopyWithPlaceholder()
+          ? _value.monthlyCapUsd
+          // ignore: cast_nullable_to_non_nullable
+          : monthlyCapUsd as num?,
     );
   }
 }
@@ -227,6 +274,14 @@ LlmProviderInput _$LlmProviderInputFromJson(Map<String, dynamic> json) =>
           'knowledgeCutoff',
           (v) => v == null ? null : DateTime.parse(v as String),
         ),
+        pricing: $checkedConvert(
+          'pricing',
+          (v) =>
+              v == null ? null : LlmPricing.fromJson(v as Map<String, dynamic>),
+        ),
+        hourlyCapUsd: $checkedConvert('hourlyCapUsd', (v) => v as num?),
+        dailyCapUsd: $checkedConvert('dailyCapUsd', (v) => v as num?),
+        monthlyCapUsd: $checkedConvert('monthlyCapUsd', (v) => v as num?),
       );
       return val;
     });
@@ -245,6 +300,10 @@ Map<String, dynamic> _$LlmProviderInputToJson(LlmProviderInput instance) =>
       'tokensPerDay': ?instance.tokensPerDay,
       'enabled': ?instance.enabled,
       'knowledgeCutoff': ?instance.knowledgeCutoff?.toIso8601String(),
+      'pricing': ?instance.pricing?.toJson(),
+      'hourlyCapUsd': ?instance.hourlyCapUsd,
+      'dailyCapUsd': ?instance.dailyCapUsd,
+      'monthlyCapUsd': ?instance.monthlyCapUsd,
     };
 
 const _$LlmProviderInputTypeEnumEnumMap = {

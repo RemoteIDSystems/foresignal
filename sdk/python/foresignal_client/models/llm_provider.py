@@ -13,6 +13,7 @@ from ..models.llm_provider_type import LlmProviderType
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
+    from ..models.llm_pricing import LlmPricing
     from ..models.llm_provider_options import LlmProviderOptions
 
 
@@ -46,6 +47,13 @@ class LlmProvider:
         last_error_at (datetime.datetime | None | Unset):
         consecutive_failures (int | Unset):
         local (bool | Unset): Treated as local for LLM egress (ollama, or `options.local=true`)
+        pricing (LlmPricing | None | Unset): Prices in USD per million tokens (162); every member null when unpriced
+        hourly_cap_usd (float | None | Unset): USD cap of the UTC clock hour (it resets at the top of the hour), or null
+            (162)
+        daily_cap_usd (float | None | Unset): USD cap of the UTC day (it resets at 00:00 UTC, as tokensPerDay), or null
+            (162)
+        monthly_cap_usd (float | None | Unset): USD cap of the UTC calendar month (it resets at 00:00 UTC on the 1st),
+            or null (162)
     """
 
     id: str
@@ -70,9 +78,15 @@ class LlmProvider:
     last_error_at: datetime.datetime | None | Unset = UNSET
     consecutive_failures: int | Unset = UNSET
     local: bool | Unset = UNSET
+    pricing: LlmPricing | None | Unset = UNSET
+    hourly_cap_usd: float | None | Unset = UNSET
+    daily_cap_usd: float | None | Unset = UNSET
+    monthly_cap_usd: float | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.llm_pricing import LlmPricing
+
         id = self.id
 
         type_ = self.type_.value
@@ -168,6 +182,32 @@ class LlmProvider:
 
         local = self.local
 
+        pricing: dict[str, Any] | None | Unset
+        if isinstance(self.pricing, Unset):
+            pricing = UNSET
+        elif isinstance(self.pricing, LlmPricing):
+            pricing = self.pricing.to_dict()
+        else:
+            pricing = self.pricing
+
+        hourly_cap_usd: float | None | Unset
+        if isinstance(self.hourly_cap_usd, Unset):
+            hourly_cap_usd = UNSET
+        else:
+            hourly_cap_usd = self.hourly_cap_usd
+
+        daily_cap_usd: float | None | Unset
+        if isinstance(self.daily_cap_usd, Unset):
+            daily_cap_usd = UNSET
+        else:
+            daily_cap_usd = self.daily_cap_usd
+
+        monthly_cap_usd: float | None | Unset
+        if isinstance(self.monthly_cap_usd, Unset):
+            monthly_cap_usd = UNSET
+        else:
+            monthly_cap_usd = self.monthly_cap_usd
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -214,11 +254,20 @@ class LlmProvider:
             field_dict["consecutiveFailures"] = consecutive_failures
         if local is not UNSET:
             field_dict["local"] = local
+        if pricing is not UNSET:
+            field_dict["pricing"] = pricing
+        if hourly_cap_usd is not UNSET:
+            field_dict["hourlyCapUsd"] = hourly_cap_usd
+        if daily_cap_usd is not UNSET:
+            field_dict["dailyCapUsd"] = daily_cap_usd
+        if monthly_cap_usd is not UNSET:
+            field_dict["monthlyCapUsd"] = monthly_cap_usd
 
         return field_dict
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
+        from ..models.llm_pricing import LlmPricing
         from ..models.llm_provider_options import LlmProviderOptions
 
         d = dict(src_dict)
@@ -372,6 +421,50 @@ class LlmProvider:
 
         local = d.pop("local", UNSET)
 
+        def _parse_pricing(data: object) -> LlmPricing | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                pricing_type_0 = LlmPricing.from_dict(data)
+
+                return pricing_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(LlmPricing | None | Unset, data)
+
+        pricing = _parse_pricing(d.pop("pricing", UNSET))
+
+        def _parse_hourly_cap_usd(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        hourly_cap_usd = _parse_hourly_cap_usd(d.pop("hourlyCapUsd", UNSET))
+
+        def _parse_daily_cap_usd(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        daily_cap_usd = _parse_daily_cap_usd(d.pop("dailyCapUsd", UNSET))
+
+        def _parse_monthly_cap_usd(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        monthly_cap_usd = _parse_monthly_cap_usd(d.pop("monthlyCapUsd", UNSET))
+
         llm_provider = cls(
             id=id,
             type_=type_,
@@ -395,6 +488,10 @@ class LlmProvider:
             last_error_at=last_error_at,
             consecutive_failures=consecutive_failures,
             local=local,
+            pricing=pricing,
+            hourly_cap_usd=hourly_cap_usd,
+            daily_cap_usd=daily_cap_usd,
+            monthly_cap_usd=monthly_cap_usd,
         )
 
         llm_provider.additional_properties = d

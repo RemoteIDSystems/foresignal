@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Foresignal API",
-    "version": "1.4.1",
+    "version": "1.5.0",
     "summary": "Headless intelligence broker: ingest, version and re-serve public telemetry.",
     "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...`, `/v1/k/{key}/tiles/...`, `/v1/k/{key}/map/...` and `/v1/k/{key}/changes/stream` for map clients (MapLibre, maplibre_gl, Cesium, `EventSource`), share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. A feed key reaches only `GET`/`HEAD` of `read` operations that are not always-authenticated, under the key's path prefixes, with the key's mandatory read restriction (unknown key 401 INVALID_FEED_KEY, expired or revoked 410 FEED_KEY_GONE, another method 405, a path outside the prefixes 403 RESTRICTED). A tile key reaches the same operations under its prefixes (a subset of `/v1/products/`, `/v1/styles`, `/v1/media/`, `/v1/tiles/`, `/v1/maps/static`, `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream`, `/v1/map/`), with its optional restriction and never private sources (unknown, expired or revoked key 401 INVALID_TILE_KEY, another method 405, a path outside the prefixes 403 INSUFFICIENT_SCOPE). Responses carry `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`; `Cache-Control` defaults to `private`, and a tile-key response takes the canonical path's own rule (`public` only while `openReads` covers it). Logs show only the key's first eight characters; the key is never echoed except by `createFeedKey` and `createTileKey`, and in the follow-up URLs of documents requested through it (058: the MapLibre style's sources and sprite, KML NetworkLink and icon hrefs, a feed's own `rel=\"self\"` / `feed_url`), which are then always `Cache-Control: private`. CORS exposes `Foresignal-Frame-Time`, `Foresignal-Image-Bounds`, `Foresignal-Frame-Expired`, `Retry-After`, `Link` and `ETag`, allows `Authorization`, `If-None-Match` and `Foresignal-Prefetch`, and caches preflights for a day; `?prefetch=1` marks a render prefetch without the preflight the header causes.\n\n**Restrictions and limits (035).** Restricted tokens, feed keys and the anonymous profile (`security.anonymous`, applied to tokenless reads while `openReads` is on) see only records and alerts inside their `ReadRestriction` on every read path (records, history, versions, changes, kinds, tiles, streams, search, alerts, the inbox, the digest, briefings, MCP tools and Ask): request filters are intersected with the restriction, and a single record or alert outside it is 404. Every client is rate-limited per class (`RateLimitSettings`); over a limit, or after repeated failed credentials from one address, the answer is 429 RATE_LIMITED with `Retry-After`. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).",
     "license": {
@@ -707,6 +707,11 @@
         "version": "1.4.1",
         "date": "2026-10-25",
         "note": "API 1.4.1 (a patch: contract corrections, nothing changed or removed). The log-action lists now say what the server writes and are declared x-extensible-enum, since they grow as the server adds actions: IntelEventLogEntry.action gains upgraded (the 151 trust-threshold crossing, written beside the update by an operator edit or by the correlation engine), SituationTimelineEntry.action gains edited (written by every updateSituation, beside any renamed, theme or severity entries), and NarrativeLogEntry.action is unchanged. A client must accept an action it does not know."
+      },
+      {
+        "version": "1.5.0",
+        "date": "2026-10-25",
+        "note": "162: API 1.5.0 (additive, a minor version: nothing changed or removed). LLM provider setup for the admin app. probeLlmProvider (POST /v1/llm/probe, admin, always authenticated) tests an unsaved LlmProviderInput and lists its models in one round trip, persisting nothing (LlmProbeResult). LlmProviderInput and LlmProvider gain `pricing` (LlmPricing: input, output, cached-input and embedding USD per million tokens) and hourlyCapUsd, dailyCapUsd and monthlyCapUsd: USD caps on UTC hour, day and month boundaries, enforced against the provider's self-metered spend and refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset, on top of requestsPerMinute and tokensPerDay. getLlmProviderBudget (GET /v1/llm/providers/{providerId}/budget, admin) reports spend, reservations, cap and remaining per window, the token limits, and the provider-reported balance for providers that expose one to the inference key (LlmProviderBudget, LlmSpendWindow, LlmProviderBalance). LlmUsagePoint gains costUsd."
       }
     ]
   },
@@ -8838,7 +8843,7 @@
             }
           },
           "429": {
-            "description": "LLM budget exhausted (LLM_BUDGET_EXCEEDED)",
+            "description": "LLM budget exhausted (LLM_BUDGET_EXCEEDED): the minute's requests, the day's tokens, or a USD cap (162)",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying",
@@ -8967,6 +8972,149 @@
           }
         ],
         "x-foresignal-prompt": "026",
+        "x-foresignal-status": "implemented"
+      }
+    },
+    "/v1/llm/probe": {
+      "post": {
+        "tags": [
+          "LLM"
+        ],
+        "operationId": "probeLlmProvider",
+        "summary": "Test an unsaved LLM provider and list its models",
+        "description": "Dry run for the provider editor: takes an LlmProviderInput that is not saved and, in one round trip, lists the provider's models and runs the testLlmProvider probes (a tiny chat when `chatModel` is set, an embedding when an embedding model and dimensions are). Without a model the model listing is the connection test. Nothing is persisted: no provider, no usage, no health, no budget; the `apiKey` is used for these requests and discarded. Without `apiKey`, the stored key of the saved provider named by `id` is used when there is one, so a saved provider can be tested with edits that are not saved yet. The body is validated as createLlmProvider validates it (400, and 400 URL_NOT_ALLOWED for a base URL the outbound URL policy refuses); the requests go through the same outbound URL policy and pinning as a saved provider's. A provider failure is reported in the result, never as an error status.\n\n**Scope:** `admin`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LlmProviderInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LlmProbeResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body (VALIDATION_FAILED, URL_NOT_ALLOWED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ],
+        "x-foresignal-prompt": "162",
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-status": "implemented"
+      }
+    },
+    "/v1/llm/providers/{providerId}/budget": {
+      "parameters": [
+        {
+          "name": "providerId",
+          "in": "path",
+          "required": true,
+          "description": "LLM provider id",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "LLM"
+        ],
+        "operationId": "getLlmProviderBudget",
+        "summary": "A provider's spend against its USD caps",
+        "description": "Per window (the UTC hour, day and month) the USD spent, the estimated USD of calls in flight, the cap, what remains and when the window resets; the token and request limits; and, for providers whose API reports one to the same key, the provider-reported balance (DeepSeek, OpenRouter), shown for information and never enforced. Spend is Foresignal's own metered tokens at the provider's `pricing`.\n\n**Scope:** `admin`.",
+        "responses": {
+          "200": {
+            "description": "Budget",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LlmProviderBudget"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid admin token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "admin",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ],
+        "x-foresignal-prompt": "162",
         "x-foresignal-status": "implemented"
       }
     },
@@ -99048,6 +99196,44 @@
             ],
             "format": "date",
             "description": "Training-data cutoff of the chat model (`YYYY-MM-DD`)"
+          },
+          "pricing": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LlmPricing"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Prices in USD per million tokens (162); null or omitted means unpriced. Required for a USD cap."
+          },
+          "hourlyCapUsd": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0,
+            "maximum": 10000000000,
+            "description": "The most this provider may spend in the UTC clock hour (it resets at the top of the hour), in USD, at most 4 decimal places; null means no cap (162). Spend is the provider's self-metered tokens at its `pricing`, so a cap needs pricing. Once a window's spend, with the estimated cost of the calls in flight, reaches its cap, calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset. Applies on top of requestsPerMinute and tokensPerDay."
+          },
+          "dailyCapUsd": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0,
+            "maximum": 10000000000,
+            "description": "The most this provider may spend in the UTC day (it resets at 00:00 UTC, as tokensPerDay), in USD, at most 4 decimal places; null means no cap (162). Spend is the provider's self-metered tokens at its `pricing`, so a cap needs pricing. Once a window's spend, with the estimated cost of the calls in flight, reaches its cap, calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset. Applies on top of requestsPerMinute and tokensPerDay."
+          },
+          "monthlyCapUsd": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0,
+            "maximum": 10000000000,
+            "description": "The most this provider may spend in the UTC calendar month (it resets at 00:00 UTC on the 1st), in USD, at most 4 decimal places; null means no cap (162). Spend is the provider's self-metered tokens at its `pricing`, so a cap needs pricing. Once a window's spend, with the estimated cost of the calls in flight, reaches its cap, calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset. Applies on top of requestsPerMinute and tokensPerDay."
           }
         },
         "required": [
@@ -99057,7 +99243,8 @@
         "x-foresignal-extended-by": [
           "026",
           "122",
-          "141"
+          "141",
+          "162"
         ]
       },
       "LlmProvider": {
@@ -99184,6 +99371,44 @@
           "local": {
             "type": "boolean",
             "description": "Treated as local for LLM egress (ollama, or `options.local=true`)"
+          },
+          "pricing": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LlmPricing"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Prices in USD per million tokens (162); every member null when unpriced"
+          },
+          "hourlyCapUsd": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0,
+            "maximum": 10000000000,
+            "description": "USD cap of the UTC clock hour (it resets at the top of the hour), or null (162)"
+          },
+          "dailyCapUsd": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0,
+            "maximum": 10000000000,
+            "description": "USD cap of the UTC day (it resets at 00:00 UTC, as tokensPerDay), or null (162)"
+          },
+          "monthlyCapUsd": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0,
+            "maximum": 10000000000,
+            "description": "USD cap of the UTC calendar month (it resets at 00:00 UTC on the 1st), or null (162)"
           }
         },
         "required": [
@@ -99195,7 +99420,8 @@
         "x-foresignal-extended-by": [
           "026",
           "122",
-          "141"
+          "141",
+          "162"
         ]
       },
       "LlmSettings": {
@@ -99387,6 +99613,10 @@
           },
           "refused": {
             "type": "integer"
+          },
+          "costUsd": {
+            "type": "number",
+            "description": "USD cost of the bucket's calls at the provider's prices when they were made (162); 0 when unpriced"
           }
         },
         "required": [
@@ -99394,6 +99624,9 @@
           "requests",
           "inputTokens",
           "outputTokens"
+        ],
+        "x-foresignal-extended-by": [
+          "162"
         ]
       },
       "LlmUsageSeries": {
@@ -170189,6 +170422,285 @@
             "$ref": "#/components/schemas/Geometry"
           }
         }
+      },
+      "LlmPricing": {
+        "type": "object",
+        "description": "A provider's prices in USD per million tokens (162). Every price is optional; an unset price counts those tokens at zero. The spend the USD caps enforce is each call's metered tokens at these prices: input at inputUsdPerMillionTokens, output at outputUsdPerMillionTokens, and cached input (Anthropic cache reads, OpenAI `prompt_tokens_details.cached_tokens`) at cachedInputUsdPerMillionTokens, or the input price when that is unset; embedding calls at embeddingUsdPerMillionTokens. Prices take at most 6 decimal places, from 0 to 100000.",
+        "properties": {
+          "inputUsdPerMillionTokens": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100000,
+            "description": "USD per million input tokens",
+            "example": 3
+          },
+          "outputUsdPerMillionTokens": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100000,
+            "description": "USD per million output tokens (thinking included)",
+            "example": 15
+          },
+          "cachedInputUsdPerMillionTokens": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100000,
+            "description": "USD per million cached input tokens; the input price when unset",
+            "example": 0.3
+          },
+          "embeddingUsdPerMillionTokens": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100000,
+            "description": "USD per million embedding input tokens; refused for anthropic, which has no embeddings endpoint",
+            "example": 0.02
+          }
+        },
+        "x-foresignal-extended-by": [
+          "162"
+        ]
+      },
+      "LlmProbeResult": {
+        "type": "object",
+        "description": "The result of probeLlmProvider (162): the connection test and the provider's models from one round trip.",
+        "properties": {
+          "test": {
+            "$ref": "#/components/schemas/LlmTestResult",
+            "description": "With a chatModel (or an embedding model and dimensions) the testLlmProvider probes; without one, success reports whether the model list could be read, with its error"
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LlmModelInfo"
+            },
+            "description": "The provider's models (Anthropic Models API, OpenAI-compatible /models, Ollama /api/tags); empty when it could not list them"
+          },
+          "modelsError": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the models could not be listed, or null; a provider that cannot enumerate its models answers an empty list with this set"
+          }
+        },
+        "required": [
+          "test",
+          "models"
+        ],
+        "x-foresignal-extended-by": [
+          "162"
+        ]
+      },
+      "LlmSpendWindow": {
+        "type": "object",
+        "description": "Spend in one window against its cap (162).",
+        "properties": {
+          "window": {
+            "type": "string",
+            "enum": [
+              "hour",
+              "day",
+              "month"
+            ]
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the window began (UTC boundary)"
+          },
+          "resetsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it resets: the next hour, 00:00 UTC, or the 1st"
+          },
+          "spentUsd": {
+            "type": "number",
+            "description": "USD spent in the window: settled calls at the provider's prices, seeded from the stored usage after a restart"
+          },
+          "reservedUsd": {
+            "type": "number",
+            "description": "Estimated USD of the calls in flight, held against the cap until they settle"
+          },
+          "capUsd": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "The cap, or null when this window has none"
+          },
+          "remainingUsd": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "capUsd less spentUsd, never below 0; null without a cap"
+          },
+          "exhausted": {
+            "type": "boolean",
+            "description": "True when spent plus reserved has reached the cap: calls are refused until resetsAt"
+          }
+        },
+        "required": [
+          "window",
+          "start",
+          "resetsAt",
+          "spentUsd",
+          "reservedUsd",
+          "capUsd",
+          "remainingUsd",
+          "exhausted"
+        ]
+      },
+      "LlmProviderBalance": {
+        "type": "object",
+        "description": "A balance the provider itself reports for the account behind the key (162). Information only: it is shown beside the caps and never enforced; the caps count Foresignal's own metered spend. Reported by DeepSeek (GET /user/balance, `total_balance` per currency) and OpenRouter (GET /api/v1/credits, total_credits less total_usage, which only a management key may read; otherwise GET /api/v1/key, the key's `limit_remaining`). Other providers expose no balance to the inference key, so they have none. Fetched at most once a minute.",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "description": "Who reported it",
+            "example": "DeepSeek"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`account`: the account's balance or credits; `key-limit`: what is left of this key's own spending limit",
+            "x-extensible-enum": [
+              "account",
+              "key-limit"
+            ]
+          },
+          "amounts": {
+            "type": "array",
+            "description": "One amount per currency; empty when it could not be fetched",
+            "items": {
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string",
+                  "description": "ISO 4217 code",
+                  "example": "USD"
+                }
+              },
+              "required": [
+                "amount",
+                "currency"
+              ]
+            }
+          },
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why it could not be fetched, or null"
+          }
+        },
+        "required": [
+          "provider",
+          "kind",
+          "amounts",
+          "fetchedAt"
+        ]
+      },
+      "LlmProviderBudget": {
+        "type": "object",
+        "description": "A provider's spend against its USD caps, its token and request limits, and the balance it reports, when it reports one (162).",
+        "properties": {
+          "providerId": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "USD"
+            ]
+          },
+          "priced": {
+            "type": "boolean",
+            "description": "Whether any price is set; without prices spend stays 0"
+          },
+          "pricing": {
+            "$ref": "#/components/schemas/LlmPricing"
+          },
+          "windows": {
+            "type": "object",
+            "properties": {
+              "hour": {
+                "$ref": "#/components/schemas/LlmSpendWindow"
+              },
+              "day": {
+                "$ref": "#/components/schemas/LlmSpendWindow"
+              },
+              "month": {
+                "$ref": "#/components/schemas/LlmSpendWindow"
+              }
+            },
+            "required": [
+              "hour",
+              "day",
+              "month"
+            ]
+          },
+          "rateLimits": {
+            "type": "object",
+            "properties": {
+              "requestsPerMinute": {
+                "type": "integer"
+              },
+              "tokensPerDay": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "tokensToday": {
+                "type": "integer",
+                "format": "int64"
+              }
+            },
+            "required": [
+              "requestsPerMinute",
+              "tokensPerDay",
+              "tokensToday"
+            ]
+          },
+          "providerBalance": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LlmProviderBalance"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The provider-reported balance, or null when the provider reports none"
+          }
+        },
+        "required": [
+          "providerId",
+          "currency",
+          "priced",
+          "pricing",
+          "windows",
+          "rateLimits",
+          "providerBalance"
+        ]
       }
     },
     "securitySchemes": {

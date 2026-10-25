@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -67,6 +68,27 @@ public class LlmProviderEntity {
 
     @Column(name = "knowledge_cutoff")
     private LocalDate knowledgeCutoff;
+
+    @Column(name = "price_input_usd_per_mtok", precision = 14, scale = 6)
+    private BigDecimal priceInputUsdPerMtok;
+
+    @Column(name = "price_output_usd_per_mtok", precision = 14, scale = 6)
+    private BigDecimal priceOutputUsdPerMtok;
+
+    @Column(name = "price_cached_input_usd_per_mtok", precision = 14, scale = 6)
+    private BigDecimal priceCachedInputUsdPerMtok;
+
+    @Column(name = "price_embedding_usd_per_mtok", precision = 14, scale = 6)
+    private BigDecimal priceEmbeddingUsdPerMtok;
+
+    @Column(name = "hourly_cap_usd", precision = 14, scale = 4)
+    private BigDecimal hourlyCapUsd;
+
+    @Column(name = "daily_cap_usd", precision = 14, scale = 4)
+    private BigDecimal dailyCapUsd;
+
+    @Column(name = "monthly_cap_usd", precision = 14, scale = 4)
+    private BigDecimal monthlyCapUsd;
 
     /** False once the chat model rejected tools; null until known. */
     @Column(name = "supports_tools")
@@ -223,6 +245,34 @@ public class LlmProviderEntity {
     /** Sets the chat model's training-data cutoff. */
     public void setKnowledgeCutoff(LocalDate knowledgeCutoff) {
         this.knowledgeCutoff = knowledgeCutoff;
+    }
+
+    /** The prices in USD per million tokens ({@link LlmPricing#NONE} when unpriced). */
+    public LlmPricing getPricing() {
+        return new LlmPricing(priceInputUsdPerMtok, priceOutputUsdPerMtok, priceCachedInputUsdPerMtok,
+                priceEmbeddingUsdPerMtok);
+    }
+
+    /** Sets the prices; null clears them. */
+    public void setPricing(LlmPricing pricing) {
+        LlmPricing p = pricing == null ? LlmPricing.NONE : pricing;
+        this.priceInputUsdPerMtok = p.inputUsdPerMillionTokens();
+        this.priceOutputUsdPerMtok = p.outputUsdPerMillionTokens();
+        this.priceCachedInputUsdPerMtok = p.cachedInputUsdPerMillionTokens();
+        this.priceEmbeddingUsdPerMtok = p.embeddingUsdPerMillionTokens();
+    }
+
+    /** The hourly, daily and monthly USD caps ({@link LlmSpendCaps#NONE} when uncapped). */
+    public LlmSpendCaps getSpendCaps() {
+        return new LlmSpendCaps(hourlyCapUsd, dailyCapUsd, monthlyCapUsd);
+    }
+
+    /** Sets the USD caps; null clears them. */
+    public void setSpendCaps(LlmSpendCaps caps) {
+        LlmSpendCaps c = caps == null ? LlmSpendCaps.NONE : caps;
+        this.hourlyCapUsd = c.hourlyUsd();
+        this.dailyCapUsd = c.dailyUsd();
+        this.monthlyCapUsd = c.monthlyUsd();
     }
 
     /** False once the chat model rejected tools; null until known. */

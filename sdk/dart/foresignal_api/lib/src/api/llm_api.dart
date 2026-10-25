@@ -10,7 +10,9 @@ import 'package:foresignal_api/src/deserialize.dart';
 import 'package:dio/dio.dart';
 
 import 'package:foresignal_api/src/model/llm_model_info.dart';
+import 'package:foresignal_api/src/model/llm_probe_result.dart';
 import 'package:foresignal_api/src/model/llm_provider.dart';
+import 'package:foresignal_api/src/model/llm_provider_budget.dart';
 import 'package:foresignal_api/src/model/llm_provider_input.dart';
 import 'package:foresignal_api/src/model/llm_settings.dart';
 import 'package:foresignal_api/src/model/llm_test_result.dart';
@@ -242,6 +244,84 @@ _responseData = rawData == null ? null : deserialize<LlmProvider, LlmProvider>(r
     }
 
     return Response<LlmProvider>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// A provider&#39;s spend against its USD caps
+  /// Per window (the UTC hour, day and month) the USD spent, the estimated USD of calls in flight, the cap, what remains and when the window resets; the token and request limits; and, for providers whose API reports one to the same key, the provider-reported balance (DeepSeek, OpenRouter), shown for information and never enforced. Spend is Foresignal&#39;s own metered tokens at the provider&#39;s &#x60;pricing&#x60;.  **Scope:** &#x60;admin&#x60;.
+  ///
+  /// Parameters:
+  /// * [providerId] - LLM provider id
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [LlmProviderBudget] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<LlmProviderBudget>> getLlmProviderBudget({ 
+    required String providerId,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/llm/providers/{providerId}/budget'.replaceAll('{' r'providerId' '}', providerId.toString());
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    LlmProviderBudget? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<LlmProviderBudget, LlmProviderBudget>(rawData, 'LlmProviderBudget', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<LlmProviderBudget>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -725,6 +805,103 @@ _responseData = rawData == null ? null : deserialize<PromptTemplateList, PromptT
     }
 
     return Response<PromptTemplateList>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Test an unsaved LLM provider and list its models
+  /// Dry run for the provider editor: takes an LlmProviderInput that is not saved and, in one round trip, lists the provider&#39;s models and runs the testLlmProvider probes (a tiny chat when &#x60;chatModel&#x60; is set, an embedding when an embedding model and dimensions are). Without a model the model listing is the connection test. Nothing is persisted: no provider, no usage, no health, no budget; the &#x60;apiKey&#x60; is used for these requests and discarded. Without &#x60;apiKey&#x60;, the stored key of the saved provider named by &#x60;id&#x60; is used when there is one, so a saved provider can be tested with edits that are not saved yet. The body is validated as createLlmProvider validates it (400, and 400 URL_NOT_ALLOWED for a base URL the outbound URL policy refuses); the requests go through the same outbound URL policy and pinning as a saved provider&#39;s. A provider failure is reported in the result, never as an error status.  **Scope:** &#x60;admin&#x60;.
+  ///
+  /// Parameters:
+  /// * [llmProviderInput] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [LlmProbeResult] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<LlmProbeResult>> probeLlmProvider({ 
+    required LlmProviderInput llmProviderInput,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/llm/probe';
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(llmProviderInput);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    LlmProbeResult? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<LlmProbeResult, LlmProbeResult>(rawData, 'LlmProbeResult', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<LlmProbeResult>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

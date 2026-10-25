@@ -23,6 +23,8 @@ class LlmUsagePoint:
         cached_tokens (int | Unset):
         errors (int | Unset):
         refused (int | Unset):
+        cost_usd (float | Unset): USD cost of the bucket's calls at the provider's prices when they were made (162); 0
+            when unpriced
     """
 
     t: datetime.datetime
@@ -32,6 +34,7 @@ class LlmUsagePoint:
     cached_tokens: int | Unset = UNSET
     errors: int | Unset = UNSET
     refused: int | Unset = UNSET
+    cost_usd: float | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -49,6 +52,8 @@ class LlmUsagePoint:
 
         refused = self.refused
 
+        cost_usd = self.cost_usd
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -65,6 +70,8 @@ class LlmUsagePoint:
             field_dict["errors"] = errors
         if refused is not UNSET:
             field_dict["refused"] = refused
+        if cost_usd is not UNSET:
+            field_dict["costUsd"] = cost_usd
 
         return field_dict
 
@@ -85,6 +92,8 @@ class LlmUsagePoint:
 
         refused = d.pop("refused", UNSET)
 
+        cost_usd = d.pop("costUsd", UNSET)
+
         llm_usage_point = cls(
             t=t,
             requests=requests,
@@ -93,6 +102,7 @@ class LlmUsagePoint:
             cached_tokens=cached_tokens,
             errors=errors,
             refused=refused,
+            cost_usd=cost_usd,
         )
 
         llm_usage_point.additional_properties = d

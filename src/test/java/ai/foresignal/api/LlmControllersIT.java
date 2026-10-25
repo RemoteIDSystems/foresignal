@@ -1,6 +1,8 @@
 package ai.foresignal.api;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,6 +30,7 @@ import ai.foresignal.test.IntegrationTest;
 import ai.foresignal.test.MutableClock;
 import ai.foresignal.test.WireMockSupport;
 import ai.foresignal.testsupport.notify.NotifyTestConfig;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +40,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
@@ -67,6 +71,7 @@ class LlmControllersIT extends WireMockSupport {
     @Autowired LlmUsageMeter usage;
     @Autowired MutableClock clock;
     @Autowired ApplicationEvents events;
+    @Autowired JdbcTemplate jdbc;
 
     String token;
 
@@ -343,5 +348,159 @@ class LlmControllersIT extends WireMockSupport {
         mvc.perform(auth(get("/v1/llm/providers/ollama"))).andExpect(status().isOk());
         mvc.perform(auth(get("/v1/llm/providers/claude"))).andExpect(jsonPath("$.apiKeySet", is(true)));
         mvc.perform(auth(get("/v1/llm/settings"))).andExpect(jsonPath("$.embeddingProvider", is("ollama")));
+    }
+
+    String priced(String id, String extra) {
+        return "{'id':'" + id + "','type':'ollama','baseUrl':'" + baseUrl() + "','chatModel':'qwen3:14b',"
+                + "'embeddingModel':'nomic-embed-text','embeddingDimensions':8,"
+                + "'pricing':{'inputUsdPerMillionTokens':1,'outputUsdPerMillionTokens':2,"
+                + "'embeddingUsdPerMillionTokens':3}" + extra + "}";
+    }
+
+    @Test
+    @DisplayName("pricing and USD caps round-trip on the provider and in the export; bad values are refused")
+    void pricingAndCaps() throws Exception {
+        send(post("/v1/llm/providers"), priced("ollama", ",'hourlyCapUsd':0.5,'dailyCapUsd':5,'monthlyCapUsd':50.25"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.pricing.inputUsdPerMillionTokens", is(1)))
+                .andExpect(jsonPath("$.pricing.cachedInputUsdPerMillionTokens", nullValue()))
+                .andExpect(jsonPath("$.hourlyCapUsd", is(0.5)))
+                .andExpect(jsonPath("$.monthlyCapUsd", is(50.25)));
+        mvc.perform(auth(get("/v1/llm/providers/ollama"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pricing.outputUsdPerMillionTokens", is(2)))
+                .andExpect(jsonPath("$.pricing.embeddingUsdPerMillionTokens", is(3)))
+                .andExpect(jsonPath("$.dailyCapUsd", is(5)));
+        mvc.perform(auth(get("/v1/settings/export"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.llmProviders[0].pricing.inputUsdPerMillionTokens", is(1)))
+                .andExpect(jsonPath("$.llmProviders[0].hourlyCapUsd", is(0.5)));
+        // A replace without them clears them, as every replace does.
+        send(put("/v1/llm/providers/ollama"), ollama("ollama", 30)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pricing.inputUsdPerMillionTokens", nullValue()))
+                .andExpect(jsonPath("$.hourlyCapUsd", nullValue()));
+
+        send(post("/v1/llm/providers"), ollama("x", 30).replace("}", ",'dailyCapUsd':5}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field", is("dailyCapUsd")))
+                .andExpect(jsonPath("$.errors[0].message", containsString("needs pricing")));
+        send(post("/v1/llm/providers"), priced("x", ",'hourlyCapUsd':0")).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field", is("hourlyCapUsd")));
+        send(post("/v1/llm/providers"), "{'id':'x','type':'ollama','pricing':{'inputUsdPerMillionTokens':-1}}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field", is("pricing.inputUsdPerMillionTokens")));
+        send(post("/v1/llm/providers"), "{'id':'x','type':'ollama','pricing':{'inputUsdPerMillionTokens':0.1234567}}")
+                .andExpect(status().isBadRequest());
+        send(post("/v1/llm/providers"), "{'id':'c','type':'anthropic','apiKey':'k',"
+                + "'pricing':{'embeddingUsdPerMillionTokens':1}}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field", is("pricing.embeddingUsdPerMillionTokens")));
+    }
+
+    @Test
+    @DisplayName("budget: spend at the provider's prices per window, costUsd in usage, a spent cap refuses with 429")
+    void budget() throws Exception {
+        stubOllama();
+        send(post("/v1/llm/providers"), priced("ollama", ",'hourlyCapUsd':1")).andExpect(status().isCreated());
+        mvc.perform(auth(post("/v1/llm/providers/ollama/test"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)));
+
+        // Chat 12 in × $1/M + 1 out × $2/M, embedding 1 × $3/M = $0.000017.
+        mvc.perform(auth(get("/v1/llm/providers/ollama/budget"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.providerId", is("ollama")))
+                .andExpect(jsonPath("$.currency", is("USD")))
+                .andExpect(jsonPath("$.priced", is(true)))
+                .andExpect(jsonPath("$.windows.hour.spentUsd", is(0.000017)))
+                .andExpect(jsonPath("$.windows.hour.capUsd", is(1)))
+                .andExpect(jsonPath("$.windows.hour.remainingUsd", is(0.999983)))
+                .andExpect(jsonPath("$.windows.hour.start", is("2026-05-01T12:00:00Z")))
+                .andExpect(jsonPath("$.windows.hour.resetsAt", is("2026-05-01T13:00:00Z")))
+                .andExpect(jsonPath("$.windows.day.resetsAt", is("2026-05-02T00:00:00Z")))
+                .andExpect(jsonPath("$.windows.month.start", is("2026-05-01T00:00:00Z")))
+                .andExpect(jsonPath("$.windows.month.resetsAt", is("2026-06-01T00:00:00Z")))
+                .andExpect(jsonPath("$.windows.day.capUsd", nullValue()))
+                .andExpect(jsonPath("$.windows.day.remainingUsd", nullValue()))
+                .andExpect(jsonPath("$.windows.hour.exhausted", is(false)))
+                .andExpect(jsonPath("$.rateLimits.tokensToday", is(14)))
+                .andExpect(jsonPath("$.providerBalance", nullValue()));
+        mvc.perform(auth(get("/v1/llm/usage").param("provider", "ollama")))
+                .andExpect(jsonPath("$.totals.costUsd", is(0.000017)));
+        usage.flush();
+        mvc.perform(auth(get("/v1/llm/usage").param("provider", "ollama")))
+                .andExpect(jsonPath("$.totals.costUsd", is(0.000017)));
+
+        // After a restart the spend is seeded from llm_usage, and a spent cap refuses the next call.
+        jdbc.update("insert into llm_usage (provider_id, minute, requests, input_tokens, output_tokens, cached_tokens,"
+                + " errors, refused, cost_usd) values ('ollama', ?, 1, 0, 0, 0, 0, 0, 1.5) on conflict (minute, provider_id)"
+                + " do update set cost_usd = llm_usage.cost_usd + excluded.cost_usd", Timestamp.from(T));
+        send(put("/v1/llm/providers/ollama"), priced("ollama", ",'hourlyCapUsd':1")).andExpect(status().isOk());
+        mvc.perform(auth(delete("/v1/llm/providers/ollama"))).andExpect(status().isNoContent());
+        send(post("/v1/llm/providers"), priced("ollama", ",'hourlyCapUsd':1")).andExpect(status().isCreated());
+        mvc.perform(auth(get("/v1/llm/providers/ollama/budget")))
+                .andExpect(jsonPath("$.windows.hour.spentUsd", is(1.500017)))
+                .andExpect(jsonPath("$.windows.hour.remainingUsd", is(0)))
+                .andExpect(jsonPath("$.windows.hour.exhausted", is(true)));
+        mvc.perform(auth(post("/v1/llm/providers/ollama/test"))).andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code", is("LLM_BUDGET_EXCEEDED")))
+                .andExpect(jsonPath("$.detail", containsString("hourly cap of $1")))
+                .andExpect(header().string("Retry-After", "3600"));
+        mvc.perform(auth(get("/v1/llm/providers/nobody/budget"))).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("probe: tests an unsaved provider and lists its models in one call, and persists nothing")
+    void probe() throws Exception {
+        stubOllama();
+        WIREMOCK.stubFor(com.github.tomakehurst.wiremock.client.WireMock.get(urlPathEqualTo("/api/tags"))
+                .willReturn(okJson("{\"models\":[{\"name\":\"qwen3:14b\",\"model\":\"qwen3:14b\"},"
+                        + "{\"name\":\"nomic-embed-text\",\"model\":\"nomic-embed-text\"}]}")));
+
+        send(post("/v1/llm/probe"), "{'type':'ollama','baseUrl':'" + baseUrl() + "','chatModel':'qwen3:14b'}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.test.success", is(true)))
+                .andExpect(jsonPath("$.test.chat.text", is("ok")))
+                .andExpect(jsonPath("$.test.error", nullValue()))
+                .andExpect(jsonPath("$.models[*].id", contains("qwen3:14b", "nomic-embed-text")))
+                .andExpect(jsonPath("$.modelsError", nullValue()));
+        // Without a model, reading the model list is the connection test.
+        send(post("/v1/llm/probe"), "{'type':'ollama','baseUrl':'" + baseUrl() + "'}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.test.success", is(true)))
+                .andExpect(jsonPath("$.test.chat", nullValue()))
+                .andExpect(jsonPath("$.models", hasSize(2)));
+
+        usage.flush();
+        mvc.perform(auth(get("/v1/llm/providers"))).andExpect(jsonPath("$", hasSize(0)));
+        assertThat(jdbc.queryForObject("select count(*) from llm_usage", Long.class)).isZero();
+        assertThat(providerRows.count()).isZero();
+
+        send(post("/v1/llm/probe"), "{'type':'ollama','baseUrl':'not a url'}").andExpect(status().isBadRequest());
+        send(post("/v1/llm/probe"), "{'type':'anthropic'}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field", is("apiKey")));
+        mvc.perform(post("/v1/llm/probe").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("probe: the real error when the provider fails; a saved provider's stored key when apiKey is left out")
+    void probeErrorsAndStoredKey() throws Exception {
+        WIREMOCK.stubFor(com.github.tomakehurst.wiremock.client.WireMock.get(urlPathEqualTo("/v1/models"))
+                .willReturn(aResponse().withStatus(401).withHeader("Content-Type", "application/json")
+                        .withBody("{\"error\":{\"message\":\"Incorrect API key provided\"}}")));
+        String openAi = "{'id':'oa','type':'openai-compatible','baseUrl':'" + baseUrl() + "/v1'";
+
+        send(post("/v1/llm/probe"), openAi + ",'apiKey':'sk-wrong'}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.test.success", is(false)))
+                .andExpect(jsonPath("$.test.error", containsString("Incorrect API key provided")))
+                .andExpect(jsonPath("$.models", hasSize(0)))
+                .andExpect(jsonPath("$.modelsError", containsString("Incorrect API key provided")));
+
+        WIREMOCK.resetAll();
+        WIREMOCK.stubFor(com.github.tomakehurst.wiremock.client.WireMock.get(urlPathEqualTo("/v1/models"))
+                .willReturn(okJson("{\"data\":[{\"id\":\"gpt-5\",\"context_length\":400000}]}")));
+        send(post("/v1/llm/providers"), openAi + ",'apiKey':'sk-stored'}").andExpect(status().isCreated());
+        send(post("/v1/llm/probe"), openAi + "}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.test.success", is(true)))
+                .andExpect(jsonPath("$.models[0].id", is("gpt-5")))
+                .andExpect(jsonPath("$.models[0].contextWindow", is(400000)));
+        WIREMOCK.verify(getRequestedFor(urlPathEqualTo("/v1/models"))
+                .withHeader(HttpHeaders.AUTHORIZATION, equalTo("Bearer sk-stored")));
+        assertThat(providerRows.findById("oa").orElseThrow().getBaseUrl()).isEqualTo(baseUrl() + "/v1");
     }
 }

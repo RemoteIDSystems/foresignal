@@ -12,6 +12,7 @@ import ai.foresignal.llm.client.LlmModelInfo;
 import ai.foresignal.llm.client.LlmProviderException;
 import ai.foresignal.llm.client.Purpose;
 import ai.foresignal.llm.client.StopReason;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -104,8 +105,14 @@ public class LlmService {
      * budget. A budget refusal propagates (429); a provider failure is reported in the result.
      */
     public Map<String, Object> test(String providerId) {
-        LlmProviderConfig config = providers.config(providerId);
-        LlmClient client = client(providerId);
+        return test(providers.config(providerId), client(providerId));
+    }
+
+    /**
+     * The {@code LlmTestResult} of {@code config}, calling {@code client}: the governed client of a saved
+     * provider, or a raw one for {@link #probe}.
+     */
+    private Map<String, Object> test(LlmProviderConfig config, LlmClient client) {
         Map<String, Object> out = new LinkedHashMap<>();
         boolean success = true;
         String error = null;
@@ -164,6 +171,71 @@ public class LlmService {
         return out;
     }
 
+    /**
+     * {@code probeLlmProvider}: tests an unsaved configuration and lists its models in one round trip,
+     * persisting nothing. The client is built for this call alone (never the cached client of a saved
+     * provider) and closed after it; the key is used for these requests and then dropped. Nothing is
+     * metered, budgeted or recorded as health, because there is no provider to charge it to; the outbound
+     * URL policy applies exactly as to a saved provider ({@link LlmHttp}).
+     *
+     * <p>The models are listed first. With a chat or embedding model the {@link #test} probes run as
+     * well; without one, the listing is the connection test. A type that cannot list its models answers
+     * an empty list with {@code modelsError} and, when the chat probe works, a successful test.
+     *
+     * @return the {@code LlmProbeResult}: {@code test}, {@code models}, {@code modelsError}
+     */
+    public Map<String, Object> probe(LlmProviderConfig config) {
+        LlmClient client;
+        try {
+            client = factory.detached(config);
+        } catch (LlmProviderException e) {
+            // A refused base URL, or an Anthropic provider without a key: nothing was sent.
+            return probeResult(failedTest(e.getMessage()), List.of(), e.getMessage());
+        }
+        try {
+            List<LlmModelInfo> models = List.of();
+            String modelsError = null;
+            try {
+                models = client.models();
+            } catch (LlmProviderException e) {
+                modelsError = e.getMessage();
+            } catch (UnsupportedOperationException e) {
+                modelsError = "this provider type does not list its models";
+            }
+            Map<String, Object> test;
+            if (config.chatModel() != null || config.embeddingSpec().isPresent()) {
+                test = test(config, client);
+            } else if (modelsError == null) {
+                test = new LinkedHashMap<>(failedTest(null));
+                test.put("success", true);
+            } else {
+                test = failedTest(modelsError);
+            }
+            return probeResult(test, models, modelsError);
+        } finally {
+            factory.close(client);
+        }
+    }
+
+    private static Map<String, Object> failedTest(String error) {
+        Map<String, Object> test = new LinkedHashMap<>();
+        test.put("chat", null);
+        test.put("embedding", null);
+        test.put("success", false);
+        test.put("error", error);
+        test.put("refusalCategory", null);
+        return test;
+    }
+
+    private static Map<String, Object> probeResult(Map<String, Object> test, List<LlmModelInfo> models,
+            String modelsError) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("test", test);
+        out.put("models", models);
+        out.put("modelsError", modelsError);
+        return out;
+    }
+
     /** Forgets a deleted provider's client and budget state. */
     public void forget(String providerId) {
         factory.evict(providerId);
@@ -194,14 +266,16 @@ public class LlmService {
         public ChatResponse chat(ChatRequest request) {
             LlmProviderConfig config = providers.config(providerId);
             int maxTokens = request.maxTokens() != null ? request.maxTokens() : config.effectiveMaxTokens();
-            LlmBudgetGovernor.Reservation reservation = budget.reserve(config,
-                    LlmBudgetGovernor.estimate(request.promptCharacters(), maxTokens));
+            long promptTokens = LlmBudgetGovernor.estimate(request.promptCharacters(), 0);
+            LlmBudgetGovernor.Reservation reservation = budget.reserve(config, promptTokens + Math.max(0, maxTokens),
+                    config.pricing().chatEstimate(promptTokens, maxTokens));
             Instant start = clock.instant();
             try {
                 ChatResponse response = factory.client(config).chat(request);
                 long ms = Duration.between(start, clock.instant()).toMillis();
-                usage.recordCall(providerId, response.usage());
-                budget.settle(reservation, response.usage().total());
+                BigDecimal cost = config.pricing().chat(response.usage(), config.type());
+                usage.recordCall(providerId, response.usage(), cost);
+                budget.settle(reservation, response.usage().total(), cost);
                 health.success(providerId);
                 log.info("LLM call purpose={} provider={} model={} inputTokens={} outputTokens={} cachedTokens={}"
                                 + " durationMs={} stopReason={}", request.purpose().wireValue(), providerId,
@@ -236,12 +310,15 @@ public class LlmService {
                 return factory.client(config).embed(texts); // throws UnsupportedOperationException
             }
             long chars = texts.stream().mapToLong(String::length).sum();
-            LlmBudgetGovernor.Reservation reservation = budget.reserve(config, LlmBudgetGovernor.estimate(chars, 0));
+            long tokens = LlmBudgetGovernor.estimate(chars, 0);
+            LlmBudgetGovernor.Reservation reservation = budget.reserve(config, tokens,
+                    config.pricing().embedding(tokens));
             Instant start = clock.instant();
             try {
                 EmbeddingResponse response = call.get();
-                usage.recordCall(providerId, response.usage());
-                budget.settle(reservation, response.usage().total());
+                BigDecimal cost = config.pricing().embedding(response.usage());
+                usage.recordCall(providerId, response.usage(), cost);
+                budget.settle(reservation, response.usage().total(), cost);
                 health.success(providerId);
                 log.info("LLM call purpose=embedding provider={} model={} inputTokens={} texts={} durationMs={}",
                         providerId, response.model(), response.usage().inputTokens(), texts.size(),

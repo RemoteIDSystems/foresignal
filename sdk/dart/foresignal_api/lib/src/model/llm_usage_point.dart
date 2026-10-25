@@ -33,6 +33,8 @@ class LlmUsagePoint {
      this.errors,
 
      this.refused,
+
+     this.costUsd,
   });
 
   @JsonKey(
@@ -119,6 +121,19 @@ class LlmUsagePoint {
 
 
 
+      /// USD cost of the bucket's calls at the provider's prices when they were made (162); 0 when unpriced
+  @JsonKey(
+    
+    name: r'costUsd',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final num? costUsd;
+
+
+
 
 
     @override
@@ -129,7 +144,8 @@ class LlmUsagePoint {
       other.outputTokens == outputTokens &&
       other.cachedTokens == cachedTokens &&
       other.errors == errors &&
-      other.refused == refused;
+      other.refused == refused &&
+      other.costUsd == costUsd;
 
     @override
     int get hashCode =>
@@ -139,7 +155,8 @@ class LlmUsagePoint {
         outputTokens.hashCode +
         cachedTokens.hashCode +
         errors.hashCode +
-        refused.hashCode;
+        refused.hashCode +
+        costUsd.hashCode;
 
   factory LlmUsagePoint.fromJson(Map<String, dynamic> json) => _$LlmUsagePointFromJson(json);
 

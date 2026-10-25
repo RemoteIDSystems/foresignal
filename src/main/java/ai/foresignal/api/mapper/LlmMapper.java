@@ -2,23 +2,32 @@ package ai.foresignal.api.mapper;
 
 import ai.foresignal.llm.LlmBudgetGovernor;
 import ai.foresignal.llm.LlmHealthTracker;
+import ai.foresignal.llm.LlmPricing;
+import ai.foresignal.llm.LlmProviderBalances;
+import ai.foresignal.llm.LlmProviderConfig;
 import ai.foresignal.llm.LlmProviderEntity;
 import ai.foresignal.llm.LlmProviderService;
 import ai.foresignal.llm.LlmProviderType;
 import ai.foresignal.llm.LlmSettings;
 import ai.foresignal.llm.LlmSettingsService;
+import ai.foresignal.llm.LlmSpendCaps;
+import ai.foresignal.llm.LlmSpendWindow;
 import ai.foresignal.llm.LlmUsagePoint;
 import ai.foresignal.llm.client.LlmModelInfo;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /**
  * Maps the LLM subsystem to its API schemas: {@code LlmProvider} (never the key, {@code apiKeySet}
- * only), {@code LlmSettings}, {@code LlmModelInfo} and {@code LlmUsageSeries}.
+ * only), {@code LlmSettings}, {@code LlmModelInfo}, {@code LlmUsageSeries}, and (API 1.5.0)
+ * {@code LlmPricing}, {@code LlmProviderBudget}, {@code LlmProviderBalance} and {@code LlmProbeResult}.
  */
 @Component
 public class LlmMapper {
@@ -60,7 +69,107 @@ public class LlmMapper {
         out.put("consecutiveFailures", p.getConsecutiveFailures());
         out.put("local", LlmProviderType.OLLAMA.wireValue().equals(p.getType())
                 || Boolean.TRUE.equals(p.getOptions() == null ? null : p.getOptions().get("local")));
+        putMoney(out, p);
         return out;
+    }
+
+    /** {@code pricing}, {@code hourlyCapUsd}, {@code dailyCapUsd} and {@code monthlyCapUsd} (API 1.5.0). */
+    private static void putMoney(Map<String, Object> out, LlmProviderEntity p) {
+        out.put("pricing", pricing(p.getPricing()));
+        LlmSpendCaps caps = p.getSpendCaps();
+        out.put("hourlyCapUsd", plain(caps.hourlyUsd()));
+        out.put("dailyCapUsd", plain(caps.dailyUsd()));
+        out.put("monthlyCapUsd", plain(caps.monthlyUsd()));
+    }
+
+    /** {@code LlmPricing}. */
+    public static Map<String, Object> pricing(LlmPricing pricing) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("inputUsdPerMillionTokens", plain(pricing.inputUsdPerMillionTokens()));
+        out.put("outputUsdPerMillionTokens", plain(pricing.outputUsdPerMillionTokens()));
+        out.put("cachedInputUsdPerMillionTokens", plain(pricing.cachedInputUsdPerMillionTokens()));
+        out.put("embeddingUsdPerMillionTokens", plain(pricing.embeddingUsdPerMillionTokens()));
+        return out;
+    }
+
+    /**
+     * {@code LlmProviderBudget}: each window's spend against its cap, the token and request limits, and
+     * the provider-reported balance, when the provider reports one.
+     */
+    public Map<String, Object> budget(LlmProviderEntity p, Map<LlmSpendWindow, LlmBudgetGovernor.WindowSpend> spend,
+            Optional<LlmProviderBalances.Balance> balance) {
+        LlmProviderConfig config = providers.config(p);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("providerId", p.getId());
+        out.put("currency", "USD");
+        out.put("priced", config.pricing().isSet());
+        out.put("pricing", pricing(config.pricing()));
+        Map<String, Object> windows = new LinkedHashMap<>();
+        for (LlmSpendWindow window : LlmSpendWindow.values()) {
+            LlmBudgetGovernor.WindowSpend w = spend.get(window);
+            BigDecimal cap = config.spendCaps().of(window);
+            BigDecimal spent = money(w.spentUsd());
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("window", window.wireValue());
+            item.put("start", w.start().toString());
+            item.put("resetsAt", w.resetsAt().toString());
+            item.put("spentUsd", spent);
+            item.put("reservedUsd", money(w.reservedUsd()));
+            item.put("capUsd", plain(cap));
+            item.put("remainingUsd", cap == null ? null : money(cap.subtract(w.spentUsd()).max(BigDecimal.ZERO)));
+            item.put("exhausted", cap != null && w.spentUsd().add(w.reservedUsd()).compareTo(cap) >= 0);
+            windows.put(window.wireValue(), item);
+        }
+        out.put("windows", windows);
+        Map<String, Object> limits = new LinkedHashMap<>();
+        limits.put("requestsPerMinute", p.getRequestsPerMinute());
+        limits.put("tokensPerDay", p.getTokensPerDay());
+        limits.put("tokensToday", budget.usedToday(config));
+        out.put("rateLimits", limits);
+        out.put("providerBalance", balance.map(LlmMapper::balance).orElse(null));
+        return out;
+    }
+
+    /** {@code LlmProviderBalance}. */
+    public static Map<String, Object> balance(LlmProviderBalances.Balance balance) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("provider", balance.provider());
+        out.put("kind", balance.kind());
+        List<Map<String, Object>> amounts = new ArrayList<>();
+        for (LlmProviderBalances.Amount amount : balance.amounts()) {
+            Map<String, Object> a = new LinkedHashMap<>();
+            a.put("amount", plain(amount.amount()));
+            a.put("currency", amount.currency());
+            amounts.add(a);
+        }
+        out.put("amounts", amounts);
+        out.put("fetchedAt", balance.fetchedAt().toString());
+        out.put("error", balance.error());
+        return out;
+    }
+
+    /** {@code LlmProbeResult}. */
+    public static Map<String, Object> probe(Map<String, Object> result) {
+        Map<String, Object> out = new LinkedHashMap<>(result);
+        Object models = result.get("models");
+        if (models instanceof List<?> list) {
+            out.put("models", list.stream().map(m -> model((LlmModelInfo) m)).toList());
+        }
+        return out;
+    }
+
+    /** USD rounded to 6 decimal places, without trailing zeros. */
+    private static BigDecimal money(BigDecimal value) {
+        return plain(value == null ? BigDecimal.ZERO : value.setScale(6, RoundingMode.HALF_UP));
+    }
+
+    /** {@code value} without trailing zeros (and never in exponent form), or null. */
+    private static BigDecimal plain(BigDecimal value) {
+        if (value == null) {
+            return null;
+        }
+        BigDecimal stripped = value.stripTrailingZeros();
+        return stripped.scale() < 0 ? stripped.setScale(0) : stripped;
     }
 
     /**
@@ -80,6 +189,7 @@ public class LlmMapper {
         out.put("tokensPerDay", p.getTokensPerDay());
         out.put("enabled", p.isEnabled());
         out.put("knowledgeCutoff", p.getKnowledgeCutoff() == null ? null : p.getKnowledgeCutoff().toString());
+        putMoney(out, p);
         return out;
     }
 
@@ -111,7 +221,7 @@ public class LlmMapper {
     /** {@code LlmUsageSeries}: the non-empty buckets and their totals (timed at {@code from}). */
     public static Map<String, Object> usage(String providerId, String resolution, Instant from,
             List<LlmUsagePoint> points) {
-        LlmUsagePoint total = new LlmUsagePoint(from, 0, 0, 0, 0, 0, 0);
+        LlmUsagePoint total = new LlmUsagePoint(from, 0, 0, 0, 0, 0, 0, BigDecimal.ZERO);
         List<Map<String, Object>> items = new ArrayList<>();
         for (LlmUsagePoint point : points) {
             items.add(point(point));
@@ -134,6 +244,7 @@ public class LlmMapper {
         out.put("cachedTokens", p.cachedTokens());
         out.put("errors", p.errors());
         out.put("refused", p.refused());
+        out.put("costUsd", money(p.costUsd()));
         return out;
     }
 }

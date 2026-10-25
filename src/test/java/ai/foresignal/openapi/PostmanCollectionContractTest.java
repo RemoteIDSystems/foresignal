@@ -240,6 +240,9 @@ class PostmanCollectionContractTest {
                     ai.foresignal.testsupport.net.TestOutbound.offlinePolicy()).parse(body, null)),
             Map.entry("updateLlmProvider", body -> new ai.foresignal.llm.LlmProviderValidator(
                     ai.foresignal.testsupport.net.TestOutbound.offlinePolicy()).parse(body, "ollama")),
+            // 162: the probe body is an LlmProviderInput, parsed as a create.
+            Map.entry("probeLlmProvider", body -> new ai.foresignal.llm.LlmProviderValidator(
+                    ai.foresignal.testsupport.net.TestOutbound.offlinePolicy()).parse(body, null)),
             // 028: the production Ask request parser over a registry holding the USGS source.
             Map.entry("ask", body -> ai.foresignal.ask.AskRequestParser.parse(body, usgsRegistry(), Set.of())),
             Map.entry("askStream", body -> ai.foresignal.ask.AskRequestParser.parse(body, usgsRegistry(), Set.of())),

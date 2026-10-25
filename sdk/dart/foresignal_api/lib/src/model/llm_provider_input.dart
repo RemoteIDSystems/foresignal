@@ -4,6 +4,7 @@
 
 // ignore_for_file: unused_element
 import 'package:foresignal_api/src/model/llm_provider_input_options.dart';
+import 'package:foresignal_api/src/model/llm_pricing.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -44,6 +45,14 @@ class LlmProviderInput {
      this.enabled = true,
 
      this.knowledgeCutoff,
+
+     this.pricing,
+
+     this.hourlyCapUsd,
+
+     this.dailyCapUsd,
+
+     this.monthlyCapUsd,
   });
 
   @JsonKey(
@@ -197,6 +206,64 @@ class LlmProviderInput {
 
 
 
+      /// Prices in USD per million tokens (162); null or omitted means unpriced. Required for a USD cap.
+  @JsonKey(
+    
+    name: r'pricing',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final LlmPricing? pricing;
+
+
+
+      /// The most this provider may spend in the UTC clock hour (it resets at the top of the hour), in USD, at most 4 decimal places; null means no cap (162). Spend is the provider's self-metered tokens at its `pricing`, so a cap needs pricing. Once a window's spend, with the estimated cost of the calls in flight, reaches its cap, calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset. Applies on top of requestsPerMinute and tokensPerDay.
+          // minimum: 0
+          // maximum: 10000000000
+  @JsonKey(
+    
+    name: r'hourlyCapUsd',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final num? hourlyCapUsd;
+
+
+
+      /// The most this provider may spend in the UTC day (it resets at 00:00 UTC, as tokensPerDay), in USD, at most 4 decimal places; null means no cap (162). Spend is the provider's self-metered tokens at its `pricing`, so a cap needs pricing. Once a window's spend, with the estimated cost of the calls in flight, reaches its cap, calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset. Applies on top of requestsPerMinute and tokensPerDay.
+          // minimum: 0
+          // maximum: 10000000000
+  @JsonKey(
+    
+    name: r'dailyCapUsd',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final num? dailyCapUsd;
+
+
+
+      /// The most this provider may spend in the UTC calendar month (it resets at 00:00 UTC on the 1st), in USD, at most 4 decimal places; null means no cap (162). Spend is the provider's self-metered tokens at its `pricing`, so a cap needs pricing. Once a window's spend, with the estimated cost of the calls in flight, reaches its cap, calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset. Applies on top of requestsPerMinute and tokensPerDay.
+          // minimum: 0
+          // maximum: 10000000000
+  @JsonKey(
+    
+    name: r'monthlyCapUsd',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final num? monthlyCapUsd;
+
+
+
 
 
     @override
@@ -212,7 +279,11 @@ class LlmProviderInput {
       other.requestsPerMinute == requestsPerMinute &&
       other.tokensPerDay == tokensPerDay &&
       other.enabled == enabled &&
-      other.knowledgeCutoff == knowledgeCutoff;
+      other.knowledgeCutoff == knowledgeCutoff &&
+      other.pricing == pricing &&
+      other.hourlyCapUsd == hourlyCapUsd &&
+      other.dailyCapUsd == dailyCapUsd &&
+      other.monthlyCapUsd == monthlyCapUsd;
 
     @override
     int get hashCode =>
@@ -227,7 +298,11 @@ class LlmProviderInput {
         requestsPerMinute.hashCode +
         tokensPerDay.hashCode +
         enabled.hashCode +
-        (knowledgeCutoff == null ? 0 : knowledgeCutoff.hashCode);
+        (knowledgeCutoff == null ? 0 : knowledgeCutoff.hashCode) +
+        (pricing == null ? 0 : pricing.hashCode) +
+        (hourlyCapUsd == null ? 0 : hourlyCapUsd.hashCode) +
+        (dailyCapUsd == null ? 0 : dailyCapUsd.hashCode) +
+        (monthlyCapUsd == null ? 0 : monthlyCapUsd.hashCode);
 
   factory LlmProviderInput.fromJson(Map<String, dynamic> json) => _$LlmProviderInputFromJson(json);
 

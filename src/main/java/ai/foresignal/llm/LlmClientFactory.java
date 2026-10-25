@@ -41,18 +41,31 @@ public class LlmClientFactory {
                 return existing;
             }
             if (existing != null) {
-                close(existing.client());
+                closeQuietly(existing.client());
             }
             return new Built(config, build(config));
         });
         return built.client();
     }
 
+    /**
+     * A client for {@code config} that is not cached, so it never replaces or closes a saved provider's
+     * client of the same id ({@code probeLlmProvider}). The caller closes it with {@link #close}.
+     */
+    public LlmClient detached(LlmProviderConfig config) {
+        return build(config);
+    }
+
+    /** Closes a client from {@link #detached}. */
+    public void close(LlmClient client) {
+        closeQuietly(client);
+    }
+
     /** Drops (and closes) the client of a deleted provider. */
     public void evict(String providerId) {
         Built removed = clients.remove(providerId);
         if (removed != null) {
-            close(removed.client());
+            closeQuietly(removed.client());
         }
     }
 
@@ -65,7 +78,7 @@ public class LlmClientFactory {
         };
     }
 
-    private static void close(LlmClient client) {
+    private static void closeQuietly(LlmClient client) {
         if (client instanceof AnthropicLlmClient anthropic) {
             try {
                 anthropic.sdkClient().close();
@@ -78,7 +91,7 @@ public class LlmClientFactory {
     /** Closes every client on shutdown. */
     @PreDestroy
     public void closeAll() {
-        clients.values().forEach(built -> close(built.client()));
+        clients.values().forEach(built -> closeQuietly(built.client()));
         clients.clear();
     }
 }

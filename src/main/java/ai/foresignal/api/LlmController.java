@@ -4,6 +4,8 @@ import ai.foresignal.api.error.InvalidInputException;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.api.mapper.LlmMapper;
 import ai.foresignal.collect.UsageResolution;
+import ai.foresignal.llm.LlmBudgetGovernor;
+import ai.foresignal.llm.LlmProviderBalances;
 import ai.foresignal.llm.LlmProviderEntity;
 import ai.foresignal.llm.LlmProviderService;
 import ai.foresignal.llm.LlmService;
@@ -38,9 +40,10 @@ import tools.jackson.databind.JsonNode;
  * The {@code LLM} operations (prompt 026): {@code listLlmProviders}, {@code createLlmProvider},
  * {@code getLlmProvider}, {@code updateLlmProvider}, {@code deleteLlmProvider},
  * {@code testLlmProvider}, {@code listLlmProviderModels}, {@code getLlmSettings},
- * {@code updateLlmSettings} and {@code getLlmUsage}. Every operation needs {@code admin}
- * ({@code /v1/llm/**} in {@code AccessPolicy}); the test endpoint spends budget and is always
- * authenticated. API keys are never returned.
+ * {@code updateLlmSettings}, {@code getLlmUsage}, and (API 1.5.0) {@code probeLlmProvider} and
+ * {@code getLlmProviderBudget}. Every operation needs {@code admin} ({@code /v1/llm/**} in
+ * {@code AccessPolicy}); the test and probe endpoints call the provider and are always authenticated.
+ * API keys are never returned.
  */
 @RestController
 @Tag(name = "LLM")
@@ -58,16 +61,21 @@ public class LlmController {
     private final LlmService llm;
     private final LlmUsageMeter usage;
     private final LlmMapper mapper;
+    private final LlmBudgetGovernor governor;
+    private final LlmProviderBalances balances;
     private final Clock clock;
 
     /** Creates the controller. */
     public LlmController(LlmProviderService providers, LlmSettingsService settings, LlmService llm,
-            LlmUsageMeter usage, LlmMapper mapper, Clock clock) {
+            LlmUsageMeter usage, LlmMapper mapper, LlmBudgetGovernor governor, LlmProviderBalances balances,
+            Clock clock) {
         this.providers = providers;
         this.settings = settings;
         this.llm = llm;
         this.usage = usage;
         this.mapper = mapper;
+        this.governor = governor;
+        this.balances = balances;
         this.clock = clock;
     }
 
@@ -100,7 +108,9 @@ public class LlmController {
     @PutMapping("/providers/{providerId}")
     @Operation(operationId = "updateLlmProvider", tags = "LLM")
     public Map<String, Object> updateLlmProvider(@PathVariable String providerId, @RequestBody JsonNode body) {
-        return mapper.provider(providers.replace(providerId, body));
+        LlmProviderEntity replaced = providers.replace(providerId, body);
+        balances.forget(providerId);
+        return mapper.provider(replaced);
     }
 
     /** {@code deleteLlmProvider}: 204; 409 while it holds a role. */
@@ -110,6 +120,7 @@ public class LlmController {
     public ResponseEntity<Void> deleteLlmProvider(@PathVariable String providerId) {
         providers.delete(providerId);
         llm.forget(providerId);
+        balances.forget(providerId);
         return ResponseEntity.noContent().build();
     }
 
@@ -127,6 +138,24 @@ public class LlmController {
     public List<Map<String, Object>> listLlmProviderModels(@PathVariable String providerId) {
         providers.get(providerId);
         return llm.models(providerId).stream().map(LlmMapper::model).toList();
+    }
+
+    /**
+     * {@code probeLlmProvider}: tests an unsaved {@code LlmProviderInput} and lists its models; nothing is
+     * stored. Without {@code apiKey}, a saved provider's stored key is used when {@code id} names one.
+     */
+    @PostMapping("/probe")
+    @Operation(operationId = "probeLlmProvider", tags = "LLM")
+    public Map<String, Object> probeLlmProvider(@RequestBody JsonNode body) {
+        return LlmMapper.probe(llm.probe(providers.probeConfig(body)));
+    }
+
+    /** {@code getLlmProviderBudget}: spend against the USD caps per window, and any provider-reported balance. */
+    @GetMapping("/providers/{providerId}/budget")
+    @Operation(operationId = "getLlmProviderBudget", tags = "LLM")
+    public Map<String, Object> getLlmProviderBudget(@PathVariable String providerId) {
+        LlmProviderEntity provider = providers.get(providerId);
+        return mapper.budget(provider, governor.spend(providerId), balances.balance(providers.config(provider)));
     }
 
     /** {@code getLlmSettings}. */

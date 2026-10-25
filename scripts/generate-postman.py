@@ -378,6 +378,10 @@ BODIES = {
   "updateLlmProvider": {"id": "ollama", "type": "ollama", "baseUrl": "http://ollama:11434", "chatModel": "qwen3:14b",
                         "embeddingModel": "nomic-embed-text", "embeddingDimensions": 768, "options": {"maxTokens": 8000, "temperature": 0.2},
                         "requestsPerMinute": 60, "tokensPerDay": 5000000, "enabled": True, "knowledgeCutoff": "2025-04-01"},
+  # 162: test an unsaved provider and list its models; nothing is stored. Without apiKey the stored key of the
+  # provider named by id is used (here the collection's ollama provider, which needs none).
+  "probeLlmProvider": {"id": "ollama", "type": "ollama", "baseUrl": "http://ollama:11434", "chatModel": "qwen3:14b",
+                       "pricing": {"inputUsdPerMillionTokens": 0, "outputUsdPerMillionTokens": 0}},
   "updateLlmSettings": {"chatProvider": "ollama", "embeddingProvider": "ollama", "askEnabled": True, "enrichmentEnabled": True,
                         "logContent": False, "askMaxTokens": 200000},
   "ask": {"question": "Were there any earthquakes above magnitude 5 in the last 24 hours, and where?", "threadId": None,

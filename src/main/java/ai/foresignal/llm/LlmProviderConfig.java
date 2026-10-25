@@ -29,18 +29,35 @@ import java.util.Optional;
  * @param tokensPerDay the per-UTC-day token budget
  * @param enabled whether it may be used
  * @param knowledgeCutoff the chat model's training-data cutoff, or null
+ * @param pricing the prices in USD per million tokens ({@link LlmPricing#NONE} when unpriced)
+ * @param spendCaps the hourly, daily and monthly USD caps ({@link LlmSpendCaps#NONE} when uncapped)
  */
 public record LlmProviderConfig(String id, LlmProviderType type, String baseUrl, String chatModel,
         String embeddingModel, Integer embeddingDimensions, Effort effort, Integer maxTokens, Double temperature,
         Map<String, String> extraHeaders, boolean localFlag, String apiKey, int requestsPerMinute, long tokensPerDay,
-        boolean enabled, LocalDate knowledgeCutoff) {
+        boolean enabled, LocalDate knowledgeCutoff, LlmPricing pricing, LlmSpendCaps spendCaps) {
 
     /** The output cap used when neither the request nor the provider sets one. */
     public static final int DEFAULT_MAX_TOKENS = 16_000;
 
-    /** Copies the headers. */
+    /** Copies the headers; a null pricing or cap set is none. */
     public LlmProviderConfig {
         extraHeaders = extraHeaders == null ? Map.of() : Map.copyOf(extraHeaders);
+        pricing = pricing == null ? LlmPricing.NONE : pricing;
+        spendCaps = spendCaps == null ? LlmSpendCaps.NONE : spendCaps;
+    }
+
+    /**
+     * The snapshot without pricing or caps: the 1.4 shape, kept for callers that budget only tokens and
+     * requests.
+     */
+    public LlmProviderConfig(String id, LlmProviderType type, String baseUrl, String chatModel,
+            String embeddingModel, Integer embeddingDimensions, Effort effort, Integer maxTokens, Double temperature,
+            Map<String, String> extraHeaders, boolean localFlag, String apiKey, int requestsPerMinute, long tokensPerDay,
+            boolean enabled, LocalDate knowledgeCutoff) {
+        this(id, type, baseUrl, chatModel, embeddingModel, embeddingDimensions, effort, maxTokens, temperature,
+                extraHeaders, localFlag, apiKey, requestsPerMinute, tokensPerDay, enabled, knowledgeCutoff,
+                LlmPricing.NONE, LlmSpendCaps.NONE);
     }
 
     /** True when prompts stay on this machine or network: Ollama, or {@code options.local=true}. */

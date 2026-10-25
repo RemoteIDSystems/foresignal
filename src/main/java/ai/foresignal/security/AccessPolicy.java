@@ -348,6 +348,7 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/calendars/**", AccessRequirement.READ),
                 // Testing a provider spends LLM tokens (always authenticated, 026).
                 rule(HttpMethod.POST, "/v1/llm/providers/*/test", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/llm/probe", AccessRequirement.ADMIN_ALWAYS_AUTHENTICATED),
                 rule(null, "/v1/llm/**", AccessRequirement.ADMIN),
                 rule(null, "/v1/custom-sources/**", AccessRequirement.ADMIN),
                 // ---- Plugins (prompt 141): out-of-tree WASM parsers; listing, switching and enabling are admin ----
