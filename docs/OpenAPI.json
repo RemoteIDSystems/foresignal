@@ -11,7 +11,8 @@
     },
     "contact": {
       "name": "RemoteID Systems, LLC",
-      "url": "https://foresignal.ai"
+      "url": "https://foresignal.ai",
+      "email": "info@remoteidsystems.com"
     },
     "x-foresignal-changelog": [
       {
