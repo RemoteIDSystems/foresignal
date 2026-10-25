@@ -12,6 +12,7 @@ import ai.foresignal.store.query.RecordRow;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -540,16 +541,20 @@ public class IntelEventService {
         Map<String, ai.foresignal.evidence.EvidenceService.GroupKey> keys = evidenceKeys(all);
         List<String> refs = new ArrayList<>();
         List<Map<String, Object>> memberViews = new ArrayList<>();
+        // Once per source, not per member: an event's thousands of members come from a handful of sources, and
+        // each health view runs the health rules, one of which reads the database.
+        Map<String, Boolean> healthyBySource = new HashMap<>();
         for (IntelEventMemberEntity member : all) {
             if ("contradicting".equals(member.getRole())) {
                 continue;
             }
-            boolean healthy;
-            try {
-                healthy = health.health(member.getSourceId()).status() == HealthStatus.HEALTHY;
-            } catch (RuntimeException e) {
-                healthy = false;
-            }
+            boolean healthy = healthyBySource.computeIfAbsent(member.getSourceId(), source -> {
+                try {
+                    return health.health(source).status() == HealthStatus.HEALTHY;
+                } catch (RuntimeException e) {
+                    return false;
+                }
+            });
             ai.foresignal.evidence.EvidenceService.GroupKey key = keys.get(
                     ai.foresignal.evidence.EvidenceService.recordKey(member.getSourceId(), member.getExternalId()));
             EventScorer.MemberView view = new EventScorer.MemberView(member.getSignalFamily(),

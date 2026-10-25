@@ -457,10 +457,12 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
         double seedKm = seedDistance(recipe);
         Duration seedWindow = seedWindow(recipe);
         Map<Long, ai.foresignal.reference.RegionTags> regionCache = new HashMap<>();
+        // Source health, read once per source for this pass rather than once per member row.
+        Map<String, HealthStatus> healthCache = new HashMap<>();
         Map<String, ai.foresignal.evidence.EvidenceService.GroupKey> evidenceKeys = evidenceKeys(rows);
         List<Candidate> out = new ArrayList<>();
         for (List<MemberRow> cluster : cluster(rows, recipe.seed().kinds(), seedKm, seedWindow)) {
-            Candidate candidate = build(recipe, cluster, rows, from, to, regionCache, evidenceKeys);
+            Candidate candidate = build(recipe, cluster, rows, from, to, regionCache, healthCache, evidenceKeys);
             if (candidate == null || !candidate.touches(freshSeqs)) {
                 continue;
             }
@@ -548,7 +550,7 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
             Map<String, Object> snapshot) {}
 
     private Candidate build(RecipeDefinition recipe, List<MemberRow> cluster, List<MemberRow> rows, long from, long to,
-            Map<Long, ai.foresignal.reference.RegionTags> regionCache,
+            Map<Long, ai.foresignal.reference.RegionTags> regionCache, Map<String, HealthStatus> healthCache,
             Map<String, ai.foresignal.evidence.EvidenceService.GroupKey> evidenceKeys) {
         List<MemberLine> lines = new ArrayList<>();
         Set<String> families = new LinkedHashSet<>();
@@ -562,7 +564,7 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
             String family = SignalFamilies.forKind(row.kind());
             lines.add(line("supporting", row, family, RecipeRegistry.SEED_WEIGHT, Map.of("clause", "seed")));
             families.add(family);
-            views.add(view(row, family, RecipeRegistry.SEED_WEIGHT, evidenceKeys));
+            views.add(view(row, family, RecipeRegistry.SEED_WEIGHT, evidenceKeys, healthCache));
             pinned.add(memberKey("record", row.sourceId(), row.externalId(), row.seq()));
             start = min(start, row.observedAt());
             end = max(end, row.observedAt());
@@ -627,7 +629,7 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
                 String role = join.role() == null ? "context" : join.role();
                 lines.add(line(role, row, family, join.weight(), reason));
                 families.add(family);
-                views.add(view(row, family, join.weight(), evidenceKeys));
+                views.add(view(row, family, join.weight(), evidenceKeys, healthCache));
                 pinned.add(memberKey("record", row.sourceId(), row.externalId(), row.seq()));
                 anyPrivate = anyPrivate || visibility.isPrivateSource(row.sourceId());
                 if (row.geom() != null) {
@@ -1302,11 +1304,12 @@ public class CorrelationEngine implements ChangeListener, DisposableBean, ai.for
 
     /**
      * The scorer's view of a member (116: with its evidence group, so re-reports of one originator contribute
-     * once).
+     * once). {@code healthCache} holds each source's health for the pass.
      */
     private EventScorer.MemberView view(MemberRow row, String family, double weight,
-            Map<String, ai.foresignal.evidence.EvidenceService.GroupKey> evidenceKeys) {
-        boolean healthy = health(row.sourceId()) == HealthStatus.HEALTHY;
+            Map<String, ai.foresignal.evidence.EvidenceService.GroupKey> evidenceKeys,
+            Map<String, HealthStatus> healthCache) {
+        boolean healthy = healthCache.computeIfAbsent(row.sourceId(), this::health) == HealthStatus.HEALTHY;
         ai.foresignal.evidence.EvidenceService.GroupKey key =
                 evidenceKeys.get(ai.foresignal.evidence.EvidenceService.recordKey(row.sourceId(), row.externalId()));
         return new EventScorer.MemberView(family, weight, row.sourceId(), healthy,
