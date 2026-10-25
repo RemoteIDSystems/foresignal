@@ -2011,7 +2011,6 @@ from .intel_event_input import IntelEventInput
 from .intel_event_input_origin import IntelEventInputOrigin
 from .intel_event_input_type import IntelEventInputType
 from .intel_event_log_entry import IntelEventLogEntry
-from .intel_event_log_entry_action import IntelEventLogEntryAction
 from .intel_event_log_entry_after_type_0 import IntelEventLogEntryAfterType0
 from .intel_event_log_entry_before_type_0 import IntelEventLogEntryBeforeType0
 from .intel_event_member import IntelEventMember
@@ -2389,7 +2388,6 @@ from .narrative_event import NarrativeEvent
 from .narrative_event_changed_item import NarrativeEventChangedItem
 from .narrative_event_event import NarrativeEventEvent
 from .narrative_log_entry import NarrativeLogEntry
-from .narrative_log_entry_action import NarrativeLogEntryAction
 from .narrative_merge_input import NarrativeMergeInput
 from .narrative_page import NarrativePage
 from .narrative_platform_stats import NarrativePlatformStats
@@ -3561,13 +3559,6 @@ from .situation_summary import SituationSummary
 from .situation_summary_origin import SituationSummaryOrigin
 from .situation_theme import SituationTheme
 from .situation_timeline_entry import SituationTimelineEntry
-from .situation_timeline_entry_action_type_1 import SituationTimelineEntryActionType1
-from .situation_timeline_entry_action_type_2_type_1 import (
-    SituationTimelineEntryActionType2Type1,
-)
-from .situation_timeline_entry_action_type_3_type_1 import (
-    SituationTimelineEntryActionType3Type1,
-)
 from .situation_timeline_entry_after_type_0 import SituationTimelineEntryAfterType0
 from .situation_timeline_entry_before_type_0 import SituationTimelineEntryBeforeType0
 from .situation_timeline_entry_entry_type import SituationTimelineEntryEntryType
@@ -5731,7 +5722,6 @@ __all__ = (
     "IntelEventInputOrigin",
     "IntelEventInputType",
     "IntelEventLogEntry",
-    "IntelEventLogEntryAction",
     "IntelEventLogEntryAfterType0",
     "IntelEventLogEntryBeforeType0",
     "IntelEventMember",
@@ -6069,7 +6059,6 @@ __all__ = (
     "NarrativeEventChangedItem",
     "NarrativeEventEvent",
     "NarrativeLogEntry",
-    "NarrativeLogEntryAction",
     "NarrativeMergeInput",
     "NarrativePage",
     "NarrativePlatformStats",
@@ -7051,9 +7040,6 @@ __all__ = (
     "SituationSummaryOrigin",
     "SituationTheme",
     "SituationTimelineEntry",
-    "SituationTimelineEntryActionType1",
-    "SituationTimelineEntryActionType2Type1",
-    "SituationTimelineEntryActionType3Type1",
     "SituationTimelineEntryAfterType0",
     "SituationTimelineEntryBeforeType0",
     "SituationTimelineEntryEntryType",

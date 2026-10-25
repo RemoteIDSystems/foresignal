@@ -9,7 +9,7 @@ part of 'narrative_log_entry.dart';
 abstract class _$NarrativeLogEntryCWProxy {
   NarrativeLogEntry at(DateTime at);
 
-  NarrativeLogEntry action(NarrativeLogEntryActionEnum action);
+  NarrativeLogEntry action(String action);
 
   NarrativeLogEntry by(String by);
 
@@ -31,7 +31,7 @@ abstract class _$NarrativeLogEntryCWProxy {
   /// ```
   NarrativeLogEntry call({
     DateTime at,
-    NarrativeLogEntryActionEnum action,
+    String action,
     String by,
     List<String>? relatedNarrativeIds,
     String? from,
@@ -51,8 +51,7 @@ class _$NarrativeLogEntryCWProxyImpl implements _$NarrativeLogEntryCWProxy {
   NarrativeLogEntry at(DateTime at) => call(at: at);
 
   @override
-  NarrativeLogEntry action(NarrativeLogEntryActionEnum action) =>
-      call(action: action);
+  NarrativeLogEntry action(String action) => call(action: action);
 
   @override
   NarrativeLogEntry by(String by) => call(by: by);
@@ -96,7 +95,7 @@ class _$NarrativeLogEntryCWProxyImpl implements _$NarrativeLogEntryCWProxy {
       action: action == const $CopyWithPlaceholder() || action == null
           ? _value.action
           // ignore: cast_nullable_to_non_nullable
-          : action as NarrativeLogEntryActionEnum,
+          : action as String,
       by: by == const $CopyWithPlaceholder() || by == null
           ? _value.by
           // ignore: cast_nullable_to_non_nullable
@@ -138,10 +137,7 @@ NarrativeLogEntry _$NarrativeLogEntryFromJson(Map<String, dynamic> json) =>
       $checkKeys(json, requiredKeys: const ['at', 'action', 'by']);
       final val = NarrativeLogEntry(
         at: $checkedConvert('at', (v) => DateTime.parse(v as String)),
-        action: $checkedConvert(
-          'action',
-          (v) => $enumDecode(_$NarrativeLogEntryActionEnumEnumMap, v),
-        ),
+        action: $checkedConvert('action', (v) => v as String),
         by: $checkedConvert('by', (v) => v as String),
         relatedNarrativeIds: $checkedConvert(
           'relatedNarrativeIds',
@@ -157,21 +153,10 @@ NarrativeLogEntry _$NarrativeLogEntryFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$NarrativeLogEntryToJson(NarrativeLogEntry instance) =>
     <String, dynamic>{
       'at': instance.at.toIso8601String(),
-      'action': _$NarrativeLogEntryActionEnumEnumMap[instance.action]!,
+      'action': instance.action,
       'by': instance.by,
       'relatedNarrativeIds': ?instance.relatedNarrativeIds,
       'from': ?instance.from,
       'to': ?instance.to,
       'reason': ?instance.reason,
     };
-
-const _$NarrativeLogEntryActionEnumEnumMap = {
-  NarrativeLogEntryActionEnum.created: 'created',
-  NarrativeLogEntryActionEnum.merged: 'merged',
-  NarrativeLogEntryActionEnum.mergedInto: 'merged-into',
-  NarrativeLogEntryActionEnum.split: 'split',
-  NarrativeLogEntryActionEnum.splitFrom: 'split-from',
-  NarrativeLogEntryActionEnum.stateChanged: 'state-changed',
-  NarrativeLogEntryActionEnum.statusChanged: 'status-changed',
-  NarrativeLogEntryActionEnum.titleChanged: 'title-changed',
-};

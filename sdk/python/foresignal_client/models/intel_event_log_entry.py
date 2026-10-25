@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, Self, TypeVar, cast
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.intel_event_log_entry_action import IntelEventLogEntryAction
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -27,14 +26,15 @@ class IntelEventLogEntry:
     Attributes:
         at (datetime.datetime):
         actor (str): Token id or `recipe:<id>`
-        action (IntelEventLogEntryAction):
+        action (str): What happened. The list grows as the server adds actions; a client shows an action it does not
+            know as its text.
         before (IntelEventLogEntryBeforeType0 | None | Unset):
         after (IntelEventLogEntryAfterType0 | None | Unset):
     """
 
     at: datetime.datetime
     actor: str
-    action: IntelEventLogEntryAction
+    action: str
     before: IntelEventLogEntryBeforeType0 | None | Unset = UNSET
     after: IntelEventLogEntryAfterType0 | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -51,7 +51,7 @@ class IntelEventLogEntry:
 
         actor = self.actor
 
-        action = self.action.value
+        action = self.action
 
         before: dict[str, Any] | None | Unset
         if isinstance(self.before, Unset):
@@ -99,7 +99,7 @@ class IntelEventLogEntry:
 
         actor = d.pop("actor")
 
-        action = IntelEventLogEntryAction(d.pop("action"))
+        action = d.pop("action")
 
         def _parse_before(data: object) -> IntelEventLogEntryBeforeType0 | None | Unset:
             if data is None:

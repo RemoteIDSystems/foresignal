@@ -11,7 +11,7 @@ abstract class _$IntelEventLogEntryCWProxy {
 
   IntelEventLogEntry actor(String actor);
 
-  IntelEventLogEntry action(IntelEventLogEntryActionEnum action);
+  IntelEventLogEntry action(String action);
 
   IntelEventLogEntry before(Map<String, Object>? before);
 
@@ -28,7 +28,7 @@ abstract class _$IntelEventLogEntryCWProxy {
   IntelEventLogEntry call({
     DateTime at,
     String actor,
-    IntelEventLogEntryActionEnum action,
+    String action,
     Map<String, Object>? before,
     Map<String, Object>? after,
   });
@@ -48,8 +48,7 @@ class _$IntelEventLogEntryCWProxyImpl implements _$IntelEventLogEntryCWProxy {
   IntelEventLogEntry actor(String actor) => call(actor: actor);
 
   @override
-  IntelEventLogEntry action(IntelEventLogEntryActionEnum action) =>
-      call(action: action);
+  IntelEventLogEntry action(String action) => call(action: action);
 
   @override
   IntelEventLogEntry before(Map<String, Object>? before) =>
@@ -86,7 +85,7 @@ class _$IntelEventLogEntryCWProxyImpl implements _$IntelEventLogEntryCWProxy {
       action: action == const $CopyWithPlaceholder() || action == null
           ? _value.action
           // ignore: cast_nullable_to_non_nullable
-          : action as IntelEventLogEntryActionEnum,
+          : action as String,
       before: before == const $CopyWithPlaceholder()
           ? _value.before
           // ignore: cast_nullable_to_non_nullable
@@ -118,10 +117,7 @@ IntelEventLogEntry _$IntelEventLogEntryFromJson(
   final val = IntelEventLogEntry(
     at: $checkedConvert('at', (v) => DateTime.parse(v as String)),
     actor: $checkedConvert('actor', (v) => v as String),
-    action: $checkedConvert(
-      'action',
-      (v) => $enumDecode(_$IntelEventLogEntryActionEnumEnumMap, v),
-    ),
+    action: $checkedConvert('action', (v) => v as String),
     before: $checkedConvert(
       'before',
       (v) =>
@@ -140,17 +136,7 @@ Map<String, dynamic> _$IntelEventLogEntryToJson(IntelEventLogEntry instance) =>
     <String, dynamic>{
       'at': instance.at.toIso8601String(),
       'actor': instance.actor,
-      'action': _$IntelEventLogEntryActionEnumEnumMap[instance.action]!,
+      'action': instance.action,
       'before': ?instance.before,
       'after': ?instance.after,
     };
-
-const _$IntelEventLogEntryActionEnumEnumMap = {
-  IntelEventLogEntryActionEnum.created: 'created',
-  IntelEventLogEntryActionEnum.memberAdded: 'member_added',
-  IntelEventLogEntryActionEnum.memberRemoved: 'member_removed',
-  IntelEventLogEntryActionEnum.status: 'status',
-  IntelEventLogEntryActionEnum.merged: 'merged',
-  IntelEventLogEntryActionEnum.edited: 'edited',
-  IntelEventLogEntryActionEnum.reopened: 'reopened',
-};

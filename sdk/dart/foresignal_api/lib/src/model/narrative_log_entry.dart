@@ -47,6 +47,7 @@ class NarrativeLogEntry {
 
 
 
+      /// What happened. The list grows as the server adds actions; a client shows an action it does not know as its text.
   @JsonKey(
     
     name: r'action',
@@ -55,7 +56,7 @@ class NarrativeLogEntry {
   )
 
 
-  final NarrativeLogEntryActionEnum action;
+  final String action;
 
 
 
@@ -152,31 +153,4 @@ class NarrativeLogEntry {
   }
 
 }
-
-enum NarrativeLogEntryActionEnum {
-@JsonValue(r'created')
-created(r'created'),
-@JsonValue(r'merged')
-merged(r'merged'),
-@JsonValue(r'merged-into')
-mergedInto(r'merged-into'),
-@JsonValue(r'split')
-split(r'split'),
-@JsonValue(r'split-from')
-splitFrom(r'split-from'),
-@JsonValue(r'state-changed')
-stateChanged(r'state-changed'),
-@JsonValue(r'status-changed')
-statusChanged(r'status-changed'),
-@JsonValue(r'title-changed')
-titleChanged(r'title-changed');
-
-const NarrativeLogEntryActionEnum(this.value);
-
-final String value;
-
-@override
-String toString() => value;
-}
-
 

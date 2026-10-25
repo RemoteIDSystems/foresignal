@@ -60,6 +60,6 @@ the SSE server, and the contract tests read [`sdk/contract-fixtures`](../contrac
 
 ## Versioning and publishing
 
-The package version is the API's `info.version` (`1.4.0`); tool and dependency versions are pinned in
+The package version is the API's `info.version` (`1.4.1`); tool and dependency versions are pinned in
 [`sdk/versions.properties`](../versions.properties). The package is `"private": true`; publishing to npm is a
 separate release step.

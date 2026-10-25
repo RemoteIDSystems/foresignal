@@ -7,15 +7,6 @@ from typing import TYPE_CHECKING, Any, Self, TypeVar, cast
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.situation_timeline_entry_action_type_1 import (
-    SituationTimelineEntryActionType1,
-)
-from ..models.situation_timeline_entry_action_type_2_type_1 import (
-    SituationTimelineEntryActionType2Type1,
-)
-from ..models.situation_timeline_entry_action_type_3_type_1 import (
-    SituationTimelineEntryActionType3Type1,
-)
 from ..models.situation_timeline_entry_entry_type import SituationTimelineEntryEntryType
 from ..types import UNSET, Unset
 
@@ -40,8 +31,8 @@ class SituationTimelineEntry:
         at (datetime.datetime):
         entry_type (SituationTimelineEntryEntryType):
         member (None | SituationMember | Unset):
-        action (None | SituationTimelineEntryActionType1 | SituationTimelineEntryActionType2Type1 |
-            SituationTimelineEntryActionType3Type1 | Unset): Log action (log entries)
+        action (None | str | Unset): Log action (log entries); null for a member entry. The list grows as the server
+            adds actions; a client shows an action it does not know as its text.
         actor (None | str | Unset): Token id, `linker:<version>` or `analyst:<profile>`
         before (None | SituationTimelineEntryBeforeType0 | Unset):
         after (None | SituationTimelineEntryAfterType0 | Unset):
@@ -50,13 +41,7 @@ class SituationTimelineEntry:
     at: datetime.datetime
     entry_type: SituationTimelineEntryEntryType
     member: None | SituationMember | Unset = UNSET
-    action: (
-        None
-        | SituationTimelineEntryActionType1
-        | SituationTimelineEntryActionType2Type1
-        | SituationTimelineEntryActionType3Type1
-        | Unset
-    ) = UNSET
+    action: None | str | Unset = UNSET
     actor: None | str | Unset = UNSET
     before: None | SituationTimelineEntryBeforeType0 | Unset = UNSET
     after: None | SituationTimelineEntryAfterType0 | Unset = UNSET
@@ -86,12 +71,6 @@ class SituationTimelineEntry:
         action: None | str | Unset
         if isinstance(self.action, Unset):
             action = UNSET
-        elif (
-            isinstance(self.action, SituationTimelineEntryActionType1)
-            or isinstance(self.action, SituationTimelineEntryActionType2Type1)
-            or isinstance(self.action, SituationTimelineEntryActionType3Type1)
-        ):
-            action = self.action.value
         else:
             action = self.action
 
@@ -170,51 +149,12 @@ class SituationTimelineEntry:
 
         member = _parse_member(d.pop("member", UNSET))
 
-        def _parse_action(
-            data: object,
-        ) -> (
-            None
-            | SituationTimelineEntryActionType1
-            | SituationTimelineEntryActionType2Type1
-            | SituationTimelineEntryActionType3Type1
-            | Unset
-        ):
+        def _parse_action(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                action_type_1 = SituationTimelineEntryActionType1(data)
-
-                return action_type_1
-            except (TypeError, ValueError, AttributeError, KeyError):
-                pass
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                action_type_2_type_1 = SituationTimelineEntryActionType2Type1(data)
-
-                return action_type_2_type_1
-            except (TypeError, ValueError, AttributeError, KeyError):
-                pass
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                action_type_3_type_1 = SituationTimelineEntryActionType3Type1(data)
-
-                return action_type_3_type_1
-            except (TypeError, ValueError, AttributeError, KeyError):
-                pass
-            return cast(
-                None
-                | SituationTimelineEntryActionType1
-                | SituationTimelineEntryActionType2Type1
-                | SituationTimelineEntryActionType3Type1
-                | Unset,
-                data,
-            )
+            return cast(None | str | Unset, data)
 
         action = _parse_action(d.pop("action", UNSET))
 

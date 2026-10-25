@@ -7,7 +7,6 @@ from typing import Any, Self, TypeVar, cast
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.narrative_log_entry_action import NarrativeLogEntryAction
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="NarrativeLogEntry")
@@ -19,7 +18,8 @@ class NarrativeLogEntry:
 
     Attributes:
         at (datetime.datetime):
-        action (NarrativeLogEntryAction):
+        action (str): What happened. The list grows as the server adds actions; a client shows an action it does not
+            know as its text.
         by (str): `system` or principal id
         related_narrative_ids (list[str] | Unset):
         from_ (None | str | Unset):
@@ -28,7 +28,7 @@ class NarrativeLogEntry:
     """
 
     at: datetime.datetime
-    action: NarrativeLogEntryAction
+    action: str
     by: str
     related_narrative_ids: list[str] | Unset = UNSET
     from_: None | str | Unset = UNSET
@@ -39,7 +39,7 @@ class NarrativeLogEntry:
     def to_dict(self) -> dict[str, Any]:
         at = self.at.isoformat()
 
-        action = self.action.value
+        action = self.action
 
         by = self.by
 
@@ -90,7 +90,7 @@ class NarrativeLogEntry:
         d = dict(src_dict)
         at = datetime.datetime.fromisoformat(d.pop("at"))
 
-        action = NarrativeLogEntryAction(d.pop("action"))
+        action = d.pop("action")
 
         by = d.pop("by")
 

@@ -3,7 +3,7 @@
 # dio, the HTTP client the generated package foresignal_api uses, so it works with or without the generated types.
 # Versions: sdk/versions.properties. The package version is the API's info.version.
 name: foresignal_sdk
-version: 1.4.0
+version: 1.4.1
 description: Realtime, paging and client-contract helpers for the Foresignal API (hand-written, on dio).
 publish_to: none
 

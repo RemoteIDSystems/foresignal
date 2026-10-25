@@ -25992,8 +25992,8 @@ export interface components {
             at: string;
             /** @description Token id or `recipe:<id>` */
             actor: string;
-            /** @enum {string} */
-            action: "created" | "member_added" | "member_removed" | "status" | "merged" | "edited" | "reopened";
+            /** @description What happened. The list grows as the server adds actions; a client shows an action it does not know as its text. */
+            action: string;
             before?: {
                 [key: string]: unknown;
             } | null;
@@ -29893,11 +29893,8 @@ export interface components {
             /** @enum {string} */
             entryType: "member" | "log";
             member?: components["schemas"]["SituationMember"] | null;
-            /**
-             * @description Log action (log entries)
-             * @enum {string|null}
-             */
-            action?: "created" | "member_added" | "member_removed" | "status" | "severity" | "merged" | "split" | "renamed" | "theme" | "brief" | null;
+            /** @description Log action (log entries); null for a member entry. The list grows as the server adds actions; a client shows an action it does not know as its text. */
+            action?: string | null;
             /** @description Token id, `linker:<version>` or `analyst:<profile>` */
             actor?: string | null;
             before?: {
@@ -37516,8 +37513,8 @@ export interface components {
         NarrativeLogEntry: {
             /** Format: date-time */
             at: string;
-            /** @enum {string} */
-            action: "created" | "merged" | "merged-into" | "split" | "split-from" | "state-changed" | "status-changed" | "title-changed";
+            /** @description What happened. The list grows as the server adds actions; a client shows an action it does not know as its text. */
+            action: string;
             /** @description `system` or principal id */
             by: string;
             relatedNarrativeIds?: components["schemas"]["Ulid"][];

@@ -56,6 +56,7 @@ class IntelEventLogEntry {
 
 
 
+      /// What happened. The list grows as the server adds actions; a client shows an action it does not know as its text.
   @JsonKey(
     
     name: r'action',
@@ -64,7 +65,7 @@ class IntelEventLogEntry {
   )
 
 
-  final IntelEventLogEntryActionEnum action;
+  final String action;
 
 
 
@@ -120,29 +121,4 @@ class IntelEventLogEntry {
   }
 
 }
-
-enum IntelEventLogEntryActionEnum {
-@JsonValue(r'created')
-created(r'created'),
-@JsonValue(r'member_added')
-memberAdded(r'member_added'),
-@JsonValue(r'member_removed')
-memberRemoved(r'member_removed'),
-@JsonValue(r'status')
-status(r'status'),
-@JsonValue(r'merged')
-merged(r'merged'),
-@JsonValue(r'edited')
-edited(r'edited'),
-@JsonValue(r'reopened')
-reopened(r'reopened');
-
-const IntelEventLogEntryActionEnum(this.value);
-
-final String value;
-
-@override
-String toString() => value;
-}
-
 

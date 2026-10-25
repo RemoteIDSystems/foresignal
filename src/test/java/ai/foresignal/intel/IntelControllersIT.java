@@ -214,6 +214,29 @@ class IntelControllersIT {
     }
 
     @Test
+    @DisplayName("a trust upgrade is logged as upgraded and read back in the event's log, a value the contract lists")
+    void upgradedLogEntryReadBack() throws Exception {
+        long seq = seed("u1");
+        String id = create(agent, "{\"type\":\"custom\",\"title\":\"Upgraded\",\"members\":[" + member("u1", seq) + "]}");
+        // An agent event starts active; back to emerging and on to active crosses the status threshold (151).
+        assertThat(send(agent, patch("/v1/intel/events/" + id), "{\"status\":\"emerging\"}").getStatus()).isEqualTo(200);
+        assertThat(send(agent, patch("/v1/intel/events/" + id), "{\"status\":\"active\"}").getStatus()).isEqualTo(200);
+
+        JsonNode upgraded = null;
+        for (JsonNode entry : body(call(read, get("/v1/intel/events/" + id))).get("log")) {
+            if ("upgraded".equals(entry.get("action").asString())) {
+                upgraded = entry;
+            }
+        }
+        assertThat(upgraded).as("an upgraded log entry").isNotNull();
+        assertThat(upgraded.get("after").get("upgrade").toString()).contains("\"dimension\":\"status\"");
+
+        JsonNode spec = json.readTree(java.nio.file.Files.readString(java.nio.file.Path.of("docs", "OpenAPI.json")));
+        assertThat(spec.at("/components/schemas/IntelEventLogEntry/properties/action/x-extensible-enum").toString())
+                .contains("\"upgraded\"");
+    }
+
+    @Test
     @DisplayName("a stale version is 409 EVENT_VERSION_CONFLICT; bad status and severity are 400")
     void patchValidation() throws Exception {
         long seq = seed("v1");

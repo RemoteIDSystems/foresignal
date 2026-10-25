@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Foresignal API",
-    "version": "1.4.0",
+    "version": "1.4.1",
     "summary": "Headless intelligence broker: ingest, version and re-serve public telemetry.",
     "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...`, `/v1/k/{key}/tiles/...`, `/v1/k/{key}/map/...` and `/v1/k/{key}/changes/stream` for map clients (MapLibre, maplibre_gl, Cesium, `EventSource`), share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. A feed key reaches only `GET`/`HEAD` of `read` operations that are not always-authenticated, under the key's path prefixes, with the key's mandatory read restriction (unknown key 401 INVALID_FEED_KEY, expired or revoked 410 FEED_KEY_GONE, another method 405, a path outside the prefixes 403 RESTRICTED). A tile key reaches the same operations under its prefixes (a subset of `/v1/products/`, `/v1/styles`, `/v1/media/`, `/v1/tiles/`, `/v1/maps/static`, `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream`, `/v1/map/`), with its optional restriction and never private sources (unknown, expired or revoked key 401 INVALID_TILE_KEY, another method 405, a path outside the prefixes 403 INSUFFICIENT_SCOPE). Responses carry `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`; `Cache-Control` defaults to `private`, and a tile-key response takes the canonical path's own rule (`public` only while `openReads` covers it). Logs show only the key's first eight characters; the key is never echoed except by `createFeedKey` and `createTileKey`, and in the follow-up URLs of documents requested through it (058: the MapLibre style's sources and sprite, KML NetworkLink and icon hrefs, a feed's own `rel=\"self\"` / `feed_url`), which are then always `Cache-Control: private`. CORS exposes `Foresignal-Frame-Time`, `Foresignal-Image-Bounds`, `Foresignal-Frame-Expired`, `Retry-After`, `Link` and `ETag`, allows `Authorization`, `If-None-Match` and `Foresignal-Prefetch`, and caches preflights for a day; `?prefetch=1` marks a render prefetch without the preflight the header causes.\n\n**Restrictions and limits (035).** Restricted tokens, feed keys and the anonymous profile (`security.anonymous`, applied to tokenless reads while `openReads` is on) see only records and alerts inside their `ReadRestriction` on every read path (records, history, versions, changes, kinds, tiles, streams, search, alerts, the inbox, the digest, briefings, MCP tools and Ask): request filters are intersected with the restriction, and a single record or alert outside it is 404. Every client is rate-limited per class (`RateLimitSettings`); over a limit, or after repeated failed credentials from one address, the answer is 429 RATE_LIMITED with `Retry-After`. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).",
     "license": {
@@ -702,6 +702,11 @@
         "version": "1.4.0",
         "date": "2026-10-24",
         "note": "161: API 1.4.0 (additive, a minor version: analyzeTriggerSources and the two operations below; nothing changed or removed). Areas for the admin app's Alert Builder: searchReferenceAreas (GET /v1/reference/areas, read) finds countries, admin-1 regions and populated places by name, with an optional `, country or region` qualifier, and getReferenceArea (GET /v1/reference/areas/{code}, read) returns the simplified outline of a country or admin-1 region, with the ReferenceArea and ReferenceAreaOutline schemas. A rule's area itself needs no new member: a country or admin-1 region is a geofenceRef, a place or circle is near.point with radiusKm, a polygon or box is a Polygon geofence, and a route is a LineString geofence with bufferMeters. A rule's area is tested against a record's geometry only, so a record without geometry never matches an area. analyzeTriggerSources is recorded as prompt 161 (it was tagged 017)."
+      },
+      {
+        "version": "1.4.1",
+        "date": "2026-10-25",
+        "note": "API 1.4.1 (a patch: contract corrections, nothing changed or removed). The log-action lists now say what the server writes and are declared x-extensible-enum, since they grow as the server adds actions: IntelEventLogEntry.action gains upgraded (the 151 trust-threshold crossing, written beside the update by an operator edit or by the correlation engine), SituationTimelineEntry.action gains edited (written by every updateSituation, beside any renamed, theme or severity entries), and NarrativeLogEntry.action is unchanged. A client must accept an action it does not know."
       }
     ]
   },
@@ -122897,15 +122902,17 @@
           },
           "action": {
             "type": "string",
-            "enum": [
+            "x-extensible-enum": [
               "created",
               "member_added",
               "member_removed",
               "status",
               "merged",
               "edited",
-              "reopened"
-            ]
+              "reopened",
+              "upgraded"
+            ],
+            "description": "What happened. The list grows as the server adds actions; a client shows an action it does not know as its text."
           },
           "before": {
             "type": [
@@ -135449,7 +135456,7 @@
               "string",
               "null"
             ],
-            "enum": [
+            "x-extensible-enum": [
               "created",
               "member_added",
               "member_removed",
@@ -135460,9 +135467,9 @@
               "renamed",
               "theme",
               "brief",
-              null
+              "edited"
             ],
-            "description": "Log action (log entries)"
+            "description": "Log action (log entries); null for a member entry. The list grows as the server adds actions; a client shows an action it does not know as its text."
           },
           "actor": {
             "type": [
@@ -164076,7 +164083,7 @@
           },
           "action": {
             "type": "string",
-            "enum": [
+            "x-extensible-enum": [
               "created",
               "merged",
               "merged-into",
@@ -164085,7 +164092,8 @@
               "state-changed",
               "status-changed",
               "title-changed"
-            ]
+            ],
+            "description": "What happened. The list grows as the server adds actions; a client shows an action it does not know as its text."
           },
           "by": {
             "type": "string",

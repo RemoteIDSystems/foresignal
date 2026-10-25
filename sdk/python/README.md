@@ -68,6 +68,6 @@ tests read [`sdk/contract-fixtures`](../contract-fixtures)).
 
 ## Versioning and publishing
 
-The version is the API's `info.version` (`1.4.0`); tool and dependency versions are pinned in
+The version is the API's `info.version` (`1.4.1`); tool and dependency versions are pinned in
 [`sdk/versions.properties`](../versions.properties). The distribution carries the `Private :: Do Not Upload`
 classifier; publishing to PyPI is a separate release step.

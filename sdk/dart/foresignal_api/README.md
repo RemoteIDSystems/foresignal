@@ -44,7 +44,7 @@ Share the same `Dio` with `foresignal_sdk`'s `HttpTransport(dio: …)` to reuse 
 
 ## Versioning and publishing
 
-The package version is the API's `info.version` (`1.4.0`). Tool versions are pinned in
+The package version is the API's `info.version` (`1.4.1`). Tool versions are pinned in
 [`sdk/versions.properties`](../../versions.properties). Publishing is a separate release step; this package is
 `publish_to: none`.
 

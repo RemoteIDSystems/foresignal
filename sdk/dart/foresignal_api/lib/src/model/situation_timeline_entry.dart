@@ -72,7 +72,7 @@ class SituationTimelineEntry {
 
 
 
-      /// Log action (log entries)
+      /// Log action (log entries); null for a member entry. The list grows as the server adds actions; a client shows an action it does not know as its text.
   @JsonKey(
     
     name: r'action',
@@ -81,7 +81,7 @@ class SituationTimelineEntry {
   )
 
 
-  final SituationTimelineEntryActionEnum? action;
+  final String? action;
 
 
 
@@ -162,38 +162,6 @@ member(r'member'),
 log(r'log');
 
 const SituationTimelineEntryEntryTypeEnum(this.value);
-
-final String value;
-
-@override
-String toString() => value;
-}
-
-
-/// Log action (log entries)
-enum SituationTimelineEntryActionEnum {
-@JsonValue(r'created')
-created(r'created'),
-@JsonValue(r'member_added')
-memberAdded(r'member_added'),
-@JsonValue(r'member_removed')
-memberRemoved(r'member_removed'),
-@JsonValue(r'status')
-status(r'status'),
-@JsonValue(r'severity')
-severity(r'severity'),
-@JsonValue(r'merged')
-merged(r'merged'),
-@JsonValue(r'split')
-split(r'split'),
-@JsonValue(r'renamed')
-renamed(r'renamed'),
-@JsonValue(r'theme')
-theme(r'theme'),
-@JsonValue(r'brief')
-brief(r'brief');
-
-const SituationTimelineEntryActionEnum(this.value);
 
 final String value;
 

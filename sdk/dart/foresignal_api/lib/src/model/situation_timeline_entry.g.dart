@@ -15,7 +15,7 @@ abstract class _$SituationTimelineEntryCWProxy {
 
   SituationTimelineEntry member(SituationMember? member);
 
-  SituationTimelineEntry action(SituationTimelineEntryActionEnum? action);
+  SituationTimelineEntry action(String? action);
 
   SituationTimelineEntry actor(String? actor);
 
@@ -35,7 +35,7 @@ abstract class _$SituationTimelineEntryCWProxy {
     DateTime at,
     SituationTimelineEntryEntryTypeEnum entryType,
     SituationMember? member,
-    SituationTimelineEntryActionEnum? action,
+    String? action,
     String? actor,
     Map<String, Object>? before,
     Map<String, Object>? after,
@@ -63,8 +63,7 @@ class _$SituationTimelineEntryCWProxyImpl
       call(member: member);
 
   @override
-  SituationTimelineEntry action(SituationTimelineEntryActionEnum? action) =>
-      call(action: action);
+  SituationTimelineEntry action(String? action) => call(action: action);
 
   @override
   SituationTimelineEntry actor(String? actor) => call(actor: actor);
@@ -111,7 +110,7 @@ class _$SituationTimelineEntryCWProxyImpl
       action: action == const $CopyWithPlaceholder()
           ? _value.action
           // ignore: cast_nullable_to_non_nullable
-          : action as SituationTimelineEntryActionEnum?,
+          : action as String?,
       actor: actor == const $CopyWithPlaceholder()
           ? _value.actor
           // ignore: cast_nullable_to_non_nullable
@@ -156,10 +155,7 @@ SituationTimelineEntry _$SituationTimelineEntryFromJson(
           ? null
           : SituationMember.fromJson(v as Map<String, dynamic>),
     ),
-    action: $checkedConvert(
-      'action',
-      (v) => $enumDecodeNullable(_$SituationTimelineEntryActionEnumEnumMap, v),
-    ),
+    action: $checkedConvert('action', (v) => v as String?),
     actor: $checkedConvert('actor', (v) => v as String?),
     before: $checkedConvert(
       'before',
@@ -182,7 +178,7 @@ Map<String, dynamic> _$SituationTimelineEntryToJson(
   'entryType':
       _$SituationTimelineEntryEntryTypeEnumEnumMap[instance.entryType]!,
   'member': ?instance.member?.toJson(),
-  'action': ?_$SituationTimelineEntryActionEnumEnumMap[instance.action],
+  'action': ?instance.action,
   'actor': ?instance.actor,
   'before': ?instance.before,
   'after': ?instance.after,
@@ -191,17 +187,4 @@ Map<String, dynamic> _$SituationTimelineEntryToJson(
 const _$SituationTimelineEntryEntryTypeEnumEnumMap = {
   SituationTimelineEntryEntryTypeEnum.member: 'member',
   SituationTimelineEntryEntryTypeEnum.log: 'log',
-};
-
-const _$SituationTimelineEntryActionEnumEnumMap = {
-  SituationTimelineEntryActionEnum.created: 'created',
-  SituationTimelineEntryActionEnum.memberAdded: 'member_added',
-  SituationTimelineEntryActionEnum.memberRemoved: 'member_removed',
-  SituationTimelineEntryActionEnum.status: 'status',
-  SituationTimelineEntryActionEnum.severity: 'severity',
-  SituationTimelineEntryActionEnum.merged: 'merged',
-  SituationTimelineEntryActionEnum.split: 'split',
-  SituationTimelineEntryActionEnum.renamed: 'renamed',
-  SituationTimelineEntryActionEnum.theme: 'theme',
-  SituationTimelineEntryActionEnum.brief: 'brief',
 };
