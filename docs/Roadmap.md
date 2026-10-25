@@ -287,7 +287,7 @@ fraud recipe sets remain in [Future-Roadmap](Future-Roadmap.md).
 | 157 | Authorable-Recipes-Shared-Attribute-Joins | Create/replace-recipe API, shared-attribute join, thresholds → settings | Done |
 | 158 | Relationship-Intelligence-People-Orgs | Person/org entities + corporate keys, ownership edges, ownership-chain/shared-attribute queries (model only; data deferred) | Done |
 | 159 | On-Demand-Forecast-Parity-And-Precursor-Calibration | Unify the on-demand/callback forecast path with the push path's dedup + `lastForecastAt`; apply the precursor calibration curve (as-built review cleanup) | Done |
-| 160 | Collector-Governor-Status | `GET /v1/settings/collector/status` exposing the pull governor's cap/in-use/waiting (for the admin collector screen's live gauges) | Planned |
+| 160 | Collector-Governor-Status | `GET /v1/settings/collector/status` exposing the pull governor's cap/in-use/waiting (for the admin collector screen's live gauges) | Done |
 
 ### Admin app support (API 1.4.0)
 
