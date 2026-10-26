@@ -42912,7 +42912,7 @@
               ],
               "query": []
             },
-            "description": "Live host disk free space, memory and database size with an overall ok/warn/critical status (177). Requires `storage.manage`.\n\n**Scope:** `admin`.\n\noperationId: `getResourceStatus`",
+            "description": "Live host disk free space, memory and database size with an overall ok/warn/critical status (177), rated against `GET /v1/settings/thresholds`. Readings are cached for up to 30 s. A `warn` or `critical` gauge also appears in `/v1/system.warnings` as `DISK_LOW`, `DISK_CRITICAL`, `MEMORY_LOW` or `MEMORY_CRITICAL`. Requires `storage.manage`.\n\n**Scope:** `admin`.\n\noperationId: `getResourceStatus`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -42958,7 +42958,7 @@
               ],
               "query": []
             },
-            "description": "Settings key `thresholds`; the warn/critical disk and memory levels. Requires `storage.manage`.\n\n**Scope:** `admin`.\n\noperationId: `getResourceThresholds`",
+            "description": "Settings key `thresholds`: the warn/critical disk and memory levels, the alert channels, and the source-storm and collector-backlog bounds; the defaults when never set. Requires `storage.manage`.\n\n**Scope:** `admin`.\n\noperationId: `getResourceThresholds`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -43008,7 +43008,7 @@
               ],
               "query": []
             },
-            "description": "Replaces the warn/critical thresholds; a breach raises /v1/system warnings and fires alerts through the channel system. Requires `storage.manage`.\n\n**Scope:** `admin`.\n\noperationId: `updateResourceThresholds`",
+            "description": "Replaces the thresholds; a breach raises /v1/system warnings and fires alerts through the channel system. Each alert is edge-triggered: entering `warn` or `critical` publishes one `system` notification (`system.disk_low`, `system.disk_critical`, `system.memory_low`, `system.memory_critical`, `system.source_storm`, `system.collector_backlog`) and returning to normal publishes one recovery (`system.disk_recovered`, `system.memory_recovered`, `system.source_storm_cleared`, `system.collector_backlog_cleared`). Requires `storage.manage`.\n\n**Scope:** `admin`.\n\noperationId: `updateResourceThresholds`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -43021,7 +43021,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"disk\": {\n    \"warnFreePercent\": 15,\n    \"criticalFreePercent\": 5,\n    \"criticalFreeBytes\": 10000000000\n  },\n  \"memory\": {\n    \"warnFreePercent\": 10,\n    \"criticalFreePercent\": 3\n  },\n  \"alertChannels\": [],\n  \"sourceStorm\": {\n    \"failedSources\": 5\n  },\n  \"collectorBacklog\": {\n    \"triggerLagSeq\": 10000,\n    \"waitingPulls\": 50,\n    \"sustainedSeconds\": 300\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"

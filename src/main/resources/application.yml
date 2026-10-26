@@ -119,6 +119,10 @@ foresignal:
   # ticked while opted-in subjects exist; stays and places are kept for the pol.retention setting (180d). Off in tests.
   pol:
     scheduled: true
+  # Host resources (R2-014): the 30-second ticks that turn disk and memory breaches and collector backlog into
+  # operational alerts (GET/PUT /v1/settings/thresholds). Off in tests.
+  resources:
+    scheduled: true
   # Trips (114): the one-minute tick that runs pre-trip checks and starts, extends and ends in-trip watches.
   # Off in tests.
   trips:

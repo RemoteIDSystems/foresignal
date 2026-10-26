@@ -296,6 +296,15 @@ BODIES = {
   "updateMyPreferences": {"timezone": "America/Chicago", "locale": "en-US", "theme": "dark",
                           "notifications": {"emailEnabled": True, "pushEnabled": True, "quietHours": "22:00-07:00"},
                           "ui": {"mapStyle": "satellite"}},
+  # R2-014: resource and operational alert thresholds. A missing member takes its default; null turns it off; an empty
+  # alertChannels sends alerts to the system subscribers and the personal channels of users with audit.read.
+  "updateResourceThresholds": {"disk": {"warnFreePercent": 15, "criticalFreePercent": 5,
+                                        "criticalFreeBytes": 10000000000},
+                               "memory": {"warnFreePercent": 10, "criticalFreePercent": 3},
+                               "alertChannels": [],
+                               "sourceStorm": {"failedSources": 5},
+                               "collectorBacklog": {"triggerLagSeq": 10000, "waitingPulls": 50,
+                                                    "sustainedSeconds": 300}},
   # R2-006: a custom role is a named subset of GET /v1/permissions; built-in roles cannot be updated or deleted.
   "createRole": {"name": "Analyst", "description": "Reads data and intelligence; manages own alerts",
                  "permissions": ["data.read", "intel.read", "forecast.read", "self.alerts", "self.views"]},

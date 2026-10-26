@@ -90,11 +90,28 @@ public class NotificationService {
      * @return the persisted message, with its id
      */
     public NotificationMessage publish(NotificationMessage message, Predicate<NotificationChannel> extraFilter) {
+        return publish(message, extraFilter, List.of());
+    }
+
+    /**
+     * As {@link #publish(NotificationMessage, Predicate)}, and also enqueues it once for each enabled channel among
+     * {@code alsoTo} that did not already take it, whatever that channel's event filters and whether or not it is a
+     * personal channel (prompt R2-014: resource and operational alerts reach the admin's chosen channels and the
+     * personal channels of the users who hold {@code audit.read}). Quiet hours and the pause apply as for any send.
+     *
+     * @param message the notification
+     * @param extraFilter a filter on the instance channels that subscribe to the event, or null for all of them
+     * @param alsoTo further channels, possibly empty
+     * @return the persisted message, with its id
+     */
+    public NotificationMessage publish(NotificationMessage message, Predicate<NotificationChannel> extraFilter,
+            Collection<UUID> alsoTo) {
         Predicate<NotificationChannel> filter = extraFilter == null ? c -> true : extraFilter;
         Instant now = clock.instant();
         return store.write(writer -> {
             NotificationMessage persisted = writer.persist(fill(message, now));
             NotificationSettings pause = pause();
+            Set<UUID> done = new HashSet<>();
             for (NotificationChannelEntity entity : channels.findByEnabledTrue()) {
                 if (types.find(entity.getType()).isEmpty() || entity.getOwnerPrincipalId() != null) {
                     // Personal channels (prompt 130) take only their principal's personal notifications.
@@ -103,7 +120,18 @@ public class NotificationService {
                 NotificationChannel channel = NotificationChannel.of(entity, List.of());
                 if (channel.accepts(persisted) && filter.test(channel)) {
                     enqueueSend(entity, channel, persisted, pause, now);
+                    done.add(entity.getId());
                 }
+            }
+            for (UUID channelId : alsoTo == null ? List.<UUID>of() : alsoTo) {
+                if (!done.add(channelId)) {
+                    continue;
+                }
+                Optional<NotificationChannelEntity> entity = channels.findById(channelId);
+                if (entity.isEmpty() || !entity.get().isEnabled() || types.find(entity.get().getType()).isEmpty()) {
+                    continue;
+                }
+                enqueueSend(entity.get(), NotificationChannel.of(entity.get(), List.of()), persisted, pause, now);
             }
             return persisted;
         });

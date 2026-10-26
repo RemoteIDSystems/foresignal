@@ -299,12 +299,37 @@ public class NotificationRouter implements AlertListener {
                 baseUrl() + "/v1/triggers/" + event.ruleId(), data, null);
     }
 
-    /** A {@link SystemEvent} from another component (prompt 019: retention lag, canary failure). */
+    /**
+     * A {@link SystemEvent} from another component (prompt 019: retention lag, canary failure). Prompt R2-014: an event
+     * naming channels is delivered to them too, or to them alone.
+     */
     @EventListener
     public void onSystemEvent(SystemEvent event) {
         String url = event.path() == null ? null : baseUrl() + event.path();
-        system(event.subtype(), event.severity(), event.title(), event.body(), url, new LinkedHashMap<>(event.data()),
-                null);
+        SystemEvent.Targets targets = event.targets();
+        if (targets.subscribers() && targets.channels().isEmpty()) {
+            system(event.subtype(), event.severity(), event.title(), event.body(), url,
+                    new LinkedHashMap<>(event.data()), null);
+            return;
+        }
+        Runnable publish = () -> {
+            try {
+                service.publish(NotificationMessage.builder(NotificationMessage.SYSTEM, event.subtype(), event.title(),
+                        event.severity()).body(event.body()).url(url).data(new LinkedHashMap<>(event.data())).build(),
+                        targets.subscribers() ? null : c -> false, targets.channels());
+            } catch (RuntimeException e) {
+                log.error("Could not publish system notification {}", event.subtype(), e);
+            }
+        };
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            publish.run();
+            return;
+        }
+        try {
+            systemPublisher.execute(publish);
+        } catch (RejectedExecutionException e) {
+            log.warn("System notification {} not published: the router is stopping", event.subtype());
+        }
     }
 
     /** {@code system.delivery_failed} after a delivery's last attempt, never sent to that channel. */

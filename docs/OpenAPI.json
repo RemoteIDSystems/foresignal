@@ -91559,7 +91559,7 @@
         ],
         "operationId": "getResourceStatus",
         "summary": "Get host resource status",
-        "description": "Live host disk free space, memory and database size with an overall ok/warn/critical status (177). Requires `storage.manage`.\n\n**Scope:** `admin`.",
+        "description": "Live host disk free space, memory and database size with an overall ok/warn/critical status (177), rated against `GET /v1/settings/thresholds`. Readings are cached for up to 30 s. A `warn` or `critical` gauge also appears in `/v1/system.warnings` as `DISK_LOW`, `DISK_CRITICAL`, `MEMORY_LOW` or `MEMORY_CRITICAL`. Requires `storage.manage`.\n\n**Scope:** `admin`.",
         "responses": {
           "200": {
             "description": "Resource status",
@@ -91610,7 +91610,7 @@
         ],
         "operationId": "getResourceThresholds",
         "summary": "Get resource thresholds",
-        "description": "Settings key `thresholds`; the warn/critical disk and memory levels. Requires `storage.manage`.\n\n**Scope:** `admin`.",
+        "description": "Settings key `thresholds`: the warn/critical disk and memory levels, the alert channels, and the source-storm and collector-backlog bounds; the defaults when never set. Requires `storage.manage`.\n\n**Scope:** `admin`.",
         "responses": {
           "200": {
             "description": "Thresholds",
@@ -91659,7 +91659,7 @@
         ],
         "operationId": "updateResourceThresholds",
         "summary": "Update resource thresholds",
-        "description": "Replaces the warn/critical thresholds; a breach raises /v1/system warnings and fires alerts through the channel system. Requires `storage.manage`.\n\n**Scope:** `admin`.",
+        "description": "Replaces the thresholds; a breach raises /v1/system warnings and fires alerts through the channel system. Each alert is edge-triggered: entering `warn` or `critical` publishes one `system` notification (`system.disk_low`, `system.disk_critical`, `system.memory_low`, `system.memory_critical`, `system.source_storm`, `system.collector_backlog`) and returning to normal publishes one recovery (`system.disk_recovered`, `system.memory_recovered`, `system.source_storm_cleared`, `system.collector_backlog_cleared`). Requires `storage.manage`.\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -177980,10 +177980,20 @@
             "description": "Worst of the gauges"
           },
           "disk": {
-            "$ref": "#/components/schemas/ResourceGauge"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceGauge"
+              }
+            ],
+            "description": "The most severe of the instance's data volumes (the data directory and the raster/media store, de-duplicated by file system). The Postgres data volume belongs to the database container and is gauged by `database.sizeBytes` instead."
           },
           "memory": {
-            "$ref": "#/components/schemas/ResourceGauge"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceGauge"
+              }
+            ],
+            "description": "Physical memory as the JVM sees it (inside a container, its limit), or the heap when that is unavailable"
           },
           "database": {
             "type": "object",
@@ -178007,7 +178017,8 @@
           },
           "checkedAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "When the reading was taken; readings are reused for up to 30 s"
           }
         },
         "required": [
@@ -178018,14 +178029,16 @@
       },
       "ResourceThreshold": {
         "type": "object",
-        "description": "Warn/critical thresholds for one resource (free space or memory)",
+        "description": "Warn/critical thresholds for one resource (free space or memory). A level is reached when the free share drops below its percent or the free amount below its bytes; a null level is off. Critical must be below warn.",
         "properties": {
           "warnFreePercent": {
             "type": [
               "number",
               "null"
             ],
-            "description": "Warn when free drops below this percent"
+            "description": "Warn when free drops below this percent",
+            "minimum": 0,
+            "maximum": 100
           },
           "warnFreeBytes": {
             "type": [
@@ -178033,26 +178046,32 @@
               "null"
             ],
             "format": "int64",
-            "description": "Warn when free drops below this many bytes"
+            "description": "Warn when free drops below this many bytes",
+            "minimum": 0
           },
           "criticalFreePercent": {
             "type": [
               "number",
               "null"
-            ]
+            ],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Critical when free drops below this percent"
           },
           "criticalFreeBytes": {
             "type": [
               "integer",
               "null"
             ],
-            "format": "int64"
+            "format": "int64",
+            "minimum": 0,
+            "description": "Critical when free drops below this many bytes"
           }
         }
       },
       "ResourceThresholds": {
         "type": "object",
-        "description": "Admin thresholds that raise /v1/system warnings and fire channel alerts when breached (B1/177)",
+        "description": "Admin thresholds that raise /v1/system warnings and fire channel alerts when breached (B1/177). A PUT replaces the whole value: a missing member takes its default (disk 15 % warn / 5 % critical free, memory off, a storm at 5 failing sources, a backlog of 10,000 seq for 300 s) and an explicit null turns it off.",
         "properties": {
           "disk": {
             "$ref": "#/components/schemas/ResourceThreshold"
@@ -178065,7 +178084,58 @@
             "items": {
               "type": "string"
             },
-            "description": "Channel ids notified on a breach; empty uses all channels of users with `audit.read`"
+            "description": "Channel ids notified on a breach, personal channels included, whatever their event filters. Empty uses every channel subscribed to `system` plus the personal channels of every active user with `audit.read`. An unknown id is a 400 that lists it."
+          },
+          "sourceStorm": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Raises `system.source_storm` when at least this many sources are failing at once (R2-014)",
+            "properties": {
+              "failedSources": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "description": "null turns the storm alert off"
+              }
+            },
+            "additionalProperties": false
+          },
+          "collectorBacklog": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Raises `system.collector_backlog` when the trigger lag or the fetches waiting for a pull permit stay above their bound for `sustainedSeconds` (R2-014)",
+            "properties": {
+              "triggerLagSeq": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int64",
+                "minimum": 1,
+                "description": "Trigger lag bound in sequence numbers; null is off"
+              },
+              "waitingPulls": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "description": "Waiting-fetch bound; null is off"
+              },
+              "sustainedSeconds": {
+                "type": "integer",
+                "minimum": 30,
+                "maximum": 86400,
+                "description": "How long a bound must be exceeded (default 300)"
+              }
+            },
+            "additionalProperties": false
           }
         }
       },

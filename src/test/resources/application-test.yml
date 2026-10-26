@@ -33,6 +33,9 @@ foresignal:
       enabled: false
   retention:
     scheduled: false
+  # The resource and backlog alerts do not tick in tests; ResourceAlertIT and OperationalAlertIT drive them.
+  resources:
+    scheduled: false
   # The watchdog does not tick in tests; WatchdogIT calls WatchdogService.tick().
   watchdog:
     scheduled: false
