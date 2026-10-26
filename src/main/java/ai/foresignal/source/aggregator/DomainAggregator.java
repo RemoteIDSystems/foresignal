@@ -32,6 +32,18 @@ public interface DomainAggregator {
     List<String> supersededSourceIds();
 
     /**
+     * The sources {@code settings} supersedes, for a domain where that depends on its configuration (prompt R2-022:
+     * the {@code satellite} domain supersedes only the imagery of the satellite its dish receives). By default, every
+     * one of {@link #supersededSourceIds()}.
+     *
+     * @param settings the configuration being applied or in force
+     * @return registered source ids, a subset of {@link #supersededSourceIds()}
+     */
+    default List<String> supersededSourceIds(AggregatorSettings settings) {
+        return supersededSourceIds();
+    }
+
+    /**
      * Adds every problem of {@code proposed} to {@code errors}, under the {@code AggregatorConfig} field names
      * ({@code endpoint}, {@code config.<key>}, …).
      */

@@ -22,7 +22,8 @@ import org.springframework.stereotype.Component;
  *
  * <p>The list is operator configuration read once at startup, never an API input (the family rule in
  * {@link SourceAdapterFamily}). A name must be kebab-case and short enough for a 64-character source
- * id; an invalid name fails startup rather than being silently dropped.
+ * id; an invalid name fails startup rather than being silently dropped. {@value SatDumpAggregatorAdapter#STATION} is
+ * reserved for the satellite aggregator's station (prompt R2-022).
  */
 @Component
 public class SatDumpFamily implements SourceAdapterFamily {
@@ -104,6 +105,11 @@ public class SatDumpFamily implements SourceAdapterFamily {
                 throw new IllegalStateException("Foresignal cannot start: SatDump station name '" + name + "' in "
                         + STATIONS_PROPERTY + " must be kebab-case (a-z, 0-9 and single hyphens) and at most "
                         + SatDumpDescriptor.MAX_STATION_LENGTH + " characters.");
+            }
+            if (SatDumpAggregatorAdapter.STATION.equals(name)) {
+                throw new IllegalStateException("Foresignal cannot start: SatDump station name '" + name + "' in "
+                        + STATIONS_PROPERTY + " is reserved for the satellite aggregator (PUT"
+                        + " /v1/aggregators/satellite); choose another name.");
             }
             out.add(name);
         }

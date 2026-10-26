@@ -1123,8 +1123,8 @@ Rotation does not get around a provider's limits: each route still paces each ho
 Where a feed is a network of receivers that public sites only mirror, read your own copy instead:
 `GET /v1/aggregators` lists one aggregator per domain (`adsb`, `ais`, `datalink`, `satellite`,
 `ground-sensors`), with its status and the public sources it supersedes. `adsb` (R2-019), `ais`
-(R2-020) and `datalink` (R2-021) are implemented; a domain without a backend lists as
-`implemented: false` and cannot be enabled yet. The design is in
+(R2-020), `datalink` (R2-021) and `satellite` (R2-022) are implemented; a domain without a backend
+lists as `implemented: false` and cannot be enabled yet. The design is in
 [Network-Sourcing.md](Network-Sourcing.md).
 
 **Local ADS-B.** Start a readsb — the opt-in compose profile pulls the sdr-enthusiasts ultrafeeder
@@ -1182,6 +1182,22 @@ ACARS, VDL Mode 2 and HFDL then come from `local-acars-aggregator` (metadata onl
 shared) and APRS from `local-aprs-aggregator`. While the aggregator is live, `aprs-is` is turned off and
 stays off, on the same terms as the ADS-B mirrors. The test listens for 10 s; datalink is sparse, so a
 quiet sky reads reachable but not ok.
+
+**Direct satellite reception (R2-022).** Run SatDump with its web server on, writing its output under
+`FORESIGNAL_INBOX_DIR`, and point the `satellite` aggregator at it with your station's position:
+
+```
+PUT  /v1/aggregators/satellite   {"enabled": true, "mode": "receiver", "endpoint": "http://satdump:8081",
+                                  "config": {"location": "51.47,-0.45,30", "inboxPath": "satdump/home",
+                                             "goes": "east"}}
+POST /v1/aggregators/satellite/test
+```
+
+Passes, products and xRIT frames then come from the station `satdump-aggregator` (the station name
+`aggregator` is reserved, so do not list it in `FORESIGNAL_SATDUMP_STATIONS`). With `goes` set, that
+satellite's NOAA imagery pull (`goes-east-abi` or `goes-west-abi`) is turned off while the aggregator
+is live, on the same terms as the ADS-B mirrors; GOES lightning and fire detection keep running,
+because a dish's HRIT broadcast does not carry them.
 
 ## Triggers and alerts
 

@@ -9,6 +9,7 @@ import ai.foresignal.source.adapters.acars.LocalAcarsAggregatorAdapter;
 import ai.foresignal.source.adapters.ais.LocalAisAggregatorAdapter;
 import ai.foresignal.source.adapters.local.LocalAdsbAggregatorAdapter;
 import ai.foresignal.source.adapters.radio.LocalAprsAggregatorAdapter;
+import ai.foresignal.source.adapters.satdump.SatDumpAggregatorAdapter;
 import ai.foresignal.test.WireMockSupport;
 import java.util.ArrayList;
 import java.util.List;
@@ -74,7 +75,7 @@ abstract class AggregatorItSupport extends WireMockSupport {
             }
         }
         for (String id : List.of(LocalAdsbAggregatorAdapter.ID, LocalAisAggregatorAdapter.ID,
-                LocalAcarsAggregatorAdapter.ID, LocalAprsAggregatorAdapter.ID)) {
+                LocalAcarsAggregatorAdapter.ID, LocalAprsAggregatorAdapter.ID, SatDumpAggregatorAdapter.ID)) {
             if (sources.view(id).enabled()) {
                 sources.update(id, SourceSettingsUpdate.enabled(false));
             }

@@ -23,9 +23,10 @@ egress rotation (C1) is the fallback** for what is left.
 | Outbound client | `collect/UpstreamClient.java`, `collect/BoundSourceHttp.java` | the one HTTP path for source requests (SRC-1) |
 | Egress routing (C1, R2-018) | `egress/` (`EgressRouter`, `RouteSelector`, `EgressBackoff`, `EgressHealthRegistry`, `EgressTunnel`, `EgressProbe`), `api/EgressController.java` | default `direct`: every request leaves from the host's own address until an operator turns rotation on |
 | readsb/tar1090 parser | `source/formats/readsb/ReadsbAircraftMapper.java` | parses the native `aircraft.json` format |
-| Aggregator surface (R2-019) | `source/aggregator/` (`AggregatorService`, `DomainAggregator`), `api/AggregatorsController.java` | one surface for every domain; `adsb`, `ais` and `datalink` implemented |
+| Aggregator surface (R2-019) | `source/aggregator/` (`AggregatorService`, `DomainAggregator`), `api/AggregatorsController.java` | one surface for every domain; `adsb`, `ais`, `datalink` and `satellite` implemented |
 | Local ADS-B aggregator (C2, R2-019) | `source/aggregator/AdsbAggregator.java`, `source/adapters/local/LocalAdsbAggregatorAdapter.java`, the `readsb` compose profile | reads the operator's own readsb whole |
 | Local AIS aggregator (C2b, R2-020) | `source/aggregator/AisAggregator.java`, `source/adapters/ais/LocalAisAggregatorAdapter.java` | reads the operator's own AIS decoder's NMEA feed whole, over TCP or UDP |
+| Direct satellite reception (C2d, R2-022) | `source/aggregator/SatelliteAggregator.java`, `source/adapters/satdump/SatDumpAggregatorAdapter.java` | a SatDump station of the operator's own, always registered |
 | Local datalink aggregator (C2c, R2-021) | `source/aggregator/DatalinkAggregator.java`, `source/adapters/acars/LocalAcarsAggregatorAdapter.java`, `source/adapters/radio/LocalAprsAggregatorAdapter.java` | reads the operator's own acars_router and igate TNC |
 | Local receivers | prompt 069 | socket transport + codec SPI (readsb v2, Davis/Ecowitt, AIS-catcher, …) |
 
@@ -316,6 +317,47 @@ ok: false`.
 aggregator, but no airframes.io source is registered, so nothing is superseded for ACARS, VDL Mode 2
 and HFDL.
 
+## C2d. Direct satellite reception (R2-022)
+
+GOES and the polar weather satellites broadcast their imagery; the NOAA buckets Foresignal otherwise
+pulls (`goes-east-abi`, `goes-west-abi`) mirror what a dish and SatDump receive directly. The SatDump
+ground station plumbing exists since prompt 049; the `satellite` aggregator promotes it.
+
+**The read.** `satdump-aggregator` is a `satdump-{station}` source for the reserved station name
+`aggregator` (`FORESIGNAL_SATDUMP_STATIONS` refuses it), registered whether or not any station is
+configured at startup, with exactly a station's loops: SatDump's `/api` (station state, RF sessions,
+the live polar plot) and its output directory (passes, products, xRIT frames, DCS and EMWIN).
+`PUT /v1/aggregators/satellite` writes it:
+
+- `endpoint` → `apiUrl`, SatDump's web server (`http://host:port`, any base path kept; checked and
+  pinned as a `LAN_URL`);
+- `config.location` → `location` (required with an endpoint: `lat,lon[,altM]` or a place id);
+- `config.inboxPath` → `inboxPath` (SatDump's output directory under `FORESIGNAL_INBOX_DIR`);
+- `config.satdumpVersion` (`1.2` or `2.0`) and `config.predictNorad` (the polar satellites whose
+  passes are predicted);
+- `config.goes`: `east` or `west`, the GOES the dish receives.
+
+It is turned on while the aggregator is live, off otherwise. Its redistribution is `LOCAL_ONLY`
+through its license (`operator-owned`), as for every SatDump station.
+
+```
+PUT /v1/aggregators/satellite
+{"enabled": true, "mode": "receiver", "endpoint": "http://satdump:8081",
+ "config": {"location": "51.47,-0.45,30", "inboxPath": "satdump/home", "goes": "east"}}
+POST /v1/aggregators/satellite/test   → {"ok": true, "reachable": true, "sampleCount": 3, …}
+```
+
+**Test.** `testAggregator` runs the station for 10 s through the probe service and counts the records
+it produced: station state, passes and products.
+
+**Superseded:** only the ABI imagery pull of the GOES named by `config.goes` (`goes-east-abi` or
+`goes-west-abi`); a polar-only station supersedes nothing. **Not superseded:** `goes-glm` and
+`goes-fdc` — GLM lightning and ABI fire detection are not in the HRIT broadcast a dish receives, and
+the local GLM from a GRB station (`glm-local-{station}`) is built to run alongside `goes-glm`. Since
+this domain's superseded set depends on its configuration, `DomainAggregator` gained
+`supersededSourceIds(settings)`; `supersededSources` in the view is the set the current configuration
+supersedes.
+
 ## C3. First-party aggregators across the RF / sensor domains (the mission)
 
 Each domain plugs its backend into the aggregator surface above (R2-020…R2-023 add no operations). The same move applies to every domain where the data rides a distributed sensor/RF network and the
@@ -329,7 +371,7 @@ rather than build:
 | **AIS (ships)** — the ADS-B twin | own RF receiver (RTL-SDR + AIS) and/or aggregate the AIS feed | aisstream | **built in R2-020 (C2b)** |
 | **Aircraft datalink** — ACARS/VDL/HFDL | `adapters/acars/LocalAcarsAdapter` + acarsdec/dumpvdl2/dumphfdl | airframes.io (no source registered) | **built in R2-021 (C2c)** |
 | **APRS** | own igate's TNC | APRS-IS public (`aprs-is`) | **built in R2-021 (C2c)** |
-| **Direct satellite reception** | GOES / weather sats off a dish | NOAA mirrors | `adapters/satdump/`, `contrib/satdump/` *(promote)* |
+| **Direct satellite reception** | GOES / weather sats off a dish | NOAA ABI imagery pulls (`goes-east-abi`, `goes-west-abi`) | **built in R2-022 (C2d)** |
 | **Seismic** | Raspberry Shake | — | `contrib/rsudp/` *(promote)* |
 | **Weather-radio alerts** | SAME/EAS | — | `contrib/same/` *(promote)* |
 | **Radiosondes** | `radiosonde_auto_rx` | SondeHub | *(new)* |

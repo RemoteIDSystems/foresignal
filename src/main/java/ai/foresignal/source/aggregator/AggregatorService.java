@@ -147,7 +147,7 @@ public class AggregatorService implements SupersededSources {
         List<String> disabled = new ArrayList<>();
         if (proposed.live() && proposed.disableSupersededSources()) {
             Set<String> off = new LinkedHashSet<>(previous.disabledByAggregator());
-            for (String id : aggregator.supersededSourceIds()) {
+            for (String id : aggregator.supersededSourceIds(proposed)) {
                 SourceView view = sources.view(id);
                 if (view.enabled()) {
                     sources.update(id, SourceSettingsUpdate.enabled(false));
@@ -206,7 +206,7 @@ public class AggregatorService implements SupersededSources {
             }
             AggregatorSettings current = settings(aggregator.domain());
             if (current.live() && current.disableSupersededSources()
-                    && aggregator.supersededSourceIds().contains(sourceId)) {
+                    && aggregator.supersededSourceIds(current).contains(sourceId)) {
                 return true;
             }
         }
@@ -322,7 +322,7 @@ public class AggregatorService implements SupersededSources {
         out.put("status", status);
         out.put("statusReason", reason);
         out.put("sourceIds", aggregator.sourceIds());
-        out.put("supersededSources", aggregator.supersededSourceIds());
+        out.put("supersededSources", aggregator.supersededSourceIds(current));
         out.put("lastSeenAt", lastSeen);
         return out;
     }
