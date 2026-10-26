@@ -2,6 +2,7 @@ package ai.foresignal.trigger;
 
 import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.error.ValidationException;
+import ai.foresignal.security.user.OwnerScope;
 import ai.foresignal.store.EscalationPolicyRepository;
 import ai.foresignal.store.TriggerRuleEntity;
 import ai.foresignal.store.TriggerRuleRepository;
@@ -25,6 +26,10 @@ import tools.jackson.databind.JsonNode;
  * <p>Prompt 033 adds {@code escalationPolicyId} (validated against {@code escalation_policy} on every
  * save; a settings import drops an unknown one with a warning, since policies are not exported) and
  * the rule mute ({@link #mute}, {@link #unmute}).
+ *
+ * <p>Prompt R2-008 gives rules an owner ({@code owner_principal_id}): {@link #create(JsonNode, String)} stamps it and
+ * {@link #list(String, Boolean, OwnerScope)} filters by it; a replace keeps it. Per-rule operations are kept to the
+ * caller's rules before they get here ({@code TriggerOwnershipInterceptor}).
  *
  * <p>Takes and returns plain values, so prompt 025 can expose {@code snooze_rule} and
  * {@code test_trigger} as MCP tools without web types.
@@ -72,8 +77,24 @@ public class TriggerRuleService {
      * @param enabled only rules with this enabled flag, or null
      */
     public List<RuleView> list(String tag, Boolean enabled) {
+        return list(tag, enabled, OwnerScope.MACHINE);
+    }
+
+    /**
+     * The rules {@code scope} may see, oldest first (prompt R2-008): a user's own, every rule for an API token or a
+     * session holding {@code users.manage}, the shared ones for anyone else.
+     *
+     * @param tag only rules with this tag, or null
+     * @param enabled only rules with this enabled flag, or null
+     * @param scope the caller's owner scope
+     * @return the rules with their statistics
+     */
+    public List<RuleView> list(String tag, Boolean enabled, OwnerScope scope) {
         List<TriggerRuleEntity> rules = new ArrayList<>();
         for (TriggerRuleEntity rule : repository.findAll()) {
+            if (!scope.sees(rule.getOwnerPrincipalId())) {
+                continue;
+            }
             if (tag != null && !rule.getTags().contains(tag)) {
                 continue;
             }
@@ -109,6 +130,18 @@ public class TriggerRuleService {
      * @throws ai.foresignal.api.error.ValidationException when the input is not valid
      */
     public RuleView create(JsonNode input) {
+        return create(input, null);
+    }
+
+    /**
+     * Creates a rule from a {@code TriggerRuleInput}, owned by {@code ownerPrincipalId} (prompt R2-008).
+     *
+     * @param input the rule
+     * @param ownerPrincipalId the creating user's principal, or null for a shared rule (API tokens)
+     * @return the rule
+     * @throws ai.foresignal.api.error.ValidationException when the input is not valid
+     */
+    public RuleView create(JsonNode input, String ownerPrincipalId) {
         ValidatedRule valid = validator.validate(input);
         UUID policy = escalationPolicy(input, false);
         Instant now = clock.instant();
@@ -116,6 +149,7 @@ public class TriggerRuleService {
         valid.applyTo(rule);
         applyWindow(rule, input);
         rule.setEscalationPolicyId(policy);
+        rule.setOwnerPrincipalId(ownerPrincipalId);
         rule.setCreatedAt(now);
         rule.setUpdatedAt(now);
         TriggerRuleEntity saved = repository.saveAndFlush(rule);

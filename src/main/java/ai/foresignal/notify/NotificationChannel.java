@@ -102,6 +102,25 @@ public record NotificationChannel(
         if (!enabled || !events.contains(message.event())) {
             return false;
         }
+        return passesFilters(message);
+    }
+
+    /**
+     * True when this channel, owned by the alert's owner, takes {@code message} (prompt R2-008): as {@link #accepts},
+     * except that a personal channel (subscribed only to {@code personal}, prompt 130) also takes its owner's alerts.
+     *
+     * @param message an alert notification of a rule this channel's owner owns
+     * @return true when the channel takes it
+     */
+    public boolean acceptsOwned(NotificationMessage message) {
+        if (!enabled || !(events.contains(message.event()) || events.contains(ChannelService.PERSONAL_EVENT))) {
+            return false;
+        }
+        return passesFilters(message);
+    }
+
+    /** The severity, mesh-severity and rule filters, after the event test. */
+    private boolean passesFilters(NotificationMessage message) {
         if (Severity.fromWire(message.severity()).compareTo(Severity.fromWire(minSeverity)) < 0) {
             return false;
         }

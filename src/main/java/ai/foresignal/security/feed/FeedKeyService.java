@@ -260,7 +260,8 @@ public class FeedKeyService implements PathKeyResolver {
             // A feed key hides private sources unless it was created with the 039 private grant.
             ReadRestriction restriction = ReadRestriction.of(entity.getRestrictions(), true)
                     .withExcludePrivate(!entity.isPrivateAccess())
-                    .withEndpoints(null).withExcludeSensitive(true);
+                    .withEndpoints(null).withExcludeSensitive(true)
+                    .withAlertAudience(ai.foresignal.security.restrict.AlertAudience.SHARED_ONLY);
             return new RequestPrincipal(RequestPrincipal.Kind.FEED_KEY, entity.getId(), entity.getName(),
                     Scope.READ, restriction, entity.isPrivateAccess());
         });

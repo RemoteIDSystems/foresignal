@@ -120,6 +120,10 @@ public record AlertQuery(
         if (!includeExercise && alert.exercise()) {
             return false;
         }
+        if (restriction.alertAudience() != null && !restriction.alertAudience().allows(alert.ownerPrincipalId())) {
+            // R2-008: another user's alert.
+            return false;
+        }
         if (restriction.regionFilter() != null && !restriction.regionFilter().test(regionOf(alert))) {
             // The region filters of prompt 040 read the alert's region snapshot.
             return false;

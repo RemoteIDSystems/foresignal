@@ -598,7 +598,14 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         request.setAttribute(CurrentToken.ATTRIBUTE, current);
         request.setAttribute(SCOPE_ATTRIBUTE, current.scope());
         AuthenticatedToken t = current.token();
-        new RequestPrincipal(RequestPrincipal.Kind.TOKEN, t.id(), t.name(), t.scope(), restrictionOf(t),
+        ReadRestriction restriction = restrictionOf(t);
+        AuthenticatedSession session = AuthenticatedSession.of(request).orElse(null);
+        if (session != null) {
+            // R2-008: a user sees their own alerts and the shared ones; one holding users.manage sees every alert.
+            restriction = restriction.withAlertAudience(ai.foresignal.security.user.OwnerScope.of(session)
+                    .alertAudience());
+        }
+        new RequestPrincipal(RequestPrincipal.Kind.TOKEN, t.id(), t.name(), t.scope(), restriction,
                 t.privateAccess()).bind(request);
         AuthFailureBackoff b = backoff.getIfAvailable();
         if (b != null) {
@@ -617,8 +624,9 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
     /** The anonymous principal under the {@code security.anonymous} profile in force. */
     RequestPrincipal anonymousPrincipal() {
         // Sensitive alerts (rules referencing a watchlist, prompt 036) are never shown anonymously.
+        // R2-008: only shared alerts, never a user's own.
         return RequestPrincipal.anonymous(ReadRestriction.of(security().effectiveAnonymous(), true)
-                .withExcludeSensitive(true));
+                .withExcludeSensitive(true).withAlertAudience(ai.foresignal.security.restrict.AlertAudience.SHARED_ONLY));
     }
 
     /**

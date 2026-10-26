@@ -184,7 +184,7 @@
               ],
               "query": []
             },
-            "description": "Creates a rule evaluated against persisted versions (HEARTBEAT excluded). Condition paths on volatile fields are rejected (TRIGGER_PATH_VOLATILE); line geofences need bufferMeters; `near.placeId` needs Places (PLACES_UNAVAILABLE).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.\n\noperationId: `createTrigger`",
+            "description": "Creates a rule evaluated against persisted versions (HEARTBEAT excluded). Condition paths on volatile fields are rejected (TRIGGER_PATH_VOLATILE); line geofences need bufferMeters; `near.placeId` needs Places (PLACES_UNAVAILABLE).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.\n\noperationId: `createTrigger`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -973,7 +973,7 @@
                 }
               ]
             },
-            "description": "Alerts newest first, keyset on id. Suppressed alerts are hidden unless includeSuppressed. Anonymous callers (security.openReads) never see alerts of private sources.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listAlerts`",
+            "description": "Alerts newest first, keyset on id. Suppressed alerts are hidden unless includeSuppressed. Anonymous callers (security.openReads) never see alerts of private sources.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.\n\noperationId: `listAlerts`",
             "auth": {
               "type": "noauth"
             }
@@ -1928,7 +1928,7 @@
                 }
               ]
             },
-            "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources. `alert.enriched` (030, data Alert) is an update of the same alert with its enrichment summary; clients treat it as an upsert by alert id. A replay sends each alert once in its current state, summary included.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `streamAlerts`",
+            "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources. `alert.enriched` (030, data Alert) is an update of the same alert with its enrichment summary; clients treat it as an upsert by alert id. A replay sends each alert once in its current state, summary included.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.\n\noperationId: `streamAlerts`",
             "auth": {
               "type": "noauth"
             }
@@ -2398,7 +2398,7 @@
                 }
               ]
             },
-            "description": "Alerts newest first, keyset on id. Suppressed alerts are hidden unless includeSuppressed. Anonymous callers (security.openReads) never see alerts of private sources.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listAlerts`",
+            "description": "Alerts newest first, keyset on id. Suppressed alerts are hidden unless includeSuppressed. Anonymous callers (security.openReads) never see alerts of private sources.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.\n\noperationId: `listAlerts`",
             "auth": {
               "type": "noauth"
             }
@@ -2476,7 +2476,7 @@
                 }
               ]
             },
-            "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources. `alert.enriched` (030, data Alert) is an update of the same alert with its enrichment summary; clients treat it as an upsert by alert id. A replay sends each alert once in its current state, summary included.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `streamAlerts`",
+            "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources. `alert.enriched` (030, data Alert) is an update of the same alert with its enrichment summary; clients treat it as an upsert by alert id. A replay sends each alert once in its current state, summary included.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.\n\noperationId: `streamAlerts`",
             "auth": {
               "type": "noauth"
             }
@@ -2515,7 +2515,7 @@
               ],
               "query": []
             },
-            "description": "Alert with its lifecycle; `record` is loaded by seq and falls back to `recordSnapshot` once the version is gone. An alert of a private source is 404 for anonymous callers.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getAlert`",
+            "description": "Alert with its lifecycle; `record` is loaded by seq and falls back to `recordSnapshot` once the version is gone. An alert of a private source is 404 for anonymous callers.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.\n\noperationId: `getAlert`",
             "auth": {
               "type": "noauth"
             }
@@ -22496,7 +22496,7 @@
                 }
               ]
             },
-            "description": "RFC 4287 Atom feed of alerts with GeoRSS-Simple geometry (`georss:point`, or `georss:polygon` for single polygons \u2264 500 vertices, else the centroid). Entries are ordered newest first by last lifecycle change. Entry `id` is `tag:foresignal,2026:{installId}/alert/{id}`, title is `shortTitle` (else the title), the alternate link is the client deep link (else `publicBaseUrl/v1/alerts/{id}`), categories carry severity and rule tags. Content is markdown rendered with commonmark-java and sanitised by an allowlist (`p, br, strong, em, code, pre, ul, ol, li, blockquote, h3\u2013h6, a[href]` http/https only). Private-source alerts are excluded unless the token or feed key passes the private gate and `EgressPolicy.allows(FEED)`. Conditional GET: ETag over (max lifecycle timestamp, max id, filters) plus `Last-Modified`. Feed readers without headers use a 035 feed key (`/v1/k/{key}/alerts/feed.atom`). RSS 2.0 and WebSub publishing are not offered.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getAlertsAtom`",
+            "description": "RFC 4287 Atom feed of alerts with GeoRSS-Simple geometry (`georss:point`, or `georss:polygon` for single polygons \u2264 500 vertices, else the centroid). Entries are ordered newest first by last lifecycle change. Entry `id` is `tag:foresignal,2026:{installId}/alert/{id}`, title is `shortTitle` (else the title), the alternate link is the client deep link (else `publicBaseUrl/v1/alerts/{id}`), categories carry severity and rule tags. Content is markdown rendered with commonmark-java and sanitised by an allowlist (`p, br, strong, em, code, pre, ul, ol, li, blockquote, h3\u2013h6, a[href]` http/https only). Private-source alerts are excluded unless the token or feed key passes the private gate and `EgressPolicy.allows(FEED)`. Conditional GET: ETag over (max lifecycle timestamp, max id, filters) plus `Last-Modified`. Feed readers without headers use a 035 feed key (`/v1/k/{key}/alerts/feed.atom`). RSS 2.0 and WebSub publishing are not offered.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.\n\noperationId: `getAlertsAtom`",
             "auth": {
               "type": "noauth"
             }
@@ -22572,7 +22572,7 @@
                 }
               ]
             },
-            "description": "JSON Feed 1.1 of alerts; each item carries the `_foresignal` extension `{severity, state, sourceId, externalId, geometry}`. Entries are ordered newest first by last lifecycle change. Entry `id` is `tag:foresignal,2026:{installId}/alert/{id}`, title is `shortTitle` (else the title), the alternate link is the client deep link (else `publicBaseUrl/v1/alerts/{id}`), categories carry severity and rule tags. Content is markdown rendered with commonmark-java and sanitised by an allowlist (`p, br, strong, em, code, pre, ul, ol, li, blockquote, h3\u2013h6, a[href]` http/https only). Private-source alerts are excluded unless the token or feed key passes the private gate and `EgressPolicy.allows(FEED)`. Conditional GET: ETag over (max lifecycle timestamp, max id, filters) plus `Last-Modified`. Feed readers without headers use a 035 feed key (`/v1/k/{key}/alerts/feed.atom`). RSS 2.0 and WebSub publishing are not offered.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getAlertsJsonFeed`",
+            "description": "JSON Feed 1.1 of alerts; each item carries the `_foresignal` extension `{severity, state, sourceId, externalId, geometry}`. Entries are ordered newest first by last lifecycle change. Entry `id` is `tag:foresignal,2026:{installId}/alert/{id}`, title is `shortTitle` (else the title), the alternate link is the client deep link (else `publicBaseUrl/v1/alerts/{id}`), categories carry severity and rule tags. Content is markdown rendered with commonmark-java and sanitised by an allowlist (`p, br, strong, em, code, pre, ul, ol, li, blockquote, h3\u2013h6, a[href]` http/https only). Private-source alerts are excluded unless the token or feed key passes the private gate and `EgressPolicy.allows(FEED)`. Conditional GET: ETag over (max lifecycle timestamp, max id, filters) plus `Last-Modified`. Feed readers without headers use a 035 feed key (`/v1/k/{key}/alerts/feed.atom`). RSS 2.0 and WebSub publishing are not offered.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.\n\noperationId: `getAlertsJsonFeed`",
             "auth": {
               "type": "noauth"
             }
@@ -53240,7 +53240,7 @@
                 }
               ]
             },
-            "description": "List trigger rules\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.\n\noperationId: `listTriggers`",
+            "description": "List trigger rules\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.\n\noperationId: `listTriggers`",
             "auth": {
               "type": "noauth"
             }
@@ -53285,7 +53285,7 @@
               ],
               "query": []
             },
-            "description": "Creates a rule evaluated against persisted versions (HEARTBEAT excluded). Condition paths on volatile fields are rejected (TRIGGER_PATH_VOLATILE); line geofences need bufferMeters; `near.placeId` needs Places (PLACES_UNAVAILABLE).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.\n\noperationId: `createTrigger`",
+            "description": "Creates a rule evaluated against persisted versions (HEARTBEAT excluded). Condition paths on volatile fields are rejected (TRIGGER_PATH_VOLATILE); line geofences need bufferMeters; `near.placeId` needs Places (PLACES_UNAVAILABLE).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.\n\noperationId: `createTrigger`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -53340,7 +53340,7 @@
               ],
               "query": []
             },
-            "description": "Get a trigger rule\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.\n\noperationId: `getTrigger`",
+            "description": "Get a trigger rule\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.\n\noperationId: `getTrigger`",
             "auth": {
               "type": "noauth"
             }
@@ -53383,7 +53383,7 @@
               ],
               "query": []
             },
-            "description": "Full replace; the persist gate re-converges each entity on its next observation.\n\n**Scope:** `agent`.\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.\n\noperationId: `updateTrigger`",
+            "description": "Full replace; the persist gate re-converges each entity on its next observation.\n\n**Scope:** `agent`.\n\n**v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.\n\noperationId: `updateTrigger`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -53433,7 +53433,7 @@
               ],
               "query": []
             },
-            "description": "Existing alerts are kept (no cascade).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.\n\noperationId: `deleteTrigger`",
+            "description": "Existing alerts are kept (no cascade).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.\n\noperationId: `deleteTrigger`",
             "auth": {
               "type": "bearer",
               "bearer": [

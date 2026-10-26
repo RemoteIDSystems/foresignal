@@ -44,6 +44,8 @@ import java.util.UUID;
  * @param region the record's {@code RegionTags} at fire time as JSON text, or null (prompt 040)
  * @param exercise true for an exercise replay alert (prompt 115)
  * @param exerciseRunId the exercise run of an exercise alert, or null (prompt 115)
+ * @param ownerPrincipalId the owner of the rule when the alert fired (prompt R2-008): a user's principal, or null for
+ *     a shared rule; it decides who sees the alert and which channels receive it
  */
 public record AlertView(
         long id,
@@ -79,7 +81,22 @@ public record AlertView(
         String context,
         String region,
         boolean exercise,
-        String exerciseRunId) {
+        String exerciseRunId,
+        String ownerPrincipalId) {
+
+    /** An alert of a shared rule: the shape before prompt R2-008. */
+    public AlertView(long id, UUID ruleId, String ruleName, long seq, String sourceId, String externalId, String kind,
+            Instant firedAt, Instant observedAt, String message, String severity, String state, long rev,
+            Instant acknowledgedAt, String acknowledgedBy, Instant resolvedAt, String resolvedBy, Long resolvedSeq,
+            String feedback, Instant feedbackAt, String note, Instant snoozedUntil, boolean suppressed,
+            String suppressedReason, List<String> tags, String recordSnapshot, String summary, Instant enrichedAt,
+            String summaryCitations, boolean sensitive, String context, String region, boolean exercise,
+            String exerciseRunId) {
+        this(id, ruleId, ruleName, seq, sourceId, externalId, kind, firedAt, observedAt, message, severity, state, rev,
+                acknowledgedAt, acknowledgedBy, resolvedAt, resolvedBy, resolvedSeq, feedback, feedbackAt, note,
+                snoozedUntil, suppressed, suppressedReason, tags, recordSnapshot, summary, enrichedAt, summaryCitations,
+                sensitive, context, region, exercise, exerciseRunId, null);
+    }
 
     /** A real (non-exercise) alert: the shape before prompt 115. */
     public AlertView(long id, UUID ruleId, String ruleName, long seq, String sourceId, String externalId, String kind,

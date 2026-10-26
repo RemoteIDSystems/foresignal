@@ -179,7 +179,8 @@ public class TileKeyService implements PathKeyResolver {
         ReadRestriction restriction = ReadRestriction.of(entity.getRestrictions(), true)
                 .withExcludePrivate(true)
                 .withEndpoints(null)
-                .withExcludeSensitive(true);
+                .withExcludeSensitive(true)
+                .withAlertAudience(ai.foresignal.security.restrict.AlertAudience.SHARED_ONLY);
         return new RequestPrincipal(RequestPrincipal.Kind.TILE_KEY, entity.getId(), entity.getName(), Scope.READ,
                 restriction, false);
     }

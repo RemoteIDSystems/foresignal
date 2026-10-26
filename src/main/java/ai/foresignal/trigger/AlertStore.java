@@ -1,5 +1,6 @@
 package ai.foresignal.trigger;
 
+import ai.foresignal.security.restrict.AlertAudience;
 import ai.foresignal.security.restrict.RestrictionClamp;
 
 import ai.foresignal.store.query.PgArrays;
@@ -48,16 +49,24 @@ public class AlertStore {
                     + " a.resolved_by, a.resolved_seq, a.feedback, a.feedback_at, a.note, a.snoozed_until, a.suppressed,"
                     + " a.suppressed_reason, a.tags::text AS tags, a.record_snapshot::text AS record_snapshot,"
                     + " a.summary, a.enriched_at, a.summary_citations::text AS summary_citations,"
-                    + " a.sensitive, a.context::text AS context, a.region::text AS region, a.exercise, a.exercise_run_id";
+                    + " a.sensitive, a.context::text AS context, a.region::text AS region, a.exercise, a.exercise_run_id,"
+                    + " a.owner_principal_id";
 
     static final String FROM = " FROM alert a LEFT JOIN trigger_rule r ON r.id = a.rule_id";
 
+    /**
+     * The rule's owner at fire time (prompt R2-008), read in the insert itself so the engine's cached rule never
+     * attributes an alert to a former owner.
+     */
+    static final String RULE_OWNER = "(SELECT o.owner_principal_id FROM trigger_rule o WHERE o.id = :rule)";
+
     static final String INSERT =
             "INSERT INTO alert (rule_id, seq, source_id, external_id, kind, fired_at, observed_at, message, severity, state,"
-                    + " suppressed, suppressed_reason, tags, record_snapshot, rev, sensitive, context, region)"
+                    + " suppressed, suppressed_reason, tags, record_snapshot, rev, sensitive, context, region,"
+                    + " owner_principal_id)"
                     + " VALUES (:rule, :seq, :source, :externalId, :kind, :firedAt, :observedAt, :message, :severity, 'firing',"
                     + " :suppressed, CAST(:reason AS text), CAST(:tags AS jsonb), CAST(:snapshot AS jsonb), nextval('alert_rev'),"
-                    + " :sensitive, CAST(:context AS jsonb), CAST(:region AS jsonb))"
+                    + " :sensitive, CAST(:context AS jsonb), CAST(:region AS jsonb), " + RULE_OWNER + ")"
                     + " RETURNING id";
 
     static final String RESOLVE_OPEN =
@@ -69,10 +78,10 @@ public class AlertStore {
     static final String INSERT_EXERCISE =
             "INSERT INTO alert (rule_id, seq, source_id, external_id, kind, fired_at, observed_at, message, severity, state,"
                     + " suppressed, suppressed_reason, tags, record_snapshot, rev, sensitive, context, region, exercise,"
-                    + " exercise_run_id)"
+                    + " exercise_run_id, owner_principal_id)"
                     + " VALUES (:rule, :seq, :source, :externalId, :kind, :firedAt, :observedAt, :message, :severity, 'firing',"
                     + " false, NULL, CAST(:tags AS jsonb), CAST(:snapshot AS jsonb), nextval('alert_rev'),"
-                    + " :sensitive, CAST(:context AS jsonb), CAST(:region AS jsonb), true, :runId)"
+                    + " :sensitive, CAST(:context AS jsonb), CAST(:region AS jsonb), true, :runId, " + RULE_OWNER + ")"
                     + " RETURNING id";
 
     static final String RESOLVE_IDS =
@@ -487,6 +496,7 @@ public class AlertStore {
         }
         RestrictionClamp.sqlPredicate("a.source_id", "a.kind", RestrictionClamp.ALERT_GEOMETRY_SQL, q.restriction(), p,
                 "restrict").ifPresent(where::add);
+        audiencePredicate("a", q.restriction().alertAudience(), p).ifPresent(where::add);
         if (q.restriction().regionFilter() != null) {
             // The country, admin1 and county filters (prompt 040) read the region snapshot taken at fire time.
             int[] n = {0};
@@ -497,6 +507,26 @@ public class AlertStore {
             }));
         }
         return where;
+    }
+
+    /**
+     * The SQL test of an alert audience (prompt R2-008) on the alert alias {@code alias}: shared alerts, plus the
+     * audience's own; empty when there is no audience (every alert).
+     *
+     * @param alias the alert table alias
+     * @param audience the audience, or null
+     * @param p the parameters, receiving {@code audience}
+     * @return the predicate, or empty
+     */
+    public static Optional<String> audiencePredicate(String alias, AlertAudience audience, MapSqlParameterSource p) {
+        if (audience == null) {
+            return Optional.empty();
+        }
+        if (audience.principalId() == null) {
+            return Optional.of(alias + ".owner_principal_id IS NULL");
+        }
+        p.addValue("audience", audience.principalId());
+        return Optional.of("(" + alias + ".owner_principal_id IS NULL OR " + alias + ".owner_principal_id = :audience)");
     }
 
     private static String whereClause(List<String> where) {
@@ -541,7 +571,8 @@ public class AlertStore {
                 rs.getString("context"),
                 rs.getString("region"),
                 rs.getBoolean("exercise"),
-                rs.getString("exercise_run_id"));
+                rs.getString("exercise_run_id"),
+                rs.getString("owner_principal_id"));
     }
 
     static Instant instant(ResultSet rs, String label) throws SQLException {

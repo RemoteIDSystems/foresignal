@@ -110,6 +110,37 @@ public class NotificationService {
     }
 
     /**
+     * Persists an alert notification of a user-owned rule (prompt R2-008) and enqueues it for every enabled channel
+     * that user owns and that accepts it ({@link NotificationChannel#acceptsOwned}) and passes {@code extraFilter}.
+     * Instance channels never receive it: an owned rule's audience is its owner.
+     *
+     * @param message the notification
+     * @param ownerPrincipalId the rule owner's principal
+     * @param extraFilter a further filter, or null
+     * @return the persisted message, with its id
+     */
+    public NotificationMessage publishOwned(NotificationMessage message, String ownerPrincipalId,
+            Predicate<NotificationChannel> extraFilter) {
+        Objects.requireNonNull(ownerPrincipalId, "ownerPrincipalId");
+        Predicate<NotificationChannel> filter = extraFilter == null ? c -> true : extraFilter;
+        Instant now = clock.instant();
+        return store.write(writer -> {
+            NotificationMessage persisted = writer.persist(fill(message, now));
+            NotificationSettings pause = pause();
+            for (NotificationChannelEntity entity : channels.findByEnabledTrue()) {
+                if (types.find(entity.getType()).isEmpty() || !ownerPrincipalId.equals(entity.getOwnerPrincipalId())) {
+                    continue;
+                }
+                NotificationChannel channel = NotificationChannel.of(entity, List.of());
+                if (channel.acceptsOwned(persisted) && filter.test(channel)) {
+                    enqueueSend(entity, channel, persisted, pause, now);
+                }
+            }
+            return persisted;
+        });
+    }
+
+    /**
      * Publishes the instance copy of a personal notice ({@link ChannelTypeSpec#PERSONAL_COPY_EVENTS}) to every
      * enabled instance channel subscribed to its event; nothing is persisted when none is.
      *

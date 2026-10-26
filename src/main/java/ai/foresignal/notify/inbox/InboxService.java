@@ -464,10 +464,16 @@ public class InboxService {
     /**
      * Applies a read restriction (prompt 035): only alert notifications whose alert passes it
      * (source, kind and the record snapshot's geometry); briefing and system notifications are hidden
-     * from a principal with data restrictions (fail closed).
+     * from a principal with data restrictions (fail closed). Prompt R2-008: a notification of an alert owned by
+     * another user is hidden from a caller with an alert audience.
      */
     private static void restrict(List<String> where, MapSqlParameterSource p, ReadRestriction restriction) {
-        if (restriction == null || !restriction.hasDataRestrictions()) {
+        if (restriction == null) {
+            return;
+        }
+        // R2-008: notifications of another user's alerts are not in this caller's inbox.
+        ai.foresignal.trigger.AlertStore.audiencePredicate("a", restriction.alertAudience(), p).ifPresent(where::add);
+        if (!restriction.hasDataRestrictions()) {
             return;
         }
         where.add("n.alert_id is not null");

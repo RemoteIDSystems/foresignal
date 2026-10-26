@@ -14,7 +14,8 @@ import java.util.function.LongFunction;
  * about a record ({@code data.sourceId}) the restriction allows: source and kind from the data, and,
  * for a spatial restriction, the geometry of the alert's record snapshot (looked up by
  * {@code data.alertId}). Operational notifications without a source (channel failures, rule
- * suppression, provider errors) are hidden from such callers (fail closed).
+ * suppression, provider errors) are hidden from such callers (fail closed). Prompt R2-008: a notification whose
+ * {@code data.ownerPrincipalId} names another user is hidden from a caller with an alert audience.
  *
  * @param excludedSources sources whose notifications are hidden from this caller
  * @param restriction the caller's read restriction (never null)
@@ -46,6 +47,12 @@ public record NotificationFilter(Set<String> excludedSources, ReadRestriction re
         }
         Object source = message.data() == null ? null : message.data().get("sourceId");
         if (source != null && excludedSources.contains(String.valueOf(source))) {
+            return false;
+        }
+        Object owner = message.data() == null ? null : message.data().get("ownerPrincipalId");
+        if (restriction.alertAudience() != null && !restriction.alertAudience().allows(
+                owner == null ? null : String.valueOf(owner))) {
+            // R2-008: a notification of another user's alert.
             return false;
         }
         if (!restriction.hasDataRestrictions()) {

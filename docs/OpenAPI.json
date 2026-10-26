@@ -4688,7 +4688,7 @@
         ],
         "operationId": "listTriggers",
         "summary": "List trigger rules",
-        "description": "List trigger rules\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.",
+        "description": "List trigger rules\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.",
         "responses": {
           "200": {
             "description": "Rules",
@@ -4743,6 +4743,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "security": [
           {},
           {
@@ -4781,7 +4782,7 @@
         ],
         "operationId": "createTrigger",
         "summary": "Create a trigger rule",
-        "description": "Creates a rule evaluated against persisted versions (HEARTBEAT excluded). Condition paths on volatile fields are rejected (TRIGGER_PATH_VOLATILE); line geofences need bufferMeters; `near.placeId` needs Places (PLACES_UNAVAILABLE).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.",
+        "description": "Creates a rule evaluated against persisted versions (HEARTBEAT excluded). Condition paths on volatile fields are rejected (TRIGGER_PATH_VOLATILE); line geofences need bufferMeters; `near.placeId` needs Places (PLACES_UNAVAILABLE).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -4854,6 +4855,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "security": [
           {
             "bearerToken": []
@@ -4886,7 +4888,7 @@
         ],
         "operationId": "getTrigger",
         "summary": "Get a trigger rule",
-        "description": "Get a trigger rule\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.",
+        "description": "Get a trigger rule\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.",
         "responses": {
           "200": {
             "description": "Rule",
@@ -4948,6 +4950,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "security": [
           {},
           {
@@ -4966,7 +4969,7 @@
         ],
         "operationId": "updateTrigger",
         "summary": "Replace a trigger rule",
-        "description": "Full replace; the persist gate re-converges each entity on its next observation.\n\n**Scope:** `agent`.\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.",
+        "description": "Full replace; the persist gate re-converges each entity on its next observation.\n\n**Scope:** `agent`.\n\n**v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -5040,6 +5043,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "security": [
           {
             "bearerToken": []
@@ -5058,7 +5062,7 @@
         ],
         "operationId": "deleteTrigger",
         "summary": "Delete a trigger rule",
-        "description": "Existing alerts are kept (no cascade).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.",
+        "description": "Existing alerts are kept (no cascade).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.",
         "responses": {
           "204": {
             "description": "Deleted"
@@ -5095,6 +5099,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "security": [
           {
             "bearerToken": []
@@ -5243,6 +5248,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "security": [
           {
             "bearerToken": []
@@ -5346,6 +5352,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "x-foresignal-prompt": "161",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
@@ -5363,7 +5370,7 @@
         ],
         "operationId": "listAlerts",
         "summary": "List alerts newest first",
-        "description": "Alerts newest first, keyset on id. Suppressed alerts are hidden unless includeSuppressed. Anonymous callers (security.openReads) never see alerts of private sources.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Alerts newest first, keyset on id. Suppressed alerts are hidden unless includeSuppressed. Anonymous callers (security.openReads) never see alerts of private sources.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.",
         "parameters": [
           {
             "name": "ruleId",
@@ -5667,7 +5674,7 @@
         ],
         "operationId": "streamAlerts",
         "summary": "Live alert stream (SSE)",
-        "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources. `alert.enriched` (030, data Alert) is an update of the same alert with its enrichment summary; clients treat it as an upsert by alert id. A replay sends each alert once in its current state, summary included.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources. `alert.enriched` (030, data Alert) is an update of the same alert with its enrichment summary; clients treat it as an upsert by alert id. A replay sends each alert once in its current state, summary included.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.",
         "parameters": [
           {
             "name": "Last-Event-ID",
@@ -5953,7 +5960,7 @@
         ],
         "operationId": "getAlert",
         "summary": "Get an alert",
-        "description": "Alert with its lifecycle; `record` is loaded by seq and falls back to `recordSnapshot` once the version is gone. An alert of a private source is 404 for anonymous callers.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Alert with its lifecycle; `record` is loaded by seq and falls back to `recordSnapshot` once the version is gone. An alert of a private source is 404 for anonymous callers.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.",
         "responses": {
           "200": {
             "description": "Alert",
@@ -6103,6 +6110,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "security": [
           {
             "bearerToken": []
@@ -13983,6 +13991,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "x-foresignal-prompt": "017",
         "x-foresignal-status": "implemented",
         "security": [
@@ -14041,6 +14050,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "x-foresignal-prompt": "017",
         "x-foresignal-status": "implemented",
         "security": [
@@ -14133,6 +14143,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "x-foresignal-prompt": "017",
         "x-foresignal-status": "implemented",
         "security": [
@@ -14225,6 +14236,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "x-foresignal-prompt": "017",
         "x-foresignal-status": "implemented",
         "security": [
@@ -14283,6 +14295,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "x-foresignal-prompt": "017",
         "x-foresignal-status": "implemented",
         "security": [
@@ -14375,6 +14388,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "x-foresignal-prompt": "017",
         "x-foresignal-status": "implemented",
         "security": [
@@ -20124,6 +20138,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "033",
         "x-foresignal-status": "implemented",
         "security": [
@@ -20235,6 +20250,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "x-foresignal-prompt": "033",
         "x-foresignal-status": "implemented",
         "security": [
@@ -20311,6 +20327,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "x-foresignal-prompt": "033",
         "x-foresignal-status": "implemented",
         "security": [
@@ -33312,7 +33329,7 @@
         ],
         "operationId": "getAlertsAtom",
         "summary": "Alerts as an Atom feed",
-        "description": "RFC 4287 Atom feed of alerts with GeoRSS-Simple geometry (`georss:point`, or `georss:polygon` for single polygons ≤ 500 vertices, else the centroid). Entries are ordered newest first by last lifecycle change. Entry `id` is `tag:foresignal,2026:{installId}/alert/{id}`, title is `shortTitle` (else the title), the alternate link is the client deep link (else `publicBaseUrl/v1/alerts/{id}`), categories carry severity and rule tags. Content is markdown rendered with commonmark-java and sanitised by an allowlist (`p, br, strong, em, code, pre, ul, ol, li, blockquote, h3–h6, a[href]` http/https only). Private-source alerts are excluded unless the token or feed key passes the private gate and `EgressPolicy.allows(FEED)`. Conditional GET: ETag over (max lifecycle timestamp, max id, filters) plus `Last-Modified`. Feed readers without headers use a 035 feed key (`/v1/k/{key}/alerts/feed.atom`). RSS 2.0 and WebSub publishing are not offered.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "RFC 4287 Atom feed of alerts with GeoRSS-Simple geometry (`georss:point`, or `georss:polygon` for single polygons ≤ 500 vertices, else the centroid). Entries are ordered newest first by last lifecycle change. Entry `id` is `tag:foresignal,2026:{installId}/alert/{id}`, title is `shortTitle` (else the title), the alternate link is the client deep link (else `publicBaseUrl/v1/alerts/{id}`), categories carry severity and rule tags. Content is markdown rendered with commonmark-java and sanitised by an allowlist (`p, br, strong, em, code, pre, ul, ol, li, blockquote, h3–h6, a[href]` http/https only). Private-source alerts are excluded unless the token or feed key passes the private gate and `EgressPolicy.allows(FEED)`. Conditional GET: ETag over (max lifecycle timestamp, max id, filters) plus `Last-Modified`. Feed readers without headers use a 035 feed key (`/v1/k/{key}/alerts/feed.atom`). RSS 2.0 and WebSub publishing are not offered.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.",
         "parameters": [
           {
             "name": "rule",
@@ -33484,7 +33501,7 @@
         ],
         "operationId": "getAlertsJsonFeed",
         "summary": "Alerts as a JSON Feed",
-        "description": "JSON Feed 1.1 of alerts; each item carries the `_foresignal` extension `{severity, state, sourceId, externalId, geometry}`. Entries are ordered newest first by last lifecycle change. Entry `id` is `tag:foresignal,2026:{installId}/alert/{id}`, title is `shortTitle` (else the title), the alternate link is the client deep link (else `publicBaseUrl/v1/alerts/{id}`), categories carry severity and rule tags. Content is markdown rendered with commonmark-java and sanitised by an allowlist (`p, br, strong, em, code, pre, ul, ol, li, blockquote, h3–h6, a[href]` http/https only). Private-source alerts are excluded unless the token or feed key passes the private gate and `EgressPolicy.allows(FEED)`. Conditional GET: ETag over (max lifecycle timestamp, max id, filters) plus `Last-Modified`. Feed readers without headers use a 035 feed key (`/v1/k/{key}/alerts/feed.atom`). RSS 2.0 and WebSub publishing are not offered.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "JSON Feed 1.1 of alerts; each item carries the `_foresignal` extension `{severity, state, sourceId, externalId, geometry}`. Entries are ordered newest first by last lifecycle change. Entry `id` is `tag:foresignal,2026:{installId}/alert/{id}`, title is `shortTitle` (else the title), the alternate link is the client deep link (else `publicBaseUrl/v1/alerts/{id}`), categories carry severity and rule tags. Content is markdown rendered with commonmark-java and sanitised by an allowlist (`p, br, strong, em, code, pre, ul, ol, li, blockquote, h3–h6, a[href]` http/https only). Private-source alerts are excluded unless the token or feed key passes the private gate and `EgressPolicy.allows(FEED)`. Conditional GET: ETag over (max lifecycle timestamp, max id, filters) plus `Last-Modified`. Feed readers without headers use a 035 feed key (`/v1/k/{key}/alerts/feed.atom`). RSS 2.0 and WebSub publishing are not offered.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.",
         "parameters": [
           {
             "name": "rule",
@@ -36866,6 +36883,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "100",
         "x-foresignal-status": "implemented",
         "security": [
@@ -36976,6 +36994,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "100",
         "x-foresignal-status": "implemented",
         "security": [
@@ -37059,6 +37078,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "x-foresignal-prompt": "100",
         "x-foresignal-status": "implemented",
         "security": [
@@ -54367,6 +54387,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "x-foresignal-prompt": "115",
         "x-foresignal-status": "implemented",
         "security": [
@@ -54468,6 +54489,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "x-foresignal-prompt": "115",
         "x-foresignal-status": "implemented",
         "security": [
@@ -54559,6 +54581,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "self.alerts",
         "x-foresignal-prompt": "115",
         "x-foresignal-status": "implemented",
         "security": [
@@ -54660,6 +54683,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "115",
         "x-foresignal-status": "implemented",
         "security": [
@@ -101475,6 +101499,14 @@
                   }
                 ],
                 "description": "Windowed rules only"
+              },
+              "ownerPrincipalId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "readOnly": true,
+                "description": "The principal of the user who owns the rule (R2-008); null for a shared rule managed by an admin. Ignored on input."
               }
             },
             "required": [

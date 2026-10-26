@@ -9,7 +9,7 @@ The dividing line: **collected data and the collector stay global; who may see a
 becomes per-user.** One instance, one database, one paced collector — many accounts, each with its
 own view, alerts, channels, LLM budget, saved views and preferences layered on top.
 
-## What exists today (verified 2026-10-26, after R2-004)
+## What exists today (verified 2026-10-26, after R2-008)
 
 Before Release 2, identity was **capability-scoped tokens only**, not accounts.
 
@@ -19,7 +19,8 @@ Before Release 2, identity was **capability-scoped tokens only**, not accounts.
 | API tokens | `security/ApiTokenEntity.java` | hashed `api_token` rows (`fsr_…`), area/path/tile restrictions |
 | Authorization | `security/AccessPolicy.java`, `security/AccessPermissions.java`, `security/TokenFilter.java` | per-operation scope gate for tokens, per-operation permission gate for sessions (R2-004); unmatched `/v1/**` needs admin |
 | Bootstrap admin | `security/AdminTokenService.java` | one rotatable break-glass admin token, hash-stored, printed once |
-| Global config | `store/SourceSettingsEntity.java`, `store/TriggerRuleEntity.java`, `llm/LlmProviderEntity.java` | **no owner column** — settings are instance-wide |
+| Global config | `store/SourceSettingsEntity.java`, `llm/LlmProviderEntity.java` | **no owner column** — settings are instance-wide |
+| Trigger rules (R2-008) | `store/TriggerRuleEntity.java`, `V16__trigger_rule_owner.sql` | `owner_principal_id` (null = shared); alerts copy it when they fire (§D) |
 | Owner-scoped data | `workspace`, `shareable_object`, `relation`, `chronicle_*`, `principal` | already carries an owner (the 129/130 collaboration layer) |
 | **Identity model (R2-001)** | `security/user/*`, `V14__identity_model.sql` | `user`, `role`, `permission`, `user_role`, `role_permission`, `user_token`; catalog and built-in roles seeded; **no user row, no API change yet** |
 
@@ -216,7 +217,7 @@ token filter with `detail.via = session` and `detail.userId`.
 ## C2. Authorization (built: R2-004)
 
 **Every operation in `docs/OpenAPI.json` that a signed-in user needs a permission for carries
-`x-foresignal-permission`** (478 of the 900 operations). `scripts/generate-access-permissions.py` transcribes the
+`x-foresignal-permission`** (502 of the 900 operations). `scripts/generate-access-permissions.py` transcribes the
 contract into `security/AccessPermissions.java` — one row per operation, a null permission where it carries none, ordered
 literal-before-template — and `AccessPolicy.permissionFor(method, path)` reads it. The permission is a parallel lookup,
 not a field on `AccessRequirement.RequiresScope`: the scope requirement, and with it every API token's access, is exactly
@@ -234,16 +235,17 @@ what it was before R2-004.
 | `network.manage` | 22 | egress, aggregators, peers |
 | `channels.global` | 11 | instance-wide channels |
 | `llm.shared.manage` | 12 | shared LLM providers and budgets |
-| `data.read` | 112 | record, map, tile, history, search, alert and reference reads |
+| `data.read` | 118 | record, map, tile, history, search, alert, trigger and reference reads |
 | `intel.read` | 112 | intelligence, situations, analysis, assessments, chronicles, analytics, briefings reads |
 | `forecast.read` | 8 | forecast reads |
 | `data.export` | 11 | the `Exports` tag and `/v1/export/**` |
+| `self.alerts` | 18 | every trigger write (create, update, delete, test, snooze, mute, baseline rebuild, tuning) and the alert lifecycle writes (acknowledge, resolve, snooze, feedback); R2-008 |
 | `self.sources` / `self.preferences` / `self.llm` | 2 / 2 / 1 | `getMySources`/`updateMySources`, `getMyPreferences`/`updateMyPreferences`, `getMyLlmBudget` |
 
 Every admin-scoped operation carries a permission, so no admin-scoped operation is reachable by a session on its
 derived scope alone (an Operator, derived scope `admin`, cannot mint an admin API token: that is `users.manage`).
-`self.alerts` and `self.channels` arrive on the trigger and channel operations with R2-008/R2-009; R2-013 completes
-data-access gating.
+`self.alerts` arrived on the trigger and alert operations with R2-008 (§D); `self.channels` arrives on the channel
+operations with R2-009; R2-013 completes data-access gating.
 
 **The enforcement rule (`TokenFilter.checkToken`).**
 
@@ -299,6 +301,45 @@ Per-user endpoints under `/v1/me` (all `read` scope — a session may always rea
 config): `GET/PUT /v1/me/sources` (`UserSourceView`, a list of `UserSourcePref`),
 `GET/PUT /v1/me/preferences` (`UserPreferences`), `GET/PUT /v1/me/notification-preferences`,
 `GET /v1/me/quota` (`QuotaUsage`), `GET /v1/me/llm/budget`.
+
+**Built (R2-008): per-user alerts.**
+
+- **Ownership is the user's principal.** `trigger_rule.owner_principal_id` (V16) holds the owning user's
+  `principal_id`, not a `user.id`: users and principals are one-to-one (§A) and `notification_channel` already owned
+  channels by `owner_principal_id`, so rule owner and channel owner compare directly. The table above says
+  `owner_user_id`; this is that column under the existing convention, and R2-009…R2-012 use the same one. Null means
+  **shared**: a rule an admin manages. Every rule that existed before V16 is shared, so nothing stopped firing or
+  changed where it delivers; R2-027's first run decides whether they move to the first admin.
+- **Who sees and manages what** (`security/user/OwnerScope`). A session sees and manages its user's own rules, and
+  what it creates is its own. A session holding `users.manage` (an admin, the last-admin guard's definition) sees and
+  manages every rule, shared ones included, and still owns what it creates. API tokens (the machine path, the bootstrap
+  admin token included) see and manage every rule as before, and a rule a token creates is **shared**. Anonymous
+  callers (`security.openReads`) and feed and tile keys see shared rules only. Another user's rule is `404` on every
+  per-rule operation, exactly like an unknown id (`api/support/TriggerOwnershipInterceptor`, which sits in front of
+  every `/v1/triggers/{ruleId}…` controller, the KML export included). `self.alerts` gates every trigger write, so a
+  Viewer cannot author; trigger reads carry `data.read`. An Operator holds neither `self.alerts` nor `users.manage`, so
+  an Operator session does not manage alerts at all.
+- **One stream, every owner.** Nothing in the collector or the trigger engine is per user. The engine still evaluates
+  every enabled rule against each record once, and per-rule state (cooldowns, anchors, windows) is keyed by rule, so it
+  is naturally per user. The alert insert copies the rule's owner into `alert.owner_principal_id` in the same
+  statement, so the engine's cached rule cannot attribute an alert to a former owner.
+- **Alert visibility.** The audience travels in the request's `ReadRestriction` (`AlertAudience`, never stored), so
+  every alert read already restricted there applies it: `listAlerts`, `getAlert` and the lifecycle writes (another
+  user's alert is `404`), `streamAlerts` and `/v1/stream`, the Atom/JSON feeds, CAP, the notification inbox and badge,
+  the notification topics, and search. A user sees their own alerts and the shared ones; a session holding
+  `users.manage` and every API token see all; anonymous callers and path keys see the shared ones. The audience is in
+  the restriction's canonical form, so two users never share a cached response or a cursor.
+- **Delivery.** `NotificationRouter.fired` sends a user's alert only to channels that user owns
+  (`NotificationService.publishOwned`), personal channels (prompt 130) included, with each channel's severity and rule
+  filters; a shared rule's alert goes to the instance channels as before. Instance channels never receive a user's
+  alert: R2-009 decides which global channels a user's alerts may use.
+- **User deletion** (`trigger/TriggerRuleReassigner`, audit name `triggerRules`). Reassigning moves the rules and their
+  alerts to the target admin's principal (shared with no target); `reassign=false` deletes the rules and keeps their
+  alerts. The engine reloads once the deletion commits.
+
+Not yet per user: the secondary alert summaries that never took a read restriction (statistics counts, the dossier and
+context-summary activity lists, briefings, the operator gauges) still count or list every alert. R2-013 completes
+data-access gating.
 
 ## E. LLM — shared and personal, per-user budgets
 
@@ -378,8 +419,8 @@ Admin-scoped (`admin`), permission `users.manage` / `roles.manage`:
 - **User delete reassigns by default** (owner decision). Before the row is deleted, every `UserOwnedConfigReassigner`
   bean moves the user's rows to the target (or deletes them with `reassign=false`). Target precedence: the acting
   signed-in admin, when that is not the user being deleted; else the oldest other active admin (`created_at`); else
-  none, and the rows become instance-owned (`owner_user_id` null). No table carries `owner_user_id` yet, so there is no
-  reassigner today: R2-008 (trigger rules), R2-009 (channels), R2-010 (`user_source_pref`), R2-011 (personal LLM
+  none, and the rows become instance-owned (owner null). R2-008 registered the first reassigner (trigger rules, §D);
+  R2-009 (channels), R2-010 (`user_source_pref`), R2-011 (personal LLM
   providers), R2-012 (views, preferences, workspaces) and R2-025 (user-owned API tokens) each register one; the
   interface's Javadoc is the contract. The role links, sessions and activation/reset tokens go with the user row (`on
   delete cascade`); the user's principal stays, so collaboration history keeps its author. `UserDeleteResult` reports

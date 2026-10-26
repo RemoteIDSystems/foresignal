@@ -83,6 +83,8 @@ public class TriggerMapper {
         out.put("snoozedUntil", r.getSnoozedUntil());
         out.put("mutedUntil", r.getMutedUntil());
         out.put("escalationPolicyId", r.getEscalationPolicyId());
+        // R2-008: the owning user's principal, null for a shared rule.
+        out.put("ownerPrincipalId", r.getOwnerPrincipalId());
         out.put("createdAt", r.getCreatedAt());
         out.put("updatedAt", r.getUpdatedAt());
         out.put("lastFiredAt", stats.lastFiredAt());

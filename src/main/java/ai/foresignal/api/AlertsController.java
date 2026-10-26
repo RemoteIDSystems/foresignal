@@ -68,6 +68,10 @@ import tools.jackson.databind.JsonNode;
  * <p>Reads need {@code read} (open while {@code security.openReads} is on); lifecycle writes need
  * {@code agent}. Anonymous callers never see alerts of private sources: those are filtered from
  * lists and streams and are {@code 404} by id. An alert id that is not a number is not found.
+ *
+ * <p>Prompt R2-008: a signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another
+ * user's alert is {@code 404} like an unknown one. A session holding {@code users.manage} and every API token see
+ * all alerts.
  */
 @RestController
 @Tag(name = "Alerts")
@@ -271,7 +275,9 @@ public class AlertsController {
     private AlertView visible(String alertId, HttpServletRequest request) {
         AlertView alert = alerts.get(id(alertId));
         ReadCaller caller = callers.resolve(request);
+        ai.foresignal.security.restrict.AlertAudience audience = caller.restriction().alertAudience();
         if (callers.excludedSources(caller).contains(alert.sourceId())
+                || (audience != null && !audience.allows(alert.ownerPrincipalId()))
                 || !RestrictionClamp.testSnapshot(caller.restriction(), alert.sourceId(), alert.kind(),
                         alert.recordSnapshot(), alert.sensitive())) {
             // Outside what the caller may read: reported like an unknown alert (023, 035).

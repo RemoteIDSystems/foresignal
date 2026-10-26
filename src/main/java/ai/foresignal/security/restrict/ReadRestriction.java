@@ -65,6 +65,7 @@ public final class ReadRestriction {
     private final RecordFilter filter;
     private final boolean excludeSensitive;
     private final ai.foresignal.reference.RegionFilter regionFilter;
+    private final AlertAudience alertAudience;
 
     /**
      * A restriction.
@@ -87,12 +88,13 @@ public final class ReadRestriction {
             List<String> endpoints, boolean excludePrivate, Integer maxRequestsPerMinute, RecordFilter filter,
             boolean excludeSensitive) {
         this(sources, kinds, bbox, area, endpoints, excludePrivate, maxRequestsPerMinute, filter, excludeSensitive,
-                null);
+                null, null);
     }
 
     private ReadRestriction(Collection<String> sources, Collection<String> kinds, List<Double> bbox, Geometry area,
             List<String> endpoints, boolean excludePrivate, Integer maxRequestsPerMinute, RecordFilter filter,
-            boolean excludeSensitive, ai.foresignal.reference.RegionFilter regionFilter) {
+            boolean excludeSensitive, ai.foresignal.reference.RegionFilter regionFilter, AlertAudience alertAudience) {
+        this.alertAudience = alertAudience;
         this.filter = filter;
         this.excludeSensitive = excludeSensitive;
         this.regionFilter = regionFilter;
@@ -258,7 +260,23 @@ public final class ReadRestriction {
     /** This restriction with the region filters {@code value} (prompt 040); null removes them. */
     public ReadRestriction withRegionFilter(ai.foresignal.reference.RegionFilter value) {
         return new ReadRestriction(sources, kinds, bbox, area, endpoints, excludePrivate, maxRequestsPerMinute,
-                filter, excludeSensitive, value);
+                filter, excludeSensitive, value, alertAudience);
+    }
+
+    /**
+     * Which alerts this caller may see by their owner (prompt R2-008), or null for every alert. Like {@link #filter()}
+     * it is never stored; the alert paths ({@code AlertStore}, {@code AlertQuery#matches}, the inbox and the
+     * notification topics) apply it.
+     */
+    public AlertAudience alertAudience() {
+        return alertAudience;
+    }
+
+    /** This restriction with the alert audience {@code value} (prompt R2-008); null shows every alert. */
+    public ReadRestriction withAlertAudience(AlertAudience value) {
+        return java.util.Objects.equals(value, alertAudience) ? this
+                : new ReadRestriction(sources, kinds, bbox, area, endpoints, excludePrivate, maxRequestsPerMinute,
+                        filter, excludeSensitive, regionFilter, value);
     }
 
     /** True when sensitive alerts are hidden from this principal (anonymous callers and feed keys, 036). */
@@ -276,14 +294,14 @@ public final class ReadRestriction {
         }
         RecordFilter combined = filter == null ? value : RecordFilters.and(filter, value);
         return new ReadRestriction(sources, kinds, bbox, area, endpoints, excludePrivate, maxRequestsPerMinute,
-                combined, excludeSensitive, regionFilter);
+                combined, excludeSensitive, regionFilter, alertAudience);
     }
 
     /** This restriction with {@code excludeSensitive} replaced (prompt 036). */
     public ReadRestriction withExcludeSensitive(boolean value) {
         return value == excludeSensitive ? this
                 : new ReadRestriction(sources, kinds, bbox, area, endpoints, excludePrivate, maxRequestsPerMinute,
-                        filter, value, regionFilter);
+                        filter, value, regionFilter, alertAudience);
     }
 
     /** True when nothing at all is restricted, private exclusion included. */
@@ -326,13 +344,13 @@ public final class ReadRestriction {
     public ReadRestriction withExcludePrivate(boolean value) {
         return value == excludePrivate ? this
                 : new ReadRestriction(sources, kinds, bbox, area, endpoints, value, maxRequestsPerMinute, filter,
-                        excludeSensitive, regionFilter);
+                        excludeSensitive, regionFilter, alertAudience);
     }
 
     /** This restriction with {@code endpoints} replaced. */
     public ReadRestriction withEndpoints(List<String> value) {
         return new ReadRestriction(sources, kinds, bbox, area, value, excludePrivate, maxRequestsPerMinute, filter,
-                excludeSensitive, regionFilter);
+                excludeSensitive, regionFilter, alertAudience);
     }
 
     /**
@@ -340,7 +358,7 @@ public final class ReadRestriction {
      * so two principals with different restrictions never share a cached response.
      */
     public String canonical() {
-        if (!hasDataRestrictions() && !excludePrivate && regionFilter == null) {
+        if (!hasDataRestrictions() && !excludePrivate && regionFilter == null && alertAudience == null) {
             return "";
         }
         List<String> parts = new ArrayList<>();
@@ -357,6 +375,9 @@ public final class ReadRestriction {
         if (regionFilter != null) {
             parts.add("g=" + regionFilter.canonical());
         }
+        if (alertAudience != null) {
+            parts.add("o=" + alertAudience.canonical());
+        }
         return String.join(";", parts);
     }
 
@@ -371,6 +392,7 @@ public final class ReadRestriction {
         return excludePrivate == other.excludePrivate
                 && excludeSensitive == other.excludeSensitive
                 && Objects.equals(regionFilter, other.regionFilter)
+                && Objects.equals(alertAudience, other.alertAudience)
                 && Objects.equals(filter == null ? null : filter.canonical(),
                         other.filter == null ? null : other.filter.canonical())
                 && Objects.equals(sources, other.sources)
@@ -384,7 +406,8 @@ public final class ReadRestriction {
     @Override
     public int hashCode() {
         return Objects.hash(sources, kinds, bbox, area == null ? null : area.toText(), endpoints, excludePrivate,
-                maxRequestsPerMinute, filter == null ? null : filter.canonical(), excludeSensitive, regionFilter);
+                maxRequestsPerMinute, filter == null ? null : filter.canonical(), excludeSensitive, regionFilter,
+                alertAudience);
     }
 
     @Override

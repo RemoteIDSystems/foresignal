@@ -5,12 +5,14 @@ import ai.foresignal.api.mapper.RecordMapper;
 import ai.foresignal.api.mapper.TriggerMapper;
 import ai.foresignal.api.support.FieldSelection;
 import ai.foresignal.api.support.QueryParams;
+import ai.foresignal.security.user.OwnerScope;
 import ai.foresignal.store.query.RecordRow;
 import ai.foresignal.trigger.TriggerBacktester;
 import ai.foresignal.trigger.SourceRelevanceAnalyzer;
 import ai.foresignal.trigger.TriggerRuleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -38,6 +40,10 @@ import tools.jackson.databind.JsonNode;
  * <p>Reads need {@code read}; every write and the backtest need {@code agent} ({@code AccessPolicy}).
  * Bodies are taken as JSON trees and validated by {@code RuleValidator}, so every field problem is
  * reported in one {@code 400} with field errors. A rule id that is not a UUID is simply not found.
+ *
+ * <p>Prompt R2-008: a signed-in user lists and manages their own rules, and what they create is theirs; a session
+ * holding {@code users.manage} and every API token see and manage all rules, and a token's new rule is shared.
+ * Another user's rule is {@code 404} ({@code TriggerOwnershipInterceptor}).
  */
 @RestController
 @Tag(name = "Triggers")
@@ -77,9 +83,10 @@ public class TriggersController {
     @GetMapping
     @Operation(operationId = "listTriggers", tags = "Triggers")
     public List<Map<String, Object>> listTriggers(
-            @RequestParam(required = false) String tag, @RequestParam(required = false) String enabled) {
+            @RequestParam(required = false) String tag, @RequestParam(required = false) String enabled,
+            HttpServletRequest request) {
         Boolean enabledFilter = enabled == null ? null : QueryParams.bool("enabled", enabled, true);
-        return rules.list(tag, enabledFilter).stream().map(mapper::rule).toList();
+        return rules.list(tag, enabledFilter, OwnerScope.of(request)).stream().map(mapper::rule).toList();
     }
 
     /** {@code getTrigger}. */
@@ -92,8 +99,9 @@ public class TriggersController {
     /** {@code createTrigger}: 201 with {@code Location}. */
     @PostMapping
     @Operation(operationId = "createTrigger", tags = "Triggers")
-    public ResponseEntity<Map<String, Object>> createTrigger(@RequestBody JsonNode body) {
-        TriggerRuleService.RuleView view = rules.create(body);
+    public ResponseEntity<Map<String, Object>> createTrigger(@RequestBody JsonNode body, HttpServletRequest request) {
+        // R2-008: a signed-in user's rule is theirs; an API token's is shared.
+        TriggerRuleService.RuleView view = rules.create(body, OwnerScope.of(request).ownerForNew());
         return ResponseEntity.created(URI.create("/v1/triggers/" + view.rule().getId())).body(mapper.rule(view));
     }
 

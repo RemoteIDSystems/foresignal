@@ -61,7 +61,7 @@ final class AccessPermissions {
             rule("POST", "/v1/system/signing-key/rotate", "system.settings"), // rotateSigningKey
             rule("POST", "/v1/analysis/maintenance/run", null), // runAnalysisMaintenance
             rule("POST", "/v1/forecasts/ensemble/refit", null), // refitForecastEnsemble
-            rule("POST", "/v1/triggers/analyze-sources", null), // analyzeTriggerSources
+            rule("POST", "/v1/triggers/analyze-sources", "self.alerts"), // analyzeTriggerSources
             rule("POST", "/v1/analytics/event-studies", null), // createEventStudy
             rule("PUT", "/v1/chronicle-network/salts", "system.settings"), // setChronicleNetworkSalt
             rule("POST", "/v1/packs/population/import", "system.settings"), // importPopulationPack
@@ -375,8 +375,8 @@ final class AccessPermissions {
             rule("GET", "/v1/outlooks", "intel.read"), // listRegionalOutlooks
             rule("GET", "/v1/products", "data.read"), // listProducts
             rule("GET", "/v1/timeline", "data.read"), // getTimeline
-            rule("GET", "/v1/triggers", null), // listTriggers
-            rule("POST", "/v1/triggers", null), // createTrigger
+            rule("GET", "/v1/triggers", "data.read"), // listTriggers
+            rule("POST", "/v1/triggers", "self.alerts"), // createTrigger
             rule("GET", "/v1/backups", "storage.manage"), // listBackups
             rule("GET", "/v1/changes", "data.read"), // listChanges
             rule("GET", "/v1/clients", "system.settings"), // listClients
@@ -482,7 +482,7 @@ final class AccessPermissions {
             rule("GET", "/v1/ogc/collections/*/instances", "data.read"), // edrInstances
             rule("GET", "/v1/ogc/collections/*/map/tiles", "data.read"), // ogcCollectionTilesets
             rule("POST", "/v1/push/subscriptions/*/verify", null), // verifyPushSubscription
-            rule("POST", "/v1/triggers/*/baseline/rebuild", null), // rebuildBaseline
+            rule("POST", "/v1/triggers/*/baseline/rebuild", "self.alerts"), // rebuildBaseline
             rule("POST", "/v1/analyst/proposals/*/reject", null), // rejectAnalystProposal
             rule("GET", "/v1/briefings/*/runs/feed.atom", "data.read"), // getBriefingRunsAtom
             rule("GET", "/v1/briefings/*/runs/feed.json", "data.read"), // getBriefingRunsJsonFeed
@@ -517,7 +517,7 @@ final class AccessPermissions {
             rule("GET", "/v1/ogc/collections/*/items", "data.read"), // ogcItems
             rule("DELETE", "/v1/precursors/candidates/*", null), // deletePrecursorCandidate
             rule("POST", "/v1/situations/*/assessment", null), // createSituationAssessment
-            rule("GET", "/v1/triggers/*/window-state", null), // getTriggerWindowState
+            rule("GET", "/v1/triggers/*/window-state", "data.read"), // getTriggerWindowState
             rule("GET", "/v1/analysis/cycles/*/runs", null), // listCycleRuns
             rule("POST", "/v1/analyst/profiles/*/run", null), // runAnalystProfile
             rule("POST", "/v1/assessments/*/feedback", null), // submitAssessmentFeedback
@@ -553,7 +553,7 @@ final class AccessPermissions {
             rule("GET", "/v1/situations/*/timeline", "intel.read"), // getSituationTimeline
             rule("DELETE", "/v1/sources/*/credentials", "collection.manage"), // deleteSourceCredentials
             rule("PUT", "/v1/sources/*/credentials", "collection.manage"), // setSourceCredentials
-            rule("GET", "/v1/triggers/*/tuning-log", null), // listTuningLog
+            rule("GET", "/v1/triggers/*/tuning-log", "data.read"), // listTuningLog
             rule("POST", "/v1/users/*/resend-invite", "users.manage"), // resendUserInvite
             rule("GET", "/v1/analytics/findings/*", "intel.read"), // getFinding
             rule("PATCH", "/v1/analytics/findings/*", null), // updateFinding
@@ -579,7 +579,7 @@ final class AccessPermissions {
             rule("GET", "/v1/social/comparisons/*", "intel.read"), // getSocialComparison
             rule("PATCH", "/v1/workspaces/*/context", null), // patchWorkspaceContext
             rule("GET", "/v1/workspaces/*/summary", null), // getWorkspaceSummary
-            rule("GET", "/v1/alerts/*/escalation", null), // getAlertEscalation
+            rule("GET", "/v1/alerts/*/escalation", "data.read"), // getAlertEscalation
             rule("GET", "/v1/analytics/impacts/*", "intel.read"), // getProjectedImpact
             rule("POST", "/v1/chronicles/*/export", null), // exportChronicle
             rule("GET", "/v1/chronicles/*/frames", "intel.read"), // getChronicleFrames
@@ -602,7 +602,7 @@ final class AccessPermissions {
             rule("GET", "/v1/reports/*/rendition", null), // getReportRendition
             rule("GET", "/v1/reports/*/revisions", null), // listReportRevisions
             rule("GET", "/v1/social/narratives/*", "intel.read"), // getNarrative
-            rule("GET", "/v1/triggers/*/baseline", null), // getTriggerBaseline
+            rule("GET", "/v1/triggers/*/baseline", "data.read"), // getTriggerBaseline
             rule("GET", "/v1/watchlists/*/export", null), // exportWatchlist
             rule("POST", "/v1/watchlists/*/import", null), // importWatchlist
             rule("PUT", "/v1/workspaces/*/layout", null), // putWorkspaceLayout
@@ -641,7 +641,7 @@ final class AccessPermissions {
             rule("GET", "/v1/watchlists/*/items", null), // listWatchlistItems
             rule("POST", "/v1/watchlists/*/items", null), // addWatchlistItems
             rule("POST", "/v1/workspaces/*/share", null), // shareWorkspace
-            rule("PUT", "/v1/alerts/*/feedback", null), // setAlertFeedback
+            rule("PUT", "/v1/alerts/*/feedback", "self.alerts"), // setAlertFeedback
             rule("DELETE", "/v1/analysis/cycles/*", null), // deleteAnalysisCycle
             rule("GET", "/v1/analysis/cycles/*", "intel.read"), // getAnalysisCycle
             rule("PUT", "/v1/analysis/cycles/*", null), // updateAnalysisCycle
@@ -668,10 +668,10 @@ final class AccessPermissions {
             rule("POST", "/v1/reports/*/publish", null), // publishReport
             rule("POST", "/v1/reports/*/retract", null), // retractReport
             rule("GET", "/v1/sources/*/fetches", "collection.manage"), // listSourceFetches
-            rule("DELETE", "/v1/triggers/*/snooze", null), // unsnoozeTrigger
-            rule("POST", "/v1/triggers/*/snooze", null), // snoozeTrigger
+            rule("DELETE", "/v1/triggers/*/snooze", "self.alerts"), // unsnoozeTrigger
+            rule("POST", "/v1/triggers/*/snooze", "self.alerts"), // snoozeTrigger
             rule("POST", "/v1/users/*/unsuspend", "users.manage"), // unsuspendUser
-            rule("POST", "/v1/alerts/*/resolve", null), // resolveAlert
+            rule("POST", "/v1/alerts/*/resolve", "self.alerts"), // resolveAlert
             rule("GET", "/v1/briefings/*/runs", "intel.read"), // listBriefingRuns
             rule("GET", "/v1/cap/alerts/*.cap", "data.read"), // getCapForAlert
             rule("DELETE", "/v1/custom-sources/*", "collection.manage"), // deleteCustomSource
@@ -700,8 +700,8 @@ final class AccessPermissions {
             rule("POST", "/v1/sources/*/doctor", "collection.manage"), // runSourceDoctor
             rule("PUT", "/v1/sources/*/egress", "network.manage"), // assignSourceEgress
             rule("GET", "/v1/sources/*/health", null), // getSourceHealth
-            rule("DELETE", "/v1/alerts/*/snooze", null), // unsnoozeAlert
-            rule("POST", "/v1/alerts/*/snooze", null), // snoozeAlert
+            rule("DELETE", "/v1/alerts/*/snooze", "self.alerts"), // unsnoozeAlert
+            rule("POST", "/v1/alerts/*/snooze", "self.alerts"), // snoozeAlert
             rule("GET", "/v1/analysis/runs/*", null), // getCycleRun
             rule("PATCH", "/v1/analyst/notes/*", null), // updateAnalystNote
             rule("DELETE", "/v1/auth/sessions/*", null), // revokeSession
@@ -725,9 +725,9 @@ final class AccessPermissions {
             rule("POST", "/v1/sources/*/probe", "collection.manage"), // probeSource
             rule("GET", "/v1/sources/*/usage", null), // getSourceUsage
             rule("POST", "/v1/tags/*/unassign", null), // unassignTag
-            rule("DELETE", "/v1/triggers/*/mute", null), // unmuteTrigger
-            rule("POST", "/v1/triggers/*/mute", null), // muteTrigger
-            rule("POST", "/v1/triggers/*/test", null), // testTrigger
+            rule("DELETE", "/v1/triggers/*/mute", "self.alerts"), // unmuteTrigger
+            rule("POST", "/v1/triggers/*/mute", "self.alerts"), // muteTrigger
+            rule("POST", "/v1/triggers/*/test", "self.alerts"), // testTrigger
             rule("POST", "/v1/users/*/suspend", "users.manage"), // suspendUser
             rule("GET", "/v1/views/*/records", null), // getViewRecords
             rule("GET", "/v1/analyst/runs/*", null), // getAnalystRun
@@ -771,7 +771,7 @@ final class AccessPermissions {
             rule("GET", "/v1/users/*/quota", "users.manage"), // getUserQuota
             rule("PUT", "/v1/users/*/quota", "users.manage"), // updateUserQuota
             rule("POST", "/v1/users/*/roles", "users.manage"), // setUserRoles
-            rule("POST", "/v1/alerts/*/ack", null), // acknowledgeAlert
+            rule("POST", "/v1/alerts/*/ack", "self.alerts"), // acknowledgeAlert
             rule("DELETE", "/v1/base-rates/*", null), // deleteBaseRate
             rule("GET", "/v1/base-rates/*", "intel.read"), // getBaseRate
             rule("DELETE", "/v1/chronicles/*", null), // deleteChronicle
@@ -819,9 +819,9 @@ final class AccessPermissions {
             rule("GET", "/v1/entities/*", "data.read"), // getEntity
             rule("GET", "/v1/k/*/report", null), // openReportShareLink
             rule("GET", "/v1/products/*", "data.read"), // getProduct
-            rule("DELETE", "/v1/triggers/*", null), // deleteTrigger
-            rule("GET", "/v1/triggers/*", null), // getTrigger
-            rule("PUT", "/v1/triggers/*", null), // updateTrigger
+            rule("DELETE", "/v1/triggers/*", "self.alerts"), // deleteTrigger
+            rule("GET", "/v1/triggers/*", "data.read"), // getTrigger
+            rule("PUT", "/v1/triggers/*", "self.alerts"), // updateTrigger
             rule("GET", "/v1/actions/*", null), // getActionConfirm
             rule("POST", "/v1/actions/*", null), // executeAction
             rule("DELETE", "/v1/exports/*", "data.export"), // deleteExport
@@ -880,12 +880,12 @@ final class AccessPermissions {
             rule("POST", "/v1/external/sources/*/snapshots/*/allow", "collection.manage"), // allowExternalSnapshot
             rule("GET", "/v1/products/*/fields/*.velocity-json", "data.read"), // getProductFieldVelocityJson
             rule("POST", "/v1/custom-sources/*/devices/*/purge", "collection.manage"), // purgeDevice
-            rule("POST", "/v1/triggers/*/suggestions/*/dismiss", null), // dismissTuningSuggestion
+            rule("POST", "/v1/triggers/*/suggestions/*/dismiss", "self.alerts"), // dismissTuningSuggestion
             rule("PATCH", "/v1/hypotheses/sets/*/assumptions/*", null), // updateKeyAssumption
-            rule("POST", "/v1/triggers/*/suggestions/*/apply", null), // applyTuningSuggestion
+            rule("POST", "/v1/triggers/*/suggestions/*/apply", "self.alerts"), // applyTuningSuggestion
             rule("GET", "/v1/ogc/collections/*/map/tiles/*", "data.read"), // ogcCollectionTileset
             rule("DELETE", "/v1/hypotheses/sets/*/evidence/*", null), // removeAchEvidence
-            rule("POST", "/v1/triggers/*/tuning-log/*/undo", null), // undoTuning
+            rule("POST", "/v1/triggers/*/tuning-log/*/undo", "self.alerts"), // undoTuning
             rule("DELETE", "/v1/custom-sources/*/devices/*", "collection.manage"), // deleteIngestDevice
             rule("GET", "/v1/products/*/fields/*.png-uv", "data.read"), // getProductFieldPngUv
             rule("GET", "/v1/ogc/collections/*/items/*", "data.read"), // ogcItem

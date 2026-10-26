@@ -225,6 +225,13 @@ public class TriggerRuleEntity {
     @Column(name = "escalation_policy_id")
     private UUID escalationPolicyId;
 
+    /**
+     * The principal of the user who owns the rule (prompt R2-008), or null for a shared rule an admin manages. Its
+     * alerts are stamped with it and delivered to that user's channels.
+     */
+    @Column(name = "owner_principal_id", length = 64)
+    private String ownerPrincipalId;
+
     /** Matches the storm cap dropped. */
     @Column(name = "suppressed_count", nullable = false, columnDefinition = "bigint default 0")
     private long suppressedCount;
@@ -696,6 +703,16 @@ public class TriggerRuleEntity {
     /** Sets the escalation policy. */
     public void setEscalationPolicyId(UUID escalationPolicyId) {
         this.escalationPolicyId = escalationPolicyId;
+    }
+
+    /** The owning user's principal (prompt R2-008), or null for a shared rule. */
+    public String getOwnerPrincipalId() {
+        return ownerPrincipalId;
+    }
+
+    /** Sets the owning user's principal; null makes the rule shared. */
+    public void setOwnerPrincipalId(String ownerPrincipalId) {
+        this.ownerPrincipalId = ownerPrincipalId;
     }
 
     /** The rule type (prompt 100): {@code record}, {@code count}, {@code absence} or {@code anomaly}. */

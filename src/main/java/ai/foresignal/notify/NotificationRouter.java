@@ -62,6 +62,9 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code publicBaseUrl}, default {@value #DEFAULT_BASE_URL}. The stored default text uses the server
  * timezone; the worker re-renders fired alerts with each channel's templates and timezone.
  *
+ * <p>Prompt R2-008: an alert of a user-owned rule is delivered only to that user's channels
+ * ({@link NotificationService#publishOwned}); a shared rule's alerts go to the instance channels as before.
+ *
  * <p>A bus gap (the listener's queue overflowed) loses those events for notification purposes; it
  * is logged, and the alerts stay visible in the API and the alert stream.
  */
@@ -189,7 +192,9 @@ public class NotificationRouter implements AlertListener {
                 || alert.tags().contains(ai.foresignal.impact.ImpactRules.ORIGIN_TAG);
         java.util.function.Predicate<ai.foresignal.notify.NotificationChannel> filter = muted ? c -> false
                 : indicatorWatch ? c -> c.ruleIds() != null && c.ruleIds().contains(alert.ruleId()) : null;
-        NotificationMessage persisted = service.publish(message, filter);
+        // R2-008: a user's rule delivers to that user's channels only; a shared rule to the instance channels.
+        NotificationMessage persisted = alert.ownerPrincipalId() == null ? service.publish(message, filter)
+                : service.publishOwned(message, alert.ownerPrincipalId(), filter);
         if (!muted && alertMaps != null) {
             // Prompt 055: start the alert's map now, concurrently with the enrichment wait.
             alertMaps.prepare(alert, persisted);
@@ -391,6 +396,8 @@ public class NotificationRouter implements AlertListener {
         data.put("resolvedAt", a.resolvedAt() == null ? null : a.resolvedAt().toString());
         data.put("resolvedBy", a.resolvedBy());
         data.put("snoozedUntil", a.snoozedUntil() == null ? null : a.snoozedUntil().toString());
+        // R2-008: who sees the notification on the inbox and the topics (null for a shared rule).
+        data.put("ownerPrincipalId", a.ownerPrincipalId());
         data.put("enrich", a.ruleId() != null && rules.findById(a.ruleId()).map(r -> r.isEnrich()).orElse(false));
         if (a.summary() != null) {
             data.put("summary", a.summary());
