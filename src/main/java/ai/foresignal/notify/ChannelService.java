@@ -92,8 +92,15 @@ public class ChannelService {
      *
      * @param channel the channel
      * @param stats its statistics
+     * @param ownerPrincipalId the owning user's principal, or null for a global channel (prompt R2-009)
      */
-    public record View(NotificationChannel channel, Stats stats) {}
+    public record View(NotificationChannel channel, Stats stats, String ownerPrincipalId) {
+
+        /** A global channel's view (the shape before prompt R2-009). */
+        public View(NotificationChannel channel, Stats stats) {
+            this(channel, stats, null);
+        }
+    }
 
     /** Every type, ordered by id. */
     public List<ChannelType> types() {
@@ -103,11 +110,24 @@ public class ChannelService {
     /** Every channel, oldest first. */
     @Transactional(readOnly = true)
     public List<View> list() {
-        List<NotificationChannelEntity> all = channels.findAllByOrderByCreatedAtAscIdAsc();
+        return list(ChannelScope.MACHINE);
+    }
+
+    /**
+     * The channels {@code scope} may see, oldest first (prompt R2-009): a user's own and the global ones, or every
+     * channel for an admin or an API token.
+     *
+     * @param scope the caller's channel scope
+     * @return the channels with their statistics
+     */
+    @Transactional(readOnly = true)
+    public List<View> list(ChannelScope scope) {
+        List<NotificationChannelEntity> all = channels.findAllByOrderByCreatedAtAscIdAsc().stream()
+                .filter(e -> scope.sees(e.getOwnerPrincipalId())).toList();
         Map<UUID, Stats> stats = stats(all.stream().map(NotificationChannelEntity::getId).toList());
         List<View> out = new ArrayList<>();
         for (NotificationChannelEntity e : all) {
-            out.add(new View(view(e), stats.getOrDefault(e.getId(), new Stats(null, 0))));
+            out.add(new View(view(e), stats.getOrDefault(e.getId(), new Stats(null, 0)), e.getOwnerPrincipalId()));
         }
         return out;
     }
@@ -116,7 +136,7 @@ public class ChannelService {
     @Transactional(readOnly = true)
     public View get(UUID id) {
         NotificationChannelEntity e = load(id);
-        return new View(view(e), stats(List.of(id)).getOrDefault(id, new Stats(null, 0)));
+        return new View(view(e), stats(List.of(id)).getOrDefault(id, new Stats(null, 0)), e.getOwnerPrincipalId());
     }
 
     /**
@@ -140,17 +160,30 @@ public class ChannelService {
         return true;
     }
 
-    /** Creates a channel from a {@code ChannelInput} body. */
+    /** Creates a global channel from a {@code ChannelInput} body. */
     @Transactional
     public View create(JsonNode body) {
+        return create(body, null);
+    }
+
+    /**
+     * Creates a channel from a {@code ChannelInput} body, owned by {@code ownerPrincipalId} (prompt R2-009).
+     *
+     * @param body the channel
+     * @param ownerPrincipalId the owning user's principal, or null for a global channel
+     * @return the channel
+     */
+    @Transactional
+    public View create(JsonNode body, String ownerPrincipalId) {
         ChannelInput input = parser.parse(body, null);
         NotificationChannelEntity e = new NotificationChannelEntity(UUID.randomUUID(), input.name(), input.type());
         Instant now = clock.instant();
         e.setCreatedAt(now);
         apply(e, input, Map.of(), now);
+        e.setOwnerPrincipalId(ownerPrincipalId);
         channels.save(e);
         changed(e.getId(), e.getType(), false);
-        return new View(view(e), new Stats(null, 0));
+        return new View(view(e), new Stats(null, 0), ownerPrincipalId);
     }
 
     /** The event of every personal notification (prompt 130); instance fan-out never sends it. */

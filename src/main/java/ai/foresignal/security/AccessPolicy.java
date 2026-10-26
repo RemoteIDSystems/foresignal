@@ -188,6 +188,28 @@ public class AccessPolicy {
      * @return the permission key, or empty when the operation carries none (a session is then gated on its scope)
      */
     public Optional<String> permissionFor(HttpMethod method, String path) {
+        return permissionRule(method, path).map(AccessPermissions.PermissionRule::permission);
+    }
+
+    /**
+     * Every permission that satisfies {@code method} on {@code path} for a signed-in user: the operation's
+     * {@code x-foresignal-permission} first, then its {@code x-foresignal-permission-alternatives} (R2-009). Holding
+     * any one is enough.
+     *
+     * @param method the request method
+     * @param path the request path
+     * @return the keys, empty when the operation carries no permission
+     */
+    public List<String> acceptedPermissions(HttpMethod method, String path) {
+        return permissionRule(method, path).filter(rule -> rule.permission() != null).map(rule -> {
+            List<String> keys = new java.util.ArrayList<>();
+            keys.add(rule.permission());
+            keys.addAll(rule.alternatives());
+            return List.copyOf(keys);
+        }).orElse(List.of());
+    }
+
+    private Optional<AccessPermissions.PermissionRule> permissionRule(HttpMethod method, String path) {
         String key = HttpMethod.HEAD.equals(method) ? HttpMethod.GET.name() : method.name();
         List<AccessPermissions.PermissionRule> candidates = permissionRules.get(key);
         if (candidates == null) {
@@ -196,7 +218,7 @@ public class AccessPolicy {
         String normalized = normalize(path);
         for (AccessPermissions.PermissionRule rule : candidates) {
             if (matcher.match(rule.pattern(), normalized)) {
-                return Optional.ofNullable(rule.permission());
+                return rule.permission() == null ? Optional.empty() : Optional.of(rule);
             }
         }
         return Optional.empty();

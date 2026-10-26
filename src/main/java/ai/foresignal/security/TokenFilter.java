@@ -545,9 +545,11 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
      */
     private Optional<ProblemDetail> checkToken(Scope required, AccessRequirement requirement, CurrentToken current,
             HttpMethod method, String path, AuthenticatedSession session) {
-        Optional<String> permission = session == null ? Optional.empty() : policy.permissionFor(method, path);
+        List<String> accepted = session == null ? List.of() : policy.acceptedPermissions(method, path);
+        Optional<String> permission = accepted.stream().findFirst();
         if (permission.isPresent()) {
-            if (!session.permissions().keys().contains(permission.get())) {
+            // R2-009: an operation with alternatives (self.channels or channels.global) takes any one of them.
+            if (accepted.stream().noneMatch(session.permissions().keys()::contains)) {
                 ProblemDetail problem = problems.problem(HttpStatus.FORBIDDEN, ErrorCodes.PERMISSION_DENIED,
                         "This operation needs the " + permission.get() + " permission, which none of your roles"
                                 + " grants.");

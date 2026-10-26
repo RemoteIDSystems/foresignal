@@ -12,4 +12,12 @@ public interface NotificationChannelRepository extends JpaRepository<Notificatio
 
     /** Every channel, oldest first. */
     List<NotificationChannelEntity> findAllByOrderByCreatedAtAscIdAsc();
+
+    /**
+     * The channels a user owns (prompt R2-009).
+     *
+     * @param ownerPrincipalId the user's principal
+     * @return the channels
+     */
+    List<NotificationChannelEntity> findByOwnerPrincipalId(String ownerPrincipalId);
 }

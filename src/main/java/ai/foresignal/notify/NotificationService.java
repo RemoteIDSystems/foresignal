@@ -112,7 +112,9 @@ public class NotificationService {
     /**
      * Persists an alert notification of a user-owned rule (prompt R2-008) and enqueues it for every enabled channel
      * that user owns and that accepts it ({@link NotificationChannel#acceptsOwned}) and passes {@code extraFilter}.
-     * Instance channels never receive it: an owned rule's audience is its owner.
+     * Prompt R2-009 adds the global channels an operator selected for the rule: a global channel receives a user's
+     * alert only when its {@code ruleIds} name the rule (and it otherwise accepts it). No other user's channel and no
+     * global channel without the rule in its {@code ruleIds} ever receives it.
      *
      * @param message the notification
      * @param ownerPrincipalId the rule owner's principal
@@ -128,11 +130,15 @@ public class NotificationService {
             NotificationMessage persisted = writer.persist(fill(message, now));
             NotificationSettings pause = pause();
             for (NotificationChannelEntity entity : channels.findByEnabledTrue()) {
-                if (types.find(entity.getType()).isEmpty() || !ownerPrincipalId.equals(entity.getOwnerPrincipalId())) {
+                if (types.find(entity.getType()).isEmpty()) {
                     continue;
                 }
                 NotificationChannel channel = NotificationChannel.of(entity, List.of());
-                if (channel.acceptsOwned(persisted) && filter.test(channel)) {
+                boolean own = ownerPrincipalId.equals(entity.getOwnerPrincipalId());
+                boolean selectedGlobal = entity.getOwnerPrincipalId() == null && channel.ruleIds() != null
+                        && persisted.ruleId() != null && channel.ruleIds().contains(persisted.ruleId());
+                boolean accepted = own ? channel.acceptsOwned(persisted) : selectedGlobal && channel.accepts(persisted);
+                if (accepted && filter.test(channel)) {
                     enqueueSend(entity, channel, persisted, pause, now);
                 }
             }

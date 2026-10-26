@@ -1,5 +1,9 @@
 package ai.foresignal.api;
 
+import jakarta.servlet.http.HttpServletRequest;
+import ai.foresignal.notify.ChannelScope;
+import ai.foresignal.api.error.ValidationException;
+
 import ai.foresignal.api.error.ConflictException;
 import ai.foresignal.api.error.ErrorCodes;
 import ai.foresignal.api.error.NotFoundException;
@@ -44,6 +48,12 @@ import tools.jackson.databind.JsonNode;
  * {@code getChannelInteractiveStatus} (prompt 061) and {@code getChannelAirtime} (prompt 084). Every
  * operation needs {@code admin}
  * ({@code /v1/channels/**} in {@code AccessPolicy}); responses never include secret values.
+ *
+ * <p>Prompt R2-009: a signed-in user reaches these with {@code self.channels} (their own channels) or
+ * {@code channels.global} (the instance-wide ones). A user sees their own channels and the global ones, and manages
+ * their own; global channels are managed with {@code channels.global}; a session holding {@code users.manage} and
+ * every API token see and manage all ({@link ChannelScope}). Another user's channel is {@code 404}, and a global one a
+ * user may not change is {@code 403 PERMISSION_DENIED} ({@code ChannelOwnershipInterceptor}).
  */
 @RestController
 @Tag(name = "Channels")
@@ -87,15 +97,21 @@ public class ChannelsController {
     /** {@code listChannels}: oldest first. */
     @GetMapping
     @Operation(operationId = "listChannels", tags = "Channels")
-    public List<Map<String, Object>> listChannels() {
-        return channels.list().stream().map(mapper::channel).toList();
+    public List<Map<String, Object>> listChannels(HttpServletRequest request) {
+        return channels.list(ChannelScope.of(request)).stream().map(mapper::channel).toList();
     }
 
     /** {@code createChannel}: 201 with {@code Location}. */
     @PostMapping
     @Operation(operationId = "createChannel", tags = "Channels")
-    public ResponseEntity<Map<String, Object>> createChannel(@RequestBody JsonNode body) {
-        ChannelService.View view = channels.create(body);
+    public ResponseEntity<Map<String, Object>> createChannel(@RequestBody JsonNode body, HttpServletRequest request) {
+        JsonNode global = body == null ? null : body.get("global");
+        if (global != null && !global.isNull() && !global.isBoolean()) {
+            throw ValidationException.forField("global", "must be true or false");
+        }
+        // R2-009: personal for a user holding self.channels, global for an operator or an API token.
+        String owner = ChannelScope.of(request).ownerForNew(global == null || global.isNull() ? null : global.asBoolean());
+        ChannelService.View view = channels.create(body, owner);
         return ResponseEntity.created(URI.create("/v1/channels/" + view.channel().id())).body(mapper.channel(view));
     }
 

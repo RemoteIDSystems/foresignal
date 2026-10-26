@@ -76,6 +76,37 @@ class AccessPolicySyncTest {
     }
 
     @Test
+    @DisplayName("every route accepts exactly its permission and its x-foresignal-permission-alternatives (R2-009)")
+    void everyRouteAcceptsItsAlternatives() {
+        List<String> problems = new ArrayList<>();
+        int withAlternatives = 0;
+        for (SpecOperation op : OpenApiSpec.routes()) {
+            JsonNode node = op.node().get("x-foresignal-permission");
+            List<String> expected = new ArrayList<>();
+            if (node != null) {
+                expected.add(node.asString());
+            }
+            JsonNode alternatives = op.node().get("x-foresignal-permission-alternatives");
+            if (alternatives != null) {
+                assertThat(node).as(op.label() + " has alternatives only next to a permission").isNotNull();
+                withAlternatives++;
+                alternatives.forEach(key -> {
+                    assertThat(Permissions.byKey(key.asString()))
+                            .as(op.label() + " names alternatives in the catalog").isPresent();
+                    expected.add(key.asString());
+                });
+            }
+            String path = op.path().replaceAll("\\{[^/}]+}", "sample");
+            List<String> actual = policy.acceptedPermissions(HttpMethod.valueOf(op.method().toUpperCase()), path);
+            if (!expected.equals(actual)) {
+                problems.add(op.label() + ": spec " + expected + ", AccessPolicy " + actual);
+            }
+        }
+        assertThat(withAlternatives).isPositive();
+        assertThat(problems).isEmpty();
+    }
+
+    @Test
     @DisplayName("the generated permission table has one row per route")
     void permissionTableCoversEveryRoute() {
         assertThat(AccessPermissions.RULES).hasSize(OpenApiSpec.routes().size());

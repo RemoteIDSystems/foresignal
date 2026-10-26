@@ -61,6 +61,9 @@ public class ChannelMapper {
         out.put("deferWhileActiveSeconds", c.deferWhileActiveSeconds());
         out.put("acceptExercise", c.acceptExercise());
         out.put("language", c.language());
+        // R2-009: a personal channel names its owner; a global one has none.
+        out.put("ownerPrincipalId", view.ownerPrincipalId());
+        out.put("global", view.ownerPrincipalId() == null);
         List<Map<String, Object>> warnings = warnings(c);
         if (!warnings.isEmpty()) {
             out.put("warnings", warnings);

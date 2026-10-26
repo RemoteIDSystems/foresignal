@@ -4,7 +4,7 @@
     "title": "Foresignal API",
     "version": "2.0.0",
     "summary": "Headless intelligence broker: ingest, version and re-serve public telemetry.",
-    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...`, `/v1/k/{key}/tiles/...`, `/v1/k/{key}/map/...` and `/v1/k/{key}/changes/stream` for map clients (MapLibre, maplibre_gl, Cesium, `EventSource`), share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. A feed key reaches only `GET`/`HEAD` of `read` operations that are not always-authenticated, under the key's path prefixes, with the key's mandatory read restriction (unknown key 401 INVALID_FEED_KEY, expired or revoked 410 FEED_KEY_GONE, another method 405, a path outside the prefixes 403 RESTRICTED). A tile key reaches the same operations under its prefixes (a subset of `/v1/products/`, `/v1/styles`, `/v1/media/`, `/v1/tiles/`, `/v1/maps/static`, `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream`, `/v1/map/`), with its optional restriction and never private sources (unknown, expired or revoked key 401 INVALID_TILE_KEY, another method 405, a path outside the prefixes 403 INSUFFICIENT_SCOPE). Responses carry `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`; `Cache-Control` defaults to `private`, and a tile-key response takes the canonical path's own rule (`public` only while `openReads` covers it). Logs show only the key's first eight characters; the key is never echoed except by `createFeedKey` and `createTileKey`, and in the follow-up URLs of documents requested through it (058: the MapLibre style's sources and sprite, KML NetworkLink and icon hrefs, a feed's own `rel=\"self\"` / `feed_url`), which are then always `Cache-Control: private`. CORS exposes `Foresignal-Frame-Time`, `Foresignal-Image-Bounds`, `Foresignal-Frame-Expired`, `Retry-After`, `Link` and `ETag`, allows `Authorization`, `If-None-Match` and `Foresignal-Prefetch`, and caches preflights for a day; `?prefetch=1` marks a render prefetch without the preflight the header causes.\n\n**Restrictions and limits (035).** Restricted tokens, feed keys and the anonymous profile (`security.anonymous`, applied to tokenless reads while `openReads` is on) see only records and alerts inside their `ReadRestriction` on every read path (records, history, versions, changes, kinds, tiles, streams, search, alerts, the inbox, the digest, briefings, MCP tools and Ask): request filters are intersected with the restriction, and a single record or alert outside it is 404. Every client is rate-limited per class (`RateLimitSettings`); over a limit, or after repeated failed credentials from one address, the answer is 429 RATE_LIMITED with `Retry-After`. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Permissions (R2-004).** An operation a signed-in user needs a permission for carries `x-foresignal-permission`, a key of the `GET /v1/permissions` catalog (`users.manage`, `data.read`, `audit.read`…). A session bearer (`fss_`) is gated by that permission alone, in place of the scope: a user whose roles lack it gets 403 PERMISSION_DENIED with `requiredPermission`. An operation without one is gated on the session's derived scope. API tokens are gated by `x-foresignal-scope` only, as before: machines are not permission-scoped, so an `admin` token satisfies every permission and a lower token gets 403 INSUFFICIENT_SCOPE.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).",
+    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...`, `/v1/k/{key}/tiles/...`, `/v1/k/{key}/map/...` and `/v1/k/{key}/changes/stream` for map clients (MapLibre, maplibre_gl, Cesium, `EventSource`), share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. A feed key reaches only `GET`/`HEAD` of `read` operations that are not always-authenticated, under the key's path prefixes, with the key's mandatory read restriction (unknown key 401 INVALID_FEED_KEY, expired or revoked 410 FEED_KEY_GONE, another method 405, a path outside the prefixes 403 RESTRICTED). A tile key reaches the same operations under its prefixes (a subset of `/v1/products/`, `/v1/styles`, `/v1/media/`, `/v1/tiles/`, `/v1/maps/static`, `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream`, `/v1/map/`), with its optional restriction and never private sources (unknown, expired or revoked key 401 INVALID_TILE_KEY, another method 405, a path outside the prefixes 403 INSUFFICIENT_SCOPE). Responses carry `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`; `Cache-Control` defaults to `private`, and a tile-key response takes the canonical path's own rule (`public` only while `openReads` covers it). Logs show only the key's first eight characters; the key is never echoed except by `createFeedKey` and `createTileKey`, and in the follow-up URLs of documents requested through it (058: the MapLibre style's sources and sprite, KML NetworkLink and icon hrefs, a feed's own `rel=\"self\"` / `feed_url`), which are then always `Cache-Control: private`. CORS exposes `Foresignal-Frame-Time`, `Foresignal-Image-Bounds`, `Foresignal-Frame-Expired`, `Retry-After`, `Link` and `ETag`, allows `Authorization`, `If-None-Match` and `Foresignal-Prefetch`, and caches preflights for a day; `?prefetch=1` marks a render prefetch without the preflight the header causes.\n\n**Restrictions and limits (035).** Restricted tokens, feed keys and the anonymous profile (`security.anonymous`, applied to tokenless reads while `openReads` is on) see only records and alerts inside their `ReadRestriction` on every read path (records, history, versions, changes, kinds, tiles, streams, search, alerts, the inbox, the digest, briefings, MCP tools and Ask): request filters are intersected with the restriction, and a single record or alert outside it is 404. Every client is rate-limited per class (`RateLimitSettings`); over a limit, or after repeated failed credentials from one address, the answer is 429 RATE_LIMITED with `Retry-After`. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Permissions (R2-004).** An operation a signed-in user needs a permission for carries `x-foresignal-permission`, a key of the `GET /v1/permissions` catalog (`users.manage`, `data.read`, `audit.read`…). A session bearer (`fss_`) is gated by that permission alone, in place of the scope: a user whose roles lack it gets 403 PERMISSION_DENIED with `requiredPermission`. An operation may list `x-foresignal-permission-alternatives`, further keys any one of which satisfies it as well (R2-009: the channel operations take `self.channels` or `channels.global`). An operation without one is gated on the session's derived scope. API tokens are gated by `x-foresignal-scope` only, as before: machines are not permission-scoped, so an `admin` token satisfies every permission and a lower token gets 403 INSUFFICIENT_SCOPE.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).",
     "license": {
       "name": "MIT",
       "identifier": "MIT"
@@ -7981,7 +7981,10 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-permission": "channels.global",
+        "x-foresignal-permission": "self.channels",
+        "x-foresignal-permission-alternatives": [
+          "channels.global"
+        ],
         "security": [
           {
             "bearerToken": []
@@ -8001,7 +8004,7 @@
         ],
         "operationId": "listChannels",
         "summary": "List notification channels",
-        "description": "Secrets are never returned.\n\n**Scope:** `admin`.\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.",
+        "description": "Secrets are never returned.\n\n**Scope:** `admin`.\n\n**v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in user reaches these operations with `self.channels` or `channels.global`: they see their own channels and the global ones, manage their own, and manage global channels only with `channels.global` (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all channels. On create, `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone else a global one; an API token always creates global channels. A user's alerts go to their own channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive `ownerPrincipalId` and `global`.",
         "responses": {
           "200": {
             "description": "Channels",
@@ -8038,7 +8041,10 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-permission": "channels.global",
+        "x-foresignal-permission": "self.channels",
+        "x-foresignal-permission-alternatives": [
+          "channels.global"
+        ],
         "security": [
           {
             "bearerToken": []
@@ -8053,7 +8059,7 @@
         ],
         "operationId": "createChannel",
         "summary": "Create a notification channel",
-        "description": "Create a notification channel\n\n**Scope:** `admin`.\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.",
+        "description": "Create a notification channel\n\n**Scope:** `admin`.\n\n**v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in user reaches these operations with `self.channels` or `channels.global`: they see their own channels and the global ones, manage their own, and manage global channels only with `channels.global` (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all channels. On create, `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone else a global one; an API token always creates global channels. A user's alerts go to their own channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive `ownerPrincipalId` and `global`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -8116,7 +8122,10 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-permission": "channels.global",
+        "x-foresignal-permission": "self.channels",
+        "x-foresignal-permission-alternatives": [
+          "channels.global"
+        ],
         "security": [
           {
             "bearerToken": []
@@ -8149,7 +8158,7 @@
         ],
         "operationId": "getChannel",
         "summary": "Get a channel",
-        "description": "Get a channel\n\n**Scope:** `admin`.\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.",
+        "description": "Get a channel\n\n**Scope:** `admin`.\n\n**v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in user reaches these operations with `self.channels` or `channels.global`: they see their own channels and the global ones, manage their own, and manage global channels only with `channels.global` (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all channels. On create, `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone else a global one; an API token always creates global channels. A user's alerts go to their own channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive `ownerPrincipalId` and `global`.",
         "responses": {
           "200": {
             "description": "Channel",
@@ -8193,7 +8202,10 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-permission": "channels.global",
+        "x-foresignal-permission": "self.channels",
+        "x-foresignal-permission-alternatives": [
+          "channels.global"
+        ],
         "security": [
           {
             "bearerToken": []
@@ -8208,7 +8220,7 @@
         ],
         "operationId": "updateChannel",
         "summary": "Replace a channel",
-        "description": "Omit `secrets` to keep existing secrets; a provided `secrets` object replaces them entirely.\n\n**Scope:** `admin`.\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.",
+        "description": "Omit `secrets` to keep existing secrets; a provided `secrets` object replaces them entirely.\n\n**Scope:** `admin`.\n\n**v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in user reaches these operations with `self.channels` or `channels.global`: they see their own channels and the global ones, manage their own, and manage global channels only with `channels.global` (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all channels. On create, `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone else a global one; an API token always creates global channels. A user's alerts go to their own channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive `ownerPrincipalId` and `global`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -8272,7 +8284,10 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-permission": "channels.global",
+        "x-foresignal-permission": "self.channels",
+        "x-foresignal-permission-alternatives": [
+          "channels.global"
+        ],
         "security": [
           {
             "bearerToken": []
@@ -8291,7 +8306,7 @@
         ],
         "operationId": "deleteChannel",
         "summary": "Delete a channel",
-        "description": "Pending deliveries are marked failed (\"channel deleted\").\n\n**Scope:** `admin`.\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.",
+        "description": "Pending deliveries are marked failed (\"channel deleted\").\n\n**Scope:** `admin`.\n\n**v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in user reaches these operations with `self.channels` or `channels.global`: they see their own channels and the global ones, manage their own, and manage global channels only with `channels.global` (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all channels. On create, `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone else a global one; an API token always creates global channels. A user's alerts go to their own channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive `ownerPrincipalId` and `global`.",
         "responses": {
           "204": {
             "description": "Deleted"
@@ -8328,7 +8343,10 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-permission": "channels.global",
+        "x-foresignal-permission": "self.channels",
+        "x-foresignal-permission-alternatives": [
+          "channels.global"
+        ],
         "security": [
           {
             "bearerToken": []
@@ -8401,7 +8419,10 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-permission": "channels.global",
+        "x-foresignal-permission": "self.channels",
+        "x-foresignal-permission-alternatives": [
+          "channels.global"
+        ],
         "security": [
           {
             "bearerToken": []
@@ -8526,7 +8547,10 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-permission": "channels.global",
+        "x-foresignal-permission": "self.channels",
+        "x-foresignal-permission-alternatives": [
+          "channels.global"
+        ],
         "security": [
           {
             "bearerToken": []
@@ -19697,6 +19721,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "channels.global",
         "x-foresignal-prompt": "033",
         "x-foresignal-status": "implemented",
         "security": [
@@ -19783,6 +19808,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "channels.global",
         "x-foresignal-prompt": "033",
         "x-foresignal-status": "implemented",
         "security": [
@@ -19873,6 +19899,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "channels.global",
         "x-foresignal-prompt": "033",
         "x-foresignal-status": "implemented",
         "security": [
@@ -19969,6 +19996,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "channels.global",
         "x-foresignal-prompt": "033",
         "x-foresignal-status": "implemented",
         "security": [
@@ -20048,6 +20076,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "channels.global",
         "x-foresignal-prompt": "033",
         "x-foresignal-status": "implemented",
         "security": [
@@ -34867,7 +34896,10 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-permission": "channels.global",
+        "x-foresignal-permission": "self.channels",
+        "x-foresignal-permission-alternatives": [
+          "channels.global"
+        ],
         "x-foresignal-prompt": "060",
         "x-foresignal-status": "implemented",
         "security": [
@@ -34940,7 +34972,10 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-permission": "channels.global",
+        "x-foresignal-permission": "self.channels",
+        "x-foresignal-permission-alternatives": [
+          "channels.global"
+        ],
         "x-foresignal-prompt": "061",
         "x-foresignal-status": "implemented",
         "security": [
@@ -35013,7 +35048,10 @@
           }
         },
         "x-foresignal-scope": "admin",
-        "x-foresignal-permission": "channels.global",
+        "x-foresignal-permission": "self.channels",
+        "x-foresignal-permission-alternatives": [
+          "channels.global"
+        ],
         "x-foresignal-prompt": "084",
         "x-foresignal-status": "implemented",
         "security": [
@@ -104206,6 +104244,13 @@
               "null"
             ],
             "description": "BCP 47 language for notifications on this channel (141), stored canonicalized (`pt-br` → `pt-BR`); null uses `notify.defaultLanguage`. When the primary language or script differs from it, title and body are translated through the 026 chat role (budget `translate`, low effort), code spans, URLs and placeholders untouched, cached 24 h; after 8 s, or on any failure, the original is sent with the title prefixed `[untranslated]`."
+          },
+          "global": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "On create only (R2-009): true for a global channel (needs `channels.global`), false for a personal one (needs `self.channels`). Absent, a user holding `self.channels` gets a personal channel and anyone else a global one; an API token always creates global channels. Ignored on update."
           }
         },
         "required": [
@@ -104518,15 +104563,17 @@
             "description": "BCP 47; when it differs from `notify.defaultLanguage` (primary language or script) title and body are translated (026 chat role, budget `translate`), cached 24 h, the original with an `[untranslated]` title marker after 8 s or on failure (141)"
           },
           "ownerPrincipalId": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/Ulid"
-              },
-              {
-                "type": "null"
-              }
+            "type": [
+              "string",
+              "null"
             ],
-            "description": "Set for principal-owned channels created through notification preferences (130)"
+            "readOnly": true,
+            "description": "The principal of the user who owns this personal channel (R2-009); null for a global channel."
+          },
+          "global": {
+            "type": "boolean",
+            "readOnly": true,
+            "description": "True for a global (instance-wide) channel, managed with `channels.global` (R2-009)."
           }
         },
         "required": [

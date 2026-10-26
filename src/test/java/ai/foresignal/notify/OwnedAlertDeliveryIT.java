@@ -19,8 +19,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * Where an alert is delivered by its rule's owner (prompt R2-008): a user's alert to that user's channels only, a
- * shared rule's alert to the instance channels only. Deliveries are only enqueued; nothing is sent.
+ * Where an alert is delivered by its rule's owner (prompt R2-008): a user's alert to that user's channels (and, R2-009,
+ * to the global channels selected for the rule), a shared rule's alert to the global channels. Deliveries are only
+ * enqueued; nothing is sent.
  */
 @IntegrationTest
 @Import(NotifyTestConfig.class)
@@ -90,6 +91,21 @@ class OwnedAlertDeliveryIT {
         assertThat(fixture.deliveries(instance)).hasSize(1);
         assertThat(fixture.deliveries(alicesAlerts)).isEmpty();
         assertThat(fixture.deliveries(alicesPersonal)).isEmpty();
+        assertThat(fixture.deliveries(bobsAlerts)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("R2-009: a global channel an operator selected for the rule (ruleIds) also receives the user's alert")
+    void selectedGlobalChannel() {
+        UUID selected = fixture.channel(("{'name':'selected','type':'webhook','config':{'url':'http://127.0.0.1:9/s'},"
+                + "'ruleIds':['" + RULE + "']}"));
+        UUID otherRule = fixture.channel(("{'name':'other','type':'webhook','config':{'url':'http://127.0.0.1:9/o'},"
+                + "'ruleIds':['" + UUID.randomUUID() + "']}"));
+        router.fired(ownedBy(NotifyFixture.alert(4, RULE, "Mine", "warning", T), ALICE));
+        assertThat(fixture.deliveries(selected)).hasSize(1);
+        assertThat(fixture.deliveries(otherRule)).isEmpty();
+        assertThat(fixture.deliveries(instance)).as("a global channel without ruleIds takes shared alerts only")
+                .isEmpty();
         assertThat(fixture.deliveries(bobsAlerts)).isEmpty();
     }
 

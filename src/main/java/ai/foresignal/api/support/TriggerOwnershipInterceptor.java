@@ -87,7 +87,8 @@ public class TriggerOwnershipInterceptor implements HandlerInterceptor, WebMvcCo
         return Optional.of(UUID.fromString(m.group(1)));
     }
 
-    private static String path(HttpServletRequest request) {
+    /** The request path without the context path. */
+    static String path(HttpServletRequest request) {
         String uri = request.getRequestURI();
         String context = request.getContextPath();
         return context != null && !context.isEmpty() && uri.startsWith(context) ? uri.substring(context.length()) : uri;

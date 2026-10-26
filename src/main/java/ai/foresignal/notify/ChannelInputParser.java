@@ -59,7 +59,9 @@ public class ChannelInputParser {
     /** Top-level members of the body. */
     static final Set<String> FIELDS = Set.of("name", "type", "config", "secrets", "events", "ruleIds", "minSeverity",
             "titleTemplate", "bodyTemplate", "waitForEnrichmentSeconds", "enabled", "timezone", "quietHours",
-            "groupWindowSeconds", "backlogCap", "editInPlace", "deferWhileActiveSeconds", "acceptExercise", "language");
+            "groupWindowSeconds", "backlogCap", "editInPlace", "deferWhileActiveSeconds", "acceptExercise", "language",
+            // R2-009: read by the controller on create (personal or global); ignored on a replace.
+            "global");
 
     /** The longest grouping window, in seconds. */
     static final int MAX_GROUP_WINDOW = 3_600;

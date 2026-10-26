@@ -9,7 +9,7 @@ The dividing line: **collected data and the collector stay global; who may see a
 becomes per-user.** One instance, one database, one paced collector — many accounts, each with its
 own view, alerts, channels, LLM budget, saved views and preferences layered on top.
 
-## What exists today (verified 2026-10-26, after R2-008)
+## What exists today (verified 2026-10-26, after R2-009)
 
 Before Release 2, identity was **capability-scoped tokens only**, not accounts.
 
@@ -21,6 +21,7 @@ Before Release 2, identity was **capability-scoped tokens only**, not accounts.
 | Bootstrap admin | `security/AdminTokenService.java` | one rotatable break-glass admin token, hash-stored, printed once |
 | Global config | `store/SourceSettingsEntity.java`, `llm/LlmProviderEntity.java` | **no owner column** — settings are instance-wide |
 | Trigger rules (R2-008) | `store/TriggerRuleEntity.java`, `V16__trigger_rule_owner.sql` | `owner_principal_id` (null = shared); alerts copy it when they fire (§D) |
+| Notification channels (R2-009) | `store/NotificationChannelEntity.java` | `owner_principal_id` (prompt 130's column): set = personal, null = global (§D) |
 | Owner-scoped data | `workspace`, `shareable_object`, `relation`, `chronicle_*`, `principal` | already carries an owner (the 129/130 collaboration layer) |
 | **Identity model (R2-001)** | `security/user/*`, `V14__identity_model.sql` | `user`, `role`, `permission`, `user_role`, `role_permission`, `user_token`; catalog and built-in roles seeded; **no user row, no API change yet** |
 
@@ -217,7 +218,7 @@ token filter with `detail.via = session` and `detail.userId`.
 ## C2. Authorization (built: R2-004)
 
 **Every operation in `docs/OpenAPI.json` that a signed-in user needs a permission for carries
-`x-foresignal-permission`** (502 of the 900 operations). `scripts/generate-access-permissions.py` transcribes the
+`x-foresignal-permission`** (507 of the 900 operations). `scripts/generate-access-permissions.py` transcribes the
 contract into `security/AccessPermissions.java` — one row per operation, a null permission where it carries none, ordered
 literal-before-template — and `AccessPolicy.permissionFor(method, path)` reads it. The permission is a parallel lookup,
 not a field on `AccessRequirement.RequiresScope`: the scope requirement, and with it every API token's access, is exactly
@@ -233,7 +234,8 @@ what it was before R2-004.
 | `collector.settings` | 3 | `/v1/settings/collector*` |
 | `storage.manage` | 24 | archive, backups, resources, record and retention settings |
 | `network.manage` | 22 | egress, aggregators, peers |
-| `channels.global` | 11 | instance-wide channels |
+| `channels.global` | 5 (+11) | escalation policies; and, as the alternative, the 11 channel operations |
+| `self.channels` | 11 | every channel operation, with `channels.global` as `x-foresignal-permission-alternatives` (R2-009) |
 | `llm.shared.manage` | 12 | shared LLM providers and budgets |
 | `data.read` | 118 | record, map, tile, history, search, alert, trigger and reference reads |
 | `intel.read` | 112 | intelligence, situations, analysis, assessments, chronicles, analytics, briefings reads |
@@ -244,15 +246,22 @@ what it was before R2-004.
 
 Every admin-scoped operation carries a permission, so no admin-scoped operation is reachable by a session on its
 derived scope alone (an Operator, derived scope `admin`, cannot mint an admin API token: that is `users.manage`).
-`self.alerts` arrived on the trigger and alert operations with R2-008 (§D); `self.channels` arrives on the channel
-operations with R2-009; R2-013 completes data-access gating.
+`self.alerts` arrived on the trigger and alert operations with R2-008 and `self.channels` on the channel operations with
+R2-009 (§D); R2-013 completes data-access gating.
+
+**Alternatives (R2-009).** One operation can serve two permissions: the channel operations manage a user's own channels
+(`self.channels`) and the global ones (`channels.global`), and an Operator holds only the second while an Editor holds
+only the first. An operation may therefore carry `x-foresignal-permission-alternatives`, further keys any one of which
+satisfies it as well; the generator writes them into `AccessPermissions` and `AccessPolicy.acceptedPermissions` returns
+the permission followed by its alternatives. A refusal still names the operation's own `x-foresignal-permission` in
+`requiredPermission`. Which rows the caller may then touch is the service's decision (§D).
 
 **The enforcement rule (`TokenFilter.checkToken`).**
 
 | Caller | Operation with `x-foresignal-permission` | Operation without |
 |---|---|---|
 | API token (machine) | scope only: an `admin` token satisfies every permission; a lower token gets `403 INSUFFICIENT_SCOPE` with `requiredScope` | scope only, as before |
-| Session (user) | the permission **alone**: held ⇒ allowed, else `403 PERMISSION_DENIED` with `requiredPermission` | the derived scope (§C) |
+| Session (user) | the permission (or one of its alternatives) **alone**: held ⇒ allowed, else `403 PERMISSION_DENIED` with `requiredPermission` | the derived scope (§C) |
 
 Machines are not permission-scoped in v2.0, by design: a permission requirement maps to `admin` scope for tokens.
 For a session the permission **replaces** the scope check rather than adding to it. The prompt said "both"; with the
@@ -336,6 +345,30 @@ config): `GET/PUT /v1/me/sources` (`UserSourceView`, a list of `UserSourcePref`)
 - **User deletion** (`trigger/TriggerRuleReassigner`, audit name `triggerRules`). Reassigning moves the rules and their
   alerts to the target admin's principal (shared with no target); `reassign=false` deletes the rules and keeps their
   alerts. The engine reloads once the deletion commits.
+
+**Built (R2-009): per-user and global channels.**
+
+- **One column, no migration.** `notification_channel.owner_principal_id` (prompt 130's personal channels) now means
+  the owning user's principal for every channel a session creates; null means **global**, the instance-wide channels an
+  operator runs, which every channel before R2-009 was (prompt 130's personal notice channels aside). No `global`
+  flag was added: `Channel.global` and `Channel.ownerPrincipalId` are derived from the column. The table above says
+  `owner_user_id`; the existing column wins, as the prompt says.
+- **Who manages what** (`notify/ChannelScope`). The channel operations take `self.channels` or `channels.global`. A
+  session sees its own channels and the global ones (marked `global: true`); it manages its own, and the global ones
+  only with `channels.global` (`403 PERMISSION_DENIED`, `requiredPermission: channels.global`, otherwise). Another
+  user's channel is `404` like an unknown id (`api/support/ChannelOwnershipInterceptor`, in front of every
+  `/v1/channels/{channelId}…` controller). A session holding `users.manage` and every API token see and manage all
+  channels. On create, `ChannelInput.global` picks the kind; absent, a user holding `self.channels` gets a personal
+  channel and anyone else (an Operator) a global one. An API token always creates global channels, as before.
+  Escalation policies, which name channels, need `channels.global`, so a user cannot route escalations to another
+  user's channel.
+- **Delivery resolution.** A user's alert (R2-008) goes to the user's own channels plus the global channels whose
+  `ruleIds` name the rule: an operator selects a global channel for a user's rule by listing it there. A global channel
+  without `ruleIds` takes shared alerts only, never a user's, so adding users never floods the instance channels. A
+  shared rule's alert goes to the global channels as before.
+- **User deletion** (`notify/ChannelReassigner`, audit name `channels`). Reassigning moves the channels to the target
+  admin. With no target they would become global, so they are also **disabled**; an operator re-enables them on
+  purpose. `reassign=false` deletes them as `deleteChannel` does.
 
 Not yet per user: the secondary alert summaries that never took a read restriction (statistics counts, the dossier and
 context-summary activity lists, briefings, the operator gauges) still count or list every alert. R2-013 completes

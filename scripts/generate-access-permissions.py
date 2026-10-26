@@ -3,6 +3,9 @@
 Every operation gets a row, with a null permission where it carries none: a row for an operation without one keeps a
 broader template from answering for it (GET /v1/precursors/batches is not GET /v1/precursors/{id}).
 
+An operation may also carry x-foresignal-permission-alternatives (R2-009), further keys any one of which satisfies it
+as well: the channel operations take self.channels (a user's own channels) or channels.global (the instance-wide ones).
+
 The permission table is the second half of AccessPolicy: the scope rules are written by hand in contract order, the
 permission rules are transcribed from the contract by this script, so the two cannot drift silently;
 AccessPolicySyncTest checks both against the spec for every operation. Run it after any change to an
@@ -24,7 +27,8 @@ for path, item in spec["paths"].items():
         if not isinstance(op, dict) or "operationId" not in op:
             continue
         pattern = re.sub(r"\{[^/}]+\}", "*", path)
-        rows.append((method.upper(), pattern, op.get("x-foresignal-permission"), op["operationId"]))
+        alternatives = op.get("x-foresignal-permission-alternatives") or []
+        rows.append((method.upper(), pattern, op.get("x-foresignal-permission"), alternatives, op["operationId"]))
 
 
 def specificity(row):
@@ -35,9 +39,13 @@ def specificity(row):
 
 rows.sort(key=specificity)
 lines = []
-for method, pattern, permission, operation_id in rows:
+for method, pattern, permission, alternatives, operation_id in rows:
     value = "null" if permission is None else f'"{permission}"'
-    lines.append(f'            rule("{method}", "{pattern}", {value}), // {operation_id}')
+    if alternatives:
+        extra = ", ".join(f'"{a}"' for a in alternatives)
+        lines.append(f'            rule("{method}", "{pattern}", {value}, {extra}), // {operation_id}')
+    else:
+        lines.append(f'            rule("{method}", "{pattern}", {value}), // {operation_id}')
 body = "\n".join(lines)
 java = f'''package ai.foresignal.security;
 
@@ -61,16 +69,18 @@ final class AccessPermissions {{
 
     /**
      * One row: an operation's method, its path as an Ant pattern ({{@code {{param}}}} becomes {{@code *}}) and the
-     * permission a session must hold.
+     * permission a session must hold, or one of its alternatives.
      *
      * @param method the HTTP method, upper case
      * @param pattern the Ant pattern
      * @param permission the permission key, or null when the operation carries none
+     * @param alternatives further keys that satisfy the operation as well ({{@code x-foresignal-permission-alternatives}},
+     *     R2-009); empty for most
      */
-    record PermissionRule(String method, String pattern, String permission) {{}}
+    record PermissionRule(String method, String pattern, String permission, List<String> alternatives) {{}}
 
-    private static PermissionRule rule(String method, String pattern, String permission) {{
-        return new PermissionRule(method, pattern, permission);
+    private static PermissionRule rule(String method, String pattern, String permission, String... alternatives) {{
+        return new PermissionRule(method, pattern, permission, List.of(alternatives));
     }}
 
     /** Every row, specific first. */

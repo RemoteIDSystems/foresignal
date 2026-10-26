@@ -20,16 +20,18 @@ final class AccessPermissions {
 
     /**
      * One row: an operation's method, its path as an Ant pattern ({@code {param}} becomes {@code *}) and the
-     * permission a session must hold.
+     * permission a session must hold, or one of its alternatives.
      *
      * @param method the HTTP method, upper case
      * @param pattern the Ant pattern
      * @param permission the permission key, or null when the operation carries none
+     * @param alternatives further keys that satisfy the operation as well ({@code x-foresignal-permission-alternatives},
+     *     R2-009); empty for most
      */
-    record PermissionRule(String method, String pattern, String permission) {}
+    record PermissionRule(String method, String pattern, String permission, List<String> alternatives) {}
 
-    private static PermissionRule rule(String method, String pattern, String permission) {
-        return new PermissionRule(method, pattern, permission);
+    private static PermissionRule rule(String method, String pattern, String permission, String... alternatives) {
+        return new PermissionRule(method, pattern, permission, List.of(alternatives));
     }
 
     /** Every row, specific first. */
@@ -92,8 +94,8 @@ final class AccessPermissions {
             rule("GET", "/fdsnws/event/1/version", null), // getFdsnEventVersion
             rule("GET", "/v1/analytics/precision", null), // getPrecision
             rule("POST", "/v1/auth/password/reset", null), // resetPassword
-            rule("GET", "/v1/escalation-policies", null), // listEscalationPolicies
-            rule("POST", "/v1/escalation-policies", null), // createEscalationPolicy
+            rule("GET", "/v1/escalation-policies", "channels.global"), // listEscalationPolicies
+            rule("POST", "/v1/escalation-policies", "channels.global"), // createEscalationPolicy
             rule("GET", "/v1/federation/snapshot", null), // getFederationSnapshot
             rule("GET", "/v1/forecasts/questions", "forecast.read"), // listForecastQuestions
             rule("POST", "/v1/forecasts/questions", null), // createForecastQuestion
@@ -229,7 +231,7 @@ final class AccessPermissions {
             rule("GET", "/v1/social/coverage", "intel.read"), // getSocialCoverage
             rule("GET", "/v1/transit/catalog", "system.settings"), // searchTransitCatalog
             rule("GET", "/v1/changes/stream", "data.read"), // streamChanges
-            rule("GET", "/v1/channels/types", "channels.global"), // listChannelTypes
+            rule("GET", "/v1/channels/types", "self.channels", "channels.global"), // listChannelTypes
             rule("GET", "/v1/custom-sources", "collection.manage"), // listCustomSources
             rule("POST", "/v1/custom-sources", "collection.manage"), // createCustomSource
             rule("GET", "/v1/evidence-items", null), // listEvidenceItems
@@ -366,8 +368,8 @@ final class AccessPermissions {
             rule("POST", "/v1/tile-keys", null), // createTileKey
             rule("POST", "/compat/ntfy", null), // ntfyPublishJson
             rule("GET", "/v1/archives", "storage.manage"), // listArchives
-            rule("GET", "/v1/channels", "channels.global"), // listChannels
-            rule("POST", "/v1/channels", "channels.global"), // createChannel
+            rule("GET", "/v1/channels", "self.channels", "channels.global"), // listChannels
+            rule("POST", "/v1/channels", "self.channels", "channels.global"), // createChannel
             rule("GET", "/v1/contract", null), // getContract
             rule("GET", "/v1/entities", "data.read"), // listEntities
             rule("POST", "/v1/exposure", null), // computeExposure
@@ -490,7 +492,7 @@ final class AccessPermissions {
             rule("POST", "/v1/external/sources/*/suspend", "collection.manage"), // suspendExternalSource
             rule("POST", "/v1/hypotheses/sets/*/evidence", null), // addAchEvidence
             rule("GET", "/v1/ogc/collections/*/position", "data.read"), // edrPosition
-            rule("POST", "/v1/channels/*/mqtt/republish", "channels.global"), // republishMqttChannel
+            rule("POST", "/v1/channels/*/mqtt/republish", "self.channels", "channels.global"), // republishMqttChannel
             rule("DELETE", "/v1/external/question-links/*", null), // deleteExternalQuestionLink
             rule("POST", "/v1/social/narratives/*/merge", null), // mergeNarratives
             rule("GET", "/v1/social/narratives/*/posts", "intel.read"), // listNarrativePosts
@@ -521,7 +523,7 @@ final class AccessPermissions {
             rule("GET", "/v1/analysis/cycles/*/runs", null), // listCycleRuns
             rule("POST", "/v1/analyst/profiles/*/run", null), // runAnalystProfile
             rule("POST", "/v1/assessments/*/feedback", null), // submitAssessmentFeedback
-            rule("GET", "/v1/channels/*/interactive", "channels.global"), // getChannelInteractiveStatus
+            rule("GET", "/v1/channels/*/interactive", "self.channels", "channels.global"), // getChannelInteractiveStatus
             rule("PATCH", "/v1/events/stream/*/filter", null), // updateEventStreamFilter
             rule("POST", "/v1/intel/events/*/members", null), // addIntelEventMember
             rule("POST", "/v1/investigations/*/items", null), // addInvestigationItem
@@ -537,12 +539,12 @@ final class AccessPermissions {
             rule("POST", "/v1/annotations/*/resolve", null), // resolveAnnotation
             rule("POST", "/v1/ask/actions/*/confirm", null), // confirmAskAction
             rule("GET", "/v1/attachments/*/content", null), // getAttachmentContent
-            rule("GET", "/v1/channels/*/deliveries", "channels.global"), // listChannelDeliveries
+            rule("GET", "/v1/channels/*/deliveries", "self.channels", "channels.global"), // listChannelDeliveries
             rule("POST", "/v1/chronicles/*/activate", null), // activateChronicle
             rule("GET", "/v1/chronicles/*/estimate", "intel.read"), // getChronicleEstimate
-            rule("DELETE", "/v1/escalation-policies/*", null), // deleteEscalationPolicy
-            rule("GET", "/v1/escalation-policies/*", null), // getEscalationPolicy
-            rule("PUT", "/v1/escalation-policies/*", null), // updateEscalationPolicy
+            rule("DELETE", "/v1/escalation-policies/*", "channels.global"), // deleteEscalationPolicy
+            rule("GET", "/v1/escalation-policies/*", "channels.global"), // getEscalationPolicy
+            rule("PUT", "/v1/escalation-policies/*", "channels.global"), // updateEscalationPolicy
             rule("GET", "/v1/forecasts/questions/*", "forecast.read"), // getForecastQuestion
             rule("PATCH", "/v1/forecasts/questions/*", null), // updateForecastQuestion
             rule("GET", "/v1/objects/*/annotations", null), // listObjectAnnotations
@@ -616,7 +618,7 @@ final class AccessPermissions {
             rule("PUT", "/v1/attention/topics/*", null), // updateAttentionTopic
             rule("DELETE", "/v1/benchmarks/cases/*", null), // deleteBenchmarkCase
             rule("GET", "/v1/cap/messages/*.cap", "data.read"), // getCapMessage
-            rule("GET", "/v1/channels/*/airtime", "channels.global"), // getChannelAirtime
+            rule("GET", "/v1/channels/*/airtime", "self.channels", "channels.global"), // getChannelAirtime
             rule("POST", "/v1/chronicles/*/pause", null), // pauseChronicle
             rule("GET", "/v1/chronicles/*/state", "intel.read"), // getChronicleState
             rule("GET", "/v1/entities/*/records", "data.read"), // listEntityRecords
@@ -707,7 +709,7 @@ final class AccessPermissions {
             rule("DELETE", "/v1/auth/sessions/*", null), // revokeSession
             rule("POST", "/v1/briefings/*/run", null), // runBriefing
             rule("GET", "/v1/calendars/*.ics", "data.read"), // getCalendar
-            rule("POST", "/v1/channels/*/test", "channels.global"), // testChannel
+            rule("POST", "/v1/channels/*/test", "self.channels", "channels.global"), // testChannel
             rule("GET", "/v1/egress/*/health", "network.manage"), // getEgressRouteHealth
             rule("POST", "/v1/entities/*/keys", "system.settings"), // addEntityKey
             rule("PUT", "/v1/intel/recipes/*", "system.settings"), // updateRecipe
@@ -813,9 +815,9 @@ final class AccessPermissions {
             rule("DELETE", "/v1/tile-keys/*", null), // revokeTileKey
             rule("POST", "/compat/ntfy/*", null), // ntfyPublish
             rule("PUT", "/compat/ntfy/*", null), // ntfyPublishPut
-            rule("DELETE", "/v1/channels/*", "channels.global"), // deleteChannel
-            rule("GET", "/v1/channels/*", "channels.global"), // getChannel
-            rule("PUT", "/v1/channels/*", "channels.global"), // updateChannel
+            rule("DELETE", "/v1/channels/*", "self.channels", "channels.global"), // deleteChannel
+            rule("GET", "/v1/channels/*", "self.channels", "channels.global"), // getChannel
+            rule("PUT", "/v1/channels/*", "self.channels", "channels.global"), // updateChannel
             rule("GET", "/v1/entities/*", "data.read"), // getEntity
             rule("GET", "/v1/k/*/report", null), // openReportShareLink
             rule("GET", "/v1/products/*", "data.read"), // getProduct
