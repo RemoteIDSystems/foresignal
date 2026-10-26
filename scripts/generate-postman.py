@@ -888,6 +888,12 @@ BODIES = {
   # R2-016: archive USGS history from before 2025 now; a restore must be confirmed.
   "runArchive": {"cutoff": "2025-01-01T00:00:00Z", "sources": ["usgs-earthquakes"], "dryRun": False},
   "restoreArchive": {"confirm": True},
+  # R2-017: a nightly database backup with the config bundle at 02:30 UTC to the external disk mounted at /mnt/backup,
+  # keeping the last 14 of each type; a labeled database backup now; a restore must be confirmed.
+  "updateBackupSettings": {"enabled": True, "schedule": "0 30 2 * * *", "target": "external", "root": "/mnt/backup",
+                           "s3": None, "keepBackups": 14, "includeConfig": True},
+  "runBackup": {"type": "database", "label": "Before the 2.0 upgrade"},
+  "restoreBackup": {"confirm": True},
   # 128: a weekly assessment on Mondays at 07:00 in London over the Red Sea region, with all four roles, three
   # forecaster samples per question and the weekly caps; the replacement narrows it to the analyst and red team;
   # feedback on an assessment; an on-demand assessment of a situation with the analyst only.

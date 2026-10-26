@@ -9523,7 +9523,7 @@
               ],
               "query": []
             },
-            "description": "Replaces backup settings; an omitted secret keeps the stored one. Requires `storage.manage`.\n\n**Scope:** `admin`.\n\noperationId: `updateBackupSettings`",
+            "description": "Replaces backup settings; an omitted secret keeps the stored one. Requires `storage.manage`.\n\n**Scope:** `admin`.\n\n**R2-017:** every problem is one 400: `enabled` and `target` are required, `schedule` must be a six-field cron expression, `external` needs an absolute `root`, `s3` needs `s3.endpoint` and `s3.bucket`, `keepBackups` is 1 to 10000 or null. The S3 endpoint must pass the outbound URL policy (400 URL_NOT_ALLOWED). Secrets are stored encrypted and never returned.\n\noperationId: `updateBackupSettings`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -9536,7 +9536,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"enabled\": true,\n  \"schedule\": \"0 30 2 * * *\",\n  \"target\": \"external\",\n  \"root\": \"/mnt/backup\",\n  \"s3\": null,\n  \"keepBackups\": 14,\n  \"includeConfig\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -9596,7 +9596,7 @@
                 }
               ]
             },
-            "description": "Lists backup artifacts with type, size and status (180). Requires `storage.manage`.\n\n**Scope:** `admin`.\n\noperationId: `listBackups`",
+            "description": "Lists backup artifacts with type, size and status (180). Requires `storage.manage`.\n\n**Scope:** `admin`.\n\n**R2-017:** newest first; `type` filters to one type.\n\noperationId: `listBackups`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -9646,7 +9646,7 @@
               ],
               "query": []
             },
-            "description": "Starts a DB (pg_dump/base) or config-export backup to the configured target (B4/180). Requires `storage.manage`.\n\n**Scope:** `admin`.\n\noperationId: `runBackup`",
+            "description": "Starts a DB (pg_dump/base) or config-export backup to the configured target (B4/180). Requires `storage.manage`.\n\n**Scope:** `admin`.\n\n**R2-017:** returns the `pending` backup; a worker then runs `pg_dump --format=custom` of the application database (the password goes to it as `PGPASSWORD`, never on its command line) and/or writes the `exportSettings` bundle, stores each file on the target through the R2-016 archive tiers and verifies it there, marks the backup `complete`, and prunes complete backups of that type beyond `keepBackups`. A failure marks it `failed` with `error` and raises the operational alert `system.backup_failed`; when `pg_dump` is not on the server's PATH, a database backup fails with that reason and the server carries on. 409 BACKUP_NOT_CONFIGURED while backups are off, or an `s3` target lacks its bucket or secrets, or an `external` target its root; 409 ALREADY_RUNNING while another backup or restore runs.\n\noperationId: `runBackup`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -9659,7 +9659,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"type\": \"database\",\n  \"label\": \"Before the 2.0 upgrade\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -9706,7 +9706,7 @@
               ],
               "query": []
             },
-            "description": "Restores the instance from a backup; destructive, so `confirm` must be true (180). Requires `storage.manage`.\n\n**Scope:** `admin`.\n\noperationId: `restoreBackup`",
+            "description": "Restores the instance from a backup; destructive, so `confirm` must be true (180). Requires `storage.manage`.\n\n**Scope:** `admin`.\n\n**R2-017:** a `config` backup is imported at once through `importSettings` (atomic: a 400 listing every error applies nothing); the answer is the `restored` backup with its `importReport`. A `database` or `full` backup is restored in the background (the answer is the `restoring` backup) with `pg_restore --clean --if-exists --single-transaction` into the live database: it replaces every table, the backup history included, then brings the schema forward with the server's migrations and marks the backup `restored`. **Operational caveat:** the restore takes locks on every table, so ingest and API writes wait on it, and anything written after the backup was taken is lost; pause collection first and restart the server afterwards so every cache is rebuilt. While it runs, no retention or archive pass starts. A failed restore puts the backup's previous status back with `error` and raises `system.backup_failed`. 409 ALREADY_RUNNING while a backup, restore, retention or archive pass runs; 409 BACKUP_NOT_RESTORABLE for a failed backup, or a config bundle whose stored copy is missing or does not match its checksum (the reason is kept in `error`); 409 BACKUP_NOT_CONFIGURED for an `s3` backup when the settings have no bucket or secrets.\n\noperationId: `restoreBackup`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -9719,7 +9719,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"confirm\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"

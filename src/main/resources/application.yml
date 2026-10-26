@@ -124,6 +124,16 @@ foresignal:
   archive:
     scheduled: true
     tick: 60s
+  # Backup & restore (R2-017): the one-minute tick that starts backups on backup.schedule (an app setting), and the
+  # PostgreSQL client programs it runs. pg_dump must be the server's major version or newer; when it is not on the
+  # PATH a database backup fails with that reason and raises system.backup_failed. timeout bounds one pg_dump or
+  # pg_restore. Off in tests.
+  backup:
+    scheduled: true
+    tick: 60s
+    pg-dump: ${FORESIGNAL_BACKUP_PG_DUMP:pg_dump}
+    pg-restore: ${FORESIGNAL_BACKUP_PG_RESTORE:pg_restore}
+    timeout: 6h
   # Host resources (R2-014): the 30-second ticks that turn disk and memory breaches and collector backlog into
   # operational alerts (GET/PUT /v1/settings/thresholds). Off in tests.
   resources:

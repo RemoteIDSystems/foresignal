@@ -92116,7 +92116,7 @@
         ],
         "operationId": "updateBackupSettings",
         "summary": "Update backup settings",
-        "description": "Replaces backup settings; an omitted secret keeps the stored one. Requires `storage.manage`.\n\n**Scope:** `admin`.",
+        "description": "Replaces backup settings; an omitted secret keeps the stored one. Requires `storage.manage`.\n\n**Scope:** `admin`.\n\n**R2-017:** every problem is one 400: `enabled` and `target` are required, `schedule` must be a six-field cron expression, `external` needs an absolute `root`, `s3` needs `s3.endpoint` and `s3.bucket`, `keepBackups` is 1 to 10000 or null. The S3 endpoint must pass the outbound URL policy (400 URL_NOT_ALLOWED). Secrets are stored encrypted and never returned.",
         "requestBody": {
           "required": true,
           "content": {
@@ -92187,7 +92187,7 @@
         ],
         "operationId": "listBackups",
         "summary": "List backups",
-        "description": "Lists backup artifacts with type, size and status (180). Requires `storage.manage`.\n\n**Scope:** `admin`.",
+        "description": "Lists backup artifacts with type, size and status (180). Requires `storage.manage`.\n\n**Scope:** `admin`.\n\n**R2-017:** newest first; `type` filters to one type.",
         "parameters": [
           {
             "name": "type",
@@ -92236,6 +92236,16 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid type, cursor or limit (VALIDATION_FAILED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Missing or invalid admin token",
             "content": {
@@ -92275,7 +92285,7 @@
         ],
         "operationId": "runBackup",
         "summary": "Run a backup now",
-        "description": "Starts a DB (pg_dump/base) or config-export backup to the configured target (B4/180). Requires `storage.manage`.\n\n**Scope:** `admin`.",
+        "description": "Starts a DB (pg_dump/base) or config-export backup to the configured target (B4/180). Requires `storage.manage`.\n\n**Scope:** `admin`.\n\n**R2-017:** returns the `pending` backup; a worker then runs `pg_dump --format=custom` of the application database (the password goes to it as `PGPASSWORD`, never on its command line) and/or writes the `exportSettings` bundle, stores each file on the target through the R2-016 archive tiers and verifies it there, marks the backup `complete`, and prunes complete backups of that type beyond `keepBackups`. A failure marks it `failed` with `error` and raises the operational alert `system.backup_failed`; when `pg_dump` is not on the server's PATH, a database backup fails with that reason and the server carries on. 409 BACKUP_NOT_CONFIGURED while backups are off, or an `s3` target lacks its bucket or secrets, or an `external` target its root; 409 ALREADY_RUNNING while another backup or restore runs.",
         "requestBody": {
           "required": false,
           "content": {
@@ -92308,7 +92318,7 @@
             }
           },
           "409": {
-            "description": "Conflict (BACKUP_NOT_CONFIGURED)",
+            "description": "Conflict (BACKUP_NOT_CONFIGURED, ALREADY_RUNNING)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -92356,7 +92366,7 @@
         ],
         "operationId": "restoreBackup",
         "summary": "Restore from a backup",
-        "description": "Restores the instance from a backup; destructive, so `confirm` must be true (180). Requires `storage.manage`.\n\n**Scope:** `admin`.",
+        "description": "Restores the instance from a backup; destructive, so `confirm` must be true (180). Requires `storage.manage`.\n\n**Scope:** `admin`.\n\n**R2-017:** a `config` backup is imported at once through `importSettings` (atomic: a 400 listing every error applies nothing); the answer is the `restored` backup with its `importReport`. A `database` or `full` backup is restored in the background (the answer is the `restoring` backup) with `pg_restore --clean --if-exists --single-transaction` into the live database: it replaces every table, the backup history included, then brings the schema forward with the server's migrations and marks the backup `restored`. **Operational caveat:** the restore takes locks on every table, so ingest and API writes wait on it, and anything written after the backup was taken is lost; pause collection first and restart the server afterwards so every cache is rebuilt. While it runs, no retention or archive pass starts. A failed restore puts the backup's previous status back with `error` and raises `system.backup_failed`. 409 ALREADY_RUNNING while a backup, restore, retention or archive pass runs; 409 BACKUP_NOT_RESTORABLE for a failed backup, or a config bundle whose stored copy is missing or does not match its checksum (the reason is kept in `error`); 409 BACKUP_NOT_CONFIGURED for an `s3` backup when the settings have no bucket or secrets.",
         "parameters": [
           {
             "name": "id",
@@ -92390,7 +92400,7 @@
             }
           },
           "400": {
-            "description": "Invalid request body (VALIDATION_FAILED)",
+            "description": "`confirm` is not true, or the request or the stored config bundle is invalid (VALIDATION_FAILED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -92401,6 +92411,16 @@
           },
           "404": {
             "description": "Not found (UNKNOWN_BACKUP)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict (ALREADY_RUNNING, BACKUP_NOT_RESTORABLE, BACKUP_NOT_CONFIGURED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -178694,18 +178714,19 @@
       },
       "BackupSettings": {
         "type": "object",
-        "description": "Backup settings (settings key `backup`); secrets are write-only (B4/180)",
+        "description": "Backup settings (settings key `backup`, prompt R2-017); secrets are write-only (B4/180). Backups land through the cold-archive tiers of R2-016: `local` and `external` on the external-disk tier (copied, fsynced, SHA-256 read back), `s3` on the S3 tier (ETag and size checked), each backup under `backups/{id}/`.",
         "properties": {
           "enabled": {
             "type": "boolean",
-            "default": false
+            "default": false,
+            "description": "Master switch: off, `runBackup` is 409 BACKUP_NOT_CONFIGURED and the schedule does not fire"
           },
           "schedule": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Cron expression for scheduled backups"
+            "description": "Cron expression for scheduled backups: six fields (second minute hour day month weekday), evaluated in UTC; null for backups only on request"
           },
           "target": {
             "type": "string",
@@ -178714,14 +178735,15 @@
               "external",
               "s3"
             ],
-            "default": "local"
+            "default": "local",
+            "description": "`local`: under `root`, or the data directory when `root` is empty; `external`: a mounted disk at the absolute `root`; `s3`: the `s3` bucket"
           },
           "root": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Local/external backup directory"
+            "description": "Local/external backup directory; required and absolute for `external`; a relative `local` root is under the data directory"
           },
           "s3": {
             "oneOf": [
@@ -178738,7 +178760,13 @@
               "integer",
               "null"
             ],
-            "description": "How many backups to retain; older ones are pruned"
+            "description": "How many complete backups of each type to retain; older ones are pruned with their files, and failed ones older than the oldest kept are dropped. Null keeps every backup. 1 to 10000",
+            "default": 7
+          },
+          "includeConfig": {
+            "type": "boolean",
+            "default": true,
+            "description": "A scheduled backup, and a `runBackup` that names no type, also writes the config bundle (type `full`); off, they are `database` only"
           },
           "secretsSet": {
             "type": "array",
@@ -178790,7 +178818,7 @@
       },
       "BackupSettingsInput": {
         "type": "object",
-        "description": "Backup settings with write-only S3 credentials",
+        "description": "Backup settings with write-only S3 credentials. Replaces the settings: an omitted member takes its default, except `secrets`, where an omitted member keeps the stored value and an empty string or null clears it. Unknown members are a 400; the read-only `secretsSet` and `lastRunAt` of a GET may be sent back and are ignored.",
         "properties": {
           "enabled": {
             "type": "boolean"
@@ -178829,7 +178857,13 @@
             "type": [
               "integer",
               "null"
-            ]
+            ],
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "includeConfig": {
+            "type": "boolean",
+            "default": true
           },
           "secrets": {
             "type": "object",
@@ -178853,7 +178887,7 @@
       },
       "Backup": {
         "type": "object",
-        "description": "A single backup artifact (180)",
+        "description": "A single backup artifact (180; prompt R2-017): one `backup_run` row and its files on the target",
         "properties": {
           "id": {
             "type": "string"
@@ -178864,7 +178898,8 @@
               "database",
               "config",
               "full"
-            ]
+            ],
+            "description": "`database`: a `pg_dump --format=custom` archive; `config`: the `exportSettings` bundle (no secrets); `full`: both"
           },
           "status": {
             "type": "string",
@@ -178875,7 +178910,8 @@
               "failed",
               "restoring",
               "restored"
-            ]
+            ],
+            "description": "pending → running → complete or failed; a restore goes restoring → restored (a failed restore puts the previous status back with `error`)"
           },
           "createdAt": {
             "type": "string",
@@ -178901,19 +178937,101 @@
               "string",
               "null"
             ],
-            "description": "Path or object key"
+            "description": "The directory or `s3://` prefix holding the files"
           },
           "checksum": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "SHA-256 of the one file, or of the `key:sha256` lines of both files sorted by key"
           },
           "label": {
             "type": [
               "string",
               "null"
             ]
+          },
+          "trigger": {
+            "type": "string",
+            "x-extensible-enum": [
+              "manual",
+              "scheduled"
+            ],
+            "description": "`manual` (runBackup) or `scheduled` (backup.schedule)"
+          },
+          "files": {
+            "type": "array",
+            "description": "The stored files",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "x-extensible-enum": [
+                    "database.dump",
+                    "config.json"
+                  ]
+                },
+                "location": {
+                  "type": "string",
+                  "description": "Absolute path or `s3://` URL"
+                },
+                "bytes": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "sha256": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "location",
+                "bytes",
+                "sha256"
+              ]
+            }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the backup, or its last restore, failed"
+          },
+          "startedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "restoredAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When it was last restored"
+          },
+          "importReport": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ImportReport"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Present on the answer of `restoreBackup` for a `config` backup: what the import applied"
           }
         },
         "required": [
@@ -178955,13 +179073,15 @@
               "database",
               "config",
               "full"
-            ]
+            ],
+            "description": "Omitted: `full` when `includeConfig` is on, else `database`"
           },
           "label": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "maxLength": 200
           }
         }
       },

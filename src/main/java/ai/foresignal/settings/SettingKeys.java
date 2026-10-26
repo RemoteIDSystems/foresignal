@@ -477,6 +477,13 @@ public final class SettingKeys {
      */
     public static final String RETENTION_DB_CAP = "retention.dbCap";
 
+    /**
+     * The backup settings ({@code BackupSettings}, prompt R2-017): {@code enabled}, the cron {@code schedule}, the
+     * target ({@code local}, {@code external} or {@code s3}), its root or bucket, {@code keepBackups},
+     * {@code includeConfig} and the (write-only, encrypted) S3 secrets.
+     */
+    public static final String BACKUP = "backup";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -501,7 +508,7 @@ public final class SettingKeys {
                     SOCIAL_LLM_CLAIMS_PER_DAY, SOCIAL_SOURCE_RELIABILITY, SOCIAL_COMPARE, SOCIAL_ATTENTION_GAP,
                     SOCIAL_CUES, SOCIAL_TRACK_RECORD, EXTERNAL_BINDING_CURSOR, DOCTOR_AUTO_LLM,
                     DOCTOR_AUTO_COOLDOWN, MCP_AUTH, PLUGINS, PLUGINS_APPROVALS, COLLECTOR, SMTP,
-                    THRESHOLDS, RETENTION_DB_CAP);
+                    THRESHOLDS, RETENTION_DB_CAP, BACKUP);
 
     private SettingKeys() {}
 }
