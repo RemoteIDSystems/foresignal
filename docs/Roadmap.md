@@ -425,3 +425,80 @@ Its "extend NNN" items apply to the renumbered prompt: translate NNN with the v1
 - Prompt 020 adds a contract test that fails when any operation is missing from the collection, and the route-level test that keeps code and spec in step (`pending-operations.txt` lists the `planned` operations not built yet; it became empty at 141).
 - **Parallel client development:** clients generate SDKs from `docs/OpenAPI.json` (for example `openapi-typescript` / `openapi-fetch`, or `dart-dio`) and run a mock server from it (for example `npx @stoplight/prism-cli@5 mock docs/OpenAPI.json`), filtering by `x-foresignal-status` to see what is already live. Prompt 141 published the official SDKs under `sdk/` and the CLI under `cli/`.
 - **API compatibility (144):** `docs/api/v1.0.0/OpenAPI.json` is the frozen v1.0.0 spec; `./gradlew checkApiCompat` runs `oasdiff breaking` against it with a local `oasdiff` binary or the Docker image, and skips with a warning when neither is available. It is not wired to `build`.
+
+## 7. Version 2.0 (Release 2)
+
+v2.0 turns Foresignal from a **single-operator instance** into a **multi-user, self-manageable
+platform**: role-based access control with per-user configuration, plus the operational maturity a
+self-hosted platform needs — disk/resource safety, retention control, cold-storage archival, backup,
+egress routing, first-party aggregators, account security, and auditing. **The collected data and the
+paced collector stay global; who may see and configure what becomes per-user.**
+
+- **Design docs:** [RBAC-Design](RBAC-Design.md) (identity, auth, roles/permissions, per-user config —
+  roadmap Part A), [Storage-Lifecycle](Storage-Lifecycle.md) (disk monitoring, retention cap, archival,
+  backup — Part B), [Network-Sourcing](Network-Sourcing.md) (local-first, egress rotation, first-party
+  aggregators — Part C). The Product Charter and Architecture are updated by the implementing prompts as
+  they build.
+- **Numbering:** the stability follow-ups 162 (tiled raster decode) and 163 (native-memory drift)
+  already claimed those numbers, so v2.0 backend prompts start at **164**. The Release-2 driver labels
+  them **R2-001 … R2-027** in `prompts/000-Run-Sequence.md`; each R2-NNN is prompt 163 + NNN.
+- **API → 2.0.0.** The per-user semantics of the existing config endpoints are a deliberate, documented
+  break (a list that was instance-wide now returns the caller's own). `docs/OpenAPI.json` is already at
+  **2.0.0** with the full v2.0 surface authored ahead of implementation (most operations
+  `x-foresignal-status: planned`); the frozen v1.0.0 baseline is kept and `checkApiCompat` records the
+  v2 breaks honestly. The identity schema is additive Flyway, numbered from the next free version (the
+  latest applied is `V9__source_monthly_cap.sql`).
+
+Each prompt is self-contained, compiles, writes its tests in the same pass, runs the guards, and is
+compile-only under the owner's no-test directive until code-complete. Admin prompts run after the
+backend endpoints they consume exist and the contract is re-vendored.
+
+### Identity & RBAC (Part A)
+
+| R2 | Prompt | Scope | Status |
+|---|---|---|---|
+| R2-001 | 164 Identity-Model | users/roles/permissions/user_role/role_permission/user_token; built-ins seeded; additive Flyway | Planned |
+| R2-002 | 165 Password-And-Account-Lifecycle | argon2id; `invited`/`active`/`suspended`/`disabled`; activation/reset tokens | Planned |
+| R2-003 | 166 Auth-And-Sessions | `/v1/auth/*`; `fss_` sessions (absolute + idle expiry, revocation); TokenFilter/AccessPolicy integration | Planned |
+| R2-004 | 167 Authorization | role→permission checks in AccessPolicy; per-operation requirements; effective-permission union | Planned |
+| R2-005 | 168 User-Management-API | `/v1/users/**` CRUD, roles, suspend, delete+reassign, resend invite, quota | Planned |
+| R2-006 | 169 Role-Management-API | `/v1/roles/**` + `/v1/permissions`; built-ins protected; custom roles | Planned |
+| R2-007 | 170 Transactional-Email | SMTP settings; welcome/reset/role-changed templates; from-address; `server.contactEmail` loose end | Planned |
+| R2-008 | 171 Per-User-Alerts | `owner_user_id` on triggers; per-user evaluation + delivery | Planned |
+| R2-009 | 172 Per-User-Channels | `owner_user_id` on channels; + operator global channels | Planned |
+| R2-010 | 173 Shared-Collection-Per-User-Source-Views | `user_source_pref`; union-pull logic (`/v1/me/sources`) | Planned |
+| R2-011 | 174 Shared-And-Personal-LLM | `owner_user_id` on providers; per-user budgets/metering (`/v1/me/llm/budget`) | Planned |
+| R2-012 | 175 Per-User-Views-Prefs-Workspaces | saved views, preferences, workspace ownership (`/v1/me/preferences`) | Planned |
+| R2-013 | 176 Data-Access-Gating-And-Audit | `data.read`/area per user; audit actor/action/target (`/v1/audit`) | Planned |
+
+### Storage, lifecycle & archival (Part B)
+
+| R2 | Prompt | Scope | Status |
+|---|---|---|---|
+| R2-014 | 177 Disk-And-Resource-Monitoring | `/v1/system/resources`; threshold slider; system-health alerts via channels | Planned |
+| R2-015 | 178 Retention-Admin-Control | unified cap-history/overwrite-oldest + `/v1/settings/retention/preview` | Planned |
+| R2-016 | 179 Cold-Storage-Archival | external-disk + S3/Glacier interface; offload→verify→purge; restore | Planned |
+| R2-017 | 180 Backup-And-Restore | DB backup + config export/import; schedule/history/restore | Planned |
+
+### Network sourcing (Part C)
+
+| R2 | Prompt | Scope | Status |
+|---|---|---|---|
+| R2-018 | 181 Egress-Routing-And-IP-Rotation | egress pool (proxies/VPN/interfaces); rotation policy; per-source assignment; health; `FetchExecutor`/`UpstreamClient` integration | Planned |
+| R2-019 | 182 Local-ADS-B-Aggregator | stand up readsb; local-source option via `ReadsbAircraftMapper` + base-URL override; full-global local read; public mirrors default-off | Planned |
+| R2-020 | 183 AIS-First-Party-Aggregator | own RF receiver + feed aggregation; `ais`/`aisstream`/`maritime`; public AIS mirrors default-off | Planned |
+| R2-021 | 184 Aircraft-Datalink-First-Party | ACARS/VDL/HFDL (`LocalAcarsAdapter`) + APRS (`formats/aprs` + `radio`); airframes.io / APRS-IS default-off | Planned |
+| R2-022 | 185 Direct-Satellite-Reception | promote `satdump`/`contrib/satdump` (GOES & weather sats off a dish); superseded NOAA pulls default-off | Planned |
+| R2-023 | 186 Ground-Sensor-Aggregators | Raspberry Shake (`rsudp`), SAME/EAS (`same`), radiosondes, air quality (`env/airq`), PWS, Meshtastic/MeshCore (`meshcore-bridge`); public mirrors default-off | Planned |
+
+### Account security & bootstrap (Part D)
+
+| R2 | Prompt | Scope | Status |
+|---|---|---|---|
+| R2-024 | 187 MFA-2FA | TOTP + recovery codes (`/v1/me/mfa/*`); enforce for Admin/Operator | Planned |
+| R2-025 | 188 Session-And-API-Token-Management | list/revoke sessions (`/v1/auth/sessions`); user-owned token lifecycle (`/v1/me/tokens`) | Planned |
+| R2-026 | 189 Per-User-Quotas-And-Rate-Limits | per-user API rate limits + optional storage/alert/channel quotas (`/v1/me/quota`) | Planned |
+| R2-027 | 190 First-Run-Bootstrap-And-Release | `/v1/system/first-run`; migrate global→shared/admin; **API → 2.0.0** finalized; Postman + SDKs; guards + full `checkApiCompat` changelog | Planned |
+
+**Status:** not started. 27 prompts (164–190), built in one pass in dependency order (identity → auth →
+authorization → per-user config → storage → network → security → bootstrap). No phasing.
