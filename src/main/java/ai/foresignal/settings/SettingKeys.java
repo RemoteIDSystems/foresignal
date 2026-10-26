@@ -458,6 +458,12 @@ public final class SettingKeys {
      */
     public static final String PLUGINS_APPROVALS = "plugins.approvals";
 
+    /**
+     * {@link SmtpSettings}: the global SMTP server of the transactional account emails (prompt R2-007, {@code smtp});
+     * OpenAPI schema {@code SmtpSettings}. The password is stored encrypted and never returned.
+     */
+    public static final String SMTP = "smtp";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -481,7 +487,7 @@ public final class SettingKeys {
                     SOCIAL_MIN_REGION_BASELINE, SOCIAL_VELOCITY, SOCIAL_KEEP_MEDIA, SOCIAL_LLM_CLAIM_MIN_POSTS,
                     SOCIAL_LLM_CLAIMS_PER_DAY, SOCIAL_SOURCE_RELIABILITY, SOCIAL_COMPARE, SOCIAL_ATTENTION_GAP,
                     SOCIAL_CUES, SOCIAL_TRACK_RECORD, EXTERNAL_BINDING_CURSOR, DOCTOR_AUTO_LLM,
-                    DOCTOR_AUTO_COOLDOWN, MCP_AUTH, PLUGINS, PLUGINS_APPROVALS, COLLECTOR);
+                    DOCTOR_AUTO_COOLDOWN, MCP_AUTH, PLUGINS, PLUGINS_APPROVALS, COLLECTOR, SMTP);
 
     private SettingKeys() {}
 }

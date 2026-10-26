@@ -27,7 +27,8 @@ import tools.jackson.databind.JsonNode;
  *       it under the {@code server} key, so nothing moves.
  *   <li>{@code timezone}: an IANA zone (default UTC).
  *   <li>{@code clientLinks}: deep-link templates ({@code alert}, {@code record},
- *       {@code briefingRun}, {@code pair}); each must use the {@code foresignal://} scheme or a
+ *       {@code briefingRun}, {@code pair}, {@code share}, and from R2-007 {@code activate} and
+ *       {@code passwordReset} for the account emails); each must use the {@code foresignal://} scheme or a
  *       verified {@code https://} link.
  *   <li>{@code push} (prompt 031): {@link PushSettings} — the VAPID contact, the private-host
  *       allowlist for push endpoints and the default payload language.
@@ -47,7 +48,8 @@ public class ServerSettingsService {
     /** A plain address check for {@code contactEmail}: one {@code @}, no spaces, no header-breaking characters. */
     static final java.util.regex.Pattern EMAIL = java.util.regex.Pattern.compile("[^\\s@;()<>\",]+@[^\\s@;()<>\",]+\\.[^\\s@;()<>\",]+");
 
-    static final Set<String> LINK_MEMBERS = Set.of("alert", "record", "briefingRun", "pair", "share");
+    static final Set<String> LINK_MEMBERS = Set.of("alert", "record", "briefingRun", "pair", "share", "activate",
+            "passwordReset");
 
     /**
      * One {@code SettingsWarning}.
@@ -217,7 +219,9 @@ public class ServerSettingsService {
                 template(node.get("record"), "clientLinks.record", errors),
                 template(node.get("briefingRun"), "clientLinks.briefingRun", errors),
                 template(node.get("pair"), "clientLinks.pair", errors),
-                template(node.get("share"), "clientLinks.share", errors));
+                template(node.get("share"), "clientLinks.share", errors),
+                template(node.get("activate"), "clientLinks.activate", errors),
+                template(node.get("passwordReset"), "clientLinks.passwordReset", errors));
     }
 
     private static String template(JsonNode node, String field, List<FieldError> errors) {

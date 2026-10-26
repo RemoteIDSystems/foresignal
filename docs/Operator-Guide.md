@@ -49,8 +49,8 @@ the admin token exactly as above.
   `DELETE /v1/auth/sessions/{id}` ends one; `DELETE /v1/auth/sessions` ends all the others and keeps the current one.
   These need a session, not an API token.
 - **Forgotten password:** `POST /v1/auth/password/reset-request` always answers `202`. If the account is active, a
-  reset link valid for one hour is issued; until the email sender is configured (R2-007) it is only logged as "not
-  sent", by its 8-character prefix. `POST /v1/auth/password/reset` with the link's token and a new password (at least
+  reset link valid for one hour is emailed (see [Account email (SMTP)](#account-email-smtp)); without SMTP it is only
+  logged as "not sent", by its 8-character prefix, and an admin can send a fresh one from user management. `POST /v1/auth/password/reset` with the link's token and a new password (at least
   12 characters) ends every session of the account.
 - **Activation:** an invited user sets a first password with `POST /v1/auth/activate` and the activation token
   (valid 72 hours).
@@ -62,6 +62,32 @@ the admin token exactly as above.
   `agent`, Viewer and Auditor `read`). API tokens are unaffected: they go by scope alone, and the admin token can do
   everything. Sessions never work on ingest endpoints; use ingest keys there.
 
+## Account email (SMTP)
+
+The account emails — welcome with the activation link, password reset, roles changed, account suspended — go out
+through one global SMTP server, separate from the email notification channels. It needs the `system.settings`
+permission or the admin token.
+
+- **Configure:** `PUT /v1/settings/smtp` with `{"enabled": true, "host": "smtp.example.org", "port": 587,
+  "security": "starttls", "username": "…", "password": "…", "fromAddress": "…", "fromName": "…"}`. `security` is
+  `starttls` (default, port 587), `tls` (implicit TLS, usually 465) or `none`. The from-address defaults to
+  `info@remoteidsystems.com` and the name to `Foresignal`. The password is stored encrypted and never shown:
+  `GET /v1/settings/smtp` lists `secretsSet: ["password"]` instead. Leave `password` out to keep it; send `""` to
+  clear it.
+- **Test:** `POST /v1/settings/smtp/test` with `{"to": "you@example.org"}` sends a short message with the stored
+  settings and answers `{"ok": true}` or `{"ok": false, "message": "<the SMTP error>"}`.
+- **What each email says:** the welcome greets the user by full name, lists their roles, and carries the activation
+  link with its expiry (72 hours); the reset email carries the reset link, its expiry (one hour) and "if you did not
+  request this, ignore this email"; the roles-changed email lists the new roles; the suspended email says sign-in is
+  blocked until an admin restores the account. Plain text plus HTML, no tracking, no images.
+- **Links:** built from the `clientLinks.activate` and `clientLinks.passwordReset` templates of
+  `PUT /v1/settings/server`, defaults `foresignal://activate?u={publicBaseUrl}&t={token}` and
+  `foresignal://reset-password?u={publicBaseUrl}&t={token}`. Point them at an `https://` page if your users open
+  email on a device without the app. Set `publicBaseUrl` so the link names your server.
+- **Without SMTP nothing fails:** inviting, resetting and suspending all still work. While accounts exist and SMTP is
+  off, `/v1/system` warns `SMTP_NOT_CONFIGURED`, and user management returns each activation or reset token to you
+  (`activation.token`, or the `202` body) to pass on yourself. A send that fails is treated the same way.
+
 ## Adding and managing users
 
 User management needs the `users.manage` permission (the Admin role) or the admin token. Every change is in the audit
@@ -69,7 +95,7 @@ log.
 
 - **Invite:** `POST /v1/users` with `{"email": "…", "fullName": "…", "roles": ["<role id>"]}` creates the account as
   `invited`, with no password, and issues an activation link valid 72 hours. The welcome email carries it; when the
-  email is not sent (no email sender is configured yet, or you pass `"sendInvite": false`), the response's
+  email is not sent (SMTP is off or failed, or you pass `"sendInvite": false`), the response's
   `activation.token` holds the one-time token for you to pass on, once. The built-in role ids are
   `00000000-0000-4000-8000-00000000000N` with N = 1 Admin, 2 Operator, 3 Editor, 4 Viewer, 5 Auditor. An email already
   in use is `409 EMAIL_TAKEN`.

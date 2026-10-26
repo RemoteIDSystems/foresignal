@@ -45829,7 +45829,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"enabled\": true,\n  \"host\": \"smtp.example.org\",\n  \"port\": 587,\n  \"security\": \"starttls\",\n  \"username\": \"foresignal@example.org\",\n  \"password\": \"REPLACE\",\n  \"fromAddress\": \"info@remoteidsystems.com\",\n  \"fromName\": \"Foresignal\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -45889,7 +45889,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"to\": \"admin@example.org\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

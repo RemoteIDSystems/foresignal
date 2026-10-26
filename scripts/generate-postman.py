@@ -286,6 +286,11 @@ BODIES = {
                  "sendInvite": False},
   "updateUser": {"fullName": "Jane Q. Analyst"},
   "setUserRoles": {"roles": ["00000000-0000-4000-8000-000000000003"]},
+  # R2-007: the SMTP server of the account emails; the password is write-only (omit it to keep the stored one).
+  "updateSmtpSettings": {"enabled": True, "host": "smtp.example.org", "port": 587, "security": "starttls",
+                         "username": "foresignal@example.org", "password": "REPLACE", "fromAddress": "info@remoteidsystems.com",
+                         "fromName": "Foresignal"},
+  "testSmtpSettings": {"to": "admin@example.org"},
   # R2-006: a custom role is a named subset of GET /v1/permissions; built-in roles cannot be updated or deleted.
   "createRole": {"name": "Analyst", "description": "Reads data and intelligence; manages own alerts",
                  "permissions": ["data.read", "intel.read", "forecast.read", "self.alerts", "self.views"]},

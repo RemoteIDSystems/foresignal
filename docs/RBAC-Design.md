@@ -319,9 +319,25 @@ Templated, US-English emails:
 - **password reset** — the reset link (`requestPasswordReset`);
 - **role changed / suspended** — notice of an account change.
 
-With no SMTP configured it degrades gracefully: the admin is warned, and the activation/reset link is
-retrievable by an admin from the user record (`UserCreate.sendInvite = false` returns the link instead
-of mailing it). This also folds in the `server.contactEmail` loose end — the outbound User-Agent
+**Built (R2-007).** `settings/SmtpSettingsService` stores `SmtpSettings` under the app-setting key `smtp` (no
+migration): `enabled`, `host`, `port` (587), `security` (`starttls`/`tls`/`none`), `username`, the password sealed with
+`CredentialCipher` (write-only; `secretsSet`), `fromAddress` (`info@remoteidsystems.com`), `fromName` (`Foresignal`).
+`getSmtpSettings`/`updateSmtpSettings`/`testSmtpSettings` (`api/SmtpSettingsController`, `system.settings`).
+`security/user/TransactionalEmailService` is the `AccountMailer`; it renders the four templates and sends them through
+`notify/TransactionalMailTransport` (`SmtpTransactionalMailTransport`, built by `notify/MailSenders`, the same JavaMail
+builder the email channel now uses). Where each fires:
+
+| Email | Fired by |
+|---|---|
+| welcome (full name, role names, activation link + expiry) | `createUser` (unless `sendInvite: false`), `resendUserInvite` |
+| password reset (link + expiry, ignore-if-not-you) | `requestPasswordReset` (active account only), `adminResetUserPassword` |
+| role changed (new role names) | `setUserRoles`, when the set changed; sent after commit |
+| suspended | `suspendUser`; sent after commit |
+
+Links fill `ClientLinks.activate` / `ClientLinks.passwordReset` (new, R2-007) with `{token}` and `{publicBaseUrl}`.
+With no usable SMTP (off, or no host) or a failing send, nothing fails: the email is logged as not sent (user id and
+token prefix only), the mailer returns false so user management hands the one-time token to the admin (§G), and
+`/v1/system` warns `SMTP_NOT_CONFIGURED` while user accounts exist. This also folds in the `server.contactEmail` loose end — the outbound User-Agent
 contact several adapters ask for (`source/adapters/wikimedia/WikimediaPageviewsAdapter.java`,
 `source/adapters/sec/Sec8kAdapter.java`) — set on the same system-settings screen.
 
@@ -354,8 +370,8 @@ Admin-scoped (`admin`), permission `users.manage` / `roles.manage`:
   `resendUserInvite` replaces an invited user's activation token (`409 ALREADY_ACTIVE` otherwise);
   `adminResetUserPassword` issues a reset token, ends every session (`UserSessionsRevokedEvent.PASSWORD_RESET_ISSUED`)
   and asks for the reset email. No operation shows or sets a password.
-- **Links without email.** The mailer reports whether an email left. When it did not (until R2-007 the
-  `LoggingAccountMailer` sends nothing; or `sendInvite: false`), the one-time token is returned once as
+- **Links without email.** The mailer reports whether an email left. When it did not (SMTP off or failing, §F; or
+  `sendInvite: false`), the one-time token is returned once as
   `UserLinkIssued.token` — on `createUser` under the user's `activation`, and as the `202` body of `resendUserInvite`
   and `adminResetUserPassword`; an emailed link is reported with `token: null`. `UserLinkIssued` is an additive
   contract schema added by R2-005, because the authored `User` and the `202`s had no place for the link.

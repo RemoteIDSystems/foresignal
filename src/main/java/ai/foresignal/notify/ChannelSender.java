@@ -15,7 +15,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
@@ -286,27 +285,8 @@ public class ChannelSender {
     }
 
     private ChannelResponse sendMail(PreparedRequest.Mail mail) throws IOException {
-        JavaMailSenderImpl sender = new JavaMailSenderImpl();
-        sender.setHost(mail.host());
-        sender.setPort(mail.port());
-        boolean ssl = "ssl".equals(mail.tls());
-        sender.setProtocol(ssl ? "smtps" : "smtp");
-        sender.setDefaultEncoding("UTF-8");
-        String prefix = ssl ? "mail.smtps." : "mail.smtp.";
-        Properties props = new Properties();
-        props.put(prefix + "connectiontimeout", Long.toString(properties.connectTimeout().toMillis()));
-        props.put(prefix + "timeout", Long.toString(properties.requestTimeout().toMillis()));
-        props.put(prefix + "writetimeout", Long.toString(properties.requestTimeout().toMillis()));
-        if ("starttls".equals(mail.tls())) {
-            props.put("mail.smtp.starttls.enable", "true");
-            props.put("mail.smtp.starttls.required", "true");
-        }
-        if (mail.username() != null) {
-            sender.setUsername(mail.username());
-            sender.setPassword(mail.password());
-            props.put(prefix + "auth", "true");
-        }
-        sender.setJavaMailProperties(props);
+        JavaMailSenderImpl sender = MailSenders.build(mail.host(), mail.port(), mail.tls(), mail.username(),
+                mail.password(), properties.connectTimeout(), properties.requestTimeout());
         try {
             MimeMessage message = sender.createMimeMessage();
             if (!mail.attachments().isEmpty()) {

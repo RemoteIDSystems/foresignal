@@ -110047,6 +110047,16 @@
               "null"
             ],
             "description": "A share link opened in a client (112); placeholder {key}. No default: `?open=1` on a share-link URL redirects only when this is set."
+          },
+          "activate": {
+            "type": "string",
+            "default": "foresignal://activate?u={publicBaseUrl}&t={token}",
+            "description": "The account activation link of the welcome email (R2-007); placeholders {publicBaseUrl} and {token}"
+          },
+          "passwordReset": {
+            "type": "string",
+            "default": "foresignal://reset-password?u={publicBaseUrl}&t={token}",
+            "description": "The password reset link of the reset email (R2-007); placeholders {publicBaseUrl} and {token}"
           }
         }
       },
@@ -176944,7 +176954,7 @@
       },
       "SmtpSettings": {
         "type": "object",
-        "description": "Outbound transactional-email (SMTP) settings (settings key `smtp`); secrets are write-only (A6/170)",
+        "description": "Outbound transactional-email (SMTP) settings (settings key `smtp`); secrets are write-only (A6/170). While user accounts exist and SMTP is off or has no host, `/v1/system` warns SMTP_NOT_CONFIGURED and admins receive each activation or reset link in the user-management response instead (R2-007).",
         "properties": {
           "enabled": {
             "type": "boolean",
