@@ -5,6 +5,7 @@ import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.SourceService;
 import ai.foresignal.source.SourceSettingsUpdate;
+import ai.foresignal.source.adapters.ais.LocalAisAggregatorAdapter;
 import ai.foresignal.source.adapters.local.LocalAdsbAggregatorAdapter;
 import ai.foresignal.test.WireMockSupport;
 import java.util.ArrayList;
@@ -70,8 +71,10 @@ abstract class AggregatorItSupport extends WireMockSupport {
                 settings.remove(AggregatorService.key(domain));
             }
         }
-        if (sources.view(LocalAdsbAggregatorAdapter.ID).enabled()) {
-            sources.update(LocalAdsbAggregatorAdapter.ID, SourceSettingsUpdate.enabled(false));
+        for (String id : List.of(LocalAdsbAggregatorAdapter.ID, LocalAisAggregatorAdapter.ID)) {
+            if (sources.view(id).enabled()) {
+                sources.update(id, SourceSettingsUpdate.enabled(false));
+            }
         }
     }
 

@@ -19,8 +19,8 @@ import org.springframework.stereotype.Component;
  *       a failing connect already makes the source {@code failing}.
  *   <li><strong>Details</strong> ({@code SourceHealth.details}): {@code messagesPerMin}, {@code distinctMmsi10m},
  *       {@code lastMessageAt} and {@code vessels} for {@code ais-kystverket}, {@code ais-digitraffic} and every
- *       {@code local-ais-{n}} slot (the station statistics of an AIS-catcher), plus Digitraffic's drop counters and
- *       status time.
+ *       {@code local-ais-{n}} slot (the station statistics of an AIS-catcher) and {@code local-ais-aggregator}
+ *       (prompt R2-020), plus Digitraffic's drop counters and status time.
  * </ul>
  */
 @Component
@@ -29,6 +29,7 @@ public class AisSourcesHealth implements HealthRule, HealthDetailsContributor {
     private final KystverketAdapter kystverket;
     private final DigitrafficAisAdapter digitraffic;
     private final LocalAisFamily local;
+    private final LocalAisAggregatorAdapter aggregator;
     private final Clock clock;
 
     /**
@@ -37,13 +38,15 @@ public class AisSourcesHealth implements HealthRule, HealthDetailsContributor {
      * @param kystverket the Kystverket source
      * @param digitraffic the Digitraffic source
      * @param local the AIS-catcher slots
+     * @param aggregator the AIS aggregator's read (prompt R2-020)
      * @param clock the clock of the statistics windows
      */
     public AisSourcesHealth(KystverketAdapter kystverket, DigitrafficAisAdapter digitraffic, LocalAisFamily local,
-            Clock clock) {
+            LocalAisAggregatorAdapter aggregator, Clock clock) {
         this.kystverket = kystverket;
         this.digitraffic = digitraffic;
         this.local = local;
+        this.aggregator = aggregator;
         this.clock = clock;
     }
 
@@ -63,6 +66,9 @@ public class AisSourcesHealth implements HealthRule, HealthDetailsContributor {
         }
         if (DigitrafficAisAdapter.ID.equals(id)) {
             return digitraffic.healthDetails(clock.instant());
+        }
+        if (LocalAisAggregatorAdapter.ID.equals(id)) {
+            return aggregator.healthDetails(clock.instant());
         }
         if (id.startsWith(LocalAisAdapter.ID_PREFIX)) {
             return local.find(id).map(a -> a.healthDetails(clock.instant())).orElse(Map.of());

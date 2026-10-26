@@ -1122,8 +1122,9 @@ Rotation does not get around a provider's limits: each route still paces each ho
 
 Where a feed is a network of receivers that public sites only mirror, read your own copy instead:
 `GET /v1/aggregators` lists one aggregator per domain (`adsb`, `ais`, `datalink`, `satellite`,
-`ground-sensors`), with its status and the public sources it supersedes. This release implements
-`adsb`; the others list as `implemented: false` and cannot be enabled yet. The design is in
+`ground-sensors`), with its status and the public sources it supersedes. `adsb` (R2-019) and `ais`
+(R2-020) are implemented; a domain without a backend lists as `implemented: false` and cannot be
+enabled yet. The design is in
 [Network-Sourcing.md](Network-Sourcing.md).
 
 **Local ADS-B.** Start a readsb — the opt-in compose profile pulls the sdr-enthusiasts ultrafeeder
@@ -1148,6 +1149,23 @@ aircraft then come from the source `local-adsb-aggregator` (one request for the 
 turn one on by hand, and turning the aggregator off (`{"enabled": false}`) turns back on exactly the
 ones it turned off. Send `"disableSupersededSources": false` to keep the mirrors running alongside.
 A live aggregator whose source starts failing raises `system.aggregator_down`.
+
+**Local AIS (R2-020).** Run an AIS decoder — AIS-catcher, rtl-ais, or any decoder that emits AIVDM
+NMEA lines — on this host or your LAN, and point the `ais` aggregator at its feed: its TCP server
+(AIS-catcher `-S 5012`), or a UDP port this server listens on (AIS-catcher `-u <this host> 10110`),
+naming the decoder hosts that may send:
+
+```
+PUT  /v1/aggregators/ais   {"enabled": true, "mode": "receiver", "endpoint": "tcp://192.168.1.30:5012"}
+PUT  /v1/aggregators/ais   {"enabled": true, "endpoint": "udp://0.0.0.0:10110",
+                            "config": {"allowSenders": ["192.168.1.30"], "stationName": "harbor"}}
+POST /v1/aggregators/ais/test
+```
+
+The vessels then come from the source `local-ais-aggregator`, and while the aggregator is live
+`aisstream` is turned off and stays off, on the same terms as the ADS-B mirrors. The official regional
+feeds `ais-digitraffic` and `ais-kystverket` are never touched. The test listens for 10 s and reports
+the vessel records decoded.
 
 ## Triggers and alerts
 

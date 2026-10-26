@@ -93207,7 +93207,7 @@
         ],
         "operationId": "listAggregators",
         "summary": "List first-party aggregators",
-        "description": "Lists the first-party aggregators across RF/sensor domains with status and the public sources each supersedes (C3). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-019:** every domain is listed. adsb is implemented; a domain whose backend this server does not have reads `implemented: false` and `status: unconfigured`.",
+        "description": "Lists the first-party aggregators across RF/sensor domains with status and the public sources each supersedes (C3). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-019:** every domain is listed. adsb is implemented, and ais since R2-020; a domain whose backend this server does not have reads `implemented: false` and `status: unconfigured`.",
         "responses": {
           "200": {
             "description": "The aggregators",
@@ -93335,7 +93335,7 @@
         ],
         "operationId": "updateAggregator",
         "summary": "Configure a domain aggregator",
-        "description": "Enables and configures a domain's first-party aggregator and, by default, defaults the superseded public/mirror sources off (they stay in the catalog as opt-in fallbacks). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-019:** the configuration is replaced whole. adsb writes `endpoint` (and `config.band`) to the `local-adsb-aggregator` source and turns it on while the aggregator is live (enabled with an endpoint), off otherwise. While live with `disableSupersededSources`, every registered `adsblol-*`, `adsbfi-*` and `airplaneslive-*` source and `gpsjam-daily` that is on is turned off, and seeding and `enable-core`/`enable-free` leave them off; when the aggregator stops being live, or `disableSupersededSources` is false, the sources it turned off are turned back on. 400 for a bad member, an endpoint that is not an http(s) aircraft.json URL or does not resolve to a local address, or `enabled: true` on a domain this server has no backend for. A live aggregator whose source starts failing raises `system.aggregator_down` (and `system.aggregator_recovered` when it is healthy again).",
+        "description": "Enables and configures a domain's first-party aggregator and, by default, defaults the superseded public/mirror sources off (they stay in the catalog as opt-in fallbacks). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-019:** the configuration is replaced whole. adsb writes `endpoint` (and `config.band`) to the `local-adsb-aggregator` source and turns it on while the aggregator is live (enabled with an endpoint), off otherwise. While live with `disableSupersededSources`, every registered `adsblol-*`, `adsbfi-*` and `airplaneslive-*` source and `gpsjam-daily` that is on is turned off, and seeding and `enable-core`/`enable-free` leave them off; when the aggregator stops being live, or `disableSupersededSources` is false, the sources it turned off are turned back on. 400 for a bad member, an endpoint that is not an http(s) aircraft.json URL (adsb) or a tcp:// or udp:// NMEA endpoint (ais, R2-020; udp:// needs config.allowSenders) or does not resolve to a local address, or `enabled: true` on a domain this server has no backend for. A live aggregator whose source starts failing raises `system.aggregator_down` (and `system.aggregator_recovered` when it is healthy again).",
         "parameters": [
           {
             "name": "domain",
@@ -93434,7 +93434,7 @@
         ],
         "operationId": "testAggregator",
         "summary": "Test a domain aggregator",
-        "description": "Probes the aggregator's local endpoint and reports reachability and a sample object count; nothing is persisted. Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-019:** reads the stored endpoint once through the aggregator's source (its budget and pinning apply). Always 200; `ok` false with a `message` when nothing is configured, the endpoint cannot be reached, or the answer is not readsb aircraft.json. `sampleCount` is the number of aircraft in it.",
+        "description": "Probes the aggregator's local endpoint and reports reachability and a sample object count; nothing is persisted. Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-019:** reads the stored endpoint once through the aggregator's source (its budget and pinning apply). Always 200; `ok` false with a `message` when nothing is configured, the endpoint cannot be reached, or the answer is not readsb aircraft.json. `sampleCount` is the number of aircraft in it.\n\n**R2-020:** for ais, listens to the stored NMEA endpoint for 10 s through `local-ais-aggregator` and reports the vessel records decoded (at most 100); a live UDP listener, which cannot be bound twice, is reported from its statistics (distinct MMSIs in the last 10 minutes).",
         "parameters": [
           {
             "name": "domain",
@@ -179583,11 +179583,11 @@
               "string",
               "null"
             ],
-            "description": "Required to enable. adsb: an http or https URL of the readsb aircraft.json on this host or the LAN (it must resolve to a loopback, private or unique-local address, and is pinned); no credentials, query or fragment (R2-019)"
+            "description": "Required to enable. adsb: an http or https URL of the readsb aircraft.json on this host or the LAN (it must resolve to a loopback, private or unique-local address, and is pinned); no credentials, query or fragment (R2-019). ais: the AIS decoder's NMEA feed, either tcp://host:port (its TCP server, for example AIS-catcher -S 5012; a loopback, private or unique-local address, pinned) or udp://bindHost:port (where this server listens for its datagrams, which needs config.allowSenders); the port is always explicit (R2-020)"
           },
           "config": {
             "type": "object",
-            "description": "Domain-specific settings (adsb: `band`, 1090 or 978, default 1090); an unknown member is a 400 (R2-019)",
+            "description": "Domain-specific settings; an unknown member is a 400 (R2-019). adsb: `band`, 1090 or 978, default 1090. ais (R2-020): `allowSenders`, a list of IPs or CIDRs in private space whose datagrams are read, required with a udp:// endpoint; `stationName`, the observer of every record, default `local`",
             "additionalProperties": true
           },
           "disableSupersededSources": {

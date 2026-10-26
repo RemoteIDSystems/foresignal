@@ -101,7 +101,18 @@ public class LocalAisAdapter implements StreamingAdapter {
      * @param codec the {@value AivdmSocketCodec#ID} codec
      */
     public LocalAisAdapter(int slot, AivdmSocketCodec codec) {
-        this.descriptor = buildDescriptor(slot);
+        this(buildDescriptor(slot), codec);
+    }
+
+    /**
+     * Creates an AIS-catcher read with its own descriptor (prompt R2-020: the AIS aggregator's
+     * {@code local-ais-aggregator}). The descriptor must declare this class's parameters.
+     *
+     * @param descriptor the source's descriptor
+     * @param codec the {@value AivdmSocketCodec#ID} codec
+     */
+    protected LocalAisAdapter(SourceDescriptor descriptor, AivdmSocketCodec codec) {
+        this.descriptor = Objects.requireNonNull(descriptor, "descriptor");
         this.codec = Objects.requireNonNull(codec, "codec");
     }
 

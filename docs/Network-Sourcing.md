@@ -23,8 +23,9 @@ egress rotation (C1) is the fallback** for what is left.
 | Outbound client | `collect/UpstreamClient.java`, `collect/BoundSourceHttp.java` | the one HTTP path for source requests (SRC-1) |
 | Egress routing (C1, R2-018) | `egress/` (`EgressRouter`, `RouteSelector`, `EgressBackoff`, `EgressHealthRegistry`, `EgressTunnel`, `EgressProbe`), `api/EgressController.java` | default `direct`: every request leaves from the host's own address until an operator turns rotation on |
 | readsb/tar1090 parser | `source/formats/readsb/ReadsbAircraftMapper.java` | parses the native `aircraft.json` format |
-| Aggregator surface (R2-019) | `source/aggregator/` (`AggregatorService`, `DomainAggregator`), `api/AggregatorsController.java` | one surface for every domain; `adsb` implemented |
+| Aggregator surface (R2-019) | `source/aggregator/` (`AggregatorService`, `DomainAggregator`), `api/AggregatorsController.java` | one surface for every domain; `adsb` and `ais` implemented |
 | Local ADS-B aggregator (C2, R2-019) | `source/aggregator/AdsbAggregator.java`, `source/adapters/local/LocalAdsbAggregatorAdapter.java`, the `readsb` compose profile | reads the operator's own readsb whole |
+| Local AIS aggregator (C2b, R2-020) | `source/aggregator/AisAggregator.java`, `source/adapters/ais/LocalAisAggregatorAdapter.java` | reads the operator's own AIS decoder's NMEA feed whole, over TCP or UDP |
 | Local receivers | prompt 069 | socket transport + codec SPI (readsb v2, Davis/Ecowitt, AIS-catcher, …) |
 
 ## C1. Egress routing & IP rotation (the fallback, R2-018)
@@ -235,6 +236,51 @@ The server reads the same file in every mode; `mode` records how the readsb is f
 defaults to the one its README recommends (`latest`); pin a digest with `READSB_IMAGE`. Its tar1090
 map is published on `127.0.0.1:8078`.
 
+## C2b. Local AIS aggregator (R2-020)
+
+AIS is the ADS-B twin: a distributed RF network the public sites merely aggregate. aisstream.io is a
+public mirror of the same AIVDM messages an AIS decoder of the operator's own produces, so Foresignal
+reads the decoder's NMEA feed whole from this host or the LAN, with the `aivdm` codec the
+`local-ais-{n}` slots already use (prompt 085).
+
+**The read.** `local-ais-aggregator` is a `LocalAisAdapter` with its own descriptor: the same decoding,
+station parameters, statistics (`messagesPerMin`, `distinctMmsi10m`, `lastMessageAt`, `vessels`) and
+`LOCAL_ONLY`, overridable egress. Its `endpoint` is either
+
+- **`tcp://host:port`** — the decoder's TCP server (AIS-catcher `-S <port>`, rtl-ais `-T`); a client
+  connection, receive-only, pinned to a loopback, private or unique-local address; or
+- **`udp://bindHost:port`** — where this server listens for the decoder's datagrams (AIS-catcher
+  `-u <host> <port>`; rtl-ais sends to `127.0.0.1:10110` by default). `config.allowSenders` is then
+  required: the IPs or CIDRs of the decoder hosts, private space only; any other sender's datagram is
+  dropped unread. A datagram may carry several NMEA lines.
+
+`PUT /v1/aggregators/ais` writes the endpoint, `config.allowSenders` and `config.stationName` (the
+observer of every record, default `local`) into the read, and turns it on while the aggregator is live
+and off otherwise. Its id carries the `local-ais-` prefix, so every derived vessel layer that reads
+`DerivedSources.VESSEL_PREFIXES` (`derived-ais-gap`, loitering, rendezvous, port calls, chokepoints, …)
+reads it like any local receiver.
+
+```
+PUT /v1/aggregators/ais
+{"enabled": true, "mode": "receiver", "endpoint": "tcp://ais-catcher:5012"}
+POST /v1/aggregators/ais/test         → {"ok": true, "reachable": true, "sampleCount": 37, …}
+```
+
+**Test.** `testAggregator` listens to the stored endpoint for 10 s through the probe service — the
+read's own socket path, budget and pinning — and reports the vessel records decoded (at most 100). A
+UDP port the live read already holds cannot be bound a second time, so a live UDP aggregator is
+reported from the read's statistics instead (`sampleCount` = distinct MMSIs in the last 10 minutes).
+
+- **`receiver`** — the decoder reads this host's or a LAN host's own SDR.
+- **`feed`** — the decoder aggregates NMEA feeds it is given (other stations, a feed partner).
+- **`hybrid`** — both. The server reads the same stream in every mode.
+
+**Superseded:** `aisstream`, the only public global-AIS mirror registered. **Not superseded:** the
+official regional feeds `ais-digitraffic` (Fintraffic) and `ais-kystverket` (Norwegian Coastal
+Administration) — authorities, not mirrors — the `local-ais-{n}` slots, and the maritime event sources
+(`gfw-events`, `nga-msi-warnings`, `imf-portwatch-*`), which are not AIS mirrors. Foresignal bundles no
+decoder (AIS-catcher is GPL-3.0); run it on the host or the LAN.
+
 ## C3. First-party aggregators across the RF / sensor domains (the mission)
 
 Each domain plugs its backend into the aggregator surface above (R2-020…R2-023 add no operations). The same move applies to every domain where the data rides a distributed sensor/RF network and the
@@ -245,7 +291,7 @@ rather than build:
 
 | Domain | First-party source | Public mirror → default-off | Existing plumbing |
 |---|---|---|---|
-| **AIS (ships)** — the ADS-B twin | own RF receiver (RTL-SDR + AIS) and/or aggregate the AIS feed | aisstream, maritime mirrors | `adapters/ais`, `aisstream`, `maritime` *(new build)* |
+| **AIS (ships)** — the ADS-B twin | own RF receiver (RTL-SDR + AIS) and/or aggregate the AIS feed | aisstream | **built in R2-020 (C2b)** |
 | **Aircraft datalink** — ACARS/VDL/HFDL | `adapters/acars/LocalAcarsAdapter` + acarsdec/dumpvdl2/dumphfdl | airframes.io | *(promote)* |
 | **APRS** | own igate via APRS-IS | APRS-IS public | `formats/aprs/`, `adapters/radio/` *(promote)* |
 | **Direct satellite reception** | GOES / weather sats off a dish | NOAA mirrors | `adapters/satdump/`, `contrib/satdump/` *(promote)* |
@@ -277,5 +323,5 @@ All four are registered in `docs/Invariants.md` with their tests:
 |---|---|
 | EGR-4 | Every outbound source request still passes through `UpstreamClient` with its budget, backoff and per-host pacer, whichever egress route carries it; `direct` routes nothing; `Retry-After` and pacing are per route; a pinned LAN host is never routed; with no usable route a pull fails rather than going direct (R2-018) |
 | EGR-5 | Egress route secrets are write-only: sealed with the instance key, never returned by the API and never logged (R2-018) |
-| EGR-6 | A first-party local aggregator's read is `LOCAL_ONLY` by descriptor like the receiver it reads; promoting a domain to first-party never relaxes its egress class (keeps EGR-2) (R2-019) |
+| EGR-6 | A first-party local aggregator's read is `LOCAL_ONLY` by descriptor like the receiver it reads; promoting a domain to first-party never relaxes its egress class (keeps EGR-2) (R2-019; `local-ais-aggregator` in R2-020) |
 | EGR-7 | Superseded public sources are turned off, never removed; while their aggregator is live, seeding and the bulk enables leave them off, and turning it off turns back on exactly those it turned off (keeps SRC-6) (R2-019) |

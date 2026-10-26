@@ -37,7 +37,7 @@ class AggregatorSurfaceIT extends AggregatorItSupport {
     }
 
     @Test
-    @DisplayName("the list has every domain, off and unconfigured, with adsb the only one implemented")
+    @DisplayName("the list has every domain, off and unconfigured, with adsb implemented")
     void listsEveryDomain() throws Exception {
         send(get("/v1/aggregators"), null)
                 .andExpect(status().isOk())
@@ -109,14 +109,15 @@ class AggregatorSurfaceIT extends AggregatorItSupport {
     @Test
     @DisplayName("a domain without a backend stores a disabled configuration but cannot be enabled")
     void pendingDomain() throws Exception {
-        send(put("/v1/aggregators/ais"), "{'enabled':false,'mode':'receiver','endpoint':'tcp://ais-catcher:10110',"
-                + "'config':{'note':'later'}}")
+        // ais has a backend since R2-020; ground-sensors has none until R2-023.
+        send(put("/v1/aggregators/ground-sensors"), "{'enabled':false,'mode':'receiver',"
+                + "'endpoint':'tcp://sensors:10110','config':{'note':'later'}}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.implemented").value(false))
                 .andExpect(jsonPath("$.mode").value("receiver"))
                 .andExpect(jsonPath("$.config.note").value("later"))
                 .andExpect(jsonPath("$.status").value("unconfigured"));
-        send(put("/v1/aggregators/ais"), "{'enabled':true}")
+        send(put("/v1/aggregators/ground-sensors"), "{'enabled':true}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field").value("enabled"));
     }
