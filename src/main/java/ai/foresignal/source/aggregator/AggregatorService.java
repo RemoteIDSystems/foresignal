@@ -41,10 +41,11 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code disableSupersededSources} is set to false, exactly those sources are turned back on. The sources stay
  * registered throughout, and an operator may turn any of them on by hand.
  *
- * <p><strong>Status</strong> comes from the health of the domain's main source: {@code ok} when healthy,
- * {@code degraded} when degraded or not yet run, {@code down} when failing; {@code unconfigured} when the aggregator is
- * not live. A live aggregator whose source becomes {@code failing} raises {@code system.aggregator_down} once, and
- * {@code system.aggregator_recovered} when it is healthy again.
+ * <p><strong>Status</strong> comes from the health of the first of the domain's sources that is enabled
+ * ({@link #statusSource}): {@code ok} when healthy, {@code degraded} when degraded or not yet run, {@code down} when
+ * failing; {@code unconfigured} when the aggregator is not live. A live aggregator any of whose sources becomes
+ * {@code failing} raises {@code system.aggregator_down} once, and {@code system.aggregator_recovered} when that source
+ * is healthy again and no other enabled one is failing (prompt R2-021).
  */
 @Service
 public class AggregatorService implements SupersededSources {
@@ -212,11 +213,15 @@ public class AggregatorService implements SupersededSources {
         return false;
     }
 
-    /** Raises or clears {@code system.aggregator_down} when a live aggregator's main source changes health. */
+    /**
+     * Raises or clears {@code system.aggregator_down} when one of a live aggregator's sources changes health. It is
+     * raised when any of them starts failing, and cleared when one turns healthy and none of its other enabled sources
+     * is failing (prompt R2-021: a domain such as {@code datalink} reads through more than one source).
+     */
     @EventListener
     public void onSourceHealthChanged(SourceHealthChangedEvent event) {
         for (DomainAggregator aggregator : aggregators.values()) {
-            if (aggregator.sourceIds().isEmpty() || !aggregator.sourceIds().getFirst().equals(event.sourceId())) {
+            if (!aggregator.sourceIds().contains(event.sourceId())) {
                 continue;
             }
             if (!settings(aggregator.domain()).live()) {
@@ -224,10 +229,37 @@ public class AggregatorService implements SupersededSources {
             }
             if (event.current() == HealthStatus.FAILING) {
                 report(aggregator, "warn", event.reason());
-            } else if (event.current() == HealthStatus.HEALTHY) {
+            } else if (event.current() == HealthStatus.HEALTHY && !otherFailing(aggregator, event.sourceId())) {
                 report(aggregator, "ok", null);
             }
         }
+    }
+
+    /** Whether an enabled source of {@code aggregator} other than {@code sourceId} is failing. */
+    private boolean otherFailing(DomainAggregator aggregator, String sourceId) {
+        for (String id : aggregator.sourceIds()) {
+            if (id.equals(sourceId)) {
+                continue;
+            }
+            SourceView view = sources.view(id);
+            if (view.enabled() && view.health().status() == HealthStatus.FAILING) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The source whose health is the aggregator's {@code status}: the first of its sources that is enabled, else the
+     * first (prompt R2-021: a domain reading through several sources may use only some of them).
+     */
+    String statusSource(DomainAggregator aggregator) {
+        for (String id : aggregator.sourceIds()) {
+            if (sources.view(id).enabled()) {
+                return id;
+            }
+        }
+        return aggregator.sourceIds().getFirst();
     }
 
     private void report(DomainAggregator aggregator, String level, String reason) {
@@ -276,7 +308,7 @@ public class AggregatorService implements SupersededSources {
                 : "this server has no " + aggregator.name() + " backend yet";
         Instant lastSeen = null;
         if (!aggregator.sourceIds().isEmpty()) {
-            SourceHealthSummary health = sources.view(aggregator.sourceIds().getFirst()).health();
+            SourceHealthSummary health = sources.view(statusSource(aggregator)).health();
             lastSeen = health.lastDataAt() != null ? health.lastDataAt() : health.lastSuccessAt();
             if (current.live()) {
                 status = switch (health.status()) {

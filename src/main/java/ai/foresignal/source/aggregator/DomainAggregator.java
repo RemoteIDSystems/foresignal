@@ -22,7 +22,10 @@ public interface DomainAggregator {
         return true;
     }
 
-    /** The first-party sources the aggregator drives, whose health is its status; the first is the main one. */
+    /**
+     * The first-party sources the aggregator drives, in order of preference: the first of them that is enabled gives
+     * the aggregator its status, and any of them failing raises {@code system.aggregator_down} (prompt R2-021).
+     */
     List<String> sourceIds();
 
     /** The registered public/mirror sources it supersedes, sorted; they stay in the catalog. */

@@ -61,8 +61,8 @@ class AdapterInventoryTest {
             "cctv-warendorf", "feed-cisa-advisories", "feed-ecdc-threats", "feed-ncsc-uk",
             "feed-nhc-atlantic", "feed-nhc-eastpacific", "feed-who-news", "local-acars-1",
             "local-acars-2", "local-adsb-1", "local-adsb-2", "local-ais-1",
-            // Prompts R2-019 and R2-020: the aggregators' reads parse exactly as their local-adsb-/local-ais- slots.
-            "local-adsb-aggregator", "local-ais-aggregator",
+            // Prompts R2-019 to R2-021: the aggregators' reads parse exactly as their local- slots.
+            "local-acars-aggregator", "local-adsb-aggregator", "local-ais-aggregator", "local-aprs-aggregator",
             "local-ais-2", "local-gpsd-1", "local-gpsd-2", "local-remoteid",
             "local-sbs-1", "local-sbs-2", "meteoalarm-andorra", "meteoalarm-austria",
             "meteoalarm-belgium", "meteoalarm-bosnia-herzegovina", "meteoalarm-bulgaria", "meteoalarm-croatia",

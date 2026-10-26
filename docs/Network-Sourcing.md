@@ -23,9 +23,10 @@ egress rotation (C1) is the fallback** for what is left.
 | Outbound client | `collect/UpstreamClient.java`, `collect/BoundSourceHttp.java` | the one HTTP path for source requests (SRC-1) |
 | Egress routing (C1, R2-018) | `egress/` (`EgressRouter`, `RouteSelector`, `EgressBackoff`, `EgressHealthRegistry`, `EgressTunnel`, `EgressProbe`), `api/EgressController.java` | default `direct`: every request leaves from the host's own address until an operator turns rotation on |
 | readsb/tar1090 parser | `source/formats/readsb/ReadsbAircraftMapper.java` | parses the native `aircraft.json` format |
-| Aggregator surface (R2-019) | `source/aggregator/` (`AggregatorService`, `DomainAggregator`), `api/AggregatorsController.java` | one surface for every domain; `adsb` and `ais` implemented |
+| Aggregator surface (R2-019) | `source/aggregator/` (`AggregatorService`, `DomainAggregator`), `api/AggregatorsController.java` | one surface for every domain; `adsb`, `ais` and `datalink` implemented |
 | Local ADS-B aggregator (C2, R2-019) | `source/aggregator/AdsbAggregator.java`, `source/adapters/local/LocalAdsbAggregatorAdapter.java`, the `readsb` compose profile | reads the operator's own readsb whole |
 | Local AIS aggregator (C2b, R2-020) | `source/aggregator/AisAggregator.java`, `source/adapters/ais/LocalAisAggregatorAdapter.java` | reads the operator's own AIS decoder's NMEA feed whole, over TCP or UDP |
+| Local datalink aggregator (C2c, R2-021) | `source/aggregator/DatalinkAggregator.java`, `source/adapters/acars/LocalAcarsAggregatorAdapter.java`, `source/adapters/radio/LocalAprsAggregatorAdapter.java` | reads the operator's own acars_router and igate TNC |
 | Local receivers | prompt 069 | socket transport + codec SPI (readsb v2, Davis/Ecowitt, AIS-catcher, …) |
 
 ## C1. Egress routing & IP rotation (the fallback, R2-018)
@@ -164,8 +165,8 @@ Every RF/sensor domain gets one **first-party aggregator**, configured through o
 `disableSupersededSources` (default true). A PUT replaces it whole.
 
 Behind the surface is one `DomainAggregator` per domain (`ai.foresignal.source.aggregator`). It names
-the first-party sources it drives (the first one's health is the aggregator's `status`: `ok`,
-`degraded`, `down`, or `unconfigured` when it is not enabled with an endpoint), the public sources it
+the first-party sources it drives (the health of the first of them that is enabled is the aggregator's
+`status`: `ok`, `degraded`, `down`, or `unconfigured` when it is not enabled with an endpoint), the public sources it
 supersedes, how a configuration is validated and applied, and how its endpoint is tested. A domain
 whose backend this server does not have yet reads `implemented: false`; its configuration can be
 stored, but only disabled.
@@ -176,7 +177,8 @@ While it stays live, seeding never enables them and `enable-core`/`enable-free` 
 registered and in the catalog, and an operator may still turn one on by hand. When the aggregator
 stops being live, or `disableSupersededSources` is set to false, exactly the sources it turned off
 are turned back on. A live aggregator whose source starts failing raises `system.aggregator_down`
-once, and `system.aggregator_recovered` when it is healthy again.
+once, and `system.aggregator_recovered` when it is healthy again and none of its other enabled sources
+is failing (since R2-021, any of a domain's sources counts, not only the first).
 
 ## C2. Local ADS-B aggregator (the durable fix for ADS-B, R2-019)
 
@@ -281,6 +283,39 @@ Administration) — authorities, not mirrors — the `local-ais-{n}` slots, and 
 (`gfw-events`, `nga-msi-warnings`, `imf-portwatch-*`), which are not AIS mirrors. Foresignal bundles no
 decoder (AIS-catcher is GPL-3.0); run it on the host or the LAN.
 
+## C2c. Local datalink aggregator (R2-021)
+
+Aircraft datalink (ACARS, VDL Mode 2, HFDL) and APRS both ride distributed RF networks whose public
+sites aggregate what stations like the operator's hear. The `datalink` aggregator reads the operator's
+own decoders through two reads, each a slot adapter with its own descriptor:
+
+| Read | Decoder | Like |
+|---|---|---|
+| `local-acars-aggregator` | acars_router's TCP servers, fed by acarsdec, dumpvdl2 and dumphfdl (acars_router's defaults 15550, 15555, 15556) | `local-acars-{n}`: metadata only, message text never stored; private by descriptor; `LOCAL_ONLY`, **not** overridable |
+| `local-aprs-aggregator` | the igate's TNC, KISS over TCP (Direwolf's `KISSPORT`, conventionally 8001) | `local-aprs-{n}`: provably receive-only; registers packets so `aprs-is` drops its igated copy; `LOCAL_ONLY`, overridable |
+
+`endpoint` is the decoder host, `tcp://host` with no port. `config` selects the decoders: `acars`,
+`vdlm2`, `hfdl` and `aprs`, each a port on that host or a whole `tcp://host:port` on another, plus
+`stationId` (the ACARS observer), `stationCallsign` (the APRS observer) and `includeMessages`. No port
+is assumed. Enabling needs at least one decoder. Each read is turned on while the aggregator is live
+with one of its decoders selected, and off otherwise; its endpoints are checked and pinned like every
+`LAN_URL`.
+
+```
+PUT /v1/aggregators/datalink
+{"enabled": true, "mode": "receiver", "endpoint": "tcp://acars-router",
+ "config": {"acars": 15550, "vdlm2": 15555, "aprs": "tcp://192.168.1.20:8001", "stationCallsign": "N0CALL-10"}}
+POST /v1/aggregators/datalink/test    → {"ok": true, "reachable": true, "sampleCount": 12, …}
+```
+
+**Test.** `testAggregator` listens to every selected read at once for 10 s through the probe service
+and sums the messages decoded. Datalink traffic is sparse: a quiet sky reads `reachable: true,
+ok: false`.
+
+**Superseded:** `aprs-is`, the public APRS-IS network. **airframes.io** is the public ACARS/VDL/HFDL
+aggregator, but no airframes.io source is registered, so nothing is superseded for ACARS, VDL Mode 2
+and HFDL.
+
 ## C3. First-party aggregators across the RF / sensor domains (the mission)
 
 Each domain plugs its backend into the aggregator surface above (R2-020…R2-023 add no operations). The same move applies to every domain where the data rides a distributed sensor/RF network and the
@@ -292,8 +327,8 @@ rather than build:
 | Domain | First-party source | Public mirror → default-off | Existing plumbing |
 |---|---|---|---|
 | **AIS (ships)** — the ADS-B twin | own RF receiver (RTL-SDR + AIS) and/or aggregate the AIS feed | aisstream | **built in R2-020 (C2b)** |
-| **Aircraft datalink** — ACARS/VDL/HFDL | `adapters/acars/LocalAcarsAdapter` + acarsdec/dumpvdl2/dumphfdl | airframes.io | *(promote)* |
-| **APRS** | own igate via APRS-IS | APRS-IS public | `formats/aprs/`, `adapters/radio/` *(promote)* |
+| **Aircraft datalink** — ACARS/VDL/HFDL | `adapters/acars/LocalAcarsAdapter` + acarsdec/dumpvdl2/dumphfdl | airframes.io (no source registered) | **built in R2-021 (C2c)** |
+| **APRS** | own igate's TNC | APRS-IS public (`aprs-is`) | **built in R2-021 (C2c)** |
 | **Direct satellite reception** | GOES / weather sats off a dish | NOAA mirrors | `adapters/satdump/`, `contrib/satdump/` *(promote)* |
 | **Seismic** | Raspberry Shake | — | `contrib/rsudp/` *(promote)* |
 | **Weather-radio alerts** | SAME/EAS | — | `contrib/same/` *(promote)* |
@@ -323,5 +358,5 @@ All four are registered in `docs/Invariants.md` with their tests:
 |---|---|
 | EGR-4 | Every outbound source request still passes through `UpstreamClient` with its budget, backoff and per-host pacer, whichever egress route carries it; `direct` routes nothing; `Retry-After` and pacing are per route; a pinned LAN host is never routed; with no usable route a pull fails rather than going direct (R2-018) |
 | EGR-5 | Egress route secrets are write-only: sealed with the instance key, never returned by the API and never logged (R2-018) |
-| EGR-6 | A first-party local aggregator's read is `LOCAL_ONLY` by descriptor like the receiver it reads; promoting a domain to first-party never relaxes its egress class (keeps EGR-2) (R2-019; `local-ais-aggregator` in R2-020) |
+| EGR-6 | A first-party local aggregator's read is `LOCAL_ONLY` by descriptor like the receiver it reads; promoting a domain to first-party never relaxes its egress class (keeps EGR-2) (R2-019; `local-ais-aggregator` in R2-020; `local-acars-aggregator`, `local-aprs-aggregator` in R2-021) |
 | EGR-7 | Superseded public sources are turned off, never removed; while their aggregator is live, seeding and the bulk enables leave them off, and turning it off turns back on exactly those it turned off (keeps SRC-6) (R2-019) |

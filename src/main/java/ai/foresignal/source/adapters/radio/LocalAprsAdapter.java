@@ -86,7 +86,21 @@ public class LocalAprsAdapter implements StreamingAdapter {
      * @param meters supplies the meter registry, or null
      */
     public LocalAprsAdapter(int slot, KissAx25Codec codec, AprsPacketDedup dedup, Supplier<MeterRegistry> meters) {
-        this.descriptor = buildDescriptor(slot);
+        this(buildDescriptor(slot), codec, dedup, meters);
+    }
+
+    /**
+     * Creates a KISS TNC read with its own descriptor (prompt R2-021: the datalink aggregator's
+     * {@code local-aprs-aggregator}). The descriptor must come from {@link #describe}.
+     *
+     * @param descriptor the source's descriptor
+     * @param codec the {@value KissAx25Codec#ID} codec
+     * @param dedup the shared filter every packet is registered with
+     * @param meters supplies the meter registry, or null
+     */
+    protected LocalAprsAdapter(SourceDescriptor descriptor, KissAx25Codec codec, AprsPacketDedup dedup,
+            Supplier<MeterRegistry> meters) {
+        this.descriptor = Objects.requireNonNull(descriptor, "descriptor");
         this.codec = Objects.requireNonNull(codec, "codec");
         this.dedup = dedup;
         this.meters = meters == null ? () -> null : meters;
@@ -167,15 +181,29 @@ public class LocalAprsAdapter implements StreamingAdapter {
     }
 
     private static SourceDescriptor buildDescriptor(int slot) {
-        SourceDescriptor.Builder b = SourceDescriptor.builder(ID_PREFIX + slot)
-                .name("Local APRS (KISS TNC) " + slot)
-                .description("APRS heard on RF by the operator's own TNC (for example Direwolf's KISSPORT), read as"
-                        + " KISS over TCP from a tcp://host:port on the operator's network. Provably receive-only:"
-                        + " nothing is ever written to the socket, no KISS command is sent and Foresignal never"
-                        + " igates. Frames that are not AX.25 UI (a MeshCore KISS modem, for example) are counted"
-                        + " and dropped. stationCallsign names the observer. Same records as aprs-is; aprs-is drops"
-                        + " its copy of a packet heard here first. Disabled by default; egress LOCAL_ONLY (the"
-                        + " operator may set it to OPEN).")
+        return describe(ID_PREFIX + slot, "Local APRS (KISS TNC) " + slot, "APRS heard on RF by the operator's own"
+                + " TNC (for example Direwolf's KISSPORT), read as"
+                + " KISS over TCP from a tcp://host:port on the operator's network. Provably receive-only:"
+                + " nothing is ever written to the socket, no KISS command is sent and Foresignal never"
+                + " igates. Frames that are not AX.25 UI (a MeshCore KISS modem, for example) are counted"
+                + " and dropped. stationCallsign names the observer. Same records as aprs-is; aprs-is drops"
+                + " its copy of a packet heard here first. Disabled by default; egress LOCAL_ONLY (the"
+                + " operator may set it to OPEN).");
+    }
+
+    /**
+     * The descriptor of a KISS TNC read: the slots' parameters, fields, retention and overridable {@code LOCAL_ONLY}
+     * egress under {@code id} (prompt R2-021 shares it with {@code local-aprs-aggregator}).
+     *
+     * @param id the source id
+     * @param name the display name
+     * @param description the description
+     * @return the descriptor
+     */
+    protected static SourceDescriptor describe(String id, String name, String description) {
+        SourceDescriptor.Builder b = SourceDescriptor.builder(id)
+                .name(name)
+                .description(description)
                 .kinds(AprsRecords.STATION_KIND, AprsRecords.MESSAGE_KIND)
                 .homepage("https://github.com/wb2osz/direwolf")
                 .attribution("The operator's own APRS receiver")

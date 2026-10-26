@@ -96,7 +96,18 @@ public class LocalAcarsAdapter implements StreamingAdapter {
      * @param codec the {@value AcarsJsonCodec#ID} codec
      */
     public LocalAcarsAdapter(int slot, AcarsJsonCodec codec) {
-        this.descriptor = buildDescriptor(slot);
+        this(buildDescriptor(slot), codec);
+    }
+
+    /**
+     * Creates an acars_router read with its own descriptor (prompt R2-021: the datalink aggregator's
+     * {@code local-acars-aggregator}). The descriptor must come from {@link #describe}.
+     *
+     * @param descriptor the source's descriptor
+     * @param codec the {@value AcarsJsonCodec#ID} codec
+     */
+    protected LocalAcarsAdapter(SourceDescriptor descriptor, AcarsJsonCodec codec) {
+        this.descriptor = Objects.requireNonNull(descriptor, "descriptor");
         this.codec = Objects.requireNonNull(codec, "codec");
     }
 
@@ -210,22 +221,37 @@ public class LocalAcarsAdapter implements StreamingAdapter {
     }
 
     private static SourceDescriptor buildDescriptor(int slot) {
+        return describe(ID_PREFIX + slot, "Local aviation datalink (acars_router) " + slot, "ACARS, VDL Mode 2 and HFDL"
+                + " message metadata from the operator's own acars_router TCP servers (its defaults are 15550, 15555"
+                + " and 15556; the ports are always explicit)."
+                + " Metadata only: message text is never stored, logged, embedded or forwarded, because"
+                + " interception-disclosure laws (18 U.S.C. §2511, UK Wireless Telegraphy Act 2006 s.48) forbid"
+                + " redistributing it. Private by descriptor: never served anonymously, tiled, embedded, sent to"
+                + " an LLM or forwarded to a sink. Receive-only. Disabled by default; egress LOCAL_ONLY, not"
+                + " overridable.", Budget.of(6, 600));
+    }
+
+    /**
+     * The descriptor of an acars_router read: the slots' parameters, fields, privacy and fixed {@code LOCAL_ONLY}
+     * egress under {@code id} (prompt R2-021 shares it with {@code local-acars-aggregator}).
+     *
+     * @param id the source id
+     * @param name the display name
+     * @param description the description
+     * @param budget the default budget
+     * @return the descriptor
+     */
+    protected static SourceDescriptor describe(String id, String name, String description, Budget budget) {
         String kind = AcarsMetadataMapper.KIND;
-        SourceDescriptor.Builder b = SourceDescriptor.builder(ID_PREFIX + slot)
-                .name("Local aviation datalink (acars_router) " + slot)
-                .description("ACARS, VDL Mode 2 and HFDL message metadata from the operator's own acars_router TCP"
-                        + " servers (its defaults are 15550, 15555 and 15556; the ports are always explicit)."
-                        + " Metadata only: message text is never stored, logged, embedded or forwarded, because"
-                        + " interception-disclosure laws (18 U.S.C. §2511, UK Wireless Telegraphy Act 2006 s.48) forbid"
-                        + " redistributing it. Private by descriptor: never served anonymously, tiled, embedded, sent to"
-                        + " an LLM or forwarded to a sink. Receive-only. Disabled by default; egress LOCAL_ONLY, not"
-                        + " overridable.")
+        SourceDescriptor.Builder b = SourceDescriptor.builder(id)
+                .name(name)
+                .description(description)
                 .kind(kind)
                 .mode(Mode.STREAMING)
                 .homepage("https://github.com/sdr-enthusiasts/acars_router")
                 .attribution("The operator's own aviation datalink receivers")
                 .licence("Operator's own data (no upstream license)")
-                .defaultBudget(Budget.of(6, 600))
+                .defaultBudget(budget)
                 .reconnect(RECONNECT)
                 .historyTier(HistoryTier.STANDARD)
                 .observedAtMode(ObservedAtMode.UPSTREAM)

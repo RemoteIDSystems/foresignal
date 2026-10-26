@@ -1122,9 +1122,9 @@ Rotation does not get around a provider's limits: each route still paces each ho
 
 Where a feed is a network of receivers that public sites only mirror, read your own copy instead:
 `GET /v1/aggregators` lists one aggregator per domain (`adsb`, `ais`, `datalink`, `satellite`,
-`ground-sensors`), with its status and the public sources it supersedes. `adsb` (R2-019) and `ais`
-(R2-020) are implemented; a domain without a backend lists as `implemented: false` and cannot be
-enabled yet. The design is in
+`ground-sensors`), with its status and the public sources it supersedes. `adsb` (R2-019), `ais`
+(R2-020) and `datalink` (R2-021) are implemented; a domain without a backend lists as
+`implemented: false` and cannot be enabled yet. The design is in
 [Network-Sourcing.md](Network-Sourcing.md).
 
 **Local ADS-B.** Start a readsb — the opt-in compose profile pulls the sdr-enthusiasts ultrafeeder
@@ -1166,6 +1166,22 @@ The vessels then come from the source `local-ais-aggregator`, and while the aggr
 `aisstream` is turned off and stays off, on the same terms as the ADS-B mirrors. The official regional
 feeds `ais-digitraffic` and `ais-kystverket` are never touched. The test listens for 10 s and reports
 the vessel records decoded.
+
+**Local datalink (R2-021).** Point the `datalink` aggregator at the host running your acars_router
+(fed by acarsdec, dumpvdl2 or dumphfdl) and select the decoders by port; an igate TNC elsewhere is
+given whole:
+
+```
+PUT  /v1/aggregators/datalink   {"enabled": true, "endpoint": "tcp://acars-router",
+                                 "config": {"acars": 15550, "vdlm2": 15555,
+                                            "aprs": "tcp://192.168.1.20:8001", "stationCallsign": "N0CALL-10"}}
+POST /v1/aggregators/datalink/test
+```
+
+ACARS, VDL Mode 2 and HFDL then come from `local-acars-aggregator` (metadata only, private, never
+shared) and APRS from `local-aprs-aggregator`. While the aggregator is live, `aprs-is` is turned off and
+stays off, on the same terms as the ADS-B mirrors. The test listens for 10 s; datalink is sparse, so a
+quiet sky reads reachable but not ok.
 
 ## Triggers and alerts
 
