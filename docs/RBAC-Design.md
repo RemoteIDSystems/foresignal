@@ -1,7 +1,7 @@
 # Identity & RBAC design
 
 How Foresignal becomes multi-user: identity, authentication, roles and permissions, and per-user
-configuration over a shared collection. This is the design the Release 2 prompts (backend 164–176)
+configuration over a shared collection. This is the design the Release 2 prompts (`prompts/R2-*.md`)
 build to; `docs/OpenAPI.json` (API **2.0.0**) is the contract, and the code is what is true — where
 this page and the code disagree, the code wins and this page is wrong.
 
@@ -9,9 +9,9 @@ The dividing line: **collected data and the collector stay global; who may see a
 becomes per-user.** One instance, one database, one paced collector — many accounts, each with its
 own view, alerts, channels, LLM budget, saved views and preferences layered on top.
 
-## What exists today (verified 2026-10-26)
+## What exists today (verified 2026-10-26, after R2-001)
 
-Identity today is **capability-scoped tokens only**, not accounts.
+Before Release 2, identity was **capability-scoped tokens only**, not accounts.
 
 | Thing | Where | Shape |
 |---|---|---|
@@ -21,8 +21,9 @@ Identity today is **capability-scoped tokens only**, not accounts.
 | Bootstrap admin | `security/AdminTokenService.java` | one rotatable break-glass admin token, hash-stored, printed once |
 | Global config | `store/SourceSettingsEntity.java`, `store/TriggerRuleEntity.java`, `llm/LlmProviderEntity.java` | **no owner column** — settings are instance-wide |
 | Owner-scoped data | `workspace`, `shareable_object`, `relation`, `chronicle_*`, `principal` | already carries an owner (the 129/130 collaboration layer) |
+| **Identity model (R2-001)** | `security/user/*`, `V14__identity_model.sql` | `user`, `role`, `permission`, `user_role`, `role_permission`, `user_token`; catalog and built-in roles seeded; **no user row, no API change yet** |
 
-So two owner concepts already live in the schema: scoped **tokens** (machine identity) and
+So two owner concepts already lived in the schema: scoped **tokens** (machine identity) and
 collaboration **principals** (`Principal` schema: id, handle, displayName, kind `person`/`agent`/`service`).
 RBAC adds a third, the **human account** (`user`), and ties the three together: a user authenticates,
 holds roles, owns a principal for collaboration, and may mint scoped tokens for its machines.
@@ -30,54 +31,72 @@ holds roles, owns a principal for collaboration, and may mint scoped tokens for 
 Email/SMTP delivery (the channel subsystem) and the USD LLM budget (the 1.5.0 provider work) already
 exist and are reused rather than rebuilt.
 
-## A. Identity model
+## A. Identity model (built: R2-001)
 
-New tables, all additive (Flyway, numbered from the next free version — the latest applied migration
-is `src/main/resources/db/migration/V9__source_monthly_cap.sql`):
+Package `ai.foresignal.security.user`; migration `src/main/resources/db/migration/V14__identity_model.sql`.
+All additive. `"user"` and `"group"` are PostgreSQL reserved words and are quoted in SQL (backticks in the JPA
+mappings).
 
-| Table | Columns (essential) | Notes |
+| Table | Columns | Notes |
 |---|---|---|
-| `user` | `id` (uuid), `email` (unique, normalized), `full_name`, `password_hash`, `status`, `created_by`, `created_at`, `updated_at`, `last_login_at`, `mfa_enabled` | email is the primary identity; `password_hash` is argon2id |
-| `role` | `id`, `name`, `description`, `built_in` | Admin/Operator/Editor/Viewer/Auditor are `built_in` and undeletable |
-| `permission` | `key`, `group`, `description` | fixed catalog, seeded; not operator-editable |
-| `user_role` | `user_id`, `role_id` | many-to-many; a user may hold several roles |
-| `role_permission` | `role_id`, `permission_key` | many-to-many |
-| `user_token` | `id`, `user_id`, `token_hash`, `purpose`, `expires_at`, `used_at` | single-use, expiring activation/reset tokens (hashed) |
-| `user_session` | `id`, `user_id`, `token_hash`, `created_at`, `last_seen_at`, `expires_at`, `idle_expires_at`, `user_agent`, `ip_address`, `revoked_at` | the login session bearer (`fss_…`), hashed |
+| `"user"` (`UserEntity`) | `id uuid`, `email varchar(320)` unique, `full_name`, `password_hash` (null until activation), `status` (default `invited`), `principal_id varchar(26)` → `principal`, `mfa_enabled` (default false), `created_by uuid` (null for the bootstrap first admin), `created_at`, `updated_at`, `last_login_at` | The baseline enables no `citext`, so `UserEntity.normalizeEmail` trims and lower-cases and the unique constraint is on the stored value |
+| `role` (`RoleEntity`) | `id uuid`, `name` unique, `description`, `built_in`, `created_at`, `updated_at` | The five built-ins have stable ids `00000000-0000-4000-8000-00000000000{1..5}` |
+| `permission` (`PermissionEntity`) | `key` (pk), `"group"`, `description` | Fixed catalog, seeded, read-only at runtime (no setters; nothing inserts) |
+| `user_role` (`UserRoleEntity`) | `user_id`, `role_id` (pk both) | cascades on user and role delete; index on `role_id` |
+| `role_permission` (`RolePermissionEntity`) | `role_id`, `permission_key` (pk both) | cascades on role delete; `permission_key` → `permission` |
+| `user_token` (`UserTokenEntity`) | `id`, `user_id` → `"user"` (cascade), `kind` (`activation`/`reset`), `token_hash varchar(64)`, `token_prefix varchar(8)`, `created_at`, `expires_at`, `consumed_at`, `created_by` | SHA-256 hex only (same form as `api_token.token_hash`), never the plaintext; indexes `(token_hash)`, `(user_id, kind)` |
+| `user_session` | (R2-003) | the login session bearer (`fss_…`), hashed |
 
-`user.status` is an extensible enum (`User.status` in the contract): **`invited`** (created, not yet
-activated) → **`active`** → **`suspended`** (login blocked, sessions revoked, config retained) /
-**`disabled`**. The schema is the `User`, `Role`, `Permission` and `Session` schemas in `OpenAPI.json`;
-their exact field names (`fullName`, `builtIn`, `roles[].`, `lastLoginAt`, `mfaEnabled`) are the API
-surface and must not drift.
+Decisions recorded:
 
-## B. Permission catalog and built-in roles
+- **User ↔ principal.** Every user owns exactly one `principal` of kind `person` (the existing kind), stored as
+  `user.principal_id`. Annotations, workspaces, sharing and audit keep referring to principals; a session
+  (R2-003) resolves to that principal the way a token does.
+- **Ids.** `user`, `role` and `user_token` use `uuid`, as the `User`/`Role` contract schemas declare and as
+  `api_token` already does; the principal keeps its ULID.
+- **Links are explicit entities with an `@IdClass`**, the way every other composite-key table in this codebase is
+  mapped (`NotificationReadEntity`, `RasterFrameEntity`, …); there is no `@ManyToMany` anywhere.
+- **No user row is created.** An instance with no users keeps working on the bootstrap admin token; first-admin
+  seeding is R2-013/R2-027.
 
-**Effective permissions = the union of the user's roles.** The catalog (`GET /v1/permissions` →
-`Permission[]`), grouped:
+`user.status` is an extensible enum (`UserStatus`): **`invited`** (created, not yet activated) → **`active`** →
+**`suspended`** (login blocked, sessions revoked, config retained) / **`disabled`**. The contract shapes are `User`,
+`Role`, `Permission` and `Session` in `OpenAPI.json`; their field names (`fullName`, `builtIn`, `roles[]`,
+`lastLoginAt`, `mfaEnabled`) are the API surface and must not drift.
+
+## B. Permission catalog and built-in roles (built: R2-001)
+
+**Effective permissions = the union of the user's roles.** The catalog is `ai.foresignal.security.user.Permissions`
+(Java) and the seeded `permission` rows (SQL); `PermissionCatalogMigrationIT` fails when they differ. Wire groups are
+`identity`, `platform`, `self`, `data` (`Permission.group`).
 
 | Group | Keys |
 |---|---|
-| Identity | `users.manage`, `roles.manage` |
-| Platform / global | `system.settings`, `collection.manage`, `collector.settings`, `llm.shared.manage`, `channels.global`, `storage.manage`, `network.manage`, `audit.read` |
-| Self-service | `self.sources`, `self.alerts`, `self.channels`, `self.llm`, `self.views`, `self.preferences`, `self.workspaces` |
-| Data | `data.read`, `data.export`, `intel.read`, `forecast.read` |
+| `identity` | `users.manage`, `roles.manage` |
+| `platform` | `system.settings`, `collection.manage`, `collector.settings`, `llm.shared.manage`, `channels.global`, `storage.manage`, `network.manage`, `audit.read` |
+| `self` | `self.sources`, `self.alerts`, `self.channels`, `self.llm`, `self.views`, `self.preferences`, `self.workspaces` |
+| `data` | `data.read`, `data.export`, `intel.read`, `forecast.read` |
 
-Built-in roles (seeded; `built_in = true`, undeletable, permission set fixed):
+Built-in roles as seeded (`BuiltInRole`; `built_in = true`, undeletable, permission set fixed — R2-006 enforces):
 
-| Role | Holds |
-|---|---|
-| **Admin** | every permission |
-| **Operator** | all Platform/global + all Data + all Self-service; **not** `users.manage`, `roles.manage` |
-| **Editor** | all Self-service + all Data |
-| **Viewer** | `data.read`, `intel.read`, `forecast.read`, `self.views`, `self.preferences` — truly read-only |
-| **Auditor** | `audit.read`, `data.read`, `self.preferences` |
+| Role | Holds | Count |
+|---|---|---|
+| **Admin** | every permission | 21 |
+| **Operator** | all `platform` + all `data`; **not** `users.manage`, `roles.manage` | 12 |
+| **Editor** | all `self` + all `data` | 11 |
+| **Viewer** | `data.read`, `self.views`, `self.preferences` | 3 |
+| **Auditor** | `audit.read`, `data.read` | 2 |
 
-Design decisions locked (owner, 2026-10-25): **Viewer is truly read-only** — self-service alerts and
-channels start at Editor. A **custom role** is a named subset of the same catalog (`POST /v1/roles`,
-`RoleInput` = name + description + permission keys); built-ins cannot be edited or deleted, custom
-roles can. `MFA` is optional for all and **required for Admin/Operator** (`MfaStatus.required` is true
-when a held role requires it).
+**Open question for the owner.** The seeded matrix follows `prompts/R2-001-Identity-Model.md`. The earlier version of
+this page (2026-10-26 planner commit `5b38a9f2`) gave a different matrix: Operator also held all `self` permissions,
+Viewer also held `intel.read` and `forecast.read`, and Auditor also held `self.preferences`. The two disagree; which
+one is right is the owner's call. Changing the seed is one new migration plus `BuiltInRole`; the guard test keeps the
+two in step.
+
+Design decisions (owner, 2026-10-25): **Viewer is read-only** — self-service alerts and channels start at Editor. A
+**custom role** is a named subset of the same catalog (`POST /v1/roles`, `RoleInput` = name + description +
+permission keys); built-ins cannot be edited or deleted, custom roles can. `MFA` is optional for all and **required
+for Admin/Operator** (`MfaStatus.required` is true when a held role requires it).
 
 Every authenticated user manages their **own** profile and preferences regardless of role; the
 Self-service permissions gate whether a user may own *configuration* (sources view, alerts, channels,

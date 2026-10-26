@@ -27,6 +27,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * <p>The {@link AppSettingService} cache is invalidated too: it is an in-memory copy of
  * {@code app_setting} rows that the truncate removes, and a setting a previous test wrote (for
  * example {@code security.openReads}) would otherwise leak into the next test in a shared context.
+ *
+ * <p>The identity catalog seeded by {@code V14__identity_model.sql} (prompt R2-001) is reference data, like the
+ * migrations' own rows, and is kept: {@code permission}, {@code role} and {@code role_permission} are not truncated.
+ * Instead every custom role a test created is deleted (its {@code role_permission} rows cascade), leaving exactly the
+ * five built-in roles with their seeded permissions.
  */
 public class DatabaseCleaner {
 
@@ -38,6 +43,9 @@ public class DatabaseCleaner {
 
     /** Flyway's history table (the default {@code spring.flyway.table}); its rows must survive every clean. */
     static final String FLYWAY_HISTORY_TABLE = "flyway_schema_history";
+
+    /** The seeded identity catalog (prompt R2-001), kept across cleans; only custom roles are removed. */
+    static final List<String> SEEDED_CATALOG_TABLES = List.of("permission", "role", "role_permission");
 
     /** Reset alongside the tables, since {@code record_version.seq} is not an identity column. */
     static final String RECORD_SEQUENCE = "record_seq";
@@ -66,6 +74,7 @@ public class DatabaseCleaner {
             truncate("TRUNCATE " + joined + " RESTART IDENTITY CASCADE");
         }
         resetRecordSequence();
+        deleteCustomRoles();
         // Drop the cached settings and let dependent filters reload from the truncated table.
         appSettings.invalidateCache();
         stateResets.orderedStream().forEach(IngestStateReset::resetState);
@@ -97,8 +106,9 @@ public class DatabaseCleaner {
     }
 
     /**
-     * The Foresignal-owned base tables in the public schema, excluding Flyway's history table and every table that
-     * is a partition of another ({@code pg_inherits} child).
+     * The Foresignal-owned base tables in the public schema, excluding Flyway's history table, the seeded identity
+     * catalog ({@link #SEEDED_CATALOG_TABLES}) and every table that is a partition of another ({@code pg_inherits}
+     * child).
      */
     List<String> foresignalTables() {
         return jdbc.queryForList(
@@ -107,7 +117,7 @@ public class DatabaseCleaner {
                   from information_schema.tables t
                  where t.table_schema = 'public'
                    and t.table_type = 'BASE TABLE'
-                   and t.table_name not in (?, ?)
+                   and t.table_name not in (?, ?, ?, ?, ?)
                    and not exists (
                        select 1
                          from pg_inherits i
@@ -119,7 +129,21 @@ public class DatabaseCleaner {
                 """,
                 String.class,
                 POSTGIS_REFERENCE_TABLE,
-                FLYWAY_HISTORY_TABLE);
+                FLYWAY_HISTORY_TABLE,
+                SEEDED_CATALOG_TABLES.get(0),
+                SEEDED_CATALOG_TABLES.get(1),
+                SEEDED_CATALOG_TABLES.get(2));
+    }
+
+    /**
+     * Deletes the roles tests created, keeping the seeded built-in ones. Tolerates a database without the
+     * {@code role} table, like {@link #resetRecordSequence()}.
+     */
+    private void deleteCustomRoles() {
+        Boolean present = jdbc.queryForObject("select to_regclass('public.role') is not null", Boolean.class);
+        if (Boolean.TRUE.equals(present)) {
+            jdbc.update("delete from role where not built_in");
+        }
     }
 
     private void resetRecordSequence() {

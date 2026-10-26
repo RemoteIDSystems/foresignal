@@ -120,6 +120,31 @@ Format: `| id | invariant | owner | enforced by | tests |`
 | EXT-5 | Only an explicit `delete` or absence from a final, fully received and validated snapshot of the same scope (within the window and the absent-ratio limit) removes an EDP entity | 024 | snapshot staging | `EdpSnapshotIT` |
 | EXT-6 | Provider URLs never reach private, loopback, link-local or metadata addresses (including by DNS rebinding or redirects) unless the operator allowed private networks for that source; payload schemas cannot fetch remote references or run unbounded patterns | 024 | `EdpUrlGuard`, schema limits | `EdpUrlGuardTest`, `EdpSchemaSafetyTest` |
 
+## Identity and RBAC (Release 2, `docs/RBAC-Design.md`)
+
+Owners are R2 prompt ids, which `InvariantRegistryTest` (it reads a three-digit owner) does not parse; these rows are
+checked by their own tests until the registry learns the R2 numbering.
+
+| Id | Invariant | Owner | Enforced by | Tests |
+|---|---|---|---|---|
+| RBAC-0 | The permission catalog and the built-in role matrix are defined once in Java (`Permissions`, `BuiltInRole`) and seeded identically by `V14__identity_model.sql`; nothing creates a permission at runtime | R2-001 | seed migration, guard test | `PermissionCatalogMigrationIT`, `IdentityModelTest` |
+| RBAC-5 | Activation and reset tokens are stored only as a SHA-256 hash and an 8-character prefix, and are single-use and expiring (passwords as argon2id: R2-002; sessions: R2-003) | R2-001 | `UserTokenEntity` | `IdentityModelIT`, `IdentityModelTest` |
+
+**Permission catalog** (group → keys): `identity` → `users.manage`, `roles.manage`; `platform` → `system.settings`,
+`collection.manage`, `collector.settings`, `llm.shared.manage`, `channels.global`, `storage.manage`, `network.manage`,
+`audit.read`; `self` → `self.sources`, `self.alerts`, `self.channels`, `self.llm`, `self.views`, `self.preferences`,
+`self.workspaces`; `data` → `data.read`, `data.export`, `intel.read`, `forecast.read`.
+
+**Built-in role matrix** (R2-001 seed):
+
+| Role | identity | platform | self | data |
+|---|---|---|---|---|
+| Admin | all | all | all | all |
+| Operator | — | all | — | all |
+| Editor | — | — | all | all |
+| Viewer | — | — | `self.views`, `self.preferences` | `data.read` |
+| Auditor | — | `audit.read` | — | `data.read` |
+
 ## Process
 
 | Id | Invariant | Owner | Enforced by | Tests |

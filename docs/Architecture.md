@@ -559,6 +559,8 @@ The schema is owned by Flyway (§25): `V1__baseline.sql` creates every table, se
 
 **Security and settings:** `api_token` (scope, hash, prefix, expiry, revocation, device metadata, restriction columns, `type` = token, feed key or tile key, `prefixes`, `private_access`, `licence_policy`, federation and exercise restrictions), `principal`, `pairing_code`, `audit_event`, `app_setting`, `system_secret`, `signing_key`, `share_link`.
 
+**Identity (R2-001, §15.5):** `"user"`, `role`, `permission`, `user_role`, `role_permission`, `user_token`.
+
 **Other subsystems** (one line each; details in their sections): inbound `custom_source`, `ingest_device`, `external_source`, `edp_registration_token`, `edp_snapshot`, `edp_snapshot_stage`, `websub_subscription`, `dcp_location`; LLM and search `llm_provider`, `llm_usage`, `embedding_document` (generated `tsv` with GIN, GiST, `(source_id, effective_time)`; vector slots per §20), `ask_thread`, `ask_message`, `ask_action`, `briefing`, `briefing_run`; places, views and reference `place`, `forecast_series_cache`, `saved_view`, `watch_list`, `watch_list_item`, `ref_country`, `ref_admin1`, `ref_admin2`, `ref_sea`, `ref_dataset`, `record_region`, `gazetteer_country`, `gazetteer_admin1`, `gazetteer_place`, `activity_rollup`, `history_downsample`, `retention_state`; weather `raster_product`, `raster_grid`, `raster_frame`, `raster_export_job`, `media`, `media_tombstone`; the intelligence and interop tables listed in §29–§42.
 
 ### 7.2 Secrets
@@ -898,6 +900,27 @@ Every operator-supplied outbound URL passes `ai.foresignal.net.OutboundUrlPolicy
 `ai.foresignal.security.visibility.SourceVisibility` decides which sources are private: the descriptor's `private` flag **or** the operator's tightening (`app_setting['visibility']`). An `admin` token always sees them; a `read` or `agent` token, feed key or ticket only when created with `privateAccess`; anonymous callers never. `PrivateFilter` is the one per-caller exclusion every query builder applies; a direct read of a hidden record is `404`.
 
 `ai.foresignal.security.EgressPolicy` is **the single egress decision** (Conventions): `decide(path, sourceId, recordTerms, payload, EgressContext)` returns a `Decision` (allowed, reason, terms) for every path — API reads, tiles, SSE, search and embeddings, LLM context, MCP, exports, sinks, federation, share links and feeds. It combines the private flag, the descriptor's `egress` (`OPEN | LOCAL_ONLY`, 062), license terms (109, §33) and TLP (130). Private records stay out of LLM prompts unless the provider is local and `llm.allowPrivateLocal` is on; private payloads are stripped from notifications unless the channel has `privatePayload: true`, and always from Web Push, APNs and FCM; nothing private is ever federated. Private-data reads by non-admin principals, exports and purges are audited.
+
+### 15.5 Accounts, roles and permissions (R2-001)
+
+Release 2 adds human accounts beside tokens (`ai.foresignal.security.user`, `V14__identity_model.sql`; the design is
+`docs/RBAC-Design.md`).
+
+- **Tables:** `"user"` (uuid id, normalized unique `email`, `full_name`, nullable `password_hash`, `status`
+  `invited | active | suspended | disabled`, `principal_id`, `mfa_enabled`, `created_by`, timestamps), `role` (uuid,
+  unique `name`, `built_in`), `permission` (the fixed catalog: `key`, `"group"`, `description`), the link tables
+  `user_role` and `role_permission` (explicit `@IdClass` entities, cascading on delete), and `user_token` (hashed,
+  single-use, expiring `activation`/`reset` tokens).
+- **User ↔ principal:** each user owns one `principal` of kind `person` (`user.principal_id`), so collaboration,
+  sharing and audit keep referring to principals (§40), whether the caller presented a token or, from R2-003, a
+  session.
+- **Catalog:** `Permissions` (21 keys in the groups `identity`, `platform`, `self`, `data`) and the five
+  `BuiltInRole`s (Admin, Operator, Editor, Viewer, Auditor) are seeded by V14 with stable ids;
+  `PermissionCatalogMigrationIT` keeps the Java and the seed identical. Effective permissions are the union of a
+  user's roles.
+- **No behavior change yet:** no operation reads these tables in R2-001 and no user row is seeded; the bootstrap
+  admin token and scoped tokens authorize exactly as above. The test `DatabaseCleaner` keeps the seeded catalog and
+  built-in roles across tests and deletes only custom roles.
 
 ## 16. Inbound webhooks and custom push sources
 

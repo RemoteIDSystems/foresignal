@@ -266,4 +266,24 @@ class DatabaseCleanerIT {
                 .contains("chronicle_version")
                 .noneMatch(name -> name.startsWith("chronicle_version_"));
     }
+
+    @Test
+    @Order(15)
+    @DisplayName("the seeded identity catalog survives cleaning; custom roles do not (prompt R2-001)")
+    void identityCatalogSurvivesCleaning() {
+        java.util.UUID custom = java.util.UUID.randomUUID();
+        jdbc.update("insert into role (id, name, built_in, created_at, updated_at) values (?, 'Custom', false, now(), "
+                + "now())", custom);
+        jdbc.update("insert into role_permission (role_id, permission_key) values (?, 'data.read')", custom);
+
+        cleaner.clean();
+
+        assertThat(cleaner.foresignalTables()).doesNotContainAnyElementsOf(DatabaseCleaner.SEEDED_CATALOG_TABLES)
+                .contains("\"user\"", "user_role", "user_token");
+        assertThat(jdbc.queryForObject("select count(*) from permission", Long.class)).isEqualTo(21L);
+        assertThat(jdbc.queryForList("select name from role order by name", String.class))
+                .containsExactly("Admin", "Auditor", "Editor", "Operator", "Viewer");
+        assertThat(jdbc.queryForObject("select count(*) from role_permission where role_id = ?", Long.class, custom))
+                .isZero();
+    }
 }
