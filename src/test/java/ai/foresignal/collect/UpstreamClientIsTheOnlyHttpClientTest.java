@@ -117,9 +117,18 @@ class UpstreamClientIsTheOnlyHttpClientTest {
      */
     private static final Path SERVE_LISTENER = MAIN.resolve(Path.of("ai", "foresignal", "sink", "SinkTcpServer.java"));
 
+    /**
+     * The egress bridge of prompt R2-018: {@code HttpClient} sends through an HTTP proxy only, so a SOCKS5 route (and
+     * an HTTP route with credentials) is reached through a {@code CONNECT} listener bound to the loopback address that
+     * opens each tunnel to the route's proxy. It carries only requests an {@link UpstreamClient} route client sent,
+     * after their budget, backoff and pacing; it may open the loopback server socket and the socket to the proxy, and
+     * nothing else.
+     */
+    private static final Path EGRESS_TUNNEL = MAIN.resolve(Path.of("ai", "foresignal", "egress", "EgressTunnel.java"));
+
     @Test
-    @DisplayName("only collect/socket/DefaultSocketTransport opens a socket, and only the 110 SERVE listener a server"
-            + " socket (069)")
+    @DisplayName("only collect/socket/DefaultSocketTransport opens a socket, only the 110 SERVE listener a server"
+            + " socket (069), and egress/EgressTunnel both for its loopback bridge (R2-018)")
     void onlyTheSocketTransportOpensSockets() throws IOException {
         Path transport = COLLECT.resolve(Path.of("socket", "DefaultSocketTransport.java"));
         Map<String, List<String>> offenders = new LinkedHashMap<>();
@@ -129,19 +138,25 @@ class UpstreamClientIsTheOnlyHttpClientTest {
             boolean server = found.stream().anyMatch(c -> c.contains("ServerSocket"));
             boolean allowed = file.equals(SERVE_LISTENER)
                     ? found.stream().allMatch("new ServerSocket("::equals)
-                    : file.equals(transport) && !server;
+                    : file.equals(EGRESS_TUNNEL)
+                            ? found.stream().allMatch(c -> c.equals("new ServerSocket(") || c.equals("new Socket("))
+                            : file.equals(transport) && !server;
             if (!found.isEmpty() && !allowed) {
                 offenders.put(file.toString(), found);
             }
         }
         assertThat(offenders)
                 .as("Sockets are opened only by the budgeted, LAN-only socket transport (StreamContext.sockets());"
-                        + " inbound TCP serving is prompt 110's SERVE sinks (sink/SinkTcpServer)")
+                        + " inbound TCP serving is prompt 110's SERVE sinks (sink/SinkTcpServer); the egress bridge"
+                        + " (egress/EgressTunnel, R2-018) carries route clients' tunnels")
                 .isEmpty();
         assertThat(Files.readString(transport)).contains("new Socket(", "DatagramChannel.open");
         assertThat(Files.readString(SERVE_LISTENER))
                 .as("the sanctioned SERVE listener must still open the server socket, or it leaves the guard")
                 .contains("new ServerSocket(");
+        assertThat(Files.readString(EGRESS_TUNNEL))
+                .as("the sanctioned egress bridge must still open its sockets, or it leaves the guard")
+                .contains("new ServerSocket(", "new Socket(");
     }
 
     private static List<Path> javaSources() throws IOException {

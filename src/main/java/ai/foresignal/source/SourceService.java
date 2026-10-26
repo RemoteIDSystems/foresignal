@@ -591,6 +591,23 @@ public class SourceService implements ApplicationRunner {
                 });
     }
 
+    /**
+     * Stores the egress assignment of {@code id} (prompt R2-018, {@code assignSourceEgress}) on its settings row,
+     * creating a disabled default row for a source that has none.
+     *
+     * @param routeId the pinned egress route, or null for the default route or rotation
+     * @param excluded keep the source on its pinned or default route and out of rotation
+     */
+    @Transactional
+    public void setEgressAssignment(String id, java.util.UUID routeId, boolean excluded) {
+        SourceDescriptor descriptor = registry.descriptor(id);
+        SourceSettingsEntity row = settings.findById(id).orElseGet(() -> defaultRow(descriptor));
+        row.setEgressRouteId(routeId);
+        row.setEgressExcluded(excluded);
+        row.setUpdatedAt(clock.instant());
+        settings.save(row);
+    }
+
     /** The egress in force for {@code id} (prompt 069): the override if any, else the descriptor's. */
     @Transactional(readOnly = true)
     public ai.foresignal.source.spi.Egress effectiveEgress(String id) {

@@ -484,6 +484,12 @@ public final class SettingKeys {
      */
     public static final String BACKUP = "backup";
 
+    /**
+     * The egress routing policy ({@code EgressSettings}, prompt R2-018): the {@code rotation} policy (default
+     * {@code direct}) and the {@code defaultRoute}.
+     */
+    public static final String EGRESS = "egress";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -508,7 +514,7 @@ public final class SettingKeys {
                     SOCIAL_LLM_CLAIMS_PER_DAY, SOCIAL_SOURCE_RELIABILITY, SOCIAL_COMPARE, SOCIAL_ATTENTION_GAP,
                     SOCIAL_CUES, SOCIAL_TRACK_RECORD, EXTERNAL_BINDING_CURSOR, DOCTOR_AUTO_LLM,
                     DOCTOR_AUTO_COOLDOWN, MCP_AUTH, PLUGINS, PLUGINS_APPROVALS, COLLECTOR, SMTP,
-                    THRESHOLDS, RETENTION_DB_CAP, BACKUP);
+                    THRESHOLDS, RETENTION_DB_CAP, BACKUP, EGRESS);
 
     private SettingKeys() {}
 }

@@ -89,6 +89,14 @@ public class SourceSettingsEntity {
     @Column(name = "egress", length = 16)
     private String egress;
 
+    /** The egress route this source is pinned to (prompt R2-018, {@code assignSourceEgress}), or null. */
+    @Column(name = "egress_route_id")
+    private java.util.UUID egressRouteId;
+
+    /** Whether the source stays on its pinned or default route and out of rotation (prompt R2-018). */
+    @Column(name = "egress_excluded", nullable = false)
+    private boolean egressExcluded;
+
     /** The operator's Admiralty reliability override {@code A}–{@code F} (prompt 109); null means the descriptor's. */
     @Column(name = "reliability", length = 1)
     private String reliability;
@@ -202,6 +210,26 @@ public class SourceSettingsEntity {
     /** Sets the egress override; null reverts to the descriptor's. */
     public void setEgress(String egress) {
         this.egress = egress;
+    }
+
+    /** The pinned egress route (prompt R2-018), or null for the default route or rotation. */
+    public java.util.UUID getEgressRouteId() {
+        return egressRouteId;
+    }
+
+    /** Pins the source to an egress route; null unpins it. */
+    public void setEgressRouteId(java.util.UUID egressRouteId) {
+        this.egressRouteId = egressRouteId;
+    }
+
+    /** True when the source stays out of egress rotation (prompt R2-018). */
+    public boolean isEgressExcluded() {
+        return egressExcluded;
+    }
+
+    /** Keeps the source out of egress rotation, or puts it back. */
+    public void setEgressExcluded(boolean egressExcluded) {
+        this.egressExcluded = egressExcluded;
     }
 
     /** The reliability override (prompt 109), or null for the descriptor's. */

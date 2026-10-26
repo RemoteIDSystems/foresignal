@@ -17212,7 +17212,7 @@
                 }
               ]
             },
-            "description": "Lists the egress pool with per-route health and last observed exit IP (C1/181). Requires `network.manage`.\n\n**Scope:** `admin`.\n\noperationId: `listEgressRoutes`",
+            "description": "Lists the egress pool with per-route health and last observed exit IP (C1/181). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-018:** ordered by name; 400 for a cursor this server did not issue.\n\noperationId: `listEgressRoutes`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -17233,7 +17233,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('egressRouteId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -17261,7 +17264,7 @@
               ],
               "query": []
             },
-            "description": "Adds a proxy, WireGuard profile or bound interface to the egress pool; credentials are stored encrypted, never returned. Requires `network.manage`.\n\n**Scope:** `admin`.\n\noperationId: `createEgressRoute`",
+            "description": "Adds a proxy, WireGuard profile or bound interface to the egress pool; credentials are stored encrypted, never returned. Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-018:** `url` is `http://host:port` or `socks5://host:port` (no path, no credentials in it) for those types, and its host must pass the outbound URL policy's `LAN_ALLOWED` profile (400 URL_NOT_ALLOWED otherwise); `interface` takes `boundInterface` (an interface name or an address literal); names are unique ignoring case; `wireguard` takes `secrets.wireguardConfig` and is recorded but always unavailable, because the server cannot bring a tunnel up. Secrets are sealed with the instance key and never returned; `secretsSet` names those stored.\n\noperationId: `createEgressRoute`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -17274,7 +17277,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Frankfurt exit\",\n  \"type\": \"socks5\",\n  \"enabled\": true,\n  \"url\": \"socks5://10.0.0.20:1080\",\n  \"secrets\": {\n    \"username\": \"REPLACE\",\n    \"password\": \"REPLACE\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -17305,14 +17308,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/egress/{{id}}",
+              "raw": "{{baseUrl}}/v1/egress/{{egressRouteId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "egress",
-                "{{id}}"
+                "{{egressRouteId}}"
               ],
               "query": []
             },
@@ -17355,18 +17358,18 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/egress/{{id}}",
+              "raw": "{{baseUrl}}/v1/egress/{{egressRouteId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "egress",
-                "{{id}}"
+                "{{egressRouteId}}"
               ],
               "query": []
             },
-            "description": "Replaces an egress route; an omitted secret keeps the stored one. Requires `network.manage`.\n\n**Scope:** `admin`.\n\noperationId: `updateEgressRoute`",
+            "description": "Replaces an egress route; an omitted secret keeps the stored one. Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-018:** the same validation as create; an omitted `secrets` member keeps the stored value, an empty string or null clears it, and a secret the new type cannot use is dropped.\n\noperationId: `updateEgressRoute`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -17379,7 +17382,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Frankfurt exit\",\n  \"type\": \"socks5\",\n  \"enabled\": true,\n  \"url\": \"socks5://10.0.0.20:1080\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -17405,18 +17408,18 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/egress/{{id}}",
+              "raw": "{{baseUrl}}/v1/egress/{{egressRouteId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "egress",
-                "{{id}}"
+                "{{egressRouteId}}"
               ],
               "query": []
             },
-            "description": "Removes an egress route. Sources pinned to it fall back to the default route. Requires `network.manage`.\n\n**Scope:** `admin`.\n\noperationId: `deleteEgressRoute`",
+            "description": "Removes an egress route. Sources pinned to it fall back to the default route. Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-018:** sources pinned to the route lose the pin, and the default route is cleared when it was this one.\n\noperationId: `deleteEgressRoute`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -17451,19 +17454,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/egress/{{id}}/test",
+              "raw": "{{baseUrl}}/v1/egress/{{egressRouteId}}/test",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "egress",
-                "{{id}}",
+                "{{egressRouteId}}",
                 "test"
               ],
               "query": []
             },
-            "description": "Makes a probe call through the route and reports the observed public exit IP and latency; nothing is persisted beyond the route's health (C1/181). Requires `network.manage`.\n\n**Scope:** `admin`.\n\noperationId: `testEgressRoute`",
+            "description": "Makes a probe call through the route and reports the observed public exit IP and latency; nothing is persisted beyond the route's health (C1/181). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-018:** one `GET` of the configured exit-IP service (`foresignal.egress.probe-url`, default `https://checkip.amazonaws.com/`, checked against the public-only outbound policy) through the route. Always 200: `ok` false with a `message` when the route is unavailable or the call fails. A passing test records `exitIp` on the route.\n\noperationId: `testEgressRoute`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -17498,19 +17501,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/egress/{{id}}/health",
+              "raw": "{{baseUrl}}/v1/egress/{{egressRouteId}}/health",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "egress",
-                "{{id}}",
+                "{{egressRouteId}}",
                 "health"
               ],
               "query": []
             },
-            "description": "Returns reachability, latency, exit IP and backoff state for one route. Requires `network.manage`.\n\n**Scope:** `admin`.\n\noperationId: `getEgressRouteHealth`",
+            "description": "Returns reachability, latency, exit IP and backoff state for one route. Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-018:** health is held in memory and starts empty at restart; three consecutive failures mark the route unreachable, skip it in rotation and raise `system.egress_unhealthy`; a later success raises `system.egress_recovered`. `sources` lists the per-source holds on the route.\n\noperationId: `getEgressRouteHealth`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -17606,7 +17609,7 @@
               ],
               "query": []
             },
-            "description": "Replaces the rotation policy and default route. Default is direct (no egress routing). Requires `network.manage`.\n\n**Scope:** `admin`.\n\noperationId: `updateEgressSettings`",
+            "description": "Replaces the rotation policy and default route. Default is direct (no egress routing). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-018:** 400 for an unknown `rotation`, or a `defaultRoute` that names no route. With rotation on and no usable route for a source, its pull fails rather than going direct.\n\noperationId: `updateEgressSettings`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -17619,7 +17622,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"rotation\": \"rotate-on-rate-limit\",\n  \"defaultRoute\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -17666,7 +17669,7 @@
               ],
               "query": []
             },
-            "description": "Pins a source to an egress route, or excludes it from rotation (e.g. a geo-locked source to an in-region exit). Requires `network.manage`.\n\n**Scope:** `admin`.\n\noperationId: `assignSourceEgress`",
+            "description": "Pins a source to an egress route, or excludes it from rotation (e.g. a geo-locked source to an in-region exit). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-018:** 404 UNKNOWN_SOURCE for a source this server does not have; 400 for a `routeId` that names no route.\n\noperationId: `assignSourceEgress`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -17679,7 +17682,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"routeId\": \"{{egressRouteId}}\",\n  \"excludeFromRotation\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -57223,6 +57226,10 @@
     },
     {
       "key": "relationId",
+      "value": ""
+    },
+    {
+      "key": "egressRouteId",
       "value": ""
     },
     {

@@ -92468,7 +92468,7 @@
         ],
         "operationId": "listEgressRoutes",
         "summary": "List egress routes",
-        "description": "Lists the egress pool with per-route health and last observed exit IP (C1/181). Requires `network.manage`.\n\n**Scope:** `admin`.",
+        "description": "Lists the egress pool with per-route health and last observed exit IP (C1/181). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-018:** ordered by name; 400 for a cursor this server did not issue.",
         "parameters": [
           {
             "name": "cursor",
@@ -92499,6 +92499,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EgressRoutePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad cursor or limit",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
                 }
               }
             }
@@ -92540,7 +92550,7 @@
         ],
         "operationId": "createEgressRoute",
         "summary": "Create an egress route",
-        "description": "Adds a proxy, WireGuard profile or bound interface to the egress pool; credentials are stored encrypted, never returned. Requires `network.manage`.\n\n**Scope:** `admin`.",
+        "description": "Adds a proxy, WireGuard profile or bound interface to the egress pool; credentials are stored encrypted, never returned. Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-018:** `url` is `http://host:port` or `socks5://host:port` (no path, no credentials in it) for those types, and its host must pass the outbound URL policy's `LAN_ALLOWED` profile (400 URL_NOT_ALLOWED otherwise); `interface` takes `boundInterface` (an interface name or an address literal); names are unique ignoring case; `wireguard` takes `secrets.wireguardConfig` and is recorded but always unavailable, because the server cannot bring a tunnel up. Secrets are sealed with the instance key and never returned; `secretsSet` names those stored.",
         "requestBody": {
           "required": true,
           "content": {
@@ -92682,7 +92692,7 @@
         ],
         "operationId": "updateEgressRoute",
         "summary": "Update an egress route",
-        "description": "Replaces an egress route; an omitted secret keeps the stored one. Requires `network.manage`.\n\n**Scope:** `admin`.",
+        "description": "Replaces an egress route; an omitted secret keeps the stored one. Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-018:** the same validation as create; an omitted `secrets` member keeps the stored value, an empty string or null clears it, and a secret the new type cannot use is dropped.",
         "parameters": [
           {
             "name": "id",
@@ -92773,7 +92783,7 @@
         ],
         "operationId": "deleteEgressRoute",
         "summary": "Delete an egress route",
-        "description": "Removes an egress route. Sources pinned to it fall back to the default route. Requires `network.manage`.\n\n**Scope:** `admin`.",
+        "description": "Removes an egress route. Sources pinned to it fall back to the default route. Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-018:** sources pinned to the route lose the pin, and the default route is cleared when it was this one.",
         "parameters": [
           {
             "name": "id",
@@ -92839,7 +92849,7 @@
         ],
         "operationId": "testEgressRoute",
         "summary": "Test an egress route",
-        "description": "Makes a probe call through the route and reports the observed public exit IP and latency; nothing is persisted beyond the route's health (C1/181). Requires `network.manage`.\n\n**Scope:** `admin`.",
+        "description": "Makes a probe call through the route and reports the observed public exit IP and latency; nothing is persisted beyond the route's health (C1/181). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-018:** one `GET` of the configured exit-IP service (`foresignal.egress.probe-url`, default `https://checkip.amazonaws.com/`, checked against the public-only outbound policy) through the route. Always 200: `ok` false with a `message` when the route is unavailable or the call fails. A passing test records `exitIp` on the route.",
         "parameters": [
           {
             "name": "id",
@@ -92912,7 +92922,7 @@
         ],
         "operationId": "getEgressRouteHealth",
         "summary": "Get egress route health",
-        "description": "Returns reachability, latency, exit IP and backoff state for one route. Requires `network.manage`.\n\n**Scope:** `admin`.",
+        "description": "Returns reachability, latency, exit IP and backoff state for one route. Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-018:** health is held in memory and starts empty at restart; three consecutive failures mark the route unreachable, skip it in rotation and raise `system.egress_unhealthy`; a later success raises `system.egress_recovered`. `sources` lists the per-source holds on the route.",
         "parameters": [
           {
             "name": "id",
@@ -93034,7 +93044,7 @@
         ],
         "operationId": "updateEgressSettings",
         "summary": "Update egress policy",
-        "description": "Replaces the rotation policy and default route. Default is direct (no egress routing). Requires `network.manage`.\n\n**Scope:** `admin`.",
+        "description": "Replaces the rotation policy and default route. Default is direct (no egress routing). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-018:** 400 for an unknown `rotation`, or a `defaultRoute` that names no route. With rotation on and no usable route for a source, its pull fails rather than going direct.",
         "requestBody": {
           "required": true,
           "content": {
@@ -93105,7 +93115,7 @@
         ],
         "operationId": "assignSourceEgress",
         "summary": "Assign a source's egress",
-        "description": "Pins a source to an egress route, or excludes it from rotation (e.g. a geo-locked source to an in-region exit). Requires `network.manage`.\n\n**Scope:** `admin`.",
+        "description": "Pins a source to an egress route, or excludes it from rotation (e.g. a geo-locked source to an in-region exit). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-018:** 404 UNKNOWN_SOURCE for a source this server does not have; 400 for a `routeId` that names no route.",
         "parameters": [
           {
             "name": "sourceId",
@@ -179170,6 +179180,19 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "available": {
+            "type": "boolean",
+            "readOnly": true,
+            "description": "Whether the server can send through this route now: false for a wireguard route (the server cannot bring a tunnel up), a disabled route, an interface it cannot find, or secrets it cannot open (R2-018)"
+          },
+          "unavailableReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "readOnly": true,
+            "description": "Why the route is unavailable; null when available"
           }
         },
         "required": [
@@ -179296,6 +179319,37 @@
             ],
             "format": "date-time",
             "description": "Skipped until this time after failures"
+          },
+          "lastError": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The last failure carrying a request through the route (R2-018)"
+          },
+          "sources": {
+            "type": "array",
+            "description": "Only on getEgressRouteHealth: the sources held off this route by a 429 or Retry-After received through it (R2-018)",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sourceId": {
+                  "type": "string"
+                },
+                "backoffUntil": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "consecutiveThrottles": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "sourceId",
+                "backoffUntil",
+                "consecutiveThrottles"
+              ]
+            }
           }
         },
         "required": [
@@ -179351,7 +179405,7 @@
               "rotate-on-rate-limit"
             ],
             "default": "direct",
-            "description": "How outbound requests pick a route; direct means no egress routing"
+            "description": "How outbound requests pick a route; direct means no egress routing at all: pins and the default route are ignored and every pull goes direct (R2-018)"
           },
           "defaultRoute": {
             "type": [
@@ -179359,7 +179413,7 @@
               "null"
             ],
             "format": "uuid",
-            "description": "Route used when rotation is off or a source has no assignment"
+            "description": "With rotation on, the route a source excluded from rotation uses (an excluded source with no default route goes direct); it must name an existing route (R2-018)"
           }
         },
         "required": [
@@ -179376,12 +179430,12 @@
               "null"
             ],
             "format": "uuid",
-            "description": "Pin the source to this route; null uses the default/rotation"
+            "description": "Pin the source to this route (with rotation on); null uses the rotation. A pinned route that is unusable fails the pull rather than moving it (R2-018)"
           },
           "excludeFromRotation": {
             "type": "boolean",
             "default": false,
-            "description": "Keep the source on its pinned/default route and out of rotation"
+            "description": "With rotation on and no pin, keep the source on the default route, or direct when there is none (R2-018)"
           }
         }
       },

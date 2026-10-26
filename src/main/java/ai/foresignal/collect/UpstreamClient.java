@@ -1,6 +1,7 @@
 package ai.foresignal.collect;
 
 import ai.foresignal.config.ForesignalProperties;
+import ai.foresignal.egress.EgressRouter;
 import ai.foresignal.security.InstallIdService;
 import ai.foresignal.source.CredentialsAccess;
 import ai.foresignal.source.SourceService;
@@ -79,6 +80,7 @@ public class UpstreamClient {
      * every source calling a host shares its gate.
      */
     private final HostPacer hostPacer = new HostPacer();
+    private volatile EgressRouter egress;
 
     private final BudgetGovernor budgets;
     private final BackoffRegistry backoff;
@@ -123,6 +125,15 @@ public class UpstreamClient {
     }
 
     private static HttpClient build(HttpClient.Redirect redirect) {
+        return clientBuilder(redirect).build();
+    }
+
+    /**
+     * The builder of every upstream {@link HttpClient}: HTTP/2 preferred, the connect timeout, {@code redirect}, and a
+     * virtual thread per request. The egress routes of prompt R2-018 add their proxy or bound address to it, so a
+     * routed client differs from the direct one in nothing else.
+     */
+    public static HttpClient.Builder clientBuilder(HttpClient.Redirect redirect) {
         return HttpClient.newBuilder()
                 // Preferred, not required: HttpClient negotiates down to 1.1 when an upstream does
                 // not speak HTTP/2, which many of these feeds do not.
@@ -131,8 +142,7 @@ public class UpstreamClient {
                 .followRedirects(redirect)
                 // One virtual thread per in-flight request: a fetch that is waiting on a slow
                 // upstream must not hold a platform thread.
-                .executor(Executors.newVirtualThreadPerTaskExecutor())
-                .build();
+                .executor(Executors.newVirtualThreadPerTaskExecutor());
     }
 
     /**
@@ -260,6 +270,22 @@ public class UpstreamClient {
     /** The per-host request gate (prompt 080). */
     HostPacer hostPacer() {
         return hostPacer;
+    }
+
+    /** The egress router (prompt R2-018), or null where none is wired (unit tests), which means direct. */
+    EgressRouter egress() {
+        return egress;
+    }
+
+    /**
+     * Wires the egress router (prompt R2-018). A setter rather than a constructor argument so the unit tests that
+     * build the client by hand keep sending direct.
+     *
+     * @param egress the router, or null for direct
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setEgressRouter(EgressRouter egress) {
+        this.egress = egress;
     }
 
     /**

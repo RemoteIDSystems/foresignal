@@ -14,6 +14,7 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import ai.foresignal.egress.EgressRouter;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -94,6 +95,9 @@ class BoundSourceHttp implements SourceHttp {
 
     /** Traces of this binding's requests, drained by the fetch executor in prompt 008. */
     private final List<FetchTrace> traces = new CopyOnWriteArrayList<>();
+
+    /** The egress route this pull leaves through (prompt R2-018), or null while it goes direct. */
+    private volatile EgressRouter.Routing routing;
 
     BoundSourceHttp(
             UpstreamClient parent,
@@ -232,11 +236,12 @@ class BoundSourceHttp implements SourceHttp {
             merged.put("Content-Type", contentType);
         }
         checkBackoff();
-        HostPacer.Permit permit = pace(uri);
+        EgressRouter.Routing route = route(uri);
+        HostPacer.Permit permit = pace(uri, route);
         try {
             consumeBudget(0);
             return send("POST", uri, merged, body, null, descriptor.maxResponseBytes(), descriptor.followRedirects(),
-                    0, requestTimeout);
+                    0, requestTimeout, route);
         } finally {
             if (permit != null) {
                 permit.close();
@@ -298,6 +303,7 @@ class BoundSourceHttp implements SourceHttp {
             throws AdapterException {
         Instant startedAt = parent.clock().instant();
         checkBackoff();
+        EgressRouter.Routing route = route(uri);
         long charged = Math.max(0, expectedBytes);
         consumeBudget(charged);
 
@@ -308,14 +314,14 @@ class BoundSourceHttp implements SourceHttp {
         try {
             Files.createDirectories(target.getParent() == null ? parent.rasterTempDir() : target.getParent());
             HttpResponse<InputStream> response =
-                    parent.client(true).send(request, HttpResponse.BodyHandlers.ofInputStream());
+                    client(route, true).send(request, HttpResponse.BodyHandlers.ofInputStream());
 
             if (response.statusCode() >= 400) {
                 if (charged > 0) {
                     // Nothing was transferred, so nothing stays charged.
                     parent.budgets().correctByteCharge(sourceId, charged, 0);
                 }
-                handleErrorStatus(response, startedAt, "GET", uri, 0);
+                handleErrorStatus(response, startedAt, "GET", uri, 0, route);
             }
 
             MessageDigest digest = sha256();
@@ -335,6 +341,7 @@ class BoundSourceHttp implements SourceHttp {
                 parent.budgets().correctByteCharge(sourceId, charged, written);
             }
             parent.backoff().onSuccess(sourceId);
+            reached(route, startedAt, true);
             String contentType = response.headers().firstValue("content-type").orElse(null);
             String sha = HexFormat.of().formatHex(digest.digest());
             traces.add(
@@ -354,6 +361,7 @@ class BoundSourceHttp implements SourceHttp {
             return new DownloadResult(target, written, contentType, sha);
         } catch (IOException e) {
             parent.usage().record(sourceId, 0, false);
+            unreachable(route, e);
             if (charged > 0) {
                 parent.budgets().correctByteCharge(sourceId, charged, 0);
             }
@@ -386,12 +394,14 @@ class BoundSourceHttp implements SourceHttp {
     public WebSocket openWebSocket(URI uri, WebSocket.Listener listener, Map<String, String> headers)
             throws AdapterException {
         checkBackoff();
+        EgressRouter.Routing route = route(uri);
         // One budget unit per connection attempt, which is what bounds a reconnect storm: a stream
         // that keeps dropping burns its budget rather than hammering the upstream.
         consumeBudget(0);
+        Instant startedAt = parent.clock().instant();
 
         WebSocket.Builder builder =
-                parent.client(true).newWebSocketBuilder().connectTimeout(UpstreamClient.CONNECT_TIMEOUT);
+                client(route, true).newWebSocketBuilder().connectTimeout(UpstreamClient.CONNECT_TIMEOUT);
         builder.header("User-Agent", parent.userAgent(descriptor));
         if (headers != null) {
             headers.forEach(
@@ -410,9 +420,13 @@ class BoundSourceHttp implements SourceHttp {
             WebSocket socket = builder.buildAsync(uri, listener).join();
             parent.usage().record(sourceId, 0, true);
             parent.backoff().onSuccess(sourceId);
+            reached(route, startedAt, true);
             return socket;
         } catch (RuntimeException e) {
             parent.usage().record(sourceId, 0, false);
+            if (e.getCause() instanceof IOException io) {
+                unreachable(route, io);
+            }
             throw UpstreamClient.io(
                     "Could not open a WebSocket to " + redactedUrl(uri) + ": " + e.getMessage(), e);
         }
@@ -435,6 +449,13 @@ class BoundSourceHttp implements SourceHttp {
             return openWebSocket(uri, listener, headers);
         }
         checkBackoff();
+        if (route(uri) != null) {
+            // DeflateWebSocket opens its own socket, which cannot leave through an egress route; it is refused
+            // rather than sent direct.
+            throw UpstreamClient.io(sourceId + ": a permessage-deflate WebSocket cannot leave through an egress"
+                    + " route; keep the source out of rotation with no pinned or default route to open it direct",
+                    null);
+        }
         consumeBudget(0);
 
         Map<String, String> handshake = new LinkedHashMap<>();
@@ -472,23 +493,26 @@ class BoundSourceHttp implements SourceHttp {
     public ai.foresignal.source.spi.HttpStream openStream(URI uri, Map<String, String> headers)
             throws AdapterException {
         checkBackoff();
+        EgressRouter.Routing route = route(uri);
         consumeBudget(0);
         Instant startedAt = parent.clock().instant();
         HttpRequest request = requestBuilder(uri, headers).GET().build();
         try {
             HttpResponse<InputStream> response =
-                    parent.client(descriptor.followRedirects() && !isPinned(uri))
+                    client(route, descriptor.followRedirects() && !isPinned(uri))
                             .send(request, HttpResponse.BodyHandlers.ofInputStream());
             int status = response.statusCode();
             if (status >= 400) {
-                handleErrorStatus(response, startedAt, "GET", uri, 0);
+                handleErrorStatus(response, startedAt, "GET", uri, 0, route);
             }
             parent.usage().record(sourceId, 0, true);
             parent.backoff().onSuccess(sourceId);
+            reached(route, startedAt, true);
             return new ai.foresignal.source.spi.HttpStream(status, headerMap(response),
                     decode(response, response.body()));
         } catch (IOException e) {
             parent.usage().record(sourceId, 0, false);
+            unreachable(route, e);
             throw UpstreamClient.io("Could not open a stream to " + redactedUrl(uri) + ": " + e.getMessage(), e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -530,13 +554,19 @@ class BoundSourceHttp implements SourceHttp {
         // 1. Backoff before budget: see the class note.
         checkBackoff();
 
+        // 1b. The egress (prompt R2-018): direct unless rotation is on. Every route this source may use being
+        //     throttled is a backoff too, so it is decided before the budget as well.
+        EgressRouter.Routing route = route(uri);
+
         // 2. Host pacing (prompt 080): wait for the host's gate before the budget, so a request that is
-        //    never sent costs nothing. The gate is held until the response has been read.
-        HostPacer.Permit permit = pace(uri);
+        //    never sent costs nothing. The gate is held until the response has been read. Routed, the gate is the
+        //    host's through that egress, so one egress's pacing does not hold back another's.
+        HostPacer.Permit permit = pace(uri, route);
         try {
             // 3. Budget. A refusal sends nothing.
             consumeBudget(expectedBytes);
-            return send(method, uri, headers, body, contentType, maxBytes, allowRedirects, expectedBytes);
+            return send(method, uri, headers, body, contentType, maxBytes, allowRedirects, expectedBytes, null,
+                    route);
         } finally {
             if (permit != null) {
                 permit.close();
@@ -550,13 +580,13 @@ class BoundSourceHttp implements SourceHttp {
      * @return the held gate, or null when the source is not paced
      * @throws HostPacingTimeoutException when the gate could not be had within the bounded wait
      */
-    private HostPacer.Permit pace(URI uri) throws AdapterException {
+    private HostPacer.Permit pace(URI uri, EgressRouter.Routing route) throws AdapterException {
         if (descriptor.hostPacing() == null) {
             return null;
         }
         HostPacer pacer = parent.hostPacer();
         try {
-            return pacer.acquire(uri.getHost(), descriptor.hostPacing())
+            return pacer.acquire(EgressRouter.pacingKey(uri.getHost(), route), descriptor.hostPacing())
                     .orElseThrow(() -> new HostPacingTimeoutException(
                             sourceId, uri.getHost(), pacer.maxWait(), parent.clock().instant()));
         } catch (InterruptedException e) {
@@ -565,24 +595,11 @@ class BoundSourceHttp implements SourceHttp {
         }
     }
 
-    /** Sends one request whose backoff, pacing and budget have been checked, with the default request timeout. */
-    private UpstreamResponse send(
-            String method,
-            URI uri,
-            Map<String, String> headers,
-            byte[] body,
-            String contentType,
-            long maxBytes,
-            boolean allowRedirects,
-            long expectedBytes)
-            throws AdapterException {
-        return send(method, uri, headers, body, contentType, maxBytes, allowRedirects, expectedBytes, null);
-    }
-
     /**
-     * Sends one request whose backoff, pacing and budget have been checked.
+     * Sends one request whose backoff, egress, pacing and budget have been decided.
      *
      * @param requestTimeout how long the response may take, or null for the default
+     * @param route the egress route to leave through (prompt R2-018), or null for direct
      */
     private UpstreamResponse send(
             String method,
@@ -593,7 +610,8 @@ class BoundSourceHttp implements SourceHttp {
             long maxBytes,
             boolean allowRedirects,
             long expectedBytes,
-            Duration requestTimeout)
+            Duration requestTimeout,
+            EgressRouter.Routing route)
             throws AdapterException {
 
         Instant startedAt = parent.clock().instant();
@@ -618,7 +636,7 @@ class BoundSourceHttp implements SourceHttp {
             // A pinned LAN request never follows a redirect: following one would re-resolve a
             // host and undo the pinning.
             HttpResponse<InputStream> response =
-                    parent.client(allowRedirects && !isPinned(uri))
+                    client(route, allowRedirects && !isPinned(uri))
                             .send(request, HttpResponse.BodyHandlers.ofInputStream());
 
             int status = response.statusCode();
@@ -628,6 +646,7 @@ class BoundSourceHttp implements SourceHttp {
                 // and counting it keeps the budget honest.
                 parent.usage().record(sourceId, 0, true);
                 parent.backoff().onSuccess(sourceId);
+                reached(route, startedAt, true);
                 UpstreamResponse result = UpstreamResponse.notModified(headerMap(response));
                 recordTrace(method, uri, startedAt, status, result, null, null);
                 recordExchange(method, uri, headers, startedAt, status, result, null);
@@ -664,13 +683,16 @@ class BoundSourceHttp implements SourceHttp {
             recordExchange(method, uri, headers, startedAt, status, result, null);
 
             if (status >= 400) {
-                throwForStatus(status, response, result);
+                reached(route, startedAt, false);
+                throwForStatus(status, response, result, route);
             }
             parent.backoff().onSuccess(sourceId);
+            reached(route, startedAt, true);
             return result;
 
         } catch (IOException e) {
             parent.usage().record(sourceId, 0, false);
+            unreachable(route, e);
             recordFailure(method, uri, headers, startedAt, e);
             throw UpstreamClient.io(
                     method + " " + redactedUrl(uri) + " failed: " + e.getMessage(), e);
@@ -679,6 +701,57 @@ class BoundSourceHttp implements SourceHttp {
             parent.usage().record(sourceId, 0, false);
             recordFailure(method, uri, headers, startedAt, e);
             throw UpstreamClient.io("Interrupted during " + method + " " + redactedUrl(uri), e);
+        }
+    }
+
+    /**
+     * The egress of the next request to {@code uri} (prompt R2-018): null to leave direct, which is always the answer
+     * with rotation {@code direct}, without a router, and for a pinned LAN host (re-resolving it through a proxy would
+     * undo the pinning). The route chosen first is kept for the rest of the pull while it stays usable.
+     *
+     * @throws InBackoffException when every route this source may use has throttled it
+     * @throws AdapterException when routing is on and no route this source may use is usable; the request is never
+     *     sent direct instead
+     */
+    private EgressRouter.Routing route(URI uri) throws AdapterException {
+        EgressRouter router = parent.egress();
+        if (router == null || isPinned(uri)) {
+            return null;
+        }
+        EgressRouter.Routing current = routing;
+        EgressRouter.Decision decision = router.decide(sourceId, current == null ? null : current.route().id());
+        if (decision.waitUntil() != null) {
+            throw new InBackoffException(sourceId, decision.waitUntil());
+        }
+        if (decision.refusal() != null) {
+            throw UpstreamClient.io(sourceId + ": " + decision.refusal(), null);
+        }
+        routing = decision.routing();
+        return decision.routing();
+    }
+
+    /** The client of {@code route}, or the shared direct one. */
+    private HttpClient client(EgressRouter.Routing route, boolean allowRedirects) {
+        return route == null ? parent.client(allowRedirects) : route.client(allowRedirects);
+    }
+
+    /** The upstream answered through {@code route}: a success clears the source's hold on it. */
+    private void reached(EgressRouter.Routing route, Instant startedAt, boolean ok) {
+        if (route == null) {
+            return;
+        }
+        Duration latency = Duration.between(startedAt, parent.clock().instant());
+        if (ok) {
+            parent.egress().onSuccess(sourceId, route, latency);
+        } else {
+            parent.egress().onReached(route, latency);
+        }
+    }
+
+    /** The request could not be carried through {@code route}. */
+    private void unreachable(EgressRouter.Routing route, IOException error) {
+        if (route != null) {
+            parent.egress().onFailure(route, error);
         }
     }
 
@@ -785,11 +858,11 @@ class BoundSourceHttp implements SourceHttp {
 
     // ---------- status handling ----------
 
-    private void throwForStatus(int status, HttpResponse<InputStream> response, UpstreamResponse result)
-            throws AdapterException {
+    private void throwForStatus(int status, HttpResponse<InputStream> response, UpstreamResponse result,
+            EgressRouter.Routing route) throws AdapterException {
         String text = result.bodyAsString();
         String snippet = UpstreamHttpException.snippet(text);
-        throw errorFor(status, response, snippet, text);
+        throw errorFor(status, response, snippet, text, route);
     }
 
     /**
@@ -808,16 +881,24 @@ class BoundSourceHttp implements SourceHttp {
      *   <li><strong>Challenge:</strong> a response with {@code cf-mitigated: challenge} (prompt 082) carries the
      *       reason {@link UpstreamHttpException#REASON_BLOCKED_CHALLENGE}. The challenge is never solved and the
      *       request never retried with other headers.
+     *   <li><strong>Through an egress route</strong> (prompt R2-018), a 429 or any {@code Retry-After} holds the source
+     *       off <em>that route</em> with the same arithmetic ({@link EgressRouter#onThrottled}); the other routes stay
+     *       usable for it. A refusal still holds the source everywhere (no other egress is tried for a refused
+     *       client), and a 503 without {@code Retry-After}, an outage of the upstream rather than a limit on one
+     *       address, still uses the source's own ladder.
      * </ul>
      */
     private UpstreamHttpException errorFor(
-            int status, HttpResponse<InputStream> response, String snippet, String body) {
+            int status, HttpResponse<InputStream> response, String snippet, String body, EgressRouter.Routing route) {
         if (status == 451 || (status == 403 && descriptor.accessDeniedIsTerminal())) {
             parent.backoff().onThrottled(sourceId, Optional.of(UpstreamAccessDeniedException.REFUSAL_BACKOFF));
             return new UpstreamAccessDeniedException(status, snippet, refusalDetail(body));
         }
         Optional<Duration> retryAfter = retryAfterFrom(response);
-        if (retryAfter.isPresent()) {
+        if (route != null && (retryAfter.isPresent() || status == 429)) {
+            parent.egress().onThrottled(sourceId, route, retryAfter.isPresent() ? retryAfter
+                    : Optional.ofNullable(descriptor.defaultRetryAfter()));
+        } else if (retryAfter.isPresent()) {
             parent.backoff().onThrottled(sourceId, retryAfter);
         } else if (status == 429 && descriptor.defaultRetryAfter() != null) {
             parent.backoff().onThrottled(sourceId, Optional.of(descriptor.defaultRetryAfter()));
@@ -847,12 +928,12 @@ class BoundSourceHttp implements SourceHttp {
         return null;
     }
 
-    private void handleErrorStatus(
-            HttpResponse<InputStream> response, Instant startedAt, String method, URI uri, long expected)
-            throws AdapterException {
+    private void handleErrorStatus(HttpResponse<InputStream> response, Instant startedAt, String method, URI uri,
+            long expected, EgressRouter.Routing route) throws AdapterException {
         int status = response.statusCode();
         parent.usage().record(sourceId, 0, false);
-        UpstreamHttpException error = errorFor(status, response, "", "");
+        reached(route, startedAt, false);
+        UpstreamHttpException error = errorFor(status, response, "", "", route);
         traces.add(
                 new FetchTrace(
                         sourceId,

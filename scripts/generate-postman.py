@@ -68,6 +68,7 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
                        # R2-005: user management; createUser stores the new user's id.
                        ("/v1/users/", {"id": "userId"}),
+                       ("/v1/egress/", {"id": "egressRouteId"}),
                        # R2-006: role management; createRole stores the new role's id.
                        ("/v1/roles/", {"id": "roleId"}),
                        ("/v1/external/registration-tokens/", {"tokenId": "registrationTokenId"}),
@@ -894,6 +895,14 @@ BODIES = {
                            "s3": None, "keepBackups": 14, "includeConfig": True},
   "runBackup": {"type": "database", "label": "Before the 2.0 upgrade"},
   "restoreBackup": {"confirm": True},
+  # R2-018: an authenticated SOCKS5 proxy on the LAN as an egress route (the secrets are write-only placeholders);
+  # replacing it keeps the stored secrets when they are omitted; rotation onto the pool, rotating on a rate limit,
+  # with no default route; a geo-locked source pinned to the route.
+  "createEgressRoute": {"name": "Frankfurt exit", "type": "socks5", "enabled": True, "url": "socks5://10.0.0.20:1080",
+                        "secrets": {"username": "REPLACE", "password": "REPLACE"}},
+  "updateEgressRoute": {"name": "Frankfurt exit", "type": "socks5", "enabled": True, "url": "socks5://10.0.0.20:1080"},
+  "updateEgressSettings": {"rotation": "rotate-on-rate-limit", "defaultRoute": None},
+  "assignSourceEgress": {"routeId": "{{egressRouteId}}", "excludeFromRotation": False},
   # 128: a weekly assessment on Mondays at 07:00 in London over the Red Sea region, with all four roles, three
   # forecaster samples per question and the weekly caps; the replacement narrows it to the analyst and red team;
   # feedback on an assessment; an on-demand assessment of a situation with the analyst only.
@@ -1091,6 +1100,7 @@ BODIES = {
 CAPTURE = {
   "createUser": "const j = pm.response.json(); pm.collectionVariables.set('userId', j.id);",
   "createRole": "const j = pm.response.json(); pm.collectionVariables.set('roleId', j.id);",
+  "createEgressRoute": "const j = pm.response.json(); pm.collectionVariables.set('egressRouteId', j.id);",
   "createExport": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
   "createShareLink": "const j = pm.response.json(); pm.collectionVariables.set('shareLinkId', j.id); pm.collectionVariables.set('key', j.key);",
   "createPeer": "const j = pm.response.json(); pm.collectionVariables.set('peerId', j.id);",
@@ -1563,7 +1573,7 @@ collection = {
       ("questionId", ""), ("forecasterId", "ensemble"), ("evaluationId", ""),
       ("cycleId", ""), ("cycleRunId", ""), ("assessmentId", ""),
       ("objectRef", "situation:{{situationId}}"), ("workspaceId", ""), ("contextVersion", "1"), ("annotationId", ""),
-      ("relationId", ""),
+      ("relationId", ""), ("egressRouteId", ""),
       ("principalId", ""), ("groupId", ""), ("tagId", ""), ("attachmentId", ""), ("evidenceItemId", ""),
       ("savedSearchId", ""),
       ("reportId", ""), ("blockId", ""), ("packageId", ""), ("receivedId", ""),

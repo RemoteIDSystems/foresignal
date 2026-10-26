@@ -1091,6 +1091,33 @@ Source health includes `storage`, which shows what the source costs:
 `null` when nothing was requested in the last hour. If it is low early in the UTC day, lengthen the
 `interval` or raise `budget.perDay`.
 
+## Egress routing (R2-018)
+
+By default every source request leaves from this host's own address (rotation `direct`). To spread
+collection over several exits — for privacy, failover, region-locked sources, or so no supplier sees
+everything come from one address — build an **egress pool** and turn rotation on. The full design is in
+[Network-Sourcing.md](Network-Sourcing.md); in short:
+
+- **Add routes** with `POST /v1/egress` (permission `network.manage`): an `http` or `socks5` proxy
+  (`url` = `scheme://host:port`, credentials in `secrets.username`/`secrets.password`, which are sealed
+  with the instance key and never shown again), or an `interface` route binding a local interface or
+  address. A `wireguard` route records its profile but is always unavailable: bring the tunnel up on the
+  host and add its interface instead. SOCKS5 routes and authenticated HTTP routes carry **https only**.
+- **Check each route** with `POST /v1/egress/{id}/test`, which reports the public exit IP it presents
+  (from `foresignal.egress.probe-url`, default `https://checkip.amazonaws.com/`).
+- **Turn rotation on** with `PUT /v1/settings/egress`: `round-robin`, `random`, `per-source-sticky` or
+  `rotate-on-rate-limit`. Once it is on, a source with no usable route **fails its pull rather than going
+  direct**.
+- **Pin or exclude sources** with `PUT /v1/sources/{sourceId}/egress`: `routeId` pins a source to one
+  exit (it waits or fails rather than moving); `excludeFromRotation` keeps it on `defaultRoute`, or
+  direct when there is none.
+- **Watch health** at `GET /v1/egress/{id}/health`. Three connection failures in a row mark a route
+  unreachable, skip it, and raise `system.egress_unhealthy`; `system.egress_recovered` follows when it
+  works again. Health is in memory and starts empty after a restart.
+
+Rotation does not get around a provider's limits: each route still paces each host, and a 429 or
+`Retry-After` received through a route holds that source off that route until it expires.
+
 ## Triggers and alerts
 
 A trigger rule watches the change stream and opens an alert when a stored version matches. Rules live

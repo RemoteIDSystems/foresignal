@@ -80,9 +80,7 @@ public class BackoffRegistry {
      */
     public Instant onThrottled(String sourceId, Optional<Duration> retryAfter) {
         int attempt = consecutive.computeIfAbsent(sourceId, id -> new AtomicInteger()).incrementAndGet();
-        Duration delay = retryAfter.map(BackoffRegistry::clampRetryAfter)
-                .map(asked -> max(asked, escalation(attempt)))
-                .orElseGet(() -> exponential(attempt));
+        Duration delay = throttleDelay(attempt, retryAfter);
         Instant deadline = clock.instant().plus(delay);
         until.put(sourceId, deadline);
         persist(sourceId, deadline);
@@ -198,6 +196,17 @@ public class BackoffRegistry {
     }
 
     // ---------- delay arithmetic ----------
+
+    /**
+     * How long the {@code attempt}-th consecutive throttle holds: the upstream's {@code Retry-After}, clamped to
+     * [5 s, 1 h], but at least the {@link #escalation} of the throttles before it; without one, the exponential step.
+     * The per-egress backoff of prompt R2-018 uses the same arithmetic.
+     */
+    public static Duration throttleDelay(int attempt, Optional<Duration> retryAfter) {
+        return retryAfter.map(BackoffRegistry::clampRetryAfter)
+                .map(asked -> max(asked, escalation(attempt)))
+                .orElseGet(() -> exponential(attempt));
+    }
 
     /** {@code 30s × 2^(attempt-1)}, capped at an hour. */
     /**
