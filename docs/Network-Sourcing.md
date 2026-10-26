@@ -22,8 +22,9 @@ egress rotation (C1) is the fallback** for what is left.
 | Polite pacing & backoff | `collect/HostPacer.java`, `collect/BackoffRegistry.java`, `collect/BudgetGovernor.java` | honors Retry-After; per-host gates; global pull governor |
 | Outbound client | `collect/UpstreamClient.java`, `collect/BoundSourceHttp.java` | the one HTTP path for source requests (SRC-1) |
 | Egress routing (C1, R2-018) | `egress/` (`EgressRouter`, `RouteSelector`, `EgressBackoff`, `EgressHealthRegistry`, `EgressTunnel`, `EgressProbe`), `api/EgressController.java` | default `direct`: every request leaves from the host's own address until an operator turns rotation on |
-| readsb/tar1090 parser | `source/formats/readsb/ReadsbAircraftMapper.java` | already parses the native `aircraft.json` format |
-| Base-URL override | `source/adapters/adsblol/AdsbLolMilAdapter.java` (`BASE_URL_PROPERTY`) | adsb adapters already accept a base-URL override; blank = `https://api.adsb.lol` |
+| readsb/tar1090 parser | `source/formats/readsb/ReadsbAircraftMapper.java` | parses the native `aircraft.json` format |
+| Aggregator surface (R2-019) | `source/aggregator/` (`AggregatorService`, `DomainAggregator`), `api/AggregatorsController.java` | one surface for every domain; `adsb` implemented |
+| Local ADS-B aggregator (C2, R2-019) | `source/aggregator/AdsbAggregator.java`, `source/adapters/local/LocalAdsbAggregatorAdapter.java`, the `readsb` compose profile | reads the operator's own readsb whole |
 | Local receivers | prompt 069 | socket transport + codec SPI (readsb v2, Davis/Ecowitt, AIS-catcher, …) |
 
 ## C1. Egress routing & IP rotation (the fallback, R2-018)
@@ -144,31 +145,99 @@ of service still govern its use.
 All `admin` scope, permission `network.manage`. Deleting a route clears the pins to it and the default
 route when it was that one.
 
-## C2. Local ADS-B aggregator (the durable fix for ADS-B)
+## The aggregator surface (R2-019)
 
-adsb.lol / adsb.fi / airplanes.live are **public mirrors of the same readsb/tar1090 data Foresignal
-already parses** (`ReadsbAircraftMapper`), and the adsb adapters already take a base-URL override
-(`AdsbLolMilAdapter` `BASE_URL_PROPERTY`). So stand up **our own readsb** — fed by a local SDR receiver
-and/or aggregating the global feed — and point the world/mil/region adapters at `http://localhost`.
+Every RF/sensor domain gets one **first-party aggregator**, configured through one surface
+(`network.manage`):
 
-Why this is strictly better than egress rotation for ADS-B, on every axis:
+| Operation | Method / path |
+|---|---|
+| `listAggregators` | `GET /v1/aggregators` |
+| `getAggregator` / `updateAggregator` | `GET` / `PUT /v1/aggregators/{domain}` |
+| `testAggregator` | `POST /v1/aggregators/{domain}/test` |
+
+`{domain}` is `adsb`, `ais`, `datalink`, `satellite` or `ground-sensors`; anything else is
+`404 UNKNOWN_AGGREGATOR`. Each domain's configuration is one setting, `aggregator.<domain>`:
+`enabled` (default false), `mode` (`receiver`, `feed` or `hybrid` — how the local service is fed),
+`endpoint` (the local URL its source reads), a domain-specific `config`, and
+`disableSupersededSources` (default true). A PUT replaces it whole.
+
+Behind the surface is one `DomainAggregator` per domain (`ai.foresignal.source.aggregator`). It names
+the first-party sources it drives (the first one's health is the aggregator's `status`: `ok`,
+`degraded`, `down`, or `unconfigured` when it is not enabled with an endpoint), the public sources it
+supersedes, how a configuration is validated and applied, and how its endpoint is tested. A domain
+whose backend this server does not have yet reads `implemented: false`; its configuration can be
+stored, but only disabled.
+
+**Supersede, never remove.** When an update leaves an aggregator **live** (enabled with an endpoint)
+with `disableSupersededSources`, every superseded source that is on is turned off and remembered.
+While it stays live, seeding never enables them and `enable-core`/`enable-free` skip them. They stay
+registered and in the catalog, and an operator may still turn one on by hand. When the aggregator
+stops being live, or `disableSupersededSources` is set to false, exactly the sources it turned off
+are turned back on. A live aggregator whose source starts failing raises `system.aggregator_down`
+once, and `system.aggregator_recovered` when it is healthy again.
+
+## C2. Local ADS-B aggregator (the durable fix for ADS-B, R2-019)
+
+adsb.lol, adsb.fi and airplanes.live are public mirrors of readsb data, the format Foresignal already
+parses (`ReadsbAircraftMapper`). A readsb of the operator's own serves the same `aircraft.json` for
+everything it holds, so Foresignal reads it whole from this host or the LAN:
 
 - the external rate limit **disappears** (no public endpoint is hit);
-- true **1-second refresh** and **global coverage** — a local readsb serves the full `aircraft.json`
-  at once, so the radius ≤ 250 world-tiling used against a public host (`RegionPoller`) is not needed;
-- the **"one system pulling" exposure is gone entirely** — privacy included.
+- **one request** brings every aircraft the readsb holds, so the world tiling used against a public
+  host (`RegionPoller`, six circles a poll) is not needed;
+- refresh is as fast as the readsb writes (1 s by default upstream; the read runs every 5 s by default,
+  1 s at the fastest);
+- the **"one system pulling" exposure is gone** — privacy included.
 
-**Scope:** bundle/stand up readsb (a compose profile or documented setup); a first-class **"local
-ADS-B aggregator"** source option (full global read from `localhost` through the existing mapper +
-base-URL override); feeding docs (own receiver vs. aggregating the global feed); and an admin toggle
-to make the local aggregator the ADS-B source. Once it runs, the public-mirror adapters (adsb.lol /
-adsb.fi / airplanes.live) stay in the catalog but are **disabled by default** — a zero-setup fallback
-only. Because GPS-jamming is **derived** from ADS-B (`derived-gps-jamming`), a local ADS-B feed makes
-it first-party too, and `gpsjam` goes default-off.
+**The read.** `local-adsb-aggregator` is a `local-adsb-{n}` adapter with its own descriptor: the same
+mapper, staleness rule and policy, sized for a large feed (32 MB, 10 s timeout). The aggregator owns
+its configuration: `PUT /v1/aggregators/adsb` writes the endpoint into its `url` parameter
+(`config.band`, `1090` or `978`, into `band`) and turns it on while the aggregator is live, off
+otherwise. The endpoint is therefore checked like every `LAN_URL`: an http(s) URL naming
+`aircraft.json`, with no credentials, query or fragment, that resolves to a loopback, private or
+unique-local address; it is pinned, and never sent through an egress route. Its id carries the
+`local-adsb-` prefix, so `derived-aircraft`, `derived-gps-jamming` and the other derived aircraft
+layers read it like any local receiver. Like every local receiver it is `LOCAL_ONLY`, overridable.
+
+The public-mirror adapters are not retargeted at the local readsb: they request the mirrors' own API
+paths (`/v2/lat/…/lon/…/dist/…`, `/v2/mil`), which a readsb does not serve, and they are exactly
+the sources the aggregator supersedes.
+
+**Superseded:** every registered `adsblol-*`, `adsbfi-*` and `airplaneslive-*` source, and
+`gpsjam-daily` — GPS jamming is first-party once `derived-gps-jamming` reads the local feed.
+
+**Standing up readsb.** Foresignal bundles no readsb code (readsb is GPL-3.0). The opt-in `readsb`
+compose profile pulls the sdr-enthusiasts ultrafeeder image (readsb with tar1090), whose web server
+answers on container port 80 with `/data/aircraft.json`:
+
+```sh
+READSB_LAT=51.47 READSB_LON=-0.45 READSB_DEVICE_TYPE=rtlsdr docker compose --profile readsb up -d
+```
+
+then
+
+```
+PUT /v1/aggregators/adsb
+{"enabled": true, "mode": "receiver", "endpoint": "http://readsb/data/aircraft.json"}
+POST /v1/aggregators/adsb/test        → {"ok": true, "reachable": true, "sampleCount": 214, …}
+```
+
+- **`receiver`** — the readsb decodes this host's own SDR (`READSB_DEVICE_TYPE=rtlsdr`; the profile
+  maps `/dev/bus/usb`).
+- **`feed`** — the readsb aggregates feeds it is given rather than a radio: `ULTRAFEEDER_CONFIG` takes
+  `adsb,<host>,<port>,beast_in` connectors (separated by `;`), for example other receivers on the LAN
+  or a feed partner that sends you Beast data. Which global feeds may be aggregated, and on what
+  terms, is up to their operators; Foresignal reads whatever the readsb holds.
+- **`hybrid`** — both.
+
+The server reads the same file in every mode; `mode` records how the readsb is fed. The image tag
+defaults to the one its README recommends (`latest`); pin a digest with `READSB_IMAGE`. Its tar1090
+map is published on `127.0.0.1:8078`.
 
 ## C3. First-party aggregators across the RF / sensor domains (the mission)
 
-The same move applies to every domain where the data rides a distributed sensor/RF network and the
+Each domain plugs its backend into the aggregator surface above (R2-020…R2-023 add no operations). The same move applies to every domain where the data rides a distributed sensor/RF network and the
 public sites are only aggregators. Build first-party ingestion for each; **keep the original
 public/mirror sources in the catalog but default them OFF** once a first-party aggregator is live
 (zero-setup, opt-in fallback — nothing is removed). Several already have reception plumbing to promote
@@ -202,16 +271,11 @@ toggle** for each superseded public source (ADS-B, AIS, datalink, satellite, gro
 
 ## Invariants
 
-Registered in `docs/Invariants.md` with their tests:
+All four are registered in `docs/Invariants.md` with their tests:
 
 | Id | Invariant |
 |---|---|
 | EGR-4 | Every outbound source request still passes through `UpstreamClient` with its budget, backoff and per-host pacer, whichever egress route carries it; `direct` routes nothing; `Retry-After` and pacing are per route; a pinned LAN host is never routed; with no usable route a pull fails rather than going direct (R2-018) |
 | EGR-5 | Egress route secrets are write-only: sealed with the instance key, never returned by the API and never logged (R2-018) |
-
-Still to be registered by the prompts that build them:
-
-| Id | Invariant |
-|---|---|
-| EGR-6 | A first-party local aggregator is `LOCAL_ONLY` by descriptor like the receiver it reads; promoting a domain to first-party never relaxes its egress class (keeps EGR-2) |
-| EGR-7 | Superseded public sources are disabled, never removed; a default-off source still fetches nothing until an operator or a user enables it (keeps SRC-6) |
+| EGR-6 | A first-party local aggregator's read is `LOCAL_ONLY` by descriptor like the receiver it reads; promoting a domain to first-party never relaxes its egress class (keeps EGR-2) (R2-019) |
+| EGR-7 | Superseded public sources are turned off, never removed; while their aggregator is live, seeding and the bulk enables leave them off, and turning it off turns back on exactly those it turned off (keeps SRC-6) (R2-019) |

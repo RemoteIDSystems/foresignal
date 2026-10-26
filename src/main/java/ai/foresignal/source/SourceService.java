@@ -85,6 +85,7 @@ public class SourceService implements ApplicationRunner {
     private final ObjectProvider<SourceHealthLookup> healthLookup;
     private final RetentionResolver retention;
     private final boolean defaultEnable;
+    private ObjectProvider<SupersededSources> superseded;
 
     /**
      * Creates the service.
@@ -118,6 +119,23 @@ public class SourceService implements ApplicationRunner {
         this.healthLookup = healthLookup;
         this.retention = retention;
         this.defaultEnable = defaultEnable;
+    }
+
+    /**
+     * Wires the live aggregators' superseded sources (prompt R2-019), resolved lazily because the aggregators depend
+     * on this service. Without it nothing is superseded.
+     *
+     * @param superseded the provider
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setSupersededSources(ObjectProvider<SupersededSources> superseded) {
+        this.superseded = superseded;
+    }
+
+    /** True when a live first-party aggregator supersedes {@code id} (prompt R2-019). */
+    boolean superseded(String id) {
+        SupersededSources sources = superseded == null ? null : superseded.getIfAvailable();
+        return sources != null && sources.isSuperseded(id);
     }
 
     /** Seeds default settings rows at startup. */
@@ -187,20 +205,21 @@ public class SourceService implements ApplicationRunner {
 
     /**
      * True when {@code descriptor} starts enabled: it {@linkplain #runsWithoutOperatorInput runs without
-     * operator input} and its descriptor does not hold it off ({@link SourceDescriptor#autoEnable()},
-     * prompt 146). The rule of {@link #enableFree()}.
+     * operator input}, its descriptor does not hold it off ({@link SourceDescriptor#autoEnable()},
+     * prompt 146), and no live aggregator supersedes it (prompt R2-019). The rule of {@link #enableFree()}.
      */
     boolean startsEnabled(SourceDescriptor descriptor) {
-        return descriptor.autoEnable() && runsWithoutOperatorInput(descriptor);
+        return descriptor.autoEnable() && !superseded(descriptor.id()) && runsWithoutOperatorInput(descriptor);
     }
 
     /**
      * True when {@code descriptor} is seeded enabled (prompt 150): it is in the {@linkplain SourceRegistry#CORE_IDS
-     * core set} and {@linkplain #runsWithoutOperatorInput runs without operator input}. The rule of
+     * core set}, {@linkplain #runsWithoutOperatorInput runs without operator input}, and no live aggregator supersedes
+     * it (prompt R2-019). The rule of
      * {@link #seedDefaults} and {@link #enableCore()}.
      */
     boolean seedsEnabled(SourceDescriptor descriptor) {
-        return registry.isCore(descriptor.id()) && runsWithoutOperatorInput(descriptor);
+        return registry.isCore(descriptor.id()) && !superseded(descriptor.id()) && runsWithoutOperatorInput(descriptor);
     }
 
     /**

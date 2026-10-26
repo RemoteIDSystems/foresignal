@@ -93207,7 +93207,7 @@
         ],
         "operationId": "listAggregators",
         "summary": "List first-party aggregators",
-        "description": "Lists the first-party aggregators across RF/sensor domains with status and the public sources each supersedes (C3). Requires `network.manage`.\n\n**Scope:** `admin`.",
+        "description": "Lists the first-party aggregators across RF/sensor domains with status and the public sources each supersedes (C3). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-019:** every domain is listed. adsb is implemented; a domain whose backend this server does not have reads `implemented: false` and `status: unconfigured`.",
         "responses": {
           "200": {
             "description": "The aggregators",
@@ -93258,7 +93258,7 @@
         ],
         "operationId": "getAggregator",
         "summary": "Get a domain aggregator",
-        "description": "Returns the aggregator for one domain (adsb, ais, datalink, satellite, ground-sensors). Requires `network.manage`.\n\n**Scope:** `admin`.",
+        "description": "Returns the aggregator for one domain (adsb, ais, datalink, satellite, ground-sensors). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-019:** 404 UNKNOWN_AGGREGATOR for any other domain.",
         "parameters": [
           {
             "name": "domain",
@@ -93335,7 +93335,7 @@
         ],
         "operationId": "updateAggregator",
         "summary": "Configure a domain aggregator",
-        "description": "Enables and configures a domain's first-party aggregator and, by default, defaults the superseded public/mirror sources off (they stay in the catalog as opt-in fallbacks). Requires `network.manage`.\n\n**Scope:** `admin`.",
+        "description": "Enables and configures a domain's first-party aggregator and, by default, defaults the superseded public/mirror sources off (they stay in the catalog as opt-in fallbacks). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-019:** the configuration is replaced whole. adsb writes `endpoint` (and `config.band`) to the `local-adsb-aggregator` source and turns it on while the aggregator is live (enabled with an endpoint), off otherwise. While live with `disableSupersededSources`, every registered `adsblol-*`, `adsbfi-*` and `airplaneslive-*` source and `gpsjam-daily` that is on is turned off, and seeding and `enable-core`/`enable-free` leave them off; when the aggregator stops being live, or `disableSupersededSources` is false, the sources it turned off are turned back on. 400 for a bad member, an endpoint that is not an http(s) aircraft.json URL or does not resolve to a local address, or `enabled: true` on a domain this server has no backend for. A live aggregator whose source starts failing raises `system.aggregator_down` (and `system.aggregator_recovered` when it is healthy again).",
         "parameters": [
           {
             "name": "domain",
@@ -93434,7 +93434,7 @@
         ],
         "operationId": "testAggregator",
         "summary": "Test a domain aggregator",
-        "description": "Probes the aggregator's local endpoint and reports reachability and a sample object count; nothing is persisted. Requires `network.manage`.\n\n**Scope:** `admin`.",
+        "description": "Probes the aggregator's local endpoint and reports reachability and a sample object count; nothing is persisted. Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-019:** reads the stored endpoint once through the aggregator's source (its budget and pinning apply). Always 200; `ok` false with a `message` when nothing is configured, the endpoint cannot be reached, or the answer is not readsb aircraft.json. `sampleCount` is the number of aircraft in it.",
         "parameters": [
           {
             "name": "domain",
@@ -179481,7 +179481,7 @@
               "string",
               "null"
             ],
-            "description": "Local endpoint the adapter reads (e.g. http://localhost for readsb)"
+            "description": "Local endpoint the adapter reads. For adsb, the readsb aircraft.json, for example http://readsb/data/aircraft.json (R2-019)"
           },
           "status": {
             "type": "string",
@@ -179491,7 +179491,8 @@
               "down",
               "unconfigured"
             ],
-            "readOnly": true
+            "readOnly": true,
+            "description": "ok when the aggregator's source is healthy, degraded when degraded or not yet run, down when failing, unconfigured when not enabled with an endpoint (R2-019)"
           },
           "supersededSources": {
             "type": "array",
@@ -179507,7 +179508,38 @@
               "null"
             ],
             "format": "date-time",
-            "readOnly": true
+            "readOnly": true,
+            "description": "When the aggregator's source last brought data (R2-019)"
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Domain-specific settings as stored (adsb: `band`, 1090 or 978) (R2-019)"
+          },
+          "disableSupersededSources": {
+            "type": "boolean",
+            "description": "Whether the superseded sources are kept off while the aggregator is live (R2-019)"
+          },
+          "implemented": {
+            "type": "boolean",
+            "readOnly": true,
+            "description": "Whether this server has the domain's backend; a domain without one can be configured only disabled (R2-019)"
+          },
+          "statusReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "readOnly": true,
+            "description": "Why the status is what it is: the health reason of the aggregator's source, or why it is unconfigured (R2-019)"
+          },
+          "sourceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true,
+            "description": "The first-party sources the aggregator drives; the first one's health is its status (adsb: local-adsb-aggregator) (R2-019)"
           }
         },
         "required": [
@@ -179550,17 +179582,18 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Required to enable. adsb: an http or https URL of the readsb aircraft.json on this host or the LAN (it must resolve to a loopback, private or unique-local address, and is pinned); no credentials, query or fragment (R2-019)"
           },
           "config": {
             "type": "object",
-            "description": "Domain-specific settings (receiver, feed URL, decoders)",
+            "description": "Domain-specific settings (adsb: `band`, 1090 or 978, default 1090); an unknown member is a 400 (R2-019)",
             "additionalProperties": true
           },
           "disableSupersededSources": {
             "type": "boolean",
             "default": true,
-            "description": "Default the public/mirror sources off once this aggregator is live (nothing is removed)"
+            "description": "Default the public/mirror sources off once this aggregator is live (nothing is removed); the sources it turned off are turned back on when it stops being live or this is set to false (R2-019)"
           }
         },
         "required": [

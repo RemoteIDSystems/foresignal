@@ -23,9 +23,10 @@ provable from five places in the code:
 
 1. **The core set starts enabled; everything else starts disabled** (prompt 150, revising 145).
    At startup `SourceService.seedDefaults()` inserts one settings row per registered source that
-   has none ([`SourceService.java:150`](../src/main/java/ai/foresignal/source/SourceService.java#L150)).
-   A built-in source is seeded **enabled** (line 162) when `seedsEnabled` (line 201) holds: it is
-   in the core set, and it runs with zero operator input (`runsWithoutOperatorInput`, line 221).
+   has none ([`SourceService.java:169`](../src/main/java/ai/foresignal/source/SourceService.java#L169)).
+   A built-in source is seeded **enabled** (line 182) when `seedsEnabled` (line 221) holds: it is
+   in the core set, it runs with zero operator input (`runsWithoutOperatorInput`, line 241), and no
+   live first-party aggregator supersedes it (prompt R2-019, below).
    The core set is `SourceRegistry.CORE_IDS`
    ([`SourceRegistry.java:55`](../src/main/java/ai/foresignal/source/SourceRegistry.java#L55)),
    the live-tracking picture a new operator expects to see at once:
@@ -52,7 +53,7 @@ provable from five places in the code:
    The core rule does not consult a descriptor's `autoEnable`: a core source is seeded enabled
    even when its descriptor holds it off from `enable-free` (`opensky-states`). Every other source
    is seeded **disabled**
-   ([`defaultRow`, line 239](../src/main/java/ai/foresignal/source/SourceService.java#L239)):
+   ([`defaultRow`, line 259](../src/main/java/ai/foresignal/source/SourceService.java#L259)):
    free non-core sources, sources that need a credential or a parameter, and sources held off for
    their bandwidth or terms (`wiki-edit-surge`). So is every custom or external source (prompt
    024), which keeps its own rule. Only missing rows are created, so this governs a fresh install
@@ -65,13 +66,20 @@ provable from five places in the code:
    - `POST /v1/sources/enable-core` enables every disabled core source that runs without operator
      input; `skipped` counts every other disabled built-in source. It is how an install seeded
      before prompt 150 adopts the core default
-     ([`SourceService.enableCore`, line 752](../src/main/java/ai/foresignal/source/SourceService.java#L752)).
+     ([`SourceService.enableCore`, line 803](../src/main/java/ai/foresignal/source/SourceService.java#L803)).
    - `POST /v1/sources/enable-free` enables every disabled built-in source that runs without
      operator input and whose descriptor does not hold it off (`autoEnable`, prompt 146);
      `skipped` counts the ones that need a credential or a parameter, or are held off like
      `wiki-edit-surge`
-     ([`SourceService.enableFree`, line 738](../src/main/java/ai/foresignal/source/SourceService.java#L738)).
+     ([`SourceService.enableFree`, line 789](../src/main/java/ai/foresignal/source/SourceService.java#L789)).
      It is unchanged by prompt 150.
+   - **Superseded sources** (prompt R2-019). While a first-party aggregator is live with
+     `disableSupersededSources` (`PUT /v1/aggregators/{domain}`), the public sources it supersedes
+     are turned off, seeding leaves them off, and both calls above skip them. For the ADS-B
+     aggregator that is every `adsblol-*`, `adsbfi-*` and `airplaneslive-*` source and
+     `gpsjam-daily`; the aircraft come from `local-adsb-aggregator` instead. They stay registered and
+     can be turned on by hand, and turning the aggregator off turns back on exactly the ones it
+     turned off ([`docs/Network-Sourcing.md`](Network-Sourcing.md), "C2").
 
 3. **Every pull waits its turn at one global governor** (prompt 150). `PullGovernor` is a fair,
    resizable pool of permits
@@ -254,7 +262,7 @@ at rest** and the only decryptor lives inside the collector; the API will only e
 
 > **If you delete a key from a source that requires one, the source is auto-disabled** rather than
 > left to fail on every fetch
-> ([`SourceService.java:743-768`](../src/main/java/ai/foresignal/source/SourceService.java#L743)).
+> ([`SourceService.java:960-984`](../src/main/java/ai/foresignal/source/SourceService.java#L960)).
 
 ---
 
@@ -283,7 +291,7 @@ regex `^(\d+)\s*(s|m|h|d|w)$`, case-insensitive) plus ISO-8601:
 
 Use single-letter units (`s m h d w`), not `min`. A space before the unit is tolerated (`"60 s"`).
 
-**Rules** ([`SourceService.java:348-363`](../src/main/java/ai/foresignal/source/SourceService.java#L348)):
+**Rules** ([`SourceService.java:448-464`](../src/main/java/ai/foresignal/source/SourceService.java#L448)):
 
 - Omit `interval` → the stored value is left unchanged. Each source already has a sensible default
   from its descriptor (e.g. `usgs-earthquakes` defaults to `60s`; see the "Default interval" column

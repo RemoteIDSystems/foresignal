@@ -23,6 +23,10 @@
 #                               # adds a SatDump ground station on this host; the
 #                               # image is built by the operator from SatDump's own
 #                               # Dockerfile (docs/Operator-Guide.md, "SatDump ground station")
+#   READSB_LAT=51.47 READSB_LON=-0.45 docker compose --profile readsb up -d
+#                               # adds a local readsb (the sdr-enthusiasts ultrafeeder
+#                               # image) for the local ADS-B aggregator, read at
+#                               # http://readsb/data/aircraft.json (docs/Network-Sourcing.md, "C2")
 services:
   db:
     # PostGIS plus pgvector for semantic search (027): postgis/postgis:17-3.5 with
@@ -214,6 +218,37 @@ services:
     volumes:
       - satdump-output:/srv/output
       - ./docker/satdump:/config:ro
+    restart: unless-stopped
+
+  # The local ADS-B aggregator's readsb (R2-019, docs/Network-Sourcing.md "C2"). Only started with
+  # --profile readsb. Foresignal bundles no readsb code: this pulls the sdr-enthusiasts ultrafeeder image
+  # (readsb with tar1090, GPL-3.0, https://github.com/sdr-enthusiasts/docker-adsb-ultrafeeder), whose
+  # README recommends the :latest tag; pin a digest with READSB_IMAGE. Its web server answers on
+  # container port 80, and Foresignal reads http://readsb/data/aircraft.json over this compose network:
+  #   PUT /v1/aggregators/adsb {"enabled": true, "mode": "receiver",
+  #                             "endpoint": "http://readsb/data/aircraft.json"}
+  # Own receiver: READSB_DEVICE_TYPE=rtlsdr and the USB mapping below. Aggregating other feeds instead
+  # (or as well): leave READSB_DEVICE_TYPE empty and give ULTRAFEEDER_CONFIG beast_in connectors, for
+  # example adsb,192.168.1.60,30005,beast_in (connectors separated by ;).
+  readsb:
+    image: ${READSB_IMAGE:-ghcr.io/sdr-enthusiasts/docker-adsb-ultrafeeder:latest}
+    profiles: ["readsb"]
+    environment:
+      TZ: ${TZ:-UTC}
+      READSB_DEVICE_TYPE: ${READSB_DEVICE_TYPE:-}
+      READSB_LAT: ${READSB_LAT:-}
+      READSB_LON: ${READSB_LON:-}
+      ULTRAFEEDER_CONFIG: ${ULTRAFEEDER_CONFIG:-}
+    device_cgroup_rules:
+      - 'c 189:* rwm'
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb:rw
+    # Capped like every service here, and unable to swap; raise READSB_MEM_LIMIT for a large feed.
+    mem_limit: ${READSB_MEM_LIMIT:-1g}
+    memswap_limit: ${READSB_MEM_LIMIT:-1g}
+    # The tar1090 map on localhost only by default.
+    ports:
+      - "${FORESIGNAL_BIND:-127.0.0.1}:8078:80"
     restart: unless-stopped
 
 volumes:

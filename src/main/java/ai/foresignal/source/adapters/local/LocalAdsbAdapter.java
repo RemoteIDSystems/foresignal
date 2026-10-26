@@ -95,6 +95,16 @@ public class LocalAdsbAdapter implements PollingAdapter {
         this.descriptor = buildDescriptor(slot);
     }
 
+    /**
+     * Creates an adapter with its own descriptor, which must declare the {@link #URL_PARAM} and {@link #BAND_PARAM}
+     * parameters (the local ADS-B aggregator, prompt R2-019).
+     *
+     * @param descriptor the descriptor
+     */
+    protected LocalAdsbAdapter(SourceDescriptor descriptor) {
+        this.descriptor = descriptor;
+    }
+
     @Override
     public SourceDescriptor descriptor() {
         return descriptor;

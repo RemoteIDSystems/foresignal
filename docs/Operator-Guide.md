@@ -1118,6 +1118,37 @@ everything come from one address — build an **egress pool** and turn rotation 
 Rotation does not get around a provider's limits: each route still paces each host, and a 429 or
 `Retry-After` received through a route holds that source off that route until it expires.
 
+## First-party aggregators (R2-019)
+
+Where a feed is a network of receivers that public sites only mirror, read your own copy instead:
+`GET /v1/aggregators` lists one aggregator per domain (`adsb`, `ais`, `datalink`, `satellite`,
+`ground-sensors`), with its status and the public sources it supersedes. This release implements
+`adsb`; the others list as `implemented: false` and cannot be enabled yet. The design is in
+[Network-Sourcing.md](Network-Sourcing.md).
+
+**Local ADS-B.** Start a readsb — the opt-in compose profile pulls the sdr-enthusiasts ultrafeeder
+image; set `READSB_DEVICE_TYPE=rtlsdr` for your own SDR, or `ULTRAFEEDER_CONFIG` Beast connectors to
+aggregate other feeds:
+
+```sh
+READSB_LAT=51.47 READSB_LON=-0.45 READSB_DEVICE_TYPE=rtlsdr docker compose --profile readsb up -d
+```
+
+Then point the aggregator at it and check it:
+
+```
+PUT  /v1/aggregators/adsb   {"enabled": true, "mode": "receiver", "endpoint": "http://readsb/data/aircraft.json"}
+POST /v1/aggregators/adsb/test
+```
+
+The endpoint must be an http(s) `aircraft.json` URL that resolves to this host or your LAN. The
+aircraft then come from the source `local-adsb-aggregator` (one request for the whole feed, every
+5 s), and while the aggregator is live the public mirrors (`adsblol-*`, `adsbfi-*`,
+`airplaneslive-*`) and `gpsjam-daily` are turned off and stay off — they are not removed, you can
+turn one on by hand, and turning the aggregator off (`{"enabled": false}`) turns back on exactly the
+ones it turned off. Send `"disableSupersededSources": false` to keep the mirrors running alongside.
+A live aggregator whose source starts failing raises `system.aggregator_down`.
+
 ## Triggers and alerts
 
 A trigger rule watches the change stream and opens an alert when a stored version matches. Rules live

@@ -490,6 +490,21 @@ public final class SettingKeys {
      */
     public static final String EGRESS = "egress";
 
+    /** The ADS-B first-party aggregator (prompt R2-019). */
+    public static final String AGGREGATOR_ADSB = "aggregator.adsb";
+
+    /** The AIS first-party aggregator (prompt R2-019; its backend is prompt R2-020's). */
+    public static final String AGGREGATOR_AIS = "aggregator.ais";
+
+    /** The aircraft-datalink first-party aggregator (prompt R2-019; its backend is prompt R2-021's). */
+    public static final String AGGREGATOR_DATALINK = "aggregator.datalink";
+
+    /** The satellite-reception first-party aggregator (prompt R2-019; its backend is prompt R2-022's). */
+    public static final String AGGREGATOR_SATELLITE = "aggregator.satellite";
+
+    /** The ground-sensor first-party aggregator (prompt R2-019; its backend is prompt R2-023's). */
+    public static final String AGGREGATOR_GROUND_SENSORS = "aggregator.ground-sensors";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -514,7 +529,8 @@ public final class SettingKeys {
                     SOCIAL_LLM_CLAIMS_PER_DAY, SOCIAL_SOURCE_RELIABILITY, SOCIAL_COMPARE, SOCIAL_ATTENTION_GAP,
                     SOCIAL_CUES, SOCIAL_TRACK_RECORD, EXTERNAL_BINDING_CURSOR, DOCTOR_AUTO_LLM,
                     DOCTOR_AUTO_COOLDOWN, MCP_AUTH, PLUGINS, PLUGINS_APPROVALS, COLLECTOR, SMTP,
-                    THRESHOLDS, RETENTION_DB_CAP, BACKUP, EGRESS);
+                    THRESHOLDS, RETENTION_DB_CAP, BACKUP, EGRESS, AGGREGATOR_ADSB, AGGREGATOR_AIS,
+                    AGGREGATOR_DATALINK, AGGREGATOR_SATELLITE, AGGREGATOR_GROUND_SENSORS);
 
     private SettingKeys() {}
 }

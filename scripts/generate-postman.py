@@ -903,6 +903,10 @@ BODIES = {
   "updateEgressRoute": {"name": "Frankfurt exit", "type": "socks5", "enabled": True, "url": "socks5://10.0.0.20:1080"},
   "updateEgressSettings": {"rotation": "rotate-on-rate-limit", "defaultRoute": None},
   "assignSourceEgress": {"routeId": "{{egressRouteId}}", "excludeFromRotation": False},
+  # R2-019: the local ADS-B aggregator reading the readsb of the compose profile, fed by this host's own receiver,
+  # with the public mirrors and gpsjam kept off while it is live.
+  "updateAggregator": {"enabled": True, "mode": "receiver", "endpoint": "http://readsb/data/aircraft.json",
+                       "config": {"band": "1090"}, "disableSupersededSources": True},
   # 128: a weekly assessment on Mondays at 07:00 in London over the Red Sea region, with all four roles, three
   # forecaster samples per question and the weekly caps; the replacement narrows it to the analyst and red team;
   # feedback on an assessment; an on-demand assessment of a situation with the analyst only.
@@ -1566,6 +1570,7 @@ collection = {
       ("exerciseId", ""), ("suggestionId", ""), ("tuningLogId", ""),
       ("canonicalEventId", ""), ("manifestId", ""), ("templateId", "ask-system"), ("jobId", ""),
       ("attentionTopicId", "red-sea-shipping"),
+      ("domain", "adsb"),
       ("situationId", ""), ("situationMemberId", ""), ("otherSituationId", ""),
       ("findingId", ""), ("seriesRef", "rollup:day/*/earthquake/US"),
       ("precursorId", ""), ("precursorBatchId", ""), ("precursorCandidateId", ""),

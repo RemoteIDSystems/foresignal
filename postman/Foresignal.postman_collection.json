@@ -2089,7 +2089,7 @@
               ],
               "query": []
             },
-            "description": "Lists the first-party aggregators across RF/sensor domains with status and the public sources each supersedes (C3). Requires `network.manage`.\n\n**Scope:** `admin`.\n\noperationId: `listAggregators`",
+            "description": "Lists the first-party aggregators across RF/sensor domains with status and the public sources each supersedes (C3). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-019:** every domain is listed. adsb is implemented; a domain whose backend this server does not have reads `implemented: false` and `status: unconfigured`.\n\noperationId: `listAggregators`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2135,7 +2135,7 @@
               ],
               "query": []
             },
-            "description": "Returns the aggregator for one domain (adsb, ais, datalink, satellite, ground-sensors). Requires `network.manage`.\n\n**Scope:** `admin`.\n\noperationId: `getAggregator`",
+            "description": "Returns the aggregator for one domain (adsb, ais, datalink, satellite, ground-sensors). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-019:** 404 UNKNOWN_AGGREGATOR for any other domain.\n\noperationId: `getAggregator`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2185,7 +2185,7 @@
               ],
               "query": []
             },
-            "description": "Enables and configures a domain's first-party aggregator and, by default, defaults the superseded public/mirror sources off (they stay in the catalog as opt-in fallbacks). Requires `network.manage`.\n\n**Scope:** `admin`.\n\noperationId: `updateAggregator`",
+            "description": "Enables and configures a domain's first-party aggregator and, by default, defaults the superseded public/mirror sources off (they stay in the catalog as opt-in fallbacks). Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-019:** the configuration is replaced whole. adsb writes `endpoint` (and `config.band`) to the `local-adsb-aggregator` source and turns it on while the aggregator is live (enabled with an endpoint), off otherwise. While live with `disableSupersededSources`, every registered `adsblol-*`, `adsbfi-*` and `airplaneslive-*` source and `gpsjam-daily` that is on is turned off, and seeding and `enable-core`/`enable-free` leave them off; when the aggregator stops being live, or `disableSupersededSources` is false, the sources it turned off are turned back on. 400 for a bad member, an endpoint that is not an http(s) aircraft.json URL or does not resolve to a local address, or `enabled: true` on a domain this server has no backend for. A live aggregator whose source starts failing raises `system.aggregator_down` (and `system.aggregator_recovered` when it is healthy again).\n\noperationId: `updateAggregator`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2198,7 +2198,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"enabled\": true,\n  \"mode\": \"receiver\",\n  \"endpoint\": \"http://readsb/data/aircraft.json\",\n  \"config\": {\n    \"band\": \"1090\"\n  },\n  \"disableSupersededSources\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2241,7 +2241,7 @@
               ],
               "query": []
             },
-            "description": "Probes the aggregator's local endpoint and reports reachability and a sample object count; nothing is persisted. Requires `network.manage`.\n\n**Scope:** `admin`.\n\noperationId: `testAggregator`",
+            "description": "Probes the aggregator's local endpoint and reports reachability and a sample object count; nothing is persisted. Requires `network.manage`.\n\n**Scope:** `admin`.\n\n**R2-019:** reads the stored endpoint once through the aggregator's source (its budget and pinning apply). Always 200; `ok` false with a `message` when nothing is configured, the endpoint cannot be reached, or the answer is not readsb aircraft.json. `sampleCount` is the number of aircraft in it.\n\noperationId: `testAggregator`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -57143,6 +57143,10 @@
     {
       "key": "attentionTopicId",
       "value": "red-sea-shipping"
+    },
+    {
+      "key": "domain",
+      "value": "adsb"
     },
     {
       "key": "situationId",
