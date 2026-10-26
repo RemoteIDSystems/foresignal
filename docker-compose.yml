@@ -1,8 +1,14 @@
 # Foresignal — broker plus PostGIS.
 #
+# The broker runs only through `docker compose up -d` or scripts/run-server.sh, both capped,
+# never a bare `java -jar` or `./gradlew bootRun`. Every memory limit here has a memswap_limit
+# equal to it, so a container cannot swap: at its limit it is OOM-killed instead of thrashing
+# the host. An uncapped broker beside two Gradle daemons filled 24 GB of swap on 2026-10-25 and
+# the host had to be power-cycled.
+#
 #   docker compose up -d        # database and broker
 #   docker compose up -d db     # database only, for local development
-#                               # (then run the app from your IDE or ./gradlew bootRun)
+#                               # (then scripts/run-server.sh start for the capped broker)
 #   TS_AUTHKEY=tskey-... docker compose --profile tailscale up -d
 #                               # adds HTTPS on the tailnet through Tailscale Serve
 #                               # (docs/Operator-Guide.md, "Remote access and TLS")
@@ -31,6 +37,11 @@ services:
     # ("could not resize shared memory segment ... No space left on device"), failing the stats
     # time series and slowing /v1/system; 1 GB is only used as queries need it.
     shm_size: 1gb
+    # Room for the 2 GB of shared buffers, the 1 GB /dev/shm, maintenance work and the
+    # per-connection sorts; the OS cache inside the limit is reclaimed before anything is killed.
+    # memswap_limit equal to mem_limit: the database cannot swap.
+    mem_limit: ${FORESIGNAL_DB_MEM_LIMIT:-6g}
+    memswap_limit: ${FORESIGNAL_DB_MEM_LIMIT:-6g}
     environment:
       POSTGRES_DB: foresignal
       POSTGRES_USER: foresignal
@@ -83,8 +94,10 @@ services:
       JAVA_TOOL_OPTIONS: ${FORESIGNAL_JAVA_TOOL_OPTIONS:--Xmx4g -XX:+UseG1GC} -Djava.io.tmpdir=/data/tmp -Djna.tmpdir=/data/tmp
       # SatDump ground stations (049): one satdump-{station} source per comma-separated name.
       FORESIGNAL_SATDUMP_STATIONS: ${FORESIGNAL_SATDUMP_STATIONS:-}
-    # The container limit per profile: 6g (small) or 11g (large).
+    # The container limit per profile: 6g (small) or 11g (large). memswap_limit equal to
+    # mem_limit: the broker cannot swap.
     mem_limit: ${FORESIGNAL_MEM_LIMIT:-6g}
+    memswap_limit: ${FORESIGNAL_MEM_LIMIT:-6g}
     # Production defaults (prompt 144): the image runs as the non-root foresignal user, and its root filesystem is
     # read-only. Writable: the data volume (data, java.io.tmpdir and native-library extraction under /data/tmp) and a
     # small tmpfs /tmp (JVM perf data). Set FORESIGNAL_READ_ONLY_ROOT=false to turn the read-only root off.

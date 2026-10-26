@@ -125,10 +125,11 @@ See `docs/Runtime-Verification.md`. In short, either:
 docker compose up -d
 ```
 
-or, for local development against just the database:
+or, for local development against just the database, the capped launcher (never a bare `java -jar`
+or `./gradlew bootRun`, which are uncapped):
 
 ```bash
-docker compose up -d db && ./gradlew bootRun
+docker compose up -d db && ./gradlew bootJar && scripts/run-server.sh start
 ```
 
 ### 2. Grab the admin token (printed once, on first start)

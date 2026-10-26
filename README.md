@@ -160,15 +160,24 @@ npx newman run postman/Foresignal.postman_collection.json \
 
 ### Local development
 
-Run only the database in Docker and the broker from the working tree:
+Run only the database in Docker and the broker from the working tree, under the capped launcher:
 
 ```sh
 docker compose up -d db
-./gradlew bootRun
+./gradlew bootJar
+scripts/run-server.sh start     # also: status, stop
 ```
 
 Postgres then listens on `localhost:5433` (database, user and password all `foresignal`), which
-matches the application's defaults. The token banner appears in the `bootRun` output.
+matches the application's defaults. The token banner appears in `build/foresignal-server.log`.
+
+**The broker runs only through `docker compose up -d` or `scripts/run-server.sh`, never a bare
+`java -jar` or `./gradlew bootRun`.** Both supported paths are capped and cannot swap: compose
+sets `memswap_limit` equal to `mem_limit` on the broker and the database, and the launcher runs
+the JVM (`-Xmx4g`, native memory tracking on) in a systemd user scope with `MemoryMax=10G` and
+`MemorySwapMax=0` (`FORESIGNAL_MEM_MAX` changes the cap). At the cap the broker is OOM-killed and
+`scripts/run-server.sh status` says so; the host keeps running. An uncapped broker beside two
+Gradle daemons filled 24 GB of swap on 2026-10-25 and the host had to be power-cycled.
 
 To compile:
 
@@ -191,6 +200,9 @@ the database and is managed through the API. The main variables:
 | `FORESIGNAL_RESET_ADMIN_TOKEN` | `false` | Regenerate the admin token on start |
 | `FORESIGNAL_BIND` | `127.0.0.1` | The address compose publishes the broker on |
 | `FORESIGNAL_PROFILE` | `small` | Memory profile (`small` or `large`) for the raster caches |
+| `FORESIGNAL_MEM_LIMIT` | `6g` | The broker container's memory limit, also its `memswap_limit` |
+| `FORESIGNAL_DB_MEM_LIMIT` | `6g` | The database container's memory limit, also its `memswap_limit` |
+| `FORESIGNAL_MEM_MAX` | `10G` | `scripts/run-server.sh`'s `MemoryMax` (swap is always 0) |
 | `FORESIGNAL_LOG_FORMAT` | `ecs` under the `docker` profile | `ecs`, `gelf`, `logstash` or `text` |
 | `FORESIGNAL_TRUSTED_PROXIES` | loopback | Proxies whose `X-Forwarded-*` headers are honored |
 

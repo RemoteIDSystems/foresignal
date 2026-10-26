@@ -817,7 +817,8 @@ File-based configuration is limited to bootstrap concerns in `src/main/resources
 | `FORESIGNAL_PROFILE` | `small` | Memory profile |
 | `FORESIGNAL_RASTER_DISK_QUOTA_GB` | `200` | Raster quota |
 | `FORESIGNAL_JAVA_TOOL_OPTIONS` | `-Xmx4g -XX:+UseG1GC` | JVM flags; `-Djava.io.tmpdir=/data/tmp -Djna.tmpdir=/data/tmp` is always appended (libaec's native library is extracted there, so the volume must allow executables) |
-| `FORESIGNAL_MEM_LIMIT` | `6g` | Container memory limit |
+| `FORESIGNAL_MEM_LIMIT` | `6g` | Broker container memory limit; `memswap_limit` is set to the same value, so the container cannot swap |
+| `FORESIGNAL_DB_MEM_LIMIT` | `6g` | Database container memory limit; `memswap_limit` is set to the same value |
 | `FORESIGNAL_SATDUMP_STATIONS` | empty | SatDump stations |
 | `WITH_GDAL` | `false` | Build arg: install `gdal-bin` |
 | `SATDUMP_STATION` | `home` | Station name of the read-only SatDump output mount |
@@ -834,9 +835,9 @@ Decoder directories (046): downloads land in `${FORESIGNAL_DATA_DIR}/rasters/tmp
 ```
 docker-compose.yml
 ├── db          build docker/db (foresignal-db:17-3.5-pgvector)   volume pgdata    ${FORESIGNAL_DB_BIND:-127.0.0.1}:5433→5432
-│               healthcheck pg_isready; tuned flags (below); restart unless-stopped
+│               healthcheck pg_isready; tuned flags (below); mem_limit = memswap_limit ${FORESIGNAL_DB_MEM_LIMIT:-6g}; restart unless-stopped
 ├── foresignal  build . (WITH_GDAL)   volume foresignal-data:/data, satdump-output:/data/inbox/satdump/<station>:ro
-│               ${FORESIGNAL_BIND:-127.0.0.1}:8080; depends_on db healthy; mem_limit ${FORESIGNAL_MEM_LIMIT:-6g}
+│               ${FORESIGNAL_BIND:-127.0.0.1}:8080; depends_on db healthy; mem_limit = memswap_limit ${FORESIGNAL_MEM_LIMIT:-6g}
 │               healthcheck /actuator/health/readiness; restart unless-stopped
 ├── tailscale   tailscale/tailscale:v1.102.5   profile "tailscale"   HTTPS on the tailnet through Tailscale Serve
 ├── caddy       caddy:2.11.7-alpine            profile "web"         HTTP/2 and HTTP/3, `tls internal` local CA, ports 80/443
