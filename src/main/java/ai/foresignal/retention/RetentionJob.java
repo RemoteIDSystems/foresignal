@@ -72,7 +72,7 @@ public class RetentionJob implements IngestStateReset {
     private final Timer duration;
     private final AtomicBoolean running = new AtomicBoolean();
     private RetentionDbCap dbCap;
-    private RetentionCapPruner pruner = RetentionCapPruner.RERUN;
+    private org.springframework.beans.factory.ObjectProvider<RetentionCapPruner> pruners;
 
     private volatile RetentionRunResult lastResult;
     private volatile List<RetentionRun.Lag> lastLags = List.of();
@@ -103,17 +103,81 @@ public class RetentionJob implements IngestStateReset {
     }
 
     /**
-     * Sets the database-size cap and, when a bean provides one, the pruner it uses (prompt R2-015; prompt R2-016 may
-     * provide an archiving pruner).
+     * Sets the database-size cap and the provider of the pruner it uses (prompt R2-015). The pruner is looked up at
+     * each run, not here: prompt R2-016's archiving pruner depends on this job, so resolving it while this bean is
+     * being created would be a circular reference.
      *
      * @param dbCap the cap
-     * @param pruner a pruner bean, if any
+     * @param pruners the provider of a pruner bean, if any
      */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
-    public void setDbCap(RetentionDbCap dbCap, org.springframework.beans.factory.ObjectProvider<RetentionCapPruner> pruner) {
+    public void setDbCap(RetentionDbCap dbCap, org.springframework.beans.factory.ObjectProvider<RetentionCapPruner> pruners) {
         this.dbCap = dbCap;
-        RetentionCapPruner provided = pruner == null ? null : pruner.getIfAvailable();
-        this.pruner = provided == null ? RetentionCapPruner.RERUN : provided;
+        this.pruners = pruners;
+    }
+
+    /** The pruner bean, else {@link RetentionCapPruner#RERUN}. */
+    private RetentionCapPruner pruner() {
+        RetentionCapPruner provided = pruners == null ? null : pruners.getIfAvailable();
+        return provided == null ? RetentionCapPruner.RERUN : provided;
+    }
+
+    /**
+     * Takes the single-run guard for work that runs retention passes of its own (prompt R2-016: an archive run). The
+     * guard is not bound to a thread, so the lease may be taken on a request thread and closed on a worker.
+     *
+     * @return the lease; close it to release the guard
+     * @throws ConflictException {@code ALREADY_RUNNING} when a run is active
+     */
+    public Lease lease() {
+        if (!running.compareAndSet(false, true)) {
+            throw new ConflictException(ConflictException.ALREADY_RUNNING, "A retention run is already active.");
+        }
+        return new Lease();
+    }
+
+    /** The single-run guard held for passes outside {@link #run()}; see {@link #lease()}. */
+    public final class Lease implements AutoCloseable {
+
+        private final AtomicBoolean open = new AtomicBoolean(true);
+
+        private Lease() {}
+
+        /**
+         * A pass not yet run: its plans ({@link RetentionPlanner}) are computed on first use and kept, so handing it
+         * to {@link #execute} deletes exactly what they showed.
+         *
+         * @param now the pass's clock reading
+         * @param settings the settings
+         * @param sourceCaps the run-only cap of STANDARD windows per source id ({@link RetentionRun#capSources})
+         * @return the run
+         */
+        public RetentionRun plan(Instant now, RetentionSettings settings, Map<String, Duration> sourceCaps) {
+            RetentionRun run = newRun(now, settings);
+            run.capSources(sourceCaps);
+            return run;
+        }
+
+        /**
+         * Runs every retention step on {@code run}.
+         *
+         * @param run a run from {@link #plan}
+         * @return the same run
+         */
+        public RetentionRun execute(RetentionRun run) {
+            if (!open.get()) {
+                throw new IllegalStateException("The retention lease is closed");
+            }
+            return RetentionJob.this.execute(run);
+        }
+
+        /** Releases the guard; closing twice is harmless. */
+        @Override
+        public void close() {
+            if (open.compareAndSet(true, false)) {
+                running.set(false);
+            }
+        }
     }
 
     /** The hourly run; does nothing when {@code foresignal.retention.scheduled} is false. */
@@ -191,7 +255,7 @@ public class RetentionJob implements IngestStateReset {
             RetentionDbCap.Outcome capped = null;
             if (dbCap != null) {
                 try {
-                    capped = dbCap.enforce(configured, pruner, tightened -> pass(clock.instant(), tightened));
+                    capped = dbCap.enforce(configured, pruner(), passes());
                 } catch (RuntimeException e) {
                     log.error("The retention size cap failed", e);
                     run.error("db-cap: " + e.getMessage());
@@ -218,7 +282,43 @@ public class RetentionJob implements IngestStateReset {
 
     /** One pass of every step under {@code settings}: publishes the floors, alarms on lags, counts deletions. */
     private RetentionRun pass(Instant now, RetentionSettings settings) {
-        RetentionRun run = new RetentionRun(now, settings, jdbc, seqClock, consumers());
+        return execute(newRun(now, settings));
+    }
+
+    /**
+     * A run that is planned but never executed, for read-only questions about what a pass would do (prompt R2-016:
+     * an archive dry run). It takes no guard.
+     *
+     * @param now the run's clock reading
+     * @param settings the settings
+     * @return the run
+     */
+    public RetentionRun scratch(Instant now, RetentionSettings settings) {
+        return newRun(now, settings);
+    }
+
+    /** The passes the size cap's pruner plans and runs: at the current time, inside this run's guard. */
+    private RetentionCapPruner.Passes passes() {
+        return new RetentionCapPruner.Passes() {
+            @Override
+            public RetentionRun plan(RetentionSettings settings) {
+                return newRun(clock.instant(), settings);
+            }
+
+            @Override
+            public RetentionRun execute(RetentionRun run) {
+                return RetentionJob.this.execute(run);
+            }
+        };
+    }
+
+    /** A run not yet executed, with the consumers in force. */
+    private RetentionRun newRun(Instant now, RetentionSettings settings) {
+        return new RetentionRun(now, settings, jdbc, seqClock, consumers());
+    }
+
+    /** Runs every step on {@code run}: publishes the floors, alarms on lags, counts deletions. */
+    private RetentionRun execute(RetentionRun run) {
         for (RetentionStep step : steps) {
             try {
                 step.run(run);

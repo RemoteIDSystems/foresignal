@@ -33,6 +33,9 @@ foresignal:
       enabled: false
   retention:
     scheduled: false
+  # Archive runs are not scheduled in tests; the ITs call ArchiveRunner directly or through /v1/archives.
+  archive:
+    scheduled: false
   # The resource and backlog alerts do not tick in tests; ResourceAlertIT and OperationalAlertIT drive them.
   resources:
     scheduled: false

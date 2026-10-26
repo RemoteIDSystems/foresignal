@@ -48,6 +48,7 @@ public final class RetentionRun {
     private final Map<String, Lag> lags = new LinkedHashMap<>();
     private final List<String> errors = new ArrayList<>();
     private Duration largestStandardWindow;
+    private Map<String, Duration> sourceCaps = Map.of();
     private int partitionsDropped;
     private long headsPurged;
     private boolean clampActive;
@@ -80,6 +81,26 @@ public final class RetentionRun {
     /** The retention settings of this run. */
     public RetentionSettings settings() {
         return settings;
+    }
+
+    /**
+     * Caps the STANDARD windows of some sources for this run only (prompt R2-016: an archive run moves the cutoff of
+     * the sources it archives, and of no other). Set before any step plans; a window is only ever shortened.
+     *
+     * @param caps the cap per source id
+     */
+    public void capSources(Map<String, Duration> caps) {
+        this.sourceCaps = caps == null ? Map.of() : Map.copyOf(caps);
+    }
+
+    /**
+     * The run-only cap of {@code sourceId}'s STANDARD windows.
+     *
+     * @param sourceId the source
+     * @return the cap, or null when the source is not capped this run
+     */
+    public Duration sourceCap(String sourceId) {
+        return sourceCaps.get(sourceId);
     }
 
     /** The template; every statement autocommits. */

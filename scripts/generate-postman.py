@@ -880,9 +880,14 @@ BODIES = {
   # 104: tighten plant-to-substation proximity to 3 km and switch off the critical-load rule.
   "updateInfraRules": {"rules": [{"id": "plant-substation", "enabled": True, "params": {"maxKm": 3}},
                                  {"id": "substation-critical-load", "enabled": False}]},
-  # 111: archive the USGS source to the local cold archive, keeping the local copy.
+  # 111: archive the USGS source to the local cold archive, keeping the local copy. R2-016: segments go to the
+  # external disk mounted at /mnt/archive, history older than a year is moved there every Sunday at 03:00 UTC.
   "updateArchiveSettings": {"enabled": True, "sources": ["usgs-earthquakes"], "target": "local", "s3": None,
-                            "keepLocal": True},
+                            "keepLocal": True, "root": "/mnt/archive", "cutoff": "365d",
+                            "schedule": "0 0 3 * * SUN"},
+  # R2-016: archive USGS history from before 2025 now; a restore must be confirmed.
+  "runArchive": {"cutoff": "2025-01-01T00:00:00Z", "sources": ["usgs-earthquakes"], "dryRun": False},
+  "restoreArchive": {"confirm": True},
   # 128: a weekly assessment on Mondays at 07:00 in London over the Red Sea region, with all four roles, three
   # forecaster samples per question and the weekly caps; the replacement narrows it to the analyst and red team;
   # feedback on an assessment; an on-demand assessment of a situation with the analyst only.

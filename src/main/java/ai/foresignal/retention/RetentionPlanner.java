@@ -172,10 +172,21 @@ public class RetentionPlanner {
         Map<String, List<StandardScope>> out = new LinkedHashMap<>();
         for (Map.Entry<String, Map<String, Duration>> source : windows.entrySet()) {
             if (!track.contains(source.getKey())) {
-                out.put(source.getKey(), scopes(run, source.getKey(), source.getValue()));
+                out.put(source.getKey(), scopes(run, source.getKey(), capped(run, source.getKey(), source.getValue())));
             }
         }
         return new StandardPlan(out);
+    }
+
+    /** {@code windows} under the run-only cap of {@code sourceId} (prompt R2-016), which only ever shortens one. */
+    private static Map<String, Duration> capped(RetentionRun run, String sourceId, Map<String, Duration> windows) {
+        Duration cap = run.sourceCap(sourceId);
+        if (cap == null) {
+            return windows;
+        }
+        Map<String, Duration> out = new LinkedHashMap<>();
+        windows.forEach((kind, window) -> out.put(kind, window.compareTo(cap) > 0 ? cap : window));
+        return out;
     }
 
     private List<StandardScope> scopes(RetentionRun run, String sourceId, Map<String, Duration> windows) {

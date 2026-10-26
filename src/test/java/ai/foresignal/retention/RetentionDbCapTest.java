@@ -58,6 +58,19 @@ class RetentionDbCapTest {
                 ? sizes.peek() : sizes.poll(), Clock.fixed(Instant.parse("2026-10-26T00:00:00Z"), ZoneOffset.UTC));
     }
 
+    /** Passes the scripted pruner never runs. */
+    static final RetentionCapPruner.Passes NO_PASSES = new RetentionCapPruner.Passes() {
+        @Override
+        public RetentionRun plan(RetentionSettings settings) {
+            return null;
+        }
+
+        @Override
+        public RetentionRun execute(RetentionRun run) {
+            return run;
+        }
+    };
+
     static RetentionSettings settings(Integer maxDays, Double maxDbGb, Boolean overwriteOldest) {
         return RetentionPreviewIT.capped(maxDays, maxDbGb, overwriteOldest);
     }
@@ -66,7 +79,7 @@ class RetentionDbCapTest {
         return cap.enforce(configured, (tightened, steps) -> {
             pruned.add(tightened.maxDays());
             return null;
-        }, s -> null);
+        }, NO_PASSES);
     }
 
     private void sizes(long... values) {

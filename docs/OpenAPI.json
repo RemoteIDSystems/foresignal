@@ -49276,7 +49276,7 @@
         ],
         "operationId": "updateArchiveSettings",
         "summary": "Update cold archive settings",
-        "description": "When enabled, ArchiveStep writes TRACK leaves and STANDARD chunks as hive-partitioned GeoParquet before retention deletes them, verifies the row count, then uploads to S3 when configured (SigV4; endpoint checked by the outbound URL policy, URL_NOT_ALLOWED). Omitted secrets keep their stored values.\n\n**Scope:** `admin`.",
+        "description": "When enabled, ArchiveStep writes TRACK leaves and STANDARD chunks as hive-partitioned GeoParquet before retention deletes them, verifies the row count, then uploads to S3 when configured (SigV4; endpoint checked by the outbound URL policy, URL_NOT_ALLOWED). Omitted secrets keep their stored values.\n\n**Scope:** `admin`.\n\n**R2-016:** also holds the cold-storage tier: target `glacier`, `s3.storageClass`, the archive-run `cutoff` (≥ 1d) and `schedule` (six-field cron); see runArchive.",
         "requestBody": {
           "required": true,
           "content": {
@@ -91781,7 +91781,7 @@
         ],
         "operationId": "listArchives",
         "summary": "List archive segments",
-        "description": "Lists cold-storage archive segments with sizes and status (B3/179). This is the archival-tier inventory; the compliance cold-archive catalog of legal holds is getArchiveCatalog. Requires `storage.manage`.\n\n**Scope:** `admin`.",
+        "description": "Lists cold-storage archive segments with sizes and status, newest first (B3/179). This is the archival-tier inventory (`archive_manifest`); the compliance cold-archive catalog of legal holds is getArchiveCatalog. Requires `storage.manage`.\n\n**Scope:** `admin`.\n\n**R2-016:** an unknown `status` or a cursor this endpoint did not issue is 400 VALIDATION_FAILED.",
         "parameters": [
           {
             "name": "status",
@@ -91854,6 +91854,16 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid status, cursor or limit (VALIDATION_FAILED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "admin",
@@ -91874,7 +91884,7 @@
         ],
         "operationId": "runArchive",
         "summary": "Run an archival pass",
-        "description": "Starts an archival pass now: select data older than the cutoff, export to the target with a verified checksum, mark archived, then purge from the hot store (B3/179). Returns the created segment. Requires `storage.manage`.\n\n**Scope:** `admin`.",
+        "description": "Starts an archival pass now: select data older than the cutoff, export to the target with a verified checksum, mark archived, then purge from the hot store (B3/179). Returns the created segment. Requires `storage.manage`.\n\n**Scope:** `admin`.\n\n**R2-016:** the pass plans a retention run with the archived sources' STANDARD windows capped to now − cutoff (no other source's window moves), writes exactly the rows that plan removes (and the rows of TRACK partitions about to be dropped) as one gzip NDJSON file per source, offloads each to the tier and verifies it there (SHA-256 read back on the external disk; ETag and size on S3/Glacier), records the manifest (`complete`), and only then runs the planned retention pass, so the purge goes through the existing delete, drop and head-purge paths. A failed export or verification purges nothing, marks the segment `failed` and raises the operational alert `system.archive_failed`. The pass holds the retention job's single-run guard: while retention or another archive pass runs, the answer is 409 ALREADY_RUNNING. 409 ARCHIVE_NOT_CONFIGURED when the archive is off, or an s3/glacier target lacks its settings or secrets.",
         "requestBody": {
           "required": false,
           "content": {
@@ -91907,7 +91917,7 @@
             }
           },
           "409": {
-            "description": "Conflict (ARCHIVE_NOT_CONFIGURED)",
+            "description": "Conflict (ARCHIVE_NOT_CONFIGURED, ALREADY_RUNNING)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -91955,7 +91965,7 @@
         ],
         "operationId": "restoreArchive",
         "summary": "Restore an archive",
-        "description": "Pulls an archive segment back from cold storage into the hot store (B3/179). Requires `storage.manage`.\n\n**Scope:** `admin`.",
+        "description": "Pulls an archive segment back from cold storage into the hot store (B3/179). Requires `storage.manage`.\n\n**Scope:** `admin`.\n\n**R2-016:** `confirm: true` is required (400 otherwise). Each file is pulled from its tier and its SHA-256 checked, then its rows are loaded into the restore area `record_version_restored` (keyed by the archive id), not back into record_version, whose partitions for those seqs are gone and whose retention would delete them again. A Glacier segment stays `restoring` while S3 thaws its objects (typically hours); the runner asks again each minute. A restore may be large and slow. 409 ALREADY_RESTORED, ALREADY_RUNNING (the segment or another restore is in progress), ARCHIVE_NOT_RESTORABLE (a failed segment) or ARCHIVE_NOT_CONFIGURED (s3/glacier settings missing).",
         "parameters": [
           {
             "name": "id",
@@ -92009,7 +92019,7 @@
             }
           },
           "409": {
-            "description": "Conflict (ALREADY_RESTORED)",
+            "description": "Conflict (ALREADY_RESTORED, ALREADY_RUNNING, ARCHIVE_NOT_RESTORABLE, ARCHIVE_NOT_CONFIGURED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -135905,7 +135915,7 @@
       },
       "ArchiveSettings": {
         "type": "object",
-        "description": "Cold archive settings (settings key `archive`); secrets are write-only (111)",
+        "description": "Cold archive settings (settings key `archive`); secrets are write-only (111). R2-016 adds the `glacier` target, `s3.storageClass`, and the archive-run `cutoff` and `schedule`; an explicit null or empty string clears either.",
         "properties": {
           "enabled": {
             "type": "boolean",
@@ -135921,15 +135931,17 @@
           },
           "root": {
             "type": "string",
-            "description": "Default ${FORESIGNAL_DATA_DIR}/archive; an absolute path, or a path relative to the data directory"
+            "description": "Default ${FORESIGNAL_DATA_DIR}/archive; an absolute path, or a path relative to the data directory. For the `local` target, point it at a mounted external disk: archive segments are written under `segments/` there."
           },
           "target": {
             "type": "string",
             "enum": [
               "local",
-              "s3"
+              "s3",
+              "glacier"
             ],
-            "default": "local"
+            "default": "local",
+            "description": "Where archive segments go (R2-016): `local` is the external-disk tier (files under `root`, meant to be a mounted external disk), `s3` an S3-compatible bucket, `glacier` the same API with an archival storage class (objects are thawed before a restore). The prompt 111 GeoParquet copies upload only for `s3`."
           },
           "s3": {
             "oneOf": [
@@ -135952,6 +135964,24 @@
                   },
                   "pathStyle": {
                     "type": "boolean"
+                  },
+                  "storageClass": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "STANDARD",
+                      "REDUCED_REDUNDANCY",
+                      "STANDARD_IA",
+                      "ONEZONE_IA",
+                      "INTELLIGENT_TIERING",
+                      "GLACIER_IR",
+                      "GLACIER",
+                      "DEEP_ARCHIVE",
+                      null
+                    ],
+                    "description": "`x-amz-storage-class` of uploads (R2-016); null uses the bucket default. With target `glacier` it must be GLACIER (the default) or DEEP_ARCHIVE; with target `s3` it may not be either, since those objects cannot be read until thawed."
                   }
                 },
                 "required": [
@@ -135990,12 +136020,32 @@
             "type": "boolean",
             "description": "Keep the local copy after a verified upload",
             "default": true
+          },
+          "cutoff": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Archive runs (R2-016) move STANDARD history of the archived sources older than this age (a duration of at least 1d, such as `365d`) to the cold tier, then purge it. Null: a run takes only what retention removes anyway. TRACK history is archived as its partitions reach `retention.trackWindow`.",
+            "example": "365d"
+          },
+          "schedule": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Six-field cron expression (second minute hour day-of-month month day-of-week, UTC) of scheduled archive runs (R2-016), such as `0 0 3 * * SUN`. Null: archive runs happen only through runArchive or the retention size cap.",
+            "example": "0 0 3 * * SUN"
           }
         },
         "required": [
           "enabled",
           "target"
-        ]
+        ],
+        "x-foresignal-property-prompts": {
+          "cutoff": "R2-016",
+          "schedule": "R2-016"
+        }
       },
       "ArchivePartition": {
         "type": "object",
@@ -178341,7 +178391,7 @@
       },
       "Archive": {
         "type": "object",
-        "description": "A cold-storage archive segment: data phased out of the hot DB, verified, then purged locally (B3/179)",
+        "description": "A cold-storage archive segment: data phased out of the hot DB, verified, then purged locally (B3/179). Restored rows go to the restore area `record_version_restored`, not back into record_version.",
         "properties": {
           "id": {
             "type": "string"
@@ -178357,7 +178407,8 @@
               "failed",
               "restoring",
               "restored"
-            ]
+            ],
+            "description": "pending (accepted), running (exporting), verifying (offloading and checking each file on the tier), complete (verified and recorded), purged (and gone from the hot store), failed (nothing was purged), restoring, restored"
           },
           "createdAt": {
             "type": "string",
@@ -178369,13 +178420,14 @@
               "null"
             ],
             "format": "date-time",
-            "description": "Data older than this was archived"
+            "description": "Data older than this was archived; null when the run took only what retention removed anyway"
           },
           "target": {
             "type": "string",
             "x-extensible-enum": [
               "local",
-              "s3"
+              "s3",
+              "glacier"
             ],
             "description": "Archive tier target"
           },
@@ -178384,28 +178436,30 @@
               "string",
               "null"
             ],
-            "description": "Path or object key of the archive"
+            "description": "The segment's directory (`local`) or `s3://bucket/prefix/segments/{id}`"
           },
           "sizeBytes": {
             "type": [
               "integer",
               "null"
             ],
-            "format": "int64"
+            "format": "int64",
+            "description": "Compressed size of every file"
           },
           "itemCount": {
             "type": [
               "integer",
               "null"
             ],
-            "format": "int64"
+            "format": "int64",
+            "description": "Rows archived (for a dry run: rows that would be)"
           },
           "checksum": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Verification checksum of the archived export"
+            "description": "SHA-256 over each file's `key:sha256` line, in key order; every file's own SHA-256 is in `files`"
           },
           "purgedFromHot": {
             "type": "boolean",
@@ -178418,6 +178472,142 @@
               "null"
             ],
             "format": "date-time"
+          },
+          "trigger": {
+            "type": "string",
+            "x-extensible-enum": [
+              "manual",
+              "scheduled",
+              "cap"
+            ],
+            "description": "What started the run: runArchive, `archive.schedule`, or the retention size cap (R2-015)"
+          },
+          "domain": {
+            "type": "string",
+            "description": "What was archived: `record_version`"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Sources in the segment"
+          },
+          "fromSeq": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "toSeq": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "fromTime": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Earliest ingested_at archived"
+          },
+          "toTime": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Latest ingested_at archived"
+          },
+          "files": {
+            "type": "array",
+            "description": "One gzip-compressed NDJSON file per source, one record_version row per line",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "sourceId": {
+                  "type": "string"
+                },
+                "tier": {
+                  "type": "string",
+                  "enum": [
+                    "standard",
+                    "track"
+                  ]
+                },
+                "fromSeq": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "toSeq": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "fromTime": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time"
+                },
+                "toTime": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time"
+                },
+                "rows": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "bytes": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "sha256": {
+                  "type": "string"
+                },
+                "location": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why it failed, or a note (rows the purge kept back, a pending Glacier thaw, rows restored)"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "purgedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
           }
         },
         "required": [
@@ -178425,7 +178615,21 @@
           "status",
           "createdAt",
           "target"
-        ]
+        ],
+        "x-foresignal-property-prompts": {
+          "trigger": "R2-016",
+          "domain": "R2-016",
+          "sources": "R2-016",
+          "fromSeq": "R2-016",
+          "toSeq": "R2-016",
+          "fromTime": "R2-016",
+          "toTime": "R2-016",
+          "files": "R2-016",
+          "error": "R2-016",
+          "updatedAt": "R2-016",
+          "completedAt": "R2-016",
+          "purgedAt": "R2-016"
+        }
       },
       "ArchivePage": {
         "type": "object",
@@ -178459,19 +178663,19 @@
               "null"
             ],
             "format": "date-time",
-            "description": "Override the configured cutoff; archive data older than this"
+            "description": "Override the configured cutoff; archive STANDARD data older than this (must be in the past)"
           },
           "sources": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Restrict to these sources; empty uses the configured allowlist"
+            "description": "Restrict to these sources, each of which the archive must cover (400 otherwise); empty uses the configured allowlist"
           },
           "dryRun": {
             "type": "boolean",
             "default": false,
-            "description": "Compute what would be archived without exporting or purging"
+            "description": "Count what would be archived without exporting or purging; the answer is an Archive with status `pending` and `itemCount`, not stored"
           }
         }
       },
@@ -178481,7 +178685,7 @@
         "properties": {
           "confirm": {
             "type": "boolean",
-            "description": "Must be true to restore"
+            "description": "Must be true to restore (400 otherwise): a restore may be large and slow, and a Glacier segment waits hours for its thaw"
           }
         },
         "required": [

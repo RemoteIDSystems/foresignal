@@ -7099,7 +7099,7 @@
               ],
               "query": []
             },
-            "description": "When enabled, ArchiveStep writes TRACK leaves and STANDARD chunks as hive-partitioned GeoParquet before retention deletes them, verifies the row count, then uploads to S3 when configured (SigV4; endpoint checked by the outbound URL policy, URL_NOT_ALLOWED). Omitted secrets keep their stored values.\n\n**Scope:** `admin`.\n\noperationId: `updateArchiveSettings`",
+            "description": "When enabled, ArchiveStep writes TRACK leaves and STANDARD chunks as hive-partitioned GeoParquet before retention deletes them, verifies the row count, then uploads to S3 when configured (SigV4; endpoint checked by the outbound URL policy, URL_NOT_ALLOWED). Omitted secrets keep their stored values.\n\n**Scope:** `admin`.\n\n**R2-016:** also holds the cold-storage tier: target `glacier`, `s3.storageClass`, the archive-run `cutoff` (\u2265 1d) and `schedule` (six-field cron); see runArchive.\n\noperationId: `updateArchiveSettings`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -7112,7 +7112,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"enabled\": true,\n  \"sources\": [\n    \"usgs-earthquakes\"\n  ],\n  \"target\": \"local\",\n  \"s3\": null,\n  \"keepLocal\": true\n}",
+              "raw": "{\n  \"enabled\": true,\n  \"sources\": [\n    \"usgs-earthquakes\"\n  ],\n  \"target\": \"local\",\n  \"s3\": null,\n  \"keepLocal\": true,\n  \"root\": \"/mnt/archive\",\n  \"cutoff\": \"365d\",\n  \"schedule\": \"0 0 3 * * SUN\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -7249,7 +7249,7 @@
                 }
               ]
             },
-            "description": "Lists cold-storage archive segments with sizes and status (B3/179). This is the archival-tier inventory; the compliance cold-archive catalog of legal holds is getArchiveCatalog. Requires `storage.manage`.\n\n**Scope:** `admin`.\n\noperationId: `listArchives`",
+            "description": "Lists cold-storage archive segments with sizes and status, newest first (B3/179). This is the archival-tier inventory (`archive_manifest`); the compliance cold-archive catalog of legal holds is getArchiveCatalog. Requires `storage.manage`.\n\n**Scope:** `admin`.\n\n**R2-016:** an unknown `status` or a cursor this endpoint did not issue is 400 VALIDATION_FAILED.\n\noperationId: `listArchives`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -7299,7 +7299,7 @@
               ],
               "query": []
             },
-            "description": "Starts an archival pass now: select data older than the cutoff, export to the target with a verified checksum, mark archived, then purge from the hot store (B3/179). Returns the created segment. Requires `storage.manage`.\n\n**Scope:** `admin`.\n\noperationId: `runArchive`",
+            "description": "Starts an archival pass now: select data older than the cutoff, export to the target with a verified checksum, mark archived, then purge from the hot store (B3/179). Returns the created segment. Requires `storage.manage`.\n\n**Scope:** `admin`.\n\n**R2-016:** the pass plans a retention run with the archived sources' STANDARD windows capped to now \u2212 cutoff (no other source's window moves), writes exactly the rows that plan removes (and the rows of TRACK partitions about to be dropped) as one gzip NDJSON file per source, offloads each to the tier and verifies it there (SHA-256 read back on the external disk; ETag and size on S3/Glacier), records the manifest (`complete`), and only then runs the planned retention pass, so the purge goes through the existing delete, drop and head-purge paths. A failed export or verification purges nothing, marks the segment `failed` and raises the operational alert `system.archive_failed`. The pass holds the retention job's single-run guard: while retention or another archive pass runs, the answer is 409 ALREADY_RUNNING. 409 ARCHIVE_NOT_CONFIGURED when the archive is off, or an s3/glacier target lacks its settings or secrets.\n\noperationId: `runArchive`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -7312,7 +7312,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"cutoff\": \"2025-01-01T00:00:00Z\",\n  \"sources\": [\n    \"usgs-earthquakes\"\n  ],\n  \"dryRun\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -7359,7 +7359,7 @@
               ],
               "query": []
             },
-            "description": "Pulls an archive segment back from cold storage into the hot store (B3/179). Requires `storage.manage`.\n\n**Scope:** `admin`.\n\noperationId: `restoreArchive`",
+            "description": "Pulls an archive segment back from cold storage into the hot store (B3/179). Requires `storage.manage`.\n\n**Scope:** `admin`.\n\n**R2-016:** `confirm: true` is required (400 otherwise). Each file is pulled from its tier and its SHA-256 checked, then its rows are loaded into the restore area `record_version_restored` (keyed by the archive id), not back into record_version, whose partitions for those seqs are gone and whose retention would delete them again. A Glacier segment stays `restoring` while S3 thaws its objects (typically hours); the runner asks again each minute. A restore may be large and slow. 409 ALREADY_RESTORED, ALREADY_RUNNING (the segment or another restore is in progress), ARCHIVE_NOT_RESTORABLE (a failed segment) or ARCHIVE_NOT_CONFIGURED (s3/glacier settings missing).\n\noperationId: `restoreArchive`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -7372,7 +7372,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"confirm\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"

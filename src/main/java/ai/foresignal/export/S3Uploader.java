@@ -70,6 +70,10 @@ public class S3Uploader {
     private static final DateTimeFormatter DATE_ONLY = DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneOffset.UTC);
     private static final Pattern UPLOAD_ID = Pattern.compile("<UploadId>([^<]+)</UploadId>");
     private static final Pattern ETAG = Pattern.compile("<ETag>([^<]+)</ETag>");
+    private static final Pattern CONTENTS = Pattern.compile("<Contents>(.*?)</Contents>", Pattern.DOTALL);
+    private static final Pattern KEY = Pattern.compile("<Key>([^<]*)</Key>");
+    private static final Pattern SIZE = Pattern.compile("<Size>(\\d+)</Size>");
+    private static final Pattern NEXT_TOKEN = Pattern.compile("<NextContinuationToken>([^<]+)</NextContinuationToken>");
     // HTTP/1.1: over HTTP/2 the JDK takes :authority from the pinned literal URI, not the signed Host.
     private static final PinnedHttp.ClientSpec CLIENT =
             new PinnedHttp.ClientSpec(Duration.ofSeconds(20), HttpClient.Version.HTTP_1_1);
@@ -170,7 +174,7 @@ public class S3Uploader {
             throws IOException, InterruptedException {
         byte[][] digests = digests(file, 0, size);
         HttpRequest request = signed(target, s3, secrets, "PUT", Map.of(), digests[0], digests[1],
-                HttpRequest.BodyPublishers.ofFile(file));
+                HttpRequest.BodyPublishers.ofFile(file), storageClass(s3));
         HttpResponse<String> response = send(target, request, HttpResponse.BodyHandlers.ofString());
         requireSuccess("PutObject", response);
         String etag = unquote(response.headers().firstValue("ETag").orElse(""));
@@ -182,7 +186,7 @@ public class S3Uploader {
             throws IOException, InterruptedException {
         byte[] empty = sha256(new byte[0]);
         HttpRequest create = signed(target, s3, secrets, "POST", Map.of("uploads", ""), empty, null,
-                HttpRequest.BodyPublishers.noBody());
+                HttpRequest.BodyPublishers.noBody(), storageClass(s3));
         HttpResponse<String> created = send(target, create, HttpResponse.BodyHandlers.ofString());
         requireSuccess("CreateMultipartUpload", created);
         Matcher id = UPLOAD_ID.matcher(created.body());
@@ -257,6 +261,17 @@ public class S3Uploader {
     /** A SigV4-signed request. */
     HttpRequest signed(Target target, ArchiveSettings.S3 s3, Map<String, String> secrets, String method,
             Map<String, String> query, byte[] payloadSha256, byte[] contentMd5, HttpRequest.BodyPublisher body) {
+        return signed(target, s3, secrets, method, query, payloadSha256, contentMd5, body, Map.of());
+    }
+
+    /**
+     * A SigV4-signed request carrying extra {@code x-amz-*} headers, which are signed too (prompt R2-016).
+     *
+     * @param extra lower-case header names and their values
+     */
+    HttpRequest signed(Target target, ArchiveSettings.S3 s3, Map<String, String> secrets, String method,
+            Map<String, String> query, byte[] payloadSha256, byte[] contentMd5, HttpRequest.BodyPublisher body,
+            Map<String, String> extra) {
         Instant now = clock.instant();
         String amzDate = AMZ_DATE.format(now);
         String date = DATE_ONLY.format(now);
@@ -270,6 +285,7 @@ public class S3Uploader {
         if (contentMd5 != null) {
             headers.put("content-md5", Base64.getEncoder().encodeToString(contentMd5));
         }
+        headers.putAll(extra);
         StringBuilder canonicalHeaders = new StringBuilder();
         headers.forEach((name, value) -> canonicalHeaders.append(name).append(':').append(value.strip()).append('\n'));
         String signedHeaders = String.join(";", headers.keySet());
@@ -291,7 +307,205 @@ public class S3Uploader {
         if (contentMd5 != null) {
             builder.header("Content-MD5", headers.get("content-md5"));
         }
+        extra.forEach(builder::header);
         return builder.build();
+    }
+
+    // =====================================================================================
+    // Cold-storage operations (prompt R2-016)
+    // =====================================================================================
+
+    /**
+     * What {@code HeadObject} reported.
+     *
+     * @param found false on 404
+     * @param etag the ETag, without quotes
+     * @param length the {@code Content-Length}
+     * @param storageClass {@code x-amz-storage-class}, or null (S3 omits it for {@code STANDARD})
+     * @param restore {@code x-amz-restore}, or null: {@code ongoing-request="true"} while a thaw runs,
+     *     {@code ongoing-request="false", expiry-date="…"} once a thawed copy exists
+     */
+    public record Head(boolean found, String etag, long length, String storageClass, String restore) {
+
+        /** True when the object is in an archival class and no thawed copy is ready. */
+        public boolean frozen() {
+            boolean archival = "GLACIER".equals(storageClass) || "DEEP_ARCHIVE".equals(storageClass);
+            return archival && (restore == null || restore.contains("ongoing-request=\"true\""));
+        }
+
+        /** True while a thaw is in progress. */
+        public boolean thawing() {
+            return restore != null && restore.contains("ongoing-request=\"true\"");
+        }
+    }
+
+    /**
+     * One listed object.
+     *
+     * @param key the object key, the prefix included
+     * @param size its size
+     * @param etag its ETag, without quotes
+     */
+    public record Listed(String key, long size, String etag) {}
+
+    /** {@code HeadObject} of {@code key} under the configured prefix. */
+    public Head head(ArchiveSettings.S3 s3, Map<String, String> secrets, String key) {
+        requireSecrets(secrets);
+        Target target = target(s3, key);
+        try {
+            HttpRequest request = signed(target, s3, secrets, "HEAD", Map.of(), sha256(new byte[0]), null,
+                    HttpRequest.BodyPublishers.noBody());
+            HttpResponse<Void> response = send(target, request, HttpResponse.BodyHandlers.discarding());
+            if (response.statusCode() == 404) {
+                return new Head(false, null, 0, null, null);
+            }
+            if (response.statusCode() / 100 != 2) {
+                throw new IOException("HeadObject returned " + response.statusCode());
+            }
+            return new Head(true, unquote(response.headers().firstValue("ETag").orElse("")),
+                    response.headers().firstValueAsLong("Content-Length").orElse(0),
+                    response.headers().firstValue("x-amz-storage-class").orElse(null),
+                    response.headers().firstValue("x-amz-restore").orElse(null));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not read the metadata of " + target.key(), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while reading from S3", e);
+        }
+    }
+
+    /** {@code GetObject} of {@code key} under the configured prefix into {@code into} (replaced). */
+    public void download(ArchiveSettings.S3 s3, Map<String, String> secrets, String key, Path into) {
+        requireSecrets(secrets);
+        Target target = target(s3, key);
+        try {
+            Files.createDirectories(into.toAbsolutePath().getParent());
+            HttpRequest request = signed(target, s3, secrets, "GET", Map.of(), sha256(new byte[0]), null,
+                    HttpRequest.BodyPublishers.noBody());
+            Path tmp = into.resolveSibling(into.getFileName() + ".part");
+            HttpResponse<Path> response = send(target, request, HttpResponse.BodyHandlers.ofFile(tmp));
+            if (response.statusCode() / 100 != 2) {
+                String body = Files.isRegularFile(tmp) ? Files.readString(tmp) : "";
+                Files.deleteIfExists(tmp);
+                throw new IOException("GetObject returned " + response.statusCode() + ": " + body);
+            }
+            Files.move(tmp, into, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not download " + target.key(), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while downloading from S3", e);
+        }
+    }
+
+    /**
+     * {@code RestoreObject}: asks S3 to thaw an archived object for {@code days} at retrieval {@code tier}
+     * ({@code Standard}, {@code Bulk} or {@code Expedited}).
+     *
+     * @return true when a thaw was started or is already running (202, or 409 {@code RestoreAlreadyInProgress}); false
+     *     when a thawed copy already exists (200)
+     */
+    public boolean restore(ArchiveSettings.S3 s3, Map<String, String> secrets, String key, int days, String tier) {
+        requireSecrets(secrets);
+        Target target = target(s3, key);
+        byte[] body = ("<RestoreRequest xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><Days>" + days
+                + "</Days><GlacierJobParameters><Tier>" + tier + "</Tier></GlacierJobParameters></RestoreRequest>")
+                .getBytes(StandardCharsets.UTF_8);
+        try {
+            HttpRequest request = signed(target, s3, secrets, "POST", Map.of("restore", ""), sha256(body), md5(body),
+                    HttpRequest.BodyPublishers.ofByteArray(body));
+            HttpResponse<String> response = send(target, request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 409 && response.body() != null
+                    && response.body().contains("RestoreAlreadyInProgress")) {
+                return true;
+            }
+            requireSuccess("RestoreObject", response);
+            return response.statusCode() == 202;
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not request the restore of " + target.key(), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while restoring from S3", e);
+        }
+    }
+
+    /** {@code DeleteObject} of {@code key} under the configured prefix. */
+    public void delete(ArchiveSettings.S3 s3, Map<String, String> secrets, String key) {
+        requireSecrets(secrets);
+        Target target = target(s3, key);
+        try {
+            HttpRequest request = signed(target, s3, secrets, "DELETE", Map.of(), sha256(new byte[0]), null,
+                    HttpRequest.BodyPublishers.noBody());
+            HttpResponse<String> response = send(target, request, HttpResponse.BodyHandlers.ofString());
+            requireSuccess("DeleteObject", response);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not delete " + target.key(), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while deleting from S3", e);
+        }
+    }
+
+    /** {@code ListObjectsV2} of the keys starting with {@code keyPrefix} under the configured prefix, every page. */
+    public List<Listed> list(ArchiveSettings.S3 s3, Map<String, String> secrets, String keyPrefix) {
+        requireSecrets(secrets);
+        // target(s3, "") addresses the configured prefix as an object; the bucket is that path without the key.
+        Target bucket = target(s3, "");
+        String bucketPath = bucket.path().substring(0, bucket.path().length() - encodePath(bucket.key()).length());
+        Target listing = new Target(bucket.endpoint(), bucket.host(), bucketPath, bucket.key(), bucket.address());
+        List<Listed> out = new ArrayList<>();
+        String token = null;
+        try {
+            do {
+                Map<String, String> query = new TreeMap<>();
+                query.put("list-type", "2");
+                query.put("prefix", bucket.key() + keyPrefix);
+                if (token != null) {
+                    query.put("continuation-token", token);
+                }
+                HttpRequest request = signed(listing, s3, secrets, "GET", query, sha256(new byte[0]), null,
+                        HttpRequest.BodyPublishers.noBody());
+                HttpResponse<String> response = send(listing, request, HttpResponse.BodyHandlers.ofString());
+                requireSuccess("ListObjectsV2", response);
+                Matcher contents = CONTENTS.matcher(response.body());
+                while (contents.find()) {
+                    String entry = contents.group(1);
+                    Matcher k = KEY.matcher(entry);
+                    Matcher size = SIZE.matcher(entry);
+                    Matcher etag = ETAG.matcher(entry);
+                    if (k.find()) {
+                        out.add(new Listed(xml(k.group(1)), size.find() ? Long.parseLong(size.group(1)) : 0,
+                                etag.find() ? unquote(xml(etag.group(1))) : null));
+                    }
+                }
+                Matcher next = NEXT_TOKEN.matcher(response.body());
+                token = response.body().contains("<IsTruncated>true</IsTruncated>") && next.find()
+                        ? xml(next.group(1)) : null;
+            } while (token != null);
+            return out;
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not list " + bucket.key() + keyPrefix, e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while listing S3", e);
+        }
+    }
+
+    private static void requireSecrets(Map<String, String> secrets) {
+        if (secrets == null || secrets.get("accessKey") == null || secrets.get("secretKey") == null) {
+            throw new IllegalStateException("The S3 access key and secret key are not set");
+        }
+    }
+
+    /** The {@code x-amz-storage-class} header of an upload, when one is configured. */
+    private static Map<String, String> storageClass(ArchiveSettings.S3 s3) {
+        return s3.storageClass() == null ? Map.of() : Map.of("x-amz-storage-class", s3.storageClass());
+    }
+
+    /** Decodes the five predefined XML entities. */
+    private static String xml(String text) {
+        return text.replace("&quot;", "\"").replace("&apos;", "'").replace("&lt;", "<").replace("&gt;", ">")
+                .replace("&amp;", "&");
     }
 
     /** The SigV4 canonical query string: keys and values URI-encoded, sorted by key. */

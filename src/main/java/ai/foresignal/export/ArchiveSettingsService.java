@@ -6,12 +6,16 @@ import ai.foresignal.net.OutboundUrlPolicy;
 import ai.foresignal.security.CredentialCipher;
 import ai.foresignal.security.Encrypted;
 import ai.foresignal.settings.AppSettingService;
+import ai.foresignal.settings.Durations;
 import ai.foresignal.settings.SettingKeys;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 
@@ -21,9 +25,23 @@ import tools.jackson.databind.JsonNode;
  * only the names in {@code secretsSet}. An omitted member keeps its stored value; a secret given as an
  * empty string is cleared. An S3 endpoint must pass the outbound URL policy's {@code LAN_ALLOWED}
  * profile ({@code 400 URL_NOT_ALLOWED}), the profile {@link S3Uploader} sends under.
+ *
+ * <p>Prompt R2-016 adds the {@code glacier} target, {@code s3.storageClass}, the archive-run {@code cutoff} (a duration
+ * of at least 1d) and {@code schedule} (a six-field cron expression). An explicit {@code null} or empty string clears
+ * either.
  */
 @Service
 public class ArchiveSettingsService {
+
+    /** The shortest archive-run cutoff (prompt R2-016). */
+    static final Duration MIN_CUTOFF = Duration.ofDays(1);
+
+    /** The {@code x-amz-storage-class} values an upload may name (prompt R2-016). */
+    static final Set<String> STORAGE_CLASSES = Set.of("STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA",
+            "INTELLIGENT_TIERING", "GLACIER_IR", "GLACIER", "DEEP_ARCHIVE");
+
+    /** The storage classes whose objects must be restored (thawed) before a read. */
+    static final Set<String> THAWED_CLASSES = Set.of("GLACIER", "DEEP_ARCHIVE");
 
     private final AppSettingService settings;
     private final CredentialCipher cipher;
@@ -56,8 +74,8 @@ public class ArchiveSettingsService {
         List<String> sources = body.has("sources") ? strings(body.get("sources"), errors) : current.sources();
         String root = body.has("root") ? (body.get("root").isNull() ? "" : body.get("root").asString()) : current.root();
         String target = body.hasNonNull("target") ? body.get("target").asString() : current.target();
-        if (!"local".equals(target) && !"s3".equals(target)) {
-            errors.add(new FieldError("target", "must be local or s3"));
+        if (!ArchiveSettings.TARGETS.contains(target)) {
+            errors.add(new FieldError("target", "must be local, s3 or glacier"));
         }
         ArchiveSettings.S3 s3 = current.s3();
         if (body.has("s3")) {
@@ -72,10 +90,28 @@ public class ArchiveSettingsService {
                         node.hasNonNull("bucket") ? node.get("bucket").asString() : s3 == null ? null : s3.bucket(),
                         node.hasNonNull("prefix") ? node.get("prefix").asString() : s3 == null ? "" : s3.prefix(),
                         node.hasNonNull("region") ? node.get("region").asString() : s3 == null ? null : s3.region(),
-                        node.has("pathStyle") ? node.get("pathStyle").asBoolean() : s3 != null && s3.pathStyle());
+                        node.has("pathStyle") ? node.get("pathStyle").asBoolean() : s3 != null && s3.pathStyle(),
+                        node.has("storageClass")
+                                ? (node.get("storageClass").isNull() ? null : node.get("storageClass").asString())
+                                : s3 == null ? null : s3.storageClass());
             }
         }
         boolean keepLocal = bool(body, "keepLocal", current.keepLocal(), errors);
+        String cutoff = body.has("cutoff") ? text(body.get("cutoff")) : current.cutoff();
+        if (cutoff != null) {
+            try {
+                if (Durations.parse(cutoff).compareTo(MIN_CUTOFF) < 0) {
+                    errors.add(new FieldError("cutoff", "must be at least 1d"));
+                }
+            } catch (RuntimeException e) {
+                errors.add(new FieldError("cutoff", "must be a duration such as 365d"));
+            }
+        }
+        String schedule = body.has("schedule") ? text(body.get("schedule")) : current.schedule();
+        if (schedule != null && !CronExpression.isValidExpression(schedule)) {
+            errors.add(new FieldError("schedule", "must be a six-field cron expression (second minute hour day month"
+                    + " weekday)"));
+        }
         String accessCipher = current.accessKeyCipher();
         String accessNonce = current.accessKeyNonce();
         String secretCipher = current.secretKeyCipher();
@@ -93,12 +129,23 @@ public class ArchiveSettingsService {
                 secretNonce = sealed[1];
             }
         }
-        if ("s3".equals(target)) {
+        if (ArchiveSettings.S3_TARGET.equals(target) || ArchiveSettings.GLACIER.equals(target)) {
             if (s3 == null || s3.endpoint() == null || s3.endpoint().isBlank()) {
-                errors.add(new FieldError("s3.endpoint", "is required when target is s3"));
+                errors.add(new FieldError("s3.endpoint", "is required when target is " + target));
             }
             if (s3 == null || s3.bucket() == null || s3.bucket().isBlank()) {
-                errors.add(new FieldError("s3.bucket", "is required when target is s3"));
+                errors.add(new FieldError("s3.bucket", "is required when target is " + target));
+            }
+        }
+        if (s3 != null && s3.storageClass() != null) {
+            if (!STORAGE_CLASSES.contains(s3.storageClass())) {
+                errors.add(new FieldError("s3.storageClass", "must be one of " + String.join(", ",
+                        new java.util.TreeSet<>(STORAGE_CLASSES))));
+            } else if (ArchiveSettings.GLACIER.equals(target) && !THAWED_CLASSES.contains(s3.storageClass())) {
+                errors.add(new FieldError("s3.storageClass", "must be GLACIER or DEEP_ARCHIVE when target is glacier"));
+            } else if (ArchiveSettings.S3_TARGET.equals(target) && THAWED_CLASSES.contains(s3.storageClass())) {
+                errors.add(new FieldError("s3.storageClass", "GLACIER and DEEP_ARCHIVE objects must be thawed before"
+                        + " they can be read; use target glacier"));
             }
         }
         if (!errors.isEmpty()) {
@@ -108,7 +155,7 @@ public class ArchiveSettingsService {
             outbound.requireSavable("s3.endpoint", s3.endpoint(), OutboundUrlPolicy.Profile.LAN_ALLOWED, true);
         }
         ArchiveSettings updated = new ArchiveSettings(enabled, sources, root, target, s3, accessCipher, accessNonce,
-                secretCipher, secretNonce, keepLocal);
+                secretCipher, secretNonce, keepLocal, cutoff, schedule);
         settings.put(SettingKeys.ARCHIVE, updated);
         return updated;
     }
@@ -136,6 +183,7 @@ public class ArchiveSettingsService {
             s3.put("prefix", value.s3().prefix());
             s3.put("region", value.s3().region());
             s3.put("pathStyle", value.s3().pathStyle());
+            s3.put("storageClass", value.s3().storageClass());
             out.put("s3", s3);
         } else {
             out.put("s3", null);
@@ -149,6 +197,8 @@ public class ArchiveSettingsService {
         }
         out.put("secretsSet", set);
         out.put("keepLocal", value.keepLocal());
+        out.put("cutoff", value.cutoff());
+        out.put("schedule", value.schedule());
         return out;
     }
 
@@ -163,6 +213,10 @@ public class ArchiveSettingsService {
         out.put("secretKey", cipher.decryptToString(new Encrypted(Base64.getDecoder().decode(value.secretKeyCipher()),
                 Base64.getDecoder().decode(value.secretKeyNonce()))));
         return out;
+    }
+
+    private static String text(JsonNode node) {
+        return node == null || node.isNull() || node.asString().isBlank() ? null : node.asString().strip();
     }
 
     private static boolean bool(JsonNode body, String field, boolean fallback, List<FieldError> errors) {

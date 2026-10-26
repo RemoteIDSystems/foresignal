@@ -10,7 +10,6 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.OptionalLong;
-import java.util.function.Function;
 import java.util.function.LongSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -177,7 +176,7 @@ public class RetentionDbCap {
      * @return what it did, or null when the size cap is off
      */
     public Outcome enforce(RetentionSettings configured, RetentionCapPruner pruner,
-            Function<RetentionSettings, RetentionRun> steps) {
+            RetentionCapPruner.Passes steps) {
         OptionalLong capOpt = configured.capBytes();
         if (capOpt.isEmpty()) {
             return null;
