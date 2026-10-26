@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Prompt | R2-010-Shared-Collection-Source-Views.md |
+| Prompt | R2-010-Source-Views.md |
 | Status | Complete (compile only; `checkUsEnglish` run and green; no test, `lintOpenApi` or `checkApiCompat` was run) |
 | Implementation commit | `0749c3c4ee33dfd494bbbc1df6ccb7b4fefef2af` |
 | Date | 2026-10-26 |
