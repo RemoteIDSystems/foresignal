@@ -703,6 +703,18 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/assessments", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/assessments/**", AccessRequirement.READ),
 
+                // ---- Auth (prompt R2-003): signing in, resetting and activating need no credential; the session
+                // operations always need one (a signed-in session; AuthController refuses an API token). Specific
+                // before general. ----
+                rule(HttpMethod.POST, "/v1/auth/login", AccessRequirement.OPEN),
+                rule(HttpMethod.POST, "/v1/auth/password/reset-request", AccessRequirement.OPEN),
+                rule(HttpMethod.POST, "/v1/auth/password/reset", AccessRequirement.OPEN),
+                rule(HttpMethod.POST, "/v1/auth/activate", AccessRequirement.OPEN),
+                rule(HttpMethod.POST, "/v1/auth/logout", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.DELETE, "/v1/auth/sessions/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/auth/sessions", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.DELETE, "/v1/auth/sessions", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+
                 // ---- Collaboration (prompt 130): every operation needs a token. Reads, tags, comments, attachments,
                 // evidence items and saved searches are read-scope (the access lists decide per object); groups,
                 // access-list changes and shares are agent; principals and their tokens are admin. ----

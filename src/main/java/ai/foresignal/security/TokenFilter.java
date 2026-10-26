@@ -11,6 +11,8 @@ import ai.foresignal.security.audit.AuditService;
 import ai.foresignal.security.ticket.Ticket;
 import ai.foresignal.security.ticket.TicketAcceptance;
 import ai.foresignal.security.ticket.TicketStore;
+import ai.foresignal.security.user.AuthenticatedSession;
+import ai.foresignal.security.user.SessionService;
 import ai.foresignal.settings.AppSettingChangedEvent;
 import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.settings.SecuritySettings;
@@ -95,6 +97,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * {@code WWW-Authenticate: Bearer resource_metadata="…", scope="…"}. A valid token whose scopes map to nothing
  * gets {@code 403} with {@code error="insufficient_scope"}. In {@code oauth} mode a Foresignal token is refused on
  * {@code /mcp}; REST paths never accept identity-provider tokens.
+ *
+ * <p>Release 2 (prompt R2-003) adds login sessions: a bearer starting {@code fss_} is resolved through
+ * {@link SessionService} before the API-token lookup, to a {@link CurrentToken} whose token is the session's
+ * {@linkplain AuthenticatedSession#asToken() token view} (scope derived from the user's effective permissions), with
+ * the {@link AuthenticatedSession} itself under {@link AuthenticatedSession#ATTRIBUTE}. A revoked, expired or
+ * idle-expired session, or one whose user is no longer active, is a {@code 401}. A session is never accepted on ingest
+ * paths, peer paths (which take only {@code fss_}-free peer keys) or as a feed key.
  *
  * <p>Deliberately a plain servlet filter: a small static policy table and one credential family do
  * not need Spring Security. That choice is why {@code management.endpoint.health.show-details} must
@@ -201,7 +210,7 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         if (requirement instanceof Open) {
             // Open endpoints never reject a credential, but a valid token is still noted (getSystem).
             if (bearer != null) {
-                tokens.authenticate(bearer).ifPresent(t -> accept(request, new CurrentToken(t, false)));
+                resolveBearer(request, bearer).ifPresent(t -> accept(request, t));
             }
             if (RequestPrincipal.of(request).isEmpty()) {
                 anonymousPrincipal().bind(request);
@@ -248,12 +257,19 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
                 reject(request, response, method, "Tickets are accepted only as the ?ticket= query parameter.");
                 return;
             }
-            Optional<AuthenticatedToken> token = tokens.authenticate(bearer);
-            if (token.isEmpty()) {
-                reject(request, response, method, "The presented token is not valid.");
+            Optional<CurrentToken> resolved = resolveBearer(request, bearer);
+            if (resolved.isEmpty()) {
+                reject(request, response, method, bearer.startsWith(SessionService.PREFIX)
+                        ? "The session is not valid; sign in again."
+                        : "The presented token is not valid.");
                 return;
             }
-            current = new CurrentToken(token.get(), false);
+            if (requirement instanceof IngestKeyOrAdmin && AuthenticatedSession.of(request).isPresent()) {
+                reject(request, response, method, "Ingest requires an ingest key or an admin API token; a session is"
+                        + " not accepted.");
+                return;
+            }
+            current = resolved.get();
         } else if (ticketValue != null) {
             TicketAcceptance acceptance = tickets.accept(ticketValue, method, path);
             switch (acceptance) {
@@ -391,6 +407,36 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
                     null, method.name(), normalized, spec.operationId(method, normalized), response.getStatus(),
                     "federation", peer.get(), request.getRemoteAddr(), detail));
         }
+    }
+
+    /** Resolves login sessions (R2-003); absent in slices without the identity model. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private SessionService sessions;
+
+    /** Sets the {@link SessionService} (unit tests that build the filter by hand). */
+    void setSessionService(SessionService sessions) {
+        this.sessions = sessions;
+    }
+
+    /**
+     * Resolves a bearer: a session ({@code fss_}, also binding {@link AuthenticatedSession}) or an API token.
+     *
+     * @param request the request
+     * @param bearer the bearer
+     * @return the current token, or empty when the bearer is not accepted
+     */
+    private Optional<CurrentToken> resolveBearer(HttpServletRequest request, String bearer) {
+        if (bearer.startsWith(SessionService.PREFIX)) {
+            SessionService s = sessions;
+            if (s == null) {
+                return Optional.empty();
+            }
+            return s.authenticate(bearer).map(session -> {
+                request.setAttribute(AuthenticatedSession.ATTRIBUTE, session);
+                return new CurrentToken(session.asToken(), false);
+            });
+        }
+        return tokens.authenticate(bearer).map(t -> new CurrentToken(t, false));
     }
 
     /** Verifies identity-provider access tokens on {@code /mcp} (prompt 141); absent in slices without it. */
@@ -648,6 +694,10 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         }
         if (current != null && current.viaTicket()) {
             detail.put("viaTicket", true);
+        }
+        if (current != null && AuthenticatedSession.of(request).isPresent()) {
+            detail.put("via", "session");
+            detail.put("userId", AuthenticatedSession.of(request).get().userId().toString());
         }
         audit.record(new AuditRecord(
                 clock.instant(),

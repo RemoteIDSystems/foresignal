@@ -559,7 +559,7 @@ The schema is owned by Flyway (§25): `V1__baseline.sql` creates every table, se
 
 **Security and settings:** `api_token` (scope, hash, prefix, expiry, revocation, device metadata, restriction columns, `type` = token, feed key or tile key, `prefixes`, `private_access`, `licence_policy`, federation and exercise restrictions), `principal`, `pairing_code`, `audit_event`, `app_setting`, `system_secret`, `signing_key`, `share_link`.
 
-**Identity (R2-001, §15.5):** `"user"`, `role`, `permission`, `user_role`, `role_permission`, `user_token`.
+**Identity (R2-001, R2-003, §15.5):** `"user"`, `role`, `permission`, `user_role`, `role_permission`, `user_token`, `user_session`.
 
 **Other subsystems** (one line each; details in their sections): inbound `custom_source`, `ingest_device`, `external_source`, `edp_registration_token`, `edp_snapshot`, `edp_snapshot_stage`, `websub_subscription`, `dcp_location`; LLM and search `llm_provider`, `llm_usage`, `embedding_document` (generated `tsv` with GIN, GiST, `(source_id, effective_time)`; vector slots per §20), `ask_thread`, `ask_message`, `ask_action`, `briefing`, `briefing_run`; places, views and reference `place`, `forecast_series_cache`, `saved_view`, `watch_list`, `watch_list_item`, `ref_country`, `ref_admin1`, `ref_admin2`, `ref_sea`, `ref_dataset`, `record_region`, `gazetteer_country`, `gazetteer_admin1`, `gazetteer_place`, `activity_rollup`, `history_downsample`, `retention_state`; weather `raster_product`, `raster_grid`, `raster_frame`, `raster_export_job`, `media`, `media_tombstone`; the intelligence and interop tables listed in §29–§42.
 
@@ -922,9 +922,12 @@ Release 2 adds human accounts beside tokens (`ai.foresignal.security.user`, `V14
   points), `UserLifecycleService` (the status machine; only `active` authenticates; `UserSessionsRevokedEvent` on
   suspend, disable and password change) and `UserTokenService` (`fsv_` activation 72 h, `fsw_` reset 1 h; hashed,
   single-use, single-active).
-- **No behavior change yet:** no operation reads these tables in R2-001 and no user row is seeded; the bootstrap
-  admin token and scoped tokens authorize exactly as above. The test `DatabaseCleaner` keeps the seeded catalog and
-  built-in roles across tests and deletes only custom roles.
+- **Sessions (R2-003):** `POST /v1/auth/login` mints an `fss_` session bearer (`user_session`, hashed; 12 h absolute,
+  2 h idle). `TokenFilter` resolves it before the API-token lookup to a `CurrentToken` (scope derived from the user's
+  effective permissions) plus an `AuthenticatedSession`; never on ingest or peer paths. `getMe` adds `user` and
+  `permissions` for a session. No user row is seeded; the bootstrap admin token and scoped tokens authorize exactly as
+  above. The test `DatabaseCleaner` keeps the seeded catalog and built-in roles across tests and deletes only custom
+  roles.
 
 ## 16. Inbound webhooks and custom push sources
 

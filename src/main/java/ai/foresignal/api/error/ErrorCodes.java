@@ -944,6 +944,18 @@ public final class ErrorCodes {
     /** 409: the account's status does not allow the requested lifecycle change (R2-002, {@code UserLifecycleService}). */
     public static final String USER_STATUS_CONFLICT = "USER_STATUS_CONFLICT";
 
+    /** 401: the email or password is wrong, or the account may not sign in; one answer for every case (R2-003). */
+    public static final String INVALID_CREDENTIALS = "INVALID_CREDENTIALS";
+
+    /** 404: no session with that id belongs to the caller (R2-003, {@code revokeSession}). */
+    public static final String UNKNOWN_SESSION = "UNKNOWN_SESSION";
+
+    /** 410: a password reset token is unknown, expired or already used (R2-003, {@code resetPassword}). */
+    public static final String RESET_TOKEN_GONE = "RESET_TOKEN_GONE";
+
+    /** 410: an activation token is unknown, expired or already used (R2-003, {@code activateAccount}). */
+    public static final String ACTIVATION_TOKEN_GONE = "ACTIVATION_TOKEN_GONE";
+
     private ErrorCodes() {}
 
     /**

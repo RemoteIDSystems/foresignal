@@ -1144,6 +1144,7 @@ CAPTURE = {
   "listAlerts": "const j = pm.response.json(); if (j.items && j.items.length) pm.collectionVariables.set('alertId', j.items[0].id);",
   "listChanges": "const j = pm.response.json(); pm.collectionVariables.set('lastSeq', j.lastSeq);",
   "listRecords": "const j = pm.response.json(); const it = (j.items || j.features || [])[0]; if (it) { const ext = it.externalId || (it.properties && it.properties.externalId); pm.collectionVariables.set('externalId', ext); }\nif (j.nextCursor) pm.collectionVariables.set('cursor', j.nextCursor);",
+  "login": "const j = pm.response.json(); pm.collectionVariables.set('sessionToken', j.token); console.log('Session bearer stored in collection variable sessionToken');",
   "rotateAdminToken": "const j = pm.response.json(); pm.collectionVariables.set('adminToken', j.token); console.log('New admin token stored in collection variable adminToken');",
   "createPairingCode": "const j = pm.response.json(); pm.collectionVariables.set('pairingCodeId', j.id); pm.collectionVariables.set('pairingCode', j.code);",
   "claimPairingCode": "const j = pm.response.json(); pm.collectionVariables.set('readToken', j.token); console.log('Paired token stored in collection variable readToken');",
@@ -1369,6 +1370,10 @@ def req_item(path, method, op):
     elif path.startswith("/v1/federation/") and scope == "read" and op.get("security") == [{"bearerToken": []}]:
         # 113: the federation feed needs a token with restrictions.federation=true.
         request["auth"] = {"type": "bearer", "bearer": [{"key": "token", "value": "{{federationToken}}", "type": "string"}]}
+    elif path.startswith("/v1/auth/") and scope == "read":
+        # R2-003: the session operations act on the signed-in user's sessions, so they carry the session bearer that
+        # login stores in sessionToken; an API token has no user.
+        request["auth"] = {"type": "bearer", "bearer": [{"key": "token", "value": "{{sessionToken}}", "type": "string"}]}
     elif opid == "selfRegisterExternalSource":
         request["auth"] = {"type": "noauth"}
         request["header"].append({"key": "Authorization", "value": "Bearer {{registrationToken}}"})
@@ -1486,7 +1491,7 @@ streams = {"name": "Streams (SSE — run manually)", "description": "Postman dis
 
 collection = {
   "info": {"_postman_id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman")), "name": "Foresignal API",
-           "description": f"{spec['info']['description']}\n\nGenerated from docs/OpenAPI.json (v{spec['info']['version']}). Every operation is included, grouped by tag. Admin operations use Bearer `{{{{adminToken}}}}`, agent operations `{{{{agentToken}}}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{{{readToken}}}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{{{ingestKey}}}}` (EDP pushes `{{{{edpIngestKey}}}}`, Gotify `X-Gotify-Key`), federation pushes Bearer `{{{{peerIngestKey}}}}` and the federation feed Bearer `{{{{federationToken}}}}` (a read token with restrictions.federation=true), and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor…).",
+           "description": f"{spec['info']['description']}\n\nGenerated from docs/OpenAPI.json (v{spec['info']['version']}). Every operation is included, grouped by tag. Admin operations use Bearer `{{{{adminToken}}}}`, agent operations `{{{{agentToken}}}}` (defaults to the admin token; set it to an agent-scope token to test scopes), always-authenticated read operations `{{{{readToken}}}}` (defaults to the admin token; claiming a pairing code stores a read token there), ingest uses `X-Foresignal-Ingest-Key: {{{{ingestKey}}}}` (EDP pushes `{{{{edpIngestKey}}}}`, Gotify `X-Gotify-Key`), federation pushes Bearer `{{{{peerIngestKey}}}}` and the federation feed Bearer `{{{{federationToken}}}}` (a read token with restrictions.federation=true), the session operations under /v1/auth Bearer `{{{{sessionToken}}}}` (stored by login), and other reads use no auth (open while openReads is on). Test scripts capture ids into collection variables (ruleId, channelId, alertId, briefingId, threadId, ingestKey, externalId, lastSeq, cursor…).",
            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
   "item": [quickstart, quickstart2, streams] + folders,
   "variable": [{"key": k, "value": v} for k, v in [
@@ -1498,7 +1503,7 @@ collection = {
       ("registrationToken", ""), ("registrationTokenId", ""), ("pushProviderId", "ios-apns"), ("pushDeviceId", ""),
       ("notificationId", ""), ("actionToken", ""), ("escalationPolicyId", ""), ("feedKeyId", ""), ("tileKeyId", ""),
       ("placeId", "home"), ("viewId", ""), ("watchlistId", ""), ("exportId", ""), ("holdId", ""),
-      ("peerId", ""), ("peerIngestKey", ""), ("federationToken", ""),
+      ("peerId", ""), ("peerIngestKey", ""), ("federationToken", ""), ("sessionToken", ""),
       ("polSubjectId", ""), ("polPlaceId", ""), ("tripId", ""),
       ("exerciseId", ""), ("suggestionId", ""), ("tuningLogId", ""),
       ("canonicalEventId", ""), ("manifestId", ""), ("templateId", "ask-system"), ("jobId", ""),
@@ -1524,7 +1529,8 @@ collection = {
 env = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, "https://foresignal.ai/postman/env/local")), "name": "Foresignal — Local",
        "values": [{"key": "baseUrl", "value": "http://localhost:8080", "type": "default", "enabled": True},
                   {"key": "adminToken", "value": "", "type": "secret", "enabled": True},
-                  {"key": "readToken", "value": "{{adminToken}}", "type": "secret", "enabled": True}],
+                  {"key": "readToken", "value": "{{adminToken}}", "type": "secret", "enabled": True},
+                  {"key": "sessionToken", "value": "", "type": "secret", "enabled": True}],
        "_postman_variable_scope": "environment"}
 (outdir / "Foresignal.postman_collection.json").write_text(json.dumps(collection, indent=2))
 (outdir / "Foresignal-Local.postman_environment.json").write_text(json.dumps(env, indent=2))

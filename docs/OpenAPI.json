@@ -158828,6 +158828,17 @@
           },
           "defaultTlp": {
             "$ref": "#/components/schemas/Tlp"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User",
+            "description": "The signed-in user, present only when the request carries a login session (R2-003)"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Effective permission keys (union of the user's roles), present only for a login session (R2-003)"
           }
         },
         "required": [
@@ -178198,7 +178209,7 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "fsr_<base64url>",
-        "description": "Scoped API token (read < agent < admin). The bootstrap admin token is printed once on first start. Required scope per operation is in `x-foresignal-scope`."
+        "description": "Scoped API token (read < agent < admin). The bootstrap admin token is printed once on first start. Required scope per operation is in `x-foresignal-scope`. A login session bearer (`fss_<base64url>`, from `login`, R2-003) is accepted in the same header: it carries the coarse scope derived from its user's effective permissions, ends after 12 hours or 2 hours idle, and is never accepted on ingest or peer endpoints."
       },
       "ingestKey": {
         "type": "apiKey",

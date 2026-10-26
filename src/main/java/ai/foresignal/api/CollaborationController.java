@@ -16,6 +16,7 @@ import ai.foresignal.object.ObjectCallers;
 import ai.foresignal.security.CurrentToken;
 import ai.foresignal.security.PrincipalEntity;
 import ai.foresignal.security.TokenService;
+import ai.foresignal.security.user.AuthenticatedSession;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -79,7 +80,8 @@ public class CollaborationController {
         ObjectCaller caller = callers.authenticated(request);
         CurrentToken token = CurrentToken.of(request).orElseThrow(() -> new ForesignalException(
                 HttpStatus.UNAUTHORIZED, ErrorCodes.UNAUTHORIZED, "This operation needs a token."));
-        return me.me(token.token(), caller);
+        return me.me(token.token(), caller,
+                AuthenticatedSession.of(request).orElse(null));
     }
 
     /** {@code listMyNotificationPreferences}. */

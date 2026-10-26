@@ -145,41 +145,73 @@ other kind, expired, used, or a reset for a user who is no longer active — is 
 **No enumeration:** `requestReset(email)` issues only for an active user and returns empty for every other case; the
 caller (R2-003) must answer identically either way.
 
-**Prefix collision to settle in R2-003.** §C below names the session bearer `fss_`, but `fss_` is already the share
-link key prefix (`share/ShareLinkService.KEY_PREFIX`, prompt 112). R2-003 must pick another prefix and say so.
+## C. Authentication and sessions (built: R2-003)
 
-## C. Authentication and sessions
+Passwords are argon2id (§A2). The `Auth` operations (`api/AuthController`):
 
-Passwords are hashed with **argon2id** through an audited library (Spring Security's
-`Argon2PasswordEncoder`) — standard and unexotic, consistent with the crypto posture. No hand-rolled
-primitives.
+| Operation | Method / path | Scope | Behavior |
+|---|---|---|---|
+| `login` | `POST /v1/auth/login` | open | email + password → `SessionToken`; every failure `401 INVALID_CREDENTIALS` |
+| `logout` | `POST /v1/auth/logout` | read, always authenticated | revokes the calling session |
+| `requestPasswordReset` | `POST /v1/auth/password/reset-request` | open | always `202`; a link is issued only for an active account |
+| `resetPassword` | `POST /v1/auth/password/reset` | open | consumes a reset token, sets the password, ends every session; bad link `410 RESET_TOKEN_GONE` |
+| `activateAccount` | `POST /v1/auth/activate` | open | consumes an activation token, sets the first password, `invited → active`; bad link `410 ACTIVATION_TOKEN_GONE` |
+| `listSessions` | `GET /v1/auth/sessions` | read, always authenticated | the caller's live sessions, `current: true` on the calling one |
+| `revokeAllSessions` | `DELETE /v1/auth/sessions` | read, always authenticated | revokes every **other** session; the calling one is always kept (`logout` ends it) |
+| `revokeSession` | `DELETE /v1/auth/sessions/{id}` | read, always authenticated | revokes one of the caller's sessions; another user's is `404 UNKNOWN_SESSION` |
 
-Auth endpoints (all `open` scope except logout, which is `read`):
+The four session operations need a signed-in **session**; an API token has no user and gets `401`.
 
-| Operation | Method / path | Purpose |
-|---|---|---|
-| `login` | `POST /v1/auth/login` (`LoginRequest`) | email + password (+ MFA code) → a `SessionToken` |
-| `logout` | `POST /v1/auth/logout` | revoke the current session |
-| `requestPasswordReset` | `POST /v1/auth/password/reset-request` | email a reset link |
-| `resetPassword` | `POST /v1/auth/password/reset` | consume a `user_token`, set a new password |
-| `activateAccount` | `POST /v1/auth/activate` | consume an invite `user_token`, set the first password |
+**Sign-in failures are uniform.** Unknown email, wrong password, and an account that is `invited`, `suspended` or
+`disabled` all answer the same `401 INVALID_CREDENTIALS` with the same detail and the same argon2id work (an unknown
+email is checked against a dummy hash). The reason is written only to the audit log
+(`detail.reason`: `unknown_email`, `wrong_password`, `status_<status>`). The contract also lists
+`403 ACCOUNT_DISABLED` for `login`; the code does not use it, because the prompt asked for one generic `401` — an
+open question for the owner.
 
-A successful login mints a **session bearer** `fss_…`, stored only as a hash in `user_session`, with
-an **absolute** expiry and an **idle** expiry, revocable on logout, suspend, password change, or admin
-action. `TokenFilter`/`AccessPolicy` gain a branch that resolves an `fss_` bearer to a **user
-principal** carrying the effective-permission set, in addition to the existing `fsr_` scoped-token
-branch. Session management (list/revoke own sessions) is `GET /v1/auth/sessions`,
-`DELETE /v1/auth/sessions`, `DELETE /v1/auth/sessions/{id}` (the `Session.current` flag marks the
-calling session).
+**Credential operations are limited** to 10 requests a minute per client address (`429 RATE_LIMITED` with
+`Retry-After`), and a failed sign-in or a bad link counts toward the address's auth-failure backoff (§15.2 of the
+Architecture), whenever rate limiting is enabled.
 
-**Scoped `api_token`s stay** for machines and agents; they gain an `owner_user_id` so every token is
-attributable to a user, minted and revoked through `GET/POST /v1/me/tokens`, `DELETE /v1/me/tokens/{id}`
-with the existing area/path/tile-key restrictions (`TokenRestrictions`). The **bootstrap admin token**
-remains the break-glass machine credential and the first-run seed (see F).
+**Session bearer.** `fss_` + 32 random bytes base64url, returned once in `SessionToken.token`, stored only as its
+SHA-256 hex and 8-character prefix in `user_session` (`V15__user_sessions.sql`). It travels in the existing
+`Authorization: Bearer` header (`bearerToken` scheme). Absolute lifetime **12 hours**, idle timeout **2 hours**; each
+accepted request moves the idle expiry forward (never past the absolute one), written at most once a minute. A
+session ends early on `logout`, `revokeSession`, `revokeAllSessions`, suspension, disabling, or any password change
+(`UserSessionsRevokedEvent`). `fss_` is also the prefix of share-link keys (prompt 112); the two never meet, because a
+share key is only ever a path segment of `/v1/k/{key}` and a session only a bearer, and each is looked up by hash in
+its own table.
 
-`GET /v1/me` returns the calling principal, the token in use, the expanded scopes, groups, and
-notification preferences (`Me` schema) — the single call a client makes to learn who it is and what it
-may do.
+**Resolution (`TokenFilter`).** A bearer starting `fss_` goes to `SessionService` before the API-token lookup. It is
+accepted only while the session is live and its user is `active`; the user's roles are read again on every request
+(RBAC-2). The request then carries a `CurrentToken` whose token is the session's token view (id = session id, name
+`session:<email>`, no restrictions, the user's principal) and an `AuthenticatedSession` (user id, effective
+permissions) under its own request attribute. A session is never accepted on ingest paths (`401`) or peer paths
+(which take only `fsp_` keys), and is never a feed or tile key.
+
+**Effective permissions and the derived scope.** `PermissionResolver` takes the union of the user's roles'
+permissions. Until R2-004's permission gate, a session passes the existing scope gate with a scope derived from that
+set (`EffectivePermissions.scope()`):
+
+| The set holds | Scope |
+|---|---|
+| any `identity` or `platform` permission other than `audit.read` | `admin` |
+| otherwise `self.sources`, `self.alerts`, `self.channels`, `self.llm`, `self.workspaces` or `data.export` | `agent` |
+| otherwise | `read` |
+
+So Admin and Operator sessions are `admin`, Editor `agent`, Viewer and Auditor `read`. `audit.read` is excluded from
+the admin rule on purpose: an Auditor reads the log and does not run the instance. An admin-scoped session sees
+private sources, as an admin token does.
+
+**`getMe`.** For a session the `Me` view adds `user` (the `User` shape) and `permissions`, and `token` describes the
+session (id, `session:<email>`, derived scope, prefix, absolute expiry). For an API token the view is unchanged.
+
+**Scoped `api_token`s stay** for machines and agents; they gain an `owner_user_id` in R2-025 (`/v1/me/tokens`). The
+**bootstrap admin token** remains the break-glass machine credential and the first-run seed (see I).
+
+Audit: sign-ins, failed sign-ins, logout and session revocations are written by `SessionService` (actor kind
+`token`, token name `session:<email>`, target `users/<id>`); every other write made with a session is audited by the
+token filter with `detail.via = session` and `detail.userId`.
 
 ## D. Per-user configuration over a shared substrate
 

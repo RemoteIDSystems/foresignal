@@ -91,13 +91,27 @@ public class UserLifecycleService {
      */
     @Transactional
     public UserEntity resetWithToken(String token, String password) {
-        policy.validate(password, "password");
+        return resetWithToken(token, password, "password");
+    }
+
+    /**
+     * {@link #resetWithToken(String, String)}, naming the request field a policy refusal points at.
+     *
+     * @param token the reset token from the link
+     * @param password the new password
+     * @param field the request field holding the password, for example {@code newPassword}
+     * @return the user
+     * @throws ValidationException {@code 400 PASSWORD_POLICY} or {@code USER_TOKEN_INVALID}
+     */
+    @Transactional
+    public UserEntity resetWithToken(String token, String password, String field) {
+        policy.validate(password, field);
         UserEntity user = userTokens.consume(token, UserTokenKind.RESET);
         if (!canAuthenticate(user)) {
             throw new ValidationException(ErrorCodes.USER_TOKEN_INVALID,
                     "The link is not valid. It may have expired or been used already.", List.of());
         }
-        setPassword(user, password, "password");
+        setPassword(user, password, field);
         return user;
     }
 

@@ -34,6 +34,32 @@ named `bootstrap`; give agents, dashboards and phones their own scoped tokens in
 [Tokens, pairing and the audit log](#tokens-pairing-and-the-audit-log)). An install upgraded from
 before prompt 023 keeps its admin token: it moves into that row on the first start.
 
+## Signing in and sessions
+
+Release 2 adds user accounts beside tokens (`docs/RBAC-Design.md`). Until an admin account exists, everything works on
+the admin token exactly as above.
+
+- **Sign in:** `POST /v1/auth/login` with `{"email": "…", "password": "…"}` returns a session bearer starting `fss_`,
+  shown once. Send it as `Authorization: Bearer fss_…`, like a token. A wrong email or password, or an account that is
+  invited, suspended or disabled, always gets the same `401 INVALID_CREDENTIALS`; the reason is in the audit log.
+- **Lifetimes:** a session lasts at most **12 hours** and ends after **2 hours** without use; each request moves the
+  idle limit forward. It also ends when you sign out (`POST /v1/auth/logout`), when the password changes, and when an
+  admin suspends or disables the account. Roles are read on every request, so a role change applies at once.
+- **Your sessions:** `GET /v1/auth/sessions` lists them (the one you are using is `current`);
+  `DELETE /v1/auth/sessions/{id}` ends one; `DELETE /v1/auth/sessions` ends all the others and keeps the current one.
+  These need a session, not an API token.
+- **Forgotten password:** `POST /v1/auth/password/reset-request` always answers `202`. If the account is active, a
+  reset link valid for one hour is issued; until the email sender is configured (R2-007) it is only logged as "not
+  sent", by its 8-character prefix. `POST /v1/auth/password/reset` with the link's token and a new password (at least
+  12 characters) ends every session of the account.
+- **Activation:** an invited user sets a first password with `POST /v1/auth/activate` and the activation token
+  (valid 72 hours).
+- **Limits:** sign-in, reset and activation requests are limited to 10 a minute per address, and repeated failures
+  from one address back off, whenever rate limiting is on.
+- **What a session may do:** until per-permission checks arrive, a session acts with a scope derived from its roles:
+  Admin and Operator `admin`, Editor `agent`, Viewer and Auditor `read`. Sessions never work on ingest endpoints; use
+  ingest keys there.
+
 ## Sources
 
 A source is one upstream feed, such as `usgs-earthquakes`. A fresh install enables only the **core set** (prompt 150),
