@@ -962,6 +962,21 @@ public final class ErrorCodes {
      */
     public static final String PERMISSION_DENIED = "PERMISSION_DENIED";
 
+    /** 409: another user already has that email (R2-005, {@code createUser}, {@code updateUser}). */
+    public static final String EMAIL_TAKEN = "EMAIL_TAKEN";
+
+    /** 404: no user with that id (R2-005). */
+    public static final String UNKNOWN_USER = "UNKNOWN_USER";
+
+    /**
+     * 409: the change would leave no active user holding {@code users.manage} (R2-005: deleting, suspending or
+     * re-roling the last one).
+     */
+    public static final String LAST_ADMIN = "LAST_ADMIN";
+
+    /** 409: the user is no longer {@code invited}, so there is no invite to resend (R2-005, {@code resendUserInvite}). */
+    public static final String ALREADY_ACTIVE = "ALREADY_ACTIVE";
+
     private ErrorCodes() {}
 
     /**

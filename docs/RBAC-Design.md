@@ -342,10 +342,37 @@ Admin-scoped (`admin`), permission `users.manage` / `roles.manage`:
 | `getRole` / `updateRole` / `deleteRole` | `GET` / `PUT` / `DELETE /v1/roles/{id}` |
 | `listPermissions` | `GET /v1/permissions` |
 
-**User delete reassigns by default** (owner decision): a deleted user's owned configuration
-(alerts, channels, providers, views, workspaces) is reassigned to an admin rather than destroyed, with
-the choice surfaced per delete (`UserDeleteResult` reports what moved). Deleting a role that users still
-hold is refused; built-in roles cannot be deleted at all.
+**Built (R2-005): the user operations** (`api/UserAdminController`, `security/user/UserAdminService`).
+
+- **Lifecycle.** `createUser` makes an `invited` user with no password, the requested roles (each must exist, else
+  `400`), `created_by` = the acting signed-in admin (null for an API token), a person principal, and an activation
+  token; it asks `AccountMailer.sendWelcome` (full name, role names, link) unless `sendInvite` is false. A duplicate
+  email is `409 EMAIL_TAKEN`. `updateUser` changes only `fullName` and `email` (re-normalized, re-checked). `setUserRoles`
+  replaces the set and publishes `UserRolesChangedEvent` (the cached permissions are dropped after commit) and asks for
+  the role-changed email when the set changed. `suspendUser`/`unsuspendUser` drive `active ↔ suspended` (R2-002; a
+  wrong status is `409 USER_STATUS_CONFLICT`), suspension ending every session and asking for the suspended email.
+  `resendUserInvite` replaces an invited user's activation token (`409 ALREADY_ACTIVE` otherwise);
+  `adminResetUserPassword` issues a reset token, ends every session (`UserSessionsRevokedEvent.PASSWORD_RESET_ISSUED`)
+  and asks for the reset email. No operation shows or sets a password.
+- **Links without email.** The mailer reports whether an email left. When it did not (until R2-007 the
+  `LoggingAccountMailer` sends nothing; or `sendInvite: false`), the one-time token is returned once as
+  `UserLinkIssued.token` — on `createUser` under the user's `activation`, and as the `202` body of `resendUserInvite`
+  and `adminResetUserPassword`; an emailed link is reported with `token: null`. `UserLinkIssued` is an additive
+  contract schema added by R2-005, because the authored `User` and the `202`s had no place for the link.
+- **User delete reassigns by default** (owner decision). Before the row is deleted, every `UserOwnedConfigReassigner`
+  bean moves the user's rows to the target (or deletes them with `reassign=false`). Target precedence: the acting
+  signed-in admin, when that is not the user being deleted; else the oldest other active admin (`created_at`); else
+  none, and the rows become instance-owned (`owner_user_id` null). No table carries `owner_user_id` yet, so there is no
+  reassigner today: R2-008 (trigger rules), R2-009 (channels), R2-010 (`user_source_pref`), R2-011 (personal LLM
+  providers), R2-012 (views, preferences, workspaces) and R2-025 (user-owned API tokens) each register one; the
+  interface's Javadoc is the contract. The role links, sessions and activation/reset tokens go with the user row (`on
+  delete cascade`); the user's principal stays, so collaboration history keeps its author. `UserDeleteResult` reports
+  the disposition and the target; the audit row (`detail.event = user_deleted`) adds the per-reassigner counts.
+- **Last-admin guard.** An admin is an `active` user holding `users.manage` through any role. Deleting, suspending, or
+  setting roles without `users.manage` on the last one is `409 LAST_ADMIN`. The check and the change run under one
+  transaction-scoped advisory lock. The bootstrap admin token is not counted and always works.
+
+Deleting a role that users still hold is refused; built-in roles cannot be deleted at all (R2-006).
 
 ## H. Audit
 

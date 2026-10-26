@@ -19,6 +19,8 @@ public record UserSessionsRevokedEvent(UUID userId, Reason reason) {
         /** The account was suspended. */
         SUSPENDED,
         /** The account was disabled. */
-        DISABLED
+        DISABLED,
+        /** An admin sent the user a password reset (R2-005, {@code adminResetUserPassword}). */
+        PASSWORD_RESET_ISSUED
     }
 }

@@ -44,7 +44,7 @@ the admin token exactly as above.
   invited, suspended or disabled, always gets the same `401 INVALID_CREDENTIALS`; the reason is in the audit log.
 - **Lifetimes:** a session lasts at most **12 hours** and ends after **2 hours** without use; each request moves the
   idle limit forward. It also ends when you sign out (`POST /v1/auth/logout`), when the password changes, and when an
-  admin suspends or disables the account. Roles are read on every request, so a role change applies at once.
+  admin suspends or disables the account. A role change made through user management applies to the next request.
 - **Your sessions:** `GET /v1/auth/sessions` lists them (the one you are using is `current`);
   `DELETE /v1/auth/sessions/{id}` ends one; `DELETE /v1/auth/sessions` ends all the others and keeps the current one.
   These need a session, not an API token.
@@ -56,9 +56,39 @@ the admin token exactly as above.
   (valid 72 hours).
 - **Limits:** sign-in, reset and activation requests are limited to 10 a minute per address, and repeated failures
   from one address back off, whenever rate limiting is on.
-- **What a session may do:** until per-permission checks arrive, a session acts with a scope derived from its roles:
-  Admin and Operator `admin`, Editor `agent`, Viewer and Auditor `read`. Sessions never work on ingest endpoints; use
-  ingest keys there.
+- **What a session may do:** an operation that names a permission (`x-foresignal-permission` in the API document)
+  needs that permission from one of the account's roles, else `403 PERMISSION_DENIED` naming it in
+  `requiredPermission`; any other operation goes by a scope derived from the roles (Admin and Operator `admin`, Editor
+  `agent`, Viewer and Auditor `read`). API tokens are unaffected: they go by scope alone, and the admin token can do
+  everything. Sessions never work on ingest endpoints; use ingest keys there.
+
+## Adding and managing users
+
+User management needs the `users.manage` permission (the Admin role) or the admin token. Every change is in the audit
+log.
+
+- **Invite:** `POST /v1/users` with `{"email": "…", "fullName": "…", "roles": ["<role id>"]}` creates the account as
+  `invited`, with no password, and issues an activation link valid 72 hours. The welcome email carries it; when the
+  email is not sent (no email sender is configured yet, or you pass `"sendInvite": false`), the response's
+  `activation.token` holds the one-time token for you to pass on, once. The built-in role ids are
+  `00000000-0000-4000-8000-00000000000N` with N = 1 Admin, 2 Operator, 3 Editor, 4 Viewer, 5 Auditor. An email already
+  in use is `409 EMAIL_TAKEN`.
+- **Find and edit:** `GET /v1/users` (filters `status`, `q`; paged with `cursor`), `GET /v1/users/{id}`, and
+  `PUT /v1/users/{id}` for the full name and email. Passwords are never set here.
+- **Roles:** `POST /v1/users/{id}/roles` with `{"roles": [...]}` replaces the whole set; it applies to the user's next
+  request.
+- **Suspend:** `POST /v1/users/{id}/suspend` ends every session and blocks sign-in, keeping the account and its
+  configuration; `POST /v1/users/{id}/unsuspend` restores it.
+- **Links again:** `POST /v1/users/{id}/resend-invite` replaces an invited user's activation link (`409
+  ALREADY_ACTIVE` once the account is active); `POST /v1/users/{id}/password-reset` sends a reset link and ends the
+  user's sessions. Both answer `202` with the link's token only when it was not emailed. You never see or set the
+  password itself.
+- **Delete:** `DELETE /v1/users/{id}` moves what the user owned (alerts, channels, personal providers, views) to an
+  admin first: you, when you are signed in as an admin; otherwise the longest-standing other admin. With no admin
+  account at all it becomes instance-owned. `?reassign=false` deletes it instead. The answer says which, and to whom.
+- **The last admin is protected:** suspending, deleting or removing `users.manage` from the only active account that
+  has it is refused with `409 LAST_ADMIN`. Give a second account the Admin role first. The admin token keeps working
+  regardless.
 
 ## Sources
 

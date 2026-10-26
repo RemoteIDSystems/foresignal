@@ -170,6 +170,15 @@ public class UserEntity {
         this.updatedAt = now;
     }
 
+    /**
+     * Marks the user changed without changing a column of its own (its roles changed, R2-005).
+     *
+     * @param now the change time
+     */
+    public void touch(Instant now) {
+        this.updatedAt = now;
+    }
+
     /** The ULID of the user's {@code person} principal. */
     public String getPrincipalId() {
         return principalId;

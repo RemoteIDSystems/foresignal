@@ -89648,6 +89648,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict (LAST_ADMIN)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Missing or invalid admin token",
             "content": {
@@ -89722,7 +89732,7 @@
             }
           },
           "409": {
-            "description": "Conflict (LAST_ADMIN)",
+            "description": "Conflict (LAST_ADMIN, USER_STATUS_CONFLICT)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -89804,6 +89814,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict (USER_STATUS_CONFLICT)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Missing or invalid admin token",
             "content": {
@@ -89858,7 +89878,14 @@
         ],
         "responses": {
           "202": {
-            "description": "Invite re-sent (or link returned when SMTP is not configured)"
+            "description": "Invite re-sent (or link returned when SMTP is not configured)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserLinkIssued"
+                }
+              }
+            }
           },
           "404": {
             "description": "Not found (UNKNOWN_USER)",
@@ -89934,7 +89961,14 @@
         ],
         "responses": {
           "202": {
-            "description": "Reset email sent (or link returned when SMTP is not configured)"
+            "description": "Reset email sent (or link returned when SMTP is not configured)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserLinkIssued"
+                }
+              }
+            }
           },
           "404": {
             "description": "Not found (UNKNOWN_USER)",
@@ -176619,6 +176653,10 @@
               "null"
             ],
             "format": "date-time"
+          },
+          "activation": {
+            "$ref": "#/components/schemas/UserLinkIssued",
+            "description": "Only on the `createUser` response: the activation link issued with the invite"
           }
         },
         "required": [
@@ -178679,6 +178717,44 @@
         },
         "required": [
           "user"
+        ]
+      },
+      "UserLinkIssued": {
+        "type": "object",
+        "description": "A one-time activation or reset link issued for a user (R2-005). When the email was not sent (no SMTP, or `sendInvite: false`) the plaintext `token` is returned here once for the admin to pass on; when it was emailed, `token` is null. Only the token's hash is stored.",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "x-extensible-enum": [
+              "activation",
+              "reset"
+            ]
+          },
+          "emailed": {
+            "type": "boolean",
+            "description": "True when the email left; the token is then withheld"
+          },
+          "token": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The one-time token (`fsv_…` activation, `fsw_…` reset), only when not emailed"
+          },
+          "tokenPrefix": {
+            "type": "string",
+            "description": "The token's first eight characters"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "kind",
+          "emailed",
+          "tokenPrefix",
+          "expiresAt"
         ]
       }
     },

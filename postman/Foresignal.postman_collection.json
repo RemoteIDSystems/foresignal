@@ -40729,14 +40729,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/users/{{id}}/quota",
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/quota",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "users",
-                "{{id}}",
+                "{{userId}}",
                 "quota"
               ],
               "query": []
@@ -40780,14 +40780,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/users/{{id}}/quota",
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/quota",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "users",
-                "{{id}}",
+                "{{userId}}",
                 "quota"
               ],
               "query": []
@@ -54639,7 +54639,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('userId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -54680,7 +54683,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"email\": \"jane@example.org\",\n  \"fullName\": \"Jane Analyst\",\n  \"roles\": [\n    \"00000000-0000-4000-8000-000000000004\"\n  ],\n  \"sendInvite\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -54711,14 +54714,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/users/{{id}}",
+              "raw": "{{baseUrl}}/v1/users/{{userId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "users",
-                "{{id}}"
+                "{{userId}}"
               ],
               "query": []
             },
@@ -54761,14 +54764,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/users/{{id}}",
+              "raw": "{{baseUrl}}/v1/users/{{userId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "users",
-                "{{id}}"
+                "{{userId}}"
               ],
               "query": []
             },
@@ -54785,7 +54788,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"fullName\": \"Jane Q. Analyst\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -54816,14 +54819,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/users/{{id}}",
+              "raw": "{{baseUrl}}/v1/users/{{userId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "users",
-                "{{id}}"
+                "{{userId}}"
               ],
               "query": [
                 {
@@ -54873,14 +54876,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/users/{{id}}/roles",
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/roles",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "users",
-                "{{id}}",
+                "{{userId}}",
                 "roles"
               ],
               "query": []
@@ -54898,7 +54901,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"roles\": [\n    \"00000000-0000-4000-8000-000000000003\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -54929,14 +54932,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/users/{{id}}/suspend",
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/suspend",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "users",
-                "{{id}}",
+                "{{userId}}",
                 "suspend"
               ],
               "query": []
@@ -54976,14 +54979,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/users/{{id}}/unsuspend",
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/unsuspend",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "users",
-                "{{id}}",
+                "{{userId}}",
                 "unsuspend"
               ],
               "query": []
@@ -55016,16 +55019,21 @@
           ],
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/v1/users/{{id}}/resend-invite",
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/resend-invite",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "users",
-                "{{id}}",
+                "{{userId}}",
                 "resend-invite"
               ],
               "query": []
@@ -55058,16 +55066,21 @@
           ],
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/v1/users/{{id}}/password-reset",
+              "raw": "{{baseUrl}}/v1/users/{{userId}}/password-reset",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "users",
-                "{{id}}",
+                "{{userId}}",
                 "password-reset"
               ],
               "query": []
@@ -57047,6 +57060,10 @@
     },
     {
       "key": "sessionToken",
+      "value": ""
+    },
+    {
+      "key": "userId",
       "value": ""
     },
     {
