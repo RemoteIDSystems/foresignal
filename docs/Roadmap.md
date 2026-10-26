@@ -298,6 +298,12 @@ files. 161 takes the API to **1.4.0** (additive, a minor version).
 |---|---|---|---|
 | 161 | Alert-Builder | `analyzeTriggerSources` (advisory LLM relevance check of a rule's sources); `searchReferenceAreas` and `getReferenceArea` (countries, admin-1 regions and places by name, and region outlines) for scoping a rule to an area with the existing `geofenceRef`, `near` and `geofence` members; API 1.4.0 | Done |
 
+### Follow-ups
+
+| # | Prompt | Scope | Status |
+|---|---|---|---|
+| 162 | Tiled-Raster-Decode | Remove the one-array raster decode behind the 2026-10-25 false heap OOM (`docs/Host-Memory-Safety.md`, "The GCLocker flag"). `Grib2Decoder.decode` (`src/main/java/ai/foresignal/raster/decode/Grib2Decoder.java:161`) calls NetCDF-Java's `Grib2Record.readData`, which returns the whole field as one `float[]`: 98,000,000 bytes for the 7000 × 3500 MRMS grid. That array is `DecodedGrid.floatData` (`decode/DecodedGrid.java:28`), used by 11 files; `floatData()` is read at 9 call sites in 5 of them. Approach: unpack the GRIB2 data section row band by row band with our own reader instead of `readData`, starting with template 5.41 (PNG, MRMS, the grid behind the failure) and keeping `readData` for 5.3 (GFS, complex packing) and 5.42 (ECMWF, CCSDS through libaec) until each is measured, and make `DecodedGrid` hold the samples as fixed-size row tiles (for example 256 rows) behind `value(i)` and a tile accessor, so no single allocation exceeds a few MB; move each `floatData()` caller to the accessor. A test decodes an MRMS fixture and asserts the largest array allocated is below 8 MB and the samples match the current decoder. When it lands, `-XX:GCLockerRetryAllocationCount` can leave `scripts/run-server.sh`. | Planned |
+
 ## 5. Renumbering map
 
 Some older prompt text, and the design docs, still use earlier numbers. Translate them with these tables.

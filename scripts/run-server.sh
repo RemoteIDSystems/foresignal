@@ -15,8 +15,13 @@
 # memory.swap.max are what was asked for.
 #
 # The JVM flags are fixed: -Xmx4g (the compose small profile, so heap and native growth can be
-# told apart), -XX:MaxDirectMemorySize=2g, -XX:+ExitOnOutOfMemoryError and
-# -XX:NativeMemoryTracking=summary (read with `jcmd <pid> VM.native_memory summary`).
+# told apart), -XX:MaxDirectMemorySize=2g, -XX:+ExitOnOutOfMemoryError,
+# -XX:NativeMemoryTracking=summary (read with `jcmd <pid> VM.native_memory summary`) and
+# -XX:GCLockerRetryAllocationCount=100. The last is for Java 21's G1: while the JDK Inflater holds
+# the GCLocker, a large allocation (the raster decode's ~98 MB array) is retried only twice before
+# G1 declares a heap OOM with the heap a third full, and on 2026-10-25 that ended the server after
+# 2.5 minutes. JDK 22+ removed the GCLocker from G1 and rejects the flag, so the compose image
+# (JDK 25) does not carry it. See docs/Host-Memory-Safety.md.
 #
 #   FORESIGNAL_MEM_MAX   the scope's MemoryMax (default 10G; a whole number of K, M or G)
 #   FORESIGNAL_JAVA      the java binary (default $JAVA_HOME/bin/java, then a Gradle-provisioned
@@ -100,7 +105,9 @@ start() {
     setsid nohup systemd-run --user --scope --unit="$UNIT" --quiet \
         -p MemoryMax="$MEM_MAX" -p MemorySwapMax=0 \
         "$JAVA" -Xmx4g -XX:MaxDirectMemorySize=2g -XX:+ExitOnOutOfMemoryError \
-        -XX:NativeMemoryTracking=summary -jar "$JAR" >"$LOG" 2>&1 </dev/null &
+        -XX:NativeMemoryTracking=summary \
+        -XX:+UnlockDiagnosticVMOptions -XX:GCLockerRetryAllocationCount=100 \
+        -jar "$JAR" >"$LOG" 2>&1 </dev/null &
 
     i=0
     while ! is_active; do
