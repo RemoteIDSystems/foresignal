@@ -1,7 +1,10 @@
 package ai.foresignal.security;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
@@ -112,6 +115,12 @@ import org.springframework.util.AntPathMatcher;
  * the {@code /.well-known/**} entry of {@link #OPEN_PATHS}, and {@code /v1/settings/mcp-auth} is admin under
  * {@code /v1/settings/**}. Which credential {@code /mcp} accepts ({@code mcp.auth.mode}) is decided in
  * {@link TokenFilter} through {@link McpOAuthGate}, not here.
+ *
+ * <p>Prompt R2-004 adds the permission half of the table, {@link #permissionFor}: the operation's
+ * {@code x-foresignal-permission}, transcribed into {@link AccessPermissions} by
+ * {@code scripts/generate-access-permissions.py}. It is a parallel lookup rather than a field on
+ * {@link AccessRequirement.RequiresScope}, so the scope requirement, and with it every machine token's access, stays
+ * exactly what it was; {@link TokenFilter} applies the permission only to a signed-in user's session.
  */
 @Component
 public class AccessPolicy {
@@ -146,6 +155,8 @@ public class AccessPolicy {
 
     private final AntPathMatcher matcher = new AntPathMatcher();
     private final List<Rule> rules = rules();
+    private final Map<String, List<AccessPermissions.PermissionRule>> permissionRules =
+            AccessPermissions.RULES.stream().collect(Collectors.groupingBy(AccessPermissions.PermissionRule::method));
 
     /** What {@code method} on {@code path} requires. */
     public AccessRequirement requirementFor(HttpMethod method, String path) {
@@ -166,6 +177,29 @@ public class AccessPolicy {
         }
         // Static resources, the error page, anything not under /v1.
         return AccessRequirement.OPEN;
+    }
+
+    /**
+     * The permission a signed-in user must hold for {@code method} on {@code path}: the operation's
+     * {@code x-foresignal-permission} (R2-004). {@code HEAD} takes the {@code GET} row, as the scope rules do.
+     *
+     * @param method the request method
+     * @param path the request path
+     * @return the permission key, or empty when the operation carries none (a session is then gated on its scope)
+     */
+    public Optional<String> permissionFor(HttpMethod method, String path) {
+        String key = HttpMethod.HEAD.equals(method) ? HttpMethod.GET.name() : method.name();
+        List<AccessPermissions.PermissionRule> candidates = permissionRules.get(key);
+        if (candidates == null) {
+            return Optional.empty();
+        }
+        String normalized = normalize(path);
+        for (AccessPermissions.PermissionRule rule : candidates) {
+            if (matcher.match(rule.pattern(), normalized)) {
+                return Optional.ofNullable(rule.permission());
+            }
+        }
+        return Optional.empty();
     }
 
     /**
@@ -294,6 +328,8 @@ public class AccessPolicy {
                 // ---- Open informational endpoints ----
                 rule(HttpMethod.GET, "/v1/system", AccessRequirement.OPEN),
                 // The JWKS and attribution aggregate (109): open; key rotation is admin.
+                // First-run status (R2-026): open, so a fresh instance's sign-in page can tell setup is pending.
+                rule(HttpMethod.GET, "/v1/system/first-run", AccessRequirement.OPEN),
                 rule(HttpMethod.GET, "/v1/system/jwks", AccessRequirement.OPEN),
                 rule(HttpMethod.POST, "/v1/system/signing-key/rotate", AccessRequirement.ADMIN),
                 rule(HttpMethod.GET, "/v1/push/vapid-public-key", AccessRequirement.OPEN),
@@ -375,6 +411,8 @@ public class AccessPolicy {
                 rule(HttpMethod.PUT, "/v1/sources/*", AccessRequirement.ADMIN),
                 // The provenance log exposes redacted URLs, ETags and body hashes: admin (013).
                 rule(HttpMethod.GET, "/v1/sources/*/fetches", AccessRequirement.ADMIN),
+                // The collection source set (R2-004, implemented by R2-007): admin, ahead of the sources READ rule.
+                rule(HttpMethod.GET, "/v1/sources/collection", AccessRequirement.ADMIN),
                 rule(HttpMethod.GET, "/v1/sources/**", AccessRequirement.READ),
 
                 // ---- Records, changes, tiles, kinds, history: data reads ----
@@ -719,6 +757,21 @@ public class AccessPolicy {
                 // evidence items and saved searches are read-scope (the access lists decide per object); groups,
                 // access-list changes and shares are agent; principals and their tokens are admin. ----
                 rule(HttpMethod.GET, "/v1/me", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                // Self-service (R2-004, written ahead of the prompts that implement them): every /v1/me operation acts
+                // on the caller, so a credential is always needed; the session's permission decides the rest.
+                rule(HttpMethod.GET, "/v1/me/sources", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PUT, "/v1/me/sources", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/me/llm/budget", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/me/preferences", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PUT, "/v1/me/preferences", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/me/mfa/enroll", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/me/mfa/verify", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/me/mfa/disable", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/me/mfa/recovery-codes", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/me/tokens", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/me/tokens", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.DELETE, "/v1/me/tokens/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/me/quota", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/me/notification-preferences", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.PUT, "/v1/me/notification-preferences", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/inbox", AccessRequirement.READ_ALWAYS_AUTHENTICATED),

@@ -2,10 +2,12 @@ package ai.foresignal.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ai.foresignal.security.user.Permissions;
 import ai.foresignal.testsupport.openapi.OpenApiSpec;
 import ai.foresignal.testsupport.openapi.OpenApiSpec.SpecOperation;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -19,9 +21,10 @@ import tools.jackson.databind.JsonNode;
  * <p>Prompt 023 names this check {@code AccessPolicySpecSyncTest}; it extends this existing class
  * rather than duplicating it.
  *
- * <p>Only implemented routes are checked: the policy is written ahead for many planned paths, and
- * each prompt that implements an operation (setting its status to {@code implemented}) is then held
- * to it here. Webhooks are excluded: they are requests Foresignal sends, so no inbound scope
+ * <p>Prompt R2-004 extends the check to every route, implemented or planned, and to the
+ * {@code x-foresignal-permission} of each ({@link AccessPolicy#permissionFor}): the scope and the permission must both
+ * agree with the contract, so a planned operation cannot reach its controller with a looser rule than it was
+ * authored with. Webhooks are excluded: they are requests Foresignal sends, so no inbound scope
  * applies. {@code peer} routes (federation, 113) require a peer ingest key
  * ({@link AccessRequirement#PEER}).
  */
@@ -30,24 +33,52 @@ class AccessPolicySyncTest {
     private final AccessPolicy policy = new AccessPolicy();
 
     @Test
-    @DisplayName("every implemented route requires exactly what its x-foresignal-scope says")
-    void implementedRoutesMatchTheirScope() {
+    @DisplayName("every route, implemented or planned, requires exactly what its x-foresignal-scope says")
+    void everyRouteMatchesItsScope() {
         List<String> problems = new ArrayList<>();
         int checked = 0;
         for (SpecOperation op : OpenApiSpec.routes()) {
-            if (!op.implemented()) {
-                continue;
-            }
             checked++;
             String path = op.path().replaceAll("\\{[^/}]+}", "sample");
             AccessRequirement actual = policy.requirementFor(HttpMethod.valueOf(op.method().toUpperCase()), path);
             AccessRequirement expected = expected(op);
             if (!expected.equals(actual)) {
-                problems.add(op.label() + ": spec " + op.scope() + " (" + expected + "), AccessPolicy " + actual);
+                problems.add(op.label() + (op.implemented() ? "" : " (planned)") + ": spec " + op.scope() + " ("
+                        + expected + "), AccessPolicy " + actual);
             }
         }
         assertThat(checked).isPositive();
         assertThat(problems).isEmpty();
+    }
+
+    @Test
+    @DisplayName("every route resolves to exactly its x-foresignal-permission, or to none when it carries none")
+    void everyRouteMatchesItsPermission() {
+        List<String> problems = new ArrayList<>();
+        int withPermission = 0;
+        for (SpecOperation op : OpenApiSpec.routes()) {
+            JsonNode node = op.node().get("x-foresignal-permission");
+            Optional<String> expected = node == null ? Optional.empty() : Optional.of(node.asString());
+            expected.ifPresent(key -> assertThat(Permissions.byKey(key))
+                    .as(op.label() + " names a permission in the catalog").isPresent());
+            if (expected.isPresent()) {
+                withPermission++;
+            }
+            String path = op.path().replaceAll("\\{[^/}]+}", "sample");
+            Optional<String> actual = policy.permissionFor(HttpMethod.valueOf(op.method().toUpperCase()), path);
+            if (!expected.equals(actual)) {
+                problems.add(op.label() + ": spec " + expected.orElse("none") + ", AccessPolicy "
+                        + actual.orElse("none"));
+            }
+        }
+        assertThat(withPermission).isPositive();
+        assertThat(problems).isEmpty();
+    }
+
+    @Test
+    @DisplayName("the generated permission table has one row per route")
+    void permissionTableCoversEveryRoute() {
+        assertThat(AccessPermissions.RULES).hasSize(OpenApiSpec.routes().size());
     }
 
     @Test

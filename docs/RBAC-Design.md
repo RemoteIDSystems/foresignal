@@ -9,7 +9,7 @@ The dividing line: **collected data and the collector stay global; who may see a
 becomes per-user.** One instance, one database, one paced collector — many accounts, each with its
 own view, alerts, channels, LLM budget, saved views and preferences layered on top.
 
-## What exists today (verified 2026-10-26, after R2-001)
+## What exists today (verified 2026-10-26, after R2-004)
 
 Before Release 2, identity was **capability-scoped tokens only**, not accounts.
 
@@ -17,7 +17,7 @@ Before Release 2, identity was **capability-scoped tokens only**, not accounts.
 |---|---|---|
 | Scopes | `security/Scope.java` | `READ` < `AGENT` < `ADMIN`, ordered, fail-closed |
 | API tokens | `security/ApiTokenEntity.java` | hashed `api_token` rows (`fsr_…`), area/path/tile restrictions |
-| Authorization | `security/AccessPolicy.java`, `security/TokenFilter.java` | per-operation scope gate; unmatched `/v1/**` needs admin |
+| Authorization | `security/AccessPolicy.java`, `security/AccessPermissions.java`, `security/TokenFilter.java` | per-operation scope gate for tokens, per-operation permission gate for sessions (R2-004); unmatched `/v1/**` needs admin |
 | Bootstrap admin | `security/AdminTokenService.java` | one rotatable break-glass admin token, hash-stored, printed once |
 | Global config | `store/SourceSettingsEntity.java`, `store/TriggerRuleEntity.java`, `llm/LlmProviderEntity.java` | **no owner column** — settings are instance-wide |
 | Owner-scoped data | `workspace`, `shareable_object`, `relation`, `chronicle_*`, `principal` | already carries an owner (the 129/130 collaboration layer) |
@@ -183,15 +183,15 @@ share key is only ever a path segment of `/v1/k/{key}` and a session only a bear
 its own table.
 
 **Resolution (`TokenFilter`).** A bearer starting `fss_` goes to `SessionService` before the API-token lookup. It is
-accepted only while the session is live and its user is `active`; the user's roles are read again on every request
-(RBAC-2). The request then carries a `CurrentToken` whose token is the session's token view (id = session id, name
+accepted only while the session is live and its user is `active` (the session and user rows are read on every
+request); the user's permissions come from `PermissionResolver`'s per-user cache (§C2, RBAC-2). The request then carries a `CurrentToken` whose token is the session's token view (id = session id, name
 `session:<email>`, no restrictions, the user's principal) and an `AuthenticatedSession` (user id, effective
 permissions) under its own request attribute. A session is never accepted on ingest paths (`401`) or peer paths
 (which take only `fsp_` keys), and is never a feed or tile key.
 
 **Effective permissions and the derived scope.** `PermissionResolver` takes the union of the user's roles'
-permissions. Until R2-004's permission gate, a session passes the existing scope gate with a scope derived from that
-set (`EffectivePermissions.scope()`):
+permissions. On an operation without an `x-foresignal-permission` (§C2), a session passes the scope gate with a scope
+derived from that set (`EffectivePermissions.scope()`):
 
 | The set holds | Scope |
 |---|---|
@@ -212,6 +212,66 @@ session (id, `session:<email>`, derived scope, prefix, absolute expiry). For an 
 Audit: sign-ins, failed sign-ins, logout and session revocations are written by `SessionService` (actor kind
 `token`, token name `session:<email>`, target `users/<id>`); every other write made with a session is audited by the
 token filter with `detail.via = session` and `detail.userId`.
+
+## C2. Authorization (built: R2-004)
+
+**Every operation in `docs/OpenAPI.json` that a signed-in user needs a permission for carries
+`x-foresignal-permission`** (478 of the 900 operations). `scripts/generate-access-permissions.py` transcribes the
+contract into `security/AccessPermissions.java` — one row per operation, a null permission where it carries none, ordered
+literal-before-template — and `AccessPolicy.permissionFor(method, path)` reads it. The permission is a parallel lookup,
+not a field on `AccessRequirement.RequiresScope`: the scope requirement, and with it every API token's access, is exactly
+what it was before R2-004.
+
+| Permission | Operations (count) | Which |
+|---|---|---|
+| `users.manage` | 28 | `/v1/users/**`, API tokens, feed and tile keys, pairing codes, principals and their tokens, `runSetup`, admin-token rotation |
+| `roles.manage` | 6 | `/v1/roles/**`, `GET /v1/permissions` |
+| `audit.read` | 1 | `listAuditEvents` |
+| `system.settings` | 80 | the remaining admin-scoped settings and system operations (SMTP included) |
+| `collection.manage` | 43 | sources, custom and external sources, ingest, `getCollectionSources`/`updateCollectionSources` |
+| `collector.settings` | 3 | `/v1/settings/collector*` |
+| `storage.manage` | 24 | archive, backups, resources, record and retention settings |
+| `network.manage` | 22 | egress, aggregators, peers |
+| `channels.global` | 11 | instance-wide channels |
+| `llm.shared.manage` | 12 | shared LLM providers and budgets |
+| `data.read` | 112 | record, map, tile, history, search, alert and reference reads |
+| `intel.read` | 112 | intelligence, situations, analysis, assessments, chronicles, analytics, briefings reads |
+| `forecast.read` | 8 | forecast reads |
+| `data.export` | 11 | the `Exports` tag and `/v1/export/**` |
+| `self.sources` / `self.preferences` / `self.llm` | 2 / 2 / 1 | `getMySources`/`updateMySources`, `getMyPreferences`/`updateMyPreferences`, `getMyLlmBudget` |
+
+Every admin-scoped operation carries a permission, so no admin-scoped operation is reachable by a session on its
+derived scope alone (an Operator, derived scope `admin`, cannot mint an admin API token: that is `users.manage`).
+`self.alerts` and `self.channels` arrive on the trigger and channel operations with R2-008/R2-009; R2-013 completes
+data-access gating.
+
+**The enforcement rule (`TokenFilter.checkToken`).**
+
+| Caller | Operation with `x-foresignal-permission` | Operation without |
+|---|---|---|
+| API token (machine) | scope only: an `admin` token satisfies every permission; a lower token gets `403 INSUFFICIENT_SCOPE` with `requiredScope` | scope only, as before |
+| Session (user) | the permission **alone**: held ⇒ allowed, else `403 PERMISSION_DENIED` with `requiredPermission` | the derived scope (§C) |
+
+Machines are not permission-scoped in v2.0, by design: a permission requirement maps to `admin` scope for tokens.
+For a session the permission **replaces** the scope check rather than adding to it. The prompt said "both"; with the
+derived scope also applied, an Auditor (derived scope `read`) could never call the admin-scoped `listAuditEvents` its
+`audit.read` is for. Replacing it gives the same answer everywhere else, because every admin-scoped operation carries a
+permission and the derived scope is computed from the same set. A suspended, disabled, expired or revoked session was
+already refused at resolution (§C, `401`).
+
+**`PERMISSION_DENIED`.** `403`, `code: PERMISSION_DENIED`, `requiredPermission: <key>`, detail "This operation needs
+the `<key>` permission, which none of your roles grants." Only sessions get it.
+
+**Effective permissions are cached per user** (`PermissionResolver`, Caffeine, at most 10,000 users, 5-minute
+time-to-live), so the gate does no permission read on the hot path. An entry is dropped after the change commits:
+`UserRolesChangedEvent(userId)` (role assignment, R2-005 publishes it), `RolePermissionsChangedEvent(roleId)` (a role
+edit or deletion, R2-006; drops every entry) and `UserSessionsRevokedEvent` (suspension, disabling, a new password).
+The time-to-live bounds a change made outside those events, such as a direct SQL edit.
+
+**Known consequence of the seeded matrix (for the owner).** A Viewer holds `data.read` but not `intel.read` or
+`forecast.read` (§B), so a Viewer **session** is refused the intelligence and forecast reads (`PERMISSION_DENIED`) that
+an **anonymous** caller is served while `security.openReads` is on. The earlier matrix in §B's open question (Viewer
+with `intel.read` and `forecast.read`) would not have this; which is right is the owner's call.
 
 ## D. Per-user configuration over a shared substrate
 
@@ -312,8 +372,8 @@ These extend `docs/Invariants.md` (the implementing prompts register them there 
 
 | Id | Invariant |
 |---|---|
-| RBAC-1 | Effective permissions are exactly the union of a user's roles; a missing permission fails closed, like an unmatched path today (SEC-1) |
-| RBAC-2 | A session bearer never carries more authority than its user's roles grant at request time; suspend/role-change takes effect on the next request (sessions re-resolve, not cache, permissions) |
+| RBAC-1 | Effective permissions are exactly the union of a user's roles; a session on an operation with an `x-foresignal-permission` it does not hold gets `403 PERMISSION_DENIED`; an API token is gated by scope only, and an `admin` token satisfies every permission by design (R2-004) |
+| RBAC-2 | A session bearer never carries more authority than its user's roles grant: status is read on every request; suspension takes effect on the next request; a role change takes effect when its event invalidates the cached permissions after commit, or within the 5-minute cache lifetime (R2-004 caches, where this row first said re-resolve) |
 | RBAC-3 | A user reads and writes only its own per-user config; one user's alerts, channels, providers, views and sources are never visible or mutable by another non-admin user |
 | RBAC-4 | The collector pulls each source at most once per cycle regardless of how many users enable it; per-user views never cause an extra upstream fetch (extends SRC-6) |
 | RBAC-5 | Passwords are stored only as argon2id hashes; activation/reset/session tokens are stored only hashed and are single-use or expiring |

@@ -56,7 +56,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
  *   <li>Missing or invalid credential where one is needed: {@code 401}. Data reads ({@code read}
  *       rules) need none while {@code security.openReads} is on, unless the rule is
  *       {@code alwaysAuthenticated}.
- *   <li>Scope too low: {@code 403 INSUFFICIENT_SCOPE} with {@code requiredScope}.
+ *   <li>Scope too low: {@code 403 INSUFFICIENT_SCOPE} with {@code requiredScope}. For a signed-in user's session on
+ *       an operation with an {@code x-foresignal-permission} (R2-004), the permission replaces the scope check:
+ *       {@code 403 PERMISSION_DENIED} with {@code requiredPermission} when the user's roles lack it.
  *   <li>An endpoint restriction with no matching pattern: {@code 403 ENDPOINT_NOT_ALLOWED}.
  *   <li>Data restrictions: {@link RestrictionEnforcer}; from prompt 035 data restrictions are applied
  *       by {@code RestrictionClamp} on every read path, so the enforcer refuses nothing.
@@ -291,7 +293,8 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         }
 
         try {
-            Optional<ProblemDetail> refusal = authorize(requirement, current, method, path);
+            Optional<ProblemDetail> refusal = authorize(requirement, current, method, path,
+                    AuthenticatedSession.of(request).orElse(null));
             if (refusal.isPresent()) {
                 release(streamTicket);
                 streamTicket = null;
@@ -496,9 +499,12 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         }
     }
 
-    /** The refusal for {@code current} on this request, or empty when it may proceed. */
+    /**
+     * The refusal for {@code current} on this request, or empty when it may proceed. {@code session} is the signed-in
+     * user behind {@code current} when the bearer was a session (R2-004 gates it on permissions), else null.
+     */
     private Optional<ProblemDetail> authorize(AccessRequirement requirement, CurrentToken current, HttpMethod method,
-            String path) {
+            String path, AuthenticatedSession session) {
         if (requirement instanceof RequiresScope required) {
             if (current == null) {
                 if (required.scope() == Scope.READ && !required.alwaysAuthenticated() && openReads()) {
@@ -514,22 +520,41 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
                         ? "This endpoint always requires a token, even while open reads are on."
                         : "This endpoint requires a bearer token."));
             }
-            return checkToken(required.scope(), requirement, current, method, path);
+            return checkToken(required.scope(), requirement, current, method, path, session);
         }
         if (requirement instanceof IngestKeyOrAdmin) {
             // Ingest keys are handled before this point (ingestByKey); an API token must be admin.
             if (current == null) {
                 return Optional.of(unauthorized("Ingest requires an ingest key or an admin token."));
             }
-            return checkToken(Scope.ADMIN, requirement, current, method, path);
+            return checkToken(Scope.ADMIN, requirement, current, method, path, session);
         }
         // AccessRequirement is sealed, so this is unreachable; fail closed if a case is ever added.
         return Optional.of(unauthorized("This endpoint requires a bearer token."));
     }
 
+    /**
+     * The scope, endpoint and data checks for an accepted caller.
+     *
+     * <p>Prompt R2-004: for a session on an operation that carries an {@code x-foresignal-permission}, the permission
+     * alone decides ({@code 403 PERMISSION_DENIED} with {@code requiredPermission} when the user's roles lack it), in
+     * place of the scope derived from those same permissions; that is what lets an Auditor read the admin-scoped
+     * audit log and keeps an Operator, whose derived scope is admin, out of user management. A session on an
+     * operation without one is gated on its derived scope. An API token is gated on scope only, as before: an admin
+     * token satisfies every permission, because machines are not permission-scoped.
+     */
     private Optional<ProblemDetail> checkToken(Scope required, AccessRequirement requirement, CurrentToken current,
-            HttpMethod method, String path) {
-        if (!current.scope().includes(required)) {
+            HttpMethod method, String path, AuthenticatedSession session) {
+        Optional<String> permission = session == null ? Optional.empty() : policy.permissionFor(method, path);
+        if (permission.isPresent()) {
+            if (!session.permissions().keys().contains(permission.get())) {
+                ProblemDetail problem = problems.problem(HttpStatus.FORBIDDEN, ErrorCodes.PERMISSION_DENIED,
+                        "This operation needs the " + permission.get() + " permission, which none of your roles"
+                                + " grants.");
+                problem.setProperty("requiredPermission", permission.get());
+                return Optional.of(problem);
+            }
+        } else if (!current.scope().includes(required)) {
             ProblemDetail problem = problems.problem(HttpStatus.FORBIDDEN, ErrorCodes.INSUFFICIENT_SCOPE,
                     "This operation needs the " + required.wireValue() + " scope; the token has "
                             + current.scope().wireValue() + ".");

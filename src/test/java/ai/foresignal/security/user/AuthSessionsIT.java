@@ -42,6 +42,7 @@ class AuthSessionsIT {
     @Autowired private TokenService tokens;
     @Autowired private AuditService audit;
     @Autowired private JdbcTemplate jdbc;
+    @Autowired private PermissionResolver resolver;
 
     private UserEntity user(String email, BuiltInRole... roles) {
         return TestUsers.active(principals, users, userRoles, hasher, email, roles);
@@ -297,6 +298,8 @@ class AuthSessionsIT {
         assertThat(json.convertValue(body(call(get("/v1/me"), s)).get("permissions"), List.class))
                 .doesNotContain("audit.read");
         userRoles.saveAndFlush(new UserRoleEntity(u.getId(), BuiltInRole.AUDITOR.id()));
+        // R2-004 caches permissions per user; the role change announces itself.
+        resolver.invalidate(u.getId());
         assertThat(json.convertValue(body(call(get("/v1/me"), s)).get("permissions"), List.class))
                 .contains("audit.read");
     }

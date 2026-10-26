@@ -4,7 +4,7 @@
     "title": "Foresignal API",
     "version": "2.0.0",
     "summary": "Headless intelligence broker: ingest, version and re-serve public telemetry.",
-    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...`, `/v1/k/{key}/tiles/...`, `/v1/k/{key}/map/...` and `/v1/k/{key}/changes/stream` for map clients (MapLibre, maplibre_gl, Cesium, `EventSource`), share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. A feed key reaches only `GET`/`HEAD` of `read` operations that are not always-authenticated, under the key's path prefixes, with the key's mandatory read restriction (unknown key 401 INVALID_FEED_KEY, expired or revoked 410 FEED_KEY_GONE, another method 405, a path outside the prefixes 403 RESTRICTED). A tile key reaches the same operations under its prefixes (a subset of `/v1/products/`, `/v1/styles`, `/v1/media/`, `/v1/tiles/`, `/v1/maps/static`, `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream`, `/v1/map/`), with its optional restriction and never private sources (unknown, expired or revoked key 401 INVALID_TILE_KEY, another method 405, a path outside the prefixes 403 INSUFFICIENT_SCOPE). Responses carry `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`; `Cache-Control` defaults to `private`, and a tile-key response takes the canonical path's own rule (`public` only while `openReads` covers it). Logs show only the key's first eight characters; the key is never echoed except by `createFeedKey` and `createTileKey`, and in the follow-up URLs of documents requested through it (058: the MapLibre style's sources and sprite, KML NetworkLink and icon hrefs, a feed's own `rel=\"self\"` / `feed_url`), which are then always `Cache-Control: private`. CORS exposes `Foresignal-Frame-Time`, `Foresignal-Image-Bounds`, `Foresignal-Frame-Expired`, `Retry-After`, `Link` and `ETag`, allows `Authorization`, `If-None-Match` and `Foresignal-Prefetch`, and caches preflights for a day; `?prefetch=1` marks a render prefetch without the preflight the header causes.\n\n**Restrictions and limits (035).** Restricted tokens, feed keys and the anonymous profile (`security.anonymous`, applied to tokenless reads while `openReads` is on) see only records and alerts inside their `ReadRestriction` on every read path (records, history, versions, changes, kinds, tiles, streams, search, alerts, the inbox, the digest, briefings, MCP tools and Ask): request filters are intersected with the restriction, and a single record or alert outside it is 404. Every client is rate-limited per class (`RateLimitSettings`); over a limit, or after repeated failed credentials from one address, the answer is 429 RATE_LIMITED with `Retry-After`. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).",
+    "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...`, `/v1/k/{key}/tiles/...`, `/v1/k/{key}/map/...` and `/v1/k/{key}/changes/stream` for map clients (MapLibre, maplibre_gl, Cesium, `EventSource`), share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. A feed key reaches only `GET`/`HEAD` of `read` operations that are not always-authenticated, under the key's path prefixes, with the key's mandatory read restriction (unknown key 401 INVALID_FEED_KEY, expired or revoked 410 FEED_KEY_GONE, another method 405, a path outside the prefixes 403 RESTRICTED). A tile key reaches the same operations under its prefixes (a subset of `/v1/products/`, `/v1/styles`, `/v1/media/`, `/v1/tiles/`, `/v1/maps/static`, `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream`, `/v1/map/`), with its optional restriction and never private sources (unknown, expired or revoked key 401 INVALID_TILE_KEY, another method 405, a path outside the prefixes 403 INSUFFICIENT_SCOPE). Responses carry `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`; `Cache-Control` defaults to `private`, and a tile-key response takes the canonical path's own rule (`public` only while `openReads` covers it). Logs show only the key's first eight characters; the key is never echoed except by `createFeedKey` and `createTileKey`, and in the follow-up URLs of documents requested through it (058: the MapLibre style's sources and sprite, KML NetworkLink and icon hrefs, a feed's own `rel=\"self\"` / `feed_url`), which are then always `Cache-Control: private`. CORS exposes `Foresignal-Frame-Time`, `Foresignal-Image-Bounds`, `Foresignal-Frame-Expired`, `Retry-After`, `Link` and `ETag`, allows `Authorization`, `If-None-Match` and `Foresignal-Prefetch`, and caches preflights for a day; `?prefetch=1` marks a render prefetch without the preflight the header causes.\n\n**Restrictions and limits (035).** Restricted tokens, feed keys and the anonymous profile (`security.anonymous`, applied to tokenless reads while `openReads` is on) see only records and alerts inside their `ReadRestriction` on every read path (records, history, versions, changes, kinds, tiles, streams, search, alerts, the inbox, the digest, briefings, MCP tools and Ask): request filters are intersected with the restriction, and a single record or alert outside it is 404. Every client is rate-limited per class (`RateLimitSettings`); over a limit, or after repeated failed credentials from one address, the answer is 429 RATE_LIMITED with `Retry-After`. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Permissions (R2-004).** An operation a signed-in user needs a permission for carries `x-foresignal-permission`, a key of the `GET /v1/permissions` catalog (`users.manage`, `data.read`, `audit.read`…). A session bearer (`fss_`) is gated by that permission alone, in place of the scope: a user whose roles lack it gets 403 PERMISSION_DENIED with `requiredPermission`. An operation without one is gated on the session's derived scope. API tokens are gated by `x-foresignal-scope` only, as before: machines are not permission-scoped, so an `admin` token satisfies every permission and a lower token gets 403 INSUFFICIENT_SCOPE.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).",
     "license": {
       "name": "MIT",
       "identifier": "MIT"
@@ -1435,6 +1435,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "security": [
           {
             "bearerToken": []
@@ -1526,6 +1527,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "security": [
           {
             "bearerToken": []
@@ -1577,6 +1579,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "security": [
           {
             "bearerToken": []
@@ -1669,6 +1672,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "security": [
           {
             "bearerToken": []
@@ -1802,6 +1806,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "security": [
           {
             "bearerToken": []
@@ -2127,6 +2132,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "security": [
           {},
           {
@@ -2709,6 +2715,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "security": [
           {},
           {
@@ -2962,6 +2969,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "security": [
           {},
           {
@@ -3091,6 +3099,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "security": [
           {},
           {
@@ -3580,6 +3589,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "security": [
           {},
           {
@@ -3903,6 +3913,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "security": [
           {},
           {
@@ -4255,6 +4266,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "security": [
           {},
           {
@@ -4654,6 +4666,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "security": [
           {},
           {
@@ -5631,6 +5644,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "security": [
           {},
           {
@@ -5859,6 +5873,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "security": [
           {},
           {
@@ -6000,6 +6015,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "security": [
           {},
           {
@@ -6147,6 +6163,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "security": [
           {
             "bearerToken": []
@@ -6218,6 +6235,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "security": [
           {
             "bearerToken": []
@@ -6281,6 +6299,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "security": [
           {
             "bearerToken": []
@@ -6331,6 +6350,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "security": [
           {
             "bearerToken": []
@@ -6399,6 +6419,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "security": [
           {
             "bearerToken": []
@@ -6449,6 +6470,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "security": [
           {
             "bearerToken": []
@@ -6544,6 +6566,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "security": [
           {
             "bearerToken": []
@@ -6638,6 +6661,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -6691,6 +6715,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -6759,6 +6784,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -6875,6 +6901,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -6936,6 +6963,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -6986,6 +7014,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "security": [
           {
             "bearerToken": []
@@ -7057,6 +7086,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "security": [
           {
             "bearerToken": []
@@ -7110,6 +7140,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "security": [
           {
             "bearerToken": []
@@ -7178,6 +7209,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "security": [
           {
             "bearerToken": []
@@ -7231,6 +7263,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "security": [
           {
             "bearerToken": []
@@ -7309,6 +7342,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "security": [
           {
             "bearerToken": []
@@ -7384,6 +7418,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "security": [
           {
             "bearerToken": []
@@ -7472,6 +7507,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "security": [
           {
             "bearerToken": []
@@ -7526,6 +7562,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "security": [
           {
             "bearerToken": []
@@ -7598,6 +7635,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "security": [
           {
             "bearerToken": []
@@ -7935,6 +7973,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "channels.global",
         "security": [
           {
             "bearerToken": []
@@ -7991,6 +8030,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "channels.global",
         "security": [
           {
             "bearerToken": []
@@ -8068,6 +8108,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "channels.global",
         "security": [
           {
             "bearerToken": []
@@ -8144,6 +8185,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "channels.global",
         "security": [
           {
             "bearerToken": []
@@ -8222,6 +8264,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "channels.global",
         "security": [
           {
             "bearerToken": []
@@ -8277,6 +8320,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "channels.global",
         "security": [
           {
             "bearerToken": []
@@ -8349,6 +8393,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "channels.global",
         "security": [
           {
             "bearerToken": []
@@ -8473,6 +8518,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "channels.global",
         "security": [
           {
             "bearerToken": []
@@ -8530,6 +8576,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "llm.shared.manage",
         "security": [
           {
             "bearerToken": []
@@ -8608,6 +8655,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "llm.shared.manage",
         "security": [
           {
             "bearerToken": []
@@ -8680,6 +8728,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "llm.shared.manage",
         "security": [
           {
             "bearerToken": []
@@ -8758,6 +8807,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "llm.shared.manage",
         "security": [
           {
             "bearerToken": []
@@ -8819,6 +8869,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "llm.shared.manage",
         "security": [
           {
             "bearerToken": []
@@ -8909,6 +8960,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "llm.shared.manage",
         "security": [
           {
             "bearerToken": []
@@ -9013,6 +9065,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "llm.shared.manage",
         "security": [
           {
             "bearerToken": []
@@ -9083,6 +9136,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "llm.shared.manage",
         "security": [
           {
             "bearerToken": []
@@ -9156,6 +9210,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "llm.shared.manage",
         "security": [
           {
             "bearerToken": []
@@ -9206,6 +9261,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "llm.shared.manage",
         "security": [
           {
             "bearerToken": []
@@ -9274,6 +9330,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "llm.shared.manage",
         "security": [
           {
             "bearerToken": []
@@ -9370,6 +9427,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "llm.shared.manage",
         "security": [
           {
             "bearerToken": []
@@ -9731,6 +9789,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "security": [
           {
             "bearerToken": []
@@ -9809,6 +9868,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "security": [
           {},
           {
@@ -9873,6 +9933,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "security": [
           {
             "bearerToken": []
@@ -9940,6 +10001,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "027",
         "x-foresignal-status": "implemented",
         "security": [
@@ -10722,6 +10784,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "security": [
           {},
           {
@@ -10976,6 +11039,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "security": [
           {},
           {
@@ -11336,6 +11400,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "security": [
           {},
           {
@@ -11478,6 +11543,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "security": [
           {},
           {
@@ -11605,6 +11671,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "security": [
           {
             "bearerToken": []
@@ -11914,6 +11981,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "013",
         "x-foresignal-status": "implemented",
         "security": [
@@ -12030,6 +12098,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "014",
         "x-foresignal-status": "implemented",
         "security": [
@@ -12682,6 +12751,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "015",
         "x-foresignal-status": "implemented",
         "x-foresignal-sse-events": {
@@ -13654,6 +13724,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "016",
         "x-foresignal-status": "implemented",
         "security": [
@@ -13815,6 +13886,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "016",
         "x-foresignal-status": "implemented",
         "security": [
@@ -14353,6 +14425,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "018",
         "x-foresignal-status": "implemented",
         "security": [
@@ -14421,6 +14494,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "018",
         "x-foresignal-status": "implemented",
         "security": [
@@ -14474,6 +14548,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "019",
         "x-foresignal-status": "implemented",
         "security": [
@@ -14542,6 +14617,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "019",
         "x-foresignal-status": "implemented",
         "security": [
@@ -14828,6 +14904,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "x-foresignal-prompt": "023",
         "x-foresignal-status": "implemented",
         "security": [
@@ -14914,6 +14991,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "x-foresignal-prompt": "023",
         "x-foresignal-status": "implemented",
         "security": [
@@ -14997,6 +15075,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "x-foresignal-prompt": "023",
         "x-foresignal-status": "implemented",
         "security": [
@@ -15087,6 +15166,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "x-foresignal-prompt": "023",
         "x-foresignal-status": "implemented",
         "security": [
@@ -15304,6 +15384,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "audit.read",
         "x-foresignal-prompt": "023",
         "x-foresignal-status": "implemented",
         "security": [
@@ -16234,6 +16315,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "024",
         "x-foresignal-status": "implemented",
         "security": [
@@ -17404,6 +17486,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "029",
         "x-foresignal-status": "implemented",
         "security": [
@@ -17599,6 +17682,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "029",
         "x-foresignal-status": "implemented",
         "security": [
@@ -17785,6 +17869,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "032",
         "x-foresignal-status": "implemented",
         "security": [
@@ -17895,6 +17980,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "032",
         "x-foresignal-status": "implemented",
         "security": [
@@ -17964,6 +18050,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "032",
         "x-foresignal-status": "implemented",
         "security": [
@@ -18064,6 +18151,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "032",
         "x-foresignal-status": "implemented",
         "security": [
@@ -19523,6 +19611,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "033",
         "x-foresignal-status": "implemented",
         "security": [
@@ -20293,6 +20382,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "x-foresignal-prompt": "035",
         "x-foresignal-status": "implemented",
         "security": [
@@ -20379,6 +20469,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "x-foresignal-prompt": "035",
         "x-foresignal-status": "implemented",
         "security": [
@@ -20462,6 +20553,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "x-foresignal-prompt": "035",
         "x-foresignal-status": "implemented",
         "security": [
@@ -20530,6 +20622,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "035",
         "x-foresignal-status": "implemented",
         "security": [
@@ -20616,6 +20709,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "035",
         "x-foresignal-status": "implemented",
         "security": [
@@ -20684,6 +20778,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "035",
         "x-foresignal-status": "implemented",
         "security": [
@@ -20770,6 +20865,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "035",
         "x-foresignal-status": "implemented",
         "security": [
@@ -20838,6 +20934,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collector.settings",
         "x-foresignal-prompt": "150",
         "x-foresignal-status": "implemented",
         "security": [
@@ -20924,6 +21021,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collector.settings",
         "x-foresignal-prompt": "150",
         "x-foresignal-status": "implemented",
         "security": [
@@ -20992,6 +21090,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collector.settings",
         "x-foresignal-prompt": "160",
         "x-foresignal-status": "implemented",
         "security": [
@@ -23849,6 +23948,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "037",
         "x-foresignal-status": "implemented",
         "security": [
@@ -24090,6 +24190,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "037",
         "x-foresignal-status": "implemented",
         "security": [
@@ -24358,6 +24459,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "037",
         "x-foresignal-status": "implemented",
         "security": [
@@ -24674,6 +24776,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "038",
         "x-foresignal-status": "implemented",
         "security": [
@@ -24941,6 +25044,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "038",
         "x-foresignal-status": "implemented",
         "security": [
@@ -25204,6 +25308,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "038",
         "x-foresignal-status": "implemented",
         "security": [
@@ -25296,6 +25401,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "038",
         "x-foresignal-status": "implemented",
         "security": [
@@ -25441,6 +25547,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "038",
         "x-foresignal-status": "implemented",
         "security": [
@@ -25515,6 +25622,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "038",
         "x-foresignal-status": "implemented",
         "security": [
@@ -25584,6 +25692,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "038",
         "x-foresignal-status": "implemented",
         "security": [
@@ -25670,6 +25779,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "038",
         "x-foresignal-status": "implemented",
         "security": [
@@ -25763,6 +25873,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "039",
         "x-foresignal-status": "implemented",
         "security": [
@@ -25859,6 +25970,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "039",
         "x-foresignal-status": "implemented",
         "security": [
@@ -25952,6 +26064,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "039",
         "x-foresignal-status": "implemented",
         "security": [
@@ -26052,6 +26165,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "039",
         "x-foresignal-status": "implemented",
         "security": [
@@ -26182,6 +26296,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "039",
         "x-foresignal-status": "implemented",
         "security": [
@@ -26307,6 +26422,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "x-foresignal-prompt": "039",
         "x-foresignal-status": "implemented",
         "security": [
@@ -26435,6 +26551,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "x-foresignal-prompt": "039",
         "x-foresignal-status": "implemented",
         "security": [
@@ -27000,6 +27117,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "040",
         "x-foresignal-status": "implemented",
         "security": [
@@ -27089,6 +27207,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "040",
         "x-foresignal-status": "implemented",
         "security": [
@@ -27160,6 +27279,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "040",
         "x-foresignal-status": "implemented",
         "security": [
@@ -27263,6 +27383,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "040",
         "x-foresignal-status": "implemented",
         "security": [
@@ -27370,6 +27491,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "161",
         "x-foresignal-status": "implemented",
         "security": [
@@ -27482,6 +27604,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "161",
         "x-foresignal-status": "implemented",
         "security": [
@@ -27688,6 +27811,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "042",
         "x-foresignal-status": "implemented",
         "security": [
@@ -27816,6 +27940,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "042",
         "x-foresignal-status": "implemented",
         "security": [
@@ -27990,6 +28115,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "042",
         "x-foresignal-status": "implemented",
         "security": [
@@ -28161,6 +28287,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "042",
         "x-foresignal-status": "implemented",
         "security": [
@@ -28323,6 +28450,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "043",
         "x-foresignal-status": "implemented",
         "security": [
@@ -28496,6 +28624,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "043",
         "x-foresignal-status": "implemented",
         "security": [
@@ -28600,6 +28729,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "043",
         "x-foresignal-status": "implemented",
         "security": [
@@ -28934,6 +29064,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "045",
         "x-foresignal-status": "implemented",
         "security": [
@@ -29205,6 +29336,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "045",
         "x-foresignal-status": "implemented",
         "security": [
@@ -29551,6 +29683,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "045",
         "x-foresignal-status": "implemented",
         "security": [
@@ -29798,6 +29931,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "045",
         "x-foresignal-status": "implemented",
         "security": [
@@ -29891,6 +30025,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "045",
         "x-foresignal-status": "implemented",
         "security": [
@@ -29983,6 +30118,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "045",
         "x-foresignal-status": "implemented",
         "security": [
@@ -30126,6 +30262,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "045",
         "x-foresignal-status": "implemented",
         "security": [
@@ -30307,6 +30444,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "045",
         "x-foresignal-status": "implemented",
         "security": [
@@ -30408,6 +30546,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "049",
         "x-foresignal-status": "implemented",
         "security": [
@@ -30880,6 +31019,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "051",
         "x-foresignal-status": "implemented",
         "security": [
@@ -31134,6 +31274,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "051",
         "x-foresignal-status": "implemented",
         "security": [
@@ -31410,6 +31551,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "051",
         "x-foresignal-status": "implemented",
         "security": [
@@ -31578,6 +31720,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "051",
         "x-foresignal-status": "implemented",
         "security": [
@@ -31751,6 +31894,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "052",
         "x-foresignal-status": "implemented",
         "security": [
@@ -32033,6 +32177,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "052",
         "x-foresignal-status": "implemented",
         "security": [
@@ -32828,6 +32973,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "055",
         "x-foresignal-status": "implemented",
         "security": [
@@ -32942,6 +33088,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "058",
         "x-foresignal-status": "implemented",
         "security": [
@@ -33054,6 +33201,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "058",
         "x-foresignal-status": "implemented",
         "security": [
@@ -33146,6 +33294,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "058",
         "x-foresignal-status": "implemented",
         "security": [
@@ -33317,6 +33466,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "058",
         "x-foresignal-status": "implemented",
         "security": [
@@ -33487,6 +33637,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "058",
         "x-foresignal-status": "implemented",
         "security": [
@@ -33600,6 +33751,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "058",
         "x-foresignal-status": "implemented",
         "security": [
@@ -33712,6 +33864,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "058",
         "x-foresignal-status": "implemented",
         "security": [
@@ -33807,6 +33960,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "058",
         "x-foresignal-status": "implemented",
         "security": [
@@ -33954,6 +34108,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "058",
         "x-foresignal-status": "implemented",
         "security": [
@@ -34116,6 +34271,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "058",
         "x-foresignal-status": "implemented",
         "security": [
@@ -34200,6 +34356,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "058",
         "x-foresignal-status": "implemented",
         "security": [
@@ -34281,6 +34438,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "059",
         "x-foresignal-status": "implemented",
         "security": [
@@ -34381,6 +34539,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "059",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
@@ -34435,6 +34594,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "059",
         "x-foresignal-status": "implemented",
         "security": [
@@ -34511,6 +34671,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "059",
         "x-foresignal-status": "implemented",
         "security": [
@@ -34613,6 +34774,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "059",
         "x-foresignal-status": "implemented",
         "security": [
@@ -34688,6 +34850,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "channels.global",
         "x-foresignal-prompt": "060",
         "x-foresignal-status": "implemented",
         "security": [
@@ -34760,6 +34923,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "channels.global",
         "x-foresignal-prompt": "061",
         "x-foresignal-status": "implemented",
         "security": [
@@ -34832,6 +34996,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "channels.global",
         "x-foresignal-prompt": "084",
         "x-foresignal-status": "implemented",
         "security": [
@@ -35029,6 +35194,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "064",
         "x-foresignal-status": "implemented",
         "security": [
@@ -35230,6 +35396,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "064",
         "x-foresignal-status": "implemented",
         "security": [
@@ -35350,6 +35517,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "070",
         "x-foresignal-status": "implemented",
         "security": [
@@ -35716,6 +35884,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "093",
         "x-foresignal-status": "implemented",
         "security": [
@@ -35884,6 +36053,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "093",
         "x-foresignal-status": "implemented",
         "security": [
@@ -36024,6 +36194,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "098",
         "x-foresignal-status": "implemented",
         "security": [
@@ -36126,6 +36297,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "098",
         "x-foresignal-status": "implemented",
         "security": [
@@ -36206,6 +36378,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "098",
         "x-foresignal-status": "implemented",
         "security": [
@@ -36325,6 +36498,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "098",
         "x-foresignal-status": "implemented",
         "security": [
@@ -36427,6 +36601,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "098",
         "x-foresignal-status": "implemented",
         "security": [
@@ -36508,6 +36683,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "098",
         "x-foresignal-status": "implemented",
         "security": [
@@ -36599,6 +36775,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "098",
         "x-foresignal-status": "implemented",
         "security": [
@@ -37032,6 +37209,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "100",
         "x-foresignal-status": "implemented",
         "security": [
@@ -37193,6 +37371,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "101",
         "x-foresignal-status": "implemented",
         "security": [
@@ -37349,6 +37528,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "101",
         "x-foresignal-status": "implemented",
         "security": [
@@ -37784,6 +37964,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "151",
         "x-foresignal-status": "implemented",
         "security": [
@@ -37848,6 +38029,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "151",
         "x-foresignal-status": "implemented",
         "security": [
@@ -37898,6 +38080,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "154",
         "x-foresignal-status": "implemented",
         "security": [
@@ -37966,6 +38149,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "154",
         "x-foresignal-status": "implemented",
         "security": [
@@ -38027,6 +38211,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "101",
         "x-foresignal-status": "implemented",
         "security": [
@@ -38096,6 +38281,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "157",
         "x-foresignal-status": "implemented",
         "security": [
@@ -38188,6 +38374,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "101",
         "x-foresignal-status": "implemented",
         "security": [
@@ -38401,6 +38588,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "101",
         "x-foresignal-status": "implemented",
         "security": [
@@ -38561,6 +38749,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "101",
         "x-foresignal-status": "implemented",
         "security": [
@@ -38993,6 +39182,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "101",
         "x-foresignal-status": "implemented",
         "security": [
@@ -39162,6 +39352,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "101",
         "x-foresignal-status": "implemented",
         "security": [
@@ -39223,6 +39414,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "102",
         "x-foresignal-status": "implemented",
         "security": [
@@ -39381,6 +39573,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "102",
         "x-foresignal-status": "implemented",
         "security": [
@@ -39924,6 +40117,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "102",
         "x-foresignal-status": "implemented",
         "security": [
@@ -40988,6 +41182,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "103",
         "x-foresignal-status": "implemented",
         "security": [
@@ -41136,6 +41331,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "103",
         "x-foresignal-status": "implemented",
         "security": [
@@ -41479,6 +41675,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "103",
         "x-foresignal-status": "implemented",
         "security": [
@@ -41625,6 +41822,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "103",
         "x-foresignal-status": "implemented",
         "security": [
@@ -41796,6 +41994,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "104",
         "x-foresignal-status": "implemented",
         "security": [
@@ -41906,6 +42105,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "104",
         "x-foresignal-status": "implemented",
         "security": [
@@ -42073,6 +42273,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "104",
         "x-foresignal-status": "implemented",
         "security": [
@@ -42231,6 +42432,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "104",
         "x-foresignal-status": "implemented",
         "security": [
@@ -42299,6 +42501,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "104",
         "x-foresignal-status": "implemented",
         "security": [
@@ -42349,6 +42552,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "104",
         "x-foresignal-status": "implemented",
         "security": [
@@ -42417,6 +42621,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "104",
         "x-foresignal-status": "implemented",
         "security": [
@@ -42660,6 +42865,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "106",
         "x-foresignal-status": "implemented",
         "security": [
@@ -42803,6 +43009,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "106",
         "x-foresignal-status": "implemented",
         "security": [
@@ -42861,6 +43068,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "107",
         "x-foresignal-status": "implemented",
         "security": [
@@ -43178,6 +43386,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -43463,6 +43672,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -43680,6 +43890,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -43823,6 +44034,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -44008,6 +44220,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -44245,6 +44458,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -44368,6 +44582,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -44494,6 +44709,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -44584,6 +44800,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -44654,6 +44871,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -44924,6 +45142,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -45172,6 +45391,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -45231,6 +45451,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -45293,6 +45514,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -45355,6 +45577,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -45445,6 +45668,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -45508,6 +45732,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -45567,6 +45792,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -45651,6 +45877,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -45731,6 +45958,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -45824,6 +46052,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -46064,6 +46293,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -46185,6 +46415,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -46316,6 +46547,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -46396,6 +46628,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -46497,6 +46730,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "data.export",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -46578,6 +46812,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "data.export",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -46643,6 +46878,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "data.export",
         "x-foresignal-prompt": "111",
         "x-foresignal-status": "implemented",
         "security": [
@@ -46778,6 +47014,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.export",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -46889,6 +47126,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "data.export",
         "x-foresignal-prompt": "108",
         "x-foresignal-status": "implemented",
         "security": [
@@ -47169,6 +47407,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "109",
         "x-foresignal-status": "implemented",
         "security": [
@@ -47222,6 +47461,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "110",
         "x-foresignal-status": "implemented",
         "security": [
@@ -47295,6 +47535,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "110",
         "x-foresignal-status": "implemented",
         "security": [
@@ -47373,6 +47614,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "110",
         "x-foresignal-status": "implemented",
         "security": [
@@ -47446,6 +47688,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "110",
         "x-foresignal-status": "implemented",
         "security": [
@@ -47537,6 +47780,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "110",
         "x-foresignal-status": "implemented",
         "security": [
@@ -47601,6 +47845,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "110",
         "x-foresignal-status": "implemented",
         "security": [
@@ -47684,6 +47929,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "110",
         "x-foresignal-status": "implemented",
         "security": [
@@ -47757,6 +48003,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "110",
         "x-foresignal-status": "implemented",
         "security": [
@@ -47830,6 +48077,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "110",
         "x-foresignal-status": "implemented",
         "security": [
@@ -47910,6 +48158,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "data.export",
         "x-foresignal-prompt": "111",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
@@ -48013,6 +48262,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "data.export",
         "x-foresignal-prompt": "111",
         "x-foresignal-status": "implemented",
         "security": [
@@ -48250,6 +48500,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "data.export",
         "x-foresignal-prompt": "111",
         "x-foresignal-status": "implemented",
         "security": [
@@ -48349,6 +48600,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "data.export",
         "x-foresignal-prompt": "111",
         "x-foresignal-status": "implemented",
         "security": [
@@ -48429,6 +48681,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "111",
         "x-foresignal-status": "implemented",
         "security": [
@@ -48502,6 +48755,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "x-foresignal-prompt": "111",
         "x-foresignal-status": "implemented",
         "security": [
@@ -48580,6 +48834,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "x-foresignal-prompt": "111",
         "x-foresignal-status": "implemented",
         "security": [
@@ -48644,6 +48899,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "x-foresignal-prompt": "111",
         "x-foresignal-status": "implemented",
         "security": [
@@ -48736,6 +48992,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "x-foresignal-prompt": "111",
         "x-foresignal-status": "implemented",
         "security": [
@@ -48786,6 +49043,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "x-foresignal-prompt": "111",
         "x-foresignal-status": "implemented",
         "security": [
@@ -48854,6 +49112,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "x-foresignal-prompt": "111",
         "x-foresignal-status": "implemented",
         "security": [
@@ -48956,6 +49215,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "x-foresignal-prompt": "111",
         "x-foresignal-status": "implemented",
         "security": [
@@ -49046,6 +49306,7 @@
           }
         },
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "data.export",
         "x-foresignal-prompt": "111",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
@@ -49295,6 +49556,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "112",
         "x-foresignal-status": "implemented",
         "security": [
@@ -49440,6 +49702,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "112",
         "x-foresignal-status": "implemented",
         "security": [
@@ -49520,6 +49783,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "112",
         "x-foresignal-status": "implemented",
         "security": [
@@ -49653,6 +49917,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "112",
         "x-foresignal-status": "implemented",
         "security": [
@@ -49755,6 +50020,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "112",
         "x-foresignal-status": "implemented",
         "security": [
@@ -49856,6 +50122,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "112",
         "x-foresignal-status": "implemented",
         "security": [
@@ -50020,6 +50287,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "112",
         "x-foresignal-status": "implemented",
         "security": [
@@ -51586,6 +51854,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "x-foresignal-prompt": "113",
         "x-foresignal-status": "implemented",
         "security": [
@@ -51664,6 +51933,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "x-foresignal-prompt": "113",
         "x-foresignal-status": "implemented",
         "security": [
@@ -51737,6 +52007,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "x-foresignal-prompt": "113",
         "x-foresignal-status": "implemented",
         "security": [
@@ -51828,6 +52099,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "x-foresignal-prompt": "113",
         "x-foresignal-status": "implemented",
         "security": [
@@ -51892,6 +52164,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "x-foresignal-prompt": "113",
         "x-foresignal-status": "implemented",
         "security": [
@@ -51965,6 +52238,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "x-foresignal-prompt": "113",
         "x-foresignal-status": "implemented",
         "security": [
@@ -52038,6 +52312,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "x-foresignal-prompt": "113",
         "x-foresignal-status": "implemented",
         "security": [
@@ -52111,6 +52386,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "x-foresignal-prompt": "113",
         "x-foresignal-status": "implemented",
         "security": [
@@ -53360,6 +53636,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "114",
         "x-foresignal-status": "implemented",
         "security": [
@@ -53470,6 +53747,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "114",
         "x-foresignal-status": "implemented",
         "security": [
@@ -54522,6 +54800,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "116",
         "x-foresignal-status": "implemented",
         "security": [
@@ -54602,6 +54881,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "116",
         "x-foresignal-status": "implemented",
         "security": [
@@ -54691,6 +54971,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "116",
         "x-foresignal-status": "implemented",
         "security": [
@@ -54847,6 +55128,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "116",
         "x-foresignal-status": "implemented",
         "security": [
@@ -54981,6 +55263,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "data.read",
         "x-foresignal-prompt": "116",
         "x-foresignal-status": "implemented",
         "security": [
@@ -55377,6 +55660,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "117",
         "x-foresignal-status": "implemented",
         "security": [
@@ -55539,6 +55823,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "117",
         "x-foresignal-status": "implemented",
         "security": [
@@ -55776,6 +56061,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "117",
         "x-foresignal-status": "implemented",
         "security": [
@@ -55826,6 +56112,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "145",
         "x-foresignal-status": "implemented",
         "security": [
@@ -55876,6 +56163,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "150",
         "x-foresignal-status": "implemented",
         "security": [
@@ -56035,6 +56323,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "118",
         "x-foresignal-status": "implemented",
         "security": [
@@ -56183,6 +56472,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "118",
         "x-foresignal-status": "implemented",
         "security": [
@@ -56429,6 +56719,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "118",
         "x-foresignal-status": "implemented",
         "security": [
@@ -57056,6 +57347,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "118",
         "x-foresignal-status": "implemented",
         "security": [
@@ -57156,6 +57448,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "118",
         "x-foresignal-status": "implemented",
         "security": [
@@ -57346,6 +57639,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "119",
         "x-foresignal-status": "implemented",
         "security": [
@@ -57474,6 +57768,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "119",
         "x-foresignal-status": "implemented",
         "security": [
@@ -57824,6 +58119,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "119",
         "x-foresignal-status": "implemented",
         "security": [
@@ -57907,6 +58203,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "119",
         "x-foresignal-status": "implemented",
         "security": [
@@ -58236,6 +58533,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "120",
         "x-foresignal-status": "implemented",
         "security": [
@@ -58316,6 +58614,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "120",
         "x-foresignal-status": "implemented",
         "security": [
@@ -58955,6 +59254,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "121",
         "x-foresignal-status": "implemented",
         "security": [
@@ -59058,6 +59358,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "121",
         "x-foresignal-status": "implemented",
         "security": [
@@ -59129,6 +59430,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "121",
         "x-foresignal-status": "implemented",
         "security": [
@@ -59191,6 +59493,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "121",
         "x-foresignal-status": "implemented",
         "security": [
@@ -59323,6 +59626,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "121",
         "x-foresignal-status": "implemented",
         "security": [
@@ -59610,6 +59914,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "121",
         "x-foresignal-status": "implemented",
         "security": [
@@ -59795,6 +60100,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "121",
         "x-foresignal-status": "implemented",
         "security": [
@@ -60036,6 +60342,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "forecast.read",
         "x-foresignal-prompt": "122",
         "x-foresignal-status": "implemented",
         "security": [
@@ -60194,6 +60501,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "forecast.read",
         "x-foresignal-prompt": "122",
         "x-foresignal-status": "implemented",
         "security": [
@@ -60610,6 +60918,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "forecast.read",
         "x-foresignal-prompt": "122",
         "x-foresignal-status": "implemented",
         "security": [
@@ -60841,6 +61150,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "forecast.read",
         "x-foresignal-prompt": "122",
         "x-foresignal-status": "implemented",
         "security": [
@@ -60959,6 +61269,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "forecast.read",
         "x-foresignal-prompt": "122",
         "x-foresignal-status": "implemented",
         "security": [
@@ -61028,6 +61339,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "155",
         "x-foresignal-status": "implemented",
         "security": [
@@ -61120,6 +61432,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "122",
         "x-foresignal-status": "implemented",
         "security": [
@@ -61238,6 +61551,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "forecast.read",
         "x-foresignal-prompt": "122",
         "x-foresignal-status": "implemented",
         "security": [
@@ -61344,6 +61658,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "forecast.read",
         "x-foresignal-prompt": "122",
         "x-foresignal-status": "implemented",
         "security": [
@@ -61452,6 +61767,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "forecast.read",
         "x-foresignal-prompt": "122",
         "x-foresignal-status": "implemented",
         "security": [
@@ -61872,6 +62188,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "123",
         "x-foresignal-status": "implemented",
         "security": [
@@ -61952,6 +62269,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "123",
         "x-foresignal-status": "implemented",
         "security": [
@@ -62011,6 +62329,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "123",
         "x-foresignal-status": "implemented",
         "security": [
@@ -62378,6 +62697,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "125",
         "x-foresignal-status": "implemented",
         "security": [
@@ -62625,6 +62945,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "125",
         "x-foresignal-status": "implemented",
         "security": [
@@ -62845,6 +63166,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "125",
         "x-foresignal-status": "implemented",
         "security": [
@@ -62925,6 +63247,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "125",
         "x-foresignal-status": "implemented",
         "security": [
@@ -63458,6 +63781,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "125",
         "x-foresignal-status": "implemented",
         "security": [
@@ -64109,6 +64433,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "125",
         "x-foresignal-status": "implemented",
         "security": [
@@ -64210,6 +64535,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "125",
         "x-foresignal-status": "implemented",
         "security": [
@@ -64320,6 +64646,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "126",
         "x-foresignal-status": "implemented",
         "security": [
@@ -64410,6 +64737,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "126",
         "x-foresignal-status": "implemented",
         "security": [
@@ -64502,6 +64830,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "126",
         "x-foresignal-status": "implemented",
         "security": [
@@ -64622,6 +64951,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "126",
         "x-foresignal-status": "implemented",
         "security": [
@@ -65030,6 +65360,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "127",
         "x-foresignal-status": "implemented",
         "security": [
@@ -65110,6 +65441,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "127",
         "x-foresignal-status": "implemented",
         "security": [
@@ -65229,6 +65561,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "127",
         "x-foresignal-status": "implemented",
         "security": [
@@ -65321,6 +65654,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "128",
         "x-foresignal-status": "implemented",
         "security": [
@@ -65479,6 +65813,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "128",
         "x-foresignal-status": "implemented",
         "security": [
@@ -66073,6 +66408,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "128",
         "x-foresignal-status": "implemented",
         "security": [
@@ -66159,6 +66495,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "128",
         "x-foresignal-status": "implemented",
         "security": [
@@ -66263,6 +66600,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "128",
         "x-foresignal-status": "implemented",
         "security": [
@@ -66365,6 +66703,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "128",
         "x-foresignal-status": "implemented",
         "security": [
@@ -66697,6 +67036,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "128",
         "x-foresignal-status": "implemented",
         "security": [
@@ -66784,6 +67124,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "128",
         "x-foresignal-status": "implemented",
         "security": [
@@ -70189,6 +70530,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "x-foresignal-prompt": "130",
         "x-foresignal-status": "implemented"
       }
@@ -70365,6 +70707,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "x-foresignal-prompt": "130",
         "x-foresignal-status": "implemented"
       }
@@ -70456,6 +70799,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "x-foresignal-prompt": "130",
         "x-foresignal-status": "implemented"
       }
@@ -74090,6 +74434,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "131",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
@@ -74348,6 +74693,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "131",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
@@ -75413,6 +75759,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "131",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
@@ -75645,6 +75992,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "131",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true,
@@ -75872,6 +76220,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "131",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
@@ -76017,6 +76366,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "131",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
@@ -76150,6 +76500,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "131",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
@@ -76291,6 +76642,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "131",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
@@ -76411,6 +76763,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "131",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
@@ -76492,6 +76845,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "131",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
@@ -76629,6 +76983,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "134",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
@@ -76988,6 +77343,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "134",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
@@ -77068,6 +77424,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "134",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
@@ -77189,6 +77546,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "134",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
@@ -77298,6 +77656,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "134",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
@@ -77551,6 +77910,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "134",
         "x-foresignal-status": "implemented"
       }
@@ -79798,6 +80158,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "132",
         "x-foresignal-status": "implemented"
       }
@@ -80409,6 +80770,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "133",
         "x-foresignal-status": "implemented"
       }
@@ -80489,6 +80851,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "133",
         "x-foresignal-status": "implemented"
       }
@@ -80609,6 +80972,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "133",
         "x-foresignal-status": "implemented"
       }
@@ -80745,6 +81109,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "133",
         "x-foresignal-status": "implemented"
       }
@@ -80825,6 +81190,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "133",
         "x-foresignal-status": "implemented"
       },
@@ -80914,6 +81280,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "133",
         "x-foresignal-status": "implemented"
       }
@@ -80967,6 +81334,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "133",
         "x-foresignal-status": "implemented"
       }
@@ -81045,6 +81413,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "133",
         "x-foresignal-status": "implemented"
       },
@@ -81151,6 +81520,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "133",
         "x-foresignal-status": "implemented"
       }
@@ -81329,6 +81699,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "133",
         "x-foresignal-status": "implemented"
       }
@@ -81438,6 +81809,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "140",
         "x-foresignal-status": "implemented",
         "x-foresignal-always-authenticated": true
@@ -81746,6 +82118,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "141",
         "x-foresignal-status": "implemented"
       },
@@ -81814,6 +82187,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "141",
         "x-foresignal-status": "implemented"
       }
@@ -81864,6 +82238,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "141",
         "x-foresignal-status": "implemented"
       },
@@ -81932,6 +82307,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "141",
         "x-foresignal-status": "implemented"
       }
@@ -82004,6 +82380,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "141",
         "x-foresignal-status": "implemented"
       },
@@ -82104,6 +82481,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "141",
         "x-foresignal-status": "implemented"
       }
@@ -82590,6 +82968,7 @@
           }
         ],
         "x-foresignal-scope": "agent",
+        "x-foresignal-permission": "data.export",
         "x-foresignal-prompt": "141",
         "x-foresignal-status": "implemented"
       }
@@ -83040,6 +83419,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "141",
         "x-foresignal-status": "implemented"
       }
@@ -83102,6 +83482,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "135",
         "x-foresignal-status": "implemented"
       }
@@ -83182,6 +83563,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "135",
         "x-foresignal-status": "implemented"
       },
@@ -83271,6 +83653,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "135",
         "x-foresignal-status": "implemented"
       }
@@ -83417,6 +83800,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "135",
         "x-foresignal-status": "implemented"
       }
@@ -83597,6 +83981,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "135",
         "x-foresignal-status": "implemented"
       }
@@ -83759,6 +84144,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "135",
         "x-foresignal-status": "implemented"
       }
@@ -83852,6 +84238,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "135",
         "x-foresignal-status": "implemented"
       }
@@ -84036,6 +84423,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "136",
         "x-foresignal-status": "implemented"
       }
@@ -84116,6 +84504,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "136",
         "x-foresignal-status": "implemented"
       }
@@ -84248,6 +84637,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "136",
         "x-foresignal-status": "implemented"
       }
@@ -84328,6 +84718,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "136",
         "x-foresignal-status": "implemented"
       }
@@ -84434,6 +84825,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "136",
         "x-foresignal-status": "implemented"
       }
@@ -84777,6 +85169,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "136",
         "x-foresignal-status": "implemented"
       }
@@ -84857,6 +85250,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "136",
         "x-foresignal-status": "implemented"
       }
@@ -84937,6 +85331,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "136",
         "x-foresignal-status": "implemented"
       }
@@ -85227,6 +85622,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "137",
         "x-foresignal-status": "implemented"
       }
@@ -85307,6 +85703,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "137",
         "x-foresignal-status": "implemented"
       }
@@ -85430,6 +85827,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "137",
         "x-foresignal-status": "implemented"
       },
@@ -85618,6 +86016,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "137",
         "x-foresignal-status": "implemented"
       }
@@ -85745,6 +86144,7 @@
           }
         ],
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "137",
         "x-foresignal-status": "implemented"
       }
@@ -85795,6 +86195,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "137",
         "x-foresignal-status": "implemented"
       },
@@ -85863,6 +86264,7 @@
           }
         ],
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "137",
         "x-foresignal-status": "implemented"
       }
@@ -86162,6 +86564,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "024",
         "x-foresignal-status": "implemented",
         "security": [
@@ -86240,6 +86643,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "024",
         "x-foresignal-status": "implemented",
         "security": [
@@ -86311,6 +86715,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "024",
         "x-foresignal-status": "implemented",
         "security": [
@@ -86362,6 +86767,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "024",
         "x-foresignal-status": "implemented",
         "security": [
@@ -86524,6 +86930,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "024",
         "x-foresignal-status": "implemented",
         "security": [
@@ -86595,6 +87002,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "024",
         "x-foresignal-status": "implemented",
         "security": [
@@ -86765,6 +87173,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "024",
         "x-foresignal-status": "implemented",
         "security": [
@@ -86833,6 +87242,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "024",
         "x-foresignal-status": "implemented",
         "security": [
@@ -86896,6 +87306,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "024",
         "x-foresignal-status": "implemented",
         "security": [
@@ -87100,6 +87511,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "138",
         "x-foresignal-status": "implemented",
         "security": [
@@ -87178,6 +87590,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "138",
         "x-foresignal-status": "implemented",
         "security": [
@@ -87252,6 +87665,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "138",
         "x-foresignal-status": "implemented",
         "security": [
@@ -87322,6 +87736,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "138",
         "x-foresignal-status": "implemented",
         "security": [
@@ -87400,6 +87815,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "138",
         "x-foresignal-status": "implemented",
         "security": [
@@ -87451,6 +87867,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "138",
         "x-foresignal-status": "implemented",
         "security": [
@@ -87521,6 +87938,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "x-foresignal-prompt": "138",
         "x-foresignal-status": "implemented",
         "security": [
@@ -87868,6 +88286,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "126",
         "x-foresignal-status": "implemented",
         "security": [
@@ -87968,6 +88387,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "intel.read",
         "x-foresignal-prompt": "126",
         "x-foresignal-status": "implemented",
         "security": [
@@ -88120,6 +88540,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "056",
         "x-foresignal-status": "implemented",
         "security": [
@@ -88188,6 +88609,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "x-foresignal-prompt": "056",
         "x-foresignal-status": "implemented",
         "security": [
@@ -88286,6 +88708,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "security": [
           {
             "bearerToken": []
@@ -88810,6 +89233,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -88888,6 +89312,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -88960,6 +89385,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -89060,6 +89486,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -89150,6 +89577,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -89242,6 +89670,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -89324,6 +89753,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -89396,6 +89826,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -89471,6 +89902,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -89536,6 +89968,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -89609,6 +90042,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "roles.manage",
         "security": [
           {
             "bearerToken": []
@@ -89687,6 +90121,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "roles.manage",
         "security": [
           {
             "bearerToken": []
@@ -89759,6 +90194,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "roles.manage",
         "security": [
           {
             "bearerToken": []
@@ -89859,6 +90295,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "roles.manage",
         "security": [
           {
             "bearerToken": []
@@ -89932,6 +90369,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "roles.manage",
         "security": [
           {
             "bearerToken": []
@@ -89982,6 +90420,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "roles.manage",
         "security": [
           {
             "bearerToken": []
@@ -90032,6 +90471,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "security": [
           {
             "bearerToken": []
@@ -90100,6 +90540,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "security": [
           {
             "bearerToken": []
@@ -90170,6 +90611,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "system.settings",
         "security": [
           {
             "bearerToken": []
@@ -90230,6 +90672,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.sources",
         "security": [
           {
             "bearerToken": []
@@ -90309,6 +90752,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.sources",
         "security": [
           {
             "bearerToken": []
@@ -90360,6 +90804,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "security": [
           {
             "bearerToken": []
@@ -90428,6 +90873,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "collection.manage",
         "security": [
           {
             "bearerToken": []
@@ -90488,6 +90934,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.llm",
         "security": [
           {
             "bearerToken": []
@@ -90549,6 +90996,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.preferences",
         "security": [
           {
             "bearerToken": []
@@ -90628,6 +91076,7 @@
           }
         },
         "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.preferences",
         "security": [
           {
             "bearerToken": []
@@ -90679,6 +91128,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "security": [
           {
             "bearerToken": []
@@ -90729,6 +91179,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "security": [
           {
             "bearerToken": []
@@ -90797,6 +91248,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "security": [
           {
             "bearerToken": []
@@ -90847,6 +91299,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "security": [
           {
             "bearerToken": []
@@ -90939,6 +91392,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "security": [
           {
             "bearerToken": []
@@ -91019,6 +91473,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "security": [
           {
             "bearerToken": []
@@ -91120,6 +91575,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "security": [
           {
             "bearerToken": []
@@ -91170,6 +91626,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "security": [
           {
             "bearerToken": []
@@ -91238,6 +91695,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "security": [
           {
             "bearerToken": []
@@ -91325,6 +91783,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "security": [
           {
             "bearerToken": []
@@ -91405,6 +91864,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "security": [
           {
             "bearerToken": []
@@ -91496,6 +91956,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "storage.manage",
         "security": [
           {
             "bearerToken": []
@@ -91569,6 +92030,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "security": [
           {
             "bearerToken": []
@@ -91637,6 +92099,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "security": [
           {
             "bearerToken": []
@@ -91709,6 +92172,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "security": [
           {
             "bearerToken": []
@@ -91799,6 +92263,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "security": [
           {
             "bearerToken": []
@@ -91862,6 +92327,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "security": [
           {
             "bearerToken": []
@@ -91934,6 +92400,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "security": [
           {
             "bearerToken": []
@@ -92006,6 +92473,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "security": [
           {
             "bearerToken": []
@@ -92056,6 +92524,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "security": [
           {
             "bearerToken": []
@@ -92124,6 +92593,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "security": [
           {
             "bearerToken": []
@@ -92215,6 +92685,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "security": [
           {
             "bearerToken": []
@@ -92265,6 +92736,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "security": [
           {
             "bearerToken": []
@@ -92343,6 +92815,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "security": [
           {
             "bearerToken": []
@@ -92439,6 +92912,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "security": [
           {
             "bearerToken": []
@@ -92517,6 +92991,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "network.manage",
         "security": [
           {
             "bearerToken": []
@@ -93122,6 +93597,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -93212,6 +93688,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []
@@ -93394,6 +93871,7 @@
           }
         },
         "x-foresignal-scope": "admin",
+        "x-foresignal-permission": "users.manage",
         "security": [
           {
             "bearerToken": []

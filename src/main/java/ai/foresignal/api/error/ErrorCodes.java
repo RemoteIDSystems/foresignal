@@ -956,6 +956,12 @@ public final class ErrorCodes {
     /** 410: an activation token is unknown, expired or already used (R2-003, {@code activateAccount}). */
     public static final String ACTIVATION_TOKEN_GONE = "ACTIVATION_TOKEN_GONE";
 
+    /**
+     * 403: a signed-in user's roles do not grant the operation's {@code x-foresignal-permission} (R2-004); the problem
+     * carries the key as {@code requiredPermission}. API tokens never get it: they are gated by scope alone.
+     */
+    public static final String PERMISSION_DENIED = "PERMISSION_DENIED";
+
     private ErrorCodes() {}
 
     /**
