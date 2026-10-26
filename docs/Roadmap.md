@@ -450,8 +450,10 @@ paced collector stay global; who may see and configure what becomes per-user.**
   latest applied is `V9__source_monthly_cap.sql`).
 
 Each prompt is self-contained, compiles, writes its tests in the same pass, runs the guards, and is
-compile-only under the owner's no-test directive until code-complete. Admin prompts run after the
-backend endpoints they consume exist and the contract is re-vendored.
+compile-only under the owner's no-test directive until code-complete. Admin/frontend prompts build
+against the authored `docs/OpenAPI.json` contract (API 2.0.0) and run **in parallel** with the backend
+— they do not wait on the backend implementation. An operation the backend has not implemented yet
+simply surfaces its error on-screen (the frontends' directional policy).
 
 ### Identity & RBAC (Part A)
 
