@@ -56,7 +56,18 @@ public class EcowittAdapter implements PollingAdapter {
      * @param meters the registry of the unknown-id counter, or a supplier of null
      */
     public EcowittAdapter(int slot, Supplier<MeterRegistry> meters) {
-        this.descriptor = buildDescriptor(slot);
+        this(buildDescriptor(ID_PREFIX + slot, "Ecowitt gateway " + slot), meters);
+    }
+
+    /**
+     * Creates a gateway read with its own descriptor (prompt R2-023: the ground-sensor aggregator's
+     * {@code wxstation-ecowitt-aggregator}).
+     *
+     * @param descriptor the source's descriptor, from {@link #buildDescriptor(String, String)}
+     * @param meters the registry of the unknown-id counter, or a supplier of null
+     */
+    protected EcowittAdapter(SourceDescriptor descriptor, Supplier<MeterRegistry> meters) {
+        this.descriptor = descriptor;
         this.meters = meters == null ? () -> null : meters;
     }
 
@@ -100,9 +111,16 @@ public class EcowittAdapter implements PollingAdapter {
         return FetchResult.complete(List.of(result.record()));
     }
 
-    private static SourceDescriptor buildDescriptor(int slot) {
-        SourceDescriptor.Builder builder = SourceDescriptor.builder(ID_PREFIX + slot)
-                .name("Ecowitt gateway " + slot)
+    /**
+     * The descriptor of a gateway read under {@code id}: a slot's, or the ground-sensor aggregator's (prompt R2-023).
+     *
+     * @param id the source id
+     * @param name the display name
+     * @return the descriptor
+     */
+    protected static SourceDescriptor buildDescriptor(String id, String name) {
+        SourceDescriptor.Builder builder = SourceDescriptor.builder(id)
+                .name(name)
                 .description("Experimental: live data from the operator's Ecowitt gateway (/get_livedata_info), which"
                         + " has no official specification and changes with firmware. Units are read from the"
                         + " response and converted to SI. 60 s by default. For Ecowitt's form-POST push use the"

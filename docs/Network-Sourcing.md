@@ -23,11 +23,12 @@ egress rotation (C1) is the fallback** for what is left.
 | Outbound client | `collect/UpstreamClient.java`, `collect/BoundSourceHttp.java` | the one HTTP path for source requests (SRC-1) |
 | Egress routing (C1, R2-018) | `egress/` (`EgressRouter`, `RouteSelector`, `EgressBackoff`, `EgressHealthRegistry`, `EgressTunnel`, `EgressProbe`), `api/EgressController.java` | default `direct`: every request leaves from the host's own address until an operator turns rotation on |
 | readsb/tar1090 parser | `source/formats/readsb/ReadsbAircraftMapper.java` | parses the native `aircraft.json` format |
-| Aggregator surface (R2-019) | `source/aggregator/` (`AggregatorService`, `DomainAggregator`), `api/AggregatorsController.java` | one surface for every domain; `adsb`, `ais`, `datalink` and `satellite` implemented |
+| Aggregator surface (R2-019) | `source/aggregator/` (`AggregatorService`, `DomainAggregator`), `api/AggregatorsController.java` | one surface for every domain; all five implemented (`ground-sensors` since R2-023) |
 | Local ADS-B aggregator (C2, R2-019) | `source/aggregator/AdsbAggregator.java`, `source/adapters/local/LocalAdsbAggregatorAdapter.java`, the `readsb` compose profile | reads the operator's own readsb whole |
 | Local AIS aggregator (C2b, R2-020) | `source/aggregator/AisAggregator.java`, `source/adapters/ais/LocalAisAggregatorAdapter.java` | reads the operator's own AIS decoder's NMEA feed whole, over TCP or UDP |
 | Direct satellite reception (C2d, R2-022) | `source/aggregator/SatelliteAggregator.java`, `source/adapters/satdump/SatDumpAggregatorAdapter.java` | a SatDump station of the operator's own, always registered |
 | Local datalink aggregator (C2c, R2-021) | `source/aggregator/DatalinkAggregator.java`, `source/adapters/acars/LocalAcarsAggregatorAdapter.java`, `source/adapters/radio/LocalAprsAggregatorAdapter.java` | reads the operator's own acars_router and igate TNC |
+| Local ground sensors (C2e, R2-023) | `source/aggregator/GroundSensorAggregator.java`, `source/adapters/env/airq/AirqLocalAggregatorAdapter.java`, `source/adapters/local/DavisWllAggregatorAdapter.java`, `source/adapters/local/EcowittAggregatorAdapter.java` | one sub-section per sensor: seismic, SAME, radiosonde, air quality, weather station, mesh |
 | Local receivers | prompt 069 | socket transport + codec SPI (readsb v2, Davis/Ecowitt, AIS-catcher, …) |
 
 ## C1. Egress routing & IP rotation (the fallback, R2-018)
@@ -167,13 +168,15 @@ Every RF/sensor domain gets one **first-party aggregator**, configured through o
 
 Behind the surface is one `DomainAggregator` per domain (`ai.foresignal.source.aggregator`). It names
 the first-party sources it drives (the health of the first of them that is enabled is the aggregator's
-`status`: `ok`, `degraded`, `down`, or `unconfigured` when it is not enabled with an endpoint), the public sources it
+`status`: `ok`, `degraded`, `down`, or `unconfigured` when it is not live), the public sources it
 supersedes, how a configuration is validated and applied, and how its endpoint is tested. A domain
 whose backend this server does not have yet reads `implemented: false`; its configuration can be
 stored, but only disabled.
 
-**Supersede, never remove.** When an update leaves an aggregator **live** (enabled with an endpoint)
-with `disableSupersededSources`, every superseded source that is on is turned off and remembered.
+**Supersede, never remove.** When an update leaves an aggregator **live** (enabled with an endpoint;
+for `ground-sensors`, enabled with a sensor enabled) with `disableSupersededSources`, every superseded
+source that is on is turned off and remembered; one the new configuration no longer supersedes is
+turned back on (since R2-023).
 While it stays live, seeding never enables them and `enable-core`/`enable-free` skip them. They stay
 registered and in the catalog, and an operator may still turn one on by hand. When the aggregator
 stops being live, or `disableSupersededSources` is set to false, exactly the sources it turned off
@@ -358,6 +361,53 @@ this domain's superseded set depends on its configuration, `DomainAggregator` ga
 `supersededSourceIds(settings)`; `supersededSources` in the view is the set the current configuration
 supersedes.
 
+## C2e. Local ground sensors (R2-023)
+
+The last domain is not one network but several small ones, each a sensor the operator may own. The
+`ground-sensors` aggregator has no `endpoint` of its own (setting one is a 400): `config` holds one
+sub-section per sensor, each with its own `enabled` and local address. It is live while it is enabled
+with at least one sub-section enabled.
+
+| Sub-section | Members | Local read | Superseded |
+|---|---|---|---|
+| `seismic` | `source`: the custom push source the rsudp bridge (`contrib/rsudp/`) posts to | that source | nothing: `usgs-earthquakes`, `usgs-shakemap` and `emsc-seismic` are authorities |
+| `same` | `source`: the custom push source `contrib/same/` posts to | that source | nothing: the NWS sources are the authority |
+| `radiosonde` | `endpoint` (`udp://bindHost:port`), `allowSenders`, `stationCallsign` | `local-sonde` (radiosonde_auto_rx's payload summaries) | `sondehub` |
+| `airq` | `deviceType` (`purpleair`, `airrohr`, `airgradient`), `endpoint`, `lat`, `lon`, `indoor`, `name` | `airq-local-aggregator` | `openaq`, `sensor-community` |
+| `pws` | `station` (`davis` or `ecowitt`), `endpoint`, `lat`, `lon` (required by the stations) | `wxstation-davis-aggregator` or `wxstation-ecowitt-aggregator` | nothing: no public PWS network (Weather Underground, Ecowitt cloud) is registered |
+| `mesh` | `meshtastic` (the node's broker, `mqtt://host:port`) with `root`; `meshcore` (the companion, `tcp://host:port`); `bridge` (true: accept the MeshCore bridge's pushes) | `meshtastic-local`, `meshcore-local`, `meshcore-bridge` | `meshtastic-mqtt`, `meshtastic-map`, only while `meshtastic` is set |
+
+`airq-local-aggregator`, `wxstation-davis-aggregator` and `wxstation-ecowitt-aggregator` are new reads,
+each a slot adapter (`airq-local-{n}`, `wxstation-davis-{n}`, `wxstation-ecowitt-{n}`) with its own
+descriptor, so the aggregator never takes a slot an operator configured. The others are the existing
+singletons and custom sources. Every one is `LOCAL_ONLY` (EGR-6).
+
+**Ownership.** Applying writes each enabled sub-section's members into its read through
+`SourceService.update` (so `LAN_URL` pinning and each adapter's own checks apply; a source's error is
+reported at the member, `config.pws.lat`) and turns the read on while the aggregator is live. A read a
+previous configuration drove and this one does not is turned off; a read no configuration ever drove
+is left as the operator set it. `meshcore-bridge` is on by default: a `mesh.bridge` that is later
+turned off turns it off.
+
+```
+PUT /v1/aggregators/ground-sensors
+{"enabled": true, "mode": "receiver",
+ "config": {"airq": {"enabled": true, "deviceType": "purpleair", "endpoint": "http://192.168.1.60"},
+            "pws": {"enabled": true, "station": "davis", "endpoint": "http://192.168.1.70", "lat": 51.47, "lon": -0.45},
+            "radiosonde": {"enabled": true, "endpoint": "udp://0.0.0.0:55673", "allowSenders": ["192.168.1.20"]},
+            "seismic": {"enabled": true, "source": "custom-shake"}}}
+POST /v1/aggregators/ground-sensors/test  → {"ok": true, "reachable": true, "sampleCount": 4, …}
+```
+
+**Test.** `testAggregator` probes every enabled polling or streaming read at once for 10 s and sums the
+records. A push source (seismic, SAME, the MeshCore bridge), and `local-sonde` while it already holds
+its UDP port, cannot be probed: each counts as reachable once it has received data. A sensor that
+fails is named in `message`; `reachable` is false only when every one fails.
+
+**Superseded:** only the mirrors of the enabled sub-sections (the table). `supersededSources` in the
+view is the set the current configuration supersedes; turning a sub-section off turns its mirrors
+back on.
+
 ## C3. First-party aggregators across the RF / sensor domains (the mission)
 
 Each domain plugs its backend into the aggregator surface above (R2-020…R2-023 add no operations). The same move applies to every domain where the data rides a distributed sensor/RF network and the
@@ -372,12 +422,12 @@ rather than build:
 | **Aircraft datalink** — ACARS/VDL/HFDL | `adapters/acars/LocalAcarsAdapter` + acarsdec/dumpvdl2/dumphfdl | airframes.io (no source registered) | **built in R2-021 (C2c)** |
 | **APRS** | own igate's TNC | APRS-IS public (`aprs-is`) | **built in R2-021 (C2c)** |
 | **Direct satellite reception** | GOES / weather sats off a dish | NOAA ABI imagery pulls (`goes-east-abi`, `goes-west-abi`) | **built in R2-022 (C2d)** |
-| **Seismic** | Raspberry Shake | — | `contrib/rsudp/` *(promote)* |
-| **Weather-radio alerts** | SAME/EAS | — | `contrib/same/` *(promote)* |
-| **Radiosondes** | `radiosonde_auto_rx` | SondeHub | *(new)* |
-| **Air quality** | local sensor | public AQ mirrors | `env/airq` *(promote)* |
-| **Personal weather stations** | Davis/Ecowitt (prompt 069) | WU/Ecowitt cloud | *(promote)* |
-| **Mesh** | Meshtastic/MeshCore local | public map | `contrib/meshcore-bridge/` *(promote)* |
+| **Seismic** | Raspberry Shake | — (USGS and EMSC are authorities) | **built in R2-023 (C2e)** |
+| **Weather-radio alerts** | SAME/EAS | — (NWS is the authority) | **built in R2-023 (C2e)** |
+| **Radiosondes** | `radiosonde_auto_rx` | SondeHub (`sondehub`) | **built in R2-023 (C2e)** |
+| **Air quality** | local sensor | public AQ mirrors (`openaq`, `sensor-community`) | **built in R2-023 (C2e)** |
+| **Personal weather stations** | Davis/Ecowitt (prompt 069) | WU/Ecowitt cloud (no source registered) | **built in R2-023 (C2e)** |
+| **Mesh** | Meshtastic/MeshCore local | public map (`meshtastic-mqtt`, `meshtastic-map`) | **built in R2-023 (C2e)** |
 
 The **default-off rule** is the same throughout: a superseded public source is never deleted, only
 disabled by default, so a fresh instance with no receiver still works and an operator who stands up a
@@ -400,5 +450,5 @@ All four are registered in `docs/Invariants.md` with their tests:
 |---|---|
 | EGR-4 | Every outbound source request still passes through `UpstreamClient` with its budget, backoff and per-host pacer, whichever egress route carries it; `direct` routes nothing; `Retry-After` and pacing are per route; a pinned LAN host is never routed; with no usable route a pull fails rather than going direct (R2-018) |
 | EGR-5 | Egress route secrets are write-only: sealed with the instance key, never returned by the API and never logged (R2-018) |
-| EGR-6 | A first-party local aggregator's read is `LOCAL_ONLY` by descriptor like the receiver it reads; promoting a domain to first-party never relaxes its egress class (keeps EGR-2) (R2-019; `local-ais-aggregator` in R2-020; `local-acars-aggregator`, `local-aprs-aggregator` in R2-021) |
+| EGR-6 | A first-party local aggregator's read is `LOCAL_ONLY` by descriptor like the receiver it reads; promoting a domain to first-party never relaxes its egress class (keeps EGR-2) (R2-019; `local-ais-aggregator` in R2-020; `local-acars-aggregator`, `local-aprs-aggregator` in R2-021; `airq-local-aggregator`, `wxstation-davis-aggregator`, `wxstation-ecowitt-aggregator` in R2-023) |
 | EGR-7 | Superseded public sources are turned off, never removed; while their aggregator is live, seeding and the bulk enables leave them off, and turning it off turns back on exactly those it turned off (keeps SRC-6) (R2-019) |

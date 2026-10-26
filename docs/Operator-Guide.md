@@ -1123,8 +1123,8 @@ Rotation does not get around a provider's limits: each route still paces each ho
 Where a feed is a network of receivers that public sites only mirror, read your own copy instead:
 `GET /v1/aggregators` lists one aggregator per domain (`adsb`, `ais`, `datalink`, `satellite`,
 `ground-sensors`), with its status and the public sources it supersedes. `adsb` (R2-019), `ais`
-(R2-020), `datalink` (R2-021) and `satellite` (R2-022) are implemented; a domain without a backend
-lists as `implemented: false` and cannot be enabled yet. The design is in
+(R2-020), `datalink` (R2-021), `satellite` (R2-022) and `ground-sensors` (R2-023) are implemented. The
+design is in
 [Network-Sourcing.md](Network-Sourcing.md).
 
 **Local ADS-B.** Start a readsb — the opt-in compose profile pulls the sdr-enthusiasts ultrafeeder
@@ -1198,6 +1198,39 @@ Passes, products and xRIT frames then come from the station `satdump-aggregator`
 satellite's NOAA imagery pull (`goes-east-abi` or `goes-west-abi`) is turned off while the aggregator
 is live, on the same terms as the ADS-B mirrors; GOES lightning and fire detection keep running,
 because a dish's HRIT broadcast does not carry them.
+
+**Local ground sensors (R2-023).** The `ground-sensors` aggregator has no endpoint of its own: each
+sensor you own is a section of `config` with its own `enabled` and address. Enable the ones you have:
+
+```
+PUT  /v1/aggregators/ground-sensors
+     {"enabled": true, "mode": "receiver",
+      "config": {"airq": {"enabled": true, "deviceType": "purpleair", "endpoint": "http://192.168.1.60"},
+                 "pws": {"enabled": true, "station": "davis", "endpoint": "http://192.168.1.70",
+                         "lat": 51.47, "lon": -0.45},
+                 "radiosonde": {"enabled": true, "endpoint": "udp://0.0.0.0:55673",
+                                "allowSenders": ["192.168.1.20"]},
+                 "seismic": {"enabled": true, "source": "custom-shake"},
+                 "mesh": {"enabled": true, "meshcore": "tcp://192.168.1.40:5000"}}}
+POST /v1/aggregators/ground-sensors/test
+```
+
+- `seismic` and `same` name the custom push source the rsudp or SAME bridge posts to (create it first
+  with `POST /v1/custom-sources`, as `contrib/rsudp/` and `contrib/same/` describe). USGS, EMSC and
+  NWS are authorities and are never turned off.
+- `radiosonde` drives `local-sonde` (radiosonde_auto_rx's payload summaries); `sondehub` is turned off
+  while it is enabled.
+- `airq` drives `airq-local-aggregator` (PurpleAir, airrohr or AirGradient); `openaq` and
+  `sensor-community` are turned off while it is enabled.
+- `pws` drives `wxstation-davis-aggregator` or `wxstation-ecowitt-aggregator`; no public PWS network is
+  registered, so nothing is turned off.
+- `mesh` drives `meshtastic-local` (`meshtastic`, your node's broker), `meshcore-local` (`meshcore`, your
+  companion) and `meshcore-bridge` (`bridge: true`); `meshtastic-mqtt` and `meshtastic-map` are turned
+  off only while `meshtastic` is set.
+
+Turning a section off turns off what it configured and turns its public mirrors back on; sources a
+section never configured, including your `airq-local-{n}` and `wxstation-*-{n}` slots, are left alone.
+The test reads every enabled sensor for 10 s; a push source counts once it has received data.
 
 ## Triggers and alerts
 

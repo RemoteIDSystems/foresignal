@@ -6,7 +6,10 @@ import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.SourceService;
 import ai.foresignal.source.SourceSettingsUpdate;
 import ai.foresignal.source.adapters.acars.LocalAcarsAggregatorAdapter;
+import ai.foresignal.source.adapters.env.airq.AirqLocalAggregatorAdapter;
 import ai.foresignal.source.adapters.ais.LocalAisAggregatorAdapter;
+import ai.foresignal.source.adapters.local.DavisWllAggregatorAdapter;
+import ai.foresignal.source.adapters.local.EcowittAggregatorAdapter;
 import ai.foresignal.source.adapters.local.LocalAdsbAggregatorAdapter;
 import ai.foresignal.source.adapters.radio.LocalAprsAggregatorAdapter;
 import ai.foresignal.source.adapters.satdump.SatDumpAggregatorAdapter;
@@ -75,7 +78,8 @@ abstract class AggregatorItSupport extends WireMockSupport {
             }
         }
         for (String id : List.of(LocalAdsbAggregatorAdapter.ID, LocalAisAggregatorAdapter.ID,
-                LocalAcarsAggregatorAdapter.ID, LocalAprsAggregatorAdapter.ID, SatDumpAggregatorAdapter.ID)) {
+                LocalAcarsAggregatorAdapter.ID, LocalAprsAggregatorAdapter.ID, SatDumpAggregatorAdapter.ID,
+                AirqLocalAggregatorAdapter.ID, DavisWllAggregatorAdapter.ID, EcowittAggregatorAdapter.ID)) {
             if (sources.view(id).enabled()) {
                 sources.update(id, SourceSettingsUpdate.enabled(false));
             }

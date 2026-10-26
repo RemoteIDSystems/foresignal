@@ -44,6 +44,22 @@ public interface DomainAggregator {
     }
 
     /**
+     * Whether {@code settings} makes the aggregator live: on, and with something to read. By default, enabled with an
+     * endpoint ({@link AggregatorSettings#live()}); a domain configured per sensor overrides it (prompt R2-023).
+     *
+     * @param settings the configuration being applied or in force
+     * @return whether its sources are read and its superseded sources held off
+     */
+    default boolean live(AggregatorSettings settings) {
+        return settings.live();
+    }
+
+    /** Why a configuration that is not live is not, for the {@code statusReason} of an {@code unconfigured} view. */
+    default String notLiveReason() {
+        return "not enabled with an endpoint";
+    }
+
+    /**
      * Adds every problem of {@code proposed} to {@code errors}, under the {@code AggregatorConfig} field names
      * ({@code endpoint}, {@code config.<key>}, …).
      */

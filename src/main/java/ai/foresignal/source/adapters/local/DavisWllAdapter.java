@@ -47,7 +47,17 @@ public class DavisWllAdapter implements PollingAdapter {
      * @param slot the slot number, from 1
      */
     public DavisWllAdapter(int slot) {
-        this.descriptor = buildDescriptor(slot);
+        this(buildDescriptor(ID_PREFIX + slot, "Davis WeatherLink Live " + slot));
+    }
+
+    /**
+     * Creates a console read with its own descriptor (prompt R2-023: the ground-sensor aggregator's
+     * {@code wxstation-davis-aggregator}).
+     *
+     * @param descriptor the source's descriptor, from {@link #buildDescriptor(String, String)}
+     */
+    protected DavisWllAdapter(SourceDescriptor descriptor) {
+        this.descriptor = descriptor;
     }
 
     @Override
@@ -85,9 +95,16 @@ public class DavisWllAdapter implements PollingAdapter {
         return console.resolve(PATH);
     }
 
-    private static SourceDescriptor buildDescriptor(int slot) {
-        SourceDescriptor.Builder builder = SourceDescriptor.builder(ID_PREFIX + slot)
-                .name("Davis WeatherLink Live " + slot)
+    /**
+     * The descriptor of a console read under {@code id}: a slot's, or the ground-sensor aggregator's (prompt R2-023).
+     *
+     * @param id the source id
+     * @param name the display name
+     * @return the descriptor
+     */
+    protected static SourceDescriptor buildDescriptor(String id, String name) {
+        SourceDescriptor.Builder builder = SourceDescriptor.builder(id)
+                .name(name)
                 .description("Current conditions from the operator's Davis WeatherLink Live console over its local"
                         + " API (/v1/current_conditions), converted to SI units. Never more often than every 10 s"
                         + " (Davis's rule); 60 s by default. Location from lat/lon, rounded to about 1 km."

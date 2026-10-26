@@ -145,9 +145,13 @@ public class AggregatorService implements SupersededSources {
         aggregator.apply(proposed);
 
         List<String> disabled = new ArrayList<>();
-        if (proposed.live() && proposed.disableSupersededSources()) {
+        if (aggregator.live(proposed) && proposed.disableSupersededSources()) {
+            List<String> superseded = aggregator.supersededSourceIds(proposed);
             Set<String> off = new LinkedHashSet<>(previous.disabledByAggregator());
-            for (String id : aggregator.supersededSourceIds(proposed)) {
+            off.retainAll(superseded);
+            // A configuration that supersedes less than before (R2-023) gives back what it no longer replaces.
+            restore(previous.disabledByAggregator().stream().filter(id -> !superseded.contains(id)).toList());
+            for (String id : superseded) {
                 SourceView view = sources.view(id);
                 if (view.enabled()) {
                     sources.update(id, SourceSettingsUpdate.enabled(false));
@@ -162,7 +166,7 @@ public class AggregatorService implements SupersededSources {
             restore(previous.disabledByAggregator());
         }
         settings.put(key(domain), proposed.withDisabledByAggregator(disabled));
-        if (!proposed.live()) {
+        if (!aggregator.live(proposed)) {
             report(aggregator, "ok", null);
         }
         return view(domain);
@@ -205,7 +209,7 @@ public class AggregatorService implements SupersededSources {
                 continue;
             }
             AggregatorSettings current = settings(aggregator.domain());
-            if (current.live() && current.disableSupersededSources()
+            if (aggregator.live(current) && current.disableSupersededSources()
                     && aggregator.supersededSourceIds(current).contains(sourceId)) {
                 return true;
             }
@@ -224,7 +228,7 @@ public class AggregatorService implements SupersededSources {
             if (!aggregator.sourceIds().contains(event.sourceId())) {
                 continue;
             }
-            if (!settings(aggregator.domain()).live()) {
+            if (!aggregator.live(settings(aggregator.domain()))) {
                 return;
             }
             if (event.current() == HealthStatus.FAILING) {
@@ -304,13 +308,13 @@ public class AggregatorService implements SupersededSources {
         out.put("disableSupersededSources", current.disableSupersededSources());
         out.put("implemented", aggregator.implemented());
         String status = "unconfigured";
-        String reason = aggregator.implemented() ? "not enabled with an endpoint"
+        String reason = aggregator.implemented() ? aggregator.notLiveReason()
                 : "this server has no " + aggregator.name() + " backend yet";
         Instant lastSeen = null;
         if (!aggregator.sourceIds().isEmpty()) {
             SourceHealthSummary health = sources.view(statusSource(aggregator)).health();
             lastSeen = health.lastDataAt() != null ? health.lastDataAt() : health.lastSuccessAt();
-            if (current.live()) {
+            if (aggregator.live(current)) {
                 status = switch (health.status()) {
                     case HEALTHY -> "ok";
                     case FAILING, DISABLED -> "down";

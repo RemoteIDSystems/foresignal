@@ -105,7 +105,17 @@ public class AirqLocalAdapter implements PollingAdapter {
      * @param slot the slot number, from 1
      */
     public AirqLocalAdapter(int slot) {
-        this.descriptor = buildDescriptor(slot);
+        this(buildDescriptor(ID_PREFIX + slot, "Local air-quality monitor " + slot));
+    }
+
+    /**
+     * Creates a monitor read with its own descriptor (prompt R2-023: the ground-sensor aggregator's
+     * {@code airq-local-aggregator}).
+     *
+     * @param descriptor the source's descriptor, from {@link #buildDescriptor(String, String)}
+     */
+    protected AirqLocalAdapter(SourceDescriptor descriptor) {
+        this.descriptor = descriptor;
     }
 
     @Override
@@ -185,9 +195,16 @@ public class AirqLocalAdapter implements PollingAdapter {
                 params.number(LON_PARAM))));
     }
 
-    private static SourceDescriptor buildDescriptor(int slot) {
-        SourceDescriptor.Builder b = SourceDescriptor.builder(ID_PREFIX + slot)
-                .name("Local air-quality monitor " + slot)
+    /**
+     * The descriptor of a monitor read under {@code id}: a slot's, or the ground-sensor aggregator's (prompt R2-023).
+     *
+     * @param id the source id
+     * @param name the display name
+     * @return the descriptor
+     */
+    protected static SourceDescriptor buildDescriptor(String id, String name) {
+        SourceDescriptor.Builder b = SourceDescriptor.builder(id)
+                .name(name)
                 .description("The operator's own PurpleAir, airrohr (Sensor.Community firmware) or AirGradient"
                         + " monitor, polled on the LAN every 60 s: PM1, PM2.5, PM10, temperature, humidity,"
                         + " pressure and, where the device has them, CO2, VOC and NOx indexes. Indoor monitors are"
