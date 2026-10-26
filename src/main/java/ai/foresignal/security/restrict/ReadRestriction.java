@@ -347,6 +347,18 @@ public final class ReadRestriction {
                         excludeSensitive, regionFilter, alertAudience);
     }
 
+    /**
+     * This restriction with its source member replaced (prompt R2-010: a signed-in user's view narrows the sources they
+     * read). Like the other members it is part of {@link #canonical()}, so cached responses are not shared across views.
+     *
+     * @param value the allowed source ids, or null for any
+     * @return the restriction
+     */
+    public ReadRestriction withSources(Collection<String> value) {
+        return new ReadRestriction(value, kinds, bbox, area, endpoints, excludePrivate, maxRequestsPerMinute, filter,
+                excludeSensitive, regionFilter, alertAudience);
+    }
+
     /** This restriction with {@code endpoints} replaced. */
     public ReadRestriction withEndpoints(List<String> value) {
         return new ReadRestriction(sources, kinds, bbox, area, value, excludePrivate, maxRequestsPerMinute, filter,

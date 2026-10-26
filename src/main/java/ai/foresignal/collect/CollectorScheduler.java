@@ -13,6 +13,8 @@ import ai.foresignal.source.spi.PollingAdapter;
 import ai.foresignal.source.spi.SourceAdapter;
 import ai.foresignal.source.spi.SourceDescriptor;
 import ai.foresignal.source.spi.StreamingAdapter;
+import ai.foresignal.source.view.CollectionUnion;
+import ai.foresignal.source.view.SourceViewsChangedEvent;
 import ai.foresignal.store.FetchTrigger;
 import java.time.Duration;
 import java.time.Instant;
@@ -53,7 +55,8 @@ import org.springframework.stereotype.Component;
  * <p><strong>Timing.</strong> One platform thread drives all timing. Every scheduled source has a
  * platform thread of its own ({@code foresignal-source-<id>}), in the {@link WorkRole#COLLECT} role, on
  * which its runs execute one after another; so a slow or stuck source holds only its own thread, and
- * collection draws only on the collect database pool, never on what the API needs. {@link #reconcile()} compares the enabled sources in {@code source_settings} with the
+ * collection draws only on the collect database pool, never on what the API needs. {@link #reconcile()} compares the enabled sources in {@code source_settings} that some user's view wants
+ * ({@link CollectionUnion}, prompt R2-010) with the
  * running set every 2 seconds, and immediately ({@link #reconcileNow()}) when settings, credentials
  * or the registry change, so an enable or disable applies within seconds:
  *
@@ -289,6 +292,12 @@ public class CollectorScheduler implements SmartLifecycle {
         }
     }
 
+    /** Reconciles at once when a user's source view changes, which may change the collection union (R2-010). */
+    @EventListener
+    public void onSourceViewsChanged(SourceViewsChangedEvent event) {
+        reconcileNow();
+    }
+
     /** Reconciles at once when a dynamic source appears or disappears. */
     @EventListener
     public void onRegistryChanged(SourceRegistryChangedEvent event) {
@@ -378,6 +387,14 @@ public class CollectorScheduler implements SmartLifecycle {
     /** The spacing between the first runs of sources that are due at the same time. */
     static final Duration STAGGER = Duration.ofMillis(100);
 
+    /**
+     * The sources to collect, with their interval and last attempt. R2-010: the collection union, so a source is
+     * instance-enabled <em>and</em> wanted by some active user's view (or there is no active user); {@code source_id}
+     * is the key of {@code source_settings}, so a source wanted by many users is one row, scheduled once, pulled once.
+     */
+    static final String DESIRED_SQL = "select s.source_id, s.interval_seconds, h.last_attempt_at from source_settings s"
+            + " left join source_health h on h.source_id = s.source_id where s.enabled and " + CollectionUnion.WANTED_SQL;
+
     /** What should be running, with each polling source's last attempt (absent when it never ran). */
     private record Desired(Map<String, Duration> polling, Set<String> streams, Map<String, Instant> lastAttempts) {}
 
@@ -385,9 +402,7 @@ public class CollectorScheduler implements SmartLifecycle {
         Map<String, Duration> polling = new LinkedHashMap<>();
         Set<String> streams = new TreeSet<>();
         Map<String, Instant> lastAttempts = new HashMap<>();
-        List<Object[]> rows = jdbc.query(
-                "select s.source_id, s.interval_seconds, h.last_attempt_at from source_settings s"
-                        + " left join source_health h on h.source_id = s.source_id where s.enabled",
+        List<Object[]> rows = jdbc.query(DESIRED_SQL,
                 (rs, row) -> {
                     java.sql.Timestamp last = rs.getTimestamp(3);
                     return new Object[] {rs.getString(1), rs.getInt(2), last == null ? null : last.toInstant()};

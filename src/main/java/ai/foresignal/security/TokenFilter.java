@@ -149,6 +149,10 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
     private final Clock clock;
     private final org.springframework.beans.factory.ObjectProvider<IngestKeyAuthenticator> ingestKeys;
     private final org.springframework.beans.factory.ObjectProvider<AuthFailureBackoff> backoff;
+
+    /** Narrows a session's read restriction by the user's choices (prompt R2-010). */
+    private final org.springframework.beans.factory.ObjectProvider<ai.foresignal.security.user.SessionReadNarrowing>
+            narrowing;
     private final AntPathMatcher matcher = new AntPathMatcher();
 
     private volatile SecuritySettings securitySettings;
@@ -158,7 +162,8 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
             ProblemWriter problems, RestrictionEnforcer restrictions, AuditService audit, SpecOperationIndex spec,
             SecureRequestMonitor secureRequests, Clock clock,
             org.springframework.beans.factory.ObjectProvider<IngestKeyAuthenticator> ingestKeys,
-            org.springframework.beans.factory.ObjectProvider<AuthFailureBackoff> backoff) {
+            org.springframework.beans.factory.ObjectProvider<AuthFailureBackoff> backoff,
+            org.springframework.beans.factory.ObjectProvider<ai.foresignal.security.user.SessionReadNarrowing> narrowing) {
         this.policy = policy;
         this.tokens = tokens;
         this.tickets = tickets;
@@ -171,6 +176,7 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         this.clock = clock;
         this.ingestKeys = ingestKeys;
         this.backoff = backoff;
+        this.narrowing = narrowing;
     }
 
     @Override
@@ -606,6 +612,10 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
             // R2-008: a user sees their own alerts and the shared ones; one holding users.manage sees every alert.
             restriction = restriction.withAlertAudience(ai.foresignal.security.user.OwnerScope.of(session)
                     .alertAudience());
+            // R2-010: a user reads only the sources in their view.
+            for (ai.foresignal.security.user.SessionReadNarrowing n : narrowing) {
+                restriction = n.narrow(restriction, session);
+            }
         }
         new RequestPrincipal(RequestPrincipal.Kind.TOKEN, t.id(), t.name(), t.scope(), restriction,
                 t.privateAccess()).bind(request);

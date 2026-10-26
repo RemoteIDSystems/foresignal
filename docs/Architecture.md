@@ -328,6 +328,7 @@ public record FetchResult(List<NormalizedRecord> records, boolean complete, bool
 
 - On startup, and every **2 seconds** (reconcile tick), it compares the enabled sources in `source_settings` with its running set: a newly enabled polling source is scheduled immediately and then every `interval`; a newly enabled streaming source goes to `StreamingSupervisor.start(source)`; a disabled or deleted source has its future runs canceled and its stream closed. In-flight fetches finish, but their results are discarded (a `DISCARDED` fetch row) if the source was disabled before commit.
 - Setting changes made through the API call `scheduler.reconcileNow()`, so they apply at once.
+- **The collection union (R2-010).** "Enabled" above means instance-enabled *and* wanted: `CollectorScheduler.DESIRED_SQL` ands `source_settings.enabled` with `CollectionUnion.WANTED_SQL` (§5.6). A change to a user's view publishes `SourceViewsChangedEvent`, which also calls `reconcileNow()`.
 - One platform thread drives timing; each fetch runs on a **virtual thread**. A per-source flag prevents overlapping fetches; a run that would overlap is skipped and counted.
 - Before each run the scheduler checks `HealthTracker.backoffUntil(source)`.
 - Each fetch has an overall timeout (default 60 s, per-descriptor override).
@@ -377,6 +378,33 @@ The supervisor owns stream handles. On disconnect it reconnects with exponential
 - **ALL:** an ordered list capped at `allBufferMax` = 50,000. At the cap, `accept` blocks for up to 30 s, then drops and counts `foresignal.stream.records.dropped`.
 - `receivedAt` is stamped on accept. Each flush produces one `fetch_log` row (`trigger=STREAM`) and updates `last_data_at`.
 - **Documented limit:** under SAMPLED and LATEST, trigger edges and samples have *flush resolution* for streams (≥ 2 s, longer while a batch is in flight) and *poll resolution* for polling sources.
+
+### 5.6 Shared collection and per-user source views (R2-010)
+
+**The instance collects; each user views.** Two sets decide what a user sees from a source:
+
+| Set | Stored in | Managed by | Operation |
+|---|---|---|---|
+| The **instance collection set**: what the instance may collect | `source_settings.enabled` | `collection.manage` | `getCollectionSources` / `updateCollectionSources` |
+| A user's **source view**: which collected sources they see, with an optional label and color | `user_source_pref` (V17) | `self.sources`, the user's own | `getMySources` / `updateMySources` |
+
+- **The union pull gate.** The scheduler pulls a source when it is in the instance set and *wanted*: at least one
+  `active` user's view does not turn it off. A view is opt-out (a source with no row is in it), so a source leaves the
+  collection only when every active user has turned it off. `CollectionUnion.WANTED_SQL` is the predicate and
+  `CollectorScheduler.DESIRED_SQL` is the only query that uses it. Manual fetches and probes stay operator actions and
+  ignore views, as they ignore everything but the source's own settings.
+- **Fallback with no users.** While no user is `active` (a first run, an instance driven by API tokens alone) the
+  predicate is true and the instance set is collected exactly as before v2.0.
+- **Single pull.** The gate filters `source_settings`, whose key is `source_id`, so a source wanted by ten users is one
+  row, one schedule entry and one pull per interval. Views never add a schedule entry; pacing (`HostPacer`), the
+  `PullGovernor`, budgets and streaming sit beneath the gate unchanged.
+- **View filtering.** `UserSourceViewService.narrow` (a `SessionReadNarrowing` the token filter applies to every session)
+  removes the sources a user turned off from the source member of the session's read restriction, the member a
+  restricted token's `sources` fill. Every read path that already honors it (records, changes, tiles, search, stats,
+  the map, SSE) shows the user only their view, and responses become `Cache-Control: private`. A session holding
+  `users.manage` or `collection.manage`, and every API token, read the whole collection.
+- **Deletion.** A deleted user's view is removed (`UserSourcePrefReassigner`, audit name `sourceViews`); it is never
+  moved onto the receiving admin, whose own view it would overwrite.
 
 ## 6. Ingest and the change sequence
 

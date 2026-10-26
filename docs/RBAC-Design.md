@@ -9,7 +9,7 @@ The dividing line: **collected data and the collector stay global; who may see a
 becomes per-user.** One instance, one database, one paced collector — many accounts, each with its
 own view, alerts, channels, LLM budget, saved views and preferences layered on top.
 
-## What exists today (verified 2026-10-26, after R2-009)
+## What exists today (verified 2026-10-26, after R2-010)
 
 Before Release 2, identity was **capability-scoped tokens only**, not accounts.
 
@@ -21,6 +21,7 @@ Before Release 2, identity was **capability-scoped tokens only**, not accounts.
 | Bootstrap admin | `security/AdminTokenService.java` | one rotatable break-glass admin token, hash-stored, printed once |
 | Global config | `store/SourceSettingsEntity.java`, `llm/LlmProviderEntity.java` | **no owner column** — settings are instance-wide |
 | Trigger rules (R2-008) | `store/TriggerRuleEntity.java`, `V16__trigger_rule_owner.sql` | `owner_principal_id` (null = shared); alerts copy it when they fire (§D) |
+| Source views (R2-010) | `source/view/UserSourcePrefEntity.java`, `V17__user_source_pref.sql` | `user_source_pref (user_id, source_id)`: a user's opt-out view over the shared collection (§D) |
 | Notification channels (R2-009) | `store/NotificationChannelEntity.java` | `owner_principal_id` (prompt 130's column): set = personal, null = global (§D) |
 | Owner-scoped data | `workspace`, `shareable_object`, `relation`, `chronicle_*`, `principal` | already carries an owner (the 129/130 collaboration layer) |
 | **Identity model (R2-001)** | `security/user/*`, `V14__identity_model.sql` | `user`, `role`, `permission`, `user_role`, `role_permission`, `user_token`; catalog and built-in roles seeded; **no user row, no API change yet** |
@@ -373,6 +374,25 @@ config): `GET/PUT /v1/me/sources` (`UserSourceView`, a list of `UserSourcePref`)
 Not yet per user: the secondary alert summaries that never took a read restriction (statistics counts, the dossier and
 context-summary activity lists, briefings, the operator gauges) still count or list every alert. R2-013 completes
 data-access gating.
+
+**Built (R2-010): shared collection and per-user source views.**
+
+- **Two sets.** The instance collection set is `source_settings.enabled`, read and changed under `collection.manage`
+  by `getCollectionSources`/`updateCollectionSources` (`updateCollectionSources` applies each listed `inCollection`
+  through `SourceService.update`, so `CREDENTIALS_REQUIRED` and parameter checks apply, all or nothing; an unlisted
+  source keeps its state). A user's view is `user_source_pref` (V17), keyed `(user_id, source_id)`, read and replaced
+  under `self.sources` by `getMySources`/`updateMySources`. A view belongs to a user, so an API token gets `401` there.
+- **Opt-out views.** A source with no row is in the view with no overrides, and `updateMySources` replaces the rows (an
+  unlisted source returns to the default). The table above said "any user's view enables it"; with an opt-out view a
+  user who never touched theirs wants every source, so existing instances keep collecting everything until every
+  active user turns a source off. A preference for a source outside the instance set is kept and takes effect while
+  the instance collects it.
+- **The union pull gate** sits in `CollectorScheduler.DESIRED_SQL`: instance-enabled and wanted by an `active` user, or
+  every instance-enabled source while no user is active. Architecture §5.6 has the detail.
+- **View filtering** narrows a session's read restriction to its view (`SessionReadNarrowing`), except for holders of
+  `users.manage` or `collection.manage`.
+- **User deletion** removes the view (`UserSourcePrefReassigner`, audit name `sourceViews`), whether or not the rest is
+  reassigned.
 
 ## E. LLM — shared and personal, per-user budgets
 

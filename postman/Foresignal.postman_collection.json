@@ -50003,7 +50003,7 @@
               ],
               "query": []
             },
-            "description": "Returns the caller's own enabled-source view and display overrides over the shared collection (173). This is the per-user view introduced in v2.0; the instance-wide collection set is getCollectionSources. Requires `self.sources`.\n\n**Scope:** `read`.\n\noperationId: `getMySources`",
+            "description": "Returns the caller's own source view over the shared collection: one entry per source the caller may see, with `enabled` and the caller's display overrides. A view is opt-out: a source the caller never turned off is `enabled` with no overrides. The instance-wide collection set is getCollectionSources. A view belongs to a signed-in user, so an API token gets `401`. Requires `self.sources`.\n\n**Scope:** `read`.\n\noperationId: `getMySources`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -50053,7 +50053,7 @@
               ],
               "query": []
             },
-            "description": "Replaces the caller's enabled-source view and display overrides. Enabling a source adds it to the collection union so the paced collector pulls it once for everyone; it does not create a second pull. Requires `self.sources`.\n\n**Scope:** `read`.\n\noperationId: `updateMySources`",
+            "description": "Replaces the caller's source view; a source left out returns to the default (enabled, no overrides). A source may be listed whether or not the instance collects it; the preference takes effect while it is in the collection set. The collector pulls a source once while any active user's view keeps it, so a view never adds a second pull. Afterwards the caller's reads (records, changes, tiles, search, statistics) show only the sources in their view. An API token gets `401`. Requires `self.sources`.\n\n**Scope:** `read`.\n\noperationId: `updateMySources`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -50108,7 +50108,7 @@
               ],
               "query": []
             },
-            "description": "Returns the instance-wide collection set: the sources the paced collector may pull (the union is driven by this set intersected with users' enabled views, 173). Requires `collection.manage`.\n\n**Scope:** `admin`.\n\noperationId: `getCollectionSources`",
+            "description": "Returns the instance collection set: every registered source with `inCollection` (whether the instance may collect it) and `enabledByUsers` (how many active users' views keep it). The collector pulls a source once when it is in this set and some active user's view keeps it, or, while no user is active, whenever it is in this set. Requires `collection.manage`.\n\n**Scope:** `admin`.\n\noperationId: `getCollectionSources`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -50158,7 +50158,7 @@
               ],
               "query": []
             },
-            "description": "Replaces the instance collection set. A source removed here is pulled for no one, regardless of per-user views. Requires `collection.manage`.\n\n**Scope:** `admin`.\n\noperationId: `updateCollectionSources`",
+            "description": "Sets `inCollection` for every listed source, all or nothing; a source left out keeps its state and `enabledByUsers` is ignored. Each change applies the checks of updateSource, so collecting a source without its required credentials is `409 CREDENTIALS_REQUIRED`. A source taken out of the set is pulled for no one, regardless of per-user views. Requires `collection.manage`.\n\n**Scope:** `admin`.\n\noperationId: `updateCollectionSources`",
             "auth": {
               "type": "bearer",
               "bearer": [
