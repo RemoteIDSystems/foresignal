@@ -128,7 +128,8 @@ checked by their own tests until the registry learns the R2 numbering.
 | Id | Invariant | Owner | Enforced by | Tests |
 |---|---|---|---|---|
 | RBAC-0 | The permission catalog and the built-in role matrix are defined once in Java (`Permissions`, `BuiltInRole`) and seeded identically by `V14__identity_model.sql`; nothing creates a permission at runtime | R2-001 | seed migration, guard test | `PermissionCatalogMigrationIT`, `IdentityModelTest` |
-| RBAC-5 | Activation and reset tokens are stored only as a SHA-256 hash and an 8-character prefix, and are single-use and expiring (passwords as argon2id: R2-002; sessions: R2-003) | R2-001 | `UserTokenEntity` | `IdentityModelIT`, `IdentityModelTest` |
+| RBAC-5 | Passwords are stored only as argon2id hashes; activation and reset tokens only as a SHA-256 hash and an 8-character prefix, single-use, single-active per kind and expiring (sessions: R2-003) | R2-001, R2-002 | `UserTokenEntity`, `PasswordHasher`, `UserTokenService` | `IdentityModelIT`, `PasswordHasherTest`, `UserTokenServiceTest`, `UserCredentialsIT` |
+| RBAC-7 | Only an `active` user authenticates; suspending or disabling a user, or setting its password, ends every session of that user | R2-002 | `UserLifecycleService`, `UserSessionsRevokedEvent` | `UserLifecycleServiceTest`, `UserCredentialsIT` |
 
 **Permission catalog** (group → keys): `identity` → `users.manage`, `roles.manage`; `platform` → `system.settings`,
 `collection.manage`, `collector.settings`, `llm.shared.manage`, `channels.global`, `storage.manage`, `network.manage`,

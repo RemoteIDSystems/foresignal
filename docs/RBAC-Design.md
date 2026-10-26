@@ -102,6 +102,52 @@ Every authenticated user manages their **own** profile and preferences regardles
 Self-service permissions gate whether a user may own *configuration* (sources view, alerts, channels,
 LLM providers, saved views, workspaces), not whether they can set their own name, password or timezone.
 
+## A2. Passwords and the account lifecycle (built: R2-002)
+
+The credential engine, in `ai.foresignal.security.user`; no operation is wired to it yet (R2-003 and R2-005 do that).
+
+**Hashing (`PasswordHasher`).** argon2id through Spring Security Crypto's `Argon2PasswordEncoder` (Bouncy Castle's
+argon2; `spring-security-crypto` 7.1.1 from the Spring Boot 4.1.1 BOM, `bcprov-jdk18on` 1.86). Parameters, in one
+place: salt 16 bytes, hash 32 bytes, parallelism 1, memory 16,384 KiB (16 MiB), iterations 3. The stored form is the
+PHC string `$argon2id$v=19$m=16384,t=3,p=1$…`, so raising the parameters later does not invalidate stored hashes. Raw
+passwords are never logged, echoed or stored.
+
+**Policy (`PasswordPolicy`).** At least 12 code points, not blank or whitespace-only, at most 1,024; no composition
+rules. Refusal is `400 PASSWORD_POLICY` with one field error. Used by activation, reset and an admin setting a
+password; the policy is checked before a token is consumed, so a refused password does not use up the link.
+
+**Status machine (`UserLifecycleService`).**
+
+| From | May become |
+|---|---|
+| `invited` | `active` (activation), `disabled` |
+| `active` | `suspended`, `disabled` |
+| `suspended` | `active` (unsuspend), `disabled` |
+| `disabled` | — (terminal for sign-in; the row is kept for audit and ownership) |
+
+Anything else is `409 USER_STATUS_CONFLICT`. **Only an `active` user authenticates**; `verify` runs the password
+check even for a user who may not sign in, so the time taken does not reveal the status. Suspending, disabling and
+setting a password publish `UserSessionsRevokedEvent` (synchronously, in the same transaction) — the hook R2-003's
+session store listens to.
+
+**Activation and reset tokens (`UserTokenService`).**
+
+| Kind | Prefix | Default life |
+|---|---|---|
+| activation | `fsv_` | 72 hours |
+| reset | `fsw_` | 1 hour |
+
+Prefix + 32 random bytes base64url (the API token shape). Only the SHA-256 hex and the first 8 characters are
+stored; the plaintext is returned once (for the email link, or for an admin to copy when SMTP is down).
+**Single-use:** consuming sets `consumed_at`; a replay fails. **Single-active:** issuing deletes the user's earlier
+unconsumed tokens of that kind, so an older link stops working when a new one is requested. Every failure — unknown,
+other kind, expired, used, or a reset for a user who is no longer active — is the same `400 USER_TOKEN_INVALID`.
+**No enumeration:** `requestReset(email)` issues only for an active user and returns empty for every other case; the
+caller (R2-003) must answer identically either way.
+
+**Prefix collision to settle in R2-003.** §C below names the session bearer `fss_`, but `fss_` is already the share
+link key prefix (`share/ShareLinkService.KEY_PREFIX`, prompt 112). R2-003 must pick another prefix and say so.
+
 ## C. Authentication and sessions
 
 Passwords are hashed with **argon2id** through an audited library (Spring Security's

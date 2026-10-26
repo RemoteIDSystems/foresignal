@@ -59,6 +59,8 @@ dependencies {
     implementation(libs.jackson.dataformat.cbor)
     implementation(libs.bucket4j.core)
     implementation(libs.spring.boot.starter.mail)
+    implementation(libs.spring.security.crypto)
+    implementation(libs.bcprov.jdk18on)
     implementation(libs.spring.boot.micrometer.tracing.opentelemetry)
     implementation(libs.micrometer.tracing.bridge.otel)
     implementation(libs.springdoc.openapi.starter.webmvc.ui)

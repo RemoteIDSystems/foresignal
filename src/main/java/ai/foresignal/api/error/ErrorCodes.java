@@ -932,6 +932,18 @@ public final class ErrorCodes {
 
     private static final String TYPE_PREFIX = "https://foresignal.ai/problems/";
 
+    /** 400: a new password does not meet the password policy (R2-002, {@code PasswordPolicy}). */
+    public static final String PASSWORD_POLICY = "PASSWORD_POLICY";
+
+    /**
+     * 400: an activation or reset token is unknown, of the other kind, expired or already used (R2-002). One code for
+     * every case, so the answer does not tell a caller which.
+     */
+    public static final String USER_TOKEN_INVALID = "USER_TOKEN_INVALID";
+
+    /** 409: the account's status does not allow the requested lifecycle change (R2-002, {@code UserLifecycleService}). */
+    public static final String USER_STATUS_CONFLICT = "USER_STATUS_CONFLICT";
+
     private ErrorCodes() {}
 
     /**

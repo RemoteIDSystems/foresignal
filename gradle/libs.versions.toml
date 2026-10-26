@@ -126,6 +126,11 @@ jsoup = "1.23.2"
 # latest release (maven-metadata.xml latest/release 3.0.8, published 2026-07-08); Java 8 bytecode, depends on
 # pdfbox-io, fontbox and commons-logging (bcprov and bcpkix are optional).
 pdfbox = "3.0.8"
+# Password hashing (R2-002): Bouncy Castle's argon2 under Spring Security Crypto's Argon2PasswordEncoder. Bouncy Castle
+# License (MIT-style). Verified on Maven Central 2026-10-26: bcprov-jdk18on 1.86 is the latest release (published
+# 2026-09-11), Java 8 bytecode, no dependencies. Spring Security Crypto itself is managed by the Spring Boot 4.1.1 BOM
+# (spring-security.version 7.1.1) and declares Bouncy Castle only as optional, so it is added here.
+bcprov = "1.86"
 
 # Bulk exports (111): parquet-java 1.18.1 (Apache-2.0) for GeoParquet 1.1; the Hadoop server stack is
 # excluded below. Verified on Maven Central 2026-10-15.
@@ -208,6 +213,9 @@ jackson-dataformat-cbor = { module = "tools.jackson.dataformat:jackson-dataforma
 # Notification channel type `email` (018): JavaMailSender over Jakarta Mail; versions from the
 # Spring Boot BOM (angus-mail 2.0.5, EPL-2.0 / EDL-1.0 / GPL-2.0 with Classpath Exception).
 spring-boot-starter-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
+# Argon2id password hashing (R2-002); version from the Spring Boot BOM (spring-security.version).
+spring-security-crypto = { module = "org.springframework.security:spring-security-crypto" }
+bcprov-jdk18on = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bcprov" }
 
 # Trace ids in logs (019): Micrometer Tracing over the OpenTelemetry bridge, with no exporter on the
 # classpath, so nothing is exported. Versions from the Spring Boot 4.1.1 BOM (micrometer-tracing

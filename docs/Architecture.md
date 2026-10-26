@@ -918,6 +918,10 @@ Release 2 adds human accounts beside tokens (`ai.foresignal.security.user`, `V14
   `BuiltInRole`s (Admin, Operator, Editor, Viewer, Auditor) are seeded by V14 with stable ids;
   `PermissionCatalogMigrationIT` keeps the Java and the seed identical. Effective permissions are the union of a
   user's roles.
+- **Credentials (R2-002):** `PasswordHasher` (argon2id, m=16 MiB, t=3, p=1), `PasswordPolicy` (12 to 1,024 code
+  points), `UserLifecycleService` (the status machine; only `active` authenticates; `UserSessionsRevokedEvent` on
+  suspend, disable and password change) and `UserTokenService` (`fsv_` activation 72 h, `fsw_` reset 1 h; hashed,
+  single-use, single-active).
 - **No behavior change yet:** no operation reads these tables in R2-001 and no user row is seeded; the bootstrap
   admin token and scoped tokens authorize exactly as above. The test `DatabaseCleaner` keeps the seeded catalog and
   built-in roles across tests and deletes only custom roles.
