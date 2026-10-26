@@ -18,7 +18,8 @@ import org.hibernate.type.SqlTypes;
  * One audit log entry ({@code audit_event}, prompt 023).
  *
  * <p>Hibernate maps and validates the table (Flyway creates it); rows are inserted by {@link AuditService} with JDBC batches
- * from its bounded queue. {@code detail} never holds secrets, token values or request bodies.
+ * from its bounded queue. {@code detail} never holds secrets, token values or request bodies. Prompt R2-013 adds the
+ * user actor ({@code user_id}, {@code user_email}); the table refuses updates, so an entry is never rewritten.
  */
 @Entity
 @Table(name = "audit_event", indexes = {
@@ -77,6 +78,12 @@ public class AuditEventEntity {
     @Column(name = "detail", nullable = false, columnDefinition = "jsonb")
     private Map<String, Object> detail;
 
+    @Column(name = "user_id")
+    private UUID userId;
+
+    @Column(name = "user_email", length = 320)
+    private String userEmail;
+
     protected AuditEventEntity() {
         // for JPA
     }
@@ -104,5 +111,15 @@ public class AuditEventEntity {
     /** The detail object. */
     public Map<String, Object> getDetail() {
         return detail;
+    }
+
+    /** The signed-in user who acted, or null (prompt R2-013). */
+    public UUID getUserId() {
+        return userId;
+    }
+
+    /** That user's email when the entry was written, or null. */
+    public String getUserEmail() {
+        return userEmail;
     }
 }

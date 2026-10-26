@@ -18,7 +18,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Reads the audit log for {@code GET /v1/audit} (prompt 023): newest first, keyset paging on
- * {@code id}, filtered by time, token, operation and status.
+ * {@code id}, filtered by time, token, operation and status, and (prompt R2-013) actor kind, user and target.
  */
 @Component
 public class AuditQuery {
@@ -45,11 +45,22 @@ public class AuditQuery {
      * @param tokenId only this token, or null
      * @param operationId only this operation, or null
      * @param status only this status, or null
+     * @param actorKind only this actor kind, or null (prompt R2-013)
+     * @param userId only entries attributed to this user, or null
+     * @param targetType only this target type, or null
+     * @param targetId only this target id, or null
      */
-    public record Filter(Instant since, Instant until, UUID tokenId, String operationId, Integer status) {
+    public record Filter(Instant since, Instant until, UUID tokenId, String operationId, Integer status,
+            String actorKind, UUID userId, String targetType, String targetId) {
+
+        /** The filters before prompt R2-013. */
+        public Filter(Instant since, Instant until, UUID tokenId, String operationId, Integer status) {
+            this(since, until, tokenId, operationId, status, null, null, null, null);
+        }
 
         String canonical() {
-            return "audit|" + since + "|" + until + "|" + tokenId + "|" + operationId + "|" + status;
+            return "audit|" + since + "|" + until + "|" + tokenId + "|" + operationId + "|" + status + "|" + actorKind
+                    + "|" + userId + "|" + targetType + "|" + targetId;
         }
     }
 
@@ -94,6 +105,22 @@ public class AuditQuery {
             sql.append(" AND status = :status");
             p.addValue("status", filter.status());
         }
+        if (filter.actorKind() != null) {
+            sql.append(" AND actor_kind = :actorKind");
+            p.addValue("actorKind", filter.actorKind());
+        }
+        if (filter.userId() != null) {
+            sql.append(" AND user_id = :userId");
+            p.addValue("userId", filter.userId());
+        }
+        if (filter.targetType() != null) {
+            sql.append(" AND target_type = :targetType");
+            p.addValue("targetType", filter.targetType());
+        }
+        if (filter.targetId() != null) {
+            sql.append(" AND target_id = :targetId");
+            p.addValue("targetId", filter.targetId());
+        }
         if (after != null) {
             sql.append(" AND id < :after");
             p.addValue("after", after.q());
@@ -125,7 +152,7 @@ public class AuditQuery {
                 rs.getLong("id"),
                 at == null ? null : at.toInstant(),
                 rs.getString("actor_kind"),
-                token instanceof UUID uuid ? uuid : token == null ? null : UUID.fromString(token.toString()),
+                uuid(token),
                 rs.getString("token_name"),
                 rs.getString("principal_id"),
                 rs.getString("scope"),
@@ -136,6 +163,12 @@ public class AuditQuery {
                 rs.getString("target_type"),
                 rs.getString("target_id"),
                 rs.getString("remote_ip"),
-                parsed);
+                parsed,
+                uuid(rs.getObject("user_id")),
+                rs.getString("user_email"));
+    }
+
+    private static UUID uuid(Object value) {
+        return value instanceof UUID uuid ? uuid : value == null ? null : UUID.fromString(value.toString());
     }
 }

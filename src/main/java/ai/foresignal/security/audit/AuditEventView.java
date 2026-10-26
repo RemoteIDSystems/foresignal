@@ -22,6 +22,8 @@ import java.util.UUID;
  * @param targetId its id, or null
  * @param remoteIp the client address, or null
  * @param detail context
+ * @param userId the signed-in user who acted, or null (prompt R2-013)
+ * @param userEmail that user's email when the entry was written, or null
  */
 public record AuditEventView(
         long id,
@@ -38,4 +40,6 @@ public record AuditEventView(
         String targetType,
         String targetId,
         String remoteIp,
-        Map<String, Object> detail) {}
+        Map<String, Object> detail,
+        UUID userId,
+        String userEmail) {}

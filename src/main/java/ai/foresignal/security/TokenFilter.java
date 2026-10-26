@@ -90,7 +90,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * {@link #SCOPE_ATTRIBUTE}). The {@code ticket} parameter is stripped from the request before it
  * reaches anything else. Every authenticated write and every 401/403 on a write path is audited,
  * except accepted requests on {@code /mcp/**}, whose tool calls the MCP server audits one by one
- * (prompt 025).
+ * (prompt 025). Prompt R2-013: a read refused with {@code PERMISSION_DENIED} is audited too, and an entry made for a
+ * signed-in user carries actor kind {@code user} with the user's id and email.
  *
  * <p>Prompt 141 adds MCP remote authorization ({@link McpOAuthGate}): while {@code mcp.auth.mode} is
  * {@code oauth} or {@code both}, {@code /mcp} always needs a credential (open reads do not apply, so an MCP
@@ -133,6 +134,9 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
 
     /** Set on the request so later components can tell the caller's scope. */
     public static final String SCOPE_ATTRIBUTE = "ai.foresignal.scope";
+
+    /** The permission a {@code PERMISSION_DENIED} refusal named, for the audit entry (prompt R2-013). */
+    static final String REQUIRED_PERMISSION_ATTRIBUTE = TokenFilter.class.getName() + ".requiredPermission";
 
     /** The problem code of a rejection, for the audit entry. */
     static final String REJECTION_ATTRIBUTE = "ai.foresignal.rejection";
@@ -307,6 +311,10 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
                 ProblemDetail problem = refusal.get();
                 request.setAttribute(REJECTION_ATTRIBUTE, problem.getProperties() == null ? null
                         : problem.getProperties().get("code"));
+                if (problem.getProperties() != null && problem.getProperties().get("requiredPermission") != null) {
+                    request.setAttribute(REQUIRED_PERMISSION_ATTRIBUTE,
+                            problem.getProperties().get("requiredPermission"));
+                }
                 if (problem.getStatus() == HttpStatus.UNAUTHORIZED.value()) {
                     response.setHeader(HttpHeaders.WWW_AUTHENTICATE, challengeFor(request, current != null));
                 }
@@ -710,10 +718,14 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
 
     // ------------------------------------------------------------------------- audit
 
-    /** Audits an authenticated write, or a 401/403 on a write path. */
+    /**
+     * Audits an authenticated write, a 401/403 on a write path, and (prompt R2-013) a read refused with
+     * {@code PERMISSION_DENIED}, so an Auditor sees attempted access. What a signed-in user does is attributed to the
+     * user (actor kind {@code user}, with the user's id and email).
+     */
     private void auditIfNeeded(HttpServletRequest request, HttpServletResponse response, HttpMethod method,
             String path, CurrentToken current) {
-        if (!isWrite(method)) {
+        if (!isWrite(method) && !deniedPermission(request, response)) {
             return;
         }
         int status = response.getStatus();
@@ -740,11 +752,16 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         if (current != null && current.viaTicket()) {
             detail.put("viaTicket", true);
         }
-        if (current != null && AuthenticatedSession.of(request).isPresent()) {
-            detail.put("via", "session");
-            detail.put("userId", AuthenticatedSession.of(request).get().userId().toString());
+        Object requiredPermission = request.getAttribute(REQUIRED_PERMISSION_ATTRIBUTE);
+        if (requiredPermission != null) {
+            detail.put("requiredPermission", requiredPermission);
         }
-        audit.record(new AuditRecord(
+        AuthenticatedSession session = current == null ? null : AuthenticatedSession.of(request).orElse(null);
+        if (session != null) {
+            detail.put("via", "session");
+            detail.put("userId", session.userId().toString());
+        }
+        AuditRecord entry = new AuditRecord(
                 clock.instant(),
                 AuditRecord.TOKEN,
                 current == null ? null : current.id(),
@@ -758,7 +775,14 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
                 segments.length > 2 ? segments[2] : null,
                 segments.length > 3 ? segments[3] : null,
                 request.getRemoteAddr(),
-                detail));
+                detail);
+        audit.record(session == null ? entry : entry.asUser(session.userId(), session.email()));
+    }
+
+    /** True when the request was refused for a missing permission ({@code 403 PERMISSION_DENIED}, prompt R2-013). */
+    private static boolean deniedPermission(HttpServletRequest request, HttpServletResponse response) {
+        return response.getStatus() == HttpStatus.FORBIDDEN.value()
+                && ErrorCodes.PERMISSION_DENIED.equals(request.getAttribute(REJECTION_ATTRIBUTE));
     }
 
     /** True for the share-link writes, which {@code ShareLinkService} audits itself (prompt 112). */

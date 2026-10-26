@@ -9,7 +9,7 @@ The dividing line: **collected data and the collector stay global; who may see a
 becomes per-user.** One instance, one database, one paced collector — many accounts, each with its
 own view, alerts, channels, LLM budget, saved views and preferences layered on top.
 
-## What exists today (verified 2026-10-26, after R2-012)
+## What exists today (verified 2026-10-26, after R2-013)
 
 Before Release 2, identity was **capability-scoped tokens only**, not accounts.
 
@@ -22,6 +22,7 @@ Before Release 2, identity was **capability-scoped tokens only**, not accounts.
 | Global config | `store/SourceSettingsEntity.java` | **no owner column** — settings are instance-wide |
 | Trigger rules (R2-008) | `store/TriggerRuleEntity.java`, `V16__trigger_rule_owner.sql` | `owner_principal_id` (null = shared); alerts copy it when they fire (§D) |
 | LLM providers (R2-011) | `llm/LlmProviderEntity.java`, `V18__llm_ownership_and_user_budget.sql` | `owner_principal_id` (null = shared), per-user caps; `llm_user_usage` per-user metering (§E) |
+| Data restrictions, audit actor (R2-013) | `security/user/UserDataRestriction*`, `security/audit/*`, `V20__audit_user_actor_and_data_restrictions.sql` | `user_data_restriction (user_id)`: a user's source/kind/area limit; `audit_event.user_id`/`user_email`, actor kind `user`, updates refused (§C2, §H) |
 | Preferences, saved views (R2-012) | `preference/*`, `view/SavedViewEntity.java`, `V19__user_preferences.sql` | `user_preferences (user_id)`: locale, theme, UI bag; `saved_view.owner_principal_id` (null = shared) (§D) |
 | Source views (R2-010) | `source/view/UserSourcePrefEntity.java`, `V17__user_source_pref.sql` | `user_source_pref (user_id, source_id)`: a user's opt-out view over the shared collection (§D) |
 | Notification channels (R2-009) | `store/NotificationChannelEntity.java` | `owner_principal_id` (prompt 130's column): set = personal, null = global (§D) |
@@ -221,7 +222,7 @@ token filter with `detail.via = session` and `detail.userId`.
 ## C2. Authorization (built: R2-004)
 
 **Every operation in `docs/OpenAPI.json` that a signed-in user needs a permission for carries
-`x-foresignal-permission`** (526 of the 900 operations). `scripts/generate-access-permissions.py` transcribes the
+`x-foresignal-permission`** (550 of the 900 operations). `scripts/generate-access-permissions.py` transcribes the
 contract into `security/AccessPermissions.java` — one row per operation, a null permission where it carries none, ordered
 literal-before-template — and `AccessPolicy.permissionFor(method, path)` reads it. The permission is a parallel lookup,
 not a field on `AccessRequirement.RequiresScope`: the scope requirement, and with it every API token's access, is exactly
@@ -240,8 +241,8 @@ what it was before R2-004.
 | `channels.global` | 5 (+11) | escalation policies; and, as the alternative, the 11 channel operations |
 | `self.channels` | 11 | every channel operation, with `channels.global` as `x-foresignal-permission-alternatives` (R2-009) |
 | `llm.shared.manage` | 12 | shared LLM providers and budgets; the 8 provider operations take `self.llm` as the alternative (R2-011) |
-| `data.read` | 118 | record, map, tile, history, search, alert, trigger and reference reads |
-| `intel.read` | 112 | intelligence, situations, analysis, assessments, chronicles, analytics, briefings reads |
+| `data.read` | 139 | record, map, tile, history, search, alert, trigger and reference reads; and (R2-013) the remaining reads that serve collected data: FDSN event query, saved-search results, object reads, dossier and related objects, sensors, attributions, place weather, precision, Ask, the graph queries, affected infrastructure, CPA, object resolution, context summaries and sampling |
+| `intel.read` | 115 | intelligence, situations, analysis, assessments, chronicles, analytics, briefings reads; and (R2-013) analog, base-rate and exposure queries |
 | `forecast.read` | 8 | forecast reads |
 | `data.export` | 11 | the `Exports` tag and `/v1/export/**` |
 | `self.alerts` | 18 | every trigger write (create, update, delete, test, snooze, mute, baseline rebuild, tuning) and the alert lifecycle writes (acknowledge, resolve, snooze, feedback); R2-008 |
@@ -253,7 +254,26 @@ Every admin-scoped operation carries a permission, so no admin-scoped operation 
 derived scope alone (an Operator, derived scope `admin`, cannot mint an admin API token: that is `users.manage`).
 `self.alerts` arrived on the trigger and alert operations with R2-008, `self.channels` on the channel operations with
 R2-009 (§D), `self.llm` on the LLM provider operations with R2-011 (§E), and `self.views` and `self.workspaces` on the
-saved-view and workspace operations with R2-012 (§D); R2-013 completes data-access gating.
+saved-view and workspace operations with R2-012 (§D), and R2-013 completed data-access gating (below).
+
+**Data access (built: R2-013).**
+
+- **Gating.** Every operation that serves collected data carries `data.read` (or `intel.read`, `forecast.read`,
+  `data.export` for those surfaces), and the token filter's permission gate enforces it for sessions, on records, maps,
+  tiles, streams, search, exports and the queries R2-013 added: a session without it is `403 PERMISSION_DENIED`, and the
+  refusal is audited (§H). The read-scope operations still without a permission are per-user or collaboration surfaces
+  (the caller's own notifications, inbox, tokens, sessions, tags, reports, attachments), source and place
+  configuration reads, and federation, which a session cannot use (it needs a token restricted with `federation`).
+  API tokens are unchanged: scope decides, a permission never applies to them.
+- **Per-user data restrictions** (`security/user/UserDataRestrictionService`, table `user_data_restriction`, V20). An
+  admin sets `dataRestriction` through `updateUser` (`users.manage`): a source and kind subset and an area (bbox,
+  GeoJSON area, places), validated by the token `RestrictionValidator` and stored in the same column types as
+  `api_token`. The service is a `SessionReadNarrowing`: the token filter intersects the session's `ReadRestriction`
+  with it (`ReadRestriction.intersect`, sets intersected and regions intersected), so every read path clamps through
+  `RestrictionClamp` exactly as for a restricted token; nothing re-implements geofencing. It applies to every session
+  of the user, an admin's included, on top of the user's source view (R2-010). `User.dataRestriction` shows it.
+  The prompt named `RestrictionEnforcer`/`ClampedRestrictionEnforcer`; the enforcement is `RestrictionClamp` over
+  `ReadRestriction`, and `RestrictionEnforcer` is the token-level endpoint check.
 
 **Alternatives (R2-009).** One operation can serve two permissions: the channel operations manage a user's own channels
 (`self.channels`) and the global ones (`channels.global`), and an Operator holds only the second while an Editor holds
@@ -578,6 +598,25 @@ Admin/security actions and configuration changes write an append-only `AuditEven
 principal, scope, method, path, operationId, status, target, remote IP, detail). It is exposed to
 `audit.read` (the Auditor role) at `GET /v1/audit` (`listAuditEvents`) with filtering, and retained per
 `RetentionSettings.audit` (default 90d). The existing 023 audit log is extended, not replaced.
+
+**Built (R2-013): the user actor.**
+
+- **Actor kind `user`.** `audit_event` gains `user_id` and `user_email` (V20); the email is copied when the entry is
+  written and there is no foreign key, so an entry still names its user after the user is renamed or deleted. Token,
+  ingest-key, pairing, system, action, chat and mesh actors are unchanged.
+- **What lands as `user`.** Every write a session makes (the token filter: operation, status, target type and id from
+  the path), which covers user, role, SMTP and settings, collection-set and LLM provider changes; sign-in success and
+  failure, sign-out and session revocation (`SessionService.auditAuth`); account activation, password reset requests
+  and resets, and failed links (`AuthController`); and reads refused with `PERMISSION_DENIED`, with
+  `detail.requiredPermission`. A sign-in for an unknown email is actor kind `user` with no user. `deleteUser`'s summary
+  entry names the acting admin when a session deleted, `system` when a token did. API-token writes stay `token`.
+- **Secret-free.** `detail` holds codes, ids, events and reasons, never a password, token or request body; the
+  activation and reset entries do not record the email asked for.
+- **Append-only.** A trigger refuses every `UPDATE` of `audit_event`; retention (`AuditRetentionStep`, default 90 days)
+  deletes old entries, the new ones included, and nothing else rewrites them.
+- **Reading.** `listAuditEvents` stays admin-scoped for tokens and takes `audit.read` for sessions, so the Auditor
+  (`audit.read`, `data.read`) reads it with derived scope `read`, and a Viewer or Editor gets `403`. Filters: time,
+  token, operation, status and (R2-013) actor kind, user, target type and target id.
 
 ## I. Migration, first-run, and versioning
 

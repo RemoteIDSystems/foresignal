@@ -2,8 +2,10 @@ package ai.foresignal.api;
 
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.api.support.QueryParams;
+import ai.foresignal.security.TokenRestrictions;
 import ai.foresignal.security.user.AuthenticatedSession;
 import ai.foresignal.security.user.UserAdminService;
+import ai.foresignal.security.user.UserDataRestrictionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -42,14 +44,17 @@ import tools.jackson.databind.JsonNode;
 public class UserAdminController {
 
     private final UserAdminService service;
+    private final UserDataRestrictionService dataRestrictions;
 
     /**
      * Creates the controller.
      *
      * @param service user management
+     * @param dataRestrictions the users' data restrictions (R2-013)
      */
-    public UserAdminController(UserAdminService service) {
+    public UserAdminController(UserAdminService service, UserDataRestrictionService dataRestrictions) {
         this.service = service;
+        this.dataRestrictions = dataRestrictions;
     }
 
     /** {@code listUsers}: a page of users, filtered by status and text. */
@@ -89,13 +94,20 @@ public class UserAdminController {
         return service.get(userId(id));
     }
 
-    /** {@code updateUser}: the full name and email. */
+    /**
+     * {@code updateUser}: the full name and email, and (prompt R2-013) the user's data restriction when the body carries
+     * {@code dataRestriction} (null lifts it; absent leaves it).
+     */
     @PutMapping("/v1/users/{id}")
     @Operation(operationId = "updateUser", tags = "Users")
     public Map<String, Object> updateUser(@PathVariable String id, @RequestBody JsonNode body) {
         UUID user = userId(id);
         requireObject(body);
-        return service.update(user, text(body, "fullName", false), text(body, "email", false));
+        boolean setRestriction = body.has(UserDataRestrictionService.FIELD);
+        TokenRestrictions restriction = setRestriction ? dataRestrictions.parse(body.get(UserDataRestrictionService.FIELD))
+                : null;
+        return service.update(user, text(body, "fullName", false), text(body, "email", false), setRestriction,
+                restriction);
     }
 
     /** {@code deleteUser}: reassigns (default) or deletes the user's configuration, then deletes the user. */

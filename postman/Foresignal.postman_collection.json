@@ -1530,7 +1530,7 @@
                 }
               ]
             },
-            "description": "Answers from Foresignal's data with the chat provider and the read tool catalogue (tools mode, \u2264 12 iterations, 120 s) or, when the model lacks tools, retrieval-only mode. Every citation is verified against tool output down to the persisted seq (`[source:externalId@seq]`); dropped citations and uncited claims are returned in `warnings`. Write actions are only proposed unless `allowActions` is true and the token has agent scope. A model refusal is answered (200) with a warning. Errors: 409 LLM_NOT_CONFIGURED, 429 LLM_BUDGET_EXCEEDED.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `ask`",
+            "description": "Answers from Foresignal's data with the chat provider and the read tool catalogue (tools mode, \u2264 12 iterations, 120 s) or, when the model lacks tools, retrieval-only mode. Every citation is verified against tool output down to the persisted seq (`[source:externalId@seq]`); dropped citations and uncited claims are returned in `warnings`. Write actions are only proposed unless `allowActions` is true and the token has agent scope. A model refusal is answered (200) with a warning. Errors: 409 LLM_NOT_CONFIGURED, 429 LLM_BUDGET_EXCEEDED.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `ask`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2029,7 +2029,7 @@
                 }
               ]
             },
-            "description": "Server-Sent Events: `progress` (tool activity), `delta` (unverified answer text), `citation`, `warning`, `action`, `done` (the full verified AskResponse, identical to the persisted message), `error`. Heartbeats and per-token stream limits as in 015.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `askStream`",
+            "description": "Server-Sent Events: `progress` (tool activity), `delta` (unverified answer text), `citation`, `warning`, `action`, `done` (the full verified AskResponse, identical to the persisted message), `error`. Heartbeats and per-token stream limits as in 015.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `askStream`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -3842,7 +3842,7 @@
               ],
               "query": []
             },
-            "description": "Computes a base rate for a definition without storing it (cached 24 h); returns a stored rate when one matches the definition.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `queryBaseRate`",
+            "description": "Computes a base rate for a definition without storing it (cached 24 h); returns a stored rate when one matches the definition.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `intel.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `queryBaseRate`",
             "auth": {
               "type": "noauth"
             },
@@ -4076,7 +4076,7 @@
               ],
               "query": []
             },
-            "description": "Builds a signature from a region's last 14 days (or the given period) of reference history and rollups and searches the same region class's history; for questions not tied to a situation.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `queryAnalogs`",
+            "description": "Builds a signature from a region's last 14 days (or the given period) of reference history and rollups and searches the same region class's history; for questions not tied to a situation.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `intel.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `queryAnalogs`",
             "auth": {
               "type": "noauth"
             },
@@ -7439,7 +7439,7 @@
                 }
               ]
             },
-            "description": "Answers from Foresignal's data with the chat provider and the read tool catalogue (tools mode, \u2264 12 iterations, 120 s) or, when the model lacks tools, retrieval-only mode. Every citation is verified against tool output down to the persisted seq (`[source:externalId@seq]`); dropped citations and uncited claims are returned in `warnings`. Write actions are only proposed unless `allowActions` is true and the token has agent scope. A model refusal is answered (200) with a warning. Errors: 409 LLM_NOT_CONFIGURED, 429 LLM_BUDGET_EXCEEDED.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `ask`",
+            "description": "Answers from Foresignal's data with the chat provider and the read tool catalogue (tools mode, \u2264 12 iterations, 120 s) or, when the model lacks tools, retrieval-only mode. Every citation is verified against tool output down to the persisted seq (`[source:externalId@seq]`); dropped citations and uncited claims are returned in `warnings`. Write actions are only proposed unless `allowActions` is true and the token has agent scope. A model refusal is answered (200) with a warning. Errors: 409 LLM_NOT_CONFIGURED, 429 LLM_BUDGET_EXCEEDED.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `ask`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -7501,7 +7501,7 @@
                 }
               ]
             },
-            "description": "Server-Sent Events: `progress` (tool activity), `delta` (unverified answer text), `citation`, `warning`, `action`, `done` (the full verified AskResponse, identical to the persisted message), `error`. Heartbeats and per-token stream limits as in 015.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\noperationId: `askStream`",
+            "description": "Server-Sent Events: `progress` (tool activity), `delta` (unverified answer text), `citation`, `warning`, `action`, `done` (the full verified AskResponse, identical to the persisted message), `error`. Heartbeats and per-token stream limits as in 015.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `askStream`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -8994,6 +8994,30 @@
                   "disabled": true
                 },
                 {
+                  "key": "actorKind",
+                  "value": "",
+                  "description": "Only this actor kind (for example `user` or `token`, R2-013)",
+                  "disabled": true
+                },
+                {
+                  "key": "userId",
+                  "value": "",
+                  "description": "Only entries attributed to this user (R2-013)",
+                  "disabled": true
+                },
+                {
+                  "key": "targetType",
+                  "value": "",
+                  "description": "Only this target type, for example `users` or `settings` (R2-013)",
+                  "disabled": true
+                },
+                {
+                  "key": "targetId",
+                  "value": "",
+                  "description": "Only this target id (R2-013)",
+                  "disabled": true
+                },
+                {
                   "key": "cursor",
                   "value": "{{cursor}}",
                   "description": "Opaque cursor from the previous page's `nextCursor`",
@@ -9007,7 +9031,7 @@
                 }
               ]
             },
-            "description": "Newest first, keyset paging. Covers authenticated writes, 401/403 on write paths, pairing claims, token revocations, MCP tool calls, notification actions, private-data reads by non-admins, exports and purges. `detail` never contains secrets or request bodies. Retention key `audit` (default 90d).\n\n**Scope:** `admin`.\n\noperationId: `listAuditEvents`",
+            "description": "Newest first, keyset paging. Covers authenticated writes, 401/403 on write paths, pairing claims, token revocations, MCP tool calls, notification actions, private-data reads by non-admins, exports and purges. `detail` never contains secrets or request bodies. Retention key `audit` (default 90d).\n\n**Scope:** `admin`.\n\n**v2.0 (R2-013):** a signed-in user reaches the log with `audit.read` (the Auditor role) without admin scope; a session without it is 403 PERMISSION_DENIED. What a signed-in user does is attributed to the user: actor kind `user` with `userId` and `userEmail`, including sign-ins (successful and failed), sign-outs, session revocations, account activation and password resets, every user, role, settings, collection and LLM provider change, and reads refused with PERMISSION_DENIED (`detail.requiredPermission`). Filters: time, token, operation, status, actor kind, user and target. The log is append-only: the database refuses to change an entry; retention deletes entries older than the window.\n\noperationId: `listAuditEvents`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -17124,7 +17148,7 @@
                 }
               ]
             },
-            "description": "Runs the saved search now (027 hybrid search plus structured filters over envelopes) and returns envelopes the caller can see.\n\n**Scope:** `read`.\n\noperationId: `runSavedSearch`",
+            "description": "Runs the saved search now (027 hybrid search plus structured filters over envelopes) and returns envelopes the caller can see.\n\n**Scope:** `read`.\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `runSavedSearch`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -25973,7 +25997,7 @@
               ],
               "query": []
             },
-            "description": "Seeds from an area, event or record and walks dependency edges (depth \u2264 3, label \u2265 minLabel). Results \u2264 5,000 nodes (truncated by pathScore). An area > 2,000,000 km\u00b2 without `types` is 400 INFRA_QUERY_TOO_LARGE.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `computeAffectedInfrastructure`",
+            "description": "Seeds from an area, event or record and walks dependency edges (depth \u2264 3, label \u2265 minLabel). Results \u2264 5,000 nodes (truncated by pathScore). An area > 2,000,000 km\u00b2 without `types` is 400 INFRA_QUERY_TOO_LARGE.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `computeAffectedInfrastructure`",
             "auth": {
               "type": "noauth"
             },
@@ -30286,7 +30310,7 @@
               ],
               "query": []
             },
-            "description": "Facilities, places, watchlist entities, live traffic, optional population (GHSL pack) and infrastructure dependents inside a geometry, place or event area. Without a pack the population section is `not-installed`.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `computeExposure`",
+            "description": "Facilities, places, watchlist entities, live traffic, optional population (GHSL pack) and infrastructure dependents inside a geometry, place or event area. Without a pack the population section is `not-installed`.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `intel.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `computeExposure`",
             "auth": {
               "type": "noauth"
             },
@@ -30515,7 +30539,7 @@
               ],
               "query": []
             },
-            "description": "Evaluates one subject against up to 500 records from a filter (kinds, sources, bbox) and returns the top N by dcpa within maxDcpaM. Errors: `STATE_TOO_OLD` for the subject.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `cpaBatch`",
+            "description": "Evaluates one subject against up to 500 records from a filter (kinds, sources, bbox) and returns the top N by dcpa within maxDcpaM. Errors: `STATE_TOO_OLD` for the subject.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `cpaBatch`",
             "auth": {
               "type": "noauth"
             },
@@ -33658,7 +33682,7 @@
                 }
               ]
             },
-            "description": "Returns the uniform envelope, `asOf`-aware, with `actions` the calling token may perform. Unknown types \u2192 400 `OBJECT_REF_INVALID`; private or unshared objects are invisible (404).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getObject`",
+            "description": "Returns the uniform envelope, `asOf`-aware, with `actions` the calling token may perform. Unknown types \u2192 400 `OBJECT_REF_INVALID`; private or unshared objects are invisible (404).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `getObject`",
             "auth": {
               "type": "noauth"
             }
@@ -33701,7 +33725,7 @@
               ],
               "query": []
             },
-            "description": "Resolves up to 500 refs; missing or invisible refs are listed, not errors.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `resolveObjects`",
+            "description": "Resolves up to 500 refs; missing or invisible refs are listed, not errors.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `resolveObjects`",
             "auth": {
               "type": "noauth"
             },
@@ -33775,7 +33799,7 @@
                 }
               ]
             },
-            "description": "The envelope plus bounded sections (overview, imagery, forecast, impacts, related, timeline, analysis), each with a `status`, in \u2264 64 KB. Forecasts carry their issuer and knowledge cutoff.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getObjectDossier`",
+            "description": "The envelope plus bounded sections (overview, imagery, forecast, impacts, related, timeline, analysis), each with a `status`, in \u2264 64 KB. Forecasts carry their issuer and knowledge cutoff.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `getObjectDossier`",
             "auth": {
               "type": "noauth"
             }
@@ -33846,7 +33870,7 @@
                 }
               ]
             },
-            "description": "Neighbourhood through the relation graph, filtered by type, direction, validity at `asOf` and confidence.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listRelatedObjects`",
+            "description": "Neighbourhood through the relation graph, filtered by type, direction, validity at `asOf` and confidence.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `listRelatedObjects`",
             "auth": {
               "type": "noauth"
             }
@@ -33889,7 +33913,7 @@
               ],
               "query": []
             },
-            "description": "Layer counts (aggregated, never feature lists), a merged activity feed tagged by signal family, insights with issuer, base rate and knowledge cutoff, and top related objects, in \u2264 32 KB; cached per normalised context for 30 s.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `summarizeContext`",
+            "description": "Layer counts (aggregated, never feature lists), a merged activity feed tagged by signal family, insights with issuer, base rate and knowledge cutoff, and top related objects, in \u2264 32 KB; cached per normalised context for 30 s.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `summarizeContext`",
             "auth": {
               "type": "noauth"
             },
@@ -33940,7 +33964,7 @@
               ],
               "query": []
             },
-            "description": "Nodes (envelopes) and edges within `depth` \u2264 2 of up to 50 seed refs, limited to 2,000 edges, valid at `asOf`.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `queryGraph`",
+            "description": "Nodes (envelopes) and edges within `depth` \u2264 2 of up to 50 seed refs, limited to 2,000 edges, valid at `asOf`.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `queryGraph`",
             "auth": {
               "type": "noauth"
             },
@@ -33992,7 +34016,7 @@
               ],
               "query": []
             },
-            "description": "Facilities and infrastructure that up to 20 objects share through `depends-on` and `located-in` paths (104), each with its weakest-edge label.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `findCommonDependencies`",
+            "description": "Facilities and infrastructure that up to 20 objects share through `depends-on` and `located-in` paths (104), each with its weakest-edge label.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `findCommonDependencies`",
             "auth": {
               "type": "noauth"
             },
@@ -34044,7 +34068,7 @@
               ],
               "query": []
             },
-            "description": "People and organizations reached from up to 50 seed entities through the ownership / affiliation edges (`owns`, `controls`, `officer-of`, `beneficial-owner`, `affiliated-with`), each with its strongest, shortest ownership chain (158). An entity reached from two or more seeds is a shared attribute \u2014 a common owner, officer, address or affiliate. Model and queries only; the external corporate / UBO / PEP / leak data that populates the edges is deferred (docs/Future-Roadmap.md).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `ownershipChain`",
+            "description": "People and organizations reached from up to 50 seed entities through the ownership / affiliation edges (`owns`, `controls`, `officer-of`, `beneficial-owner`, `affiliated-with`), each with its strongest, shortest ownership chain (158). An entity reached from two or more seeds is a shared attribute \u2014 a common owner, officer, address or affiliate. Model and queries only; the external corporate / UBO / PEP / leak data that populates the edges is deferred (docs/Future-Roadmap.md).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `ownershipChain`",
             "auth": {
               "type": "noauth"
             },
@@ -34436,7 +34460,7 @@
                 }
               ]
             },
-            "description": "For findings (by detector), intel events (by recipe), situations (linker) and precursor-active findings: the share confirmed among verdicts with a Wilson interval and counts; `needs-review` counts as unlabeled.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getPrecision`",
+            "description": "For findings (by detector), intel events (by recipe), situations (linker) and precursor-active findings: the share confirmed among verdicts with a Wilson interval and counts; `needs-review` counts as unlabeled.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `getPrecision`",
             "auth": {
               "type": "noauth"
             }
@@ -34511,7 +34535,7 @@
                 }
               ]
             },
-            "description": "Merged sensor envelopes: sources with 116 observability above 0.2 for the area, local receivers and SatDump stations in range, predicted satellite passes with curated capabilities, and STAC scenes and raster products in the window. Read-only; no tasking. `placeId` requires a token.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `listSensors`",
+            "description": "Merged sensor envelopes: sources with 116 observability above 0.2 for the area, local receivers and SatDump stations in range, predicted satellite passes with curated capabilities, and STAC scenes and raster products in the window. Read-only; no tasking. `placeId` requires a token.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `listSensors`",
             "auth": {
               "type": "noauth"
             }
@@ -37370,7 +37394,7 @@
               ],
               "query": []
             },
-            "description": "The `place-weather` record (wx-places head) plus cached forecast series (GFS/HRRR, NWS from 053). Sections that are stale, failing or without coverage keep their previous values with a non-ok status; unknown is never clear.\n\n**Scope:** `read` (always authenticated).\n\noperationId: `getPlaceWeather`",
+            "description": "The `place-weather` record (wx-places head) plus cached forecast series (GFS/HRRR, NWS from 053). Sections that are stale, failing or without coverage keep their previous values with a non-ok status; unknown is never clear.\n\n**Scope:** `read` (always authenticated).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `getPlaceWeather`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -39726,7 +39750,7 @@
                 }
               ]
             },
-            "description": "Attribution aggregate (one entry per source and licence, with record counts) for the current records matching `source` and `kind`, for SSE clients and map footers. Honours the licence policy and token restrictions.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getAttributions`",
+            "description": "Attribution aggregate (one entry per source and licence, with record counts) for the current records matching `source` and `kind`, for SSE clients and map footers. Honours the licence policy and token restrictions.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `getAttributions`",
             "auth": {
               "type": "noauth"
             }
@@ -43445,7 +43469,7 @@
               ],
               "query": []
             },
-            "description": "Batch form of `GET /v1/sample` for up to 100 points (400 VALIDATION_FAILED beyond); results are in request order.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `postSample`",
+            "description": "Batch form of `GET /v1/sample` for up to 100 points (400 VALIDATION_FAILED beyond); results are in request order.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `postSample`",
             "auth": {
               "type": "noauth"
             },
@@ -43581,7 +43605,7 @@
               ],
               "query": []
             },
-            "description": "min, max, mean, p95, coverage and the area above each threshold (spherical cell areas per grid type) over a geometry, place or bbox. Geometry \u2264 10,000 vertices and area \u2264 2,000,000 km\u00b2 (400 VALIDATION_FAILED beyond). Thresholds are given in the requested unit system. A cell belongs to the area when its center lies inside; `coveragePct` is the share of those cells holding a value. A non-ok status (unavailable, no-coverage, stale) carries no statistics (`min`\u2026`p95` null, `thresholds` empty).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `postProductStats`",
+            "description": "min, max, mean, p95, coverage and the area above each threshold (spherical cell areas per grid type) over a geometry, place or bbox. Geometry \u2264 10,000 vertices and area \u2264 2,000,000 km\u00b2 (400 VALIDATION_FAILED beyond). Thresholds are given in the requested unit system. A cell belongs to the area when its center lies inside; `coveragePct` is the share of those cells holding a value. A non-ok status (unavailable, no-coverage, stale) carries no statistics (`min`\u2026`p95` null, `thresholds` empty).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `postProductStats`",
             "auth": {
               "type": "noauth"
             },
@@ -43633,7 +43657,7 @@
               ],
               "query": []
             },
-            "description": "Samples each point at its time using the nearest frame within `maxGap`, or forecast frames for future times with `run`. With `record`, points come from the 037 track simplification. Private sources and observer gating apply.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `sampleTrack`",
+            "description": "Samples each point at its time using the nearest frame within `maxGap`, or forecast frames for future times with `run`. With `record`, points come from the 037 track simplification. Private sources and observer gating apply.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `sampleTrack`",
             "auth": {
               "type": "noauth"
             },
@@ -50537,7 +50561,7 @@
                 }
               ]
             },
-            "description": "fdsnws-event 1.2 over `earthquake` records: QuakeML 1.2 BED (`smi:foresignal/{source}/{externalId}` publicIDs) or the pipe-separated text format. `204` when no events match (FDSN convention; `nodata=404` selects 404); errors use FDSN plain-text bodies. Long and short parameter names are accepted (`start`, `minlat`, `minmag`, \u2026); unsupported parameters are a 400. Depth is in meters in QuakeML and in km in the text format.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `queryFdsnEvents`",
+            "description": "fdsnws-event 1.2 over `earthquake` records: QuakeML 1.2 BED (`smi:foresignal/{source}/{externalId}` publicIDs) or the pipe-separated text format. `204` when no events match (FDSN convention; `nodata=404` selects 404); errors use FDSN plain-text bodies. Long and short parameter names are accepted (`start`, `minlat`, `minmag`, \u2026); unsupported parameters are a 400. Depth is in meters in QuakeML and in km in the text format.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.\n\noperationId: `queryFdsnEvents`",
             "auth": {
               "type": "noauth"
             }
@@ -54778,7 +54802,7 @@
               ],
               "query": []
             },
-            "description": "Updates a user's profile fields. Requires `users.manage`.\n\n**Scope:** `admin`.\n\noperationId: `updateUser`",
+            "description": "Updates a user's profile fields and, with `dataRestriction`, what the user may read: a source and kind subset and an area (bbox, area, places), validated like a token's restriction (400 VALIDATION_FAILED for an unknown source, kind or place or a member that is not a data member). Null lifts the restriction; absent leaves it. The change applies to the user's next request. Requires `users.manage`.\n\n**Scope:** `admin`.\n\noperationId: `updateUser`",
             "auth": {
               "type": "bearer",
               "bearer": [

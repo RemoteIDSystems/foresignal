@@ -286,10 +286,27 @@ public class SessionService {
      */
     public void auditAuth(Instant at, String operationId, UserEntity user, UUID sessionId, int status, String ip,
             Map<String, Object> detail) {
+        // R2-013: an account event is the user's own: actor kind user, with the user's id and email. A sign-in for an
+        // unknown email still has actor kind user, with no user.
         audit.record(new AuditRecord(at, AuditRecord.TOKEN, sessionId,
                 user == null ? null : AuthenticatedSession.NAME_PREFIX + user.getEmail(),
                 user == null ? null : user.getPrincipalId(), null, "POST", null, operationId, status, "users",
-                user == null ? null : user.getId().toString(), ip, new LinkedHashMap<>(detail)));
+                user == null ? null : user.getId().toString(), ip, new LinkedHashMap<>(detail))
+                .asUser(user == null ? null : user.getId(), user == null ? null : user.getEmail()));
+    }
+
+    /**
+     * Audits an account event now ({@link #auditAuth(Instant, String, UserEntity, UUID, int, String, Map)} at the
+     * current time, with no session): activation and password resets (prompt R2-013).
+     *
+     * @param operationId the operation
+     * @param user the user, or null when no account matched
+     * @param status the HTTP status answered
+     * @param ip the client address
+     * @param detail what happened; never a password or token
+     */
+    public void auditAuth(String operationId, UserEntity user, int status, String ip, Map<String, Object> detail) {
+        auditAuth(clock.instant(), operationId, user, null, status, ip, detail);
     }
 
     /** The {@code Session} view. */

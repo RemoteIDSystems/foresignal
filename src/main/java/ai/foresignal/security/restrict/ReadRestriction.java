@@ -359,6 +359,50 @@ public final class ReadRestriction {
                 excludeSensitive, regionFilter, alertAudience);
     }
 
+    /**
+     * This restriction narrowed by the data members of {@code other} (prompt R2-013: a signed-in user's stored data
+     * restriction on top of everything else): the sources and kinds are intersected (null on either side means the
+     * other's set), and the region is the intersection of the two regions, kept as an {@code area} when both have one
+     * (an empty intersection lets nothing through). Every other member (endpoints, rate, filters, audiences) is this
+     * restriction's.
+     *
+     * @param other the narrowing restriction, or null for none
+     * @return the narrowed restriction
+     */
+    public ReadRestriction intersect(ReadRestriction other) {
+        if (other == null || !other.hasDataRestrictions()) {
+            return this;
+        }
+        Set<String> s = intersectSets(sources, other.sources);
+        Set<String> k = intersectSets(kinds, other.kinds);
+        List<Double> b = bbox;
+        Geometry a = area;
+        if (other.region != null) {
+            if (region == null) {
+                b = other.bbox;
+                a = other.area;
+            } else {
+                b = null;
+                a = region.intersection(other.region);
+                a.setSRID(4326);
+            }
+        }
+        return new ReadRestriction(s, k, b, a, endpoints, excludePrivate, maxRequestsPerMinute, filter,
+                excludeSensitive, regionFilter, alertAudience);
+    }
+
+    private static Set<String> intersectSets(Set<String> mine, Set<String> theirs) {
+        if (theirs == null) {
+            return mine;
+        }
+        if (mine == null) {
+            return theirs;
+        }
+        Set<String> out = new TreeSet<>(mine);
+        out.retainAll(theirs);
+        return out;
+    }
+
     /** This restriction with {@code endpoints} replaced. */
     public ReadRestriction withEndpoints(List<String> value) {
         return new ReadRestriction(sources, kinds, bbox, area, value, excludePrivate, maxRequestsPerMinute, filter,

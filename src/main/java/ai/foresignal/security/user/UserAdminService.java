@@ -6,6 +6,7 @@ import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.security.PrincipalKind;
 import ai.foresignal.security.PrincipalService;
+import ai.foresignal.security.TokenRestrictions;
 import ai.foresignal.security.audit.AuditRecord;
 import ai.foresignal.security.audit.AuditService;
 import jakarta.mail.internet.AddressException;
@@ -66,6 +67,7 @@ public class UserAdminService {
     private final UserLifecycleService lifecycle;
     private final UserTokenService userTokens;
     private final UserViews views;
+    private final UserDataRestrictionService dataRestrictions;
     private final PrincipalService principals;
     private final AccountMailer mailer;
     private final ObjectProvider<UserOwnedConfigReassigner> reassigners;
@@ -85,6 +87,7 @@ public class UserAdminService {
      * @param lifecycle the status machine
      * @param userTokens activation and reset tokens
      * @param views the {@code User} view
+     * @param dataRestrictions the users' data restrictions (R2-013)
      * @param principals principal creation
      * @param mailer the account email sender
      * @param reassigners every kind of user-owned configuration (none until R2-008 registers the first)
@@ -96,7 +99,8 @@ public class UserAdminService {
      */
     public UserAdminService(UserRepository users, RoleRepository roles, UserRoleRepository userRoles,
             RolePermissionRepository rolePermissions, UserLifecycleService lifecycle, UserTokenService userTokens,
-            UserViews views, PrincipalService principals, AccountMailer mailer,
+            UserViews views, UserDataRestrictionService dataRestrictions, PrincipalService principals,
+            AccountMailer mailer,
             ObjectProvider<UserOwnedConfigReassigner> reassigners, ApplicationEventPublisher events, AuditService audit,
             EntityManager entityManager, JdbcTemplate jdbc, Clock clock) {
         this.users = users;
@@ -106,6 +110,7 @@ public class UserAdminService {
         this.lifecycle = lifecycle;
         this.userTokens = userTokens;
         this.views = views;
+        this.dataRestrictions = dataRestrictions;
         this.principals = principals;
         this.mailer = mailer;
         this.reassigners = reassigners;
@@ -300,6 +305,25 @@ public class UserAdminService {
      */
     @Transactional
     public Map<String, Object> update(UUID id, String fullName, String email) {
+        return update(id, fullName, email, false, null);
+    }
+
+    /**
+     * {@link #update(UUID, String, String)}, also replacing the user's data restriction (prompt R2-013) when
+     * {@code setRestriction} is true, in the same transaction.
+     *
+     * @param id the user
+     * @param fullName the new full name, or null
+     * @param email the new email, or null
+     * @param setRestriction true when the request carried {@code dataRestriction}
+     * @param restriction the validated restriction, or null to lift it
+     * @return the {@code User} view
+     * @throws NotFoundException {@code 404 UNKNOWN_USER}
+     * @throws ConflictException {@code 409 EMAIL_TAKEN}
+     */
+    @Transactional
+    public Map<String, Object> update(UUID id, String fullName, String email, boolean setRestriction,
+            TokenRestrictions restriction) {
         UserEntity user = find(id);
         Instant now = clock.instant();
         if (fullName != null) {
@@ -315,6 +339,9 @@ public class UserAdminService {
             }
         }
         users.saveAndFlush(user);
+        if (setRestriction) {
+            dataRestrictions.set(id, restriction);
+        }
         return views.user(user);
     }
 
@@ -453,8 +480,11 @@ public class UserAdminService {
         detail.put("ownedConfigDisposition", reassign ? "reassigned" : "deleted");
         detail.put("reassignedTo", target == null ? null : target.toString());
         detail.put("counts", counts);
-        audit.record(new AuditRecord(clock.instant(), AuditRecord.SYSTEM, null, null, null, null, "DELETE", null,
-                "deleteUser", 200, "users", id.toString(), remoteIp, detail));
+        AuditRecord entry = new AuditRecord(clock.instant(), AuditRecord.SYSTEM, null, null, null, null, "DELETE", null,
+                "deleteUser", 200, "users", id.toString(), remoteIp, detail);
+        // R2-013: a signed-in admin's deletion is attributed to that admin; an API token's stays a system entry.
+        UserEntity acting = actor == null ? null : users.findById(actor).orElse(null);
+        audit.record(acting == null ? entry : entry.asUser(acting.getId(), acting.getEmail()));
         return deletion;
     }
 

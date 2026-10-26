@@ -56,7 +56,7 @@ final class AccessPermissions {
             rule("POST", "/v1/external/analysis/requests", null), // requestAnalysis
             rule("GET", "/v1/settings/retention/preview", "storage.manage"), // previewRetention
             rule("GET", "/v1/analytics/series/forecast", "intel.read"), // getSeriesForecast
-            rule("POST", "/v1/graph/common-dependencies", null), // findCommonDependencies
+            rule("POST", "/v1/graph/common-dependencies", "data.read"), // findCommonDependencies
             rule("GET", "/v1/settings/collector/status", "collector.settings"), // getCollectorStatus
             rule("POST", "/v1/sources/cftc-cot/backfill", "collection.manage"), // backfillCftcCot
             rule("POST", "/v1/system/admin-token/rotate", "users.manage"), // rotateAdminToken
@@ -77,7 +77,7 @@ final class AccessPermissions {
             rule("POST", "/v1/forecasts/evaluations", null), // createForecastEvaluation
             rule("GET", "/v1/forecasts/forecasters", "forecast.read"), // listForecasters
             rule("POST", "/v1/forecasts/forecasters", "system.settings"), // registerExternalForecaster
-            rule("POST", "/v1/graph/ownership-chain", null), // ownershipChain
+            rule("POST", "/v1/graph/ownership-chain", "data.read"), // ownershipChain
             rule("POST", "/v1/hypotheses/sets/draft", null), // draftHypothesisSet
             rule("GET", "/v1/me/mfa/recovery-codes", null), // getMfaRecoveryCodes
             rule("GET", "/v1/precursors/candidates", null), // listPrecursorCandidates
@@ -85,14 +85,14 @@ final class AccessPermissions {
             rule("GET", "/v1/push/vapid-public-key", null), // getVapidPublicKey
             rule("PUT", "/v1/tokens/current/device", null), // updateCurrentTokenDevice
             rule("GET", "/compat/celestrak/gp.php", "data.read"), // getCelestrakGp
-            rule("POST", "/v1/kinematics/cpa/batch", null), // cpaBatch
+            rule("POST", "/v1/kinematics/cpa/batch", "data.read"), // cpaBatch
             rule("POST", "/v1/media/ratings/import", "system.settings"), // importMediaRatings
             rule("GET", "/v1/notifications/stream", null), // streamNotifications
             rule("GET", "/v1/settings/infra-rules", "system.settings"), // getInfraRules
             rule("PUT", "/v1/settings/infra-rules", "system.settings"), // updateInfraRules
             rule("POST", "/v1/stats/rollup/rebuild", "system.settings"), // rebuildStatsRollup
             rule("GET", "/fdsnws/event/1/version", null), // getFdsnEventVersion
-            rule("GET", "/v1/analytics/precision", null), // getPrecision
+            rule("GET", "/v1/analytics/precision", "data.read"), // getPrecision
             rule("POST", "/v1/auth/password/reset", null), // resetPassword
             rule("GET", "/v1/escalation-policies", "channels.global"), // listEscalationPolicies
             rule("POST", "/v1/escalation-policies", "channels.global"), // createEscalationPolicy
@@ -133,7 +133,7 @@ final class AccessPermissions {
             rule("POST", "/v1/social/media/match", null), // matchMedia
             rule("GET", "/v1/sources/collection", "collection.manage"), // getCollectionSources
             rule("PUT", "/v1/sources/collection", "collection.manage"), // updateCollectionSources
-            rule("GET", "/fdsnws/event/1/query", null), // queryFdsnEvents
+            rule("GET", "/fdsnws/event/1/query", "data.read"), // queryFdsnEvents
             rule("GET", "/v1/analyst/proposals", null), // listAnalystProposals
             rule("GET", "/v1/analytics/impacts", "intel.read"), // listProjectedImpacts
             rule("GET", "/v1/benchmarks/status", "intel.read"), // getBenchmarkStatus
@@ -174,7 +174,7 @@ final class AccessPermissions {
             rule("PUT", "/v1/analytics/series", null), // upsertAnalysisSeries
             rule("GET", "/v1/attention/topics", "intel.read"), // listAttentionTopics
             rule("POST", "/v1/attention/topics", null), // createAttentionTopic
-            rule("POST", "/v1/base-rates/query", null), // queryBaseRate
+            rule("POST", "/v1/base-rates/query", "intel.read"), // queryBaseRate
             rule("GET", "/v1/benchmarks/cases", null), // listBenchmarkCases
             rule("POST", "/v1/benchmarks/cases", null), // createBenchmarkCase
             rule("POST", "/v1/clients/presence", null), // updatePresence
@@ -203,7 +203,7 @@ final class AccessPermissions {
             rule("POST", "/v1/benchmarks/runs", null), // createBenchmarkRun
             rule("GET", "/v1/cap/alerts.atom", "data.read"), // capAtom
             rule("GET", "/v1/collection-gaps", "intel.read"), // listCollectionGaps
-            rule("POST", "/v1/context/summary", null), // summarizeContext
+            rule("POST", "/v1/context/summary", "data.read"), // summarizeContext
             rule("GET", "/v1/evidence/events", "intel.read"), // listCanonicalEvents
             rule("POST", "/v1/exchange/import", "system.settings"), // importExchangePackage
             rule("GET", "/v1/federation/info", null), // getFederationInfo
@@ -211,7 +211,7 @@ final class AccessPermissions {
             rule("POST", "/v1/hypotheses/sets", null), // createHypothesisSet
             rule("GET", "/v1/kml/records.kml", "data.read"), // getKmlRecords
             rule("GET", "/v1/media/providers", "system.settings"), // listMediaProviders
-            rule("POST", "/v1/objects/resolve", null), // resolveObjects
+            rule("POST", "/v1/objects/resolve", "data.read"), // resolveObjects
             rule("GET", "/v1/ogc/collections", "data.read"), // ogcCollections
             rule("GET", "/v1/ogc/conformance", "data.read"), // ogcConformance
             rule("GET", "/v1/precursor-tests", "intel.read"), // listPrecursorTests
@@ -238,7 +238,7 @@ final class AccessPermissions {
             rule("POST", "/v1/evidence-items", null), // createEvidenceItem
             rule("POST", "/v1/exchange/inbox", null), // receiveExchangePackage
             rule("GET", "/v1/history/frames", "data.read"), // getHistoryFrames
-            rule("POST", "/v1/infra/affected", null), // computeAffectedInfrastructure
+            rule("POST", "/v1/infra/affected", "data.read"), // computeAffectedInfrastructure
             rule("GET", "/v1/ingest/formats", "collection.manage"), // listIngestFormats
             rule("GET", "/v1/investigations", "intel.read"), // listInvestigations
             rule("POST", "/v1/investigations", null), // createInvestigation
@@ -259,7 +259,7 @@ final class AccessPermissions {
             rule("GET", "/v1/sources/health", null), // listSourceHealth
             rule("POST", "/v1/stream-tickets", null), // createStreamTicket
             rule("GET", "/v1/alerts/stream", "data.read"), // streamAlerts
-            rule("POST", "/v1/analogs/query", null), // queryAnalogs
+            rule("POST", "/v1/analogs/query", "intel.read"), // queryAnalogs
             rule("GET", "/v1/analyst/notes", "intel.read"), // listAnalystNotes
             rule("POST", "/v1/auth/activate", null), // activateAccount
             rule("DELETE", "/v1/auth/sessions", null), // revokeAllSessions
@@ -293,7 +293,7 @@ final class AccessPermissions {
             rule("GET", "/v1/social/volume", "intel.read"), // getSocialVolume
             rule("GET", "/v1/analyst/runs", null), // listAnalystRuns
             rule("POST", "/v1/archives/run", "storage.manage"), // runArchive
-            rule("GET", "/v1/attributions", null), // getAttributions
+            rule("GET", "/v1/attributions", "data.read"), // getAttributions
             rule("GET", "/v1/infra/status", "intel.read"), // getInfraStatus
             rule("GET", "/v1/intel/events", "intel.read"), // listIntelEvents
             rule("POST", "/v1/intel/events", null), // createIntelEvent
@@ -305,7 +305,7 @@ final class AccessPermissions {
             rule("POST", "/v1/pol/subjects", null), // createPolSubject
             rule("GET", "/v1/push/devices", null), // listPushDevices
             rule("POST", "/v1/push/devices", null), // registerPushDevice
-            rule("POST", "/v1/sample/track", null), // sampleTrack
+            rule("POST", "/v1/sample/track", "data.read"), // sampleTrack
             rule("GET", "/v1/social/posts", "intel.read"), // listSocialPosts
             rule("GET", "/v1/aggregators", "network.manage"), // listAggregators
             rule("GET", "/v1/ask/threads", null), // listAskThreads
@@ -326,7 +326,7 @@ final class AccessPermissions {
             rule("GET", "/v1/social/cues", "intel.read"), // listSocialCues
             rule("POST", "/v1/social/cues", null), // createSocialCue
             rule("GET", "/v1/system/jwks", null), // getSystemJwks
-            rule("POST", "/v1/ask/stream", null), // askStream
+            rule("POST", "/v1/ask/stream", "data.read"), // askStream
             rule("POST", "/v1/auth/login", null), // login
             rule("GET", "/v1/base-rates", "intel.read"), // listBaseRates
             rule("POST", "/v1/base-rates", null), // createBaseRate
@@ -372,7 +372,7 @@ final class AccessPermissions {
             rule("POST", "/v1/channels", "self.channels", "channels.global"), // createChannel
             rule("GET", "/v1/contract", null), // getContract
             rule("GET", "/v1/entities", "data.read"), // listEntities
-            rule("POST", "/v1/exposure", null), // computeExposure
+            rule("POST", "/v1/exposure", "intel.read"), // computeExposure
             rule("GET", "/v1/me/quota", null), // getMyQuota
             rule("GET", "/v1/outlooks", "intel.read"), // listRegionalOutlooks
             rule("GET", "/v1/products", "data.read"), // listProducts
@@ -393,7 +393,7 @@ final class AccessPermissions {
             rule("GET", "/v1/records", "data.read"), // listRecords
             rule("GET", "/v1/reports", null), // listReports
             rule("POST", "/v1/reports", null), // createReport
-            rule("GET", "/v1/sensors", null), // listSensors
+            rule("GET", "/v1/sensors", "data.read"), // listSensors
             rule("GET", "/v1/sources", null), // listSources
             rule("GET", "/v1/alerts", "data.read"), // listAlerts
             rule("GET", "/v1/digest", "intel.read"), // getDigest
@@ -405,7 +405,7 @@ final class AccessPermissions {
             rule("GET", "/v1/places", null), // listPlaces
             rule("POST", "/v1/places", null), // createPlace
             rule("GET", "/v1/sample", "data.read"), // getSample
-            rule("POST", "/v1/sample", null), // postSample
+            rule("POST", "/v1/sample", "data.read"), // postSample
             rule("GET", "/v1/search", "data.read"), // search
             rule("GET", "/v1/series", "data.read"), // listSeries
             rule("GET", "/v1/styles", "data.read"), // listStyles
@@ -413,7 +413,7 @@ final class AccessPermissions {
             rule("GET", "/v1/tokens", "users.manage"), // listTokens
             rule("POST", "/v1/tokens", "users.manage"), // createToken
             rule("GET", "/v1/audit", "audit.read"), // listAuditEvents
-            rule("POST", "/v1/graph", null), // queryGraph
+            rule("POST", "/v1/graph", "data.read"), // queryGraph
             rule("GET", "/v1/holds", "storage.manage"), // listHolds
             rule("POST", "/v1/holds", "storage.manage"), // createHold
             rule("GET", "/v1/inbox", null), // listInbox
@@ -436,7 +436,7 @@ final class AccessPermissions {
             rule("GET", "/v1/tags", null), // listTags
             rule("POST", "/v1/tags", null), // createTag
             rule("GET", "/v1/wmts", "data.read"), // getWmtsKvp
-            rule("POST", "/v1/ask", null), // ask
+            rule("POST", "/v1/ask", "data.read"), // ask
             rule("GET", "/v1/ogc", "data.read"), // ogcLanding
             rule("GET", "/v1/me", null), // getMe
             rule("GET", "/v1/my", null), // listMyObjects
@@ -508,7 +508,7 @@ final class AccessPermissions {
             rule("POST", "/v1/hypotheses/sets/*/review", null), // reviewHypothesisSet
             rule("POST", "/v1/pol/subjects/*/recompute", null), // recomputePolSubject
             rule("GET", "/v1/products/*/frames/latest", "data.read"), // getLatestProductFrame
-            rule("GET", "/v1/saved-searches/*/results", null), // runSavedSearch
+            rule("GET", "/v1/saved-searches/*/results", "data.read"), // runSavedSearch
             rule("GET", "/v1/situations/*/assessments", "intel.read"), // listSituationAssessments
             rule("GET", "/v1/sources/*/doctor/reports", null), // listSourceDoctorReports
             rule("GET", "/v1/briefings/*/podcast.rss", "intel.read"), // getBriefingPodcast
@@ -657,8 +657,8 @@ final class AccessPermissions {
             rule("GET", "/v1/media/*/thumbnail", "data.read"), // getMediaThumbnail
             rule("GET", "/v1/media/providers/*", "system.settings"), // getMediaProvider
             rule("PUT", "/v1/media/providers/*", "system.settings"), // updateMediaProvider
-            rule("GET", "/v1/objects/*/dossier", null), // getObjectDossier
-            rule("GET", "/v1/objects/*/related", null), // listRelatedObjects
+            rule("GET", "/v1/objects/*/dossier", "data.read"), // getObjectDossier
+            rule("GET", "/v1/objects/*/related", "data.read"), // listRelatedObjects
             rule("GET", "/v1/ogc/collections/*", "data.read"), // ogcCollection
             rule("DELETE", "/v1/precursor-tests/*", null), // deletePrecursorTest
             rule("GET", "/v1/precursor-tests/*", "intel.read"), // getPrecursorTest
@@ -691,8 +691,8 @@ final class AccessPermissions {
             rule("DELETE", "/v1/investigations/*", null), // deleteInvestigation
             rule("GET", "/v1/investigations/*", "intel.read"), // getInvestigation
             rule("PATCH", "/v1/investigations/*", null), // updateInvestigation
-            rule("GET", "/v1/places/*/weather", null), // getPlaceWeather
-            rule("POST", "/v1/products/*/stats", null), // postProductStats
+            rule("GET", "/v1/places/*/weather", "data.read"), // getPlaceWeather
+            rule("POST", "/v1/products/*/stats", "data.read"), // postProductStats
             rule("DELETE", "/v1/push/providers/*", "system.settings"), // deletePushProvider
             rule("PUT", "/v1/push/providers/*", "system.settings"), // putPushProvider
             rule("POST", "/v1/reports/*/blocks", null), // createReportBlock
@@ -830,7 +830,7 @@ final class AccessPermissions {
             rule("GET", "/v1/exports/*", "data.export"), // getExport
             rule("GET", "/v1/indices/*", "intel.read"), // getRegionalIndex
             rule("PUT", "/v1/indices/*", null), // putRegionalIndex
-            rule("GET", "/v1/objects/*", null), // getObject
+            rule("GET", "/v1/objects/*", "data.read"), // getObject
             rule("GET", "/v1/plugins/*", "system.settings"), // getPlugin
             rule("PUT", "/v1/plugins/*", "system.settings"), // updatePlugin
             rule("DELETE", "/v1/reports/*", null), // deleteReport

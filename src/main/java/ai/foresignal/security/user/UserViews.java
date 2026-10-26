@@ -13,8 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * The {@code User} response shape (OpenAPI {@code User}; R2-003 for {@code getMe}, reused by user management):
  * {@code id}, {@code email}, {@code fullName}, {@code status}, {@code roles} ({@code RoleRef}s, by name),
- * {@code mfaEnabled}, {@code createdBy}, {@code createdAt}, {@code updatedAt} and {@code lastLoginAt}. Never the
- * password hash.
+ * {@code mfaEnabled}, {@code createdBy}, {@code createdAt}, {@code updatedAt} and {@code lastLoginAt}, and (prompt
+ * R2-013) {@code dataRestriction}, null when the user is unrestricted. Never the password hash.
  */
 @Service
 public class UserViews {
@@ -22,6 +22,7 @@ public class UserViews {
     private final UserRepository users;
     private final UserRoleRepository userRoles;
     private final RoleRepository roles;
+    private final UserDataRestrictionService restrictions;
 
     /**
      * Creates the view builder.
@@ -29,11 +30,14 @@ public class UserViews {
      * @param users the user store
      * @param userRoles user-to-role links
      * @param roles the role store
+     * @param restrictions the users' data restrictions
      */
-    public UserViews(UserRepository users, UserRoleRepository userRoles, RoleRepository roles) {
+    public UserViews(UserRepository users, UserRoleRepository userRoles, RoleRepository roles,
+            UserDataRestrictionService restrictions) {
         this.users = users;
         this.userRoles = userRoles;
         this.roles = roles;
+        this.restrictions = restrictions;
     }
 
     /**
@@ -55,7 +59,9 @@ public class UserViews {
      */
     @Transactional(readOnly = true)
     public Map<String, Object> user(UserEntity user) {
-        return view(user, rolesOf(List.of(user.getId())).getOrDefault(user.getId(), List.of()));
+        Map<String, Object> out = view(user, rolesOf(List.of(user.getId())).getOrDefault(user.getId(), List.of()));
+        out.put("dataRestriction", restrictions.view(user.getId()));
+        return out;
     }
 
     /**
@@ -67,11 +73,15 @@ public class UserViews {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> users(List<UserEntity> list) {
         Map<UUID, List<RoleEntity>> byUser = rolesOf(list.stream().map(UserEntity::getId).toList());
-        return list.stream().map(u -> view(u, byUser.getOrDefault(u.getId(), List.of()))).toList();
+        return list.stream().map(u -> {
+            Map<String, Object> out = view(u, byUser.getOrDefault(u.getId(), List.of()));
+            out.put("dataRestriction", restrictions.view(u.getId()));
+            return out;
+        }).toList();
     }
 
     /**
-     * The view of a user with its roles already known.
+     * The view of a user with its roles already known, and no data restriction (a user just created).
      *
      * @param user the user
      * @param held its roles
@@ -94,6 +104,7 @@ public class UserViews {
         out.put("createdAt", user.getCreatedAt());
         out.put("updatedAt", user.getUpdatedAt());
         out.put("lastLoginAt", user.getLastLoginAt());
+        out.put("dataRestriction", null);
         return out;
     }
 

@@ -11,7 +11,7 @@ import java.util.UUID;
  * notification actions, 039 private reads, exports and purges.
  *
  * @param at when it happened
- * @param actorKind {@code token}, {@code ingest_key}, {@code pairing}, {@code system} or {@code action}
+ * @param actorKind {@code token}, {@code user}, {@code ingest_key}, {@code pairing}, {@code system} or {@code action}
  * @param tokenId the token, or null
  * @param tokenName the token's name, or null
  * @param principalId the token's principal, or null
@@ -24,6 +24,8 @@ import java.util.UUID;
  * @param targetId its id, or null
  * @param remoteIp the client address (after trusted-proxy handling), or null
  * @param detail context; never secrets, token values or request bodies
+ * @param userId the signed-in user who acted (actor kind {@code user}, prompt R2-013), or null
+ * @param userEmail that user's email when the entry was written, or null
  */
 public record AuditRecord(
         Instant at,
@@ -39,7 +41,12 @@ public record AuditRecord(
         String targetType,
         String targetId,
         String remoteIp,
-        Map<String, Object> detail) {
+        Map<String, Object> detail,
+        UUID userId,
+        String userEmail) {
+
+    /** Actor kind of a signed-in user (prompt R2-013): {@code userId} and {@code userEmail} say who. */
+    public static final String USER = "user";
 
     /** Actor kind of a token. */
     public static final String TOKEN = "token";
@@ -68,5 +75,25 @@ public record AuditRecord(
     /** A null detail becomes empty. */
     public AuditRecord {
         detail = detail == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(detail));
+    }
+
+    /** An entry without a user (the shape before prompt R2-013). */
+    public AuditRecord(Instant at, String actorKind, UUID tokenId, String tokenName, String principalId, String scope,
+            String method, String path, String operationId, Integer status, String targetType, String targetId,
+            String remoteIp, Map<String, Object> detail) {
+        this(at, actorKind, tokenId, tokenName, principalId, scope, method, path, operationId, status, targetType,
+                targetId, remoteIp, detail, null, null);
+    }
+
+    /**
+     * This entry attributed to a signed-in user: actor kind {@code user}, with the user's id and email.
+     *
+     * @param user the user's id
+     * @param email the user's email
+     * @return the entry
+     */
+    public AuditRecord asUser(UUID user, String email) {
+        return new AuditRecord(at, USER, tokenId, tokenName, principalId, scope, method, path, operationId, status,
+                targetType, targetId, remoteIp, detail, user, email);
     }
 }

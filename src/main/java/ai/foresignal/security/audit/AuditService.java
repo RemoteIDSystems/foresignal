@@ -28,7 +28,8 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p>Recorded by the token filter: every authenticated write (non-GET/HEAD), every 401/403 on a
  * write path, pairing claims and token revocations. Prompt 025 adds MCP tool calls through
- * {@link #record}.
+ * {@link #record}. Prompt R2-013 attributes what a signed-in user does to the user (actor kind {@code user}) and adds
+ * reads refused for a missing permission. Entries are only ever inserted; the table refuses updates (V20).
  */
 @Service
 public class AuditService {
@@ -43,8 +44,9 @@ public class AuditService {
 
     static final String INSERT = """
             INSERT INTO audit_event (at, actor_kind, token_id, token_name, principal_id, scope, method, path,
-                                     operation_id, status, target_type, target_id, remote_ip, detail)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb))
+                                     operation_id, status, target_type, target_id, remote_ip, detail, user_id,
+                                     user_email)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?)
             """;
 
     private final JdbcTemplate jdbc;
@@ -172,6 +174,8 @@ public class AuditService {
                 ps.setString(12, truncate(r.targetId(), 256));
                 ps.setString(13, truncate(r.remoteIp(), 64));
                 ps.setString(14, json.writeValueAsString(r.detail()));
+                ps.setObject(15, r.userId(), Types.OTHER);
+                ps.setString(16, truncate(r.userEmail(), 320));
             });
         } catch (RuntimeException e) {
             log.warn("Dropped {} audit entries that could not be written: {}", batch.size(), e.toString());

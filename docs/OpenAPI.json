@@ -10074,7 +10074,7 @@
         ],
         "operationId": "ask",
         "summary": "Ask a question",
-        "description": "Answers from Foresignal's data with the chat provider and the read tool catalogue (tools mode, ≤ 12 iterations, 120 s) or, when the model lacks tools, retrieval-only mode. Every citation is verified against tool output down to the persisted seq (`[source:externalId@seq]`); dropped citations and uncited claims are returned in `warnings`. Write actions are only proposed unless `allowActions` is true and the token has agent scope. A model refusal is answered (200) with a warning. Errors: 409 LLM_NOT_CONFIGURED, 429 LLM_BUDGET_EXCEEDED.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).",
+        "description": "Answers from Foresignal's data with the chat provider and the read tool catalogue (tools mode, ≤ 12 iterations, 120 s) or, when the model lacks tools, retrieval-only mode. Every citation is verified against tool output down to the persisted seq (`[source:externalId@seq]`); dropped citations and uncited claims are returned in `warnings`. Write actions are only proposed unless `allowActions` is true and the token has agent scope. A model refusal is answered (200) with a warning. Errors: 409 LLM_NOT_CONFIGURED, 429 LLM_BUDGET_EXCEEDED.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "requestBody": {
           "required": true,
           "content": {
@@ -10153,6 +10153,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -10197,7 +10207,8 @@
             }
           }
         ],
-        "x-foresignal-status": "implemented"
+        "x-foresignal-status": "implemented",
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/ask/stream": {
@@ -10207,7 +10218,7 @@
         ],
         "operationId": "askStream",
         "summary": "Ask a question (streaming)",
-        "description": "Server-Sent Events: `progress` (tool activity), `delta` (unverified answer text), `citation`, `warning`, `action`, `done` (the full verified AskResponse, identical to the persisted message), `error`. Heartbeats and per-token stream limits as in 015.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).",
+        "description": "Server-Sent Events: `progress` (tool activity), `delta` (unverified answer text), `citation`, `warning`, `action`, `done` (the full verified AskResponse, identical to the persisted message), `error`. Heartbeats and per-token stream limits as in 015.\n\n**Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "requestBody": {
           "required": true,
           "content": {
@@ -10309,6 +10320,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -10397,7 +10418,8 @@
             }
           }
         ],
-        "x-foresignal-status": "implemented"
+        "x-foresignal-status": "implemented",
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/ask/threads": {
@@ -15311,7 +15333,7 @@
         ],
         "operationId": "listAuditEvents",
         "summary": "List audit events",
-        "description": "Newest first, keyset paging. Covers authenticated writes, 401/403 on write paths, pairing claims, token revocations, MCP tool calls, notification actions, private-data reads by non-admins, exports and purges. `detail` never contains secrets or request bodies. Retention key `audit` (default 90d).\n\n**Scope:** `admin`.",
+        "description": "Newest first, keyset paging. Covers authenticated writes, 401/403 on write paths, pairing claims, token revocations, MCP tool calls, notification actions, private-data reads by non-admins, exports and purges. `detail` never contains secrets or request bodies. Retention key `audit` (default 90d).\n\n**Scope:** `admin`.\n\n**v2.0 (R2-013):** a signed-in user reaches the log with `audit.read` (the Auditor role) without admin scope; a session without it is 403 PERMISSION_DENIED. What a signed-in user does is attributed to the user: actor kind `user` with `userId` and `userEmail`, including sign-ins (successful and failed), sign-outs, session revocations, account activation and password resets, every user, role, settings, collection and LLM provider change, and reads refused with PERMISSION_DENIED (`detail.requiredPermission`). Filters: time, token, operation, status, actor kind, user and target. The log is append-only: the database refuses to change an entry; retention deletes entries older than the window.",
         "parameters": [
           {
             "name": "since",
@@ -15361,6 +15383,46 @@
               "type": "integer",
               "minimum": 100,
               "maximum": 599
+            }
+          },
+          {
+            "name": "actorKind",
+            "in": "query",
+            "required": false,
+            "description": "Only this actor kind (for example `user` or `token`, R2-013)",
+            "schema": {
+              "type": "string",
+              "maxLength": 16
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "description": "Only entries attributed to this user (R2-013)",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "targetType",
+            "in": "query",
+            "required": false,
+            "description": "Only this target type, for example `users` or `settings` (R2-013)",
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "targetId",
+            "in": "query",
+            "required": false,
+            "description": "Only this target id (R2-013)",
+            "schema": {
+              "type": "string",
+              "maxLength": 256
             }
           },
           {
@@ -32010,7 +32072,7 @@
         ],
         "operationId": "postSample",
         "summary": "Sample products at many points",
-        "description": "Batch form of `GET /v1/sample` for up to 100 points (400 VALIDATION_FAILED beyond); results are in request order.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Batch form of `GET /v1/sample` for up to 100 points (400 VALIDATION_FAILED beyond); results are in request order.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "requestBody": {
           "required": true,
           "content": {
@@ -32100,7 +32162,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/products/{productId}/series": {
@@ -32304,7 +32367,7 @@
         ],
         "operationId": "postProductStats",
         "summary": "Compute area statistics",
-        "description": "min, max, mean, p95, coverage and the area above each threshold (spherical cell areas per grid type) over a geometry, place or bbox. Geometry ≤ 10,000 vertices and area ≤ 2,000,000 km² (400 VALIDATION_FAILED beyond). Thresholds are given in the requested unit system. A cell belongs to the area when its center lies inside; `coveragePct` is the share of those cells holding a value. A non-ok status (unavailable, no-coverage, stale) carries no statistics (`min`…`p95` null, `thresholds` empty).\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "min, max, mean, p95, coverage and the area above each threshold (spherical cell areas per grid type) over a geometry, place or bbox. Geometry ≤ 10,000 vertices and area ≤ 2,000,000 km² (400 VALIDATION_FAILED beyond). Thresholds are given in the requested unit system. A cell belongs to the area when its center lies inside; `coveragePct` is the share of those cells holding a value. A non-ok status (unavailable, no-coverage, stale) carries no statistics (`min`…`p95` null, `thresholds` empty).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "requestBody": {
           "required": true,
           "content": {
@@ -32394,7 +32457,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/places/{placeId}/weather": {
@@ -32417,7 +32481,7 @@
         ],
         "operationId": "getPlaceWeather",
         "summary": "Get weather at a place",
-        "description": "The `place-weather` record (wx-places head) plus cached forecast series (GFS/HRRR, NWS from 053). Sections that are stale, failing or without coverage keep their previous values with a non-ok status; unknown is never clear.\n\n**Scope:** `read` (always authenticated).",
+        "description": "The `place-weather` record (wx-places head) plus cached forecast series (GFS/HRRR, NWS from 053). Sections that are stale, failing or without coverage keep their previous values with a non-ok status; unknown is never clear.\n\n**Scope:** `read` (always authenticated).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "responses": {
           "200": {
             "description": "Place weather",
@@ -32487,7 +32551,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/ingest/{sourceId}/media": {
@@ -39308,7 +39373,7 @@
         ],
         "operationId": "computeExposure",
         "summary": "Compute exposure of an area",
-        "description": "Facilities, places, watchlist entities, live traffic, optional population (GHSL pack) and infrastructure dependents inside a geometry, place or event area. Without a pack the population section is `not-installed`.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Facilities, places, watchlist entities, live traffic, optional population (GHSL pack) and infrastructure dependents inside a geometry, place or event area. Without a pack the population section is `not-installed`.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `intel.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "requestBody": {
           "required": true,
           "content": {
@@ -39387,6 +39452,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -39397,7 +39472,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "intel.read"
       }
     },
     "/v1/packs/population/import": {
@@ -42400,7 +42476,7 @@
         ],
         "operationId": "computeAffectedInfrastructure",
         "summary": "Facilities affected by an area",
-        "description": "Seeds from an area, event or record and walks dependency edges (depth ≤ 3, label ≥ minLabel). Results ≤ 5,000 nodes (truncated by pathScore). An area > 2,000,000 km² without `types` is 400 INFRA_QUERY_TOO_LARGE.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Seeds from an area, event or record and walks dependency edges (depth ≤ 3, label ≥ minLabel). Results ≤ 5,000 nodes (truncated by pathScore). An area > 2,000,000 km² without `types` is 400 INFRA_QUERY_TOO_LARGE.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "requestBody": {
           "required": true,
           "content": {
@@ -42479,6 +42555,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -42489,7 +42575,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/infra/status": {
@@ -42747,7 +42834,7 @@
         ],
         "operationId": "sampleTrack",
         "summary": "Sample products along a track",
-        "description": "Samples each point at its time using the nearest frame within `maxGap`, or forecast frames for future times with `run`. With `record`, points come from the 037 track simplification. Private sources and observer gating apply.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Samples each point at its time using the nearest frame within `maxGap`, or forecast frames for future times with `run`. With `record`, points come from the 037 track simplification. Private sources and observer gating apply.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "requestBody": {
           "required": true,
           "content": {
@@ -42816,6 +42903,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -42826,7 +42923,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/products/{productId}/fields/{frameKey}.velocity-json": {
@@ -47252,7 +47350,7 @@
         ],
         "operationId": "getAttributions",
         "summary": "Aggregated attributions for a scope",
-        "description": "Attribution aggregate (one entry per source and licence, with record counts) for the current records matching `source` and `kind`, for SSE clients and map footers. Honours the licence policy and token restrictions.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Attribution aggregate (one entry per source and licence, with record counts) for the current records matching `source` and `kind`, for SSE clients and map footers. Honours the licence policy and token restrictions.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "parameters": [
           {
             "name": "source",
@@ -47374,6 +47472,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -47384,7 +47492,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/.well-known/jwks.json": {
@@ -53874,7 +53983,7 @@
         ],
         "operationId": "cpaBatch",
         "summary": "CPA of one subject against many",
-        "description": "Evaluates one subject against up to 500 records from a filter (kinds, sources, bbox) and returns the top N by dcpa within maxDcpaM. Errors: `STATE_TOO_OLD` for the subject.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Evaluates one subject against up to 500 records from a filter (kinds, sources, bbox) and returns the top N by dcpa within maxDcpaM. Errors: `STATE_TOO_OLD` for the subject.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "requestBody": {
           "required": true,
           "content": {
@@ -53953,6 +54062,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -53963,7 +54082,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/exercises": {
@@ -59825,7 +59945,7 @@
         ],
         "operationId": "queryBaseRate",
         "summary": "Compute an ad-hoc base rate",
-        "description": "Computes a base rate for a definition without storing it (cached 24 h); returns a stored rate when one matches the definition.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Computes a base rate for a definition without storing it (cached 24 h); returns a stored rate when one matches the definition.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `intel.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "requestBody": {
           "required": true,
           "content": {
@@ -59884,6 +60004,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -59894,7 +60024,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "intel.read"
       }
     },
     "/v1/base-rates/refresh": {
@@ -60231,7 +60362,7 @@
         ],
         "operationId": "queryAnalogs",
         "summary": "Find region-period analogs",
-        "description": "Builds a signature from a region's last 14 days (or the given period) of reference history and rollups and searches the same region class's history; for questions not tied to a situation.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Builds a signature from a region's last 14 days (or the given period) of reference history and rollups and searches the same region class's history; for questions not tied to a situation.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `intel.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "requestBody": {
           "required": true,
           "content": {
@@ -60290,6 +60421,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -60300,7 +60441,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "intel.read"
       }
     },
     "/v1/forecasts/questions": {
@@ -67314,7 +67456,7 @@
         ],
         "operationId": "getObject",
         "summary": "Resolve one object reference",
-        "description": "Returns the uniform envelope, `asOf`-aware, with `actions` the calling token may perform. Unknown types → 400 `OBJECT_REF_INVALID`; private or unshared objects are invisible (404).\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Returns the uniform envelope, `asOf`-aware, with `actions` the calling token may perform. Unknown types → 400 `OBJECT_REF_INVALID`; private or unshared objects are invisible (404).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "parameters": [
           {
             "name": "ref",
@@ -67402,6 +67544,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -67412,7 +67564,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/objects/resolve": {
@@ -67422,7 +67575,7 @@
         ],
         "operationId": "resolveObjects",
         "summary": "Resolve object references in batch",
-        "description": "Resolves up to 500 refs; missing or invisible refs are listed, not errors.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Resolves up to 500 refs; missing or invisible refs are listed, not errors.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "requestBody": {
           "required": true,
           "content": {
@@ -67481,6 +67634,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -67491,7 +67654,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/objects/{ref}/dossier": {
@@ -67501,7 +67665,7 @@
         ],
         "operationId": "getObjectDossier",
         "summary": "Get an object's dossier",
-        "description": "The envelope plus bounded sections (overview, imagery, forecast, impacts, related, timeline, analysis), each with a `status`, in ≤ 64 KB. Forecasts carry their issuer and knowledge cutoff.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "The envelope plus bounded sections (overview, imagery, forecast, impacts, related, timeline, analysis), each with a `status`, in ≤ 64 KB. Forecasts carry their issuer and knowledge cutoff.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "parameters": [
           {
             "name": "ref",
@@ -67634,6 +67798,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -67647,7 +67821,8 @@
         ],
         "x-foresignal-extended-by": [
           "133"
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/objects/{ref}/related": {
@@ -67657,7 +67832,7 @@
         ],
         "operationId": "listRelatedObjects",
         "summary": "List an object's related objects",
-        "description": "Neighbourhood through the relation graph, filtered by type, direction, validity at `asOf` and confidence.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Neighbourhood through the relation graph, filtered by type, direction, validity at `asOf` and confidence.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "parameters": [
           {
             "name": "ref",
@@ -67811,6 +67986,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -67821,7 +68006,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/context/summary": {
@@ -67831,7 +68017,7 @@
         ],
         "operationId": "summarizeContext",
         "summary": "Summarise a viewport and time window",
-        "description": "Layer counts (aggregated, never feature lists), a merged activity feed tagged by signal family, insights with issuer, base rate and knowledge cutoff, and top related objects, in ≤ 32 KB; cached per normalised context for 30 s.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Layer counts (aggregated, never feature lists), a merged activity feed tagged by signal family, insights with issuer, base rate and knowledge cutoff, and top related objects, in ≤ 32 KB; cached per normalised context for 30 s.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "requestBody": {
           "required": true,
           "content": {
@@ -67890,6 +68076,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -67900,7 +68096,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/graph": {
@@ -67910,7 +68107,7 @@
         ],
         "operationId": "queryGraph",
         "summary": "Query a relation subgraph",
-        "description": "Nodes (envelopes) and edges within `depth` ≤ 2 of up to 50 seed refs, limited to 2,000 edges, valid at `asOf`.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Nodes (envelopes) and edges within `depth` ≤ 2 of up to 50 seed refs, limited to 2,000 edges, valid at `asOf`.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "requestBody": {
           "required": true,
           "content": {
@@ -67969,6 +68166,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -67979,7 +68186,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/graph/common-dependencies": {
@@ -67989,7 +68197,7 @@
         ],
         "operationId": "findCommonDependencies",
         "summary": "Find shared dependencies",
-        "description": "Facilities and infrastructure that up to 20 objects share through `depends-on` and `located-in` paths (104), each with its weakest-edge label.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Facilities and infrastructure that up to 20 objects share through `depends-on` and `located-in` paths (104), each with its weakest-edge label.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "requestBody": {
           "required": true,
           "content": {
@@ -68048,6 +68256,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -68058,7 +68276,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/graph/ownership-chain": {
@@ -68068,7 +68287,7 @@
         ],
         "operationId": "ownershipChain",
         "summary": "Walk ownership and affiliation chains",
-        "description": "People and organizations reached from up to 50 seed entities through the ownership / affiliation edges (`owns`, `controls`, `officer-of`, `beneficial-owner`, `affiliated-with`), each with its strongest, shortest ownership chain (158). An entity reached from two or more seeds is a shared attribute — a common owner, officer, address or affiliate. Model and queries only; the external corporate / UBO / PEP / leak data that populates the edges is deferred (docs/Future-Roadmap.md).\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "People and organizations reached from up to 50 seed entities through the ownership / affiliation edges (`owns`, `controls`, `officer-of`, `beneficial-owner`, `affiliated-with`), each with its strongest, shortest ownership chain (158). An entity reached from two or more seeds is a shared attribute — a common owner, officer, address or affiliate. Model and queries only; the external corporate / UBO / PEP / leak data that populates the edges is deferred (docs/Future-Roadmap.md).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "requestBody": {
           "required": true,
           "content": {
@@ -68127,6 +68346,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -68137,7 +68366,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/relations": {
@@ -68756,7 +68986,7 @@
         ],
         "operationId": "getPrecision",
         "summary": "Get precision from analyst verdicts",
-        "description": "For findings (by detector), intel events (by recipe), situations (linker) and precursor-active findings: the share confirmed among verdicts with a Wilson interval and counts; `needs-review` counts as unlabeled.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "For findings (by detector), intel events (by recipe), situations (linker) and precursor-active findings: the share confirmed among verdicts with a Wilson interval and counts; `needs-review` counts as unlabeled.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "parameters": [
           {
             "name": "component",
@@ -68832,6 +69062,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -68842,7 +69082,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/sensors": {
@@ -68852,7 +69093,7 @@
         ],
         "operationId": "listSensors",
         "summary": "Discover sensors observing an area",
-        "description": "Merged sensor envelopes: sources with 116 observability above 0.2 for the area, local receivers and SatDump stations in range, predicted satellite passes with curated capabilities, and STAC scenes and raster products in the window. Read-only; no tasking. `placeId` requires a token.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "Merged sensor envelopes: sources with 116 observability above 0.2 for the area, local receivers and SatDump stations in range, predicted satellite passes with curated capabilities, and STAC scenes and raster products in the window. Read-only; no tasking. `placeId` requires a token.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "parameters": [
           {
             "name": "bbox",
@@ -68985,6 +69226,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -68995,7 +69246,8 @@
           {
             "bearerToken": []
           }
-        ]
+        ],
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/workspaces": {
@@ -74361,7 +74613,7 @@
         ],
         "operationId": "runSavedSearch",
         "summary": "Run a saved search",
-        "description": "Runs the saved search now (027 hybrid search plus structured filters over envelopes) and returns envelopes the caller can see.\n\n**Scope:** `read`.",
+        "description": "Runs the saved search now (027 hybrid search plus structured filters over envelopes) and returns envelopes the caller can see.\n\n**Scope:** `read`.\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "parameters": [
           {
             "name": "savedSearchId",
@@ -74442,6 +74694,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -74452,7 +74714,8 @@
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "130",
         "x-foresignal-status": "implemented",
-        "x-foresignal-always-authenticated": true
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-permission": "data.read"
       }
     },
     "/v1/chronicles": {
@@ -82640,7 +82903,7 @@
         ],
         "operationId": "queryFdsnEvents",
         "summary": "FDSN event query",
-        "description": "fdsnws-event 1.2 over `earthquake` records: QuakeML 1.2 BED (`smi:foresignal/{source}/{externalId}` publicIDs) or the pipe-separated text format. `204` when no events match (FDSN convention; `nodata=404` selects 404); errors use FDSN plain-text bodies. Long and short parameter names are accepted (`start`, `minlat`, `minmag`, …); unsupported parameters are a 400. Depth is in meters in QuakeML and in km in the text format.\n\n**Scope:** `read` (open while `security.openReads` is on).",
+        "description": "fdsnws-event 1.2 over `earthquake` records: QuakeML 1.2 BED (`smi:foresignal/{source}/{externalId}` publicIDs) or the pipe-separated text format. `204` when no events match (FDSN convention; `nodata=404` selects 404); errors use FDSN plain-text bodies. Long and short parameter names are accepted (`start`, `minlat`, `minmag`, …); unsupported parameters are a 400. Depth is in meters in QuakeML and in km in the text format.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.",
         "parameters": [
           {
             "name": "starttime",
@@ -82890,6 +83153,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Caller lacks the required permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -82900,7 +83173,8 @@
         ],
         "x-foresignal-scope": "read",
         "x-foresignal-prompt": "141",
-        "x-foresignal-status": "implemented"
+        "x-foresignal-status": "implemented",
+        "x-foresignal-permission": "data.read"
       }
     },
     "/fdsnws/event/1/version": {
@@ -89547,7 +89821,7 @@
         ],
         "operationId": "updateUser",
         "summary": "Update a user",
-        "description": "Updates a user's profile fields. Requires `users.manage`.\n\n**Scope:** `admin`.",
+        "description": "Updates a user's profile fields and, with `dataRestriction`, what the user may read: a source and kind subset and an area (bbox, area, places), validated like a token's restriction (400 VALIDATION_FAILED for an unknown source, kind or place or a member that is not a data member). Null lifts the restriction; absent leaves it. The change applies to the user's next request. Requires `users.manage`.\n\n**Scope:** `admin`.",
         "parameters": [
           {
             "name": "id",
@@ -110148,6 +110422,7 @@
             "type": "string",
             "enum": [
               "token",
+              "user",
               "ingest_key",
               "pairing",
               "system",
@@ -110155,7 +110430,7 @@
               "chat",
               "mesh"
             ],
-            "description": "`action` = a notification action capability (033); `chat` = a command from an allowlisted chat of an interactive channel (061; `tokenName` is the chat principal `chat:{channelId}:{chatId}[:{userId}]`); `mesh` = an `#E ACK` from an allowlisted sender on a private mesh channel (084; `tokenName` is `mesh:{sender}`)"
+            "description": "`user` = a signed-in user (R2-013; `userId` and `userEmail` say who, `tokenId` is the session); `action` = a notification action capability (033); `chat` = a command from an allowlisted chat of an interactive channel (061; `tokenName` is the chat principal `chat:{channelId}:{chatId}[:{userId}]`); `mesh` = an `#E ACK` from an allowlisted sender on a private mesh channel (084; `tokenName` is `mesh:{sender}`)"
           },
           "tokenId": {
             "type": [
@@ -110236,6 +110511,21 @@
             "type": "object",
             "additionalProperties": true,
             "description": "Context (e.g. MCP tool name, argument names, duration, outcome); never secrets, token values or request bodies"
+          },
+          "userId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The signed-in user who acted (actor kind `user`, R2-013), or null"
+          },
+          "userEmail": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "That user's email when the entry was written (kept after the user is renamed or deleted), or null"
           }
         },
         "required": [
@@ -176925,6 +177215,17 @@
           "activation": {
             "$ref": "#/components/schemas/UserLinkIssued",
             "description": "Only on the `createUser` response: the activation link issued with the invite"
+          },
+          "dataRestriction": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/UserDataRestriction"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The user's data restriction, or null when unrestricted (R2-013)"
           }
         },
         "required": [
@@ -176999,6 +177300,17 @@
               "null"
             ],
             "format": "email"
+          },
+          "dataRestriction": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/UserDataRestriction"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Replaces the user's data restriction; null lifts it, absent leaves it (R2-013)"
           }
         }
       },
@@ -179024,6 +179336,66 @@
           "tokenPrefix",
           "expiresAt"
         ]
+      },
+      "UserDataRestriction": {
+        "type": "object",
+        "description": "What a user may read (R2-013): the data members of a token's ReadRestriction, stored per user and set by an admin through updateUser. Null members mean any; a session's reads are intersected with it through the same clamp as a restricted token's.",
+        "properties": {
+          "sources": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Allowed source ids (must exist); null = any"
+          },
+          "kinds": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Allowed kinds (must exist); null = any"
+          },
+          "bbox": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "number"
+            },
+            "minItems": 4,
+            "maxItems": 4,
+            "description": "[minLon, minLat, maxLon, maxLat] (WGS84)"
+          },
+          "area": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Geometry"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "MultiPolygon (WGS84, ≤ 2,000 vertices); combined with `bbox` when both are set"
+          },
+          "placeIds": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Places whose areas, unioned, bound what may be read; unknown places fail closed"
+          }
+        },
+        "additionalProperties": false
       }
     },
     "securitySchemes": {

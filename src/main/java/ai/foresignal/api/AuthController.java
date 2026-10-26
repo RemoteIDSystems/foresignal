@@ -132,8 +132,13 @@ public class AuthController {
     public void requestPasswordReset(@RequestBody JsonNode body, HttpServletRequest request) {
         limit(request);
         String email = required(body, "email");
-        userTokens.requestReset(email).ifPresent(issued -> sessions.user(issued.token().getUserId())
-                .ifPresent(user -> mailer.sendPasswordReset(user, issued)));
+        var issued = userTokens.requestReset(email);
+        var user = issued.flatMap(i -> sessions.user(i.token().getUserId()));
+        user.ifPresent(u -> mailer.sendPasswordReset(u, issued.get()));
+        // R2-013: audited with the user when one matched; the email asked for is not stored.
+        sessions.auditAuth("requestPasswordReset", user.orElse(null), 202, request.getRemoteAddr(),
+                user.isPresent() ? Map.of("event", "password_reset_requested")
+                        : Map.of("event", "password_reset_requested", "reason", "no_active_account"));
     }
 
     /** {@code resetPassword}: consumes a reset token and sets the new password; every session of the user ends. */
@@ -145,9 +150,11 @@ public class AuthController {
         String token = required(body, "token");
         String password = required(body, "newPassword");
         try {
-            lifecycle.resetWithToken(token, password, "newPassword");
+            var user = lifecycle.resetWithToken(token, password, "newPassword");
+            sessions.auditAuth("resetPassword", user, 204, request.getRemoteAddr(), Map.of("event", "password_reset"));
         } catch (ValidationException e) {
-            throw gone(e, ErrorCodes.RESET_TOKEN_GONE, request);
+            throw audited(gone(e, ErrorCodes.RESET_TOKEN_GONE, request), "resetPassword", "password_reset_failed",
+                    request);
         }
     }
 
@@ -160,13 +167,17 @@ public class AuthController {
         String token = required(body, "token");
         String password = required(body, "password");
         try {
-            lifecycle.activateWithToken(token, password);
+            var user = lifecycle.activateWithToken(token, password);
+            sessions.auditAuth("activateAccount", user, 204, request.getRemoteAddr(),
+                    Map.of("event", "account_activated"));
         } catch (ValidationException e) {
-            throw gone(e, ErrorCodes.ACTIVATION_TOKEN_GONE, request);
+            throw audited(gone(e, ErrorCodes.ACTIVATION_TOKEN_GONE, request), "activateAccount",
+                    "activation_failed", request);
         } catch (ConflictException e) {
             // The account is no longer invited: the link no longer applies.
-            throw new ForesignalException(HttpStatus.GONE, ErrorCodes.ACTIVATION_TOKEN_GONE,
-                    "The activation link is not valid. It may have expired or been used already.");
+            throw audited(new ForesignalException(HttpStatus.GONE, ErrorCodes.ACTIVATION_TOKEN_GONE,
+                    "The activation link is not valid. It may have expired or been used already."), "activateAccount",
+                    "activation_failed", request);
         }
     }
 
@@ -261,6 +272,19 @@ public class AuthController {
      * A refused reset or activation: a policy refusal stays {@code 400}; every token failure becomes {@code 410} with
      * the operation's code, and counts as a failed credential.
      */
+    /**
+     * Audits a refused activation or reset when the link was gone (410); a password-policy refusal (400) is the
+     * user's typing, not an event, and is not audited (prompt R2-013). No user is named: the link did not resolve.
+     */
+    private RuntimeException audited(RuntimeException refusal, String operationId, String event,
+            HttpServletRequest request) {
+        if (refusal instanceof ForesignalException f && f.getStatus() == HttpStatus.GONE) {
+            sessions.auditAuth(operationId, null, HttpStatus.GONE.value(), request.getRemoteAddr(),
+                    Map.of("event", event, "code", f.getCode()));
+        }
+        return refusal;
+    }
+
     private RuntimeException gone(ValidationException e, String code, HttpServletRequest request) {
         if (!ErrorCodes.USER_TOKEN_INVALID.equals(e.getCode())) {
             return e;
