@@ -68,6 +68,8 @@ PATH_VARS = {"sourceId": "sourceId", "externalId": "externalId", "ruleId": "rule
 PATH_VARS_BY_PREFIX = [("/v1/external/sources/", {"sourceId": "edpSourceId"}),
                        # R2-005: user management; createUser stores the new user's id.
                        ("/v1/users/", {"id": "userId"}),
+                       # R2-006: role management; createRole stores the new role's id.
+                       ("/v1/roles/", {"id": "roleId"}),
                        ("/v1/external/registration-tokens/", {"tokenId": "registrationTokenId"}),
                        # Native push providers (032) are not the LLM providers of {{providerId}}.
                        ("/v1/push/providers/", {"providerId": "pushProviderId"}),
@@ -284,6 +286,11 @@ BODIES = {
                  "sendInvite": False},
   "updateUser": {"fullName": "Jane Q. Analyst"},
   "setUserRoles": {"roles": ["00000000-0000-4000-8000-000000000003"]},
+  # R2-006: a custom role is a named subset of GET /v1/permissions; built-in roles cannot be updated or deleted.
+  "createRole": {"name": "Analyst", "description": "Reads data and intelligence; manages own alerts",
+                 "permissions": ["data.read", "intel.read", "forecast.read", "self.alerts", "self.views"]},
+  "updateRole": {"name": "Analyst", "description": "Reads data and intelligence; manages own alerts and channels",
+                 "permissions": ["data.read", "intel.read", "forecast.read", "self.alerts", "self.channels", "self.views"]},
   # 141: WASM parser plugins; enable one after reviewing its SHA-256 (this is the example plugin's hash). Plugins stay off until updatePluginSettings enables them.
   "updatePlugin": {"enabled": True, "sha256": "232eeeefab43a723a76b0a15f8d1e8b67f8bf9aae0cfa2a7ffa8ba7c70d8f6f8"},
   "updatePluginSettings": {"enabled": False},
@@ -1052,6 +1059,7 @@ BODIES = {
 # test scripts: capture ids / assert status
 CAPTURE = {
   "createUser": "const j = pm.response.json(); pm.collectionVariables.set('userId', j.id);",
+  "createRole": "const j = pm.response.json(); pm.collectionVariables.set('roleId', j.id);",
   "createExport": "const j = pm.response.json(); pm.collectionVariables.set('exportId', j.id);",
   "createShareLink": "const j = pm.response.json(); pm.collectionVariables.set('shareLinkId', j.id); pm.collectionVariables.set('key', j.key);",
   "createPeer": "const j = pm.response.json(); pm.collectionVariables.set('peerId', j.id);",
@@ -1512,7 +1520,7 @@ collection = {
       ("registrationToken", ""), ("registrationTokenId", ""), ("pushProviderId", "ios-apns"), ("pushDeviceId", ""),
       ("notificationId", ""), ("actionToken", ""), ("escalationPolicyId", ""), ("feedKeyId", ""), ("tileKeyId", ""),
       ("placeId", "home"), ("viewId", ""), ("watchlistId", ""), ("exportId", ""), ("holdId", ""),
-      ("peerId", ""), ("peerIngestKey", ""), ("federationToken", ""), ("sessionToken", ""), ("userId", ""),
+      ("peerId", ""), ("peerIngestKey", ""), ("federationToken", ""), ("sessionToken", ""), ("userId", ""), ("roleId", ""),
       ("polSubjectId", ""), ("polPlaceId", ""), ("tripId", ""),
       ("exerciseId", ""), ("suggestionId", ""), ("tuningLogId", ""),
       ("canonicalEventId", ""), ("manifestId", ""), ("templateId", "ask-system"), ("jobId", ""),

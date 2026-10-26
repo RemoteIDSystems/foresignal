@@ -372,7 +372,24 @@ Admin-scoped (`admin`), permission `users.manage` / `roles.manage`:
   setting roles without `users.manage` on the last one is `409 LAST_ADMIN`. The check and the change run under one
   transaction-scoped advisory lock. The bootstrap admin token is not counted and always works.
 
-Deleting a role that users still hold is refused; built-in roles cannot be deleted at all (R2-006).
+**Built (R2-006): the role operations** (`api/RoleAdminController`, `security/user/RoleAdminService`).
+
+- **The catalog is fixed data.** `listPermissions` returns `Permissions` (Java) grouped `identity`, `platform`,
+  `self`, `data`; nothing creates a permission at runtime. `BuiltInRoleSeeder` runs at every start
+  (`ApplicationReadyEvent`) and re-inserts any missing permission row, built-in role row or built-in role permission
+  link with `on conflict do nothing`, as `V14` seeded them; it never deletes or changes an existing row, and publishes
+  `RolePermissionsChangedEvent` after a repair.
+- **Built-in roles are immutable.** `updateRole` and `deleteRole` on Admin, Operator, Editor, Viewer or Auditor are
+  `409 BUILTIN_ROLE_PROTECTED` — name, description and permissions alike.
+- **Custom roles** are a named subset of the catalog: `createRole`/`updateRole` take `RoleInput` (`name` ≤ 100,
+  `description` ≤ 500, `permissions`). An unknown key is `400 VALIDATION_FAILED` naming each one; a name equal to
+  another role's, ignoring case and including the built-ins, is `409 ROLE_NAME_TAKEN`. `updateRole` replaces the whole
+  role; a changed permission set publishes `RolePermissionsChangedEvent` (every cached permission set dropped after
+  commit) and is refused with `409 LAST_ADMIN` if it would leave no active holder of `users.manage` or `roles.manage`
+  (checked after the change, inside the transaction, under the user-management advisory lock).
+- **Deleting** a custom role nobody holds is `204`; one still held is `409 ROLE_IN_USE` with `userCount` — the contract
+  has no option to unassign, so the admin moves the users first.
+- **`listRoles`** pages by name; `userCount` comes from one grouped query over `user_role` for every role.
 
 ## H. Audit
 

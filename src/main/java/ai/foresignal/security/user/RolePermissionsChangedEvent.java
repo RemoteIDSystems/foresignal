@@ -7,6 +7,6 @@ import java.util.UUID;
  * {@link PermissionResolver} drops every cached {@link EffectivePermissions} once the change commits. Every entry,
  * because finding the role's holders would cost the read the cache exists to avoid, and role edits are rare.
  *
- * @param roleId the role that changed
+ * @param roleId the role that changed, or null when several did (the built-in repair at startup, R2-006)
  */
 public record RolePermissionsChangedEvent(UUID roleId) {}

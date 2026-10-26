@@ -977,6 +977,18 @@ public final class ErrorCodes {
     /** 409: the user is no longer {@code invited}, so there is no invite to resend (R2-005, {@code resendUserInvite}). */
     public static final String ALREADY_ACTIVE = "ALREADY_ACTIVE";
 
+    /** 404: no role with that id (R2-006). */
+    public static final String UNKNOWN_ROLE = "UNKNOWN_ROLE";
+
+    /** 409: another role already has that name, ignoring case, built-ins included (R2-006). */
+    public static final String ROLE_NAME_TAKEN = "ROLE_NAME_TAKEN";
+
+    /** 409: a built-in role cannot be updated or deleted (R2-006). */
+    public static final String BUILTIN_ROLE_PROTECTED = "BUILTIN_ROLE_PROTECTED";
+
+    /** 409: users still hold the role; the problem carries {@code userCount} (R2-006, {@code deleteRole}). */
+    public static final String ROLE_IN_USE = "ROLE_IN_USE";
+
     private ErrorCodes() {}
 
     /**

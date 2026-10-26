@@ -90298,7 +90298,7 @@
             }
           },
           "409": {
-            "description": "Conflict (BUILTIN_ROLE)",
+            "description": "Conflict (BUILTIN_ROLE_PROTECTED, ROLE_NAME_TAKEN, LAST_ADMIN)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -90372,7 +90372,7 @@
             }
           },
           "409": {
-            "description": "Conflict (ROLE_IN_USE)",
+            "description": "Conflict (ROLE_IN_USE, BUILTIN_ROLE_PROTECTED)",
             "content": {
               "application/problem+json": {
                 "schema": {

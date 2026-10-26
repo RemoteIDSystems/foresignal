@@ -18,4 +18,12 @@ public interface RoleRepository extends JpaRepository<RoleEntity, UUID> {
 
     /** Every role, built-in or custom, ordered by name. */
     List<RoleEntity> findAllByOrderByNameAsc();
+
+    /**
+     * The role with a name, ignoring case (R2-006: a custom role may not shadow another role, built-ins included).
+     *
+     * @param name the name
+     * @return the role, or empty
+     */
+    Optional<RoleEntity> findByNameIgnoreCase(String name);
 }

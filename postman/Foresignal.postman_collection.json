@@ -43078,7 +43078,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));"
+                  "pm.test('status is 201', () => pm.expect([201]).to.include(pm.response.code));",
+                  "if (pm.response.code < 300) {",
+                  "const j = pm.response.json(); pm.collectionVariables.set('roleId', j.id);",
+                  "}"
                 ]
               }
             }
@@ -43119,7 +43122,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Analyst\",\n  \"description\": \"Reads data and intelligence; manages own alerts\",\n  \"permissions\": [\n    \"data.read\",\n    \"intel.read\",\n    \"forecast.read\",\n    \"self.alerts\",\n    \"self.views\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -43150,14 +43153,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/roles/{{id}}",
+              "raw": "{{baseUrl}}/v1/roles/{{roleId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "roles",
-                "{{id}}"
+                "{{roleId}}"
               ],
               "query": []
             },
@@ -43200,14 +43203,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/roles/{{id}}",
+              "raw": "{{baseUrl}}/v1/roles/{{roleId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "roles",
-                "{{id}}"
+                "{{roleId}}"
               ],
               "query": []
             },
@@ -43224,7 +43227,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Analyst\",\n  \"description\": \"Reads data and intelligence; manages own alerts and channels\",\n  \"permissions\": [\n    \"data.read\",\n    \"intel.read\",\n    \"forecast.read\",\n    \"self.alerts\",\n    \"self.channels\",\n    \"self.views\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -43250,14 +43253,14 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/roles/{{id}}",
+              "raw": "{{baseUrl}}/v1/roles/{{roleId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "roles",
-                "{{id}}"
+                "{{roleId}}"
               ],
               "query": []
             },
@@ -57064,6 +57067,10 @@
     },
     {
       "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "roleId",
       "value": ""
     },
     {

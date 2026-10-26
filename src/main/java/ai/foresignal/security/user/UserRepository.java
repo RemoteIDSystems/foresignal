@@ -50,6 +50,21 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     long countActiveUserManagersExcept(@Param("excluded") UUID excluded);
 
     /**
+     * How many {@code active} users hold a permission through any role (R2-006: a role edit may not leave the instance
+     * without a holder of {@code users.manage} or {@code roles.manage}).
+     *
+     * @param permission the permission key
+     * @return the count
+     */
+    @Query(value = """
+            select count(distinct u.id) from "user" u
+            join user_role ur on ur.user_id = u.id
+            join role_permission rp on rp.role_id = ur.role_id
+            where u.status = 'active' and rp.permission_key = :permission""",
+            nativeQuery = true)
+    long countActiveHolders(@Param("permission") String permission);
+
+    /**
      * The oldest {@code active} users other than {@code excluded} holding {@code users.manage}, oldest first (R2-005,
      * the default target of a reassigning delete).
      *
