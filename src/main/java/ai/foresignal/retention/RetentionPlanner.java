@@ -135,7 +135,7 @@ public class RetentionPlanner {
     }
 
     private TrackPlan computeTrack(RetentionRun run) {
-        Duration window = run.settings().trackWindow();
+        Duration window = run.settings().effectiveTrackWindow();
         partitions.refresh();
         List<LeafInfo> leaves = partitions.leaves(HistoryTier.TRACK).stream()
                 .sorted(Comparator.comparingLong(LeafInfo::fromSeq)).toList();
@@ -157,13 +157,13 @@ public class RetentionPlanner {
     }
 
     private StandardPlan computeStandard(RetentionRun run) {
-        Map<String, Map<String, Duration>> windows = new LinkedHashMap<>(resolver.standardWindows());
+        Map<String, Map<String, Duration>> windows = new LinkedHashMap<>(resolver.standardWindows(run.settings()));
         Set<String> registered = new HashSet<>(windows.keySet());
         Set<String> track = new HashSet<>();
         for (String id : run.jdbc().getJdbcTemplate().queryForList(DISTINCT_SOURCES, String.class)) {
             if (!registered.contains(id) && !resolver.isRegistered(id)) {
                 Map<String, Duration> fallback = new LinkedHashMap<>();
-                fallback.put(null, run.settings().defaultRetention());
+                fallback.put(null, run.settings().capped(run.settings().defaultRetention()));
                 windows.put(id, fallback);
             } else if (!registered.contains(id)) {
                 track.add(id);

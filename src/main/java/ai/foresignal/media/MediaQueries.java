@@ -199,6 +199,54 @@ public class MediaQueries {
                 """, new MapSqlParameterSource("cutoff", ts(cutoff)).addValue("limit", limit), String.class);
     }
 
+    /**
+     * A count and the bytes it holds (prompt R2-015: the retention preview).
+     *
+     * @param count the rows
+     * @param bytes their bytes
+     */
+    public record Totals(long count, long bytes) {}
+
+    private Totals totals(String sql, MapSqlParameterSource params) {
+        return named.queryForObject("SELECT count(*) AS n, coalesce(sum(bytes), 0) AS b FROM (" + sql + ") t", params,
+                (rs, i) -> new Totals(rs.getLong("n"), rs.getLong("b")));
+    }
+
+    /** What {@link #expiredIds} would select at {@code now}, without a limit. */
+    public Totals expiredTotals(Instant now) {
+        return totals("SELECT bytes FROM media WHERE expires_at < :now", new MapSqlParameterSource("now", ts(now)));
+    }
+
+    /** What {@link #recordFollowingIds} would select for {@code group}, without a limit. */
+    public Totals recordFollowingTotals(RecordGroup group, Instant cutoff) {
+        return totals("""
+                SELECT m.bytes FROM media m
+                  JOIN record_head h ON h.source_id = m.record_source_id AND h.external_id = m.record_external_id
+                 WHERE m.expires_at IS NULL AND m.variant_of IS NULL AND m.record_source_id = :source
+                   AND h.kind = :kind AND m.created_at < :cutoff
+                """, new MapSqlParameterSource("source", group.sourceId()).addValue("kind", group.kind())
+                .addValue("cutoff", ts(cutoff)));
+    }
+
+    /** What {@link #headMissingIds} would select, without a limit. */
+    public Totals headMissingTotals(Instant cutoff) {
+        return totals("""
+                SELECT m.bytes FROM media m
+                 WHERE m.expires_at IS NULL AND m.variant_of IS NULL AND m.record_source_id IS NOT NULL
+                   AND m.created_at < :cutoff
+                   AND NOT EXISTS (SELECT 1 FROM record_head h
+                                    WHERE h.source_id = m.record_source_id AND h.external_id = m.record_external_id)
+                """, new MapSqlParameterSource("cutoff", ts(cutoff)));
+    }
+
+    /** What {@link #unownedIds} would select for {@code sourceId}, without a limit. */
+    public Totals unownedTotals(String sourceId, Instant cutoff) {
+        String sourcePredicate = sourceId == null ? "source_id IS NULL" : "source_id = :source";
+        return totals("SELECT bytes FROM media WHERE expires_at IS NULL AND variant_of IS NULL"
+                + " AND record_source_id IS NULL AND " + sourcePredicate + " AND created_at < :cutoff",
+                new MapSqlParameterSource("source", sourceId).addValue("cutoff", ts(cutoff)));
+    }
+
     /** The producing sources (null included) of originals with neither a record nor an expiry. */
     public List<String> unownedSources() {
         return jdbc.queryForList("SELECT DISTINCT source_id FROM media WHERE expires_at IS NULL AND variant_of IS NULL"

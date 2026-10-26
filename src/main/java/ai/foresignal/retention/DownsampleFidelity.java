@@ -90,7 +90,7 @@ public class DownsampleFidelity implements HistoryFidelity, ai.foresignal.ingest
         if (!settings.downsamplingEnabled()) {
             return Instant.MAX;
         }
-        return clock.instant().minus(settings.trackWindow()).plus(Duration.ofHours(1));
+        return clock.instant().minus(settings.effectiveTrackWindow()).plus(Duration.ofHours(1));
     }
 
     /** {@code SourceService.effectiveDownsampleInterval}, with the override cached. */

@@ -35,6 +35,11 @@ import org.springframework.stereotype.Component;
  * <p>A source id that is no longer registered uses {@code retention.default}. Adapters set their
  * defaults by analytic class (Conventions "Analytic retention"); the operator can always override.
  *
+ * <p><strong>Cap history (prompt R2-015).</strong> When {@code retention.capHistory} is on with {@code maxDays},
+ * every window this class resolves (STANDARD and TRACK) is clamped to that many days
+ * ({@link RetentionSettings#capped}). The cap only ever shortens a window; the cutoffs it produces still pass through
+ * the consumer clamp of the run.
+ *
  * <p>Also owns the asOf horizon math of Core-Data-Model §12, which prompt 014 computed inline:
  * {@link #effectiveKeyframe} and {@link #horizon(Instant, Duration, Duration)}.
  */
@@ -76,7 +81,7 @@ public class RetentionResolver {
         RetentionSettings global = settings();
         Optional<SourceDescriptor> descriptor = registry.find(sourceId).map(r -> r.descriptor());
         if (descriptor.isEmpty()) {
-            return global.defaultRetention();
+            return global.capped(global.defaultRetention());
         }
         return resolve(descriptor.get(), kind, override(sourceId), global);
     }
@@ -90,6 +95,12 @@ public class RetentionResolver {
      * @param global the global settings
      */
     public static Duration resolve(
+            SourceDescriptor descriptor, String kind, Optional<Duration> override, RetentionSettings global) {
+        return global.capped(uncapped(descriptor, kind, override, global));
+    }
+
+    /** The resolution order before the cap-history clamp (prompt R2-015). */
+    private static Duration uncapped(
             SourceDescriptor descriptor, String kind, Optional<Duration> override, RetentionSettings global) {
         if (descriptor.isTrack()) {
             return global.trackWindow();
@@ -133,7 +144,7 @@ public class RetentionResolver {
         Optional<SourceDescriptor> found = registry.find(sourceId).map(r -> r.descriptor());
         RetentionSettings global = settings();
         if (found.isEmpty()) {
-            return global.defaultRetention();
+            return global.capped(global.defaultRetention());
         }
         SourceDescriptor descriptor = found.get();
         Optional<Duration> override = override(sourceId);
@@ -194,9 +205,9 @@ public class RetentionResolver {
      */
     public Duration largestWindow() {
         RetentionSettings global = settings();
-        Duration largest = max(global.trackWindow(), global.defaultRetention());
+        Duration largest = max(global.effectiveTrackWindow(), global.capped(global.defaultRetention()));
         for (Duration window : global.kinds().values()) {
-            largest = max(largest, window);
+            largest = max(largest, global.capped(window));
         }
         for (SourceDescriptor descriptor : registry.descriptors()) {
             largest = max(largest, largestStandardWindow(descriptor, global));
@@ -206,7 +217,17 @@ public class RetentionResolver {
 
     /** The windows of every registered STANDARD source keyed by source id and then kind (null kind = source level). */
     public Map<String, Map<String, Duration>> standardWindows() {
-        RetentionSettings global = settings();
+        return standardWindows(settings());
+    }
+
+    /**
+     * {@link #standardWindows()} under {@code global} rather than the stored settings: a retention run resolves its
+     * windows from the settings it read at its start, which the database-size cap may have tightened (prompt R2-015).
+     *
+     * @param global the settings of the run
+     * @return the windows keyed by source id and then kind (null kind = source level)
+     */
+    public Map<String, Map<String, Duration>> standardWindows(RetentionSettings global) {
         Map<String, Duration> overrides = overrides();
         Map<String, Map<String, Duration>> out = new LinkedHashMap<>();
         for (SourceDescriptor descriptor : registry.descriptors()) {
@@ -226,7 +247,7 @@ public class RetentionResolver {
 
     private Duration largestStandardWindow(SourceDescriptor descriptor, RetentionSettings global) {
         if (descriptor.isTrack()) {
-            return global.trackWindow();
+            return global.effectiveTrackWindow();
         }
         Optional<Duration> override = override(descriptor.id());
         Duration largest = resolve(descriptor, null, override, global);

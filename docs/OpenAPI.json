@@ -91730,7 +91730,7 @@
         ],
         "operationId": "previewRetention",
         "summary": "Preview what retention would prune",
-        "description": "Dry-run of the current retention policy: how much each subsystem would prune, per kind, with a size estimate and nothing deleted (B2/178). Requires `storage.manage`.\n\n**Scope:** `admin`.",
+        "description": "Dry run of the current retention policy: what the next run would prune per subsystem (records per kind, TRACK leaves, frames, media, stopped chronicles), with a size estimate and nothing deleted (B2/178). It uses the settings the next run applies, including a window the database-size cap has stepped down to; with `capHistory` off it shows today's per-subsystem windows. Frames pinned by a chronicle are not counted; quota eviction is not previewed. Requires `storage.manage`.\n\n**Scope:** `admin`.",
         "responses": {
           "200": {
             "description": "Retention preview",
@@ -102520,6 +102520,35 @@
                 }
               }
             }
+          },
+          "capHistory": {
+            "type": "boolean",
+            "default": false,
+            "description": "Cap history (R2-015): one bound over the data history (records, TRACK history, frames, media and stopped chronicles). Off (the default) keeps every window as configured. When on, `maxDays` clamps every window to at most that many days (it never lengthens one, and cutoffs still pass the consumer clamp) and `maxDbGb` keeps the database under that size. Needs `maxDays`, `maxDbGb` or both."
+          },
+          "maxDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 36500,
+            "description": "With `capHistory`: keep at most this many days of data history. An upper bound over the per-kind, per-source and tier windows, never a replacement.",
+            "example": 90
+          },
+          "maxDbGb": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0,
+            "description": "With `capHistory`: keep the database (`pg_database_size`) under this many GB (1024³ bytes). When it is over and still growing, each run steps the history window down (halving, whole days, never below 1 day) oldest first; when that cannot reach the cap it raises `system.retention_cap_unmet` and shortens history no further. An entity reported within the window keeps its current record.",
+            "example": 200
+          },
+          "overwriteOldest": {
+            "type": "boolean",
+            "default": true,
+            "description": "With `maxDbGb`: step the history window down to stay under the cap (default true); false only reports the breach."
           }
         },
         "example": {
@@ -102546,7 +102575,11 @@
           "inbox": "033",
           "trackRawWindow": "044",
           "trackDownsampleInterval": "044",
-          "social": "135"
+          "social": "135",
+          "capHistory": "R2-015",
+          "maxDays": "R2-015",
+          "maxDbGb": "R2-015",
+          "overwriteOldest": "R2-015"
         },
         "description": "Retention windows (Core-Data-Model §13). PUT replaces the whole object; every duration ≥ 1h. STANDARD windows resolve in order: kinds.{kind}, sources.{id} (a view over source_settings.retention), the descriptor's kindRetention, its defaultRetention, then default; TRACK always uses trackWindow. Members owned by later prompts (see x-foresignal-property-prompts) are accepted and not stored until those prompts."
       },
@@ -102649,6 +102682,68 @@
               }
             },
             "description": "Keyed by source id"
+          },
+          "capWindowDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The cap-history window this run applied, in days (R2-015); null when history is not capped by age"
+          },
+          "dbCap": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "What the database-size cap did this run (R2-015); null when it is off",
+            "properties": {
+              "capBytes": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "sizeBeforeBytes": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Database size after the window pass"
+              },
+              "sizeAfterBytes": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "bytesReclaimed": {
+                "type": "integer",
+                "format": "int64",
+                "description": "How far the size fell during the cap steps. Deleted rows free space Postgres reuses; files shrink only on a partition drop or VACUUM FULL."
+              },
+              "windowDays": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "History window in force at the end, or null for the configured windows"
+              },
+              "steps": {
+                "type": "integer"
+              },
+              "action": {
+                "type": "string",
+                "x-extensible-enum": [
+                  "under",
+                  "stepped",
+                  "holding",
+                  "floor",
+                  "disabled"
+                ]
+              },
+              "deleted": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "description": "Rows deleted by the cap steps, by table"
+              }
+            }
           }
         },
         "required": [
@@ -178145,13 +178240,14 @@
         "properties": {
           "subsystem": {
             "type": "string",
-            "description": "e.g. records, frames, media, chronicles, audit"
+            "description": "`records` (STANDARD history, per kind), `track` (TRACK history leaves), `frames`, `media` or `chronicles` (stopped or archived chronicles whose history would be removed)"
           },
           "kind": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "The record kind of a `records` item; null for whole-source scopes and other subsystems"
           },
           "cutoff": {
             "type": [
@@ -178159,7 +178255,7 @@
               "null"
             ],
             "format": "date-time",
-            "description": "Oldest data kept"
+            "description": "Oldest data kept (for a `records` kind, under its longest window); null when no single cutoff applies"
           },
           "affectedCount": {
             "type": "integer",
@@ -178170,7 +178266,8 @@
               "integer",
               "null"
             ],
-            "format": "int64"
+            "format": "int64",
+            "description": "Estimated bytes: records from the average row size of record_version, TRACK leaves and frames from their sizes, media from its rows, chronicles from their bytesUsed"
           }
         },
         "required": [
@@ -178180,7 +178277,7 @@
       },
       "RetentionPreview": {
         "type": "object",
-        "description": "A dry-run of what the current (or supplied) retention policy would prune (B2/178)",
+        "description": "A dry run of what the next retention run would prune under the current policy, computed with the run's own plans and selects as counts only; nothing is deleted (B2/178, R2-015)",
         "properties": {
           "items": {
             "type": "array",
@@ -178190,18 +178287,50 @@
           },
           "totalAffected": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "description": "Sum of the items' counts"
           },
           "totalBytesEstimate": {
             "type": [
               "integer",
               "null"
             ],
-            "format": "int64"
+            "format": "int64",
+            "description": "Sum of the items' byte estimates"
           },
           "generatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "dbCap": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "The database-size cap as the next run would find it; null when it is off",
+            "properties": {
+              "capBytes": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "sizeBytes": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "exceeded": {
+                "type": "boolean"
+              },
+              "windowDays": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "Window the cap has stepped down to, or null"
+              },
+              "overwriteOldest": {
+                "type": "boolean"
+              }
+            }
           }
         },
         "required": [

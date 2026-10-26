@@ -164,9 +164,10 @@ public record SourceIngestProfile(
             SourceDescriptor descriptor, Optional<Duration> effectiveRetention, RetentionSettings retention) {
         RetentionSettings settings = retention == null ? RetentionSettings.defaults() : retention;
         if (descriptor.isTrack()) {
-            return settings.trackWindow();
+            return settings.effectiveTrackWindow();
         }
-        return effectiveRetention.orElse(settings.defaultRetention());
+        // R2-015: under cap history the window (and so the I6 keyframe) is never longer than maxDays.
+        return settings.capped(effectiveRetention.orElse(settings.defaultRetention()));
     }
 
     /**

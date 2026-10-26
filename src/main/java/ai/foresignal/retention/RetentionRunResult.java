@@ -22,6 +22,9 @@ import java.util.Map;
  * @param skippedSources sources skipped after a failed delete (no HeadPurge)
  * @param consumerClamp the consumer clamp of this run
  * @param perSource per source: versions deleted and the published floor
+ * @param capWindowDays the cap-history window this run applied, in days (prompt R2-015), or null when history is not
+ *     capped by age
+ * @param dbCap what the database-size cap did this run (prompt R2-015), or null when it is off
  */
 public record RetentionRunResult(
         Instant startedAt,
@@ -37,11 +40,23 @@ public record RetentionRunResult(
         long notificationsDeleted,
         List<String> skippedSources,
         ConsumerClamp consumerClamp,
-        Map<String, PerSource> perSource) {
+        Map<String, PerSource> perSource,
+        Integer capWindowDays,
+        RetentionDbCap.Outcome dbCap) {
 
     public RetentionRunResult {
         skippedSources = skippedSources == null ? List.of() : List.copyOf(skippedSources);
         perSource = perSource == null ? Map.of() : java.util.Collections.unmodifiableMap(new java.util.TreeMap<>(perSource));
+    }
+
+    /** The shape before prompt R2-015: no cap history. */
+    public RetentionRunResult(Instant startedAt, long durationMs, long versionsDeleted, long headsDeleted,
+            long alertsDeleted, long usageRowsDeleted, int partitionsDropped, long headsPurged, long fetchLogDeleted,
+            long seqClockDeleted, long notificationsDeleted, List<String> skippedSources, ConsumerClamp consumerClamp,
+            Map<String, PerSource> perSource) {
+        this(startedAt, durationMs, versionsDeleted, headsDeleted, alertsDeleted, usageRowsDeleted, partitionsDropped,
+                headsPurged, fetchLogDeleted, seqClockDeleted, notificationsDeleted, skippedSources, consumerClamp,
+                perSource, null, null);
     }
 
     /**

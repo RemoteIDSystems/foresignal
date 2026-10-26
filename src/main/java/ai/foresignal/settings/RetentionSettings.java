@@ -51,6 +51,15 @@ import tools.jackson.databind.annotation.JsonSerialize;
  * @param trackDownsampleInterval one sample per entity per this interval is kept in a downsampled leaf
  *     (prompt 044; default 5 min); a TRACK source may override it ({@code SourceSettings.downsampleInterval})
  * @param entityLinks how long closed entity links are kept (prompt 098; default 365 d)
+ * @param capHistory the cap-history switch (prompt R2-015; default off, which keeps every window as configured):
+ *     when on, {@code maxDays} and {@code maxDbGb} bound the data history (records, frames, media and stopped
+ *     chronicles) from one control
+ * @param maxDays keep at most this many days of data history while {@code capHistory} is on; an upper bound layered
+ *     over every per-kind, per-source and tier window, never a replacement for them; null for no day cap
+ * @param maxDbGb keep the database under this many GB (1024³ bytes) while {@code capHistory} is on; null for no
+ *     size cap
+ * @param overwriteOldest when the database is over {@code maxDbGb}, step the history window down oldest-first until
+ *     it fits (default true); false only reports the breach
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record RetentionSettings(
@@ -71,7 +80,14 @@ public record RetentionSettings(
         @JsonDeserialize(using = RetentionSettings.RawWindowDeserializer.class)
         Duration trackRawWindow,
         Duration trackDownsampleInterval,
-        Duration entityLinks) {
+        Duration entityLinks,
+        boolean capHistory,
+        Integer maxDays,
+        Double maxDbGb,
+        Boolean overwriteOldest) {
+
+    /** Bytes per GB of {@code maxDbGb}, the same binary GB as the raster disk quota. */
+    public static final double GB = 1024d * 1024d * 1024d;
 
     public static final Duration DEFAULT_RETENTION = Duration.ofDays(7);
     public static final Duration DEFAULT_ALERTS = Duration.ofDays(90);
@@ -109,6 +125,101 @@ public record RetentionSettings(
         trackDownsampleInterval =
                 trackDownsampleInterval == null ? DEFAULT_TRACK_DOWNSAMPLE_INTERVAL : trackDownsampleInterval;
         entityLinks = entityLinks == null ? DEFAULT_ENTITY_LINKS : entityLinks;
+        overwriteOldest = overwriteOldest == null ? Boolean.TRUE : overwriteOldest;
+    }
+
+    /**
+     * The shape before prompt R2-015: every member except the cap, which is off.
+     *
+     * @param defaultRetention see the canonical constructor
+     * @param alerts see the canonical constructor
+     * @param usage see the canonical constructor
+     * @param sources see the canonical constructor
+     * @param trackWindow see the canonical constructor
+     * @param provenance see the canonical constructor
+     * @param notifications see the canonical constructor
+     * @param briefings see the canonical constructor
+     * @param ask see the canonical constructor
+     * @param kinds see the canonical constructor
+     * @param audit see the canonical constructor
+     * @param inbox see the canonical constructor
+     * @param stats see the canonical constructor
+     * @param trackRawWindow see the canonical constructor
+     * @param trackDownsampleInterval see the canonical constructor
+     * @param entityLinks see the canonical constructor
+     */
+    public RetentionSettings(
+            Duration defaultRetention,
+            Duration alerts,
+            Duration usage,
+            Map<String, Duration> sources,
+            Duration trackWindow,
+            Duration provenance,
+            Duration notifications,
+            Duration briefings,
+            Duration ask,
+            Map<String, Duration> kinds,
+            Duration audit,
+            Duration inbox,
+            Stats stats,
+            Duration trackRawWindow,
+            Duration trackDownsampleInterval,
+            Duration entityLinks) {
+        this(defaultRetention, alerts, usage, sources, trackWindow, provenance, notifications, briefings, ask, kinds,
+                audit, inbox, stats, trackRawWindow, trackDownsampleInterval, entityLinks, false, null, null, null);
+    }
+
+    /**
+     * The day cap in force (prompt R2-015): {@code maxDays} when {@code capHistory} is on and it is set.
+     *
+     * @return the cap, or empty when history is not capped by age
+     */
+    @JsonIgnore
+    public java.util.Optional<Duration> capWindow() {
+        return capHistory && maxDays != null ? java.util.Optional.of(Duration.ofDays(maxDays))
+                : java.util.Optional.empty();
+    }
+
+    /**
+     * {@code window} under the day cap: never longer than {@link #capWindow()}, never changed otherwise. The cap only
+     * ever tightens a window.
+     *
+     * @param window a data-history window
+     * @return the window in force
+     */
+    public Duration capped(Duration window) {
+        java.util.Optional<Duration> cap = capWindow();
+        return cap.isPresent() && window != null && window.compareTo(cap.get()) > 0 ? cap.get() : window;
+    }
+
+    /** {@link #trackWindow()} under the day cap: the TRACK window in force (prompt R2-015). */
+    @JsonIgnore
+    public Duration effectiveTrackWindow() {
+        return capped(trackWindow);
+    }
+
+    /**
+     * The database size cap in force, in bytes (prompt R2-015).
+     *
+     * @return {@code maxDbGb} in bytes when {@code capHistory} is on and it is set, else empty
+     */
+    @JsonIgnore
+    public java.util.OptionalLong capBytes() {
+        return capHistory && maxDbGb != null ? java.util.OptionalLong.of((long) (maxDbGb * GB))
+                : java.util.OptionalLong.empty();
+    }
+
+    /**
+     * This value with the cap switched on at {@code days} (prompt R2-015: the database-size cap tightens a run this
+     * way), keeping {@code maxDbGb} and {@code overwriteOldest}.
+     *
+     * @param days the day cap
+     * @return the tightened value
+     */
+    public RetentionSettings withMaxDays(int days) {
+        return new RetentionSettings(defaultRetention, alerts, usage, sources, trackWindow, provenance,
+                notifications, briefings, ask, kinds, audit, inbox, stats, trackRawWindow, trackDownsampleInterval,
+                entityLinks, true, days, maxDbGb, overwriteOldest);
     }
 
     /**
@@ -322,7 +433,7 @@ public record RetentionSettings(
     public RetentionSettings withSources(Map<String, Duration> newSources) {
         return new RetentionSettings(defaultRetention, alerts, usage, newSources, trackWindow, provenance,
                 notifications, briefings, ask, kinds, audit, inbox, stats, trackRawWindow, trackDownsampleInterval,
-                entityLinks);
+                entityLinks, capHistory, maxDays, maxDbGb, overwriteOldest);
     }
 
     /**

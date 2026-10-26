@@ -174,6 +174,10 @@ public class RasterRetentionStep implements RetentionStep {
     public void run(RetentionRun run) {
         Instant now = run.now();
         long deleted = thin(now);
+        Optional<java.time.Duration> cap = run.settings().capWindow();
+        if (cap.isPresent()) {
+            deleted += capAge(now.minus(cap.get()));
+        }
         expireGlmArchive(now);
         deleted += enforceQuota();
         SweepResult sweep = sweep(now);
@@ -199,6 +203,82 @@ public class RasterRetentionStep implements RetentionStep {
                 }
             }
             plan.thinned().forEach((frame, expiry) -> frames.markThinned(frame.productId(), frame.frameId(), expiry));
+        }
+        return deleted;
+    }
+
+    /**
+     * What the ladders and the cap-history age cut would delete now, without deleting anything (prompt R2-015: the
+     * retention preview). Pinned frames are left out, as the run leaves them; the quota eviction, which depends on
+     * what the other rules free first, is not counted.
+     *
+     * @param now the time of the preview
+     * @param settings the retention settings the next run would use
+     * @return the frames and their bytes
+     */
+    public RasterFrameQueries.Totals preview(Instant now, ai.foresignal.settings.RetentionSettings settings) {
+        java.util.Set<String> counted = new java.util.HashSet<>();
+        long count = 0;
+        long bytes = 0;
+        for (ProductRegistry.Registered product : registry.all()) {
+            if (product.spec().isExternal()) {
+                continue;
+            }
+            FrameThinning.Plan plan = FrameThinning.plan(product.spec(), frames.allFrames(product.id()), now);
+            for (RasterFrameRow frame : plan.delete()) {
+                if (!pinned(frame) && counted.add(frame.productId() + "/" + frame.frameId())) {
+                    count++;
+                    bytes += frame.bytes();
+                }
+            }
+        }
+        Optional<java.time.Duration> cap = settings.capWindow();
+        if (cap.isPresent()) {
+            Instant cutoff = now.minus(cap.get());
+            RasterFrameRow last = null;
+            while (true) {
+                List<RasterFrameRow> page = last == null ? frames.oldestBefore(cutoff, null, null, null, QUOTA_BATCH)
+                        : frames.oldestBefore(cutoff, last.validTime(), last.productId(), last.frameId(), QUOTA_BATCH);
+                if (page.isEmpty()) {
+                    break;
+                }
+                for (RasterFrameRow frame : page) {
+                    if (!pinned(frame) && counted.add(frame.productId() + "/" + frame.frameId())) {
+                        count++;
+                        bytes += frame.bytes();
+                    }
+                }
+                last = page.getLast();
+            }
+        }
+        return new RasterFrameQueries.Totals(count, bytes);
+    }
+
+    /**
+     * Deletes every frame valid before {@code cutoff}, oldest first, except those a chronicle pins (prompt R2-015:
+     * cap history bounds frames by the same {@code maxDays} as records); returns the frames deleted.
+     *
+     * @param cutoff now minus the day cap
+     * @return the frames deleted
+     */
+    long capAge(Instant cutoff) {
+        long deleted = 0;
+        RasterFrameRow last = null;
+        while (true) {
+            List<RasterFrameRow> page = last == null ? frames.oldestBefore(cutoff, null, null, null, QUOTA_BATCH)
+                    : frames.oldestBefore(cutoff, last.validTime(), last.productId(), last.frameId(), QUOTA_BATCH);
+            if (page.isEmpty()) {
+                break;
+            }
+            for (RasterFrameRow frame : page) {
+                if (!pinned(frame) && deleteFrame(frame.productId(), frame.frameId())) {
+                    deleted++;
+                }
+            }
+            last = page.getLast();
+        }
+        if (deleted > 0) {
+            log.info("Cap history: deleted {} frames older than {}", deleted, cutoff);
         }
         return deleted;
     }

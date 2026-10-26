@@ -47,6 +47,11 @@ import tools.jackson.databind.JsonNode;
  * disables downsampling) must be shorter than {@code trackWindow}, and {@code trackDownsampleInterval}
  * (default 5 min) must lie in {@code [30s, trackRawWindow]}. Both are checked against the values in
  * force after the PUT, so an omitted member is checked at its default.
+ *
+ * <p><strong>Cap history (prompt R2-015).</strong> {@code capHistory} (default false) switches on one bound over the
+ * data history: {@code maxDays} (a whole number of days, at least 1, so never below {@link #MIN_WINDOW}) and/or
+ * {@code maxDbGb} (above 0), with {@code overwriteOldest} (default true). A switched-on cap needs at least one of
+ * the two; every problem is reported in the same 400 as the windows.
  */
 @Service
 public class RetentionSettingsService {
@@ -59,6 +64,12 @@ public class RetentionSettingsService {
             "entityLinks");
 
     static final Set<String> LATER_FIELDS = Set.of("social");
+
+    /** The cap-history members (prompt R2-015). */
+    static final Set<String> CAP_FIELDS = Set.of("capHistory", "maxDays", "maxDbGb", "overwriteOldest");
+
+    /** The largest {@code maxDays} accepted (100 years). */
+    static final int MAX_DAYS = 36_500;
 
     /** The shortest {@code trackDownsampleInterval} accepted (prompt 044). */
     public static final Duration MIN_DOWNSAMPLE_INTERVAL = Duration.ofSeconds(30);
@@ -147,7 +158,7 @@ public class RetentionSettingsService {
                 }
             } else if (!field.equals("sources") && !field.equals("kinds") && !field.equals("stats")
                     && !field.equals("trackRawWindow") && !field.equals("trackDownsampleInterval")
-                    && !LATER_FIELDS.contains(field)) {
+                    && !LATER_FIELDS.contains(field) && !CAP_FIELDS.contains(field)) {
                 errors.add(new FieldError(field, "is not a RetentionSettings member"));
             }
         }
@@ -222,6 +233,7 @@ public class RetentionSettingsService {
         RetentionSettings.Stats stats = stats(body.get("stats"), errors);
         Duration trackWindow = values.getOrDefault("trackWindow", RetentionSettings.DEFAULT_TRACK_WINDOW);
         Duration[] downsampling = downsampling(body, trackWindow, errors);
+        Cap cap = cap(body, errors);
 
         if (!errors.isEmpty()) {
             String code = tierFixed ? ErrorCodes.RETENTION_TIER_FIXED : ErrorCodes.VALIDATION_FAILED;
@@ -243,7 +255,65 @@ public class RetentionSettingsService {
                 stats,
                 downsampling[0],
                 downsampling[1],
-                values.get("entityLinks"));
+                values.get("entityLinks"),
+                cap.capHistory(),
+                cap.maxDays(),
+                cap.maxDbGb(),
+                cap.overwriteOldest());
+    }
+
+    /** The parsed cap members (prompt R2-015). */
+    record Cap(boolean capHistory, Integer maxDays, Double maxDbGb, Boolean overwriteOldest) {}
+
+    /**
+     * The cap-history members (prompt R2-015): {@code capHistory} and {@code overwriteOldest} booleans,
+     * {@code maxDays} a whole number of days from 1 to 36,500, {@code maxDbGb} a number above 0. A cap switched on
+     * with neither bound is refused.
+     */
+    static Cap cap(JsonNode body, List<FieldError> errors) {
+        boolean capHistory = false;
+        JsonNode on = body.get("capHistory");
+        if (on != null && !on.isNull()) {
+            if (!on.isBoolean()) {
+                errors.add(new FieldError("capHistory", "must be true or false"));
+            } else {
+                capHistory = on.asBoolean();
+            }
+        }
+        Integer maxDays = null;
+        JsonNode days = body.get("maxDays");
+        if (days != null && !days.isNull()) {
+            if (!days.isIntegralNumber() || !days.canConvertToInt() || days.asInt() < 1 || days.asInt() > MAX_DAYS) {
+                errors.add(new FieldError("maxDays", "must be a whole number of days from 1 to " + MAX_DAYS
+                        + " (at least the 1h minimum window)"));
+            } else {
+                maxDays = days.asInt();
+            }
+        }
+        Double maxDbGb = null;
+        JsonNode gb = body.get("maxDbGb");
+        if (gb != null && !gb.isNull()) {
+            if (!gb.isNumber() || !(gb.asDouble() > 0) || Double.isInfinite(gb.asDouble())) {
+                errors.add(new FieldError("maxDbGb", "must be a number of GB above 0"));
+            } else {
+                maxDbGb = gb.asDouble();
+            }
+        }
+        Boolean overwrite = null;
+        JsonNode overwriteNode = body.get("overwriteOldest");
+        if (overwriteNode != null && !overwriteNode.isNull()) {
+            if (!overwriteNode.isBoolean()) {
+                errors.add(new FieldError("overwriteOldest", "must be true or false"));
+            } else {
+                overwrite = overwriteNode.asBoolean();
+            }
+        }
+        boolean boundsValid = !(days != null && !days.isNull() && maxDays == null)
+                && !(gb != null && !gb.isNull() && maxDbGb == null);
+        if (capHistory && boundsValid && maxDays == null && maxDbGb == null) {
+            errors.add(new FieldError("capHistory", "needs maxDays, maxDbGb or both"));
+        }
+        return new Cap(capHistory, maxDays, maxDbGb, overwrite);
     }
 
     /**

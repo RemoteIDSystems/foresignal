@@ -3,6 +3,7 @@ package ai.foresignal.retention;
 import ai.foresignal.api.error.ConflictException;
 import ai.foresignal.ingest.IngestStateReset;
 import ai.foresignal.notify.SystemEvent;
+import ai.foresignal.settings.RetentionSettings;
 import ai.foresignal.store.query.SeqClockQuery;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -33,6 +34,10 @@ import org.springframework.stereotype.Component;
  * then publishes {@link RetentionStateStore} and returns a {@link RetentionRunResult}. One run at a
  * time: a second request while one is active is {@code 409 ALREADY_RUNNING}, and a scheduled tick
  * that finds one active is skipped.
+ *
+ * <p>Cap history (prompt R2-015): the run applies the settings {@link RetentionDbCap#tighten} returns, so a window
+ * the database-size cap stepped down to stays in force; after the window pass {@link RetentionDbCap#enforce} may step
+ * it down further through the {@link RetentionCapPruner} (the default re-runs the steps). The result reports both.
  *
  * <p>Consumers that released the clamp increment {@code foresignal.retention.consumer_lag} and
  * publish a {@code system.retention_consumer_lag} notification. Metrics:
@@ -66,6 +71,8 @@ public class RetentionJob implements IngestStateReset {
     private final Clock clock;
     private final Timer duration;
     private final AtomicBoolean running = new AtomicBoolean();
+    private RetentionDbCap dbCap;
+    private RetentionCapPruner pruner = RetentionCapPruner.RERUN;
 
     private volatile RetentionRunResult lastResult;
     private volatile List<RetentionRun.Lag> lastLags = List.of();
@@ -93,6 +100,20 @@ public class RetentionJob implements IngestStateReset {
         this.meters = meters;
         this.clock = clock;
         this.duration = Timer.builder(DURATION_METRIC).description("Duration of retention runs").register(meters);
+    }
+
+    /**
+     * Sets the database-size cap and, when a bean provides one, the pruner it uses (prompt R2-015; prompt R2-016 may
+     * provide an archiving pruner).
+     *
+     * @param dbCap the cap
+     * @param pruner a pruner bean, if any
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setDbCap(RetentionDbCap dbCap, org.springframework.beans.factory.ObjectProvider<RetentionCapPruner> pruner) {
+        this.dbCap = dbCap;
+        RetentionCapPruner provided = pruner == null ? null : pruner.getIfAvailable();
+        this.pruner = provided == null ? RetentionCapPruner.RERUN : provided;
     }
 
     /** The hourly run; does nothing when {@code foresignal.retention.scheduled} is false. */
@@ -164,22 +185,22 @@ public class RetentionJob implements IngestStateReset {
         long start = System.nanoTime();
         try {
             Instant now = clock.instant();
-            RetentionRun run = new RetentionRun(now, resolver.settings(), jdbc, seqClock, consumers());
-            for (RetentionStep step : steps) {
+            RetentionSettings configured = resolver.settings();
+            RetentionSettings applied = dbCap == null ? configured : dbCap.tighten(configured);
+            RetentionRun run = pass(now, applied);
+            RetentionDbCap.Outcome capped = null;
+            if (dbCap != null) {
                 try {
-                    step.run(run);
+                    capped = dbCap.enforce(configured, pruner, tightened -> pass(clock.instant(), tightened));
                 } catch (RuntimeException e) {
-                    log.error("Retention step {} failed; continuing with the next step", step.name(), e);
-                    run.error(step.name() + ": " + e.getMessage());
+                    log.error("The retention size cap failed", e);
+                    run.error("db-cap: " + e.getMessage());
                 }
             }
-            state.publish(run);
-            alarm(run);
             long elapsed = System.nanoTime() - start;
             duration.record(elapsed, TimeUnit.NANOSECONDS);
-            run.deletedByTable().forEach((table, count) ->
-                    meters.counter(DELETED_METRIC, "table", table).increment(count));
-            RetentionRunResult result = result(run, Duration.ofNanos(elapsed));
+            RetentionRunResult result = result(run, Duration.ofNanos(elapsed),
+                    applied.capWindow().map(w -> (int) w.toDays()).orElse(null), capped);
             lastResult = result;
             lastLags = run.lags();
             log.info("Retention run: {} versions, {} partitions, {} heads, {} fetch_log, {} seq_clock, {} alerts,"
@@ -193,6 +214,24 @@ public class RetentionJob implements IngestStateReset {
         } finally {
             running.set(false);
         }
+    }
+
+    /** One pass of every step under {@code settings}: publishes the floors, alarms on lags, counts deletions. */
+    private RetentionRun pass(Instant now, RetentionSettings settings) {
+        RetentionRun run = new RetentionRun(now, settings, jdbc, seqClock, consumers());
+        for (RetentionStep step : steps) {
+            try {
+                step.run(run);
+            } catch (RuntimeException e) {
+                log.error("Retention step {} failed; continuing with the next step", step.name(), e);
+                run.error(step.name() + ": " + e.getMessage());
+            }
+        }
+        state.publish(run);
+        alarm(run);
+        run.deletedByTable().forEach((table, count) ->
+                meters.counter(DELETED_METRIC, "table", table).increment(count));
+        return run;
     }
 
     private void alarm(RetentionRun run) {
@@ -216,7 +255,8 @@ public class RetentionJob implements IngestStateReset {
         }
     }
 
-    private RetentionRunResult result(RetentionRun run, Duration elapsed) {
+    private RetentionRunResult result(RetentionRun run, Duration elapsed, Integer capWindowDays,
+            RetentionDbCap.Outcome dbCapOutcome) {
         Map<String, RetentionRunResult.PerSource> perSource = new LinkedHashMap<>();
         TreeSet<String> ids = new TreeSet<>(run.versionsBySource().keySet());
         ids.addAll(run.floors().keySet());
@@ -239,6 +279,8 @@ public class RetentionJob implements IngestStateReset {
                 run.deletedFrom("notification"),
                 List.copyOf(run.skippedSources()),
                 new RetentionRunResult.ConsumerClamp(run.clampActive(), run.clampConsumer(), run.clampCursor()),
-                perSource);
+                perSource,
+                capWindowDays,
+                dbCapOutcome);
     }
 }

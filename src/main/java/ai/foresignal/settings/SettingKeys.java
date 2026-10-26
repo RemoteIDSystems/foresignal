@@ -470,6 +470,13 @@ public final class SettingKeys {
      */
     public static final String THRESHOLDS = "thresholds";
 
+    /**
+     * The database-size cap's working state (prompt R2-015, {@code ai.foresignal.retention.RetentionDbCap}): the
+     * history window, in days, it has stepped down to and the database size it last measured, so a restart neither
+     * forgets a tightened window nor starts stepping down again. Internal; not part of the API.
+     */
+    public static final String RETENTION_DB_CAP = "retention.dbCap";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -494,7 +501,7 @@ public final class SettingKeys {
                     SOCIAL_LLM_CLAIMS_PER_DAY, SOCIAL_SOURCE_RELIABILITY, SOCIAL_COMPARE, SOCIAL_ATTENTION_GAP,
                     SOCIAL_CUES, SOCIAL_TRACK_RECORD, EXTERNAL_BINDING_CURSOR, DOCTOR_AUTO_LLM,
                     DOCTOR_AUTO_COOLDOWN, MCP_AUTH, PLUGINS, PLUGINS_APPROVALS, COLLECTOR, SMTP,
-                    THRESHOLDS);
+                    THRESHOLDS, RETENTION_DB_CAP);
 
     private SettingKeys() {}
 }

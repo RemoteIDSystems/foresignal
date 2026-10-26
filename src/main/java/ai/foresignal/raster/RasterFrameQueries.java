@@ -253,6 +253,43 @@ public class RasterFrameQueries {
                 (rs, n) -> new Totals(rs.getLong("n"), rs.getLong("b")));
     }
 
+    /**
+     * Totals over the frames valid before {@code cutoff} (prompt R2-015: the cap-history preview).
+     *
+     * @param cutoff the cutoff
+     * @return the count and bytes
+     */
+    public Totals totalsBefore(Instant cutoff) {
+        return jdbc.queryForObject("SELECT count(*) AS n, coalesce(sum(bytes), 0) AS b FROM raster_frame"
+                + " WHERE valid_time < ?", (rs, n) -> new Totals(rs.getLong("n"), rs.getLong("b")),
+                ts(cutoff));
+    }
+
+    /**
+     * Up to {@code limit} frames valid before {@code cutoff}, oldest first, after the keyset position
+     * {@code (afterValid, afterProduct, afterFrame)} (null to start at the oldest) (prompt R2-015: the cap-history
+     * pass walks past frames a chronicle pins).
+     *
+     * @param cutoff the cutoff
+     * @param afterValid the valid time of the last frame seen, or null
+     * @param afterProduct its product, or null
+     * @param afterFrame its frame id, or null
+     * @param limit the page size
+     * @return the frames
+     */
+    public List<RasterFrameRow> oldestBefore(Instant cutoff, Instant afterValid, String afterProduct,
+            String afterFrame, int limit) {
+        if (afterValid == null) {
+            return jdbc.query("SELECT " + COLUMNS + " FROM raster_frame WHERE valid_time < ?"
+                    + " ORDER BY valid_time, product_id, frame_id LIMIT ?", mapper, ts(cutoff),
+                    limit);
+        }
+        return jdbc.query("SELECT " + COLUMNS + " FROM raster_frame WHERE valid_time < ?"
+                + " AND (valid_time, product_id, frame_id) > (?, ?, ?)"
+                + " ORDER BY valid_time, product_id, frame_id LIMIT ?", mapper, ts(cutoff),
+                ts(afterValid), afterProduct, afterFrame, limit);
+    }
+
     /** Every frame of {@code productId}, oldest first (retention). */
     public List<RasterFrameRow> allFrames(String productId) {
         return jdbc.query("SELECT " + COLUMNS + " FROM raster_frame WHERE product_id = ? ORDER BY valid_time, frame_id",

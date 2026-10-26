@@ -44217,7 +44217,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"default\": \"7d\",\n  \"trackWindow\": \"3d\",\n  \"provenance\": \"30d\",\n  \"alerts\": \"90d\",\n  \"usage\": \"30d\",\n  \"notifications\": \"90d\",\n  \"briefings\": \"180d\",\n  \"ask\": \"90d\",\n  \"kinds\": {\n    \"earthquake\": \"3650d\"\n  },\n  \"sources\": {\n    \"usgs-earthquakes\": \"1825d\"\n  },\n  \"trackRawWindow\": \"24h\",\n  \"trackDownsampleInterval\": \"5m\"\n}",
+              "raw": "{\n  \"default\": \"7d\",\n  \"trackWindow\": \"3d\",\n  \"provenance\": \"30d\",\n  \"alerts\": \"90d\",\n  \"usage\": \"30d\",\n  \"notifications\": \"90d\",\n  \"briefings\": \"180d\",\n  \"ask\": \"90d\",\n  \"kinds\": {\n    \"earthquake\": \"3650d\"\n  },\n  \"sources\": {\n    \"usgs-earthquakes\": \"1825d\"\n  },\n  \"trackRawWindow\": \"24h\",\n  \"trackDownsampleInterval\": \"5m\",\n  \"capHistory\": false,\n  \"maxDays\": 3650,\n  \"maxDbGb\": 200,\n  \"overwriteOldest\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -45956,7 +45956,7 @@
               ],
               "query": []
             },
-            "description": "Dry-run of the current retention policy: how much each subsystem would prune, per kind, with a size estimate and nothing deleted (B2/178). Requires `storage.manage`.\n\n**Scope:** `admin`.\n\noperationId: `previewRetention`",
+            "description": "Dry run of the current retention policy: what the next run would prune per subsystem (records per kind, TRACK leaves, frames, media, stopped chronicles), with a size estimate and nothing deleted (B2/178). It uses the settings the next run applies, including a window the database-size cap has stepped down to; with `capHistory` off it shows today's per-subsystem windows. Frames pinned by a chronicle are not counted; quota eviction is not previewed. Requires `storage.manage`.\n\n**Scope:** `admin`.\n\noperationId: `previewRetention`",
             "auth": {
               "type": "bearer",
               "bearer": [

@@ -174,7 +174,7 @@ public class HistoryDownsampler implements RetentionStep {
             return;
         }
         long rawCutoff = run.rawCutoff(settings.trackRawWindow());
-        long horizon = run.rawCutoff(settings.trackWindow().minus(Duration.ofHours(1)));
+        long horizon = run.rawCutoff(settings.effectiveTrackWindow().minus(Duration.ofHours(1)));
         long bound = run.consumerBound();
         Optional<LeafInfo> leaf = select(leaves, done, rawCutoff, bound, horizon);
         if (leaf.isEmpty()) {

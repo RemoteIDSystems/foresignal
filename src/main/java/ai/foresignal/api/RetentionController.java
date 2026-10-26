@@ -1,6 +1,8 @@
 package ai.foresignal.api;
 
 import ai.foresignal.retention.RetentionJob;
+import ai.foresignal.retention.RetentionPreview;
+import ai.foresignal.retention.RetentionPreviewService;
 import ai.foresignal.retention.RetentionRunResult;
 import ai.foresignal.retention.RetentionSettingsService;
 import ai.foresignal.settings.RetentionSettings;
@@ -14,8 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 
 /**
- * {@code getRetention}, {@code updateRetention} and {@code runRetention} (prompt 019). Admin only
- * ({@code /v1/settings/**}).
+ * {@code getRetention}, {@code updateRetention} and {@code runRetention} (prompt 019), and {@code previewRetention}
+ * (prompt R2-015). Admin only ({@code /v1/settings/**}); a session needs {@code storage.manage} for the preview.
  */
 @RestController
 @Tag(name = "Settings")
@@ -23,11 +25,20 @@ public class RetentionController {
 
     private final RetentionSettingsService settings;
     private final RetentionJob job;
+    private final RetentionPreviewService preview;
 
     /** Creates the controller. */
-    public RetentionController(RetentionSettingsService settings, RetentionJob job) {
+    public RetentionController(RetentionSettingsService settings, RetentionJob job, RetentionPreviewService preview) {
         this.settings = settings;
         this.job = job;
+        this.preview = preview;
+    }
+
+    /** {@code previewRetention}: what the next run would prune, computed without deleting anything. */
+    @GetMapping("/v1/settings/retention/preview")
+    @Operation(operationId = "previewRetention", tags = "Settings")
+    public RetentionPreview previewRetention() {
+        return preview.preview();
     }
 
     /** {@code getRetention}: the settings, with {@code sources} read from {@code source_settings}. */

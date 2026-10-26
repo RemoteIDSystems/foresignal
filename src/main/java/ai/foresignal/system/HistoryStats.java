@@ -137,7 +137,7 @@ public class HistoryStats {
         }, Timestamp.from(now.minus(Duration.ofHours(1))));
 
         RetentionSettings settings = resolver.settings();
-        Duration standardWindow = settings.defaultRetention();
+        Duration standardWindow = settings.capped(settings.defaultRetention());
         for (Map<String, Duration> windows : resolver.standardWindows().values()) {
             for (Duration window : windows.values()) {
                 standardWindow = window.compareTo(standardWindow) > 0 ? window : standardWindow;
@@ -149,7 +149,7 @@ public class HistoryStats {
         for (HistoryTier tier : List.of(HistoryTier.TRACK, HistoryTier.STANDARD)) {
             long[] s = sums.get(tier);
             double headroom = partitions.headroom(tier);
-            Duration window = tier == HistoryTier.TRACK ? settings.trackWindow() : standardWindow;
+            Duration window = tier == HistoryTier.TRACK ? settings.effectiveTrackWindow() : standardWindow;
             double rate = rates.get(tier);
             DownsampleRanges.Summary thinned = downsampled.summary(tier);
             tiers.add(new Tier(tier, (int) s[0], s[1], s[2], Double.isNaN(headroom) ? null : (long) headroom,

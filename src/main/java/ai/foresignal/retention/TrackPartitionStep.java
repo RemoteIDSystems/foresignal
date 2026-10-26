@@ -53,7 +53,7 @@ public class TrackPartitionStep implements RetentionStep {
 
     @Override
     public void run(RetentionRun run) {
-        Duration window = run.settings().trackWindow();
+        Duration window = run.settings().effectiveTrackWindow();
         RetentionPlanner.TrackPlan plan = planner.track(run);
         long next = 0L;
         for (LeafInfo leaf : plan.droppable()) {

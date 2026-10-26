@@ -105,7 +105,7 @@ public class MediaRetentionStep implements RetentionStep {
 
     @Override
     public void run(RetentionRun run) {
-        Result result = apply(run.now());
+        Result result = apply(run.now(), run.settings());
         run.deleted(TABLE, result.rowsDeleted() + result.orphanRows());
         if (result.rowsDeleted() > 0 || result.orphanRows() > 0 || result.orphanFiles() > 0) {
             log.info("Media retention: {} rows deleted, {} files unlinked, {} orphan rows and {} orphan files removed",
@@ -123,19 +123,62 @@ public class MediaRetentionStep implements RetentionStep {
      */
     public record Result(long rowsDeleted, long filesUnlinked, long orphanRows, long orphanFiles) {}
 
-    /** Applies every rule at {@code now}. */
+    /**
+     * What {@link #apply(Instant, ai.foresignal.settings.RetentionSettings)} would delete by its expiry,
+     * record-following, head-missing and unowned rules, without deleting anything (prompt R2-015: the retention
+     * preview). Variants of those originals and orphan sweeps are not counted.
+     *
+     * @param now the time of the preview
+     * @param settings the retention settings the next run would use
+     * @return the originals and their bytes
+     */
+    public MediaQueries.Totals preview(Instant now, ai.foresignal.settings.RetentionSettings settings) {
+        long count = 0;
+        long bytes = 0;
+        List<MediaQueries.Totals> parts = new java.util.ArrayList<>();
+        parts.add(queries.expiredTotals(now));
+        for (MediaQueries.RecordGroup group : queries.recordGroups()) {
+            parts.add(queries.recordFollowingTotals(group,
+                    now.minus(settings.capped(resolver.window(group.sourceId(), group.kind())))));
+        }
+        parts.add(queries.headMissingTotals(now.minus(properties.headMissingGrace())));
+        for (String sourceId : queries.unownedSources()) {
+            parts.add(queries.unownedTotals(sourceId, now.minus(settings.capped(sourceId == null
+                    ? resolver.settings().defaultRetention() : resolver.window(sourceId, null)))));
+        }
+        for (MediaQueries.Totals part : parts) {
+            count += part.count();
+            bytes += part.bytes();
+        }
+        return new MediaQueries.Totals(count, bytes);
+    }
+
+    /** Applies every rule at {@code now} under the stored retention settings. */
     public Result apply(Instant now) {
+        return apply(now, resolver.settings());
+    }
+
+    /**
+     * Applies every rule at {@code now}; the record-following and unowned windows are also bounded by the cap
+     * history of {@code settings} (prompt R2-015), which the database-size cap may have tightened for this run.
+     *
+     * @param now the run's clock reading
+     * @param settings the run's retention settings
+     * @return what was deleted
+     */
+    public Result apply(Instant now, ai.foresignal.settings.RetentionSettings settings) {
         Counts counts = new Counts();
         deleteAll(() -> queries.expiredIds(now, CHUNK), now, counts);
         for (MediaQueries.RecordGroup group : queries.recordGroups()) {
-            Duration window = resolver.window(group.sourceId(), group.kind());
+            Duration window = settings.capped(resolver.window(group.sourceId(), group.kind()));
             Instant cutoff = now.minus(window);
             deleteAll(() -> queries.recordFollowingIds(group, cutoff, CHUNK), now, counts);
         }
         Instant headCutoff = now.minus(properties.headMissingGrace());
         deleteAll(() -> queries.headMissingIds(headCutoff, CHUNK), now, counts);
         for (String sourceId : queries.unownedSources()) {
-            Duration window = sourceId == null ? resolver.settings().defaultRetention() : resolver.window(sourceId, null);
+            Duration window = settings.capped(sourceId == null ? resolver.settings().defaultRetention()
+                    : resolver.window(sourceId, null));
             Instant cutoff = now.minus(window);
             deleteAll(() -> queries.unownedIds(sourceId, cutoff, CHUNK), now, counts);
         }

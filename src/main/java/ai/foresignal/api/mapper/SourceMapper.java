@@ -350,9 +350,10 @@ public class SourceMapper {
     public Duration effectiveRetention(SourceDescriptor descriptor, Optional<Duration> sourceRetention) {
         RetentionSettings retention = retentionSettings();
         if (descriptor.isTrack()) {
-            return retention.trackWindow();
+            return retention.effectiveTrackWindow();
         }
-        return sourceRetention.orElseGet(() -> retention.forSource(descriptor.id()));
+        // R2-015: the window in force, under the cap-history clamp.
+        return retention.capped(sourceRetention.orElseGet(() -> retention.forSource(descriptor.id())));
     }
 
     private ai.foresignal.stats.StatsSettings statsSettings() {
