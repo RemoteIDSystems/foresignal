@@ -32,6 +32,11 @@ import tools.jackson.databind.node.ObjectNode;
  * ({@code 409 LLM_PROVIDER_IN_USE}) and cannot be changed so that it no longer serves that role.
  * Changing the model or dimensions of the active embedding provider publishes
  * {@link EmbeddingModelChangedEvent} once the change commits.
+ *
+ * <p>Prompt R2-011: a provider is shared (no owner, managed under {@code llm.shared.manage}) or personal (owned by a
+ * user's principal, managed by that user under {@code self.llm}); {@link LlmProviderScope} decides who sees and
+ * manages which. A replace keeps the kind. Only a shared provider may carry per-user caps, and only a shared provider
+ * may hold an instance role ({@link LlmSettingsService}).
  */
 @Service
 public class LlmProviderService {
@@ -64,6 +69,53 @@ public class LlmProviderService {
     }
 
     /**
+     * The providers {@code scope} sees, by id (prompt R2-011).
+     *
+     * @param scope the caller's scope
+     * @return the providers
+     */
+    @Transactional(readOnly = true)
+    public List<LlmProviderEntity> list(LlmProviderScope scope) {
+        return repository.findAllByOrderByIdAsc().stream().filter(p -> scope.sees(p.getOwnerPrincipalId())).toList();
+    }
+
+    /**
+     * The shared providers, by id (prompt R2-011).
+     *
+     * @return the providers
+     */
+    @Transactional(readOnly = true)
+    public List<LlmProviderEntity> shared() {
+        return repository.findByOwnerPrincipalIdIsNullOrderByIdAsc();
+    }
+
+    /**
+     * A user's personal providers, by id (prompt R2-011).
+     *
+     * @param principalId the user's principal
+     * @return the providers
+     */
+    @Transactional(readOnly = true)
+    public List<LlmProviderEntity> personal(String principalId) {
+        return principalId == null ? List.of() : repository.findByOwnerPrincipalIdOrderByIdAsc(principalId);
+    }
+
+    /**
+     * The personal provider a user's chat goes to (prompt R2-011): their first enabled personal provider with a chat
+     * model, by id; empty when they have none.
+     *
+     * @param principalId the user's principal, or null for the machine
+     * @return the provider id, or empty
+     */
+    @Transactional(readOnly = true)
+    public Optional<String> personalChatProvider(String principalId) {
+        return personal(principalId).stream()
+                .filter(p -> p.isEnabled() && p.getChatModel() != null)
+                .map(LlmProviderEntity::getId)
+                .findFirst();
+    }
+
+    /**
      * One provider.
      *
      * @throws NotFoundException when it does not exist
@@ -87,11 +139,30 @@ public class LlmProviderService {
      */
     @Transactional
     public LlmProviderEntity create(JsonNode body) {
-        return create(body, true);
+        return create(body, true, LlmProviderScope.MACHINE);
     }
 
-    private LlmProviderEntity create(JsonNode body, boolean keyRequired) {
+    /**
+     * Creates a provider for {@code scope} (prompt R2-011): personal for a session holding {@code self.llm} unless the
+     * body asks for {@code shared: true}, shared for an API token.
+     *
+     * @param body an {@code LlmProviderInput}
+     * @param scope the caller's scope
+     * @return the provider
+     * @throws ValidationException when the body is not valid
+     * @throws ConflictException ({@code LLM_PROVIDER_EXISTS}) when the id is taken
+     * @throws ai.foresignal.api.error.ForesignalException {@code 403 PERMISSION_DENIED} when the caller may not create
+     *     that kind
+     */
+    @Transactional
+    public LlmProviderEntity create(JsonNode body, LlmProviderScope scope) {
+        return create(body, true, scope);
+    }
+
+    private LlmProviderEntity create(JsonNode body, boolean keyRequired, LlmProviderScope scope) {
         LlmProviderInput input = validator.parse(body, null);
+        String owner = scope.ownerForNew(input.shared());
+        requireSharedForPerUserCaps(input, owner);
         if (repository.existsById(input.id())) {
             throw new ConflictException(ErrorCodes.LLM_PROVIDER_EXISTS,
                     "An LLM provider with id '" + input.id() + "' already exists.");
@@ -100,6 +171,7 @@ public class LlmProviderService {
             requireKey(input, null);
         }
         LlmProviderEntity entity = new LlmProviderEntity(input.id(), input.type().wireValue());
+        entity.setOwnerPrincipalId(owner);
         entity.setCreatedAt(clock.instant());
         apply(entity, input);
         return repository.save(entity);
@@ -120,6 +192,7 @@ public class LlmProviderService {
     private LlmProviderEntity replace(String id, JsonNode body, boolean keyRequired) {
         LlmProviderEntity entity = get(id);
         LlmProviderInput input = validator.parse(body, id);
+        requireSharedForPerUserCaps(input, entity.getOwnerPrincipalId());
         if (keyRequired) {
             requireKey(input, entity);
         }
@@ -164,7 +237,7 @@ public class LlmProviderService {
         if (id != null && id.isString() && repository.existsById(id.asString())) {
             return replace(id.asString(), body, false);
         }
-        return create(body, false);
+        return create(body, false, LlmProviderScope.MACHINE);
     }
 
     /**
@@ -200,7 +273,8 @@ public class LlmProviderService {
         return config(entity.getId(), LlmProviderType.fromWire(entity.getType()), entity.getBaseUrl(),
                 entity.getChatModel(), entity.getEmbeddingModel(), entity.getEmbeddingDimensions(), entity.getOptions(),
                 key, entity.getRequestsPerMinute(), entity.getTokensPerDay(), entity.isEnabled(),
-                entity.getKnowledgeCutoff(), entity.getPricing(), entity.getSpendCaps());
+                entity.getKnowledgeCutoff(), entity.getPricing(), entity.getSpendCaps(), entity.getOwnerPrincipalId(),
+                entity.getPerUserSpendCaps());
     }
 
     /**
@@ -230,13 +304,14 @@ public class LlmProviderService {
         }
         return config(input.id(), input.type(), input.baseUrl(), input.chatModel(), input.embeddingModel(),
                 input.embeddingDimensions(), input.options(), key, input.requestsPerMinute(), input.tokensPerDay(),
-                input.enabled(), input.knowledgeCutoff(), input.pricing(), input.spendCaps());
+                input.enabled(), input.knowledgeCutoff(), input.pricing(), input.spendCaps(),
+                saved.map(LlmProviderEntity::getOwnerPrincipalId).orElse(null), input.perUserSpendCaps());
     }
 
     private static LlmProviderConfig config(String id, LlmProviderType type, String baseUrl, String chatModel,
             String embeddingModel, Integer embeddingDimensions, Map<String, Object> storedOptions, String key,
             int requestsPerMinute, long tokensPerDay, boolean enabled, LocalDate knowledgeCutoff,
-            LlmPricing pricing, LlmSpendCaps spendCaps) {
+            LlmPricing pricing, LlmSpendCaps spendCaps, String ownerPrincipalId, LlmSpendCaps perUserSpendCaps) {
         Map<String, Object> options = storedOptions == null ? Map.of() : storedOptions;
         Effort effort = null;
         if (options.get("effort") instanceof String text) {
@@ -255,7 +330,7 @@ public class LlmProviderService {
         boolean local = Boolean.TRUE.equals(options.get("local"));
         return new LlmProviderConfig(id, type, baseUrl, chatModel, embeddingModel, embeddingDimensions, effort,
                 maxTokens, temperature, headers, local, key, requestsPerMinute, tokensPerDay, enabled, knowledgeCutoff,
-                pricing, spendCaps);
+                pricing, spendCaps, ownerPrincipalId, perUserSpendCaps);
     }
 
     /** The configuration snapshot of provider {@code id}. */
@@ -282,6 +357,7 @@ public class LlmProviderService {
         entity.setKnowledgeCutoff(input.knowledgeCutoff());
         entity.setPricing(input.pricing());
         entity.setSpendCaps(input.spendCaps());
+        entity.setPerUserSpendCaps(input.perUserSpendCaps());
         if (input.apiKey() != null) {
             Encrypted encrypted = cipher.encrypt(input.apiKey());
             entity.setSecret(encrypted.ciphertext(), encrypted.nonce());
@@ -292,6 +368,16 @@ public class LlmProviderService {
         }
         Instant now = clock.instant();
         entity.setUpdatedAt(now);
+    }
+
+    /** Per-user caps bound each user's share of a shared provider; a personal provider has one user already. */
+    private static void requireSharedForPerUserCaps(LlmProviderInput input, String owner) {
+        if (owner != null && input.perUserSpendCaps().isSet()) {
+            String field = input.perUserSpendCaps().hourlyUsd() != null ? "perUserHourlyCapUsd"
+                    : input.perUserSpendCaps().dailyUsd() != null ? "perUserDailyCapUsd" : "perUserMonthlyCapUsd";
+            throw ValidationException.forField(field, "applies to shared providers only; a personal provider's"
+                    + " hourlyCapUsd, dailyCapUsd and monthlyCapUsd are already its owner's own caps");
+        }
     }
 
     /** Anthropic needs a key: the SDK would otherwise look for credentials elsewhere on the host. */

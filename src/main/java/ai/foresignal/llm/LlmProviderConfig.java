@@ -31,11 +31,14 @@ import java.util.Optional;
  * @param knowledgeCutoff the chat model's training-data cutoff, or null
  * @param pricing the prices in USD per million tokens ({@link LlmPricing#NONE} when unpriced)
  * @param spendCaps the hourly, daily and monthly USD caps ({@link LlmSpendCaps#NONE} when uncapped)
+ * @param ownerPrincipalId the owning user's principal for a personal provider, or null for a shared one (R2-011)
+ * @param perUserSpendCaps the USD caps a shared provider applies to each user's own spend (R2-011)
  */
 public record LlmProviderConfig(String id, LlmProviderType type, String baseUrl, String chatModel,
         String embeddingModel, Integer embeddingDimensions, Effort effort, Integer maxTokens, Double temperature,
         Map<String, String> extraHeaders, boolean localFlag, String apiKey, int requestsPerMinute, long tokensPerDay,
-        boolean enabled, LocalDate knowledgeCutoff, LlmPricing pricing, LlmSpendCaps spendCaps) {
+        boolean enabled, LocalDate knowledgeCutoff, LlmPricing pricing, LlmSpendCaps spendCaps,
+        String ownerPrincipalId, LlmSpendCaps perUserSpendCaps) {
 
     /** The output cap used when neither the request nor the provider sets one. */
     public static final int DEFAULT_MAX_TOKENS = 16_000;
@@ -45,6 +48,22 @@ public record LlmProviderConfig(String id, LlmProviderType type, String baseUrl,
         extraHeaders = extraHeaders == null ? Map.of() : Map.copyOf(extraHeaders);
         pricing = pricing == null ? LlmPricing.NONE : pricing;
         spendCaps = spendCaps == null ? LlmSpendCaps.NONE : spendCaps;
+        perUserSpendCaps = perUserSpendCaps == null ? LlmSpendCaps.NONE : perUserSpendCaps;
+    }
+
+    /** A shared provider's snapshot with pricing and caps: the 1.5 shape, before personal providers (R2-011). */
+    public LlmProviderConfig(String id, LlmProviderType type, String baseUrl, String chatModel,
+            String embeddingModel, Integer embeddingDimensions, Effort effort, Integer maxTokens, Double temperature,
+            Map<String, String> extraHeaders, boolean localFlag, String apiKey, int requestsPerMinute, long tokensPerDay,
+            boolean enabled, LocalDate knowledgeCutoff, LlmPricing pricing, LlmSpendCaps spendCaps) {
+        this(id, type, baseUrl, chatModel, embeddingModel, embeddingDimensions, effort, maxTokens, temperature,
+                extraHeaders, localFlag, apiKey, requestsPerMinute, tokensPerDay, enabled, knowledgeCutoff, pricing,
+                spendCaps, null, LlmSpendCaps.NONE);
+    }
+
+    /** True for a shared provider; false for a user's personal one (prompt R2-011). */
+    public boolean shared() {
+        return ownerPrincipalId == null;
     }
 
     /**
@@ -57,12 +76,16 @@ public record LlmProviderConfig(String id, LlmProviderType type, String baseUrl,
             boolean enabled, LocalDate knowledgeCutoff) {
         this(id, type, baseUrl, chatModel, embeddingModel, embeddingDimensions, effort, maxTokens, temperature,
                 extraHeaders, localFlag, apiKey, requestsPerMinute, tokensPerDay, enabled, knowledgeCutoff,
-                LlmPricing.NONE, LlmSpendCaps.NONE);
+                LlmPricing.NONE, LlmSpendCaps.NONE, null, LlmSpendCaps.NONE);
     }
 
-    /** True when prompts stay on this machine or network: Ollama, or {@code options.local=true}. */
+    /**
+     * True when prompts stay on this machine or network: Ollama, or {@code options.local=true}. A user's personal
+     * provider is never local (prompt R2-011): its owner chose the base URL, and calling it local would let them route
+     * private-source context that the egress policy keeps on the instance to a host of their choosing.
+     */
     public boolean local() {
-        return type == LlmProviderType.OLLAMA || localFlag;
+        return ownerPrincipalId == null && (type == LlmProviderType.OLLAMA || localFlag);
     }
 
     /** This provider as an LLM-context egress destination. */

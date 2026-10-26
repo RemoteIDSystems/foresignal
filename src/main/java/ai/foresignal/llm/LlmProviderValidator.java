@@ -65,11 +65,12 @@ public class LlmProviderValidator {
 
     private static final Set<String> MEMBERS = Set.of("id", "type", "baseUrl", "chatModel", "embeddingModel",
             "embeddingDimensions", "apiKey", "options", "requestsPerMinute", "tokensPerDay", "enabled",
-            "knowledgeCutoff", "pricing", "hourlyCapUsd", "dailyCapUsd", "monthlyCapUsd");
+            "knowledgeCutoff", "pricing", "hourlyCapUsd", "dailyCapUsd", "monthlyCapUsd", "shared",
+            "perUserHourlyCapUsd", "perUserDailyCapUsd", "perUserMonthlyCapUsd");
 
     /** Output-only members of {@code LlmProvider}, tolerated (and ignored) so an exported provider imports. */
     private static final Set<String> OUTPUT_ONLY = Set.of("apiKeySet", "roles", "status", "tokensToday", "lastError",
-            "updatedAt", "supportsTools", "lastSuccessAt", "lastErrorAt", "consecutiveFailures", "local");
+            "updatedAt", "supportsTools", "lastSuccessAt", "lastErrorAt", "consecutiveFailures", "local", "ownerPrincipalId");
 
     private static final Set<String> PRICING_MEMBERS = Set.of("inputUsdPerMillionTokens", "outputUsdPerMillionTokens",
             "cachedInputUsdPerMillionTokens", "embeddingUsdPerMillionTokens");
@@ -204,6 +205,24 @@ public class LlmProviderValidator {
             errors.add(new FieldError(field, "needs pricing: spend is the metered tokens at the provider's prices,"
                     + " so a cap without prices could never be reached"));
         }
+        // R2-011: the caps a shared provider applies to each user's own spend.
+        LlmSpendCaps perUser = new LlmSpendCaps(cap(body, "perUserHourlyCapUsd", errors),
+                cap(body, "perUserDailyCapUsd", errors), cap(body, "perUserMonthlyCapUsd", errors));
+        if (perUser.isSet() && !pricing.isSet()) {
+            String field = perUser.hourlyUsd() != null ? "perUserHourlyCapUsd"
+                    : perUser.dailyUsd() != null ? "perUserDailyCapUsd" : "perUserMonthlyCapUsd";
+            errors.add(new FieldError(field, "needs pricing: spend is the metered tokens at the provider's prices,"
+                    + " so a cap without prices could never be reached"));
+        }
+        Boolean shared = null;
+        JsonNode sharedNode = body.get("shared");
+        if (sharedNode != null && !sharedNode.isNull()) {
+            if (sharedNode.isBoolean()) {
+                shared = sharedNode.asBoolean();
+            } else {
+                errors.add(new FieldError("shared", "must be a boolean"));
+            }
+        }
 
         if (!errors.isEmpty()) {
             if (urlRefused) {
@@ -213,7 +232,7 @@ public class LlmProviderValidator {
         }
         return new LlmProviderInput(id, type, baseUrl, chatModel, embeddingModel, embeddingDimensions, apiKey, options,
                 rpm == null ? DEFAULT_REQUESTS_PER_MINUTE : rpm, tpd == null ? DEFAULT_TOKENS_PER_DAY : tpd, enabled,
-                cutoff, pricing, caps);
+                cutoff, pricing, caps, perUser, shared);
     }
 
     /**

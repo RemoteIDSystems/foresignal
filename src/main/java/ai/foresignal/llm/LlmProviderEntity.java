@@ -90,6 +90,19 @@ public class LlmProviderEntity {
     @Column(name = "monthly_cap_usd", precision = 14, scale = 4)
     private BigDecimal monthlyCapUsd;
 
+    /** The owning user's principal for a personal provider; null for a shared one (prompt R2-011). */
+    @Column(name = "owner_principal_id", length = 64)
+    private String ownerPrincipalId;
+
+    @Column(name = "per_user_hourly_cap_usd", precision = 14, scale = 4)
+    private BigDecimal perUserHourlyCapUsd;
+
+    @Column(name = "per_user_daily_cap_usd", precision = 14, scale = 4)
+    private BigDecimal perUserDailyCapUsd;
+
+    @Column(name = "per_user_monthly_cap_usd", precision = 14, scale = 4)
+    private BigDecimal perUserMonthlyCapUsd;
+
     /** False once the chat model rejected tools; null until known. */
     @Column(name = "supports_tools")
     private Boolean supportsTools;
@@ -273,6 +286,37 @@ public class LlmProviderEntity {
         this.hourlyCapUsd = c.hourlyUsd();
         this.dailyCapUsd = c.dailyUsd();
         this.monthlyCapUsd = c.monthlyUsd();
+    }
+
+    /** The owning user's principal for a personal provider, or null for a shared one (prompt R2-011). */
+    public String getOwnerPrincipalId() {
+        return ownerPrincipalId;
+    }
+
+    /** Sets the owner; null makes the provider shared. */
+    public void setOwnerPrincipalId(String ownerPrincipalId) {
+        this.ownerPrincipalId = ownerPrincipalId;
+    }
+
+    /** True for a shared provider (no owner). */
+    public boolean isShared() {
+        return ownerPrincipalId == null;
+    }
+
+    /**
+     * The USD caps a shared provider applies to each user's own spend on it (prompt R2-011; {@link LlmSpendCaps#NONE}
+     * when uncapped).
+     */
+    public LlmSpendCaps getPerUserSpendCaps() {
+        return new LlmSpendCaps(perUserHourlyCapUsd, perUserDailyCapUsd, perUserMonthlyCapUsd);
+    }
+
+    /** Sets the per-user caps; null clears them. */
+    public void setPerUserSpendCaps(LlmSpendCaps caps) {
+        LlmSpendCaps c = caps == null ? LlmSpendCaps.NONE : caps;
+        this.perUserHourlyCapUsd = c.hourlyUsd();
+        this.perUserDailyCapUsd = c.dailyUsd();
+        this.perUserMonthlyCapUsd = c.monthlyUsd();
     }
 
     /** False once the chat model rejected tools; null until known. */

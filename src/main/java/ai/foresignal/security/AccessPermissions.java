@@ -270,8 +270,8 @@ final class AccessPermissions {
             rule("POST", "/v1/infra/rebuild", "system.settings"), // rebuildInfraGraph
             rule("GET", "/v1/intel/recipes", "intel.read"), // listIntelRecipes
             rule("POST", "/v1/intel/recipes", "system.settings"), // createRecipe
-            rule("GET", "/v1/llm/providers", "llm.shared.manage"), // listLlmProviders
-            rule("POST", "/v1/llm/providers", "llm.shared.manage"), // createLlmProvider
+            rule("GET", "/v1/llm/providers", "llm.shared.manage", "self.llm"), // listLlmProviders
+            rule("POST", "/v1/llm/providers", "llm.shared.manage", "self.llm"), // createLlmProvider
             rule("GET", "/v1/me/llm/budget", "self.llm"), // getMyLlmBudget
             rule("POST", "/v1/me/mfa/enroll", null), // enrollMfa
             rule("POST", "/v1/me/mfa/verify", null), // verifyMfa
@@ -527,8 +527,8 @@ final class AccessPermissions {
             rule("PATCH", "/v1/events/stream/*/filter", null), // updateEventStreamFilter
             rule("POST", "/v1/intel/events/*/members", null), // addIntelEventMember
             rule("POST", "/v1/investigations/*/items", null), // addInvestigationItem
-            rule("GET", "/v1/llm/providers/*/budget", "llm.shared.manage"), // getLlmProviderBudget
-            rule("GET", "/v1/llm/providers/*/models", "llm.shared.manage"), // listLlmProviderModels
+            rule("GET", "/v1/llm/providers/*/budget", "llm.shared.manage", "self.llm"), // getLlmProviderBudget
+            rule("GET", "/v1/llm/providers/*/models", "llm.shared.manage", "self.llm"), // listLlmProviderModels
             rule("GET", "/v1/ogc/collections/*/area", "data.read"), // edrArea
             rule("GET", "/v1/pairing-codes/*/qr.svg", "users.manage"), // getPairingCodeQr
             rule("POST", "/v1/precursor-tests/*/test", null), // testPrecursorTest
@@ -567,7 +567,7 @@ final class AccessPermissions {
             rule("GET", "/v1/chronicles/*/summary", "intel.read"), // getChronicleSummary
             rule("POST", "/v1/intel/events/*/merge", null), // mergeIntelEvent
             rule("POST", "/v1/intel/recipes/*/test", null), // testRecipe
-            rule("POST", "/v1/llm/providers/*/test", "llm.shared.manage"), // testLlmProvider
+            rule("POST", "/v1/llm/providers/*/test", "llm.shared.manage", "self.llm"), // testLlmProvider
             rule("GET", "/v1/ogc/tileMatrixSets/*", "data.read"), // ogcTileMatrixSet
             rule("GET", "/v1/pol/subjects/*/stays", null), // listPolStays
             rule("GET", "/v1/precursors/batches/*", null), // getPrecursorBatch
@@ -713,9 +713,9 @@ final class AccessPermissions {
             rule("GET", "/v1/egress/*/health", "network.manage"), // getEgressRouteHealth
             rule("POST", "/v1/entities/*/keys", "system.settings"), // addEntityKey
             rule("PUT", "/v1/intel/recipes/*", "system.settings"), // updateRecipe
-            rule("DELETE", "/v1/llm/providers/*", "llm.shared.manage"), // deleteLlmProvider
-            rule("GET", "/v1/llm/providers/*", "llm.shared.manage"), // getLlmProvider
-            rule("PUT", "/v1/llm/providers/*", "llm.shared.manage"), // updateLlmProvider
+            rule("DELETE", "/v1/llm/providers/*", "llm.shared.manage", "self.llm"), // deleteLlmProvider
+            rule("GET", "/v1/llm/providers/*", "llm.shared.manage", "self.llm"), // getLlmProvider
+            rule("PUT", "/v1/llm/providers/*", "llm.shared.manage", "self.llm"), // updateLlmProvider
             rule("GET", "/v1/map/icons/*.png", "data.read"), // getMapIcon
             rule("GET", "/v1/media/outlets/*", "intel.read"), // getMediaOutlet
             rule("PATCH", "/v1/media/outlets/*", "system.settings"), // updateMediaOutlet

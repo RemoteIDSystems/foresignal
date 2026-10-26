@@ -229,7 +229,10 @@ public class EnrichmentService {
         if (rule == null) {
             return skipped("rule");
         }
-        String providerId = llmSettings.get().chatProvider();
+        // R2-011: a user's alert is enriched on their behalf: by their personal chat provider when they have one, and
+        // metered and capped as theirs.
+        String actor = alert.ownerPrincipalId();
+        String providerId = llm.chatProviderFor(actor, llmSettings.get());
         LlmProviderConfig config;
         try {
             config = llm.config(providerId);
@@ -244,7 +247,7 @@ public class EnrichmentService {
 
         EnrichmentContext context = contexts.build(alert, rule.getEnrichRadiusKm(),
                 Duration.ofSeconds(rule.getEnrichWindowSeconds()), destination);
-        LlmClient client = llm.client(providerId);
+        LlmClient client = llm.client(providerId, actor);
         ChatRequest request = new ChatRequest(EnrichmentPrompts.SYSTEM,
                 List.of(new ChatMessage.User(EnrichmentPrompts.userTurn(context.anchor(), context.json()))), List.of(),
                 properties.maxTokens(), Effort.LOW, Purpose.ENRICHMENT, false, null);
@@ -306,7 +309,7 @@ public class EnrichmentService {
         if (!settings.enrichmentEnabled()) {
             return Optional.of("disabled");
         }
-        if (settings.chatProvider() == null) {
+        if (llm.chatProviderFor(alert.ownerPrincipalId(), settings) == null) {
             return Optional.of("no_provider");
         }
         return Optional.empty();

@@ -182,12 +182,23 @@ public class AskService {
      * @return the LLM settings
      */
     public LlmSettings requireConfigured() {
+        return requireConfigured(null);
+    }
+
+    /**
+     * {@link #requireConfigured()} for a question asked by {@code actor} (prompt R2-011): a user's enabled personal chat
+     * provider serves Ask even when no shared chat provider is assigned.
+     *
+     * @param actor the asking user's principal, or null for the machine
+     * @return the LLM settings
+     */
+    public LlmSettings requireConfigured(String actor) {
         LlmSettings settings = llmSettings.get();
         if (!settings.askEnabled()) {
             throw new ConflictException(ErrorCodes.LLM_NOT_CONFIGURED,
                     "Ask is disabled; set askEnabled in PUT /v1/llm/settings.");
         }
-        if (settings.chatProvider() == null) {
+        if (llm.chatProviderFor(actor, settings) == null) {
             throw new ConflictException(ErrorCodes.LLM_NOT_CONFIGURED,
                     "No chat provider is configured; add one in /v1/llm/providers and assign it in PUT /v1/llm/settings.");
         }
@@ -201,18 +212,21 @@ public class AskService {
      * @return the prepared question
      */
     public Prepared prepare(AskInput input, AskCaller asker) {
-        LlmSettings settings = requireConfigured();
+        // R2-011: the asking user is captured here, on the request thread, because the answer may stream from another.
+        String actor = ai.foresignal.llm.LlmActor.current();
+        LlmSettings settings = requireConfigured(actor);
+        String providerId = llm.chatProviderFor(actor, settings);
         AskScope scope = resolveScope(input.scope());
         AskCaller caller = narrowed(asker, input.scope());
         UUID threadId = input.threadId();
         List<ChatMessage> history = List.of();
         if (threadId != null) {
             threads.visible(threadId, caller);
-            history = history(threadId, settings.chatProvider());
+            history = history(threadId, providerId);
         } else {
             threadId = UUID.randomUUID();
         }
-        return new Prepared(input, caller, settings, scope, threadId, history);
+        return new Prepared(input, caller, settings, scope, threadId, history, actor, providerId);
     }
 
     /**
@@ -237,7 +251,7 @@ public class AskService {
     public Map<String, Object> answer(Prepared prepared, AskListener listener) {
         Instant started = clock.instant();
         AskCaller caller = prepared.caller();
-        String providerId = prepared.settings().chatProvider();
+        String providerId = prepared.providerId();
         LlmProviderConfig config = llm.config(providerId);
         EgressPolicy.LlmDestination destination = config.destination();
         McpCaller toolCaller = caller.toolCaller(egress.llmExcludedSources(destination));
@@ -249,7 +263,7 @@ public class AskService {
         Run run = new Run(prepared, toolCaller, allowed, scope.bboxFilter(), listener);
         // Prompt 056: get_map_image images go to providers that take images in tool results; others get the caption.
         run.imagesAccepted = config.type() == ai.foresignal.llm.LlmProviderType.ANTHROPIC;
-        LlmClient client = llm.client(providerId);
+        LlmClient client = llm.client(providerId, prepared.actor());
 
         boolean supportsTools = !Boolean.FALSE.equals(
                 providers.find(providerId).map(LlmProviderEntity::getSupportsTools).orElse(null));
@@ -682,9 +696,11 @@ public class AskService {
      * @param scope the resolved scope
      * @param threadId the thread (new or existing)
      * @param history the stored turns of an existing thread
+     * @param actor the asking user's principal, or null for the machine (R2-011)
+     * @param providerId the chat provider that answers: the user's personal one, or the shared chat role (R2-011)
      */
     public record Prepared(AskInput input, AskCaller caller, LlmSettings settings, AskScope scope, UUID threadId,
-            List<ChatMessage> history) {
+            List<ChatMessage> history, String actor, String providerId) {
 
         /** Copies the history. */
         public Prepared {

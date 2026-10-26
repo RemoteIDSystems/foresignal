@@ -20,17 +20,20 @@ import java.util.Map;
  * @param knowledgeCutoff the chat model's training-data cutoff, or null
  * @param pricing the prices in USD per million tokens (never null; {@link LlmPricing#NONE} when unpriced)
  * @param spendCaps the hourly, daily and monthly USD caps (never null; {@link LlmSpendCaps#NONE} when uncapped)
+ * @param perUserSpendCaps the caps a shared provider applies to each user's own spend (prompt R2-011; never null)
+ * @param shared the body's {@code shared} member (R2-011), or null when absent
  */
 public record LlmProviderInput(String id, LlmProviderType type, String baseUrl, String chatModel,
         String embeddingModel, Integer embeddingDimensions, String apiKey, Map<String, Object> options,
         int requestsPerMinute, long tokensPerDay, boolean enabled, LocalDate knowledgeCutoff, LlmPricing pricing,
-        LlmSpendCaps spendCaps) {
+        LlmSpendCaps spendCaps, LlmSpendCaps perUserSpendCaps, Boolean shared) {
 
     /** Copies the options; a null pricing or cap set is none. */
     public LlmProviderInput {
         options = options == null ? Map.of() : Map.copyOf(options);
         pricing = pricing == null ? LlmPricing.NONE : pricing;
         spendCaps = spendCaps == null ? LlmSpendCaps.NONE : spendCaps;
+        perUserSpendCaps = perUserSpendCaps == null ? LlmSpendCaps.NONE : perUserSpendCaps;
     }
 
     @Override

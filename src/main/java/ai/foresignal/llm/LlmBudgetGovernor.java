@@ -46,6 +46,12 @@ import org.springframework.stereotype.Component;
  * counts in the new one, where the meter records it. The first refusal in a window raises a
  * {@code system} notification. Spend is tracked whether or not a cap is set, so
  * {@link #spend} reports it for every priced provider.
+ *
+ * <p>Prompt R2-011: a call made on behalf of a user ({@link LlmActor}) on a shared provider that carries per-user caps
+ * is also checked against that user's own spend on the provider ({@code llm_user_usage}, seeded the same way), so one
+ * user cannot exhaust the shared budget while the others continue. The provider's own caps still bound the total. A
+ * personal provider needs no second check: only its owner's calls reach it, so its own caps are the owner's. A call by
+ * the machine (no actor) is budgeted exactly as before.
  */
 @Component
 public class LlmBudgetGovernor implements IngestStateReset {
@@ -61,6 +67,12 @@ public class LlmBudgetGovernor implements IngestStateReset {
     private final ClockTimeMeter timeMeter;
     private final Map<String, Entry> entries = new ConcurrentHashMap<>();
     private final Map<String, Spend> spends = new ConcurrentHashMap<>();
+
+    /** Per-user spend on shared providers with per-user caps (R2-011). */
+    private final Map<UserSpendKey, Spend> userSpends = new ConcurrentHashMap<>();
+
+    /** One user on one provider. */
+    private record UserSpendKey(String providerId, String principalId) {}
 
     /** Creates the governor. */
     public LlmBudgetGovernor(LlmUsageMeter usage, ApplicationEventPublisher events, Clock clock) {
@@ -93,46 +105,85 @@ public class LlmBudgetGovernor implements IngestStateReset {
      * @throws LlmBudgetExceededException when a USD cap, the day's tokens or the minute's requests are spent
      */
     public Reservation reserve(LlmProviderConfig provider, long estimatedTokens, BigDecimal estimatedCostUsd) {
+        return reserve(provider, estimatedTokens, estimatedCostUsd, null);
+    }
+
+    /**
+     * Reserves for a call made on behalf of {@code principalId} (R2-011): the user's per-user caps on a shared
+     * provider are checked first, then everything {@link #reserve(LlmProviderConfig, long, BigDecimal)} checks.
+     *
+     * @param provider the provider
+     * @param estimatedTokens the estimated tokens
+     * @param estimatedCostUsd the estimated cost in USD
+     * @param principalId the acting user's principal, or null for the machine
+     * @return the reservation to {@link #settle(Reservation, long, BigDecimal)}
+     * @throws LlmBudgetExceededException when a per-user cap, a USD cap, the day's tokens or the minute's requests
+     *     are spent
+     */
+    public Reservation reserve(LlmProviderConfig provider, long estimatedTokens, BigDecimal estimatedCostUsd,
+            String principalId) {
         BigDecimal cost = estimatedCostUsd == null || estimatedCostUsd.signum() < 0 ? BigDecimal.ZERO
                 : estimatedCostUsd;
-        Spend spend = spendOf(provider.id());
-        Map<LlmSpendWindow, Instant> windows;
-        synchronized (spend) {
-            spend.rollOver(clock.instant());
-            checkCaps(provider, spend);
-            windows = spend.hold(cost);
+        Spend userSpend = perUserCapped(provider, principalId) ? userSpendOf(provider.id(), principalId) : null;
+        Map<LlmSpendWindow, Instant> userWindows = Map.of();
+        if (userSpend != null) {
+            synchronized (userSpend) {
+                userSpend.rollOver(clock.instant());
+                checkUserCaps(provider, principalId, userSpend);
+                userWindows = userSpend.hold(cost);
+            }
         }
+        Spend spend = spendOf(provider.id());
+        Map<LlmSpendWindow, Instant> windows = Map.of();
         try {
-            return reserveTokens(provider, estimatedTokens, cost, windows);
-        } catch (LlmBudgetExceededException e) {
             synchronized (spend) {
-                spend.release(cost, windows);
+                spend.rollOver(clock.instant());
+                checkCaps(provider, spend, principalId);
+                windows = spend.hold(cost);
+            }
+            return reserveTokens(provider, estimatedTokens, cost, windows, principalId, userWindows);
+        } catch (LlmBudgetExceededException e) {
+            if (!windows.isEmpty()) {
+                synchronized (spend) {
+                    spend.release(cost, windows);
+                }
+            }
+            if (userSpend != null) {
+                synchronized (userSpend) {
+                    userSpend.release(cost, userWindows);
+                }
             }
             throw e;
         }
     }
 
+    /** True when {@code principalId}'s calls on {@code provider} have per-user caps to respect. */
+    private static boolean perUserCapped(LlmProviderConfig provider, String principalId) {
+        return principalId != null && provider.shared() && provider.perUserSpendCaps().isSet();
+    }
+
     private Reservation reserveTokens(LlmProviderConfig provider, long estimatedTokens, BigDecimal cost,
-            Map<LlmSpendWindow, Instant> windows) {
+            Map<LlmSpendWindow, Instant> windows, String principalId, Map<LlmSpendWindow, Instant> userWindows) {
         Entry entry = entry(provider);
         synchronized (entry) {
             rollOver(entry);
             long remaining = Math.max(0, entry.tokensPerDay - entry.usedToday);
             if (estimatedTokens > remaining) {
-                refused(provider.id(), entry);
+                refused(provider.id(), principalId, entry);
                 throw new LlmBudgetExceededException(provider.id(), "The call to LLM provider '" + provider.id()
                         + "' needs an estimated " + estimatedTokens + " tokens; " + remaining + " of its "
                         + entry.tokensPerDay + " tokens per day remain.", untilMidnight());
             }
             if (!entry.bucket.tryConsume(1)) {
                 long nanos = entry.bucket.estimateAbilityToConsume(1).getNanosToWaitForRefill();
-                usage.recordRefused(provider.id());
+                recordRefused(provider.id(), principalId);
                 throw new LlmBudgetExceededException(provider.id(), "LLM provider '" + provider.id()
                         + "' has used its " + entry.requestsPerMinute + " requests per minute.",
                         Duration.ofNanos(Math.max(nanos, 1_000_000_000L)));
             }
             entry.usedToday += estimatedTokens;
-            return new Reservation(provider.id(), estimatedTokens, entry.day, cost, windows);
+            return new Reservation(provider.id(), estimatedTokens, entry.day, cost, windows, principalId,
+                    userWindows);
         }
     }
 
@@ -153,6 +204,18 @@ public class LlmBudgetGovernor implements IngestStateReset {
                 spend.release(reservation.estimatedCostUsd(), reservation.windows());
                 if (actualCostUsd != null && actualCostUsd.signum() > 0) {
                     spend.add(actualCostUsd);
+                }
+            }
+        }
+        if (reservation.principalId() != null) {
+            Spend userSpend = userSpends.get(new UserSpendKey(reservation.providerId(), reservation.principalId()));
+            if (userSpend != null) {
+                synchronized (userSpend) {
+                    userSpend.rollOver(clock.instant());
+                    userSpend.release(reservation.estimatedCostUsd(), reservation.userWindows());
+                    if (actualCostUsd != null && actualCostUsd.signum() > 0) {
+                        userSpend.add(actualCostUsd);
+                    }
                 }
             }
         }
@@ -199,16 +262,39 @@ public class LlmBudgetGovernor implements IngestStateReset {
         }
     }
 
+    /**
+     * {@code principalId}'s own spend on {@code providerId} in each window (R2-011), seeded from
+     * {@code llm_user_usage}.
+     *
+     * @param providerId the provider
+     * @param principalId the user's principal
+     * @return the spend per window
+     */
+    public Map<LlmSpendWindow, WindowSpend> userSpend(String providerId, String principalId) {
+        Spend spend = userSpendOf(providerId, principalId);
+        synchronized (spend) {
+            spend.rollOver(clock.instant());
+            Map<LlmSpendWindow, WindowSpend> out = new EnumMap<>(LlmSpendWindow.class);
+            for (LlmSpendWindow window : LlmSpendWindow.values()) {
+                Window w = spend.windows.get(window);
+                out.put(window, new WindowSpend(window, w.start, window.end(w.start), w.spent, w.held));
+            }
+            return out;
+        }
+    }
+
     /** Discards a provider's state, so the next use rebuilds it from its configuration and the meter. */
     public void invalidate(String providerId) {
         entries.remove(providerId);
         spends.remove(providerId);
+        userSpends.keySet().removeIf(key -> key.providerId().equals(providerId));
     }
 
     @Override
     public void resetState() {
         entries.clear();
         spends.clear();
+        userSpends.clear();
     }
 
     private Spend spendOf(String providerId) {
@@ -223,13 +309,70 @@ public class LlmBudgetGovernor implements IngestStateReset {
         });
     }
 
+    private Spend userSpendOf(String providerId, String principalId) {
+        return userSpends.computeIfAbsent(new UserSpendKey(providerId, principalId), key -> {
+            Instant now = clock.instant();
+            Spend fresh = new Spend();
+            for (LlmSpendWindow window : LlmSpendWindow.values()) {
+                Instant start = window.start(now);
+                fresh.windows.put(window, new Window(start, usage.userCostSince(providerId, principalId, start)));
+            }
+            return fresh;
+        });
+    }
+
+    /**
+     * Refuses when one of {@code principalId}'s per-user windows on a shared provider, plus what they have in flight,
+     * has reached its cap (R2-011). Only that user is refused; the others keep their own shares.
+     */
+    private void checkUserCaps(LlmProviderConfig provider, String principalId, Spend spend) {
+        LlmSpendCaps caps = provider.perUserSpendCaps();
+        Instant now = clock.instant();
+        LlmSpendWindow refusedBy = null;
+        Instant resetsAt = null;
+        for (LlmSpendWindow window : LlmSpendWindow.values()) {
+            BigDecimal cap = caps.of(window);
+            Window w = spend.windows.get(window);
+            if (cap != null && w.spent.add(w.held).compareTo(cap) >= 0) {
+                Instant end = window.end(w.start);
+                if (resetsAt == null || end.isAfter(resetsAt)) {
+                    resetsAt = end;
+                    refusedBy = window;
+                }
+            }
+        }
+        if (refusedBy == null) {
+            return;
+        }
+        recordRefused(provider.id(), principalId);
+        Window w = spend.windows.get(refusedBy);
+        BigDecimal cap = caps.of(refusedBy);
+        if (!w.notified) {
+            w.notified = true;
+            log.info("A user has reached their {} per-user USD cap of {} on LLM provider {}", refusedBy.wireValue(),
+                    cap.toPlainString(), provider.id());
+        }
+        throw new LlmBudgetExceededException(provider.id(), "You have spent $" + plain(w.spent) + " of your "
+                + refusedBy.wireValue() + "ly cap of $" + cap.toPlainString() + " on the shared LLM provider '"
+                + provider.id() + "'; it resets at " + resetsAt + ".", Duration.between(now, resetsAt));
+    }
+
+    /** Counts a refusal: the machine's in the provider's totals only, a user's in theirs as well (R2-011). */
+    private void recordRefused(String providerId, String principalId) {
+        if (principalId == null) {
+            usage.recordRefused(providerId);
+        } else {
+            usage.recordRefused(providerId, principalId);
+        }
+    }
+
     /** {@code usd} to at most 4 decimal places, without trailing zeros. */
     private static String plain(BigDecimal usd) {
         return usd.setScale(4, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
     }
 
     /** Refuses when a capped window's spend plus what is in flight has reached its cap. */
-    private void checkCaps(LlmProviderConfig provider, Spend spend) {
+    private void checkCaps(LlmProviderConfig provider, Spend spend, String principalId) {
         LlmSpendCaps caps = provider.spendCaps();
         if (!caps.isSet()) {
             return;
@@ -251,7 +394,7 @@ public class LlmBudgetGovernor implements IngestStateReset {
         if (refusedBy == null) {
             return;
         }
-        usage.recordRefused(provider.id());
+        recordRefused(provider.id(), principalId);
         Window w = spend.windows.get(refusedBy);
         BigDecimal cap = caps.of(refusedBy);
         if (!w.notified) {
@@ -307,8 +450,8 @@ public class LlmBudgetGovernor implements IngestStateReset {
         }
     }
 
-    private void refused(String providerId, Entry entry) {
-        usage.recordRefused(providerId);
+    private void refused(String providerId, String principalId, Entry entry) {
+        recordRefused(providerId, principalId);
         if (!entry.notified) {
             entry.notified = true;
             log.warn("LLM provider {} has exhausted its daily token budget of {}", providerId, entry.tokensPerDay);
@@ -339,14 +482,23 @@ public class LlmBudgetGovernor implements IngestStateReset {
      * @param day the UTC day it was taken on
      * @param estimatedCostUsd the USD held against the caps
      * @param windows the start of each spend window it was taken in
+     * @param principalId the acting user's principal, or null for the machine (R2-011)
+     * @param userWindows the start of each of that user's per-user windows it was taken in (R2-011), empty when none
      */
     public record Reservation(String providerId, long estimatedTokens, LocalDate day, BigDecimal estimatedCostUsd,
-            Map<LlmSpendWindow, Instant> windows) {
+            Map<LlmSpendWindow, Instant> windows, String principalId, Map<LlmSpendWindow, Instant> userWindows) {
 
         /** Copies the windows; a null cost is zero. */
         public Reservation {
             estimatedCostUsd = estimatedCostUsd == null ? BigDecimal.ZERO : estimatedCostUsd;
             windows = windows == null ? Map.of() : Map.copyOf(windows);
+            userWindows = userWindows == null ? Map.of() : Map.copyOf(userWindows);
+        }
+
+        /** A machine reservation (before R2-011). */
+        public Reservation(String providerId, long estimatedTokens, LocalDate day, BigDecimal estimatedCostUsd,
+                Map<LlmSpendWindow, Instant> windows) {
+            this(providerId, estimatedTokens, day, estimatedCostUsd, windows, null, Map.of());
         }
 
         /** A reservation of tokens only. */

@@ -14,6 +14,17 @@ public interface LlmProviderRepository extends JpaRepository<LlmProviderEntity, 
     /** Every provider, by id. */
     List<LlmProviderEntity> findAllByOrderByIdAsc();
 
+    /**
+     * A user's personal providers, by id (prompt R2-011).
+     *
+     * @param ownerPrincipalId the user's principal
+     * @return the providers
+     */
+    List<LlmProviderEntity> findByOwnerPrincipalIdOrderByIdAsc(String ownerPrincipalId);
+
+    /** The shared providers (no owner), by id (prompt R2-011). */
+    List<LlmProviderEntity> findByOwnerPrincipalIdIsNullOrderByIdAsc();
+
     /** Records a successful call: clears the failure streak. */
     @Modifying
     @Transactional

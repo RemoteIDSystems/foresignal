@@ -67,9 +67,16 @@ public class LlmMapper {
         out.put("lastSuccessAt", p.getLastSuccessAt() == null ? null : p.getLastSuccessAt().toString());
         out.put("lastErrorAt", p.getLastErrorAt() == null ? null : p.getLastErrorAt().toString());
         out.put("consecutiveFailures", p.getConsecutiveFailures());
-        out.put("local", LlmProviderType.OLLAMA.wireValue().equals(p.getType())
-                || Boolean.TRUE.equals(p.getOptions() == null ? null : p.getOptions().get("local")));
+        // R2-011: a personal provider is never local, as LlmProviderConfig#local() decides for egress.
+        out.put("local", p.isShared() && (LlmProviderType.OLLAMA.wireValue().equals(p.getType())
+                || Boolean.TRUE.equals(p.getOptions() == null ? null : p.getOptions().get("local"))));
         putMoney(out, p);
+        out.put("shared", p.isShared());
+        out.put("ownerPrincipalId", p.getOwnerPrincipalId());
+        LlmSpendCaps perUser = p.getPerUserSpendCaps();
+        out.put("perUserHourlyCapUsd", plain(perUser.hourlyUsd()));
+        out.put("perUserDailyCapUsd", plain(perUser.dailyUsd()));
+        out.put("perUserMonthlyCapUsd", plain(perUser.monthlyUsd()));
         return out;
     }
 
@@ -190,6 +197,10 @@ public class LlmMapper {
         out.put("enabled", p.isEnabled());
         out.put("knowledgeCutoff", p.getKnowledgeCutoff() == null ? null : p.getKnowledgeCutoff().toString());
         putMoney(out, p);
+        LlmSpendCaps perUser = p.getPerUserSpendCaps();
+        out.put("perUserHourlyCapUsd", plain(perUser.hourlyUsd()));
+        out.put("perUserDailyCapUsd", plain(perUser.dailyUsd()));
+        out.put("perUserMonthlyCapUsd", plain(perUser.monthlyUsd()));
         return out;
     }
 

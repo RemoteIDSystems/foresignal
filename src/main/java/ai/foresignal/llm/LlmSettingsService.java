@@ -113,6 +113,12 @@ public class LlmSettingsService {
     /** What stops {@code provider} from serving the chat role; empty when it can. */
     static List<FieldError> chatProblems(LlmProviderEntity provider, String field) {
         List<FieldError> errors = new ArrayList<>();
+        if (!provider.isShared()) {
+            // R2-011: an instance role serves everyone, so it never runs on one user's key.
+            errors.add(new FieldError(field, "provider '" + provider.getId() + "' is a personal provider; only a shared"
+                    + " provider can hold an instance role"));
+            return errors;
+        }
         if (!provider.isEnabled()) {
             errors.add(new FieldError(field, "provider '" + provider.getId() + "' is disabled"));
         }
@@ -125,6 +131,12 @@ public class LlmSettingsService {
     /** What stops {@code provider} from serving the embedding role; empty when it can. */
     static List<FieldError> embeddingProblems(LlmProviderEntity provider, String field) {
         List<FieldError> errors = new ArrayList<>();
+        if (!provider.isShared()) {
+            // R2-011: an instance role serves everyone, so it never runs on one user's key.
+            errors.add(new FieldError(field, "provider '" + provider.getId() + "' is a personal provider; only a shared"
+                    + " provider can hold an instance role"));
+            return errors;
+        }
         if (LlmProviderType.ANTHROPIC.wireValue().equals(provider.getType())) {
             errors.add(new FieldError(field, "Anthropic has no embeddings endpoint and cannot be the embedding provider;"
                     + " pair it with an openai-compatible or ollama provider for embeddings"));
@@ -146,6 +158,12 @@ public class LlmSettingsService {
      */
     static List<FieldError> ttsProblems(LlmProviderEntity provider, String field) {
         List<FieldError> errors = new ArrayList<>();
+        if (!provider.isShared()) {
+            // R2-011: an instance role serves everyone, so it never runs on one user's key.
+            errors.add(new FieldError(field, "provider '" + provider.getId() + "' is a personal provider; only a shared"
+                    + " provider can hold an instance role"));
+            return errors;
+        }
         if (!LlmProviderType.OPENAI_COMPATIBLE.wireValue().equals(provider.getType())) {
             errors.add(new FieldError(field, "the tts role needs an openai-compatible provider (an OpenAI-compatible"
                     + " /audio/speech endpoint such as OpenAI, Kokoro-FastAPI or openedai-speech)"));

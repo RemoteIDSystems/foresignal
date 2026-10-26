@@ -36,6 +36,12 @@ import org.springframework.stereotype.Service;
  * Prompt and response bodies are logged only when {@code logContent} is on, at DEBUG; API keys never.
  *
  * <p>No call happens without an explicit trigger (NFR-13): nothing here runs on its own.
+ *
+ * <p>Prompt R2-011: every governed client is bound to an actor ({@link LlmActor}), captured when it is created: the
+ * user a call is made for, or the machine. A user's calls are metered to them as well as to the provider and checked
+ * against a shared provider's per-user caps. {@link #chatProviderFor} is the selection rule for work done for one user:
+ * that user's personal chat provider when they have an enabled one, else the shared chat role. The embedding and
+ * text-to-speech roles, and every instance task, use the shared roles only.
  */
 @Service
 public class LlmService {
@@ -83,6 +89,20 @@ public class LlmService {
         return Optional.ofNullable(settings.get().embeddingProvider()).map(this::client);
     }
 
+    /**
+     * The chat provider for work done on behalf of {@code principalId} (prompt R2-011): the user's first enabled
+     * personal provider with a chat model, by id, when they have one; otherwise {@code current}'s shared chat role.
+     * A personal provider's egress destination is never local ({@link LlmProviderConfig#local()}), so a caller that
+     * checks the destination before sending context keeps private sources off it.
+     *
+     * @param principalId the user's principal, or null for the machine
+     * @param current the LLM settings in force
+     * @return the provider id, or null when neither exists
+     */
+    public String chatProviderFor(String principalId, LlmSettings current) {
+        return providers.personalChatProvider(principalId).orElse(current.chatProvider());
+    }
+
     /** The governed client of the chat role, or {@code 409 LLM_NOT_CONFIGURED}. */
     public LlmClient requireChatClient() {
         return chatClient().orElseThrow(() -> new ConflictException(ErrorCodes.LLM_NOT_CONFIGURED,
@@ -94,9 +114,23 @@ public class LlmService {
         return providers.config(providerId);
     }
 
-    /** A governed client for provider {@code providerId}; it re-reads the configuration on every call. */
+    /**
+     * A governed client for provider {@code providerId}, acting for the {@linkplain LlmActor#current() current actor};
+     * it re-reads the configuration on every call.
+     */
     public LlmClient client(String providerId) {
-        return new GovernedClient(providerId);
+        return new GovernedClient(providerId, LlmActor.current());
+    }
+
+    /**
+     * A governed client for provider {@code providerId} acting for {@code principalId} (prompt R2-011).
+     *
+     * @param providerId the provider
+     * @param principalId the user's principal, or null for the machine
+     * @return the client
+     */
+    public LlmClient client(String providerId, String principalId) {
+        return new GovernedClient(providerId, principalId);
     }
 
     /**
@@ -252,9 +286,11 @@ public class LlmService {
     private final class GovernedClient implements LlmClient {
 
         private final String providerId;
+        private final String actor;
 
-        GovernedClient(String providerId) {
+        GovernedClient(String providerId, String actor) {
             this.providerId = providerId;
+            this.actor = actor;
         }
 
         @Override
@@ -268,13 +304,13 @@ public class LlmService {
             int maxTokens = request.maxTokens() != null ? request.maxTokens() : config.effectiveMaxTokens();
             long promptTokens = LlmBudgetGovernor.estimate(request.promptCharacters(), 0);
             LlmBudgetGovernor.Reservation reservation = budget.reserve(config, promptTokens + Math.max(0, maxTokens),
-                    config.pricing().chatEstimate(promptTokens, maxTokens));
+                    config.pricing().chatEstimate(promptTokens, maxTokens), actor);
             Instant start = clock.instant();
             try {
                 ChatResponse response = factory.client(config).chat(request);
                 long ms = Duration.between(start, clock.instant()).toMillis();
                 BigDecimal cost = config.pricing().chat(response.usage(), config.type());
-                usage.recordCall(providerId, response.usage(), cost);
+                usage.recordCall(providerId, actor, response.usage(), cost);
                 budget.settle(reservation, response.usage().total(), cost);
                 health.success(providerId);
                 log.info("LLM call purpose={} provider={} model={} inputTokens={} outputTokens={} cachedTokens={}"
@@ -312,12 +348,12 @@ public class LlmService {
             long chars = texts.stream().mapToLong(String::length).sum();
             long tokens = LlmBudgetGovernor.estimate(chars, 0);
             LlmBudgetGovernor.Reservation reservation = budget.reserve(config, tokens,
-                    config.pricing().embedding(tokens));
+                    config.pricing().embedding(tokens), actor);
             Instant start = clock.instant();
             try {
                 EmbeddingResponse response = call.get();
                 BigDecimal cost = config.pricing().embedding(response.usage());
-                usage.recordCall(providerId, response.usage(), cost);
+                usage.recordCall(providerId, actor, response.usage(), cost);
                 budget.settle(reservation, response.usage().total(), cost);
                 health.success(providerId);
                 log.info("LLM call purpose=embedding provider={} model={} inputTokens={} texts={} durationMs={}",
@@ -332,7 +368,7 @@ public class LlmService {
 
         private void failed(LlmProviderConfig config, LlmBudgetGovernor.Reservation reservation, Purpose purpose,
                 Instant start, LlmProviderException e) {
-            usage.recordError(providerId);
+            usage.recordError(providerId, actor);
             budget.settle(reservation, 0);
             if (e.kind() == LlmProviderException.Kind.TOOLS_UNSUPPORTED) {
                 // The provider works; its model does not take tools. Ask switches to retrieval-only.

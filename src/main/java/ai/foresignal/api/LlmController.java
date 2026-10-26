@@ -7,6 +7,7 @@ import ai.foresignal.collect.UsageResolution;
 import ai.foresignal.llm.LlmBudgetGovernor;
 import ai.foresignal.llm.LlmProviderBalances;
 import ai.foresignal.llm.LlmProviderEntity;
+import ai.foresignal.llm.LlmProviderScope;
 import ai.foresignal.llm.LlmProviderService;
 import ai.foresignal.llm.LlmService;
 import ai.foresignal.llm.LlmSettings;
@@ -14,6 +15,7 @@ import ai.foresignal.llm.LlmSettingsService;
 import ai.foresignal.llm.LlmUsageMeter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
@@ -44,6 +46,11 @@ import tools.jackson.databind.JsonNode;
  * {@code getLlmProviderBudget}. Every operation needs {@code admin} ({@code /v1/llm/**} in
  * {@code AccessPolicy}); the test and probe endpoints call the provider and are always authenticated.
  * API keys are never returned.
+ *
+ * <p>Prompt R2-011: a session reaches the provider operations with {@code llm.shared.manage} or {@code self.llm}; it
+ * lists its own and the shared providers and creates personal ones with {@code self.llm}
+ * ({@link LlmProviderScope}). Another user's provider is {@code 404} and a shared one is read-only without
+ * {@code llm.shared.manage} ({@code api/support/LlmProviderOwnershipInterceptor}).
  */
 @RestController
 @Tag(name = "LLM")
@@ -82,16 +89,17 @@ public class LlmController {
     /** {@code listLlmProviders}: by id. */
     @GetMapping("/providers")
     @Operation(operationId = "listLlmProviders", tags = "LLM")
-    public List<Map<String, Object>> listLlmProviders() {
-        return providers.list().stream().map(mapper::provider).toList();
+    public List<Map<String, Object>> listLlmProviders(HttpServletRequest request) {
+        return providers.list(LlmProviderScope.of(request)).stream().map(mapper::provider).toList();
     }
 
     /** {@code createLlmProvider}: 201 with {@code Location}. */
     @PostMapping("/providers")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(operationId = "createLlmProvider", tags = "LLM")
-    public ResponseEntity<Map<String, Object>> createLlmProvider(@RequestBody JsonNode body) {
-        LlmProviderEntity created = providers.create(body);
+    public ResponseEntity<Map<String, Object>> createLlmProvider(@RequestBody JsonNode body,
+            HttpServletRequest request) {
+        LlmProviderEntity created = providers.create(body, LlmProviderScope.of(request));
         llm.forget(created.getId());
         return ResponseEntity.created(URI.create("/v1/llm/providers/" + created.getId()))
                 .body(mapper.provider(created));

@@ -27,6 +27,10 @@ import org.springframework.stereotype.Component;
  * Counts LLM spend per provider per minute (FR-45), flushed to {@code llm_usage} every 60 s, the same
  * pattern as {@code UsageMeter}: in-memory {@link LongAdder} counters, drained under the key's bin
  * lock so no increment is lost, and reads that merge persisted rows with unflushed counters.
+ *
+ * <p>Prompt R2-011: a call made on behalf of a user ({@link LlmActor}) is also counted per user, per provider, per
+ * minute, flushed to {@code llm_user_usage} in the same pass. {@code llm_usage} keeps counting every call, a user's or
+ * a machine's, so the per-provider figures and their readers are unchanged; the per-user rollup is additive.
  */
 @Component
 public class LlmUsageMeter implements IngestStateReset {
@@ -55,9 +59,13 @@ public class LlmUsageMeter implements IngestStateReset {
     /** Identifies one minute of one provider. */
     record Key(String providerId, Instant minute) {}
 
+    /** Identifies one minute of one user on one provider (R2-011). */
+    record UserKey(String providerId, String principalId, Instant minute) {}
+
     private final JdbcTemplate jdbc;
     private final Clock clock;
     private final ConcurrentHashMap<Key, Counters> live = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UserKey, Counters> liveUser = new ConcurrentHashMap<>();
 
     /** Creates the meter. */
     public LlmUsageMeter(JdbcTemplate jdbc, Clock clock) {
@@ -72,9 +80,22 @@ public class LlmUsageMeter implements IngestStateReset {
 
     /** Records one completed call, its tokens and its cost in USD ({@link LlmPricing}). */
     public void recordCall(String providerId, TokenUsage usage, BigDecimal costUsd) {
+        recordCall(providerId, null, usage, costUsd);
+    }
+
+    /**
+     * Records one completed call made on behalf of {@code principalId} (R2-011): in the provider's totals and, for a
+     * user, in that user's rollup.
+     *
+     * @param providerId the provider
+     * @param principalId the acting user's principal, or null for the machine
+     * @param usage the tokens
+     * @param costUsd the cost in USD
+     */
+    public void recordCall(String providerId, String principalId, TokenUsage usage, BigDecimal costUsd) {
         TokenUsage u = usage == null ? TokenUsage.ZERO : usage;
         BigDecimal cost = costUsd == null || costUsd.signum() < 0 ? BigDecimal.ZERO : costUsd;
-        update(providerId, c -> {
+        update(providerId, principalId, c -> {
             c.requests.increment();
             c.inputTokens.add(Math.max(0, u.inputTokens()));
             c.outputTokens.add(Math.max(0, u.outputTokens()));
@@ -87,7 +108,17 @@ public class LlmUsageMeter implements IngestStateReset {
 
     /** Records one call that failed at the provider. */
     public void recordError(String providerId) {
-        update(providerId, c -> {
+        recordError(providerId, null);
+    }
+
+    /**
+     * Records one call made on behalf of {@code principalId} that failed at the provider (R2-011).
+     *
+     * @param providerId the provider
+     * @param principalId the acting user's principal, or null for the machine
+     */
+    public void recordError(String providerId, String principalId) {
+        update(providerId, principalId, c -> {
             c.requests.increment();
             c.errors.increment();
         });
@@ -95,15 +126,33 @@ public class LlmUsageMeter implements IngestStateReset {
 
     /** Records one call the budget refused (never sent). */
     public void recordRefused(String providerId) {
-        update(providerId, c -> c.refused.increment());
+        recordRefused(providerId, null);
     }
 
-    private void update(String providerId, Consumer<Counters> change) {
-        live.compute(new Key(providerId, clock.instant().truncatedTo(ChronoUnit.MINUTES)), (key, counters) -> {
+    /**
+     * Records one call made on behalf of {@code principalId} that the budget refused (R2-011).
+     *
+     * @param providerId the provider
+     * @param principalId the acting user's principal, or null for the machine
+     */
+    public void recordRefused(String providerId, String principalId) {
+        update(providerId, principalId, c -> c.refused.increment());
+    }
+
+    private void update(String providerId, String principalId, Consumer<Counters> change) {
+        Instant minute = clock.instant().truncatedTo(ChronoUnit.MINUTES);
+        live.compute(new Key(providerId, minute), (key, counters) -> {
             Counters target = counters == null ? new Counters() : counters;
             change.accept(target);
             return target;
         });
+        if (principalId != null) {
+            liveUser.compute(new UserKey(providerId, principalId, minute), (key, counters) -> {
+                Counters target = counters == null ? new Counters() : counters;
+                change.accept(target);
+                return target;
+            });
+        }
     }
 
     /** Writes the live counters to {@code llm_usage} and clears them. */
@@ -119,16 +168,96 @@ public class LlmUsageMeter implements IngestStateReset {
             batch.add(new Object[] {key.providerId(), Timestamp.from(key.minute()), p.requests(), p.inputTokens(),
                 p.outputTokens(), p.cachedTokens(), p.errors(), p.refused(), p.costUsd()});
         }
+        if (!batch.isEmpty()) {
+            try {
+                jdbc.batchUpdate(UPSERT_SQL, batch);
+            } catch (RuntimeException e) {
+                // Losing a minute of accounting is better than failing the scheduler thread; it widens
+                // the daily budget seed after a restart, so it is logged.
+                log.warn("Could not flush {} LLM usage row(s); those counts are lost", batch.size(), e);
+            }
+        }
+        flushUsers();
+    }
+
+    private void flushUsers() {
+        List<Object[]> batch = new ArrayList<>();
+        for (UserKey key : List.copyOf(liveUser.keySet())) {
+            Counters counters = liveUser.remove(key);
+            if (counters == null) {
+                continue;
+            }
+            LlmUsagePoint p = counters.snapshot(key.minute());
+            batch.add(new Object[] {key.providerId(), key.principalId(), Timestamp.from(key.minute()), p.requests(),
+                p.inputTokens(), p.outputTokens(), p.cachedTokens(), p.errors(), p.refused(), p.costUsd()});
+        }
         if (batch.isEmpty()) {
             return;
         }
         try {
-            jdbc.batchUpdate(UPSERT_SQL, batch);
+            jdbc.batchUpdate(USER_UPSERT_SQL, batch);
         } catch (RuntimeException e) {
-            // Losing a minute of accounting is better than failing the scheduler thread; it widens
-            // the daily budget seed after a restart, so it is logged.
-            log.warn("Could not flush {} LLM usage row(s); those counts are lost", batch.size(), e);
+            log.warn("Could not flush {} per-user LLM usage row(s); those counts are lost", batch.size(), e);
         }
+    }
+
+    private static final String USER_UPSERT_SQL = """
+            insert into llm_user_usage (provider_id, principal_id, minute, requests, input_tokens, output_tokens,
+                                        cached_tokens, errors, refused, cost_usd)
+            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            on conflict (provider_id, principal_id, minute) do update set
+                requests      = llm_user_usage.requests      + excluded.requests,
+                input_tokens  = llm_user_usage.input_tokens  + excluded.input_tokens,
+                output_tokens = llm_user_usage.output_tokens + excluded.output_tokens,
+                cached_tokens = llm_user_usage.cached_tokens + excluded.cached_tokens,
+                errors        = llm_user_usage.errors        + excluded.errors,
+                refused       = llm_user_usage.refused       + excluded.refused,
+                cost_usd      = llm_user_usage.cost_usd      + excluded.cost_usd
+            """;
+
+    /**
+     * USD {@code principalId} spent on {@code providerId} from {@code from} up to now, including unflushed counters
+     * (R2-011). Seeds the per-user caps and answers {@code getMyLlmBudget}.
+     *
+     * @param providerId the provider
+     * @param principalId the user's principal
+     * @param from the start
+     * @return the spend
+     */
+    public BigDecimal userCostSince(String providerId, String principalId, Instant from) {
+        return userTotals(providerId, principalId, from, clock.instant().plusSeconds(60)).costUsd();
+    }
+
+    /**
+     * One user's totals on one provider over {@code [from, to)}, including unflushed counters (R2-011).
+     *
+     * @param providerId the provider
+     * @param principalId the user's principal
+     * @param from the start
+     * @param to the end (exclusive)
+     * @return the totals
+     */
+    public LlmUsagePoint userTotals(String providerId, String principalId, Instant from, Instant to) {
+        LlmUsagePoint total = jdbc.query("""
+                select coalesce(sum(requests), 0), coalesce(sum(input_tokens), 0), coalesce(sum(output_tokens), 0),
+                       coalesce(sum(cached_tokens), 0), coalesce(sum(errors), 0), coalesce(sum(refused), 0),
+                       coalesce(sum(cost_usd), 0)
+                  from llm_user_usage
+                 where provider_id = ? and principal_id = ? and minute >= ? and minute < ?
+                """, rs -> rs.next() ? new LlmUsagePoint(from, rs.getLong(1), rs.getLong(2), rs.getLong(3),
+                        rs.getLong(4), rs.getLong(5), rs.getLong(6), rs.getBigDecimal(7)) : zero(from),
+                providerId, principalId, Timestamp.from(from), Timestamp.from(to));
+        if (total == null) {
+            total = zero(from);
+        }
+        for (Map.Entry<UserKey, Counters> entry : liveUser.entrySet()) {
+            UserKey key = entry.getKey();
+            if (key.providerId().equals(providerId) && key.principalId().equals(principalId)
+                    && !key.minute().isBefore(from) && key.minute().isBefore(to)) {
+                total = total.plus(entry.getValue().snapshot(from));
+            }
+        }
+        return total;
     }
 
     /** Flushes on shutdown so the final minute is kept. */
@@ -239,5 +368,6 @@ public class LlmUsageMeter implements IngestStateReset {
     @Override
     public void resetState() {
         live.clear();
+        liveUser.clear();
     }
 }

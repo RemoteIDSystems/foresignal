@@ -235,8 +235,9 @@ public class SettingsTransferService {
             channelList.add(input);
         }
         out.put("channels", channelList);
-        // Prompt 026: providers without their keys, and the roles.
-        out.put("llmProviders", llmProviders.list().stream().map(llmMapper::providerInput).toList());
+        // Prompt 026: providers without their keys, and the roles. R2-011: the shared providers only; a personal provider
+        // is its user's own configuration, not the instance's.
+        out.put("llmProviders", llmProviders.shared().stream().map(llmMapper::providerInput).toList());
         out.put("llmSettings", LlmMapper.settings(llmSettings.get()));
         // Prompt 029: briefings with their ids.
         BriefingService briefingService = briefings.getIfAvailable();

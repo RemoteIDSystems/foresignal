@@ -9,7 +9,7 @@ The dividing line: **collected data and the collector stay global; who may see a
 becomes per-user.** One instance, one database, one paced collector — many accounts, each with its
 own view, alerts, channels, LLM budget, saved views and preferences layered on top.
 
-## What exists today (verified 2026-10-26, after R2-010)
+## What exists today (verified 2026-10-26, after R2-011)
 
 Before Release 2, identity was **capability-scoped tokens only**, not accounts.
 
@@ -19,8 +19,9 @@ Before Release 2, identity was **capability-scoped tokens only**, not accounts.
 | API tokens | `security/ApiTokenEntity.java` | hashed `api_token` rows (`fsr_…`), area/path/tile restrictions |
 | Authorization | `security/AccessPolicy.java`, `security/AccessPermissions.java`, `security/TokenFilter.java` | per-operation scope gate for tokens, per-operation permission gate for sessions (R2-004); unmatched `/v1/**` needs admin |
 | Bootstrap admin | `security/AdminTokenService.java` | one rotatable break-glass admin token, hash-stored, printed once |
-| Global config | `store/SourceSettingsEntity.java`, `llm/LlmProviderEntity.java` | **no owner column** — settings are instance-wide |
+| Global config | `store/SourceSettingsEntity.java` | **no owner column** — settings are instance-wide |
 | Trigger rules (R2-008) | `store/TriggerRuleEntity.java`, `V16__trigger_rule_owner.sql` | `owner_principal_id` (null = shared); alerts copy it when they fire (§D) |
+| LLM providers (R2-011) | `llm/LlmProviderEntity.java`, `V18__llm_ownership_and_user_budget.sql` | `owner_principal_id` (null = shared), per-user caps; `llm_user_usage` per-user metering (§E) |
 | Source views (R2-010) | `source/view/UserSourcePrefEntity.java`, `V17__user_source_pref.sql` | `user_source_pref (user_id, source_id)`: a user's opt-out view over the shared collection (§D) |
 | Notification channels (R2-009) | `store/NotificationChannelEntity.java` | `owner_principal_id` (prompt 130's column): set = personal, null = global (§D) |
 | Owner-scoped data | `workspace`, `shareable_object`, `relation`, `chronicle_*`, `principal` | already carries an owner (the 129/130 collaboration layer) |
@@ -237,18 +238,18 @@ what it was before R2-004.
 | `network.manage` | 22 | egress, aggregators, peers |
 | `channels.global` | 5 (+11) | escalation policies; and, as the alternative, the 11 channel operations |
 | `self.channels` | 11 | every channel operation, with `channels.global` as `x-foresignal-permission-alternatives` (R2-009) |
-| `llm.shared.manage` | 12 | shared LLM providers and budgets |
+| `llm.shared.manage` | 12 | shared LLM providers and budgets; the 8 provider operations take `self.llm` as the alternative (R2-011) |
 | `data.read` | 118 | record, map, tile, history, search, alert, trigger and reference reads |
 | `intel.read` | 112 | intelligence, situations, analysis, assessments, chronicles, analytics, briefings reads |
 | `forecast.read` | 8 | forecast reads |
 | `data.export` | 11 | the `Exports` tag and `/v1/export/**` |
 | `self.alerts` | 18 | every trigger write (create, update, delete, test, snooze, mute, baseline rebuild, tuning) and the alert lifecycle writes (acknowledge, resolve, snooze, feedback); R2-008 |
-| `self.sources` / `self.preferences` / `self.llm` | 2 / 2 / 1 | `getMySources`/`updateMySources`, `getMyPreferences`/`updateMyPreferences`, `getMyLlmBudget` |
+| `self.sources` / `self.preferences` / `self.llm` | 2 / 2 / 1 (+8) | `getMySources`/`updateMySources`, `getMyPreferences`/`updateMyPreferences`, `getMyLlmBudget`; and, as the alternative, the 8 LLM provider operations |
 
 Every admin-scoped operation carries a permission, so no admin-scoped operation is reachable by a session on its
 derived scope alone (an Operator, derived scope `admin`, cannot mint an admin API token: that is `users.manage`).
-`self.alerts` arrived on the trigger and alert operations with R2-008 and `self.channels` on the channel operations with
-R2-009 (§D); R2-013 completes data-access gating.
+`self.alerts` arrived on the trigger and alert operations with R2-008, `self.channels` on the channel operations with
+R2-009 (§D) and `self.llm` on the LLM provider operations with R2-011 (§E); R2-013 completes data-access gating.
 
 **Alternatives (R2-009).** One operation can serve two permissions: the channel operations manage a user's own channels
 (`self.channels`) and the global ones (`channels.global`), and an Operator holds only the second while an Editor holds
@@ -402,6 +403,32 @@ that already exist (the 1.5.0 provider work) become **per-user-per-provider**: `
 reports the caller's cap and spend. A user with no personal provider falls back to the shared providers
 within whatever budget the admin set. Private-source egress rules (EGR-1, `EgressPolicy`) are unchanged
 — a personal remote provider is still a remote provider and never receives private records.
+
+**Built (R2-011): shared and personal LLM providers, per-user metering and budgets.**
+
+- **Ownership is the user's principal**, as for rules, alerts and channels: `llm_provider.owner_principal_id` (V18),
+  null = shared. The table above says `owner_user_id`; this is that column under the existing convention. Every
+  provider that existed before V18 is shared.
+- **Who manages what** (`llm/LlmProviderScope`). The provider operations take `llm.shared.manage` or `self.llm`
+  (`x-foresignal-permission-alternatives`); probing, the LLM settings and the usage report stay `llm.shared.manage`
+  only. A session sees its own and the shared providers, manages its own, and manages shared ones only with
+  `llm.shared.manage`. Another user's provider is `404` (`api/support/LlmProviderOwnershipInterceptor`). On create,
+  `shared` picks the kind; absent, a user holding `self.llm` gets a personal provider and anyone else a shared one. An
+  API token creates shared providers. A replace keeps the kind. Keys stay encrypted and are never returned.
+- **Selection rule.** Ask and the enrichment of a user's alert use the user's first enabled personal chat provider, by
+  id, else the shared chat role. Instance tasks and the embedding and speech roles use shared providers only, and only
+  a shared provider can hold a role.
+- **Metering.** A call made for a user is also counted in `llm_user_usage (provider_id, principal_id, minute)`, a
+  separate table, so `llm_usage` and every reader of it are unchanged.
+- **Budgets.** Per-user caps are columns on the provider: `per_user_hourly_cap_usd`, `per_user_daily_cap_usd` and
+  `per_user_monthly_cap_usd` apply to each user's own spend on a shared provider. I chose columns over a
+  `llm_user_budget (user_id, provider_id)` table because no operation sets a cap for one named user. A personal
+  provider's existing caps are its owner's. Machine calls keep the instance-level behavior.
+- **`getMyLlmBudget`** reports the caller's monthly spend and cap on the enabled shared providers and their own
+  providers.
+- **User deletion** (`llm/LlmProviderReassigner`, audit name `llmProviders`). Reassigning moves the providers to the
+  target admin. With no target they become shared and **disabled**, so one person's key is never silently put behind
+  everyone's calls. `reassign=false` deletes them.
 
 ## F. Transactional email
 
