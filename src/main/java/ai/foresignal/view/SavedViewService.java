@@ -52,6 +52,11 @@ import tools.jackson.databind.JsonNode;
  * {@value #MAX_CONDITIONS}), and an area: the intersection of its places' areas, its bbox and its own
  * area. Every save bumps {@code version}; tile URLs and cache keys carry it. A view that references a
  * place or a watchlist needs a token to render (its definition stays a normal {@code read}).
+ *
+ * <p>Prompt R2-012: a view has an owner ({@link SavedViewScope}). The listing a request sees is filtered by its scope
+ * and a session's new views are its own; resolving a view by id or slug ({@link #get}) stays unscoped, because
+ * briefings, chronicles, share links and workspaces name views by id, and the REST operations on one view are guarded
+ * in front of the controller ({@code api/support/SavedViewOwnershipInterceptor}).
  */
 @Service
 public class SavedViewService {
@@ -70,7 +75,8 @@ public class SavedViewService {
     static final Set<String> MEMBERS = Set.of("slug", "name", "sources", "kinds", "placeIds", "bbox", "area",
             "conditions", "timeField", "includeExpired", "fields");
 
-    static final Set<String> OUTPUT_ONLY = Set.of("id", "version", "createdAt", "updatedAt");
+    static final Set<String> OUTPUT_ONLY = Set.of("id", "version", "createdAt", "updatedAt", "ownerPrincipalId",
+            "shared");
 
     static final List<String> TIME_FIELDS = List.of("effective", "observed", "event", "ingested");
 
@@ -111,10 +117,21 @@ public class SavedViewService {
         return out;
     }
 
-    /** A page of views, keyset by slug. */
+    /** Every shared view (no owner), by slug: what a settings export carries (prompt R2-012). */
+    public List<SavedViewEntity> allShared() {
+        return all().stream().filter(v -> v.getOwnerPrincipalId() == null).toList();
+    }
+
+    /** A page of every view, keyset by slug. */
     public Page list(String cursor, int limit) {
+        return list(cursor, limit, SavedViewScope.MACHINE);
+    }
+
+    /** A page of the views {@code scope} sees, keyset by slug (prompt R2-012). */
+    public Page list(String cursor, int limit, SavedViewScope scope) {
         String after = decode(cursor);
-        List<SavedViewEntity> matching = all().stream().filter(v -> after == null || v.getSlug().compareTo(after) > 0)
+        List<SavedViewEntity> matching = all().stream().filter(v -> scope.sees(v.getOwnerPrincipalId()))
+                .filter(v -> after == null || v.getSlug().compareTo(after) > 0)
                 .toList();
         List<SavedViewEntity> page = matching.size() > limit ? matching.subList(0, limit) : matching;
         return new Page(page, matching.size() > limit ? encode(page.getLast().getSlug()) : null);
@@ -157,8 +174,23 @@ public class SavedViewService {
         return create(UUID.randomUUID(), body);
     }
 
-    /** Creates a view with {@code id} (settings import). */
+    /**
+     * Creates a view owned by {@code owner} (prompt R2-012).
+     *
+     * @param body the {@code SavedViewInput}
+     * @param owner the owning user's principal, or null for a shared view
+     * @return the saved view
+     */
+    public SavedViewEntity create(JsonNode body, String owner) {
+        return create(UUID.randomUUID(), body, owner);
+    }
+
+    /** Creates a shared view with {@code id} (settings import). */
     public SavedViewEntity create(UUID id, JsonNode body) {
+        return create(id, body, null);
+    }
+
+    private SavedViewEntity create(UUID id, JsonNode body, String owner) {
         Input input = parse(body);
         if (views.findBySlug(input.slug()).isPresent()) {
             throw new ConflictException(ErrorCodes.VIEW_EXISTS, "A view with slug '" + input.slug() + "' already exists.");
@@ -166,6 +198,7 @@ public class SavedViewService {
         Instant now = clock.instant();
         SavedViewEntity view = new SavedViewEntity(id);
         input.applyTo(view);
+        view.setOwnerPrincipalId(owner);
         view.setVersion(1);
         view.setCreatedAt(now);
         view.setUpdatedAt(now);
@@ -204,6 +237,37 @@ public class SavedViewService {
         SavedViewEntity view = get(idOrSlug);
         views.delete(view);
         views.flush();
+    }
+
+    /**
+     * Moves every view {@code from} owns to {@code to} (user deletion, prompt R2-012).
+     *
+     * @param from the deleted user's principal
+     * @param to the receiving admin's principal, or null to make the views shared
+     * @return how many views moved
+     */
+    public int reassignOwner(String from, String to) {
+        List<SavedViewEntity> owned = views.findByOwnerPrincipalIdOrderBySlugAsc(from);
+        Instant now = clock.instant();
+        for (SavedViewEntity view : owned) {
+            view.setOwnerPrincipalId(to);
+            view.setUpdatedAt(now);
+        }
+        views.saveAllAndFlush(owned);
+        return owned.size();
+    }
+
+    /**
+     * Deletes every view {@code owner} owns (user deletion, prompt R2-012).
+     *
+     * @param owner the deleted user's principal
+     * @return how many views were deleted
+     */
+    public int deleteOwned(String owner) {
+        List<SavedViewEntity> owned = views.findByOwnerPrincipalIdOrderBySlugAsc(owner);
+        views.deleteAll(owned);
+        views.flush();
+        return owned.size();
     }
 
     // ------------------------------------------------------------------------- compiling
@@ -533,7 +597,13 @@ public class SavedViewService {
         return List.copyOf(out);
     }
 
-    static ForesignalException unknown(String id) {
+    /**
+     * The {@code 404 UNKNOWN_VIEW} for {@code id}; also what another user's view looks like (prompt R2-012).
+     *
+     * @param id the id or slug asked for
+     * @return the exception
+     */
+    public static ForesignalException unknown(String id) {
         return new ForesignalException(HttpStatus.NOT_FOUND, ErrorCodes.UNKNOWN_VIEW, "No saved view has the id or slug '"
                 + id + "'.");
     }

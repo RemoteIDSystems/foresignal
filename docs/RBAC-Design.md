@@ -9,7 +9,7 @@ The dividing line: **collected data and the collector stay global; who may see a
 becomes per-user.** One instance, one database, one paced collector — many accounts, each with its
 own view, alerts, channels, LLM budget, saved views and preferences layered on top.
 
-## What exists today (verified 2026-10-26, after R2-011)
+## What exists today (verified 2026-10-26, after R2-012)
 
 Before Release 2, identity was **capability-scoped tokens only**, not accounts.
 
@@ -22,6 +22,7 @@ Before Release 2, identity was **capability-scoped tokens only**, not accounts.
 | Global config | `store/SourceSettingsEntity.java` | **no owner column** — settings are instance-wide |
 | Trigger rules (R2-008) | `store/TriggerRuleEntity.java`, `V16__trigger_rule_owner.sql` | `owner_principal_id` (null = shared); alerts copy it when they fire (§D) |
 | LLM providers (R2-011) | `llm/LlmProviderEntity.java`, `V18__llm_ownership_and_user_budget.sql` | `owner_principal_id` (null = shared), per-user caps; `llm_user_usage` per-user metering (§E) |
+| Preferences, saved views (R2-012) | `preference/*`, `view/SavedViewEntity.java`, `V19__user_preferences.sql` | `user_preferences (user_id)`: locale, theme, UI bag; `saved_view.owner_principal_id` (null = shared) (§D) |
 | Source views (R2-010) | `source/view/UserSourcePrefEntity.java`, `V17__user_source_pref.sql` | `user_source_pref (user_id, source_id)`: a user's opt-out view over the shared collection (§D) |
 | Notification channels (R2-009) | `store/NotificationChannelEntity.java` | `owner_principal_id` (prompt 130's column): set = personal, null = global (§D) |
 | Owner-scoped data | `workspace`, `shareable_object`, `relation`, `chronicle_*`, `principal` | already carries an owner (the 129/130 collaboration layer) |
@@ -220,7 +221,7 @@ token filter with `detail.via = session` and `detail.userId`.
 ## C2. Authorization (built: R2-004)
 
 **Every operation in `docs/OpenAPI.json` that a signed-in user needs a permission for carries
-`x-foresignal-permission`** (507 of the 900 operations). `scripts/generate-access-permissions.py` transcribes the
+`x-foresignal-permission`** (526 of the 900 operations). `scripts/generate-access-permissions.py` transcribes the
 contract into `security/AccessPermissions.java` — one row per operation, a null permission where it carries none, ordered
 literal-before-template — and `AccessPolicy.permissionFor(method, path)` reads it. The permission is a parallel lookup,
 not a field on `AccessRequirement.RequiresScope`: the scope requirement, and with it every API token's access, is exactly
@@ -245,11 +246,14 @@ what it was before R2-004.
 | `data.export` | 11 | the `Exports` tag and `/v1/export/**` |
 | `self.alerts` | 18 | every trigger write (create, update, delete, test, snooze, mute, baseline rebuild, tuning) and the alert lifecycle writes (acknowledge, resolve, snooze, feedback); R2-008 |
 | `self.sources` / `self.preferences` / `self.llm` | 2 / 2 / 1 (+8) | `getMySources`/`updateMySources`, `getMyPreferences`/`updateMyPreferences`, `getMyLlmBudget`; and, as the alternative, the 8 LLM provider operations |
+| `self.views` | 9 | every saved-view operation; the 6 reads (`listViews`, `getView`, records, tiles, TileJSON, stream) take `data.read` as the alternative (R2-012) |
+| `self.workspaces` | 10 | every workspace operation; all but `createWorkspace` and `shareWorkspace` take `data.read` as the alternative (R2-012) |
 
 Every admin-scoped operation carries a permission, so no admin-scoped operation is reachable by a session on its
 derived scope alone (an Operator, derived scope `admin`, cannot mint an admin API token: that is `users.manage`).
 `self.alerts` arrived on the trigger and alert operations with R2-008, `self.channels` on the channel operations with
-R2-009 (§D) and `self.llm` on the LLM provider operations with R2-011 (§E); R2-013 completes data-access gating.
+R2-009 (§D), `self.llm` on the LLM provider operations with R2-011 (§E), and `self.views` and `self.workspaces` on the
+saved-view and workspace operations with R2-012 (§D); R2-013 completes data-access gating.
 
 **Alternatives (R2-009).** One operation can serve two permissions: the channel operations manage a user's own channels
 (`self.channels`) and the global ones (`channels.global`), and an Operator holds only the second while an Editor holds
@@ -394,6 +398,46 @@ data-access gating.
   `users.manage` or `collection.manage`.
 - **User deletion** removes the view (`UserSourcePrefReassigner`, audit name `sourceViews`), whether or not the rest is
   reassigned.
+
+**Built (R2-012): per-user preferences, saved views and workspace ownership.**
+
+- **Preferences have one home per member** (`preference/UserPreferencesService`, `getMyPreferences`/
+  `updateMyPreferences` under `self.preferences`; a session only, an API token gets `401`). `locale`, `theme` and `ui`
+  are the new `user_preferences` row (V19), keyed by `user_id`. `timezone` is **not** a column there: it is the user's
+  principal's `timezone`, which `patchPrincipal` already set and personal notification channels already rendered in,
+  so a user has one timezone and changing it here also moves their personal channels to it. Reads fill defaults: the
+  server timezone, theme `system`, and the instance notification language for the locale. Validation: the timezone
+  must be one of the JVM's zone ids, the locale a well-formed BCP 47 tag naming an ISO 639 language (stored in
+  canonical form), the theme `system`/`light`/`dark`, `ui` an object of at most 64 KiB.
+- **Notification preferences are not forked.** `UserPreferences.notifications` is a summary of, and switches over, the
+  user's prompt 130 notification preferences (`principal_notification` and the channels they own,
+  `listMyNotificationPreferences`/`replaceMyNotificationPreferences`), which were already keyed by the principal and so
+  already by the user. `emailEnabled` covers the email channels and `pushEnabled` the push ones (ntfy, gotify,
+  pushover, webpush); each reads false only when the user has channels of that kind and every one is off, and writing
+  it turns them all on or off, in the preference and in the channel (`ChannelService.adjustPersonal`). `quietHours`
+  (`HH:MM-HH:MM`) reads as the window every preference shares and writes that window, every day, onto each of them. A
+  switch left out of a write changes nothing, and with no notification preferences a switch has nothing to change.
+- **Saved views are owned** (`saved_view.owner_principal_id`, V19, the convention of §D). Null is **shared**: every view
+  from before R2-012 and every view an API token makes, so briefings, chronicles, share links and workspaces that name
+  a view keep resolving it. Rules (`view/SavedViewScope`): a session lists and renders its own views and the shared
+  ones, and creates, replaces and deletes its own; another user's view is `404 UNKNOWN_VIEW`
+  (`api/support/SavedViewOwnershipInterceptor`, by id or slug, in front of every `/v1/views/{viewId}…` controller); a
+  shared view is read-only without `users.manage` (`403 PERMISSION_DENIED`). Admins (`users.manage`) and API tokens see
+  and manage everything; anonymous readers see shared views. Slugs stay unique across all views. Internal consumers that
+  resolve a view by id (briefings, chronicles, share links, the MCP tools, which run as tokens) are not narrowed: they
+  were authorized when they were configured. The settings export carries shared views only.
+- **Workspace ownership was already the user's.** `workspace.owner` holds the creating caller's principal
+  (`ObjectCallers.principalOf`), and a session's token view carries the user's principal, so a signed-in user's
+  workspaces have been theirs since R2-003; the column is reused and nothing is backfilled. Sharing (members, prompt
+  130 access lists, share links) is unchanged; the operations gain `self.workspaces`, with `data.read` accepted on all
+  but create and share so that a Viewer can still open a workspace shared with them.
+- **Per-user timezone in rendering.** The Ask assistant writes "now" in the asking user's timezone (`UserZones`), and
+  personal notification channels render quiet hours in it; every stored and compared time stays UTC.
+- **User deletion.** `preferences` (`UserPreferencesReassigner`) removes the row either way, like the source view.
+  `savedViews` (`SavedViewReassigner`) moves the views to the target admin (shared with no target) or deletes them.
+  `workspaces` (`collab/WorkspaceReassigner`) makes the target admin the owner, in the workspace and its access record,
+  keeping members and grants; `workspace.owner` cannot be empty, so with no admin account the workspaces stay with the
+  deleted user's principal, where an admin token can still transfer or delete them. `reassign=false` deletes them.
 
 ## E. LLM — shared and personal, per-user budgets
 

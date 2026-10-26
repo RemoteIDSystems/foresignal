@@ -34,11 +34,10 @@ import ai.foresignal.mcp.McpToolRegistry;
 import ai.foresignal.mcp.ToolCatalog;
 import ai.foresignal.mcp.ToolContext;
 import ai.foresignal.mcp.ToolResult;
+import ai.foresignal.preference.UserZones;
 import ai.foresignal.search.SearchRequest;
 import ai.foresignal.search.SearchService;
 import ai.foresignal.security.EgressPolicy;
-import ai.foresignal.settings.ServerSettings;
-import ai.foresignal.settings.ServerSettingsService;
 import ai.foresignal.trigger.AlertQuery;
 import ai.foresignal.trigger.AlertService;
 import ai.foresignal.trigger.AlertView;
@@ -46,7 +45,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -141,7 +139,7 @@ public class AskService {
     private final AlertService alerts;
     private final AlertMapper alertMapper;
     private final McpOutputShaper shaper;
-    private final ServerSettingsService serverSettings;
+    private final UserZones zones;
     private final ObjectProvider<AskScopeResolver> scopeResolvers;
     private final RawTurnCodec turns;
     private final JsonMapper json;
@@ -152,7 +150,7 @@ public class AskService {
             AskActionTools actionTools, ToolOutputFilter outputFilter, EgressPolicy egress,
             List<CitableExtractor> extractors, CitationVerifier verifier, AskThreadService threads,
             AskActionService actions, SearchService search, AlertService alerts, AlertMapper alertMapper,
-            McpOutputShaper shaper, ServerSettingsService serverSettings, ObjectProvider<AskScopeResolver> scopeResolvers,
+            McpOutputShaper shaper, UserZones zones, ObjectProvider<AskScopeResolver> scopeResolvers,
             JsonMapper json, Clock clock) {
         this.llm = llm;
         this.llmSettings = llmSettings;
@@ -169,7 +167,7 @@ public class AskService {
         this.alerts = alerts;
         this.alertMapper = alertMapper;
         this.shaper = shaper;
-        this.serverSettings = serverSettings;
+        this.zones = zones;
         this.scopeResolvers = scopeResolvers;
         this.turns = new RawTurnCodec(json);
         this.json = json;
@@ -293,7 +291,7 @@ public class AskService {
         }
         specs.addAll(actionTools.specs());
         ChatMessage.User user = new ChatMessage.User(AskPrompts.userTurn(run.prepared.input().question(), null,
-                run.prepared.scope(), clock.instant(), zone(), json));
+                run.prepared.scope(), clock.instant(), zone(run.prepared.actor()), json));
         List<ChatMessage> messages = new ArrayList<>(run.prepared.history());
         messages.add(user);
         ChatRequest request = new ChatRequest(AskPrompts.SYSTEM, messages, specs, null, Effort.MEDIUM, Purpose.ASK,
@@ -342,7 +340,8 @@ public class AskService {
         JsonNode shown = run.accept("retrieval", data);
         run.listener.progress("search", "done", records.size() + " records, " + alertItems.size() + " alerts");
 
-        ChatMessage.User user = new ChatMessage.User(AskPrompts.userTurn(question, shown, scope, now, zone(), json));
+        ChatMessage.User user = new ChatMessage.User(AskPrompts.userTurn(question, shown, scope, now, zone(run.prepared.actor()),
+                json));
         List<ChatMessage> messages = new ArrayList<>(run.prepared.history());
         messages.add(user);
         int maxTokens = (int) Math.max(1, Math.min(config.effectiveMaxTokens(), settings.askMaxTokens()));
@@ -675,14 +674,12 @@ public class AskService {
         return out;
     }
 
-    private ZoneId zone() {
-        ServerSettings server = serverSettings.get();
-        String id = server == null || server.timezone() == null ? ServerSettings.DEFAULT_TIMEZONE : server.timezone();
-        try {
-            return ZoneId.of(id);
-        } catch (RuntimeException e) {
-            return ZoneOffset.UTC;
-        }
+    /**
+     * The zone the question's local times are written in: the asking user's own timezone (prompt R2-012), else the
+     * server's, else UTC. Only the rendering changes; every stored and compared time stays UTC.
+     */
+    private ZoneId zone(String actor) {
+        return zones.zoneFor(actor);
     }
 
     // ------------------------------------------------------------------------- types

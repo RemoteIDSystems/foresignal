@@ -345,8 +345,8 @@ final class AccessPermissions {
             rule("GET", "/v1/tiles.json", "data.read"), // listTileLayers
             rule("GET", "/v1/watchlists", null), // listWatchlists
             rule("POST", "/v1/watchlists", null), // createWatchlist
-            rule("GET", "/v1/workspaces", null), // listWorkspaces
-            rule("POST", "/v1/workspaces", null), // createWorkspace
+            rule("GET", "/v1/workspaces", "self.workspaces", "data.read"), // listWorkspaces
+            rule("POST", "/v1/workspaces", "self.workspaces"), // createWorkspace
             rule("GET", "/v1/anomalies", "data.read"), // listAnomalies
             rule("GET", "/v1/backtests", null), // listBacktests
             rule("POST", "/v1/backtests", null), // createBacktest
@@ -430,8 +430,8 @@ final class AccessPermissions {
             rule("POST", "/v1/trips", null), // createTrip
             rule("GET", "/v1/users", "users.manage"), // listUsers
             rule("POST", "/v1/users", "users.manage"), // createUser
-            rule("GET", "/v1/views", null), // listViews
-            rule("POST", "/v1/views", null), // createView
+            rule("GET", "/v1/views", "self.views", "data.read"), // listViews
+            rule("POST", "/v1/views", "self.views"), // createView
             rule("GET", "/taxii2/", null), // getTaxiiDiscovery
             rule("GET", "/v1/tags", null), // listTags
             rule("POST", "/v1/tags", null), // createTag
@@ -497,7 +497,7 @@ final class AccessPermissions {
             rule("POST", "/v1/social/narratives/*/merge", null), // mergeNarratives
             rule("GET", "/v1/social/narratives/*/posts", "intel.read"), // listNarrativePosts
             rule("POST", "/v1/social/narratives/*/split", null), // splitNarrative
-            rule("GET", "/v1/workspaces/*/context-link", null), // getWorkspaceContextLink
+            rule("GET", "/v1/workspaces/*/context-link", "self.workspaces", "data.read"), // getWorkspaceContextLink
             rule("POST", "/v1/analyst/notes/*/feedback", null), // analystNoteFeedback
             rule("POST", "/v1/chronicles/*/thread/read", null), // markChronicleThreadRead
             rule("GET", "/v1/custom-sources/*/devices", "collection.manage"), // listIngestDevices
@@ -579,8 +579,8 @@ final class AccessPermissions {
             rule("GET", "/v1/situations/*/members", "intel.read"), // listSituationMembers
             rule("POST", "/v1/situations/*/members", null), // addSituationMember
             rule("GET", "/v1/social/comparisons/*", "intel.read"), // getSocialComparison
-            rule("PATCH", "/v1/workspaces/*/context", null), // patchWorkspaceContext
-            rule("GET", "/v1/workspaces/*/summary", null), // getWorkspaceSummary
+            rule("PATCH", "/v1/workspaces/*/context", "self.workspaces", "data.read"), // patchWorkspaceContext
+            rule("GET", "/v1/workspaces/*/summary", "self.workspaces", "data.read"), // getWorkspaceSummary
             rule("GET", "/v1/alerts/*/escalation", "data.read"), // getAlertEscalation
             rule("GET", "/v1/analytics/impacts/*", "intel.read"), // getProjectedImpact
             rule("POST", "/v1/chronicles/*/export", null), // exportChronicle
@@ -607,7 +607,7 @@ final class AccessPermissions {
             rule("GET", "/v1/triggers/*/baseline", "data.read"), // getTriggerBaseline
             rule("GET", "/v1/watchlists/*/export", null), // exportWatchlist
             rule("POST", "/v1/watchlists/*/import", null), // importWatchlist
-            rule("PUT", "/v1/workspaces/*/layout", null), // putWorkspaceLayout
+            rule("PUT", "/v1/workspaces/*/layout", "self.workspaces", "data.read"), // putWorkspaceLayout
             rule("POST", "/v1/aggregators/*/test", "network.manage"), // testAggregator
             rule("DELETE", "/v1/analyst/profiles/*", null), // deleteAnalystProfile
             rule("GET", "/v1/analyst/profiles/*", "intel.read"), // getAnalystProfile
@@ -638,11 +638,11 @@ final class AccessPermissions {
             rule("GET", "/v1/social/platforms/*", "intel.read"), // getSocialPlatform
             rule("PUT", "/v1/social/platforms/*", "system.settings"), // updateSocialPlatform
             rule("GET", "/v1/triggers/*/quality", "intel.read"), // getTriggerQuality
-            rule("GET", "/v1/views/*/tiles.json", null), // getViewTileJson
+            rule("GET", "/v1/views/*/tiles.json", "self.views", "data.read"), // getViewTileJson
             rule("DELETE", "/v1/watchlists/*/items", null), // removeWatchlistItems
             rule("GET", "/v1/watchlists/*/items", null), // listWatchlistItems
             rule("POST", "/v1/watchlists/*/items", null), // addWatchlistItems
-            rule("POST", "/v1/workspaces/*/share", null), // shareWorkspace
+            rule("POST", "/v1/workspaces/*/share", "self.workspaces"), // shareWorkspace
             rule("PUT", "/v1/alerts/*/feedback", "self.alerts"), // setAlertFeedback
             rule("DELETE", "/v1/analysis/cycles/*", null), // deleteAnalysisCycle
             rule("GET", "/v1/analysis/cycles/*", "intel.read"), // getAnalysisCycle
@@ -731,7 +731,7 @@ final class AccessPermissions {
             rule("POST", "/v1/triggers/*/mute", "self.alerts"), // muteTrigger
             rule("POST", "/v1/triggers/*/test", "self.alerts"), // testTrigger
             rule("POST", "/v1/users/*/suspend", "users.manage"), // suspendUser
-            rule("GET", "/v1/views/*/records", null), // getViewRecords
+            rule("GET", "/v1/views/*/records", "self.views", "data.read"), // getViewRecords
             rule("GET", "/v1/analyst/runs/*", null), // getAnalystRun
             rule("POST", "/v1/ingest/*/media", null), // ingestSourceMedia
             rule("GET", "/v1/intel/events/*", "intel.read"), // getIntelEvent
@@ -749,7 +749,7 @@ final class AccessPermissions {
             rule("GET", "/v1/social/media/*", "intel.read"), // getMediaFingerprint
             rule("GET", "/v1/tags/*/objects", null), // listTaggedObjects
             rule("GET", "/v1/triggers/*.kml", "data.read"), // getTriggerKml
-            rule("GET", "/v1/views/*/stream", null), // streamView
+            rule("GET", "/v1/views/*/stream", "self.views", "data.read"), // streamView
             rule("GET", "/v1/aggregators/*", "network.manage"), // getAggregator
             rule("PUT", "/v1/aggregators/*", "network.manage"), // updateAggregator
             rule("DELETE", "/v1/annotations/*", null), // deleteAnnotation
@@ -798,9 +798,9 @@ final class AccessPermissions {
             rule("DELETE", "/v1/watchlists/*", null), // deleteWatchlist
             rule("GET", "/v1/watchlists/*", null), // getWatchlist
             rule("PUT", "/v1/watchlists/*", null), // updateWatchlist
-            rule("DELETE", "/v1/workspaces/*", null), // deleteWorkspace
-            rule("GET", "/v1/workspaces/*", null), // getWorkspace
-            rule("PATCH", "/v1/workspaces/*", null), // updateWorkspace
+            rule("DELETE", "/v1/workspaces/*", "self.workspaces", "data.read"), // deleteWorkspace
+            rule("GET", "/v1/workspaces/*", "self.workspaces", "data.read"), // getWorkspace
+            rule("PATCH", "/v1/workspaces/*", "self.workspaces", "data.read"), // updateWorkspace
             rule("DELETE", "/v1/backtests/*", null), // cancelBacktest
             rule("GET", "/v1/backtests/*", null), // getBacktest
             rule("DELETE", "/v1/briefings/*", null), // deleteBriefing
@@ -869,9 +869,9 @@ final class AccessPermissions {
             rule("DELETE", "/v1/users/*", "users.manage"), // deleteUser
             rule("GET", "/v1/users/*", "users.manage"), // getUser
             rule("PUT", "/v1/users/*", "users.manage"), // updateUser
-            rule("DELETE", "/v1/views/*", null), // deleteView
-            rule("GET", "/v1/views/*", null), // getView
-            rule("PUT", "/v1/views/*", null), // updateView
+            rule("DELETE", "/v1/views/*", "self.views"), // deleteView
+            rule("GET", "/v1/views/*", "self.views", "data.read"), // getView
+            rule("PUT", "/v1/views/*", "self.views"), // updateView
             rule("DELETE", "/v1/jobs/*", null), // cancelJob
             rule("GET", "/v1/jobs/*", null), // getJob
             rule("DELETE", "/v1/tags/*", null), // deleteTag
@@ -925,7 +925,7 @@ final class AccessPermissions {
             rule("GET", "/v1/ingest/*/k/*/*", null), // ingestRecordsPathKeyGet
             rule("POST", "/v1/ingest/*/k/*/*", null), // ingestRecordsPathKey
             rule("GET", "/v1/chronicles/*/tiles/*/*/*.mvt", "intel.read"), // getChronicleTile
-            rule("GET", "/v1/views/*/tiles/*/*/*.mvt", null), // getViewTile
+            rule("GET", "/v1/views/*/tiles/*/*/*.mvt", "self.views", "data.read"), // getViewTile
             rule("GET", "/v1/k/*/tiles/*/*/*.mvt", null), // getShareLinkTile
             rule("GET", "/v1/tiles/*/*/*/*.mvt", "data.read"), // getTile
             rule("GET", "/v1/ogc/collections/*/map/tiles/*/*/*/*", "data.read"), // ogcCollectionTile

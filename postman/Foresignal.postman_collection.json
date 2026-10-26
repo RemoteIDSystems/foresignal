@@ -37636,7 +37636,7 @@
               ],
               "query": []
             },
-            "description": "Returns the calling user's preferences. Requires `self.preferences`.\n\n**Scope:** `read`.\n\noperationId: `getMyPreferences`",
+            "description": "Returns the calling user's preferences with the defaults filled in: an unset `timezone` reads as the server's (getServerSettings), an unset `theme` as `system`, an unset `locale` as the instance notification language (`notify.defaultLanguage`). `notifications` summarizes the caller's notification preferences (listMyNotificationPreferences): `emailEnabled` is false only when the caller has email channels and every one is off, `pushEnabled` likewise for push channels (ntfy, gotify, pushover, webpush), and `quietHours` is the window every preference shares, or null when they differ or have none. Needs a signed-in session (an API token is 401). Requires `self.preferences`.\n\n**Scope:** `read`.\n\noperationId: `getMyPreferences`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -37686,7 +37686,7 @@
               ],
               "query": []
             },
-            "description": "Replaces the calling user's preferences. Requires `self.preferences`.\n\n**Scope:** `read`.\n\noperationId: `updateMyPreferences`",
+            "description": "Replaces the calling user's preferences. `timezone` (an IANA zone the server knows), `locale` (a BCP 47 tag naming an ISO 639 language) and `theme` (`system`, `light` or `dark`) are replaced; absent or null resets each to its default, and an invalid value is 400 VALIDATION_FAILED. `ui` is replaced whole (at most 64 KiB of JSON). The timezone is the user's own (`Principal.timezone`): the user's personal notification channels render their quiet hours in it, and the Ask assistant writes the user's local time in it; stored times stay UTC. `notifications` writes through to the caller's notification preferences rather than a second copy: `emailEnabled` and `pushEnabled` turn every email or push channel on or off, `quietHours` (`HH:MM-HH:MM`, or null to clear) sets the window on every preference; a member left out, or the whole object, leaves those preferences as they are. Needs a signed-in session (an API token is 401). Requires `self.preferences`.\n\n**Scope:** `read`.\n\noperationId: `updateMyPreferences`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -37699,7 +37699,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"timezone\": \"America/Chicago\",\n  \"locale\": \"en-US\",\n  \"theme\": \"dark\",\n  \"notifications\": {\n    \"emailEnabled\": true,\n    \"pushEnabled\": true,\n    \"quietHours\": \"22:00-07:00\"\n  },\n  \"ui\": {\n    \"mapStyle\": \"satellite\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -55152,7 +55152,7 @@
                 }
               ]
             },
-            "description": "View definitions.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.\n\noperationId: `listViews`",
+            "description": "View definitions.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.\n\noperationId: `listViews`",
             "auth": {
               "type": "noauth"
             }
@@ -55197,7 +55197,7 @@
               ],
               "query": []
             },
-            "description": "Compiles the view to one `RecordPredicate` shared with rules (SQL and in-memory evaluation agree on the operator truth table).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.\n\noperationId: `createView`",
+            "description": "Compiles the view to one `RecordPredicate` shared with rules (SQL and in-memory evaluation agree on the operator truth table).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.\n\noperationId: `createView`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -55252,7 +55252,7 @@
               ],
               "query": []
             },
-            "description": "404 UNKNOWN_VIEW.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.\n\noperationId: `getView`",
+            "description": "404 UNKNOWN_VIEW.\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.\n\noperationId: `getView`",
             "auth": {
               "type": "noauth"
             }
@@ -55295,7 +55295,7 @@
               ],
               "query": []
             },
-            "description": "Bumps `version` (tile cache keys include it).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.\n\noperationId: `updateView`",
+            "description": "Bumps `version` (tile cache keys include it).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.\n\noperationId: `updateView`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -55345,7 +55345,7 @@
               ],
               "query": []
             },
-            "description": "Removes the definition.\n\n**Scope:** `agent`.\n\n**v2.0 (per-user):** this configuration is now owned per user (`owner_user_id`); the caller sees and edits only their own, and an operator may also manage shared/global entries. This is a deliberate semantic change from the single-operator v1.x behavior; the request and response shapes are unchanged.\n\noperationId: `deleteView`",
+            "description": "Removes the definition.\n\n**Scope:** `agent`.\n\n**v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.\n\noperationId: `deleteView`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -55411,7 +55411,7 @@
                 }
               ]
             },
-            "description": "Current records matching the view's predicate, in every 014 format, keyset-paged, with the `fields` projection applied. View data follows normal read rules unless the view references a place or watchlist, in which case a token is required (401).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getViewRecords`",
+            "description": "Current records matching the view's predicate, in every 014 format, keyset-paged, with the `fields` projection applied. View data follows normal read rules unless the view references a place or watchlist, in which case a token is required (401).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.\n\noperationId: `getViewRecords`",
             "auth": {
               "type": "noauth"
             }
@@ -55461,7 +55461,7 @@
                 }
               ]
             },
-            "description": "Mapbox Vector Tile of the view's current records (016 properties); the cache key includes the view `version`. View data follows normal read rules unless the view references a place or watchlist, in which case a token is required (401).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getViewTile`",
+            "description": "Mapbox Vector Tile of the view's current records (016 properties); the cache key includes the view `version`. View data follows normal read rules unless the view references a place or watchlist, in which case a token is required (401).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.\n\noperationId: `getViewTile`",
             "auth": {
               "type": "noauth"
             }
@@ -55508,7 +55508,7 @@
                 }
               ]
             },
-            "description": "TileJSON 3.0.0 document whose tile template carries the view version. View data follows normal read rules unless the view references a place or watchlist, in which case a token is required (401).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `getViewTileJson`",
+            "description": "TileJSON 3.0.0 document whose tile template carries the view version. View data follows normal read rules unless the view references a place or watchlist, in which case a token is required (401).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.\n\noperationId: `getViewTileJson`",
             "auth": {
               "type": "noauth"
             }
@@ -55557,7 +55557,7 @@
                 }
               ]
             },
-            "description": "015 SSE semantics (replay from `Last-Event-ID`/`after`, live and touch lanes, resync and reset; `leftFilter` unchanged) filtered by the view's predicate. View data follows normal read rules unless the view references a place or watchlist, in which case a token is required (401).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\noperationId: `streamView`",
+            "description": "015 SSE semantics (replay from `Last-Event-ID`/`after`, live and touch lanes, resync and reset; `leftFilter` unchanged) filtered by the view's predicate. View data follows normal read rules unless the view references a place or watchlist, in which case a token is required (401).\n\n**Scope:** `read` (open while `security.openReads` is on).\n\n**v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.\n\noperationId: `streamView`",
             "auth": {
               "type": "noauth"
             }
@@ -56317,7 +56317,7 @@
                 }
               ]
             },
-            "description": "Workspaces the caller owns or is a member of.\n\n**Scope:** `read` (token required).\n\noperationId: `listWorkspaces`",
+            "description": "Workspaces the caller owns or is a member of.\n\n**Scope:** `read` (token required).\n\n**v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.\n\noperationId: `listWorkspaces`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -56369,7 +56369,7 @@
               ],
               "query": []
             },
-            "description": "Creates a workspace owned by the caller with an initial context (version 1) and optional opaque layout.\n\n**Scope:** `read` (token required).\n\noperationId: `createWorkspace`",
+            "description": "Creates a workspace owned by the caller with an initial context (version 1) and optional opaque layout.\n\n**Scope:** `read` (token required).\n\n**v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.\n\noperationId: `createWorkspace`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -56424,7 +56424,7 @@
               ],
               "query": []
             },
-            "description": "The workspace with its context, `contextVersion` (also the ETag for context `If-Match`) and layout.\n\n**Scope:** `read` (token required).\n\noperationId: `getWorkspace`",
+            "description": "The workspace with its context, `contextVersion` (also the ETag for context `If-Match`) and layout.\n\n**Scope:** `read` (token required).\n\n**v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.\n\noperationId: `getWorkspace`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -56474,7 +56474,7 @@
               ],
               "query": []
             },
-            "description": "JSON merge patch of name, members, saved views, investigation and `private`. Needs editor role with agent scope, or the owner's token.\n\n**Scope:** `read` (token required).\n\noperationId: `updateWorkspace`",
+            "description": "JSON merge patch of name, members, saved views, investigation and `private`. Needs editor role with agent scope, or the owner's token.\n\n**Scope:** `read` (token required).\n\n**v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.\n\noperationId: `updateWorkspace`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -56524,7 +56524,7 @@
               ],
               "query": []
             },
-            "description": "Deletes the workspace (owner or admin).\n\n**Scope:** `read` (token required).\n\noperationId: `deleteWorkspace`",
+            "description": "Deletes the workspace (owner or admin).\n\n**Scope:** `read` (token required).\n\n**v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.\n\noperationId: `deleteWorkspace`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -56575,7 +56575,7 @@
               ],
               "query": []
             },
-            "description": "Stores opaque client layout JSON (\u2264 64 KB); Foresignal never interprets it.\n\n**Scope:** `read` (token required).\n\noperationId: `putWorkspaceLayout`",
+            "description": "Stores opaque client layout JSON (\u2264 64 KB); Foresignal never interprets it.\n\n**Scope:** `read` (token required).\n\n**v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.\n\noperationId: `putWorkspaceLayout`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -56658,7 +56658,7 @@
               ],
               "query": []
             },
-            "description": "JSON merge patch with `If-Match: <contextVersion>`; 412 `WORKSPACE_CONTEXT_STALE` on a stale version. The new version is broadcast as `workspace.context` with the sender's `originClientId`. Validated per Client-Contract \u00a75 (well-formed refs, ordered time range, \u2264 200 selected refs).\n\n**Scope:** `read` (token required).\n\noperationId: `patchWorkspaceContext`",
+            "description": "JSON merge patch with `If-Match: <contextVersion>`; 412 `WORKSPACE_CONTEXT_STALE` on a stale version. The new version is broadcast as `workspace.context` with the sender's `originClientId`. Validated per Client-Contract \u00a75 (well-formed refs, ordered time range, \u2264 200 selected refs).\n\n**Scope:** `read` (token required).\n\n**v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.\n\noperationId: `patchWorkspaceContext`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -56714,7 +56714,7 @@
               ],
               "query": []
             },
-            "description": "The context summary for the workspace's current viewport, time range, filters and layers.\n\n**Scope:** `read` (token required).\n\noperationId: `getWorkspaceSummary`",
+            "description": "The context summary for the workspace's current viewport, time range, filters and layers.\n\n**Scope:** `read` (token required).\n\n**v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.\n\noperationId: `getWorkspaceSummary`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -56761,7 +56761,7 @@
               ],
               "query": []
             },
-            "description": "The Client-Contract \u00a76 payload (version, workspace id, base64url context \u2264 2 KB) for `#fs=` fragments.\n\n**Scope:** `read` (token required).\n\noperationId: `getWorkspaceContextLink`",
+            "description": "The Client-Contract \u00a76 payload (version, workspace id, base64url context \u2264 2 KB) for `#fs=` fragments.\n\n**Scope:** `read` (token required).\n\n**v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.\n\noperationId: `getWorkspaceContextLink`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -56863,7 +56863,7 @@
               ],
               "query": []
             },
-            "description": "Issues a read-only 112 share link (`/v1/k/{key}/\u2026`) to the workspace context; the key is shown once. A share link is public, so the workspace's TLP label must be CLEAR (130, `TLP_VIOLATION`).\n\n**Scope:** `agent`.\n\noperationId: `shareWorkspace`",
+            "description": "Issues a read-only 112 share link (`/v1/k/{key}/\u2026`) to the workspace context; the key is shown once. A share link is public, so the workspace's TLP label must be CLEAR (130, `TLP_VIOLATION`).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.\n\noperationId: `shareWorkspace`",
             "auth": {
               "type": "bearer",
               "bearer": [

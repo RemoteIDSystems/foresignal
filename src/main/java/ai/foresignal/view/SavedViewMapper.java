@@ -40,6 +40,8 @@ public class SavedViewMapper {
         out.put("includeExpired", v.isIncludeExpired());
         out.put("fields", v.getFields());
         out.put("version", v.getVersion());
+        out.put("shared", v.getOwnerPrincipalId() == null);
+        out.put("ownerPrincipalId", v.getOwnerPrincipalId());
         out.put("createdAt", v.getCreatedAt());
         out.put("updatedAt", v.getUpdatedAt());
         return out;

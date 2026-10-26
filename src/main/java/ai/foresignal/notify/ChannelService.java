@@ -222,6 +222,44 @@ public class ChannelService {
     }
 
     /**
+     * Changes the delivery settings of one personal channel {@code principalId} owns, leaving its definition alone
+     * (prompt R2-012: the {@code UserPreferences} notification switches and timezone write through to the channels
+     * the user's notification preferences already own, so there is one store).
+     *
+     * @param id the channel
+     * @param principalId the owner; a channel owned by anyone else is left alone
+     * @param enabled the new enabled flag, or null to keep it
+     * @param setQuietHours true to replace the quiet hours with {@code quietHours}
+     * @param quietHours the new quiet hours ({@code QuietHours}), or null for none
+     * @param setTimezone true to replace the timezone with {@code timezone}
+     * @param timezone the new IANA timezone, or null for the server's
+     * @return true when the channel exists, belongs to {@code principalId} and was saved
+     */
+    @Transactional
+    public boolean adjustPersonal(UUID id, String principalId, Boolean enabled, boolean setQuietHours,
+            Map<String, Object> quietHours, boolean setTimezone, String timezone) {
+        NotificationChannelEntity e = id == null || principalId == null ? null : channels.findById(id)
+                .filter(c -> principalId.equals(c.getOwnerPrincipalId())).orElse(null);
+        if (e == null) {
+            return false;
+        }
+        if (enabled != null) {
+            e.setEnabled(enabled);
+        }
+        if (setQuietHours) {
+            e.setQuietHours(quietHours);
+        }
+        if (setTimezone) {
+            e.setTimezone(timezone);
+        }
+        e.setUpdatedAt(clock.instant());
+        channels.save(e);
+        limiter.forget(e.getId());
+        changed(e.getId(), e.getType(), false);
+        return true;
+    }
+
+    /**
      * Creates the channel with {@code id}, or replaces it when it exists; a replaced channel keeps
      * its stored secrets when the body has none (settings import, prompt 019).
      */

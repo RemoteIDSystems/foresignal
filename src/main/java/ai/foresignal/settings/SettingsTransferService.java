@@ -180,7 +180,8 @@ public class SettingsTransferService {
     /**
      * The bundle of every exportable setting; never a secret or a credential. Places and saved views
      * are included with {@code includePlaces}, watchlists and their items with
-     * {@code includeWatchlists} (prompt 036); the bundle then carries {@code warnings}.
+     * {@code includeWatchlists} (prompt 036); the bundle then carries {@code warnings}. Saved views are the shared ones
+     * only (prompt R2-012): a personal view is its user's own, not the instance's.
      */
     @Transactional(readOnly = true)
     public Map<String, Object> export(boolean includePlaces, boolean includeWatchlists) {
@@ -193,7 +194,7 @@ public class SettingsTransferService {
             ai.foresignal.view.SavedViewService viewService = views.getIfAvailable();
             if (viewService != null) {
                 ai.foresignal.view.SavedViewMapper vm = viewMapper.getObject();
-                out.put("views", viewService.all().stream().map(vm::view).toList());
+                out.put("views", viewService.allShared().stream().map(vm::view).toList());
             }
             warnings.add(PLACES_WARNING);
         }

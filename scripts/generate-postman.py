@@ -291,6 +291,11 @@ BODIES = {
                          "username": "foresignal@example.org", "password": "REPLACE", "fromAddress": "info@remoteidsystems.com",
                          "fromName": "Foresignal"},
   "testSmtpSettings": {"to": "admin@example.org"},
+  # R2-012: the signed-in user's preferences (a session bearer, not an API token). notifications switches the user's
+  # existing notification preferences; leave it out to leave them as they are.
+  "updateMyPreferences": {"timezone": "America/Chicago", "locale": "en-US", "theme": "dark",
+                          "notifications": {"emailEnabled": True, "pushEnabled": True, "quietHours": "22:00-07:00"},
+                          "ui": {"mapStyle": "satellite"}},
   # R2-006: a custom role is a named subset of GET /v1/permissions; built-in roles cannot be updated or deleted.
   "createRole": {"name": "Analyst", "description": "Reads data and intelligence; manages own alerts",
                  "permissions": ["data.read", "intel.read", "forecast.read", "self.alerts", "self.views"]},

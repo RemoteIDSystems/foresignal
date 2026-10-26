@@ -24,6 +24,7 @@ import ai.foresignal.stream.sse.StreamPrincipalResolver;
 import ai.foresignal.stream.sse.TopicParams;
 import ai.foresignal.view.SavedViewEntity;
 import ai.foresignal.view.SavedViewMapper;
+import ai.foresignal.view.SavedViewScope;
 import ai.foresignal.view.SavedViewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -62,6 +63,11 @@ import tools.jackson.databind.json.JsonMapper;
  * watchlist needs a token ({@code 401}). Every rendering runs the view's predicate through the
  * caller's restriction ({@code RestrictionClamp}), so it is intersected with the 035 restriction and
  * renders the same set in records, tiles and the stream.
+ *
+ * <p>Prompt R2-012: a session reaches every view operation with {@code self.views} (the reads also with
+ * {@code data.read}); it lists its own and the shared views and creates its own ({@link SavedViewScope}). Another
+ * user's view is {@code 404} and a shared one is read-only without {@code users.manage}
+ * ({@code api/support/SavedViewOwnershipInterceptor}).
  */
 @RestController
 @Tag(name = "Views")
@@ -109,16 +115,20 @@ public class ViewsController {
     @GetMapping("/v1/views")
     @Operation(operationId = "listViews", tags = "Views")
     public Map<String, Object> listViews(@RequestParam(required = false) String cursor,
-            @RequestParam(required = false) String limit) {
-        return mapper.page(views.list(cursor, QueryParams.intInRange("limit", limit, 1, MAX_LIMIT, 100)));
+            @RequestParam(required = false) String limit, HttpServletRequest request) {
+        return mapper.page(views.list(cursor, QueryParams.intInRange("limit", limit, 1, MAX_LIMIT, 100),
+                SavedViewScope.of(request)));
     }
 
-    /** {@code createView}: 201; 409 {@code VIEW_EXISTS} when the slug is taken. */
+    /**
+     * {@code createView}: 201; 409 {@code VIEW_EXISTS} when the slug is taken. A session's view is its own, an API
+     * token's is shared (prompt R2-012).
+     */
     @PostMapping("/v1/views")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(operationId = "createView", tags = "Views")
-    public Map<String, Object> createView(@RequestBody JsonNode body) {
-        return mapper.view(views.create(body));
+    public Map<String, Object> createView(@RequestBody JsonNode body, HttpServletRequest request) {
+        return mapper.view(views.create(body, SavedViewScope.of(request).ownerForNew()));
     }
 
     /** {@code getView}: 404 {@code UNKNOWN_VIEW}. */

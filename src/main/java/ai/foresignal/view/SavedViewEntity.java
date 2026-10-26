@@ -78,6 +78,10 @@ public class SavedViewEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /** The owning user's principal (prompt R2-012), or null for a shared view. */
+    @Column(name = "owner_principal_id", length = 64)
+    private String ownerPrincipalId;
+
     protected SavedViewEntity() {
         // for JPA
     }
@@ -230,5 +234,15 @@ public class SavedViewEntity {
     /** Sets when last saved. */
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    /** The owning user's principal (prompt R2-012), or null for a shared view managed by an admin. */
+    public String getOwnerPrincipalId() {
+        return ownerPrincipalId;
+    }
+
+    /** Sets the owner principal; null makes the view shared. */
+    public void setOwnerPrincipalId(String value) {
+        this.ownerPrincipalId = value;
     }
 }

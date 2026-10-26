@@ -21,4 +21,7 @@ public interface WorkspaceRepository extends JpaRepository<WorkspaceEntity, Stri
             + " AND id > :after ORDER BY id LIMIT :limit", nativeQuery = true)
     List<WorkspaceEntity> visibleTo(@Param("principal") String principal, @Param("after") String after,
             @Param("limit") int limit);
+
+    /** The workspaces {@code owner} owns, oldest first (user deletion, prompt R2-012). */
+    List<WorkspaceEntity> findByOwnerOrderByIdAsc(String owner);
 }
