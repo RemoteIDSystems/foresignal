@@ -23,7 +23,8 @@
 # 2.5 minutes. JDK 22+ removed the GCLocker from G1 and rejects the flag, so the compose image
 # (JDK 25) does not carry it. See docs/Host-Memory-Safety.md.
 #
-#   FORESIGNAL_MEM_MAX   the scope's MemoryMax (default 10G; a whole number of K, M or G)
+#   FORESIGNAL_MEM_MAX   the scope's MemoryMax (default 7680M, 7.5 GiB: the measured steady state of
+#                        about 5.8 GiB plus 30%; a whole number of K, M or G)
 #   FORESIGNAL_JAVA      the java binary (default $JAVA_HOME/bin/java, then a Gradle-provisioned
 #                        JDK 21 under ~/.gradle/jdks, then java on PATH); must be Java 21 or later
 #   FORESIGNAL_PORT      the HTTP port checked for a second server (default 8080)
@@ -38,7 +39,7 @@ UNIT=foresignal-server.scope
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 JAR=$ROOT/build/libs/foresignal.jar
 LOG=$ROOT/build/foresignal-server.log
-MEM_MAX=${FORESIGNAL_MEM_MAX:-10G}
+MEM_MAX=${FORESIGNAL_MEM_MAX:-7680M}
 PORT=${FORESIGNAL_PORT:-8080}
 
 fail() {

@@ -817,7 +817,7 @@ File-based configuration is limited to bootstrap concerns in `src/main/resources
 | `FORESIGNAL_PROFILE` | `small` | Memory profile |
 | `FORESIGNAL_RASTER_DISK_QUOTA_GB` | `200` | Raster quota |
 | `FORESIGNAL_JAVA_TOOL_OPTIONS` | `-Xmx4g -XX:+UseG1GC` | JVM flags; `-Djava.io.tmpdir=/data/tmp -Djna.tmpdir=/data/tmp` is always appended (libaec's native library is extracted there, so the volume must allow executables) |
-| `FORESIGNAL_MEM_LIMIT` | `6g` | Broker container memory limit; `memswap_limit` is set to the same value, so the container cannot swap |
+| `FORESIGNAL_MEM_LIMIT` | `7680m` | Broker container memory limit; `memswap_limit` is set to the same value, so the container cannot swap |
 | `FORESIGNAL_DB_MEM_LIMIT` | `6g` | Database container memory limit; `memswap_limit` is set to the same value |
 | `FORESIGNAL_SATDUMP_STATIONS` | empty | SatDump stations |
 | `WITH_GDAL` | `false` | Build arg: install `gdal-bin` |
@@ -837,7 +837,7 @@ docker-compose.yml
 ├── db          build docker/db (foresignal-db:17-3.5-pgvector)   volume pgdata    ${FORESIGNAL_DB_BIND:-127.0.0.1}:5433→5432
 │               healthcheck pg_isready; tuned flags (below); mem_limit = memswap_limit ${FORESIGNAL_DB_MEM_LIMIT:-6g}; restart unless-stopped
 ├── foresignal  build . (WITH_GDAL)   volume foresignal-data:/data, satdump-output:/data/inbox/satdump/<station>:ro
-│               ${FORESIGNAL_BIND:-127.0.0.1}:8080; depends_on db healthy; mem_limit = memswap_limit ${FORESIGNAL_MEM_LIMIT:-6g}
+│               ${FORESIGNAL_BIND:-127.0.0.1}:8080; depends_on db healthy; mem_limit = memswap_limit ${FORESIGNAL_MEM_LIMIT:-7680m}
 │               healthcheck /actuator/health/readiness; restart unless-stopped
 ├── tailscale   tailscale/tailscale:v1.102.5   profile "tailscale"   HTTPS on the tailnet through Tailscale Serve
 ├── caddy       caddy:2.11.7-alpine            profile "web"         HTTP/2 and HTTP/3, `tls internal` local CA, ports 80/443
@@ -1235,7 +1235,7 @@ Selected by `FORESIGNAL_PROFILE=small|large`, never derived from `MaxRAMPercenta
 | | Small (32 GB host, default) | Large (64 GB host) |
 |---|---|---|
 | JVM (`FORESIGNAL_JAVA_TOOL_OPTIONS`) | `-Xmx4g -XX:+UseG1GC` | `-Xmx8g -XX:+UseZGC -XX:+ZGenerational` |
-| Container limit (`FORESIGNAL_MEM_LIMIT`) | 6 GB | 11 GB |
+| Container limit (`FORESIGNAL_MEM_LIMIT`) | 7.5 GiB (`7680m`) | 11 GB |
 | Frame / tile / index-map cache | 768 / 128 / 64 MB | 1536 / 256 / 128 MB |
 | Render pool | min(cores − 2, 6) | cores − 2 |
 | Decode concurrency | 1 | 2 |

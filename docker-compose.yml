@@ -94,10 +94,11 @@ services:
       JAVA_TOOL_OPTIONS: ${FORESIGNAL_JAVA_TOOL_OPTIONS:--Xmx4g -XX:+UseG1GC} -Djava.io.tmpdir=/data/tmp -Djna.tmpdir=/data/tmp
       # SatDump ground stations (049): one satdump-{station} source per comma-separated name.
       FORESIGNAL_SATDUMP_STATIONS: ${FORESIGNAL_SATDUMP_STATIONS:-}
-    # The container limit per profile: 6g (small) or 11g (large). memswap_limit equal to
-    # mem_limit: the broker cannot swap.
-    mem_limit: ${FORESIGNAL_MEM_LIMIT:-6g}
-    memswap_limit: ${FORESIGNAL_MEM_LIMIT:-6g}
+    # The container limit per profile: 7680m (small) or 11g (large). The small figure is the
+    # measured steady state, about 5.8 GiB, plus 30% (docs/Host-Memory-Safety.md). memswap_limit
+    # equal to mem_limit: the broker cannot swap.
+    mem_limit: ${FORESIGNAL_MEM_LIMIT:-7680m}
+    memswap_limit: ${FORESIGNAL_MEM_LIMIT:-7680m}
     # Production defaults (prompt 144): the image runs as the non-root foresignal user, and its root filesystem is
     # read-only. Writable: the data volume (data, java.io.tmpdir and native-library extraction under /data/tmp) and a
     # small tmpfs /tmp (JVM perf data). Set FORESIGNAL_READ_ONLY_ROOT=false to turn the read-only root off.
