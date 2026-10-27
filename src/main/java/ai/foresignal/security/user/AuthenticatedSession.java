@@ -22,9 +22,28 @@ import java.util.UUID;
  * @param expiresAt the absolute expiry
  * @param idleExpiresAt the idle expiry
  * @param permissions the effective permissions
+ * @param mfaEnrollmentRequired true when a role the user holds requires MFA and it is not enrolled: the token filter
+ *     then refuses every write but enrollment (prompt R2-024)
  */
 public record AuthenticatedSession(UUID sessionId, UUID userId, String email, String principalId, String tokenPrefix,
-        Instant expiresAt, Instant idleExpiresAt, EffectivePermissions permissions) {
+        Instant expiresAt, Instant idleExpiresAt, EffectivePermissions permissions, boolean mfaEnrollmentRequired) {
+
+    /**
+     * A session with no pending MFA enrollment.
+     *
+     * @param sessionId the session
+     * @param userId the user
+     * @param email the user's email
+     * @param principalId the user's {@code person} principal
+     * @param tokenPrefix the bearer's first eight characters
+     * @param expiresAt the absolute expiry
+     * @param idleExpiresAt the idle expiry
+     * @param permissions the effective permissions
+     */
+    public AuthenticatedSession(UUID sessionId, UUID userId, String email, String principalId, String tokenPrefix,
+            Instant expiresAt, Instant idleExpiresAt, EffectivePermissions permissions) {
+        this(sessionId, userId, email, principalId, tokenPrefix, expiresAt, idleExpiresAt, permissions, false);
+    }
 
     /** The request attribute holding it. */
     public static final String ATTRIBUTE = "ai.foresignal.currentSession";

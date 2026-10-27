@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import ai.foresignal.security.Encrypted;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
@@ -50,6 +51,21 @@ public class UserEntity {
     @ColumnDefault("false")
     @Column(name = "mfa_enabled", nullable = false)
     private boolean mfaEnabled;
+
+    /** The TOTP secret, AES-GCM sealed (prompt R2-024); pending until {@link #isMfaEnabled()}. */
+    @Column(name = "mfa_secret_cipher")
+    private byte[] mfaSecretCipher;
+
+    @Column(name = "mfa_secret_nonce")
+    private byte[] mfaSecretNonce;
+
+    @JdbcTypeCode(SqlTypes.TIMESTAMP_UTC)
+    @Column(name = "mfa_enrolled_at")
+    private Instant mfaEnrolledAt;
+
+    /** The last TOTP time step accepted, so a code is never accepted twice (prompt R2-024). */
+    @Column(name = "mfa_last_step")
+    private Long mfaLastStep;
 
     @Column(name = "created_by")
     private UUID createdBy;
@@ -184,7 +200,7 @@ public class UserEntity {
         return principalId;
     }
 
-    /** True when MFA is enrolled (the logic is a later R2 prompt). */
+    /** True when MFA is enrolled and active (prompt R2-024). */
     public boolean isMfaEnabled() {
         return mfaEnabled;
     }
@@ -197,6 +213,68 @@ public class UserEntity {
      */
     public void setMfaEnabled(boolean mfaEnabled, Instant now) {
         this.mfaEnabled = mfaEnabled;
+        this.updatedAt = now;
+    }
+
+    /** The sealed TOTP secret (active or pending), or null (prompt R2-024). */
+    public Encrypted getMfaSecret() {
+        return mfaSecretCipher == null ? null : new Encrypted(mfaSecretCipher, mfaSecretNonce);
+    }
+
+    /** When MFA was last activated, or null (prompt R2-024). */
+    public Instant getMfaEnrolledAt() {
+        return mfaEnrolledAt;
+    }
+
+    /** The last TOTP time step accepted, or null (prompt R2-024). */
+    public Long getMfaLastStep() {
+        return mfaLastStep;
+    }
+
+    /**
+     * Stores a new, pending TOTP secret; MFA stays as it was until {@link #activateMfa} (prompt R2-024).
+     *
+     * @param secret the sealed secret
+     * @param now the change time
+     */
+    public void setPendingMfaSecret(Encrypted secret, Instant now) {
+        this.mfaSecretCipher = secret.ciphertext();
+        this.mfaSecretNonce = secret.nonce();
+        this.mfaLastStep = null;
+        this.updatedAt = now;
+    }
+
+    /**
+     * Activates MFA with the stored secret (prompt R2-024).
+     *
+     * @param now the activation time
+     */
+    public void activateMfa(Instant now) {
+        this.mfaEnabled = true;
+        this.mfaEnrolledAt = now;
+        this.updatedAt = now;
+    }
+
+    /**
+     * Records the TOTP time step just accepted (prompt R2-024).
+     *
+     * @param step the time step
+     */
+    public void recordMfaStep(long step) {
+        this.mfaLastStep = step;
+    }
+
+    /**
+     * Turns MFA off and forgets the secret (prompt R2-024).
+     *
+     * @param now the change time
+     */
+    public void clearMfa(Instant now) {
+        this.mfaEnabled = false;
+        this.mfaSecretCipher = null;
+        this.mfaSecretNonce = null;
+        this.mfaEnrolledAt = null;
+        this.mfaLastStep = null;
         this.updatedAt = now;
     }
 

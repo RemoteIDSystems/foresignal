@@ -13,6 +13,9 @@ spring:
     open-in-view: false
 
 foresignal:
+  # R2-024: the identity tests sign Admins and Operators in without enrolling MFA; MfaEnforcementIT turns it back on.
+  mfa:
+    enforce-enrollment: false
   # Derived tests feed batches and wait for them at once; production spaces change invocations 30 s apart.
   derive:
     change-interval: PT0S

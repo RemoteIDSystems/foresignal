@@ -6,6 +6,7 @@ import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.security.TokenHasher;
 import ai.foresignal.security.audit.AuditRecord;
 import ai.foresignal.security.audit.AuditService;
+import ai.foresignal.security.mfa.MfaService;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -39,6 +40,11 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>{@link UserSessionsRevokedEvent} (password set, suspension, disabling) revokes all of a user's sessions in the
  * transaction that changed the account.
+ *
+ * <p>Prompt R2-024: a user with MFA active gets no session from the password alone. Without a code the sign-in answers
+ * {@code mfaRequired} and issues nothing; with a wrong one it is the same {@code 401 INVALID_CREDENTIALS}. A session
+ * of a user whose role requires MFA but who has not enrolled is marked {@link AuthenticatedSession#mfaEnrollmentRequired()}
+ * on every request, and the token filter confines it to enrollment.
  */
 @Service
 public class SessionService {
@@ -63,6 +69,7 @@ public class SessionService {
     private final PasswordHasher passwords;
     private final TokenHasher hasher;
     private final AuditService audit;
+    private final MfaService mfa;
     private final Clock clock;
     private final SecureRandom random = new SecureRandom();
     private volatile String dummyHash;
@@ -76,32 +83,37 @@ public class SessionService {
      * @param passwords argon2id verification
      * @param hasher SHA-256 of bearers
      * @param audit the audit log
+     * @param mfa the second factor (R2-024)
      * @param clock the clock
      */
     public SessionService(UserSessionRepository sessions, UserRepository users, PermissionResolver permissions,
-            PasswordHasher passwords, TokenHasher hasher, AuditService audit, Clock clock) {
+            PasswordHasher passwords, TokenHasher hasher, AuditService audit, MfaService mfa, Clock clock) {
         this.sessions = sessions;
         this.users = users;
         this.permissions = permissions;
         this.passwords = passwords;
         this.hasher = hasher;
         this.audit = audit;
+        this.mfa = mfa;
         this.clock = clock;
     }
 
     /**
-     * A successful sign-in.
+     * A successful sign-in, or a correct password still waiting for its MFA code.
      *
-     * @param token the session bearer, returned once
-     * @param session the stored session
+     * @param token the session bearer, returned once; null while {@code mfaRequired}
+     * @param session the stored session; null while {@code mfaRequired}
      * @param user the user
      * @param permissions the user's effective permissions now
+     * @param mfaRequired true when MFA is active and no code was given: no session was issued (R2-024)
      */
-    public record Login(String token, UserSessionEntity session, UserEntity user, EffectivePermissions permissions) {
+    public record Login(String token, UserSessionEntity session, UserEntity user, EffectivePermissions permissions,
+            boolean mfaRequired) {
 
         @Override
         public String toString() {
-            return "Login[session=" + session.getId() + ", user=" + user.getId() + "]";
+            return "Login[session=" + (session == null ? null : session.getId()) + ", user=" + user.getId()
+                    + ", mfaRequired=" + mfaRequired + "]";
         }
     }
 
@@ -110,13 +122,14 @@ public class SessionService {
      *
      * @param email the email as entered
      * @param password the password; never logged
+     * @param mfaCode a TOTP or recovery code when MFA is active, or null (R2-024); never logged
      * @param userAgent the client's {@code User-Agent}, or null
      * @param ip the client address, or null
-     * @return the new session
-     * @throws ForesignalException {@code 401 INVALID_CREDENTIALS} for every failure
+     * @return the new session, or, for a user with MFA active and no code, {@code mfaRequired} with no session
+     * @throws ForesignalException {@code 401 INVALID_CREDENTIALS} for every failure, a wrong MFA code included
      */
     @Transactional
-    public Login login(String email, String password, String userAgent, String ip) {
+    public Login login(String email, String password, String mfaCode, String userAgent, String ip) {
         Instant now = clock.instant();
         UserEntity user = email == null ? null : users.findByEmail(UserEntity.normalizeEmail(email)).orElse(null);
         String stored = user == null || user.getPasswordHash() == null ? dummyHash() : user.getPasswordHash();
@@ -128,14 +141,26 @@ public class SessionService {
             auditAuth(now, "login", user, null, 401, ip, Map.of("event", "login_failed", "reason", reason));
             throw invalidCredentials();
         }
+        if (user.isMfaEnabled()) {
+            if (mfaCode == null || mfaCode.isBlank()) {
+                auditAuth(now, "login", user, null, 200, ip, Map.of("event", "login_mfa_required"));
+                return new Login(null, null, user, EffectivePermissions.NONE, true);
+            }
+            if (!mfa.verifyLogin(user, mfaCode)) {
+                auditAuth(now, "login", user, null, 401, ip, Map.of("event", "login_failed",
+                        "reason", "wrong_mfa_code"));
+                throw invalidCredentials();
+            }
+        }
         String token = newBearer();
         UserSessionEntity session = sessions.save(new UserSessionEntity(UUID.randomUUID(), user.getId(),
                 hasher.hash(token), token.substring(0, 8), now, now.plus(ABSOLUTE_LIFETIME), now.plus(IDLE_TIMEOUT),
                 userAgent, ip));
         user.recordLogin(now);
         users.save(user);
-        auditAuth(now, "login", user, session.getId(), 200, ip, Map.of("event", "login"));
-        return new Login(token, session, user, permissions.forUser(user.getId()));
+        auditAuth(now, "login", user, session.getId(), 200, ip, user.isMfaEnabled()
+                ? Map.of("event", "login", "mfa", true) : Map.of("event", "login"));
+        return new Login(token, session, user, permissions.forUser(user.getId()), false);
     }
 
     /**
@@ -178,7 +203,7 @@ public class SessionService {
         }
         return Optional.of(new AuthenticatedSession(session.getId(), user.getId(), user.getEmail(),
                 user.getPrincipalId(), session.getTokenPrefix(), session.getExpiresAt(), session.getIdleExpiresAt(),
-                permissions.forUser(user.getId())));
+                permissions.forUser(user.getId()), mfa.enrollmentPending(user)));
     }
 
     /**

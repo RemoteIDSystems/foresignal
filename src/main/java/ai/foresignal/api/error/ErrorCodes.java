@@ -947,6 +947,24 @@ public final class ErrorCodes {
     /** 401: the email or password is wrong, or the account may not sign in; one answer for every case (R2-003). */
     public static final String INVALID_CREDENTIALS = "INVALID_CREDENTIALS";
 
+    /** 409: MFA is already active, so a new enrollment is refused until it is disabled (R2-024, {@code enrollMfa}). */
+    public static final String MFA_ALREADY_ENABLED = "MFA_ALREADY_ENABLED";
+
+    /** 409: MFA is neither active nor pending for the caller (R2-024). */
+    public static final String MFA_NOT_ENABLED = "MFA_NOT_ENABLED";
+
+    /** 409: a role the user holds requires MFA, so the user may not disable it (R2-024, {@code disableMfa}). */
+    public static final String MFA_REQUIRED = "MFA_REQUIRED";
+
+    /**
+     * 403: a role the signed-in user holds requires MFA and it is not enrolled; until it is, only reads, the MFA
+     * enrollment operations, preferences, signing out and revoking one's own sessions are allowed (R2-024).
+     */
+    public static final String MFA_ENROLLMENT_REQUIRED = "MFA_ENROLLMENT_REQUIRED";
+
+    /** 400: the TOTP or recovery code is wrong, expired or already used (R2-024). */
+    public static final String MFA_CODE_INVALID = "MFA_CODE_INVALID";
+
     /** 404: no session with that id belongs to the caller (R2-003, {@code revokeSession}). */
     public static final String UNKNOWN_SESSION = "UNKNOWN_SESSION";
 

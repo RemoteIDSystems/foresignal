@@ -215,6 +215,11 @@ foresignal:
   # directory, re-checked per file, so a symlink cannot redirect a read out of it.
   inbox-dir: ${FORESIGNAL_INBOX_DIR:${FORESIGNAL_DATA_DIR:./data}/inbox}
   reset-admin-token: ${FORESIGNAL_RESET_ADMIN_TOKEN:false}
+  # Multi-factor authentication (R2-024): a user holding the built-in Admin or Operator role must enroll TOTP before
+  # any write but enrollment, preferences and signing out. Off only in the test profile, whose sign-ins do not enroll;
+  # leave it on in a deployment.
+  mfa:
+    enforce-enrollment: ${FORESIGNAL_MFA_ENFORCE_ENROLLMENT:true}
   # SatDump ground stations (049, Weather-Imagery-Design §4.1): one satdump-{station} source per
   # comma-separated name, for example "home" or "home,pi". Empty means none.
   satdump:

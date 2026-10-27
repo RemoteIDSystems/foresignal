@@ -61,6 +61,15 @@ the admin token exactly as above.
   `requiredPermission`; any other operation goes by a scope derived from the roles (Admin and Operator `admin`, Editor
   `agent`, Viewer and Auditor `read`). API tokens are unaffected: they go by scope alone, and the admin token can do
   everything. Sessions never work on ingest endpoints; use ingest keys there.
+- **Two-step sign-in (MFA, R2-024):** any account can add an authenticator app. `POST /v1/me/mfa/enroll` returns a
+  secret, an `otpauth://` URI and a QR code to scan; `POST /v1/me/mfa/verify` with the app's current 6-digit code turns
+  it on and returns ten single-use recovery codes, shown once — keep them somewhere safe.
+  `GET /v1/me/mfa/recovery-codes` replaces the set. From then on, sign in with `{"email", "password", "mfaCode"}`;
+  without `mfaCode` the answer is `mfaRequired: true` and no session. A recovery code works once in place of an app
+  code. `POST /v1/me/mfa/disable` with a current code or your password turns it off.
+- **MFA is required for Admin and Operator.** Until such an account has enrolled, its session can read, enroll, set
+  preferences and sign out; any other write is `403 MFA_ENROLLMENT_REQUIRED`. Such an account cannot disable MFA
+  itself (`409 MFA_REQUIRED`). `FORESIGNAL_MFA_ENFORCE_ENROLLMENT=false` turns the enrollment gate off; leave it on.
 
 ## Account email (SMTP)
 

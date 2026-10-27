@@ -39,7 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 
 /**
- * The {@code Auth} operations (prompt R2-003): {@code login}, {@code logout}, {@code requestPasswordReset},
+ * The {@code Auth} operations (prompt R2-003; the MFA step of {@code login} is R2-024): {@code login}, {@code logout}, {@code requestPasswordReset},
  * {@code resetPassword}, {@code activateAccount}, {@code listSessions}, {@code revokeSession} and
  * {@code revokeAllSessions}.
  *
@@ -90,9 +90,11 @@ public class AuthController {
         limit(request);
         String email = required(body, "email");
         String password = required(body, "password");
+        JsonNode code = body.get("mfaCode");
+        String mfaCode = code == null || !code.isString() ? null : code.asString();
         SessionService.Login login;
         try {
-            login = sessions.login(email, password, request.getHeader(HttpHeaders.USER_AGENT),
+            login = sessions.login(email, password, mfaCode, request.getHeader(HttpHeaders.USER_AGENT),
                     request.getRemoteAddr());
         } catch (ForesignalException e) {
             if (ErrorCodes.INVALID_CREDENTIALS.equals(e.getCode())) {
@@ -105,6 +107,20 @@ public class AuthController {
             b.recordSuccess(request.getRemoteAddr());
         }
         Map<String, Object> out = new LinkedHashMap<>();
+        if (login.mfaRequired()) {
+            // R2-024: the password was right, but MFA is active and no code came with it. No session exists; the
+            // client asks for a code and signs in again with mfaCode.
+            out.put("token", "");
+            out.put("tokenPrefix", null);
+            out.put("userId", login.user().getId().toString());
+            out.put("issuedAt", null);
+            out.put("expiresAt", null);
+            out.put("idleExpiresAt", null);
+            out.put("mfaRequired", true);
+            out.put("scopes", List.of());
+            out.put("permissions", List.of());
+            return out;
+        }
         out.put("token", login.token());
         out.put("tokenPrefix", login.session().getTokenPrefix());
         out.put("userId", login.user().getId().toString());

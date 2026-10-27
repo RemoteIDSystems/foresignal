@@ -143,6 +143,22 @@ section lists dependencies a prompt asked to record here.
 - **Licence:** Apache License, Version 2.0 (<https://www.apache.org/licenses/LICENSE-2.0>).
 - **Project:** <https://github.com/zxing/zxing>, Copyright the ZXing authors.
 
+### java-otp (prompt R2-024)
+
+- **Artifact:** `com.eatthepath:java-otp` 1.0.0 (Maven Central), used unmodified; no runtime dependencies.
+- **Use:** RFC 4226 HOTP and RFC 6238 TOTP codes for multi-factor authentication (`TotpService`), over the JDK's
+  `javax.crypto` HMAC-SHA1.
+- **License:** MIT License (<http://opensource.org/licenses/MIT>).
+- **Project:** <https://github.com/jchambers/java-otp>, Copyright Jon Chambers.
+
+### Apache Commons Codec (prompt R2-024)
+
+- **Artifact:** `commons-codec:commons-codec`, the version the Spring Boot BOM manages (1.21.0 at the time of writing),
+  used unmodified; it was already on the runtime classpath through other dependencies and is now declared directly.
+- **Use:** Base32 (RFC 4648) for TOTP secrets and recovery codes.
+- **License:** Apache License, Version 2.0 (<https://www.apache.org/licenses/LICENSE-2.0>).
+- **Project:** <https://commons.apache.org/proper/commons-codec/>, Copyright The Apache Software Foundation.
+
 ### networknt json-schema-validator
 
 - **Artifact:** `com.networknt:json-schema-validator` 3.0.8 (Maven Central), used unmodified, with its

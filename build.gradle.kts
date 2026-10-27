@@ -65,6 +65,8 @@ dependencies {
     implementation(libs.micrometer.tracing.bridge.otel)
     implementation(libs.springdoc.openapi.starter.webmvc.ui)
     implementation(libs.zxing.core)
+    implementation(libs.java.otp)
+    implementation(libs.commons.codec)
     implementation(libs.json.schema.validator)
     implementation(libs.re2j)
     implementation(libs.mcp.core)

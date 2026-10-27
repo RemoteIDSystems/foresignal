@@ -559,6 +559,11 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
      */
     private Optional<ProblemDetail> checkToken(Scope required, AccessRequirement requirement, CurrentToken current,
             HttpMethod method, String path, AuthenticatedSession session) {
+        if (session != null && session.mfaEnrollmentRequired() && !allowedBeforeMfaEnrollment(method, path)) {
+            return Optional.of(problems.problem(HttpStatus.FORBIDDEN, ErrorCodes.MFA_ENROLLMENT_REQUIRED,
+                    "A role you hold requires multi-factor authentication. Enroll first: POST /v1/me/mfa/enroll,"
+                            + " then POST /v1/me/mfa/verify."));
+        }
         List<String> accepted = session == null ? List.of() : policy.acceptedPermissions(method, path);
         Optional<String> permission = accepted.stream().findFirst();
         if (permission.isPresent()) {
@@ -584,6 +589,23 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
         }
         return restrictions.check(method, path, requirement, current.token())
                 .map(refusal -> problems.problem(HttpStatus.FORBIDDEN, refusal.code(), refusal.detail()));
+    }
+
+    /**
+     * What a session whose role requires MFA may do before enrolling (prompt R2-024): read, enroll and verify, set its
+     * preferences, sign out and revoke its own sessions. Every other write is refused with
+     * {@code 403 MFA_ENROLLMENT_REQUIRED}.
+     */
+    static boolean allowedBeforeMfaEnrollment(HttpMethod method, String path) {
+        if (method == HttpMethod.GET || method == HttpMethod.HEAD || method == HttpMethod.OPTIONS) {
+            return true;
+        }
+        String p = AccessPolicy.normalize(path);
+        return (method == HttpMethod.POST && (p.equals("/v1/me/mfa/enroll") || p.equals("/v1/me/mfa/verify")
+                || p.equals("/v1/auth/logout")))
+                || (method == HttpMethod.PUT && (p.equals("/v1/me/preferences")
+                        || p.equals("/v1/me/notification-preferences")))
+                || (method == HttpMethod.DELETE && (p.equals("/v1/auth/sessions") || p.startsWith("/v1/auth/sessions/")));
     }
 
     /** True when one of the token's {@code METHOD /path} patterns matches the request. */

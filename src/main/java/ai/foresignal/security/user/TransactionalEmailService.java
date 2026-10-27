@@ -102,6 +102,12 @@ public class TransactionalEmailService implements AccountMailer, SystemWarningCo
         afterCommit(() -> deliver(user, suspended(user.getFullName(), fromName()), "suspended", null));
     }
 
+    @Override
+    public void sendMfaChanged(UserEntity user, boolean enabled, boolean byAdmin) {
+        afterCommit(() -> deliver(user, mfaChanged(user.getFullName(), enabled, byAdmin, fromName()), "mfa-changed",
+                null));
+    }
+
     /**
      * Sends a test message with the stored settings ({@code testSmtpSettings}).
      *
@@ -205,6 +211,22 @@ public class TransactionalEmailService implements AccountMailer, SystemWarningCo
                 + "<p>An administrator suspended your " + esc(from) + " account. You cannot sign in until it is"
                 + " restored; your settings are kept.</p><p>— " + esc(from) + "</p>";
         return new Content("Your " + from + " account was suspended", text, html);
+    }
+
+    /** The MFA-changed notice (prompt R2-024). */
+    static Content mfaChanged(String fullName, boolean enabled, boolean byAdmin, String from) {
+        String what = enabled ? "Two-step sign-in (an authenticator app code) was turned on for your " + from
+                + " account."
+                : byAdmin ? "An administrator reset two-step sign-in on your " + from + " account; you will be asked"
+                        + " to set it up again if your role requires it."
+                        : "Two-step sign-in was turned off for your " + from + " account.";
+        String text = "Hello " + fullName + ",\n\n" + what + "\n\n"
+                + "If you did not make this change, contact an administrator.\n\n"
+                + "— " + from + "\n";
+        String html = "<p>Hello " + esc(fullName) + ",</p><p>" + esc(what) + "</p>"
+                + "<p>If you did not make this change, contact an administrator.</p><p>— " + esc(from) + "</p>";
+        return new Content("Two-step sign-in " + (enabled ? "turned on" : "turned off") + " on your " + from
+                + " account", text, html);
     }
 
     /**

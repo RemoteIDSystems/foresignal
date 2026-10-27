@@ -22,6 +22,10 @@ re2j = "1.8"
 jacoco = "0.8.15"
 # QR codes of pairing payloads (023): ZXing core 3.5.4, Apache-2.0, no runtime dependencies.
 zxing = "3.5.4"
+# TOTP for multi-factor authentication (R2-024): java-otp 1.0.0 (com.eatthepath), MIT, no runtime
+# dependencies (Java 8 bytecode), RFC 4226 HOTP and RFC 6238 TOTP over the JDK's javax.crypto HMAC. Verified on Maven
+# Central 2026-10-26: 1.0.0 is the latest release (published 2026-08-18).
+javaOtp = "1.0.0"
 # MCP server (025): the official MCP Java SDK, core plus its Jackson 3 JSON binding (matching Spring
 # Boot 4), MIT. Verified on Maven Central 2026-10-12: 2.0.1 is the latest release of
 # io.modelcontextprotocol.sdk:mcp-core and mcp-json-jackson3. The SDK no longer ships Spring
@@ -228,6 +232,10 @@ bucket4j-core = { module = "com.bucket4j:bucket4j_jdk17-core", version.ref = "bu
 springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 # SVG QR codes for device pairing (023); the decoder used by PairingIT is in the same artifact.
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
+# TOTP codes for multi-factor authentication (R2-024).
+java-otp = { module = "com.eatthepath:java-otp", version.ref = "javaOtp" }
+# Base32 for TOTP secrets (R2-024); Apache-2.0, version from the Spring Boot BOM (already on the runtime classpath).
+commons-codec = { module = "commons-codec:commons-codec" }
 # EDP payload-schema patterns run on RE2/J through the validator's regular-expression hook (024).
 re2j = { module = "com.google.re2j:re2j", version.ref = "re2j" }
 # The MCP server at /mcp (025): streamable HTTP and the optional legacy HTTP+SSE servlet transports.

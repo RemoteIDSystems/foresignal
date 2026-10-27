@@ -46,4 +46,15 @@ public interface AccountMailer {
      * @param user the user
      */
     void sendSuspended(UserEntity user);
+
+    /**
+     * Tells a user that multi-factor authentication was turned on or off on their account (prompt R2-024), so a change
+     * they did not make is noticed. Does nothing by default.
+     *
+     * @param user the user
+     * @param enabled true when MFA was turned on, false when it was turned off
+     * @param byAdmin true when an administrator reset it
+     */
+    default void sendMfaChanged(UserEntity user, boolean enabled, boolean byAdmin) {
+    }
 }

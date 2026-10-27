@@ -9090,7 +9090,7 @@
               ],
               "query": []
             },
-            "description": "Verifies the email + Argon2id password (and the MFA code when enrolled) and issues a session bearer (166). The session carries the user's effective permissions (the union of the user's roles). A suspended or disabled account is refused (403). Repeated failures from one address are rate-limited (429). When MFA is enrolled but no `mfaCode` is given, the response reports `mfaRequired` and issues no usable session.\n\n**Scope:** `open`.\n\noperationId: `login`",
+            "description": "Verifies the email + Argon2id password (and the MFA code when enrolled) and issues a session bearer (166). The session carries the user's effective permissions (the union of the user's roles). A suspended or disabled account is refused (403). Repeated failures from one address are rate-limited (429). When MFA is enrolled but no `mfaCode` is given, the response reports `mfaRequired` and issues no usable session (`token` empty, `expiresAt` null); a wrong `mfaCode` (TOTP or recovery code) is the same 401 INVALID_CREDENTIALS (R2-024). A session of a user holding the Admin or Operator role who has not enrolled MFA may read, enroll (enrollMfa, verifyMfa), set preferences, sign out and revoke its own sessions; every other write is 403 MFA_ENROLLMENT_REQUIRED until verifyMfa activates MFA (R2-024).\n\n**Scope:** `open`.\n\noperationId: `login`",
             "auth": {
               "type": "noauth"
             },
@@ -32290,7 +32290,7 @@
               ],
               "query": []
             },
-            "description": "Starts TOTP enrollment and returns the secret and provisioning URI; enrollment is not active until verifyMfa confirms a code. Requires `self.preferences`.\n\n**Scope:** `read`.\n\noperationId: `enrollMfa`",
+            "description": "Starts TOTP enrollment and returns the secret and provisioning URI; enrollment is not active until verifyMfa confirms a code. Any signed-in user (a session; an API token is 401), whatever their roles, so an Operator can enroll (R2-024).\n\n**Scope:** `read`.\n\noperationId: `enrollMfa`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -32341,7 +32341,7 @@
               ],
               "query": []
             },
-            "description": "Confirms a pending TOTP enrollment with a current code, enabling MFA for the account. Requires `self.preferences`.\n\n**Scope:** `read`.\n\noperationId: `verifyMfa`",
+            "description": "Confirms a pending TOTP enrollment with a current code, enabling MFA for the account; that answer carries the first recovery codes once (`recoveryCodes`). Once MFA is active it is the step-up check: a current TOTP or unused recovery code. A code is within one 30 s step of now and never accepted twice. 400 MFA_CODE_INVALID for a wrong, expired or reused code; at most 10 code checks a minute per user (429). Any signed-in user (a session; an API token is 401), whatever their roles, so an Operator can enroll (R2-024).\n\n**Scope:** `read`.\n\noperationId: `verifyMfa`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -32401,7 +32401,7 @@
               ],
               "query": []
             },
-            "description": "Disables MFA after re-authenticating with a code or the account password. A role that requires MFA refuses this (409). Requires `self.preferences`.\n\n**Scope:** `read`.\n\noperationId: `disableMfa`",
+            "description": "Disables MFA after re-authenticating with a code or the account password. A role that requires MFA (Admin, Operator) refuses this (409 MFA_REQUIRED; an administrator reset is the way out); 409 MFA_NOT_ENABLED with nothing to disable. A wrong code is 400 MFA_CODE_INVALID, a wrong password 400 VALIDATION_FAILED; at most 10 code checks a minute per user (429). Any signed-in user (a session; an API token is 401), whatever their roles, so an Operator can enroll (R2-024).\n\n**Scope:** `read`.\n\noperationId: `disableMfa`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -32457,7 +32457,7 @@
               ],
               "query": []
             },
-            "description": "Generates a fresh set of single-use recovery codes, invalidating any previous set; shown once. Requires MFA to be enabled and `self.preferences`.\n\n**Scope:** `read`.\n\noperationId: `getMfaRecoveryCodes`",
+            "description": "Generates a fresh set of single-use recovery codes, invalidating any previous set; shown once. Each is accepted once wherever a TOTP code is (login, verifyMfa, disableMfa). Requires MFA to be enabled (409 MFA_NOT_ENABLED). Any signed-in user (a session; an API token is 401), whatever their roles, so an Operator can enroll (R2-024).\n\n**Scope:** `read`.\n\noperationId: `getMfaRecoveryCodes`",
             "auth": {
               "type": "bearer",
               "bearer": [
