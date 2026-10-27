@@ -127,4 +127,18 @@ class RetentionSettingsCapTest {
         assertThat(legacy.capHistory()).as("settings stored before R2-015 are uncapped").isFalse();
         assertThat(legacy.overwriteOldest()).isTrue();
     }
+
+    @Test
+    @DisplayName("the full value a pre-R2-015 instance stored reads back uncapped, not as a mapping failure")
+    void storedBeforeCap() {
+        String stored = "{'ask':'90d','audit':'90d','inbox':'30d','kinds':{},'stats':{'daily':'1825d','hourly':'35d',"
+                + "'regionDaily':'3650d','regionHourly':'1095d'},'usage':'30d','alerts':'90d','default':'7d',"
+                + "'sources':{},'briefings':'180d','provenance':'30d','entityLinks':'365d','trackWindow':'3d',"
+                + "'notifications':'90d','trackRawWindow':'1d','trackDownsampleInterval':'5m'}";
+        RetentionSettings read = JSON.readValue(stored.replace('\'', '"'), RetentionSettings.class);
+        assertThat(read.capHistory()).isFalse();
+        assertThat(read.overwriteOldest()).isTrue();
+        assertThat(read.capWindow()).isEmpty();
+        assertThat(read.effectiveTrackWindow()).isEqualTo(Duration.ofDays(3));
+    }
 }

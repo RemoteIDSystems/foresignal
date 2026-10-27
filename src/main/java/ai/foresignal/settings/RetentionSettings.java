@@ -53,7 +53,8 @@ import tools.jackson.databind.annotation.JsonSerialize;
  * @param entityLinks how long closed entity links are kept (prompt 098; default 365 d)
  * @param capHistory the cap-history switch (prompt R2-015; default off, which keeps every window as configured):
  *     when on, {@code maxDays} and {@code maxDbGb} bound the data history (records, frames, media and stopped
- *     chronicles) from one control
+ *     chronicles) from one control. Boxed so that a value stored before R2-015, which has no such member, reads
+ *     as off: Jackson 3 refuses to map an absent creator property into a primitive
  * @param maxDays keep at most this many days of data history while {@code capHistory} is on; an upper bound layered
  *     over every per-kind, per-source and tier window, never a replacement for them; null for no day cap
  * @param maxDbGb keep the database under this many GB (1024³ bytes) while {@code capHistory} is on; null for no
@@ -81,7 +82,7 @@ public record RetentionSettings(
         Duration trackRawWindow,
         Duration trackDownsampleInterval,
         Duration entityLinks,
-        boolean capHistory,
+        Boolean capHistory,
         Integer maxDays,
         Double maxDbGb,
         Boolean overwriteOldest) {
@@ -125,6 +126,7 @@ public record RetentionSettings(
         trackDownsampleInterval =
                 trackDownsampleInterval == null ? DEFAULT_TRACK_DOWNSAMPLE_INTERVAL : trackDownsampleInterval;
         entityLinks = entityLinks == null ? DEFAULT_ENTITY_LINKS : entityLinks;
+        capHistory = capHistory == null ? Boolean.FALSE : capHistory;
         overwriteOldest = overwriteOldest == null ? Boolean.TRUE : overwriteOldest;
     }
 
