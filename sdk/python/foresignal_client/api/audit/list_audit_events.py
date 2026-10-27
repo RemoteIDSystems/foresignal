@@ -19,6 +19,10 @@ def _get_kwargs(
     token_id: UUID | Unset = UNSET,
     operation_id: str | Unset = UNSET,
     status: int | Unset = UNSET,
+    actor_kind: str | Unset = UNSET,
+    user_id: UUID | Unset = UNSET,
+    target_type: str | Unset = UNSET,
+    target_id: str | Unset = UNSET,
     cursor: str | Unset = UNSET,
     limit: int | Unset = 100,
 ) -> dict[str, Any]:
@@ -43,6 +47,17 @@ def _get_kwargs(
     params["operationId"] = operation_id
 
     params["status"] = status
+
+    params["actorKind"] = actor_kind
+
+    json_user_id: str | Unset = UNSET
+    if not isinstance(user_id, Unset):
+        json_user_id = str(user_id)
+    params["userId"] = json_user_id
+
+    params["targetType"] = target_type
+
+    params["targetId"] = target_id
 
     params["cursor"] = cursor
 
@@ -112,6 +127,10 @@ def sync_detailed(
     token_id: UUID | Unset = UNSET,
     operation_id: str | Unset = UNSET,
     status: int | Unset = UNSET,
+    actor_kind: str | Unset = UNSET,
+    user_id: UUID | Unset = UNSET,
+    target_type: str | Unset = UNSET,
+    target_id: str | Unset = UNSET,
     cursor: str | Unset = UNSET,
     limit: int | Unset = 100,
 ) -> Response[AuditEventPage | Problem]:
@@ -123,12 +142,25 @@ def sync_detailed(
 
     **Scope:** `admin`.
 
+    **v2.0 (R2-013):** a signed-in user reaches the log with `audit.read` (the Auditor role) without
+    admin scope; a session without it is 403 PERMISSION_DENIED. What a signed-in user does is attributed
+    to the user: actor kind `user` with `userId` and `userEmail`, including sign-ins (successful and
+    failed), sign-outs, session revocations, account activation and password resets, every user, role,
+    settings, collection and LLM provider change, and reads refused with PERMISSION_DENIED
+    (`detail.requiredPermission`). Filters: time, token, operation, status, actor kind, user and target.
+    The log is append-only: the database refuses to change an entry; retention deletes entries older
+    than the window.
+
     Args:
         since (datetime.datetime | Unset):
         until (datetime.datetime | Unset):
         token_id (UUID | Unset):
         operation_id (str | Unset):
         status (int | Unset):
+        actor_kind (str | Unset):
+        user_id (UUID | Unset):
+        target_type (str | Unset):
+        target_id (str | Unset):
         cursor (str | Unset):
         limit (int | Unset):  Default: 100.
 
@@ -146,6 +178,10 @@ def sync_detailed(
         token_id=token_id,
         operation_id=operation_id,
         status=status,
+        actor_kind=actor_kind,
+        user_id=user_id,
+        target_type=target_type,
+        target_id=target_id,
         cursor=cursor,
         limit=limit,
     )
@@ -165,6 +201,10 @@ def sync(
     token_id: UUID | Unset = UNSET,
     operation_id: str | Unset = UNSET,
     status: int | Unset = UNSET,
+    actor_kind: str | Unset = UNSET,
+    user_id: UUID | Unset = UNSET,
+    target_type: str | Unset = UNSET,
+    target_id: str | Unset = UNSET,
     cursor: str | Unset = UNSET,
     limit: int | Unset = 100,
 ) -> AuditEventPage | Problem | None:
@@ -176,12 +216,25 @@ def sync(
 
     **Scope:** `admin`.
 
+    **v2.0 (R2-013):** a signed-in user reaches the log with `audit.read` (the Auditor role) without
+    admin scope; a session without it is 403 PERMISSION_DENIED. What a signed-in user does is attributed
+    to the user: actor kind `user` with `userId` and `userEmail`, including sign-ins (successful and
+    failed), sign-outs, session revocations, account activation and password resets, every user, role,
+    settings, collection and LLM provider change, and reads refused with PERMISSION_DENIED
+    (`detail.requiredPermission`). Filters: time, token, operation, status, actor kind, user and target.
+    The log is append-only: the database refuses to change an entry; retention deletes entries older
+    than the window.
+
     Args:
         since (datetime.datetime | Unset):
         until (datetime.datetime | Unset):
         token_id (UUID | Unset):
         operation_id (str | Unset):
         status (int | Unset):
+        actor_kind (str | Unset):
+        user_id (UUID | Unset):
+        target_type (str | Unset):
+        target_id (str | Unset):
         cursor (str | Unset):
         limit (int | Unset):  Default: 100.
 
@@ -200,6 +253,10 @@ def sync(
         token_id=token_id,
         operation_id=operation_id,
         status=status,
+        actor_kind=actor_kind,
+        user_id=user_id,
+        target_type=target_type,
+        target_id=target_id,
         cursor=cursor,
         limit=limit,
     ).parsed
@@ -213,6 +270,10 @@ async def asyncio_detailed(
     token_id: UUID | Unset = UNSET,
     operation_id: str | Unset = UNSET,
     status: int | Unset = UNSET,
+    actor_kind: str | Unset = UNSET,
+    user_id: UUID | Unset = UNSET,
+    target_type: str | Unset = UNSET,
+    target_id: str | Unset = UNSET,
     cursor: str | Unset = UNSET,
     limit: int | Unset = 100,
 ) -> Response[AuditEventPage | Problem]:
@@ -224,12 +285,25 @@ async def asyncio_detailed(
 
     **Scope:** `admin`.
 
+    **v2.0 (R2-013):** a signed-in user reaches the log with `audit.read` (the Auditor role) without
+    admin scope; a session without it is 403 PERMISSION_DENIED. What a signed-in user does is attributed
+    to the user: actor kind `user` with `userId` and `userEmail`, including sign-ins (successful and
+    failed), sign-outs, session revocations, account activation and password resets, every user, role,
+    settings, collection and LLM provider change, and reads refused with PERMISSION_DENIED
+    (`detail.requiredPermission`). Filters: time, token, operation, status, actor kind, user and target.
+    The log is append-only: the database refuses to change an entry; retention deletes entries older
+    than the window.
+
     Args:
         since (datetime.datetime | Unset):
         until (datetime.datetime | Unset):
         token_id (UUID | Unset):
         operation_id (str | Unset):
         status (int | Unset):
+        actor_kind (str | Unset):
+        user_id (UUID | Unset):
+        target_type (str | Unset):
+        target_id (str | Unset):
         cursor (str | Unset):
         limit (int | Unset):  Default: 100.
 
@@ -247,6 +321,10 @@ async def asyncio_detailed(
         token_id=token_id,
         operation_id=operation_id,
         status=status,
+        actor_kind=actor_kind,
+        user_id=user_id,
+        target_type=target_type,
+        target_id=target_id,
         cursor=cursor,
         limit=limit,
     )
@@ -264,6 +342,10 @@ async def asyncio(
     token_id: UUID | Unset = UNSET,
     operation_id: str | Unset = UNSET,
     status: int | Unset = UNSET,
+    actor_kind: str | Unset = UNSET,
+    user_id: UUID | Unset = UNSET,
+    target_type: str | Unset = UNSET,
+    target_id: str | Unset = UNSET,
     cursor: str | Unset = UNSET,
     limit: int | Unset = 100,
 ) -> AuditEventPage | Problem | None:
@@ -275,12 +357,25 @@ async def asyncio(
 
     **Scope:** `admin`.
 
+    **v2.0 (R2-013):** a signed-in user reaches the log with `audit.read` (the Auditor role) without
+    admin scope; a session without it is 403 PERMISSION_DENIED. What a signed-in user does is attributed
+    to the user: actor kind `user` with `userId` and `userEmail`, including sign-ins (successful and
+    failed), sign-outs, session revocations, account activation and password resets, every user, role,
+    settings, collection and LLM provider change, and reads refused with PERMISSION_DENIED
+    (`detail.requiredPermission`). Filters: time, token, operation, status, actor kind, user and target.
+    The log is append-only: the database refuses to change an entry; retention deletes entries older
+    than the window.
+
     Args:
         since (datetime.datetime | Unset):
         until (datetime.datetime | Unset):
         token_id (UUID | Unset):
         operation_id (str | Unset):
         status (int | Unset):
+        actor_kind (str | Unset):
+        user_id (UUID | Unset):
+        target_type (str | Unset):
+        target_id (str | Unset):
         cursor (str | Unset):
         limit (int | Unset):  Default: 100.
 
@@ -300,6 +395,10 @@ async def asyncio(
             token_id=token_id,
             operation_id=operation_id,
             status=status,
+            actor_kind=actor_kind,
+            user_id=user_id,
+            target_type=target_type,
+            target_id=target_id,
             cursor=cursor,
             limit=limit,
         )

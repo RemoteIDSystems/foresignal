@@ -37,7 +37,8 @@ class ApiToken:
         restrictions (None | ReadRestriction | Unset): Data and endpoint restrictions (data restrictions enforced from
             035)
         device (DeviceInfo | None | Unset):
-        created_via (ApiTokenCreatedVia | Unset):
+        created_via (ApiTokenCreatedVia | Unset): `self`: minted by a signed-in user with createMyToken and owned by
+            that user's principal (R2-025)
         principal_id (str | Unset): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
         private_access (bool | Unset): May see private sources (039)
         licence_policy (list[ApiTokenLicencePolicyItem] | Unset): Licence policy floor applied to every read with this

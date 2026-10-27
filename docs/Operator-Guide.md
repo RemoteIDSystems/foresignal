@@ -34,6 +34,16 @@ named `bootstrap`; give agents, dashboards and phones their own scoped tokens in
 [Tokens, pairing and the audit log](#tokens-pairing-and-the-audit-log)). An install upgraded from
 before prompt 023 keeps its admin token: it moves into that row on the first start.
 
+**First-run setup (R2-027).** `GET /v1/system/first-run` (no token needed) says whether the instance still needs setup:
+`firstRun` is true until the first user exists. `POST /v1/setup` with the admin token creates the first admin, active
+at once with the Admin role: `{"admin": {"email", "fullName", "password"}}`, plus optionally `smtp` (as
+`PUT /v1/settings/smtp`), `sources` (ids to enable), `thresholds` and `retention`. It returns the new user and a
+session. Only the admin token may call it, and only once: after a user exists it is `409 ALREADY_SETUP`. A body
+refused anywhere changes nothing. On an instance upgraded from v1, setup also hands the new admin what you owned
+through the admin token (your personal channels and workspaces). Everything else stays shared: sources, settings,
+global channels, the LLM providers, and the rules and views you already had. Your scoped tokens keep working. The
+admin token keeps working too, for recovery.
+
 ## Signing in and sessions
 
 Release 2 adds user accounts beside tokens (`docs/RBAC-Design.md`). Until an admin account exists, everything works on

@@ -21,7 +21,7 @@ class ProvenanceApi {
   const ProvenanceApi(this._dio);
 
   /// Aggregated attributions for a scope
-  /// Attribution aggregate (one entry per source and licence, with record counts) for the current records matching &#x60;source&#x60; and &#x60;kind&#x60;, for SSE clients and map footers. Honours the licence policy and token restrictions.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// Attribution aggregate (one entry per source and licence, with record counts) for the current records matching &#x60;source&#x60; and &#x60;kind&#x60;, for SSE clients and map footers. Honours the licence policy and token restrictions.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).  **v2.0 (R2-013):** a signed-in user needs &#x60;data.read&#x60; (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (&#x60;User.dataRestriction&#x60;) and source view. API tokens keep their scope rules.
   ///
   /// Parameters:
   /// * [source_] - Filter by source id (repeatable or comma-separated)

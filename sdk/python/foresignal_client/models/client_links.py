@@ -23,6 +23,10 @@ class ClientLinks:
             pair (str | Unset):  Default: 'foresignal://pair?u={publicBaseUrl}&c={code}'.
             share (None | str | Unset): A share link opened in a client (112); placeholder {key}. No default: `?open=1` on a
                 share-link URL redirects only when this is set.
+            activate (str | Unset): The account activation link of the welcome email (R2-007); placeholders {publicBaseUrl}
+                and {token} Default: 'foresignal://activate?u={publicBaseUrl}&t={token}'.
+            password_reset (str | Unset): The password reset link of the reset email (R2-007); placeholders {publicBaseUrl}
+                and {token} Default: 'foresignal://reset-password?u={publicBaseUrl}&t={token}'.
     """
 
     alert: str | Unset = "foresignal://alerts/{id}"
@@ -30,6 +34,10 @@ class ClientLinks:
     briefing_run: str | Unset = "foresignal://briefings/{briefingId}/runs/{id}"
     pair: str | Unset = "foresignal://pair?u={publicBaseUrl}&c={code}"
     share: None | str | Unset = UNSET
+    activate: str | Unset = "foresignal://activate?u={publicBaseUrl}&t={token}"
+    password_reset: str | Unset = (
+        "foresignal://reset-password?u={publicBaseUrl}&t={token}"
+    )
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -47,6 +55,10 @@ class ClientLinks:
         else:
             share = self.share
 
+        activate = self.activate
+
+        password_reset = self.password_reset
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
@@ -60,6 +72,10 @@ class ClientLinks:
             field_dict["pair"] = pair
         if share is not UNSET:
             field_dict["share"] = share
+        if activate is not UNSET:
+            field_dict["activate"] = activate
+        if password_reset is not UNSET:
+            field_dict["passwordReset"] = password_reset
 
         return field_dict
 
@@ -83,12 +99,18 @@ class ClientLinks:
 
         share = _parse_share(d.pop("share", UNSET))
 
+        activate = d.pop("activate", UNSET)
+
+        password_reset = d.pop("passwordReset", UNSET)
+
         client_links = cls(
             alert=alert,
             record=record,
             briefing_run=briefing_run,
             pair=pair,
             share=share,
+            activate=activate,
+            password_reset=password_reset,
         )
 
         client_links.additional_properties = d

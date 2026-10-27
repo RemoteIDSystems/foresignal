@@ -27,7 +27,7 @@ class InfrastructureApi {
   const InfrastructureApi(this._dio);
 
   /// Facilities affected by an area
-  /// Seeds from an area, event or record and walks dependency edges (depth ≤ 3, label ≥ minLabel). Results ≤ 5,000 nodes (truncated by pathScore). An area &gt; 2,000,000 km² without &#x60;types&#x60; is 400 INFRA_QUERY_TOO_LARGE.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// Seeds from an area, event or record and walks dependency edges (depth ≤ 3, label ≥ minLabel). Results ≤ 5,000 nodes (truncated by pathScore). An area &gt; 2,000,000 km² without &#x60;types&#x60; is 400 INFRA_QUERY_TOO_LARGE.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).  **v2.0 (R2-013):** a signed-in user needs &#x60;data.read&#x60; (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (&#x60;User.dataRestriction&#x60;) and source view. API tokens keep their scope rules.
   ///
   /// Parameters:
   /// * [infraImpactRequest] 

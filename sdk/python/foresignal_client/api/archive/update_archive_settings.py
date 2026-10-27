@@ -83,9 +83,13 @@ def sync_detailed(
 
     **Scope:** `admin`.
 
+    **R2-016:** also holds the cold-storage tier: target `glacier`, `s3.storageClass`, the archive-run
+    `cutoff` (≥ 1d) and `schedule` (six-field cron); see runArchive.
+
     Args:
         body (ArchiveSettings): Cold archive settings (settings key `archive`); secrets are write-
-            only (111)
+            only (111). R2-016 adds the `glacier` target, `s3.storageClass`, and the archive-run
+            `cutoff` and `schedule`; an explicit null or empty string clears either.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -120,9 +124,13 @@ def sync(
 
     **Scope:** `admin`.
 
+    **R2-016:** also holds the cold-storage tier: target `glacier`, `s3.storageClass`, the archive-run
+    `cutoff` (≥ 1d) and `schedule` (six-field cron); see runArchive.
+
     Args:
         body (ArchiveSettings): Cold archive settings (settings key `archive`); secrets are write-
-            only (111)
+            only (111). R2-016 adds the `glacier` target, `s3.storageClass`, and the archive-run
+            `cutoff` and `schedule`; an explicit null or empty string clears either.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -152,9 +160,13 @@ async def asyncio_detailed(
 
     **Scope:** `admin`.
 
+    **R2-016:** also holds the cold-storage tier: target `glacier`, `s3.storageClass`, the archive-run
+    `cutoff` (≥ 1d) and `schedule` (six-field cron); see runArchive.
+
     Args:
         body (ArchiveSettings): Cold archive settings (settings key `archive`); secrets are write-
-            only (111)
+            only (111). R2-016 adds the `glacier` target, `s3.storageClass`, and the archive-run
+            `cutoff` and `schedule`; an explicit null or empty string clears either.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -187,9 +199,13 @@ async def asyncio(
 
     **Scope:** `admin`.
 
+    **R2-016:** also holds the cold-storage tier: target `glacier`, `s3.storageClass`, the archive-run
+    `cutoff` (≥ 1d) and `schedule` (six-field cron); see runArchive.
+
     Args:
         body (ArchiveSettings): Cold archive settings (settings key `archive`); secrets are write-
-            only (111)
+            only (111). R2-016 adds the `glacier` target, `s3.storageClass`, and the archive-run
+            `cutoff` and `schedule`; an explicit null or empty string clears either.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

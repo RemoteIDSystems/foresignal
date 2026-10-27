@@ -79,7 +79,7 @@ openapi-spec-validator installed for the whole-spec check).
 
 Every tool and runtime dependency is pinned in [`versions.properties`](versions.properties), which the Gradle
 tasks read; the SDK manifests (`pubspec.yaml`, `package.json`, `pyproject.toml`) use the same versions. Each SDK is
-versioned with the API's `info.version` (currently `1.5.0`): regenerate after a spec change and bump the
+versioned with the API's `info.version` (currently `2.0.0`): regenerate after a spec change and bump the
 manifests to the new `info.version`.
 
 ## Publishing

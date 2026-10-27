@@ -62,6 +62,11 @@ def _parse_response(
 
         return response_404
 
+    if response.status_code == 409:
+        response_409 = Problem.from_dict(response.json())
+
+        return response_409
+
     if response.status_code == 413:
         response_413 = Problem.from_dict(response.json())
 
@@ -97,9 +102,18 @@ def sync_detailed(
 ) -> Response[Problem | Workspace]:
     """Replace a workspace's layout
 
-     Stores opaque client layout JSON (≤ 64 KB); Foresignal never interprets it.
+     Stores opaque client layout JSON (≤ 64 KB); Foresignal never interprets it. The bytes it adds count
+    against the `maxStorageBytes` quota of the workspace owner (409 QUOTA_EXCEEDED, R2-026).
 
     **Scope:** `read` (token required).
+
+    **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it,
+    which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-
+    in user reaches the workspace operations with `self.workspaces`; every operation except
+    createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces
+    can still open the ones shared with them. Who may read, edit, share and delete one workspace is
+    unchanged: ownership, membership and access-list grants decide. When a user is deleted their
+    workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
 
     Args:
         workspace_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
@@ -133,9 +147,18 @@ def sync(
 ) -> Problem | Workspace | None:
     """Replace a workspace's layout
 
-     Stores opaque client layout JSON (≤ 64 KB); Foresignal never interprets it.
+     Stores opaque client layout JSON (≤ 64 KB); Foresignal never interprets it. The bytes it adds count
+    against the `maxStorageBytes` quota of the workspace owner (409 QUOTA_EXCEEDED, R2-026).
 
     **Scope:** `read` (token required).
+
+    **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it,
+    which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-
+    in user reaches the workspace operations with `self.workspaces`; every operation except
+    createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces
+    can still open the ones shared with them. Who may read, edit, share and delete one workspace is
+    unchanged: ownership, membership and access-list grants decide. When a user is deleted their
+    workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
 
     Args:
         workspace_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
@@ -164,9 +187,18 @@ async def asyncio_detailed(
 ) -> Response[Problem | Workspace]:
     """Replace a workspace's layout
 
-     Stores opaque client layout JSON (≤ 64 KB); Foresignal never interprets it.
+     Stores opaque client layout JSON (≤ 64 KB); Foresignal never interprets it. The bytes it adds count
+    against the `maxStorageBytes` quota of the workspace owner (409 QUOTA_EXCEEDED, R2-026).
 
     **Scope:** `read` (token required).
+
+    **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it,
+    which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-
+    in user reaches the workspace operations with `self.workspaces`; every operation except
+    createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces
+    can still open the ones shared with them. Who may read, edit, share and delete one workspace is
+    unchanged: ownership, membership and access-list grants decide. When a user is deleted their
+    workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
 
     Args:
         workspace_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
@@ -198,9 +230,18 @@ async def asyncio(
 ) -> Problem | Workspace | None:
     """Replace a workspace's layout
 
-     Stores opaque client layout JSON (≤ 64 KB); Foresignal never interprets it.
+     Stores opaque client layout JSON (≤ 64 KB); Foresignal never interprets it. The bytes it adds count
+    against the `maxStorageBytes` quota of the workspace owner (409 QUOTA_EXCEEDED, R2-026).
 
     **Scope:** `read` (token required).
+
+    **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it,
+    which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-
+    in user reaches the workspace operations with `self.workspaces`; every operation except
+    createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces
+    can still open the ones shared with them. Who may read, edit, share and delete one workspace is
+    unchanged: ownership, membership and access-list grants decide. When a user is deleted their
+    workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
 
     Args:
         workspace_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.

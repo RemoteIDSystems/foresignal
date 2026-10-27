@@ -4,6 +4,7 @@
 
 // ignore_for_file: unused_element
 import 'package:foresignal_api/src/model/retention_run_result_consumer_clamp.dart';
+import 'package:foresignal_api/src/model/retention_run_result_db_cap.dart';
 import 'package:foresignal_api/src/model/retention_run_result_per_source_value.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -49,6 +50,10 @@ class RetentionRunResult {
      this.consumerClamp,
 
      this.perSource,
+
+     this.capWindowDays,
+
+     this.dbCap,
   });
 
   @JsonKey(
@@ -227,6 +232,31 @@ class RetentionRunResult {
 
 
 
+      /// The cap-history window this run applied, in days (R2-015); null when history is not capped by age
+  @JsonKey(
+    
+    name: r'capWindowDays',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final int? capWindowDays;
+
+
+
+  @JsonKey(
+    
+    name: r'dbCap',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final RetentionRunResultDbCap? dbCap;
+
+
+
 
 
     @override
@@ -244,7 +274,9 @@ class RetentionRunResult {
       other.notificationsDeleted == notificationsDeleted &&
       other.skippedSources == skippedSources &&
       other.consumerClamp == consumerClamp &&
-      other.perSource == perSource;
+      other.perSource == perSource &&
+      other.capWindowDays == capWindowDays &&
+      other.dbCap == dbCap;
 
     @override
     int get hashCode =>
@@ -261,7 +293,9 @@ class RetentionRunResult {
         notificationsDeleted.hashCode +
         skippedSources.hashCode +
         consumerClamp.hashCode +
-        perSource.hashCode;
+        perSource.hashCode +
+        (capWindowDays == null ? 0 : capWindowDays.hashCode) +
+        (dbCap == null ? 0 : dbCap.hashCode);
 
   factory RetentionRunResult.fromJson(Map<String, dynamic> json) => _$RetentionRunResultFromJson(json);
 

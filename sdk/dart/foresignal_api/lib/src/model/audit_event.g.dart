@@ -37,6 +37,10 @@ abstract class _$AuditEventCWProxy {
 
   AuditEvent detail(Map<String, Object>? detail);
 
+  AuditEvent userId(String? userId);
+
+  AuditEvent userEmail(String? userEmail);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `AuditEvent(...).copyWith.fieldName(value)`.
@@ -61,6 +65,8 @@ abstract class _$AuditEventCWProxy {
     String? targetId,
     String? remoteIp,
     Map<String, Object>? detail,
+    String? userId,
+    String? userEmail,
   });
 }
 
@@ -117,6 +123,12 @@ class _$AuditEventCWProxyImpl implements _$AuditEventCWProxy {
   @override
   AuditEvent detail(Map<String, Object>? detail) => call(detail: detail);
 
+  @override
+  AuditEvent userId(String? userId) => call(userId: userId);
+
+  @override
+  AuditEvent userEmail(String? userEmail) => call(userEmail: userEmail);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `AuditEvent(...).copyWith.fieldName(value)`.
@@ -142,6 +154,8 @@ class _$AuditEventCWProxyImpl implements _$AuditEventCWProxy {
     Object? targetId = const $CopyWithPlaceholder(),
     Object? remoteIp = const $CopyWithPlaceholder(),
     Object? detail = const $CopyWithPlaceholder(),
+    Object? userId = const $CopyWithPlaceholder(),
+    Object? userEmail = const $CopyWithPlaceholder(),
   }) {
     return AuditEvent(
       id: id == const $CopyWithPlaceholder() || id == null
@@ -204,6 +218,14 @@ class _$AuditEventCWProxyImpl implements _$AuditEventCWProxy {
           ? _value.detail
           // ignore: cast_nullable_to_non_nullable
           : detail as Map<String, Object>?,
+      userId: userId == const $CopyWithPlaceholder()
+          ? _value.userId
+          // ignore: cast_nullable_to_non_nullable
+          : userId as String?,
+      userEmail: userEmail == const $CopyWithPlaceholder()
+          ? _value.userEmail
+          // ignore: cast_nullable_to_non_nullable
+          : userEmail as String?,
     );
   }
 }
@@ -249,6 +271,8 @@ AuditEvent _$AuditEventFromJson(Map<String, dynamic> json) =>
             (k, e) => MapEntry(k, e as Object),
           ),
         ),
+        userId: $checkedConvert('userId', (v) => v as String?),
+        userEmail: $checkedConvert('userEmail', (v) => v as String?),
       );
       return val;
     });
@@ -270,10 +294,13 @@ Map<String, dynamic> _$AuditEventToJson(AuditEvent instance) =>
       'targetId': ?instance.targetId,
       'remoteIp': ?instance.remoteIp,
       'detail': ?instance.detail,
+      'userId': ?instance.userId,
+      'userEmail': ?instance.userEmail,
     };
 
 const _$AuditEventActorKindEnumEnumMap = {
   AuditEventActorKindEnum.token: 'token',
+  AuditEventActorKindEnum.user: 'user',
   AuditEventActorKindEnum.ingestKey: 'ingest_key',
   AuditEventActorKindEnum.pairing: 'pairing',
   AuditEventActorKindEnum.system: 'system',

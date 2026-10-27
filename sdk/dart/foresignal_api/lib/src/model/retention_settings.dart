@@ -55,6 +55,14 @@ class RetentionSettings {
      this.entityLinks,
 
      this.social,
+
+     this.capHistory = false,
+
+     this.maxDays,
+
+     this.maxDbGb,
+
+     this.overwriteOldest = true,
   });
 
       /// ISO-8601 duration (P7D, PT15M) or shorthand (7d, 15m, 12h)
@@ -276,6 +284,61 @@ class RetentionSettings {
 
 
 
+      /// Cap history (R2-015): one bound over the data history (records, TRACK history, frames, media and stopped chronicles). Off (the default) keeps every window as configured. When on, `maxDays` clamps every window to at most that many days (it never lengthens one, and cutoffs still pass the consumer clamp) and `maxDbGb` keeps the database under that size. Needs `maxDays`, `maxDbGb` or both.
+  @JsonKey(
+    defaultValue: false,
+    name: r'capHistory',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final bool? capHistory;
+
+
+
+      /// With `capHistory`: keep at most this many days of data history. An upper bound over the per-kind, per-source and tier windows, never a replacement.
+          // minimum: 1
+          // maximum: 36500
+  @JsonKey(
+    
+    name: r'maxDays',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final int? maxDays;
+
+
+
+      /// With `capHistory`: keep the database (`pg_database_size`) under this many GB (1024³ bytes). When it is over and still growing, each run steps the history window down (halving, whole days, never below 1 day) oldest first; when that cannot reach the cap it raises `system.retention_cap_unmet` and shortens history no further. An entity reported within the window keeps its current record.
+          // minimum: 0
+  @JsonKey(
+    
+    name: r'maxDbGb',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final num? maxDbGb;
+
+
+
+      /// With `maxDbGb`: step the history window down to stay under the cap (default true); false only reports the breach.
+  @JsonKey(
+    defaultValue: true,
+    name: r'overwriteOldest',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final bool? overwriteOldest;
+
+
+
 
 
     @override
@@ -296,7 +359,11 @@ class RetentionSettings {
       other.trackRawWindow == trackRawWindow &&
       other.trackDownsampleInterval == trackDownsampleInterval &&
       other.entityLinks == entityLinks &&
-      other.social == social;
+      other.social == social &&
+      other.capHistory == capHistory &&
+      other.maxDays == maxDays &&
+      other.maxDbGb == maxDbGb &&
+      other.overwriteOldest == overwriteOldest;
 
     @override
     int get hashCode =>
@@ -316,7 +383,11 @@ class RetentionSettings {
         (trackRawWindow == null ? 0 : trackRawWindow.hashCode) +
         trackDownsampleInterval.hashCode +
         entityLinks.hashCode +
-        social.hashCode;
+        social.hashCode +
+        capHistory.hashCode +
+        (maxDays == null ? 0 : maxDays.hashCode) +
+        (maxDbGb == null ? 0 : maxDbGb.hashCode) +
+        overwriteOldest.hashCode;
 
   factory RetentionSettings.fromJson(Map<String, dynamic> json) => _$RetentionSettingsFromJson(json);
 

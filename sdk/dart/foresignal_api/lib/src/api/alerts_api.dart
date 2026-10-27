@@ -123,7 +123,7 @@ _responseData = rawData == null ? null : deserialize<Alert, Alert>(rawData, 'Ale
   }
 
   /// Get an alert
-  /// Alert with its lifecycle; &#x60;record&#x60; is loaded by seq and falls back to &#x60;recordSnapshot&#x60; once the version is gone. An alert of a private source is 404 for anonymous callers.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// Alert with its lifecycle; &#x60;record&#x60; is loaded by seq and falls back to &#x60;recordSnapshot&#x60; once the version is gone. An alert of a private source is 404 for anonymous callers.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).  **v2.0 (per-user, R2-008):** an alert carries its rule&#39;s owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user&#39;s alert is left out of lists, feeds and streams and is 404 by id. A session holding &#x60;users.manage&#x60; and every API token see all alerts; anonymous callers and feed keys see the shared ones.
   ///
   /// Parameters:
   /// * [alertId] - Alert id
@@ -201,7 +201,7 @@ _responseData = rawData == null ? null : deserialize<Alert, Alert>(rawData, 'Ale
   }
 
   /// List alerts newest first
-  /// Alerts newest first, keyset on id. Suppressed alerts are hidden unless includeSuppressed. Anonymous callers (security.openReads) never see alerts of private sources.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// Alerts newest first, keyset on id. Suppressed alerts are hidden unless includeSuppressed. Anonymous callers (security.openReads) never see alerts of private sources.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).  **v2.0 (per-user, R2-008):** an alert carries its rule&#39;s owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user&#39;s alert is left out of lists, feeds and streams and is 404 by id. A session holding &#x60;users.manage&#x60; and every API token see all alerts; anonymous callers and feed keys see the shared ones.
   ///
   /// Parameters:
   /// * [ruleId] - Filter by rule
@@ -629,7 +629,7 @@ _responseData = rawData == null ? null : deserialize<Alert, Alert>(rawData, 'Ale
   }
 
   /// Live alert stream (SSE)
-  /// Alert lifecycle as SSE: &#x60;alert&#x60; (fired), &#x60;alert.updated&#x60; and &#x60;alert.resolved&#x60;, data AlertEvent, &#x60;id:&#x60; &#x3D; alert rev. Resume replays rows with rev &gt; Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources. &#x60;alert.enriched&#x60; (030, data Alert) is an update of the same alert with its enrichment summary; clients treat it as an upsert by alert id. A replay sends each alert once in its current state, summary included.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// Alert lifecycle as SSE: &#x60;alert&#x60; (fired), &#x60;alert.updated&#x60; and &#x60;alert.resolved&#x60;, data AlertEvent, &#x60;id:&#x60; &#x3D; alert rev. Resume replays rows with rev &gt; Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources. &#x60;alert.enriched&#x60; (030, data Alert) is an update of the same alert with its enrichment summary; clients treat it as an upsert by alert id. A replay sends each alert once in its current state, summary included.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).  **v2.0 (per-user, R2-008):** an alert carries its rule&#39;s owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user&#39;s alert is left out of lists, feeds and streams and is 404 by id. A session holding &#x60;users.manage&#x60; and every API token see all alerts; anonymous callers and feed keys see the shared ones.
   ///
   /// Parameters:
   /// * [lastEventID] - Last alert rev received

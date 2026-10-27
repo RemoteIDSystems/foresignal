@@ -6,6 +6,7 @@
 import 'package:foresignal_api/src/model/notification_preference.dart';
 import 'package:foresignal_api/src/model/me_groups_inner.dart';
 import 'package:foresignal_api/src/model/me_token.dart';
+import 'package:foresignal_api/src/model/user.dart';
 import 'package:foresignal_api/src/model/principal.dart';
 import 'package:foresignal_api/src/model/tlp.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
@@ -36,6 +37,10 @@ class Me {
     required  this.notificationPreferences,
 
      this.defaultTlp,
+
+     this.user,
+
+     this.permissions,
   });
 
   @JsonKey(
@@ -111,6 +116,32 @@ class Me {
 
 
 
+      /// The signed-in user, present only when the request carries a login session (R2-003)
+  @JsonKey(
+    
+    name: r'user',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final User? user;
+
+
+
+      /// Effective permission keys (union of the user's roles), present only for a login session (R2-003)
+  @JsonKey(
+    
+    name: r'permissions',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final List<String>? permissions;
+
+
+
 
 
     @override
@@ -120,7 +151,9 @@ class Me {
       other.scopes == scopes &&
       other.groups == groups &&
       other.notificationPreferences == notificationPreferences &&
-      other.defaultTlp == defaultTlp;
+      other.defaultTlp == defaultTlp &&
+      other.user == user &&
+      other.permissions == permissions;
 
     @override
     int get hashCode =>
@@ -129,7 +162,9 @@ class Me {
         scopes.hashCode +
         groups.hashCode +
         notificationPreferences.hashCode +
-        defaultTlp.hashCode;
+        defaultTlp.hashCode +
+        user.hashCode +
+        permissions.hashCode;
 
   factory Me.fromJson(Map<String, dynamic> json) => _$MeFromJson(json);
 

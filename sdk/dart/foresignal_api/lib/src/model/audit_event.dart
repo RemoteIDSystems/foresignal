@@ -49,6 +49,10 @@ class AuditEvent {
      this.remoteIp,
 
      this.detail,
+
+     this.userId,
+
+     this.userEmail,
   });
 
   @JsonKey(
@@ -75,7 +79,7 @@ class AuditEvent {
 
 
 
-      /// `action` = a notification action capability (033); `chat` = a command from an allowlisted chat of an interactive channel (061; `tokenName` is the chat principal `chat:{channelId}:{chatId}[:{userId}]`); `mesh` = an `#E ACK` from an allowlisted sender on a private mesh channel (084; `tokenName` is `mesh:{sender}`)
+      /// `user` = a signed-in user (R2-013; `userId` and `userEmail` say who, `tokenId` is the session); `action` = a notification action capability (033); `chat` = a command from an allowlisted chat of an interactive channel (061; `tokenName` is the chat principal `chat:{channelId}:{chatId}[:{userId}]`); `mesh` = an `#E ACK` from an allowlisted sender on a private mesh channel (084; `tokenName` is `mesh:{sender}`)
   @JsonKey(
     
     name: r'actorKind',
@@ -235,6 +239,32 @@ class AuditEvent {
 
 
 
+      /// The signed-in user who acted (actor kind `user`, R2-013), or null
+  @JsonKey(
+    
+    name: r'userId',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? userId;
+
+
+
+      /// That user's email when the entry was written (kept after the user is renamed or deleted), or null
+  @JsonKey(
+    
+    name: r'userEmail',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? userEmail;
+
+
+
 
 
     @override
@@ -253,7 +283,9 @@ class AuditEvent {
       other.targetType == targetType &&
       other.targetId == targetId &&
       other.remoteIp == remoteIp &&
-      other.detail == detail;
+      other.detail == detail &&
+      other.userId == userId &&
+      other.userEmail == userEmail;
 
     @override
     int get hashCode =>
@@ -271,7 +303,9 @@ class AuditEvent {
         (targetType == null ? 0 : targetType.hashCode) +
         (targetId == null ? 0 : targetId.hashCode) +
         (remoteIp == null ? 0 : remoteIp.hashCode) +
-        detail.hashCode;
+        detail.hashCode +
+        (userId == null ? 0 : userId.hashCode) +
+        (userEmail == null ? 0 : userEmail.hashCode);
 
   factory AuditEvent.fromJson(Map<String, dynamic> json) => _$AuditEventFromJson(json);
 
@@ -284,10 +318,12 @@ class AuditEvent {
 
 }
 
-/// `action` = a notification action capability (033); `chat` = a command from an allowlisted chat of an interactive channel (061; `tokenName` is the chat principal `chat:{channelId}:{chatId}[:{userId}]`); `mesh` = an `#E ACK` from an allowlisted sender on a private mesh channel (084; `tokenName` is `mesh:{sender}`)
+/// `user` = a signed-in user (R2-013; `userId` and `userEmail` say who, `tokenId` is the session); `action` = a notification action capability (033); `chat` = a command from an allowlisted chat of an interactive channel (061; `tokenName` is the chat principal `chat:{channelId}:{chatId}[:{userId}]`); `mesh` = an `#E ACK` from an allowlisted sender on a private mesh channel (084; `tokenName` is `mesh:{sender}`)
 enum AuditEventActorKindEnum {
 @JsonValue(r'token')
 token(r'token'),
+@JsonValue(r'user')
+user(r'user'),
 @JsonValue(r'ingest_key')
 ingestKey(r'ingest_key'),
 @JsonValue(r'pairing')

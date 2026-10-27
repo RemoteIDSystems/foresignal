@@ -39,6 +39,10 @@ abstract class _$RetentionRunResultCWProxy {
     Map<String, RetentionRunResultPerSourceValue>? perSource,
   );
 
+  RetentionRunResult capWindowDays(int? capWindowDays);
+
+  RetentionRunResult dbCap(RetentionRunResultDbCap? dbCap);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `RetentionRunResult(...).copyWith.fieldName(value)`.
@@ -62,6 +66,8 @@ abstract class _$RetentionRunResultCWProxy {
     List<String>? skippedSources,
     RetentionRunResultConsumerClamp? consumerClamp,
     Map<String, RetentionRunResultPerSourceValue>? perSource,
+    int? capWindowDays,
+    RetentionRunResultDbCap? dbCap,
   });
 }
 
@@ -130,6 +136,14 @@ class _$RetentionRunResultCWProxyImpl implements _$RetentionRunResultCWProxy {
     Map<String, RetentionRunResultPerSourceValue>? perSource,
   ) => call(perSource: perSource);
 
+  @override
+  RetentionRunResult capWindowDays(int? capWindowDays) =>
+      call(capWindowDays: capWindowDays);
+
+  @override
+  RetentionRunResult dbCap(RetentionRunResultDbCap? dbCap) =>
+      call(dbCap: dbCap);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `RetentionRunResult(...).copyWith.fieldName(value)`.
@@ -154,6 +168,8 @@ class _$RetentionRunResultCWProxyImpl implements _$RetentionRunResultCWProxy {
     Object? skippedSources = const $CopyWithPlaceholder(),
     Object? consumerClamp = const $CopyWithPlaceholder(),
     Object? perSource = const $CopyWithPlaceholder(),
+    Object? capWindowDays = const $CopyWithPlaceholder(),
+    Object? dbCap = const $CopyWithPlaceholder(),
   }) {
     return RetentionRunResult(
       startedAt: startedAt == const $CopyWithPlaceholder()
@@ -215,6 +231,14 @@ class _$RetentionRunResultCWProxyImpl implements _$RetentionRunResultCWProxy {
           ? _value.perSource
           // ignore: cast_nullable_to_non_nullable
           : perSource as Map<String, RetentionRunResultPerSourceValue>?,
+      capWindowDays: capWindowDays == const $CopyWithPlaceholder()
+          ? _value.capWindowDays
+          // ignore: cast_nullable_to_non_nullable
+          : capWindowDays as int?,
+      dbCap: dbCap == const $CopyWithPlaceholder()
+          ? _value.dbCap
+          // ignore: cast_nullable_to_non_nullable
+          : dbCap as RetentionRunResultDbCap?,
     );
   }
 }
@@ -290,6 +314,16 @@ RetentionRunResult _$RetentionRunResultFromJson(
         ),
       ),
     ),
+    capWindowDays: $checkedConvert(
+      'capWindowDays',
+      (v) => (v as num?)?.toInt(),
+    ),
+    dbCap: $checkedConvert(
+      'dbCap',
+      (v) => v == null
+          ? null
+          : RetentionRunResultDbCap.fromJson(v as Map<String, dynamic>),
+    ),
   );
   return val;
 });
@@ -310,4 +344,6 @@ Map<String, dynamic> _$RetentionRunResultToJson(RetentionRunResult instance) =>
       'skippedSources': ?instance.skippedSources,
       'consumerClamp': ?instance.consumerClamp?.toJson(),
       'perSource': ?instance.perSource?.map((k, e) => MapEntry(k, e.toJson())),
+      'capWindowDays': ?instance.capWindowDays,
+      'dbCap': ?instance.dbCap?.toJson(),
     };

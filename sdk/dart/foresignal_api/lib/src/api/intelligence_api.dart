@@ -243,7 +243,7 @@ _responseData = rawData == null ? null : deserialize<InvestigationItem, Investig
   }
 
   /// Compute exposure of an area
-  /// Facilities, places, watchlist entities, live traffic, optional population (GHSL pack) and infrastructure dependents inside a geometry, place or event area. Without a pack the population section is &#x60;not-installed&#x60;.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// Facilities, places, watchlist entities, live traffic, optional population (GHSL pack) and infrastructure dependents inside a geometry, place or event area. Without a pack the population section is &#x60;not-installed&#x60;.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).  **v2.0 (R2-013):** a signed-in user needs &#x60;intel.read&#x60; (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (&#x60;User.dataRestriction&#x60;) and source view. API tokens keep their scope rules.
   ///
   /// Parameters:
   /// * [exposureRequest] 

@@ -37,6 +37,10 @@ abstract class _$SavedViewCWProxy {
 
   SavedView updatedAt(DateTime updatedAt);
 
+  SavedView shared(bool? shared);
+
+  SavedView ownerPrincipalId(String? ownerPrincipalId);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `SavedView(...).copyWith.fieldName(value)`.
@@ -61,6 +65,8 @@ abstract class _$SavedViewCWProxy {
     int version,
     DateTime createdAt,
     DateTime updatedAt,
+    bool? shared,
+    String? ownerPrincipalId,
   });
 }
 
@@ -119,6 +125,13 @@ class _$SavedViewCWProxyImpl implements _$SavedViewCWProxy {
   @override
   SavedView updatedAt(DateTime updatedAt) => call(updatedAt: updatedAt);
 
+  @override
+  SavedView shared(bool? shared) => call(shared: shared);
+
+  @override
+  SavedView ownerPrincipalId(String? ownerPrincipalId) =>
+      call(ownerPrincipalId: ownerPrincipalId);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `SavedView(...).copyWith.fieldName(value)`.
@@ -144,6 +157,8 @@ class _$SavedViewCWProxyImpl implements _$SavedViewCWProxy {
     Object? version = const $CopyWithPlaceholder(),
     Object? createdAt = const $CopyWithPlaceholder(),
     Object? updatedAt = const $CopyWithPlaceholder(),
+    Object? shared = const $CopyWithPlaceholder(),
+    Object? ownerPrincipalId = const $CopyWithPlaceholder(),
   }) {
     return SavedView(
       slug: slug == const $CopyWithPlaceholder() || slug == null
@@ -206,6 +221,14 @@ class _$SavedViewCWProxyImpl implements _$SavedViewCWProxy {
           ? _value.updatedAt
           // ignore: cast_nullable_to_non_nullable
           : updatedAt as DateTime,
+      shared: shared == const $CopyWithPlaceholder()
+          ? _value.shared
+          // ignore: cast_nullable_to_non_nullable
+          : shared as bool?,
+      ownerPrincipalId: ownerPrincipalId == const $CopyWithPlaceholder()
+          ? _value.ownerPrincipalId
+          // ignore: cast_nullable_to_non_nullable
+          : ownerPrincipalId as String?,
     );
   }
 }
@@ -280,6 +303,8 @@ SavedView _$SavedViewFromJson(
     version: $checkedConvert('version', (v) => (v as num).toInt()),
     createdAt: $checkedConvert('createdAt', (v) => DateTime.parse(v as String)),
     updatedAt: $checkedConvert('updatedAt', (v) => DateTime.parse(v as String)),
+    shared: $checkedConvert('shared', (v) => v as bool?),
+    ownerPrincipalId: $checkedConvert('ownerPrincipalId', (v) => v as String?),
   );
   return val;
 });
@@ -300,6 +325,8 @@ Map<String, dynamic> _$SavedViewToJson(SavedView instance) => <String, dynamic>{
   'version': instance.version,
   'createdAt': instance.createdAt.toIso8601String(),
   'updatedAt': instance.updatedAt.toIso8601String(),
+  'shared': ?instance.shared,
+  'ownerPrincipalId': ?instance.ownerPrincipalId,
 };
 
 const _$SavedViewTimeFieldEnumEnumMap = {

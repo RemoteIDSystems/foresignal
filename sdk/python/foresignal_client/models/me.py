@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Self, TypeVar
+from typing import TYPE_CHECKING, Any, Self, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from ..models.me_token import MeToken
     from ..models.notification_preference import NotificationPreference
     from ..models.principal import Principal
+    from ..models.user import User
 
 
 T = TypeVar("T", bound="Me")
@@ -31,6 +32,9 @@ class Me:
         groups (list[MeGroupsItem]):
         notification_preferences (list[NotificationPreference]):
         default_tlp (Tlp | Unset): Traffic Light Protocol 2.0 label
+        user (User | Unset): A platform user (user table, 164)
+        permissions (list[str] | Unset): Effective permission keys (union of the user's roles), present only for a login
+            session (R2-003)
     """
 
     principal: Principal
@@ -39,6 +43,8 @@ class Me:
     groups: list[MeGroupsItem]
     notification_preferences: list[NotificationPreference]
     default_tlp: Tlp | Unset = UNSET
+    user: User | Unset = UNSET
+    permissions: list[str] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -65,6 +71,14 @@ class Me:
         if not isinstance(self.default_tlp, Unset):
             default_tlp = self.default_tlp.value
 
+        user: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.user, Unset):
+            user = self.user.to_dict()
+
+        permissions: list[str] | Unset = UNSET
+        if not isinstance(self.permissions, Unset):
+            permissions = self.permissions
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -78,6 +92,10 @@ class Me:
         )
         if default_tlp is not UNSET:
             field_dict["defaultTlp"] = default_tlp
+        if user is not UNSET:
+            field_dict["user"] = user
+        if permissions is not UNSET:
+            field_dict["permissions"] = permissions
 
         return field_dict
 
@@ -87,6 +105,7 @@ class Me:
         from ..models.me_token import MeToken
         from ..models.notification_preference import NotificationPreference
         from ..models.principal import Principal
+        from ..models.user import User
 
         d = dict(src_dict)
         principal = Principal.from_dict(d.pop("principal"))
@@ -123,6 +142,15 @@ class Me:
         else:
             default_tlp = Tlp(_default_tlp)
 
+        _user = d.pop("user", UNSET)
+        user: User | Unset
+        if isinstance(_user, Unset):
+            user = UNSET
+        else:
+            user = User.from_dict(_user)
+
+        permissions = cast(list[str], d.pop("permissions", UNSET))
+
         me = cls(
             principal=principal,
             token=token,
@@ -130,6 +158,8 @@ class Me:
             groups=groups,
             notification_preferences=notification_preferences,
             default_tlp=default_tlp,
+            user=user,
+            permissions=permissions,
         )
 
         me.additional_properties = d

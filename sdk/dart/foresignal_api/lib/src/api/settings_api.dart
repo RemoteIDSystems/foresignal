@@ -20,11 +20,16 @@ import 'package:foresignal_api/src/model/notification_settings.dart';
 import 'package:foresignal_api/src/model/outbound_settings.dart';
 import 'package:foresignal_api/src/model/problem.dart';
 import 'package:foresignal_api/src/model/rate_limit_settings.dart';
+import 'package:foresignal_api/src/model/retention_preview.dart';
 import 'package:foresignal_api/src/model/retention_run_result.dart';
 import 'package:foresignal_api/src/model/retention_settings.dart';
 import 'package:foresignal_api/src/model/security_settings.dart';
 import 'package:foresignal_api/src/model/server_settings.dart';
 import 'package:foresignal_api/src/model/settings_bundle.dart';
+import 'package:foresignal_api/src/model/smtp_settings.dart';
+import 'package:foresignal_api/src/model/smtp_settings_input.dart';
+import 'package:foresignal_api/src/model/smtp_test_request.dart';
+import 'package:foresignal_api/src/model/smtp_test_result.dart';
 import 'package:foresignal_api/src/model/watchdog_settings.dart';
 import 'package:foresignal_api/src/model/weather_settings.dart';
 
@@ -1032,6 +1037,82 @@ _responseData = rawData == null ? null : deserialize<ServerSettings, ServerSetti
     );
   }
 
+  /// Get SMTP settings
+  /// Settings key &#x60;smtp&#x60;; secrets are never returned (only &#x60;secretsSet&#x60;). Requires &#x60;system.settings&#x60;.  **Scope:** &#x60;admin&#x60;.
+  ///
+  /// Parameters:
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [SmtpSettings] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<SmtpSettings>> getSmtpSettings({ 
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/settings/smtp';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    SmtpSettings? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<SmtpSettings, SmtpSettings>(rawData, 'SmtpSettings', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<SmtpSettings>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// Get watchdog settings
   /// Dead-man heartbeat URLs, interval and the optional ingest canary. URLs are redacted in logs.  **Scope:** &#x60;admin&#x60;.
   ///
@@ -1281,6 +1362,82 @@ _responseData = rawData == null ? null : deserialize<ImportReport, ImportReport>
     );
   }
 
+  /// Preview what retention would prune
+  /// Dry run of the current retention policy: what the next run would prune per subsystem (records per kind, TRACK leaves, frames, media, stopped chronicles), with a size estimate and nothing deleted (B2/178). It uses the settings the next run applies, including a window the database-size cap has stepped down to; with &#x60;capHistory&#x60; off it shows today&#39;s per-subsystem windows. Frames pinned by a chronicle are not counted; quota eviction is not previewed. Requires &#x60;storage.manage&#x60;.  **Scope:** &#x60;admin&#x60;.
+  ///
+  /// Parameters:
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [RetentionPreview] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<RetentionPreview>> previewRetention({ 
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/settings/retention/preview';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    RetentionPreview? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<RetentionPreview, RetentionPreview>(rawData, 'RetentionPreview', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<RetentionPreview>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// Run retention now
   /// Runs the retention job synchronously (track partition drops, chunked standard deletes, head purges on the writer, fetch_log, seq_clock and other tables).  **Scope:** &#x60;admin&#x60;.
   ///
@@ -1346,6 +1503,103 @@ _responseData = rawData == null ? null : deserialize<RetentionRunResult, Retenti
     }
 
     return Response<RetentionRunResult>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Send a test email
+  /// Sends a test message with the saved (or supplied) SMTP settings and reports the outcome; nothing is persisted. Requires &#x60;system.settings&#x60;.  **Scope:** &#x60;admin&#x60;.
+  ///
+  /// Parameters:
+  /// * [smtpTestRequest] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [SmtpTestResult] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<SmtpTestResult>> testSmtpSettings({ 
+    required SmtpTestRequest smtpTestRequest,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/settings/smtp/test';
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(smtpTestRequest);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    SmtpTestResult? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<SmtpTestResult, SmtpTestResult>(rawData, 'SmtpTestResult', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<SmtpTestResult>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -2413,6 +2667,103 @@ _responseData = rawData == null ? null : deserialize<ServerSettings, ServerSetti
     }
 
     return Response<ServerSettings>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Update SMTP settings
+  /// Replaces SMTP settings; an omitted or null password keeps the stored one. Requires &#x60;system.settings&#x60;.  **Scope:** &#x60;admin&#x60;.
+  ///
+  /// Parameters:
+  /// * [smtpSettingsInput] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [SmtpSettings] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<SmtpSettings>> updateSmtpSettings({ 
+    required SmtpSettingsInput smtpSettingsInput,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/settings/smtp';
+    final _options = Options(
+      method: r'PUT',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(smtpSettingsInput);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    SmtpSettings? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<SmtpSettings, SmtpSettings>(rawData, 'SmtpSettings', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<SmtpSettings>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

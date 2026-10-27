@@ -59,6 +59,8 @@ class ChannelInput {
      this.acceptExercise = false,
 
      this.language,
+
+     this.global,
   });
 
   @JsonKey(
@@ -307,6 +309,19 @@ class ChannelInput {
 
 
 
+      /// On create only (R2-009): true for a global channel (needs `channels.global`), false for a personal one (needs `self.channels`). Absent, a user holding `self.channels` gets a personal channel and anyone else a global one; an API token always creates global channels. Ignored on update.
+  @JsonKey(
+    
+    name: r'global',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final bool? global;
+
+
+
 
 
     @override
@@ -329,7 +344,8 @@ class ChannelInput {
       other.editInPlace == editInPlace &&
       other.deferWhileActiveSeconds == deferWhileActiveSeconds &&
       other.acceptExercise == acceptExercise &&
-      other.language == language;
+      other.language == language &&
+      other.global == global;
 
     @override
     int get hashCode =>
@@ -351,7 +367,8 @@ class ChannelInput {
         editInPlace.hashCode +
         deferWhileActiveSeconds.hashCode +
         acceptExercise.hashCode +
-        (language == null ? 0 : language.hashCode);
+        (language == null ? 0 : language.hashCode) +
+        (global == null ? 0 : global.hashCode);
 
   factory ChannelInput.fromJson(Map<String, dynamic> json) => _$ChannelInputFromJson(json);
 

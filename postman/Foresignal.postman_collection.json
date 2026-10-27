@@ -51626,7 +51626,7 @@
               ],
               "query": []
             },
-            "description": "Reports whether the instance still needs first-run setup (no users yet), readable before any account exists so the onboarding wizard can start (C4/190).\n\n**Scope:** `open`.\n\noperationId: `getFirstRunStatus`",
+            "description": "Reports whether the instance still needs first-run setup: `firstRun` while no user exists (C4/190, R2-027). Open, so the admin app can start the setup wizard before any account exists. `smtpConfigured` is true when account email is enabled with a host; `sourcesEnabled` counts the sources in the collection set; `apiVersion` is `info.version`.\n\n**Scope:** `open`.\n\noperationId: `getFirstRunStatus`",
             "auth": {
               "type": "noauth"
             }
@@ -51668,7 +51668,7 @@
               ],
               "query": []
             },
-            "description": "Bootstraps a fresh instance: creates the first admin (authorized by the bootstrap admin token), migrates existing global config to shared/admin defaults, and seeds SMTP, sources and thresholds. Refused once setup is complete (409).\n\n**Scope:** `admin`.\n\noperationId: `runSetup`",
+            "description": "Bootstraps a fresh instance (C4/190, R2-027). Only the bootstrap admin token printed at first start may call it (403 for any other token or a session) and only while no user exists (409 ALREADY_SETUP after). It creates the first admin, active at once with the built-in Admin role and the given password (checked against the password policy); moves what the v1 operator owned through the instance `owner` principal (their personal channels and workspaces, and any rule, view or LLM provider bound to it) to that admin, leaving every owner-less row (source, collector and server settings, global channels, shared LLM providers, existing rules and views) shared; optionally seeds SMTP (as `updateSmtpSettings`), enables `sources` in the collection set, and stores `thresholds` and `retention` (as their settings operations); and signs the admin in. All of it is one transaction: a body refused anywhere changes nothing. The session is gated to MFA enrollment until the admin enrolls (R2-024). API tokens are not touched.\n\n**Scope:** `admin`.\n\noperationId: `runSetup`",
             "auth": {
               "type": "bearer",
               "bearer": [

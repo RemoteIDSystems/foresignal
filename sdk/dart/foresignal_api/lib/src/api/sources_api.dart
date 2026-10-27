@@ -10,6 +10,8 @@ import 'package:foresignal_api/src/deserialize.dart';
 import 'package:dio/dio.dart';
 
 import 'package:foresignal_api/src/model/backfill_job.dart';
+import 'package:foresignal_api/src/model/collection_set.dart';
+import 'package:foresignal_api/src/model/collection_set_update.dart';
 import 'package:foresignal_api/src/model/cot_backfill_request.dart';
 import 'package:foresignal_api/src/model/credentials_update.dart';
 import 'package:foresignal_api/src/model/doctor_options.dart';
@@ -27,6 +29,8 @@ import 'package:foresignal_api/src/model/source_health.dart';
 import 'package:foresignal_api/src/model/source_settings_update.dart';
 import 'package:foresignal_api/src/model/source_summary.dart';
 import 'package:foresignal_api/src/model/usage_series.dart';
+import 'package:foresignal_api/src/model/user_source_view.dart';
+import 'package:foresignal_api/src/model/user_source_view_update.dart';
 
 class SourcesApi {
 
@@ -421,6 +425,82 @@ _responseData = rawData == null ? null : deserialize<FetchOutcome, FetchOutcome>
     );
   }
 
+  /// Get the instance collection set
+  /// Returns the instance collection set: every registered source with &#x60;inCollection&#x60; (whether the instance may collect it) and &#x60;enabledByUsers&#x60; (how many active users&#39; views keep it). The collector pulls a source once when it is in this set and some active user&#39;s view keeps it, or, while no user is active, whenever it is in this set. Requires &#x60;collection.manage&#x60;.  **Scope:** &#x60;admin&#x60;.
+  ///
+  /// Parameters:
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [CollectionSet] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<CollectionSet>> getCollectionSources({ 
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/sources/collection';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    CollectionSet? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<CollectionSet, CollectionSet>(rawData, 'CollectionSet', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<CollectionSet>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// Get a doctor report
   /// One doctor report; patches are always labeled \&quot;proposed, not applied\&quot;. 202 with &#x60;DoctorRunAccepted&#x60; while the run is still in progress.  **Scope:** &#x60;agent&#x60;.
   ///
@@ -499,8 +579,84 @@ _responseData = rawData == null ? null : deserialize<DoctorReport, DoctorReport>
     );
   }
 
+  /// Get my enabled-source view
+  /// Returns the caller&#39;s own source view over the shared collection: one entry per source the caller may see, with &#x60;enabled&#x60; and the caller&#39;s display overrides. A view is opt-out: a source the caller never turned off is &#x60;enabled&#x60; with no overrides. The instance-wide collection set is getCollectionSources. A view belongs to a signed-in user, so an API token gets &#x60;401&#x60;. Requires &#x60;self.sources&#x60;.  **Scope:** &#x60;read&#x60;.
+  ///
+  /// Parameters:
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [UserSourceView] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<UserSourceView>> getMySources({ 
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/me/sources';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    UserSourceView? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<UserSourceView, UserSourceView>(rawData, 'UserSourceView', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<UserSourceView>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// Get a source
-  /// Get a source  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// Get a source  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).  **v2.0 (per-user):** a source&#39;s *enablement and display* are now the caller&#39;s own per-user view (getMySources/updateMySources) over the shared collection; the instance collection set is managed with &#x60;collection.manage&#x60; (getCollectionSources). The source descriptor and health stay global. Request and response shapes are unchanged.
   ///
   /// Parameters:
   /// * [sourceId] - Source id, e.g. usgs-earthquakes
@@ -1012,7 +1168,7 @@ _responseData = rawData == null ? null : deserialize<List<SourceHealth>, SourceH
   }
 
   /// List all sources
-  /// Catalogue of every available adapter with its settings, live health status and today&#39;s budget use.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// Catalogue of every available adapter with its settings, live health status and today&#39;s budget use.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).  **v2.0 (per-user):** a source&#39;s *enablement and display* are now the caller&#39;s own per-user view (getMySources/updateMySources) over the shared collection; the instance collection set is managed with &#x60;collection.manage&#x60; (getCollectionSources). The source descriptor and health stay global. Request and response shapes are unchanged.
   ///
   /// Parameters:
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
@@ -1348,8 +1504,202 @@ _responseData = rawData == null ? null : deserialize<DoctorReport, DoctorReport>
     return _response;
   }
 
+  /// Update the instance collection set
+  /// Sets &#x60;inCollection&#x60; for every listed source, all or nothing; a source left out keeps its state and &#x60;enabledByUsers&#x60; is ignored. Each change applies the checks of updateSource, so collecting a source without its required credentials is &#x60;409 CREDENTIALS_REQUIRED&#x60;. A source taken out of the set is pulled for no one, regardless of per-user views. Requires &#x60;collection.manage&#x60;.  **Scope:** &#x60;admin&#x60;.
+  ///
+  /// Parameters:
+  /// * [collectionSetUpdate] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [CollectionSet] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<CollectionSet>> updateCollectionSources({ 
+    required CollectionSetUpdate collectionSetUpdate,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/sources/collection';
+    final _options = Options(
+      method: r'PUT',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(collectionSetUpdate);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    CollectionSet? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<CollectionSet, CollectionSet>(rawData, 'CollectionSet', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<CollectionSet>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Update my enabled-source view
+  /// Replaces the caller&#39;s source view; a source left out returns to the default (enabled, no overrides). A source may be listed whether or not the instance collects it; the preference takes effect while it is in the collection set. The collector pulls a source once while any active user&#39;s view keeps it, so a view never adds a second pull. Afterwards the caller&#39;s reads (records, changes, tiles, search, statistics) show only the sources in their view. An API token gets &#x60;401&#x60;. Requires &#x60;self.sources&#x60;.  **Scope:** &#x60;read&#x60;.
+  ///
+  /// Parameters:
+  /// * [userSourceViewUpdate] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [UserSourceView] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<UserSourceView>> updateMySources({ 
+    required UserSourceViewUpdate userSourceViewUpdate,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/me/sources';
+    final _options = Options(
+      method: r'PUT',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(userSourceViewUpdate);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    UserSourceView? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<UserSourceView, UserSourceView>(rawData, 'UserSourceView', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<UserSourceView>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// Update source settings
-  /// Enable/disable (subscribe/unsubscribe), set interval, params, budget, retention and the ingest-policy override. Changes apply immediately; omitted fields are unchanged, an explicit &#x60;ingestPolicy: null&#x60; clears the override. Policy violations return 400 INGEST_POLICY_INVALID with every violation in &#x60;errors[]&#x60; (e.g. &#x60;ingestPolicy.keyframe&#x60;); retention on a TRACK source returns 400 RETENTION_TIER_FIXED (use &#x60;retention.trackWindow&#x60;). A parameter value allowed only on a private source (086: &#x60;local-remoteid&#x60;&#39;s &#x60;keepOperatorPosition&#x3D;true&#x60;) returns 400 PRIVATE_REQUIRED unless the source is effectively private (descriptor or &#x60;private: true&#x60;, in the same request or already set), and so does making such a source public.  **Scope:** &#x60;admin&#x60;.
+  /// Enable/disable (subscribe/unsubscribe), set interval, params, budget, retention and the ingest-policy override. Changes apply immediately; omitted fields are unchanged, an explicit &#x60;ingestPolicy: null&#x60; clears the override. Policy violations return 400 INGEST_POLICY_INVALID with every violation in &#x60;errors[]&#x60; (e.g. &#x60;ingestPolicy.keyframe&#x60;); retention on a TRACK source returns 400 RETENTION_TIER_FIXED (use &#x60;retention.trackWindow&#x60;). A parameter value allowed only on a private source (086: &#x60;local-remoteid&#x60;&#39;s &#x60;keepOperatorPosition&#x3D;true&#x60;) returns 400 PRIVATE_REQUIRED unless the source is effectively private (descriptor or &#x60;private: true&#x60;, in the same request or already set), and so does making such a source public.  **Scope:** &#x60;admin&#x60;.  **v2.0 (per-user):** a source&#39;s *enablement and display* are now the caller&#39;s own per-user view (getMySources/updateMySources) over the shared collection; the instance collection set is managed with &#x60;collection.manage&#x60; (getCollectionSources). The source descriptor and health stay global. Request and response shapes are unchanged.
   ///
   /// Parameters:
   /// * [sourceId] - Source id, e.g. usgs-earthquakes

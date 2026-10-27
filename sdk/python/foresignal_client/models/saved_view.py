@@ -40,6 +40,8 @@ class SavedView:
         time_field (SavedViewInputTimeField | Unset):  Default: SavedViewInputTimeField.EFFECTIVE.
         include_expired (bool | Unset):  Default: False.
         fields (list[str] | Unset): Projection whitelist of top-level-rooted JSON paths
+        shared (bool | Unset): True for a shared view (no owner): managed by an admin, visible to every caller (R2-012)
+        owner_principal_id (None | str | Unset): The owning user's principal, or null for a shared view (R2-012)
     """
 
     slug: str
@@ -57,6 +59,8 @@ class SavedView:
     time_field: SavedViewInputTimeField | Unset = SavedViewInputTimeField.EFFECTIVE
     include_expired: bool | Unset = False
     fields: list[str] | Unset = UNSET
+    shared: bool | Unset = UNSET
+    owner_principal_id: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -120,6 +124,14 @@ class SavedView:
         if not isinstance(self.fields, Unset):
             fields = self.fields
 
+        shared = self.shared
+
+        owner_principal_id: None | str | Unset
+        if isinstance(self.owner_principal_id, Unset):
+            owner_principal_id = UNSET
+        else:
+            owner_principal_id = self.owner_principal_id
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -150,6 +162,10 @@ class SavedView:
             field_dict["includeExpired"] = include_expired
         if fields is not UNSET:
             field_dict["fields"] = fields
+        if shared is not UNSET:
+            field_dict["shared"] = shared
+        if owner_principal_id is not UNSET:
+            field_dict["ownerPrincipalId"] = owner_principal_id
 
         return field_dict
 
@@ -231,6 +247,17 @@ class SavedView:
 
         fields = cast(list[str], d.pop("fields", UNSET))
 
+        shared = d.pop("shared", UNSET)
+
+        def _parse_owner_principal_id(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        owner_principal_id = _parse_owner_principal_id(d.pop("ownerPrincipalId", UNSET))
+
         saved_view = cls(
             slug=slug,
             name=name,
@@ -247,6 +274,8 @@ class SavedView:
             time_field=time_field,
             include_expired=include_expired,
             fields=fields,
+            shared=shared,
+            owner_principal_id=owner_principal_id,
         )
 
         saved_view.additional_properties = d

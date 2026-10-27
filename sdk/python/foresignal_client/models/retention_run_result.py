@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from ..models.retention_run_result_consumer_clamp import (
         RetentionRunResultConsumerClamp,
     )
+    from ..models.retention_run_result_db_cap_type_0 import RetentionRunResultDbCapType0
     from ..models.retention_run_result_per_source import RetentionRunResultPerSource
 
 
@@ -37,6 +38,10 @@ class RetentionRunResult:
         skipped_sources (list[str] | Unset): Sources skipped this run after a failed delete (no HeadPurge)
         consumer_clamp (RetentionRunResultConsumerClamp | Unset):
         per_source (RetentionRunResultPerSource | Unset): Keyed by source id
+        cap_window_days (int | None | Unset): The cap-history window this run applied, in days (R2-015); null when
+            history is not capped by age
+        db_cap (None | RetentionRunResultDbCapType0 | Unset): What the database-size cap did this run (R2-015); null
+            when it is off
     """
 
     versions_deleted: int
@@ -53,9 +58,15 @@ class RetentionRunResult:
     skipped_sources: list[str] | Unset = UNSET
     consumer_clamp: RetentionRunResultConsumerClamp | Unset = UNSET
     per_source: RetentionRunResultPerSource | Unset = UNSET
+    cap_window_days: int | None | Unset = UNSET
+    db_cap: None | RetentionRunResultDbCapType0 | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.retention_run_result_db_cap_type_0 import (
+            RetentionRunResultDbCapType0,
+        )
+
         versions_deleted = self.versions_deleted
 
         heads_deleted = self.heads_deleted
@@ -92,6 +103,20 @@ class RetentionRunResult:
         if not isinstance(self.per_source, Unset):
             per_source = self.per_source.to_dict()
 
+        cap_window_days: int | None | Unset
+        if isinstance(self.cap_window_days, Unset):
+            cap_window_days = UNSET
+        else:
+            cap_window_days = self.cap_window_days
+
+        db_cap: dict[str, Any] | None | Unset
+        if isinstance(self.db_cap, Unset):
+            db_cap = UNSET
+        elif isinstance(self.db_cap, RetentionRunResultDbCapType0):
+            db_cap = self.db_cap.to_dict()
+        else:
+            db_cap = self.db_cap
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -124,6 +149,10 @@ class RetentionRunResult:
             field_dict["consumerClamp"] = consumer_clamp
         if per_source is not UNSET:
             field_dict["perSource"] = per_source
+        if cap_window_days is not UNSET:
+            field_dict["capWindowDays"] = cap_window_days
+        if db_cap is not UNSET:
+            field_dict["dbCap"] = db_cap
 
         return field_dict
 
@@ -131,6 +160,9 @@ class RetentionRunResult:
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.retention_run_result_consumer_clamp import (
             RetentionRunResultConsumerClamp,
+        )
+        from ..models.retention_run_result_db_cap_type_0 import (
+            RetentionRunResultDbCapType0,
         )
         from ..models.retention_run_result_per_source import RetentionRunResultPerSource
 
@@ -178,6 +210,32 @@ class RetentionRunResult:
         else:
             per_source = RetentionRunResultPerSource.from_dict(_per_source)
 
+        def _parse_cap_window_days(data: object) -> int | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(int | None | Unset, data)
+
+        cap_window_days = _parse_cap_window_days(d.pop("capWindowDays", UNSET))
+
+        def _parse_db_cap(data: object) -> None | RetentionRunResultDbCapType0 | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                db_cap_type_0 = RetentionRunResultDbCapType0.from_dict(data)
+
+                return db_cap_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(None | RetentionRunResultDbCapType0 | Unset, data)
+
+        db_cap = _parse_db_cap(d.pop("dbCap", UNSET))
+
         retention_run_result = cls(
             versions_deleted=versions_deleted,
             heads_deleted=heads_deleted,
@@ -193,6 +251,8 @@ class RetentionRunResult:
             skipped_sources=skipped_sources,
             consumer_clamp=consumer_clamp,
             per_source=per_source,
+            cap_window_days=cap_window_days,
+            db_cap=db_cap,
         )
 
         retention_run_result.additional_properties = d

@@ -83,6 +83,10 @@ def sync_detailed(
 
     **Scope:** `read` (always authenticated).
 
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
+
     Args:
         place_id (str):
 
@@ -118,6 +122,10 @@ def sync(
 
     **Scope:** `read` (always authenticated).
 
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
+
     Args:
         place_id (str):
 
@@ -147,6 +155,10 @@ async def asyncio_detailed(
     status; unknown is never clear.
 
     **Scope:** `read` (always authenticated).
+
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         place_id (str):
@@ -180,6 +192,10 @@ async def asyncio(
     status; unknown is never clear.
 
     **Scope:** `read` (always authenticated).
+
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         place_id (str):

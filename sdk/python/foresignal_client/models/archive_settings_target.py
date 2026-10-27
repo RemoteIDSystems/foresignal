@@ -2,6 +2,7 @@ from enum import StrEnum
 
 
 class ArchiveSettingsTarget(StrEnum):
+    GLACIER = "glacier"
     LOCAL = "local"
     S3 = "s3"
 

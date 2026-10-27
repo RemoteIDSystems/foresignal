@@ -57,6 +57,18 @@ class RetentionSettings:
             social (RetentionSettingsSocial | Unset): Analytic class `social` (135): `social-post` retention per platform
                 (view over `social.postRetention`); narratives, claims, comparisons and volume series are kept as intel and
                 series
+            cap_history (bool | Unset): Cap history (R2-015): one bound over the data history (records, TRACK history,
+                frames, media and stopped chronicles). Off (the default) keeps every window as configured. When on, `maxDays`
+                clamps every window to at most that many days (it never lengthens one, and cutoffs still pass the consumer
+                clamp) and `maxDbGb` keeps the database under that size. Needs `maxDays`, `maxDbGb` or both. Default: False.
+            max_days (int | None | Unset): With `capHistory`: keep at most this many days of data history. An upper bound
+                over the per-kind, per-source and tier windows, never a replacement. Example: 90.
+            max_db_gb (float | None | Unset): With `capHistory`: keep the database (`pg_database_size`) under this many GB
+                (1024³ bytes). When it is over and still growing, each run steps the history window down (halving, whole days,
+                never below 1 day) oldest first; when that cannot reach the cap it raises `system.retention_cap_unmet` and
+                shortens history no further. An entity reported within the window keeps its current record. Example: 200.
+            overwrite_oldest (bool | Unset): With `maxDbGb`: step the history window down to stay under the cap (default
+                true); false only reports the breach. Default: True.
     """
 
     default: str
@@ -76,6 +88,10 @@ class RetentionSettings:
     track_downsample_interval: str | Unset = UNSET
     entity_links: str | Unset = UNSET
     social: RetentionSettingsSocial | Unset = UNSET
+    cap_history: bool | Unset = False
+    max_days: int | None | Unset = UNSET
+    max_db_gb: float | None | Unset = UNSET
+    overwrite_oldest: bool | Unset = True
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -125,6 +141,22 @@ class RetentionSettings:
         if not isinstance(self.social, Unset):
             social = self.social.to_dict()
 
+        cap_history = self.cap_history
+
+        max_days: int | None | Unset
+        if isinstance(self.max_days, Unset):
+            max_days = UNSET
+        else:
+            max_days = self.max_days
+
+        max_db_gb: float | None | Unset
+        if isinstance(self.max_db_gb, Unset):
+            max_db_gb = UNSET
+        else:
+            max_db_gb = self.max_db_gb
+
+        overwrite_oldest = self.overwrite_oldest
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -164,6 +196,14 @@ class RetentionSettings:
             field_dict["entityLinks"] = entity_links
         if social is not UNSET:
             field_dict["social"] = social
+        if cap_history is not UNSET:
+            field_dict["capHistory"] = cap_history
+        if max_days is not UNSET:
+            field_dict["maxDays"] = max_days
+        if max_db_gb is not UNSET:
+            field_dict["maxDbGb"] = max_db_gb
+        if overwrite_oldest is not UNSET:
+            field_dict["overwriteOldest"] = overwrite_oldest
 
         return field_dict
 
@@ -236,6 +276,28 @@ class RetentionSettings:
         else:
             social = RetentionSettingsSocial.from_dict(_social)
 
+        cap_history = d.pop("capHistory", UNSET)
+
+        def _parse_max_days(data: object) -> int | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(int | None | Unset, data)
+
+        max_days = _parse_max_days(d.pop("maxDays", UNSET))
+
+        def _parse_max_db_gb(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        max_db_gb = _parse_max_db_gb(d.pop("maxDbGb", UNSET))
+
+        overwrite_oldest = d.pop("overwriteOldest", UNSET)
+
         retention_settings = cls(
             default=default,
             alerts=alerts,
@@ -254,6 +316,10 @@ class RetentionSettings:
             track_downsample_interval=track_downsample_interval,
             entity_links=entity_links,
             social=social,
+            cap_history=cap_history,
+            max_days=max_days,
+            max_db_gb=max_db_gb,
+            overwrite_oldest=overwrite_oldest,
         )
 
         retention_settings.additional_properties = d

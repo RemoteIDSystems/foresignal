@@ -81,6 +81,11 @@ def sync_detailed(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (per-user):** a source's *enablement and display* are now the caller's own per-user view
+    (getMySources/updateMySources) over the shared collection; the instance collection set is managed
+    with `collection.manage` (getCollectionSources). The source descriptor and health stay global.
+    Request and response shapes are unchanged.
+
     Args:
         source_id (str):
 
@@ -114,6 +119,11 @@ def sync(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (per-user):** a source's *enablement and display* are now the caller's own per-user view
+    (getMySources/updateMySources) over the shared collection; the instance collection set is managed
+    with `collection.manage` (getCollectionSources). The source descriptor and health stay global.
+    Request and response shapes are unchanged.
+
     Args:
         source_id (str):
 
@@ -141,6 +151,11 @@ async def asyncio_detailed(
      Get a source
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (per-user):** a source's *enablement and display* are now the caller's own per-user view
+    (getMySources/updateMySources) over the shared collection; the instance collection set is managed
+    with `collection.manage` (getCollectionSources). The source descriptor and health stay global.
+    Request and response shapes are unchanged.
 
     Args:
         source_id (str):
@@ -172,6 +187,11 @@ async def asyncio(
      Get a source
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (per-user):** a source's *enablement and display* are now the caller's own per-user view
+    (getMySources/updateMySources) over the shared collection; the instance collection set is managed
+    with `collection.manage` (getCollectionSources). The source descriptor and health stay global.
+    Request and response shapes are unchanged.
 
     Args:
         source_id (str):

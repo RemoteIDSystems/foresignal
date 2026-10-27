@@ -19,7 +19,7 @@ class AuditApi {
   const AuditApi(this._dio);
 
   /// List audit events
-  /// Newest first, keyset paging. Covers authenticated writes, 401/403 on write paths, pairing claims, token revocations, MCP tool calls, notification actions, private-data reads by non-admins, exports and purges. &#x60;detail&#x60; never contains secrets or request bodies. Retention key &#x60;audit&#x60; (default 90d).  **Scope:** &#x60;admin&#x60;.
+  /// Newest first, keyset paging. Covers authenticated writes, 401/403 on write paths, pairing claims, token revocations, MCP tool calls, notification actions, private-data reads by non-admins, exports and purges. &#x60;detail&#x60; never contains secrets or request bodies. Retention key &#x60;audit&#x60; (default 90d).  **Scope:** &#x60;admin&#x60;.  **v2.0 (R2-013):** a signed-in user reaches the log with &#x60;audit.read&#x60; (the Auditor role) without admin scope; a session without it is 403 PERMISSION_DENIED. What a signed-in user does is attributed to the user: actor kind &#x60;user&#x60; with &#x60;userId&#x60; and &#x60;userEmail&#x60;, including sign-ins (successful and failed), sign-outs, session revocations, account activation and password resets, every user, role, settings, collection and LLM provider change, and reads refused with PERMISSION_DENIED (&#x60;detail.requiredPermission&#x60;). Filters: time, token, operation, status, actor kind, user and target. The log is append-only: the database refuses to change an entry; retention deletes entries older than the window.
   ///
   /// Parameters:
   /// * [since] - Earliest `at` (inclusive)
@@ -27,6 +27,10 @@ class AuditApi {
   /// * [tokenId] - Only this token
   /// * [operationId] - Only this operation
   /// * [status] - Only this HTTP status
+  /// * [actorKind] - Only this actor kind (for example `user` or `token`, R2-013)
+  /// * [userId] - Only entries attributed to this user (R2-013)
+  /// * [targetType] - Only this target type, for example `users` or `settings` (R2-013)
+  /// * [targetId] - Only this target id (R2-013)
   /// * [cursor] - Opaque cursor from the previous page's `nextCursor`
   /// * [limit] - Page size
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
@@ -44,6 +48,10 @@ class AuditApi {
     String? tokenId,
     String? operationId,
     int? status,
+    String? actorKind,
+    String? userId,
+    String? targetType,
+    String? targetId,
     String? cursor,
     int? limit = 100,
     CancelToken? cancelToken,
@@ -78,6 +86,10 @@ class AuditApi {
       if (tokenId != null) r'tokenId': tokenId,
       if (operationId != null) r'operationId': operationId,
       if (status != null) r'status': status,
+      if (actorKind != null) r'actorKind': actorKind,
+      if (userId != null) r'userId': userId,
+      if (targetType != null) r'targetType': targetType,
+      if (targetId != null) r'targetId': targetId,
       if (cursor != null) r'cursor': cursor,
       if (limit != null) r'limit': limit,
     };

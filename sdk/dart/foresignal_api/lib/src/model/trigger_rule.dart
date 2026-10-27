@@ -130,6 +130,8 @@ class TriggerRule {
      this.anchorStatus,
 
      this.windowStatus,
+
+     this.ownerPrincipalId,
   });
 
   @JsonKey(
@@ -786,6 +788,19 @@ class TriggerRule {
 
 
 
+      /// The principal of the user who owns the rule (R2-008); null for a shared rule managed by an admin. Ignored on input.
+  @JsonKey(
+    
+    name: r'ownerPrincipalId',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? ownerPrincipalId;
+
+
+
 
 
     @override
@@ -840,7 +855,8 @@ class TriggerRule {
       other.mutedUntil == mutedUntil &&
       other.geofenceOrigin == geofenceOrigin &&
       other.anchorStatus == anchorStatus &&
-      other.windowStatus == windowStatus;
+      other.windowStatus == windowStatus &&
+      other.ownerPrincipalId == ownerPrincipalId;
 
     @override
     int get hashCode =>
@@ -894,7 +910,8 @@ class TriggerRule {
         (mutedUntil == null ? 0 : mutedUntil.hashCode) +
         geofenceOrigin.hashCode +
         (anchorStatus == null ? 0 : anchorStatus.hashCode) +
-        (windowStatus == null ? 0 : windowStatus.hashCode);
+        (windowStatus == null ? 0 : windowStatus.hashCode) +
+        (ownerPrincipalId == null ? 0 : ownerPrincipalId.hashCode);
 
   factory TriggerRule.fromJson(Map<String, dynamic> json) => _$TriggerRuleFromJson(json);
 

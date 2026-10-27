@@ -9,6 +9,7 @@ class AuditEventActorKind(StrEnum):
     PAIRING = "pairing"
     SYSTEM = "system"
     TOKEN = "token"
+    USER = "user"
 
     def __str__(self) -> str:
         return str(self.value)

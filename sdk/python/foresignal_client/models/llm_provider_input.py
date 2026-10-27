@@ -51,6 +51,28 @@ class LlmProviderInput:
             metered tokens at its `pricing`, so a cap needs pricing. Once a window's spend, with the estimated cost of the
             calls in flight, reaches its cap, calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's
             reset. Applies on top of requestsPerMinute and tokensPerDay.
+        shared (bool | Unset): On create: true for a shared provider (needs `llm.shared.manage`), false for a personal
+            one owned by the caller (needs `self.llm`). Absent, a user holding `self.llm` gets a personal provider and
+            anyone else a shared one; an API token always creates shared providers. Ignored on replace, which keeps the kind
+            (R2-011).
+        per_user_hourly_cap_usd (float | None | Unset): The most each user may spend on this shared provider in the UTC
+            clock hour (it resets at the top of the hour), in USD, at most 4 decimal places; null means no per-user cap
+            (R2-011). It counts only that user's own calls, so one user cannot exhaust the shared budget while the others
+            continue; the provider's own caps still bound the total. Needs `pricing`; refused for a personal provider, whose
+            own caps are already its owner's. Once reached, that user's calls are refused 429 LLM_BUDGET_EXCEEDED with
+            Retry-After at the window's reset.
+        per_user_daily_cap_usd (float | None | Unset): The most each user may spend on this shared provider in the UTC
+            day (it resets at 00:00 UTC), in USD, at most 4 decimal places; null means no per-user cap (R2-011). It counts
+            only that user's own calls, so one user cannot exhaust the shared budget while the others continue; the
+            provider's own caps still bound the total. Needs `pricing`; refused for a personal provider, whose own caps are
+            already its owner's. Once reached, that user's calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the
+            window's reset.
+        per_user_monthly_cap_usd (float | None | Unset): The most each user may spend on this shared provider in the UTC
+            calendar month (it resets at 00:00 UTC on the 1st), in USD, at most 4 decimal places; null means no per-user cap
+            (R2-011). It counts only that user's own calls, so one user cannot exhaust the shared budget while the others
+            continue; the provider's own caps still bound the total. Needs `pricing`; refused for a personal provider, whose
+            own caps are already its owner's. Once reached, that user's calls are refused 429 LLM_BUDGET_EXCEEDED with
+            Retry-After at the window's reset.
     """
 
     id: str
@@ -69,6 +91,10 @@ class LlmProviderInput:
     hourly_cap_usd: float | None | Unset = UNSET
     daily_cap_usd: float | None | Unset = UNSET
     monthly_cap_usd: float | None | Unset = UNSET
+    shared: bool | Unset = UNSET
+    per_user_hourly_cap_usd: float | None | Unset = UNSET
+    per_user_daily_cap_usd: float | None | Unset = UNSET
+    per_user_monthly_cap_usd: float | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -148,6 +174,26 @@ class LlmProviderInput:
         else:
             monthly_cap_usd = self.monthly_cap_usd
 
+        shared = self.shared
+
+        per_user_hourly_cap_usd: float | None | Unset
+        if isinstance(self.per_user_hourly_cap_usd, Unset):
+            per_user_hourly_cap_usd = UNSET
+        else:
+            per_user_hourly_cap_usd = self.per_user_hourly_cap_usd
+
+        per_user_daily_cap_usd: float | None | Unset
+        if isinstance(self.per_user_daily_cap_usd, Unset):
+            per_user_daily_cap_usd = UNSET
+        else:
+            per_user_daily_cap_usd = self.per_user_daily_cap_usd
+
+        per_user_monthly_cap_usd: float | None | Unset
+        if isinstance(self.per_user_monthly_cap_usd, Unset):
+            per_user_monthly_cap_usd = UNSET
+        else:
+            per_user_monthly_cap_usd = self.per_user_monthly_cap_usd
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -184,6 +230,14 @@ class LlmProviderInput:
             field_dict["dailyCapUsd"] = daily_cap_usd
         if monthly_cap_usd is not UNSET:
             field_dict["monthlyCapUsd"] = monthly_cap_usd
+        if shared is not UNSET:
+            field_dict["shared"] = shared
+        if per_user_hourly_cap_usd is not UNSET:
+            field_dict["perUserHourlyCapUsd"] = per_user_hourly_cap_usd
+        if per_user_daily_cap_usd is not UNSET:
+            field_dict["perUserDailyCapUsd"] = per_user_daily_cap_usd
+        if per_user_monthly_cap_usd is not UNSET:
+            field_dict["perUserMonthlyCapUsd"] = per_user_monthly_cap_usd
 
         return field_dict
 
@@ -311,6 +365,41 @@ class LlmProviderInput:
 
         monthly_cap_usd = _parse_monthly_cap_usd(d.pop("monthlyCapUsd", UNSET))
 
+        shared = d.pop("shared", UNSET)
+
+        def _parse_per_user_hourly_cap_usd(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        per_user_hourly_cap_usd = _parse_per_user_hourly_cap_usd(
+            d.pop("perUserHourlyCapUsd", UNSET)
+        )
+
+        def _parse_per_user_daily_cap_usd(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        per_user_daily_cap_usd = _parse_per_user_daily_cap_usd(
+            d.pop("perUserDailyCapUsd", UNSET)
+        )
+
+        def _parse_per_user_monthly_cap_usd(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        per_user_monthly_cap_usd = _parse_per_user_monthly_cap_usd(
+            d.pop("perUserMonthlyCapUsd", UNSET)
+        )
+
         llm_provider_input = cls(
             id=id,
             type_=type_,
@@ -328,6 +417,10 @@ class LlmProviderInput:
             hourly_cap_usd=hourly_cap_usd,
             daily_cap_usd=daily_cap_usd,
             monthly_cap_usd=monthly_cap_usd,
+            shared=shared,
+            per_user_hourly_cap_usd=per_user_hourly_cap_usd,
+            per_user_daily_cap_usd=per_user_daily_cap_usd,
+            per_user_monthly_cap_usd=per_user_monthly_cap_usd,
         )
 
         llm_provider_input.additional_properties = d

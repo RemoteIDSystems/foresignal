@@ -66,6 +66,9 @@ def sync_detailed(
 
     **Scope:** `read`.
 
+    **v2.0:** for a session principal this additionally reflects the authenticated user and their
+    effective permissions (the union of the user's roles). Response shape is unchanged (additive).
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
@@ -94,6 +97,9 @@ def sync(
 
     **Scope:** `read`.
 
+    **v2.0:** for a session principal this additionally reflects the authenticated user and their
+    effective permissions (the union of the user's roles). Response shape is unchanged (additive).
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
@@ -117,6 +123,9 @@ async def asyncio_detailed(
     preferences.
 
     **Scope:** `read`.
+
+    **v2.0:** for a session principal this additionally reflects the authenticated user and their
+    effective permissions (the union of the user's roles). Response shape is unchanged (additive).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -143,6 +152,9 @@ async def asyncio(
     preferences.
 
     **Scope:** `read`.
+
+    **v2.0:** for a session principal this additionally reflects the authenticated user and their
+    effective permissions (the union of the user's roles). Response shape is unchanged (additive).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

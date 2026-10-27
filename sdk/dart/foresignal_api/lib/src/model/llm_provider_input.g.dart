@@ -39,6 +39,14 @@ abstract class _$LlmProviderInputCWProxy {
 
   LlmProviderInput monthlyCapUsd(num? monthlyCapUsd);
 
+  LlmProviderInput shared(bool? shared);
+
+  LlmProviderInput perUserHourlyCapUsd(num? perUserHourlyCapUsd);
+
+  LlmProviderInput perUserDailyCapUsd(num? perUserDailyCapUsd);
+
+  LlmProviderInput perUserMonthlyCapUsd(num? perUserMonthlyCapUsd);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `LlmProviderInput(...).copyWith.fieldName(value)`.
@@ -64,6 +72,10 @@ abstract class _$LlmProviderInputCWProxy {
     num? hourlyCapUsd,
     num? dailyCapUsd,
     num? monthlyCapUsd,
+    bool? shared,
+    num? perUserHourlyCapUsd,
+    num? perUserDailyCapUsd,
+    num? perUserMonthlyCapUsd,
   });
 }
 
@@ -131,6 +143,21 @@ class _$LlmProviderInputCWProxyImpl implements _$LlmProviderInputCWProxy {
   LlmProviderInput monthlyCapUsd(num? monthlyCapUsd) =>
       call(monthlyCapUsd: monthlyCapUsd);
 
+  @override
+  LlmProviderInput shared(bool? shared) => call(shared: shared);
+
+  @override
+  LlmProviderInput perUserHourlyCapUsd(num? perUserHourlyCapUsd) =>
+      call(perUserHourlyCapUsd: perUserHourlyCapUsd);
+
+  @override
+  LlmProviderInput perUserDailyCapUsd(num? perUserDailyCapUsd) =>
+      call(perUserDailyCapUsd: perUserDailyCapUsd);
+
+  @override
+  LlmProviderInput perUserMonthlyCapUsd(num? perUserMonthlyCapUsd) =>
+      call(perUserMonthlyCapUsd: perUserMonthlyCapUsd);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `LlmProviderInput(...).copyWith.fieldName(value)`.
@@ -157,6 +184,10 @@ class _$LlmProviderInputCWProxyImpl implements _$LlmProviderInputCWProxy {
     Object? hourlyCapUsd = const $CopyWithPlaceholder(),
     Object? dailyCapUsd = const $CopyWithPlaceholder(),
     Object? monthlyCapUsd = const $CopyWithPlaceholder(),
+    Object? shared = const $CopyWithPlaceholder(),
+    Object? perUserHourlyCapUsd = const $CopyWithPlaceholder(),
+    Object? perUserDailyCapUsd = const $CopyWithPlaceholder(),
+    Object? perUserMonthlyCapUsd = const $CopyWithPlaceholder(),
   }) {
     return LlmProviderInput(
       id: id == const $CopyWithPlaceholder() || id == null
@@ -223,6 +254,22 @@ class _$LlmProviderInputCWProxyImpl implements _$LlmProviderInputCWProxy {
           ? _value.monthlyCapUsd
           // ignore: cast_nullable_to_non_nullable
           : monthlyCapUsd as num?,
+      shared: shared == const $CopyWithPlaceholder()
+          ? _value.shared
+          // ignore: cast_nullable_to_non_nullable
+          : shared as bool?,
+      perUserHourlyCapUsd: perUserHourlyCapUsd == const $CopyWithPlaceholder()
+          ? _value.perUserHourlyCapUsd
+          // ignore: cast_nullable_to_non_nullable
+          : perUserHourlyCapUsd as num?,
+      perUserDailyCapUsd: perUserDailyCapUsd == const $CopyWithPlaceholder()
+          ? _value.perUserDailyCapUsd
+          // ignore: cast_nullable_to_non_nullable
+          : perUserDailyCapUsd as num?,
+      perUserMonthlyCapUsd: perUserMonthlyCapUsd == const $CopyWithPlaceholder()
+          ? _value.perUserMonthlyCapUsd
+          // ignore: cast_nullable_to_non_nullable
+          : perUserMonthlyCapUsd as num?,
     );
   }
 }
@@ -282,6 +329,19 @@ LlmProviderInput _$LlmProviderInputFromJson(Map<String, dynamic> json) =>
         hourlyCapUsd: $checkedConvert('hourlyCapUsd', (v) => v as num?),
         dailyCapUsd: $checkedConvert('dailyCapUsd', (v) => v as num?),
         monthlyCapUsd: $checkedConvert('monthlyCapUsd', (v) => v as num?),
+        shared: $checkedConvert('shared', (v) => v as bool?),
+        perUserHourlyCapUsd: $checkedConvert(
+          'perUserHourlyCapUsd',
+          (v) => v as num?,
+        ),
+        perUserDailyCapUsd: $checkedConvert(
+          'perUserDailyCapUsd',
+          (v) => v as num?,
+        ),
+        perUserMonthlyCapUsd: $checkedConvert(
+          'perUserMonthlyCapUsd',
+          (v) => v as num?,
+        ),
       );
       return val;
     });
@@ -304,6 +364,10 @@ Map<String, dynamic> _$LlmProviderInputToJson(LlmProviderInput instance) =>
       'hourlyCapUsd': ?instance.hourlyCapUsd,
       'dailyCapUsd': ?instance.dailyCapUsd,
       'monthlyCapUsd': ?instance.monthlyCapUsd,
+      'shared': ?instance.shared,
+      'perUserHourlyCapUsd': ?instance.perUserHourlyCapUsd,
+      'perUserDailyCapUsd': ?instance.perUserDailyCapUsd,
+      'perUserMonthlyCapUsd': ?instance.perUserMonthlyCapUsd,
     };
 
 const _$LlmProviderInputTypeEnumEnumMap = {

@@ -230,7 +230,7 @@ _responseData = rawData == null ? null : deserialize<SampleResponse, SampleRespo
   }
 
   /// Compute area statistics
-  /// min, max, mean, p95, coverage and the area above each threshold (spherical cell areas per grid type) over a geometry, place or bbox. Geometry ≤ 10,000 vertices and area ≤ 2,000,000 km² (400 VALIDATION_FAILED beyond). Thresholds are given in the requested unit system. A cell belongs to the area when its center lies inside; &#x60;coveragePct&#x60; is the share of those cells holding a value. A non-ok status (unavailable, no-coverage, stale) carries no statistics (&#x60;min&#x60;…&#x60;p95&#x60; null, &#x60;thresholds&#x60; empty).  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// min, max, mean, p95, coverage and the area above each threshold (spherical cell areas per grid type) over a geometry, place or bbox. Geometry ≤ 10,000 vertices and area ≤ 2,000,000 km² (400 VALIDATION_FAILED beyond). Thresholds are given in the requested unit system. A cell belongs to the area when its center lies inside; &#x60;coveragePct&#x60; is the share of those cells holding a value. A non-ok status (unavailable, no-coverage, stale) carries no statistics (&#x60;min&#x60;…&#x60;p95&#x60; null, &#x60;thresholds&#x60; empty).  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).  **v2.0 (R2-013):** a signed-in user needs &#x60;data.read&#x60; (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (&#x60;User.dataRestriction&#x60;) and source view. API tokens keep their scope rules.
   ///
   /// Parameters:
   /// * [productId] - Product id (kebab-case; `timeline` and `loop` are reserved)
@@ -329,7 +329,7 @@ _responseData = rawData == null ? null : deserialize<StatsResponse, StatsRespons
   }
 
   /// Sample products at many points
-  /// Batch form of &#x60;GET /v1/sample&#x60; for up to 100 points (400 VALIDATION_FAILED beyond); results are in request order.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// Batch form of &#x60;GET /v1/sample&#x60; for up to 100 points (400 VALIDATION_FAILED beyond); results are in request order.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).  **v2.0 (R2-013):** a signed-in user needs &#x60;data.read&#x60; (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (&#x60;User.dataRestriction&#x60;) and source view. API tokens keep their scope rules.
   ///
   /// Parameters:
   /// * [sampleRequest] 
@@ -426,7 +426,7 @@ _responseData = rawData == null ? null : deserialize<SampleBatchResponse, Sample
   }
 
   /// Sample products along a track
-  /// Samples each point at its time using the nearest frame within &#x60;maxGap&#x60;, or forecast frames for future times with &#x60;run&#x60;. With &#x60;record&#x60;, points come from the 037 track simplification. Private sources and observer gating apply.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// Samples each point at its time using the nearest frame within &#x60;maxGap&#x60;, or forecast frames for future times with &#x60;run&#x60;. With &#x60;record&#x60;, points come from the 037 track simplification. Private sources and observer gating apply.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).  **v2.0 (R2-013):** a signed-in user needs &#x60;data.read&#x60; (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (&#x60;User.dataRestriction&#x60;) and source view. API tokens keep their scope rules.
   ///
   /// Parameters:
   /// * [sampleTrackRequest] 

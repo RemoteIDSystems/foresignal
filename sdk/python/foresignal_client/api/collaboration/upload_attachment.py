@@ -48,6 +48,11 @@ def _parse_response(
 
         return response_401
 
+    if response.status_code == 409:
+        response_409 = Problem.from_dict(response.json())
+
+        return response_409
+
     if response.status_code == 413:
         response_413 = Problem.from_dict(response.json())
 
@@ -90,6 +95,8 @@ def sync_detailed(
      Multipart upload (≤ `collab.maxUploadMb`, default 50). Allowed: images (through 043 ImageGuard; EXIF
     stripped unless `collab.keepExif`), PDF, plain text, CSV, JSON, GeoJSON, KML, Markdown. Stored
     content-addressed (dedup by sha256); text is extracted for search. Files are data, never executed.
+    The bytes it adds count against the `maxStorageBytes` quota of the uploader (409 QUOTA_EXCEEDED,
+    R2-026).
 
     **Scope:** `read`.
 
@@ -125,6 +132,8 @@ def sync(
      Multipart upload (≤ `collab.maxUploadMb`, default 50). Allowed: images (through 043 ImageGuard; EXIF
     stripped unless `collab.keepExif`), PDF, plain text, CSV, JSON, GeoJSON, KML, Markdown. Stored
     content-addressed (dedup by sha256); text is extracted for search. Files are data, never executed.
+    The bytes it adds count against the `maxStorageBytes` quota of the uploader (409 QUOTA_EXCEEDED,
+    R2-026).
 
     **Scope:** `read`.
 
@@ -155,6 +164,8 @@ async def asyncio_detailed(
      Multipart upload (≤ `collab.maxUploadMb`, default 50). Allowed: images (through 043 ImageGuard; EXIF
     stripped unless `collab.keepExif`), PDF, plain text, CSV, JSON, GeoJSON, KML, Markdown. Stored
     content-addressed (dedup by sha256); text is extracted for search. Files are data, never executed.
+    The bytes it adds count against the `maxStorageBytes` quota of the uploader (409 QUOTA_EXCEEDED,
+    R2-026).
 
     **Scope:** `read`.
 
@@ -188,6 +199,8 @@ async def asyncio(
      Multipart upload (≤ `collab.maxUploadMb`, default 50). Allowed: images (through 043 ImageGuard; EXIF
     stripped unless `collab.keepExif`), PDF, plain text, CSV, JSON, GeoJSON, KML, Markdown. Stored
     content-addressed (dedup by sha256); text is extracted for search. Files are data, never executed.
+    The bytes it adds count against the `maxStorageBytes` quota of the uploader (409 QUOTA_EXCEEDED,
+    R2-026).
 
     **Scope:** `read`.
 

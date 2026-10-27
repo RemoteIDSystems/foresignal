@@ -92,6 +92,10 @@ def sync_detailed(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
+
     Args:
         body (SampleRequest): Batch point sample (≤ 100 points)
 
@@ -126,6 +130,10 @@ def sync(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
+
     Args:
         body (SampleRequest): Batch point sample (≤ 100 points)
 
@@ -154,6 +162,10 @@ async def asyncio_detailed(
     request order.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         body (SampleRequest): Batch point sample (≤ 100 points)
@@ -186,6 +198,10 @@ async def asyncio(
     request order.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         body (SampleRequest): Batch point sample (≤ 100 points)

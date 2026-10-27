@@ -29,6 +29,10 @@ class ClientLinks {
      this.pair = 'foresignal://pair?u={publicBaseUrl}&c={code}',
 
      this.share,
+
+     this.activate = 'foresignal://activate?u={publicBaseUrl}&t={token}',
+
+     this.passwordReset = 'foresignal://reset-password?u={publicBaseUrl}&t={token}',
   });
 
   @JsonKey(
@@ -92,6 +96,32 @@ class ClientLinks {
 
 
 
+      /// The account activation link of the welcome email (R2-007); placeholders {publicBaseUrl} and {token}
+  @JsonKey(
+    defaultValue: 'foresignal://activate?u={publicBaseUrl}&t={token}',
+    name: r'activate',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? activate;
+
+
+
+      /// The password reset link of the reset email (R2-007); placeholders {publicBaseUrl} and {token}
+  @JsonKey(
+    defaultValue: 'foresignal://reset-password?u={publicBaseUrl}&t={token}',
+    name: r'passwordReset',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? passwordReset;
+
+
+
 
 
     @override
@@ -100,7 +130,9 @@ class ClientLinks {
       other.record == record &&
       other.briefingRun == briefingRun &&
       other.pair == pair &&
-      other.share == share;
+      other.share == share &&
+      other.activate == activate &&
+      other.passwordReset == passwordReset;
 
     @override
     int get hashCode =>
@@ -108,7 +140,9 @@ class ClientLinks {
         record.hashCode +
         briefingRun.hashCode +
         pair.hashCode +
-        (share == null ? 0 : share.hashCode);
+        (share == null ? 0 : share.hashCode) +
+        activate.hashCode +
+        passwordReset.hashCode;
 
   factory ClientLinks.fromJson(Map<String, dynamic> json) => _$ClientLinksFromJson(json);
 

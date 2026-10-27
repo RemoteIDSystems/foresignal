@@ -100,3 +100,26 @@ POST /v1/reports removed `subschema #1, subschema #2, subschema #3, subschema #4
 POST /v1/reports/draft added `subschema #1, subschema #2, subschema #3, subschema #4, subschema #5, subschema #6, subschema #7, subschema #8, subschema #9, subschema #10, subschema #11` to the `blocks/items/` response property `oneOf` list for the response status `201`
 POST /v1/reports/{reportId}/blocks added `subschema #1, subschema #2, subschema #3, subschema #4, subschema #5, subschema #6, subschema #7, subschema #8, subschema #9, subschema #10, subschema #11` to the response body `oneOf` list for the response status `201`
 POST /v1/reports/{reportId}/blocks removed `subschema #1, subschema #2, subschema #3, subschema #4, subschema #5, subschema #6, subschema #7, subschema #8, subschema #9, subschema #10, subschema #11` from the request body `oneOf` list
+
+# --- BREAKING, accepted for API 2.0.0: the multi-user platform (prompt R2-027) -----------------------------------
+# Release 2 is a major version. The changes oasdiff can see are three value lists that gained a value with a feature;
+# a client that switches exhaustively over the v1 values meets a value it does not know.
+# AuditEvent.actorKind gains `user`: a request made by a signed-in user (R2-013).
+GET /v1/audit added the new `user` enum value to the `items/items/actorKind` response property for the response status `200`
+# ArchiveSettings.target gains `glacier`: S3 with an archival storage class (R2-016).
+GET /v1/settings/archive added the new `glacier` enum value to the `target` response property for the response status `200`
+PUT /v1/settings/archive added the new `glacier` enum value to the `target` response property for the response status `200`
+# ApiToken.createdVia gains `self`: a token a signed-in user minted for themselves (R2-025).
+GET /v1/tokens added the new `self` enum value to the `items/createdVia` response property for the response status `200`
+PATCH /v1/tokens/{tokenId} added the new `self` enum value to the `createdVia` response property for the response status `200`
+PUT /v1/tokens/current/device added the new `self` enum value to the `createdVia` response property for the response status `200`
+#
+# Breaks no schema shows, so oasdiff cannot list them, recorded here so the 2.0.0 break is documented in one place:
+# - Trigger rules, notification channels, saved views, LLM providers and workspaces gained an owner (R2-008, R2-009,
+#   R2-011, R2-012). Rules, channels and views a signed-in user creates are that user's; one an API token creates is
+#   shared, as before. A user's own rule alerts only that user's channels and the global channels that name it.
+# - A signed-in user's reads are narrowed by their source view and data restriction (R2-010, R2-013), and alerts of
+#   another user's rules are not listed to them unless they hold users.manage.
+# - Sessions are gated by role permissions (R2-004), Admin and Operator sessions by MFA enrollment (R2-024), and a
+#   user's own API tokens by the user's current roles (R2-025). API tokens not owned by a user keep their scope rules.
+# - Per-user quotas (R2-026) can refuse a create (409 QUOTA_EXCEEDED) or a request (429) that v1 accepted.

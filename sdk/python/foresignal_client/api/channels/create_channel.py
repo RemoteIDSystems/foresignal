@@ -47,6 +47,11 @@ def _parse_response(
 
         return response_403
 
+    if response.status_code == 409:
+        response_409 = Problem.from_dict(response.json())
+
+        return response_409
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -71,9 +76,22 @@ def sync_detailed(
 ) -> Response[Problem]:
     """Create a notification channel
 
-     Create a notification channel
+     Create a notification channel A signed-in user creating a personal channel is refused past their
+    `maxChannels` quota (409 QUOTA_EXCEEDED, R2-026).
 
     **Scope:** `admin`.
+
+    **v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's
+    principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in
+    user reaches these operations with `self.channels` or `channels.global`: they see their own channels
+    and the global ones, manage their own, and manage global channels only with `channels.global`
+    (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown
+    one. A session holding `users.manage` and every API token see and manage all channels. On create,
+    `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone
+    else a global one; an API token always creates global channels. A user's alerts go to their own
+    channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic
+    change from the single-operator v1.x behavior; the shapes are unchanged except the additive
+    `ownerPrincipalId` and `global`.
 
     Args:
         body (ChannelInput):
@@ -104,9 +122,22 @@ def sync(
 ) -> Problem | None:
     """Create a notification channel
 
-     Create a notification channel
+     Create a notification channel A signed-in user creating a personal channel is refused past their
+    `maxChannels` quota (409 QUOTA_EXCEEDED, R2-026).
 
     **Scope:** `admin`.
+
+    **v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's
+    principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in
+    user reaches these operations with `self.channels` or `channels.global`: they see their own channels
+    and the global ones, manage their own, and manage global channels only with `channels.global`
+    (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown
+    one. A session holding `users.manage` and every API token see and manage all channels. On create,
+    `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone
+    else a global one; an API token always creates global channels. A user's alerts go to their own
+    channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic
+    change from the single-operator v1.x behavior; the shapes are unchanged except the additive
+    `ownerPrincipalId` and `global`.
 
     Args:
         body (ChannelInput):
@@ -132,9 +163,22 @@ async def asyncio_detailed(
 ) -> Response[Problem]:
     """Create a notification channel
 
-     Create a notification channel
+     Create a notification channel A signed-in user creating a personal channel is refused past their
+    `maxChannels` quota (409 QUOTA_EXCEEDED, R2-026).
 
     **Scope:** `admin`.
+
+    **v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's
+    principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in
+    user reaches these operations with `self.channels` or `channels.global`: they see their own channels
+    and the global ones, manage their own, and manage global channels only with `channels.global`
+    (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown
+    one. A session holding `users.manage` and every API token see and manage all channels. On create,
+    `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone
+    else a global one; an API token always creates global channels. A user's alerts go to their own
+    channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic
+    change from the single-operator v1.x behavior; the shapes are unchanged except the additive
+    `ownerPrincipalId` and `global`.
 
     Args:
         body (ChannelInput):
@@ -163,9 +207,22 @@ async def asyncio(
 ) -> Problem | None:
     """Create a notification channel
 
-     Create a notification channel
+     Create a notification channel A signed-in user creating a personal channel is refused past their
+    `maxChannels` quota (409 QUOTA_EXCEEDED, R2-026).
 
     **Scope:** `admin`.
+
+    **v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's
+    principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in
+    user reaches these operations with `self.channels` or `channels.global`: they see their own channels
+    and the global ones, manage their own, and manage global channels only with `channels.global`
+    (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown
+    one. A session holding `users.manage` and every API token see and manage all channels. On create,
+    `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone
+    else a global one; an API token always creates global channels. A user's alerts go to their own
+    channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic
+    change from the single-operator v1.x behavior; the shapes are unchanged except the additive
+    `ownerPrincipalId` and `global`.
 
     Args:
         body (ChannelInput):

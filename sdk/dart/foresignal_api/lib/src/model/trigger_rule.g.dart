@@ -111,6 +111,8 @@ abstract class _$TriggerRuleCWProxy {
 
   TriggerRule windowStatus(WindowStatus? windowStatus);
 
+  TriggerRule ownerPrincipalId(String? ownerPrincipalId);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `TriggerRule(...).copyWith.fieldName(value)`.
@@ -171,6 +173,7 @@ abstract class _$TriggerRuleCWProxy {
     TriggerRuleGeofenceOriginEnum? geofenceOrigin,
     TriggerRuleAnchorStatusEnum? anchorStatus,
     WindowStatus? windowStatus,
+    String? ownerPrincipalId,
   });
 }
 
@@ -366,6 +369,10 @@ class _$TriggerRuleCWProxyImpl implements _$TriggerRuleCWProxy {
   TriggerRule windowStatus(WindowStatus? windowStatus) =>
       call(windowStatus: windowStatus);
 
+  @override
+  TriggerRule ownerPrincipalId(String? ownerPrincipalId) =>
+      call(ownerPrincipalId: ownerPrincipalId);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `TriggerRule(...).copyWith.fieldName(value)`.
@@ -429,6 +436,7 @@ class _$TriggerRuleCWProxyImpl implements _$TriggerRuleCWProxy {
     Object? geofenceOrigin = const $CopyWithPlaceholder(),
     Object? anchorStatus = const $CopyWithPlaceholder(),
     Object? windowStatus = const $CopyWithPlaceholder(),
+    Object? ownerPrincipalId = const $CopyWithPlaceholder(),
   }) {
     return TriggerRule(
       name: name == const $CopyWithPlaceholder() || name == null
@@ -635,6 +643,10 @@ class _$TriggerRuleCWProxyImpl implements _$TriggerRuleCWProxy {
           ? _value.windowStatus
           // ignore: cast_nullable_to_non_nullable
           : windowStatus as WindowStatus?,
+      ownerPrincipalId: ownerPrincipalId == const $CopyWithPlaceholder()
+          ? _value.ownerPrincipalId
+          // ignore: cast_nullable_to_non_nullable
+          : ownerPrincipalId as String?,
     );
   }
 }
@@ -822,6 +834,7 @@ TriggerRule _$TriggerRuleFromJson(
       (v) =>
           v == null ? null : WindowStatus.fromJson(v as Map<String, dynamic>),
     ),
+    ownerPrincipalId: $checkedConvert('ownerPrincipalId', (v) => v as String?),
   );
   return val;
 }, fieldKeyMap: const {'source_': 'source'});
@@ -883,6 +896,7 @@ Map<String, dynamic> _$TriggerRuleToJson(
       ?_$TriggerRuleGeofenceOriginEnumEnumMap[instance.geofenceOrigin],
   'anchorStatus': ?_$TriggerRuleAnchorStatusEnumEnumMap[instance.anchorStatus],
   'windowStatus': ?instance.windowStatus?.toJson(),
+  'ownerPrincipalId': ?instance.ownerPrincipalId,
 };
 
 const _$TriggerRuleModeEnumEnumMap = {

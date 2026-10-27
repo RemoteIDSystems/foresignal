@@ -77,6 +77,8 @@ class Channel {
      this.language,
 
      this.ownerPrincipalId,
+
+     this.global,
   });
 
   @JsonKey(
@@ -406,7 +408,7 @@ class Channel {
 
 
 
-      /// Set for principal-owned channels created through notification preferences (130)
+      /// The principal of the user who owns this personal channel (R2-009); null for a global channel.
   @JsonKey(
     
     name: r'ownerPrincipalId',
@@ -416,6 +418,19 @@ class Channel {
 
 
   final String? ownerPrincipalId;
+
+
+
+      /// True for a global (instance-wide) channel, managed with `channels.global` (R2-009).
+  @JsonKey(
+    
+    name: r'global',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final bool? global;
 
 
 
@@ -449,7 +464,8 @@ class Channel {
       other.interactive == interactive &&
       other.acceptExercise == acceptExercise &&
       other.language == language &&
-      other.ownerPrincipalId == ownerPrincipalId;
+      other.ownerPrincipalId == ownerPrincipalId &&
+      other.global == global;
 
     @override
     int get hashCode =>
@@ -479,7 +495,8 @@ class Channel {
         (interactive == null ? 0 : interactive.hashCode) +
         acceptExercise.hashCode +
         (language == null ? 0 : language.hashCode) +
-        (ownerPrincipalId == null ? 0 : ownerPrincipalId.hashCode);
+        (ownerPrincipalId == null ? 0 : ownerPrincipalId.hashCode) +
+        global.hashCode;
 
   factory Channel.fromJson(Map<String, dynamic> json) => _$ChannelFromJson(json);
 

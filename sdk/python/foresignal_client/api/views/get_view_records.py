@@ -111,6 +111,16 @@ def sync_detailed(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from
+    before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning
+    user's principal). A signed-in user reaches the view operations with `self.views` (the reads also
+    with `data.read`): they list and render their own views and the shared ones, and create, replace and
+    delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an
+    unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED
+    otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs
+    stay unique across all views. The shapes change only by the additive read-only `shared` and
+    `ownerPrincipalId`.
+
     Args:
         view_id (str):
         format_ (GetViewRecordsFormat | Unset):
@@ -155,6 +165,16 @@ def sync(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from
+    before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning
+    user's principal). A signed-in user reaches the view operations with `self.views` (the reads also
+    with `data.read`): they list and render their own views and the shared ones, and create, replace and
+    delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an
+    unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED
+    otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs
+    stay unique across all views. The shapes change only by the additive read-only `shared` and
+    `ownerPrincipalId`.
+
     Args:
         view_id (str):
         format_ (GetViewRecordsFormat | Unset):
@@ -193,6 +213,16 @@ async def asyncio_detailed(
     watchlist, in which case a token is required (401).
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from
+    before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning
+    user's principal). A signed-in user reaches the view operations with `self.views` (the reads also
+    with `data.read`): they list and render their own views and the shared ones, and create, replace and
+    delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an
+    unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED
+    otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs
+    stay unique across all views. The shapes change only by the additive read-only `shared` and
+    `ownerPrincipalId`.
 
     Args:
         view_id (str):
@@ -235,6 +265,16 @@ async def asyncio(
     watchlist, in which case a token is required (401).
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from
+    before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning
+    user's principal). A signed-in user reaches the view operations with `self.views` (the reads also
+    with `data.read`): they list and render their own views and the shared ones, and create, replace and
+    delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an
+    unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED
+    otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs
+    stay unique across all views. The shapes change only by the additive read-only `shared` and
+    `ownerPrincipalId`.
 
     Args:
         view_id (str):

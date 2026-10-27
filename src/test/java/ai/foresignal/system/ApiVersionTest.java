@@ -19,7 +19,7 @@ import tools.jackson.databind.json.JsonMapper;
 class ApiVersionTest {
 
     /** The release this build is. */
-    static final String RELEASE = "1.5.0";
+    static final String RELEASE = "2.0.0";
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
 

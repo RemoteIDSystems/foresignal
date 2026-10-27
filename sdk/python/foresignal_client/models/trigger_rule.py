@@ -126,6 +126,8 @@ class TriggerRule:
         anchor_status (None | TriggerRuleAnchorStatusType1 | TriggerRuleAnchorStatusType2Type1 |
             TriggerRuleAnchorStatusType3Type1 | Unset): Moving-anchor state (036); stale suspends the rule (ANCHOR_STALE)
         window_status (None | Unset | WindowStatus): Windowed rules only
+        owner_principal_id (None | str | Unset): The principal of the user who owns the rule (R2-008); null for a shared
+            rule managed by an admin. Ignored on input.
     """
 
     name: str
@@ -189,6 +191,7 @@ class TriggerRule:
         | Unset
     ) = UNSET
     window_status: None | Unset | WindowStatus = UNSET
+    owner_principal_id: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -470,6 +473,12 @@ class TriggerRule:
         else:
             window_status = self.window_status
 
+        owner_principal_id: None | str | Unset
+        if isinstance(self.owner_principal_id, Unset):
+            owner_principal_id = UNSET
+        else:
+            owner_principal_id = self.owner_principal_id
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -574,6 +583,8 @@ class TriggerRule:
             field_dict["anchorStatus"] = anchor_status
         if window_status is not UNSET:
             field_dict["windowStatus"] = window_status
+        if owner_principal_id is not UNSET:
+            field_dict["ownerPrincipalId"] = owner_principal_id
 
         return field_dict
 
@@ -1116,6 +1127,15 @@ class TriggerRule:
 
         window_status = _parse_window_status(d.pop("windowStatus", UNSET))
 
+        def _parse_owner_principal_id(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        owner_principal_id = _parse_owner_principal_id(d.pop("ownerPrincipalId", UNSET))
+
         trigger_rule = cls(
             name=name,
             id=id,
@@ -1168,6 +1188,7 @@ class TriggerRule:
             geofence_origin=geofence_origin,
             anchor_status=anchor_status,
             window_status=window_status,
+            owner_principal_id=owner_principal_id,
         )
 
         trigger_rule.additional_properties = d

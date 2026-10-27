@@ -88,9 +88,20 @@ def sync_detailed(
     """Create a saved view
 
      Compiles the view to one `RecordPredicate` shared with rules (SQL and in-memory evaluation agree on
-    the operator truth table).
+    the operator truth table). A signed-in user creating their own view is refused past their
+    `maxSavedViews` quota (409 QUOTA_EXCEEDED, R2-026).
 
     **Scope:** `agent`.
+
+    **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from
+    before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning
+    user's principal). A signed-in user reaches the view operations with `self.views` (the reads also
+    with `data.read`): they list and render their own views and the shared ones, and create, replace and
+    delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an
+    unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED
+    otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs
+    stay unique across all views. The shapes change only by the additive read-only `shared` and
+    `ownerPrincipalId`.
 
     Args:
         body (SavedViewInput): Create or replace a saved view (036)
@@ -122,9 +133,20 @@ def sync(
     """Create a saved view
 
      Compiles the view to one `RecordPredicate` shared with rules (SQL and in-memory evaluation agree on
-    the operator truth table).
+    the operator truth table). A signed-in user creating their own view is refused past their
+    `maxSavedViews` quota (409 QUOTA_EXCEEDED, R2-026).
 
     **Scope:** `agent`.
+
+    **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from
+    before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning
+    user's principal). A signed-in user reaches the view operations with `self.views` (the reads also
+    with `data.read`): they list and render their own views and the shared ones, and create, replace and
+    delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an
+    unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED
+    otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs
+    stay unique across all views. The shapes change only by the additive read-only `shared` and
+    `ownerPrincipalId`.
 
     Args:
         body (SavedViewInput): Create or replace a saved view (036)
@@ -151,9 +173,20 @@ async def asyncio_detailed(
     """Create a saved view
 
      Compiles the view to one `RecordPredicate` shared with rules (SQL and in-memory evaluation agree on
-    the operator truth table).
+    the operator truth table). A signed-in user creating their own view is refused past their
+    `maxSavedViews` quota (409 QUOTA_EXCEEDED, R2-026).
 
     **Scope:** `agent`.
+
+    **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from
+    before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning
+    user's principal). A signed-in user reaches the view operations with `self.views` (the reads also
+    with `data.read`): they list and render their own views and the shared ones, and create, replace and
+    delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an
+    unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED
+    otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs
+    stay unique across all views. The shapes change only by the additive read-only `shared` and
+    `ownerPrincipalId`.
 
     Args:
         body (SavedViewInput): Create or replace a saved view (036)
@@ -183,9 +216,20 @@ async def asyncio(
     """Create a saved view
 
      Compiles the view to one `RecordPredicate` shared with rules (SQL and in-memory evaluation agree on
-    the operator truth table).
+    the operator truth table). A signed-in user creating their own view is refused past their
+    `maxSavedViews` quota (409 QUOTA_EXCEEDED, R2-026).
 
     **Scope:** `agent`.
+
+    **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from
+    before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning
+    user's principal). A signed-in user reaches the view operations with `self.views` (the reads also
+    with `data.read`): they list and render their own views and the shared ones, and create, replace and
+    delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an
+    unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED
+    otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs
+    stay unique across all views. The shapes change only by the additive read-only `shared` and
+    `ownerPrincipalId`.
 
     Args:
         body (SavedViewInput): Create or replace a saved view (036)

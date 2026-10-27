@@ -979,6 +979,12 @@ public final class ErrorCodes {
      */
     public static final String QUOTA_EXCEEDED = "QUOTA_EXCEEDED";
 
+    /**
+     * 409: first-run setup is refused because the instance is already set up: a user exists (R2-027,
+     * {@code runSetup}).
+     */
+    public static final String ALREADY_SETUP = "ALREADY_SETUP";
+
     /** 404: no session with that id belongs to the caller (R2-003, {@code revokeSession}). */
     public static final String UNKNOWN_SESSION = "UNKNOWN_SESSION";
 

@@ -71,6 +71,18 @@ def sync_detailed(
 
     **Scope:** `admin`.
 
+    **v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's
+    principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in
+    user reaches these operations with `self.channels` or `channels.global`: they see their own channels
+    and the global ones, manage their own, and manage global channels only with `channels.global`
+    (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown
+    one. A session holding `users.manage` and every API token see and manage all channels. On create,
+    `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone
+    else a global one; an API token always creates global channels. A user's alerts go to their own
+    channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic
+    change from the single-operator v1.x behavior; the shapes are unchanged except the additive
+    `ownerPrincipalId` and `global`.
+
     Args:
         channel_id (UUID):
 
@@ -104,6 +116,18 @@ def sync(
 
     **Scope:** `admin`.
 
+    **v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's
+    principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in
+    user reaches these operations with `self.channels` or `channels.global`: they see their own channels
+    and the global ones, manage their own, and manage global channels only with `channels.global`
+    (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown
+    one. A session holding `users.manage` and every API token see and manage all channels. On create,
+    `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone
+    else a global one; an API token always creates global channels. A user's alerts go to their own
+    channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic
+    change from the single-operator v1.x behavior; the shapes are unchanged except the additive
+    `ownerPrincipalId` and `global`.
+
     Args:
         channel_id (UUID):
 
@@ -131,6 +155,18 @@ async def asyncio_detailed(
      Get a channel
 
     **Scope:** `admin`.
+
+    **v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's
+    principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in
+    user reaches these operations with `self.channels` or `channels.global`: they see their own channels
+    and the global ones, manage their own, and manage global channels only with `channels.global`
+    (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown
+    one. A session holding `users.manage` and every API token see and manage all channels. On create,
+    `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone
+    else a global one; an API token always creates global channels. A user's alerts go to their own
+    channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic
+    change from the single-operator v1.x behavior; the shapes are unchanged except the additive
+    `ownerPrincipalId` and `global`.
 
     Args:
         channel_id (UUID):
@@ -162,6 +198,18 @@ async def asyncio(
      Get a channel
 
     **Scope:** `admin`.
+
+    **v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's
+    principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in
+    user reaches these operations with `self.channels` or `channels.global`: they see their own channels
+    and the global ones, manage their own, and manage global channels only with `channels.global`
+    (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown
+    one. A session holding `users.manage` and every API token see and manage all channels. On create,
+    `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone
+    else a global one; an API token always creates global channels. A user's alerts go to their own
+    channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic
+    change from the single-operator v1.x behavior; the shapes are unchanged except the additive
+    `ownerPrincipalId` and `global`.
 
     Args:
         channel_id (UUID):

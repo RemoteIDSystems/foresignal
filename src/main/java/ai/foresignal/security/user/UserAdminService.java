@@ -293,6 +293,52 @@ public class UserAdminService {
     }
 
     /**
+     * Creates the first admin at first-run setup ({@code runSetup}, prompt R2-027): active at once, with the password
+     * checked against the policy and the built-in Admin role, and no activation link. Holds the same advisory lock as
+     * the last-admin guard and refuses once any user exists, so two setups racing cannot both create one.
+     *
+     * @param email the email; normalized
+     * @param fullName the full name
+     * @param password the password; never logged
+     * @param remoteIp the caller's address, for the audit log
+     * @return the new user
+     * @throws ValidationException {@code 400} for a bad email, name or password ({@code PASSWORD_POLICY})
+     * @throws ConflictException {@code 409 ALREADY_SETUP} once any user exists
+     */
+    @Transactional
+    public UserEntity createFirstAdmin(String email, String fullName, String password, String remoteIp) {
+        String normalized = validEmail(email, "admin.email");
+        if (fullName == null || fullName.isBlank()) {
+            throw ValidationException.forField("admin.fullName", "is required");
+        }
+        String name = fullName.strip();
+        if (name.length() > FULL_NAME_LENGTH) {
+            throw ValidationException.forField("admin.fullName", "is longer than " + FULL_NAME_LENGTH + " characters");
+        }
+        if (password == null || password.isEmpty()) {
+            throw ValidationException.forField("admin.password", "is required");
+        }
+        lock();
+        if (users.count() > 0) {
+            throw new ConflictException(ErrorCodes.ALREADY_SETUP,
+                    "This instance is already set up: a user exists. Sign in, or ask an admin for an account.");
+        }
+        Instant now = clock.instant();
+        UserEntity user = new UserEntity(UUID.randomUUID(), normalized, name,
+                principals.createFor(normalized, PrincipalKind.PERSON).getId(), null, now);
+        users.saveAndFlush(user);
+        lifecycle.setPassword(user, password, "admin.password");
+        lifecycle.activate(user);
+        userRoles.saveAndFlush(new UserRoleEntity(user.getId(), BuiltInRole.ADMIN.id()));
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("event", "first_admin_created");
+        detail.put("email", normalized);
+        audit.record(new AuditRecord(now, AuditRecord.SYSTEM, null, null, null, null, "POST", null, "runSetup", 200,
+                "users", user.getId().toString(), remoteIp, detail));
+        return user;
+    }
+
+    /**
      * Updates a user's full name and email ({@code updateUser}); a null field is left as it is. Never touches the
      * password, roles or status.
      *

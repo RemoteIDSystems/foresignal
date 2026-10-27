@@ -258,7 +258,7 @@ _responseData = rawData == null ? null : deserialize<Place, Place>(rawData, 'Pla
   }
 
   /// Get weather at a place
-  /// The &#x60;place-weather&#x60; record (wx-places head) plus cached forecast series (GFS/HRRR, NWS from 053). Sections that are stale, failing or without coverage keep their previous values with a non-ok status; unknown is never clear.  **Scope:** &#x60;read&#x60; (always authenticated).
+  /// The &#x60;place-weather&#x60; record (wx-places head) plus cached forecast series (GFS/HRRR, NWS from 053). Sections that are stale, failing or without coverage keep their previous values with a non-ok status; unknown is never clear.  **Scope:** &#x60;read&#x60; (always authenticated).  **v2.0 (R2-013):** a signed-in user needs &#x60;data.read&#x60; (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (&#x60;User.dataRestriction&#x60;) and source view. API tokens keep their scope rules.
   ///
   /// Parameters:
   /// * [placeId] - Place id (slug)

@@ -79,6 +79,14 @@ def sync_detailed(
 
     **Scope:** `read` (token required).
 
+    **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it,
+    which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-
+    in user reaches the workspace operations with `self.workspaces`; every operation except
+    createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces
+    can still open the ones shared with them. Who may read, edit, share and delete one workspace is
+    unchanged: ownership, membership and access-list grants decide. When a user is deleted their
+    workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
+
     Args:
         workspace_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
 
@@ -112,6 +120,14 @@ def sync(
 
     **Scope:** `read` (token required).
 
+    **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it,
+    which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-
+    in user reaches the workspace operations with `self.workspaces`; every operation except
+    createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces
+    can still open the ones shared with them. Who may read, edit, share and delete one workspace is
+    unchanged: ownership, membership and access-list grants decide. When a user is deleted their
+    workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
+
     Args:
         workspace_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
 
@@ -139,6 +155,14 @@ async def asyncio_detailed(
      Deletes the workspace (owner or admin).
 
     **Scope:** `read` (token required).
+
+    **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it,
+    which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-
+    in user reaches the workspace operations with `self.workspaces`; every operation except
+    createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces
+    can still open the ones shared with them. Who may read, edit, share and delete one workspace is
+    unchanged: ownership, membership and access-list grants decide. When a user is deleted their
+    workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
 
     Args:
         workspace_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
@@ -170,6 +194,14 @@ async def asyncio(
      Deletes the workspace (owner or admin).
 
     **Scope:** `read` (token required).
+
+    **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it,
+    which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-
+    in user reaches the workspace operations with `self.workspaces`; every operation except
+    createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces
+    can still open the ones shared with them. Who may read, edit, share and delete one workspace is
+    unchanged: ownership, membership and access-list grants decide. When a user is deleted their
+    workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
 
     Args:
         workspace_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.

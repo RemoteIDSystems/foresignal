@@ -65,6 +65,9 @@ class ChannelInput:
             title and body are translated through the 026 chat role (budget `translate`, low effort), code spans, URLs and
             placeholders untouched, cached 24 h; after 8 s, or on any failure, the original is sent with the title prefixed
             `[untranslated]`.
+        global_ (bool | None | Unset): On create only (R2-009): true for a global channel (needs `channels.global`),
+            false for a personal one (needs `self.channels`). Absent, a user holding `self.channels` gets a personal channel
+            and anyone else a global one; an API token always creates global channels. Ignored on update.
     """
 
     name: str
@@ -86,6 +89,7 @@ class ChannelInput:
     defer_while_active_seconds: int | Unset = 0
     accept_exercise: bool | Unset = False
     language: None | str | Unset = UNSET
+    global_: bool | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -172,6 +176,12 @@ class ChannelInput:
         else:
             language = self.language
 
+        global_: bool | None | Unset
+        if isinstance(self.global_, Unset):
+            global_ = UNSET
+        else:
+            global_ = self.global_
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -214,6 +224,8 @@ class ChannelInput:
             field_dict["acceptExercise"] = accept_exercise
         if language is not UNSET:
             field_dict["language"] = language
+        if global_ is not UNSET:
+            field_dict["global"] = global_
 
         return field_dict
 
@@ -347,6 +359,15 @@ class ChannelInput:
 
         language = _parse_language(d.pop("language", UNSET))
 
+        def _parse_global_(data: object) -> bool | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(bool | None | Unset, data)
+
+        global_ = _parse_global_(d.pop("global", UNSET))
+
         channel_input = cls(
             name=name,
             type_=type_,
@@ -367,6 +388,7 @@ class ChannelInput:
             defer_while_active_seconds=defer_while_active_seconds,
             accept_exercise=accept_exercise,
             language=language,
+            global_=global_,
         )
 
         channel_input.additional_properties = d

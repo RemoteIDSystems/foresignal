@@ -61,6 +61,8 @@ abstract class _$ChannelCWProxy {
 
   Channel ownerPrincipalId(String? ownerPrincipalId);
 
+  Channel global(bool? global);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `Channel(...).copyWith.fieldName(value)`.
@@ -97,6 +99,7 @@ abstract class _$ChannelCWProxy {
     bool? acceptExercise,
     String? language,
     String? ownerPrincipalId,
+    bool? global,
   });
 }
 
@@ -201,6 +204,9 @@ class _$ChannelCWProxyImpl implements _$ChannelCWProxy {
   Channel ownerPrincipalId(String? ownerPrincipalId) =>
       call(ownerPrincipalId: ownerPrincipalId);
 
+  @override
+  Channel global(bool? global) => call(global: global);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `Channel(...).copyWith.fieldName(value)`.
@@ -238,6 +244,7 @@ class _$ChannelCWProxyImpl implements _$ChannelCWProxy {
     Object? acceptExercise = const $CopyWithPlaceholder(),
     Object? language = const $CopyWithPlaceholder(),
     Object? ownerPrincipalId = const $CopyWithPlaceholder(),
+    Object? global = const $CopyWithPlaceholder(),
   }) {
     return Channel(
       id: id == const $CopyWithPlaceholder() || id == null
@@ -350,6 +357,10 @@ class _$ChannelCWProxyImpl implements _$ChannelCWProxy {
           ? _value.ownerPrincipalId
           // ignore: cast_nullable_to_non_nullable
           : ownerPrincipalId as String?,
+      global: global == const $CopyWithPlaceholder()
+          ? _value.global
+          // ignore: cast_nullable_to_non_nullable
+          : global as bool?,
     );
   }
 }
@@ -460,6 +471,7 @@ Channel _$ChannelFromJson(
     ),
     language: $checkedConvert('language', (v) => v as String?),
     ownerPrincipalId: $checkedConvert('ownerPrincipalId', (v) => v as String?),
+    global: $checkedConvert('global', (v) => v as bool?),
   );
   return val;
 });
@@ -492,6 +504,7 @@ Map<String, dynamic> _$ChannelToJson(Channel instance) => <String, dynamic>{
   'acceptExercise': ?instance.acceptExercise,
   'language': ?instance.language,
   'ownerPrincipalId': ?instance.ownerPrincipalId,
+  'global': ?instance.global,
 };
 
 const _$ChannelTypeEnumEnumMap = {

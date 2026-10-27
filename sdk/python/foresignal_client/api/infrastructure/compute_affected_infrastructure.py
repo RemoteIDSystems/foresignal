@@ -48,6 +48,11 @@ def _parse_response(
 
         return response_401
 
+    if response.status_code == 403:
+        response_403 = Problem.from_dict(response.json())
+
+        return response_403
+
     if response.status_code == 404:
         response_404 = Problem.from_dict(response.json())
 
@@ -93,6 +98,10 @@ def sync_detailed(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
+
     Args:
         body (InfraImpactRequest): Affected-dependents query: exactly one of geometry, eventId or
             record
@@ -129,6 +138,10 @@ def sync(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
+
     Args:
         body (InfraImpactRequest): Affected-dependents query: exactly one of geometry, eventId or
             record
@@ -159,6 +172,10 @@ async def asyncio_detailed(
     INFRA_QUERY_TOO_LARGE.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         body (InfraImpactRequest): Affected-dependents query: exactly one of geometry, eventId or
@@ -193,6 +210,10 @@ async def asyncio(
     INFRA_QUERY_TOO_LARGE.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         body (InfraImpactRequest): Affected-dependents query: exactly one of geometry, eventId or

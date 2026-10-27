@@ -48,6 +48,11 @@ def _parse_response(
 
         return response_401
 
+    if response.status_code == 403:
+        response_403 = Problem.from_dict(response.json())
+
+        return response_403
+
     if response.status_code == 404:
         response_404 = Problem.from_dict(response.json())
 
@@ -92,6 +97,10 @@ def sync_detailed(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
+
     Args:
         body (CpaBatchRequest): One subject against up to 500 records from a filter (114)
 
@@ -126,6 +135,10 @@ def sync(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
+
     Args:
         body (CpaBatchRequest): One subject against up to 500 records from a filter (114)
 
@@ -154,6 +167,10 @@ async def asyncio_detailed(
     top N by dcpa within maxDcpaM. Errors: `STATE_TOO_OLD` for the subject.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         body (CpaBatchRequest): One subject against up to 500 records from a filter (114)
@@ -186,6 +203,10 @@ async def asyncio(
     top N by dcpa within maxDcpaM. Errors: `STATE_TOO_OLD` for the subject.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         body (CpaBatchRequest): One subject against up to 500 records from a filter (114)

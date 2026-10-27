@@ -29,6 +29,8 @@ class ArchiveSettingsS3 {
      this.region,
 
      this.pathStyle,
+
+     this.storageClass,
   });
 
   @JsonKey(
@@ -91,6 +93,19 @@ class ArchiveSettingsS3 {
 
 
 
+      /// `x-amz-storage-class` of uploads (R2-016); null uses the bucket default. With target `glacier` it must be GLACIER (the default) or DEEP_ARCHIVE; with target `s3` it may not be either, since those objects cannot be read until thawed.
+  @JsonKey(
+    
+    name: r'storageClass',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final ArchiveSettingsS3StorageClassEnum? storageClass;
+
+
+
 
 
     @override
@@ -99,7 +114,8 @@ class ArchiveSettingsS3 {
       other.bucket == bucket &&
       other.prefix == prefix &&
       other.region == region &&
-      other.pathStyle == pathStyle;
+      other.pathStyle == pathStyle &&
+      other.storageClass == storageClass;
 
     @override
     int get hashCode =>
@@ -107,7 +123,8 @@ class ArchiveSettingsS3 {
         bucket.hashCode +
         prefix.hashCode +
         region.hashCode +
-        pathStyle.hashCode;
+        pathStyle.hashCode +
+        (storageClass == null ? 0 : storageClass.hashCode);
 
   factory ArchiveSettingsS3.fromJson(Map<String, dynamic> json) => _$ArchiveSettingsS3FromJson(json);
 
@@ -119,4 +136,32 @@ class ArchiveSettingsS3 {
   }
 
 }
+
+/// `x-amz-storage-class` of uploads (R2-016); null uses the bucket default. With target `glacier` it must be GLACIER (the default) or DEEP_ARCHIVE; with target `s3` it may not be either, since those objects cannot be read until thawed.
+enum ArchiveSettingsS3StorageClassEnum {
+@JsonValue(r'STANDARD')
+STANDARD(r'STANDARD'),
+@JsonValue(r'REDUCED_REDUNDANCY')
+REDUCED_REDUNDANCY(r'REDUCED_REDUNDANCY'),
+@JsonValue(r'STANDARD_IA')
+STANDARD_IA(r'STANDARD_IA'),
+@JsonValue(r'ONEZONE_IA')
+ONEZONE_IA(r'ONEZONE_IA'),
+@JsonValue(r'INTELLIGENT_TIERING')
+INTELLIGENT_TIERING(r'INTELLIGENT_TIERING'),
+@JsonValue(r'GLACIER_IR')
+GLACIER_IR(r'GLACIER_IR'),
+@JsonValue(r'GLACIER')
+GLACIER(r'GLACIER'),
+@JsonValue(r'DEEP_ARCHIVE')
+DEEP_ARCHIVE(r'DEEP_ARCHIVE');
+
+const ArchiveSettingsS3StorageClassEnum(this.value);
+
+final String value;
+
+@override
+String toString() => value;
+}
+
 

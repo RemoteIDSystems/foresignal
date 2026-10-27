@@ -103,6 +103,11 @@ def sync_detailed(
 
     **Scope:** `admin`.
 
+    **v2.0 (per-user):** a source's *enablement and display* are now the caller's own per-user view
+    (getMySources/updateMySources) over the shared collection; the instance collection set is managed
+    with `collection.manage` (getCollectionSources). The source descriptor and health stay global.
+    Request and response shapes are unchanged.
+
     Args:
         source_id (str):
         body (SourceSettingsUpdate): Partial update; omitted fields unchanged. retention=null
@@ -148,6 +153,11 @@ def sync(
 
     **Scope:** `admin`.
 
+    **v2.0 (per-user):** a source's *enablement and display* are now the caller's own per-user view
+    (getMySources/updateMySources) over the shared collection; the instance collection set is managed
+    with `collection.manage` (getCollectionSources). The source descriptor and health stay global.
+    Request and response shapes are unchanged.
+
     Args:
         source_id (str):
         body (SourceSettingsUpdate): Partial update; omitted fields unchanged. retention=null
@@ -187,6 +197,11 @@ async def asyncio_detailed(
     and so does making such a source public.
 
     **Scope:** `admin`.
+
+    **v2.0 (per-user):** a source's *enablement and display* are now the caller's own per-user view
+    (getMySources/updateMySources) over the shared collection; the instance collection set is managed
+    with `collection.manage` (getCollectionSources). The source descriptor and health stay global.
+    Request and response shapes are unchanged.
 
     Args:
         source_id (str):
@@ -230,6 +245,11 @@ async def asyncio(
     and so does making such a source public.
 
     **Scope:** `admin`.
+
+    **v2.0 (per-user):** a source's *enablement and display* are now the caller's own per-user view
+    (getMySources/updateMySources) over the shared collection; the instance collection set is managed
+    with `collection.manage` (getCollectionSources). The source descriptor and health stay global.
+    Request and response shapes are unchanged.
 
     Args:
         source_id (str):

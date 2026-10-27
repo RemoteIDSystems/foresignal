@@ -85,7 +85,7 @@ class ApiTokenInput {
 
 
 
-      /// Owning principal (id or handle); default: a new principal named after the token
+      /// Owning principal (id or handle); default: a new principal named after the token; not accepted by createMyToken, whose tokens are always the caller's (R2-025)
   @JsonKey(
     
     name: r'principalId',

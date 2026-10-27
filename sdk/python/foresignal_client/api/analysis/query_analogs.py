@@ -48,6 +48,11 @@ def _parse_response(
 
         return response_401
 
+    if response.status_code == 403:
+        response_403 = Problem.from_dict(response.json())
+
+        return response_403
+
     if response.status_code == 429:
         response_429 = Problem.from_dict(response.json())
 
@@ -81,6 +86,10 @@ def sync_detailed(
     rollups and searches the same region class's history; for questions not tied to a situation.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (R2-013):** a signed-in user needs `intel.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         body (AnalogQuery): Region-period analog query (no situation needed)
@@ -116,6 +125,10 @@ def sync(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (R2-013):** a signed-in user needs `intel.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
+
     Args:
         body (AnalogQuery): Region-period analog query (no situation needed)
 
@@ -144,6 +157,10 @@ async def asyncio_detailed(
     rollups and searches the same region class's history; for questions not tied to a situation.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (R2-013):** a signed-in user needs `intel.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         body (AnalogQuery): Region-period analog query (no situation needed)
@@ -176,6 +193,10 @@ async def asyncio(
     rollups and searches the same region class's history; for questions not tied to a situation.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (R2-013):** a signed-in user needs `intel.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         body (AnalogQuery): Region-period analog query (no situation needed)

@@ -29,10 +29,10 @@ class AuditEvent:
         Attributes:
             id (int):
             at (datetime.datetime):
-            actor_kind (AuditEventActorKind): `action` = a notification action capability (033); `chat` = a command from an
-                allowlisted chat of an interactive channel (061; `tokenName` is the chat principal
-                `chat:{channelId}:{chatId}[:{userId}]`); `mesh` = an `#E ACK` from an allowlisted sender on a private mesh
-                channel (084; `tokenName` is `mesh:{sender}`)
+            actor_kind (AuditEventActorKind): `user` = a signed-in user (R2-013; `userId` and `userEmail` say who, `tokenId`
+                is the session); `action` = a notification action capability (033); `chat` = a command from an allowlisted chat
+                of an interactive channel (061; `tokenName` is the chat principal `chat:{channelId}:{chatId}[:{userId}]`);
+                `mesh` = an `#E ACK` from an allowlisted sender on a private mesh channel (084; `tokenName` is `mesh:{sender}`)
             token_id (None | Unset | UUID):
             token_name (None | str | Unset):
             principal_id (None | str | Unset): Principal owning the token (v1.3)
@@ -46,6 +46,9 @@ class AuditEvent:
             remote_ip (None | str | Unset):
             detail (AuditEventDetail | Unset): Context (e.g. MCP tool name, argument names, duration, outcome); never
                 secrets, token values or request bodies
+            user_id (None | Unset | UUID): The signed-in user who acted (actor kind `user`, R2-013), or null
+            user_email (None | str | Unset): That user's email when the entry was written (kept after the user is renamed or
+                deleted), or null
     """
 
     id: int
@@ -69,6 +72,8 @@ class AuditEvent:
     target_id: None | str | Unset = UNSET
     remote_ip: None | str | Unset = UNSET
     detail: AuditEventDetail | Unset = UNSET
+    user_id: None | Unset | UUID = UNSET
+    user_email: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -156,6 +161,20 @@ class AuditEvent:
         if not isinstance(self.detail, Unset):
             detail = self.detail.to_dict()
 
+        user_id: None | str | Unset
+        if isinstance(self.user_id, Unset):
+            user_id = UNSET
+        elif isinstance(self.user_id, UUID):
+            user_id = str(self.user_id)
+        else:
+            user_id = self.user_id
+
+        user_email: None | str | Unset
+        if isinstance(self.user_email, Unset):
+            user_email = UNSET
+        else:
+            user_email = self.user_email
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -189,6 +208,10 @@ class AuditEvent:
             field_dict["remoteIp"] = remote_ip
         if detail is not UNSET:
             field_dict["detail"] = detail
+        if user_id is not UNSET:
+            field_dict["userId"] = user_id
+        if user_email is not UNSET:
+            field_dict["userEmail"] = user_email
 
         return field_dict
 
@@ -356,6 +379,32 @@ class AuditEvent:
         else:
             detail = AuditEventDetail.from_dict(_detail)
 
+        def _parse_user_id(data: object) -> None | Unset | UUID:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                user_id_type_0 = UUID(data)
+
+                return user_id_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(None | Unset | UUID, data)
+
+        user_id = _parse_user_id(d.pop("userId", UNSET))
+
+        def _parse_user_email(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        user_email = _parse_user_email(d.pop("userEmail", UNSET))
+
         audit_event = cls(
             id=id,
             at=at,
@@ -372,6 +421,8 @@ class AuditEvent:
             target_id=target_id,
             remote_ip=remote_ip,
             detail=detail,
+            user_id=user_id,
+            user_email=user_email,
         )
 
         audit_event.additional_properties = d

@@ -352,6 +352,7 @@ const _$ApiTokenCreatedCreatedViaEnumEnumMap = {
   ApiTokenCreatedCreatedViaEnum.api: 'api',
   ApiTokenCreatedCreatedViaEnum.pairing: 'pairing',
   ApiTokenCreatedCreatedViaEnum.bootstrap: 'bootstrap',
+  ApiTokenCreatedCreatedViaEnum.self: 'self',
 };
 
 const _$ApiTokenCreatedLicencePolicyEnumEnumMap = {

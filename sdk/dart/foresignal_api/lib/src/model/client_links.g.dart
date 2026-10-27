@@ -17,6 +17,10 @@ abstract class _$ClientLinksCWProxy {
 
   ClientLinks share(String? share);
 
+  ClientLinks activate(String? activate);
+
+  ClientLinks passwordReset(String? passwordReset);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `ClientLinks(...).copyWith.fieldName(value)`.
@@ -31,6 +35,8 @@ abstract class _$ClientLinksCWProxy {
     String? briefingRun,
     String? pair,
     String? share,
+    String? activate,
+    String? passwordReset,
   });
 }
 
@@ -57,6 +63,13 @@ class _$ClientLinksCWProxyImpl implements _$ClientLinksCWProxy {
   @override
   ClientLinks share(String? share) => call(share: share);
 
+  @override
+  ClientLinks activate(String? activate) => call(activate: activate);
+
+  @override
+  ClientLinks passwordReset(String? passwordReset) =>
+      call(passwordReset: passwordReset);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `ClientLinks(...).copyWith.fieldName(value)`.
@@ -72,6 +85,8 @@ class _$ClientLinksCWProxyImpl implements _$ClientLinksCWProxy {
     Object? briefingRun = const $CopyWithPlaceholder(),
     Object? pair = const $CopyWithPlaceholder(),
     Object? share = const $CopyWithPlaceholder(),
+    Object? activate = const $CopyWithPlaceholder(),
+    Object? passwordReset = const $CopyWithPlaceholder(),
   }) {
     return ClientLinks(
       alert: alert == const $CopyWithPlaceholder()
@@ -94,6 +109,14 @@ class _$ClientLinksCWProxyImpl implements _$ClientLinksCWProxy {
           ? _value.share
           // ignore: cast_nullable_to_non_nullable
           : share as String?,
+      activate: activate == const $CopyWithPlaceholder()
+          ? _value.activate
+          // ignore: cast_nullable_to_non_nullable
+          : activate as String?,
+      passwordReset: passwordReset == const $CopyWithPlaceholder()
+          ? _value.passwordReset
+          // ignore: cast_nullable_to_non_nullable
+          : passwordReset as String?,
     );
   }
 }
@@ -109,30 +132,43 @@ extension $ClientLinksCopyWith on ClientLinks {
 // JsonSerializableGenerator
 // **************************************************************************
 
-ClientLinks _$ClientLinksFromJson(Map<String, dynamic> json) =>
-    $checkedCreate('ClientLinks', json, ($checkedConvert) {
-      final val = ClientLinks(
-        alert: $checkedConvert(
-          'alert',
-          (v) => v as String? ?? 'foresignal://alerts/{id}',
-        ),
-        record: $checkedConvert(
-          'record',
-          (v) => v as String? ?? 'foresignal://records/{source}/{externalId}',
-        ),
-        briefingRun: $checkedConvert(
-          'briefingRun',
-          (v) =>
-              v as String? ?? 'foresignal://briefings/{briefingId}/runs/{id}',
-        ),
-        pair: $checkedConvert(
-          'pair',
-          (v) => v as String? ?? 'foresignal://pair?u={publicBaseUrl}&c={code}',
-        ),
-        share: $checkedConvert('share', (v) => v as String?),
-      );
-      return val;
-    });
+ClientLinks _$ClientLinksFromJson(Map<String, dynamic> json) => $checkedCreate(
+  'ClientLinks',
+  json,
+  ($checkedConvert) {
+    final val = ClientLinks(
+      alert: $checkedConvert(
+        'alert',
+        (v) => v as String? ?? 'foresignal://alerts/{id}',
+      ),
+      record: $checkedConvert(
+        'record',
+        (v) => v as String? ?? 'foresignal://records/{source}/{externalId}',
+      ),
+      briefingRun: $checkedConvert(
+        'briefingRun',
+        (v) => v as String? ?? 'foresignal://briefings/{briefingId}/runs/{id}',
+      ),
+      pair: $checkedConvert(
+        'pair',
+        (v) => v as String? ?? 'foresignal://pair?u={publicBaseUrl}&c={code}',
+      ),
+      share: $checkedConvert('share', (v) => v as String?),
+      activate: $checkedConvert(
+        'activate',
+        (v) =>
+            v as String? ?? 'foresignal://activate?u={publicBaseUrl}&t={token}',
+      ),
+      passwordReset: $checkedConvert(
+        'passwordReset',
+        (v) =>
+            v as String? ??
+            'foresignal://reset-password?u={publicBaseUrl}&t={token}',
+      ),
+    );
+    return val;
+  },
+);
 
 Map<String, dynamic> _$ClientLinksToJson(ClientLinks instance) =>
     <String, dynamic>{
@@ -141,4 +177,6 @@ Map<String, dynamic> _$ClientLinksToJson(ClientLinks instance) =>
       'briefingRun': ?instance.briefingRun,
       'pair': ?instance.pair,
       'share': ?instance.share,
+      'activate': ?instance.activate,
+      'passwordReset': ?instance.passwordReset,
     };

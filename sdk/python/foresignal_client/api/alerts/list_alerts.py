@@ -208,6 +208,11 @@ def sync_detailed(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user
+    sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left
+    out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API
+    token see all alerts; anonymous callers and feed keys see the shared ones.
+
     Args:
         rule_id (UUID | Unset):
         source (list[str] | Unset):
@@ -290,6 +295,11 @@ def sync(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user
+    sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left
+    out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API
+    token see all alerts; anonymous callers and feed keys see the shared ones.
+
     Args:
         rule_id (UUID | Unset):
         source (list[str] | Unset):
@@ -366,6 +376,11 @@ async def asyncio_detailed(
     callers (security.openReads) never see alerts of private sources.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user
+    sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left
+    out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API
+    token see all alerts; anonymous callers and feed keys see the shared ones.
 
     Args:
         rule_id (UUID | Unset):
@@ -446,6 +461,11 @@ async def asyncio(
     callers (security.openReads) never see alerts of private sources.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user
+    sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left
+    out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API
+    token see all alerts; anonymous callers and feed keys see the shared ones.
 
     Args:
         rule_id (UUID | Unset):

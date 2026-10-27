@@ -14,7 +14,7 @@ from .errors import (
 )
 from .http import HttpTransport
 
-__version__ = "1.5.0"
+__version__ = "2.0.0"
 
 __all__ = ["ApiError", "ContextValidationError", "DeepLinkError", "HeartbeatTimeout", "ObjectRefError",
            "ResyncRequiredError", "HttpTransport", "__version__"]

@@ -27,7 +27,7 @@ class ApiTokenInput:
         expires_at (datetime.datetime | None | Unset):
         restrictions (None | ReadRestriction | Unset): Rejected on admin tokens (400 RESTRICTION_NOT_ALLOWED, 035)
         principal_id (None | str | Unset): Owning principal (id or handle); default: a new principal named after the
-            token
+            token; not accepted by createMyToken, whose tokens are always the caller's (R2-025)
         private_access (bool | Unset): Grant visibility of private sources (039) Default: False.
         licence_policy (list[ApiTokenInputLicencePolicyItem] | Unset): Licence policy floor applied to every read with
             this token; requests may add flags but never remove these

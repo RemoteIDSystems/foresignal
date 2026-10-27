@@ -45,6 +45,8 @@ abstract class _$ChannelInputCWProxy {
 
   ChannelInput language(String? language);
 
+  ChannelInput global(bool? global);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `ChannelInput(...).copyWith.fieldName(value)`.
@@ -73,6 +75,7 @@ abstract class _$ChannelInputCWProxy {
     int? deferWhileActiveSeconds,
     bool? acceptExercise,
     String? language,
+    bool? global,
   });
 }
 
@@ -149,6 +152,9 @@ class _$ChannelInputCWProxyImpl implements _$ChannelInputCWProxy {
   @override
   ChannelInput language(String? language) => call(language: language);
 
+  @override
+  ChannelInput global(bool? global) => call(global: global);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `ChannelInput(...).copyWith.fieldName(value)`.
@@ -178,6 +184,7 @@ class _$ChannelInputCWProxyImpl implements _$ChannelInputCWProxy {
     Object? deferWhileActiveSeconds = const $CopyWithPlaceholder(),
     Object? acceptExercise = const $CopyWithPlaceholder(),
     Object? language = const $CopyWithPlaceholder(),
+    Object? global = const $CopyWithPlaceholder(),
   }) {
     return ChannelInput(
       name: name == const $CopyWithPlaceholder() || name == null
@@ -258,6 +265,10 @@ class _$ChannelInputCWProxyImpl implements _$ChannelInputCWProxy {
           ? _value.language
           // ignore: cast_nullable_to_non_nullable
           : language as String?,
+      global: global == const $CopyWithPlaceholder()
+          ? _value.global
+          // ignore: cast_nullable_to_non_nullable
+          : global as bool?,
     );
   }
 }
@@ -339,6 +350,7 @@ ChannelInput _$ChannelInputFromJson(Map<String, dynamic> json) =>
           (v) => v as bool? ?? false,
         ),
         language: $checkedConvert('language', (v) => v as String?),
+        global: $checkedConvert('global', (v) => v as bool?),
       );
       return val;
     });
@@ -367,6 +379,7 @@ Map<String, dynamic> _$ChannelInputToJson(
   'deferWhileActiveSeconds': ?instance.deferWhileActiveSeconds,
   'acceptExercise': ?instance.acceptExercise,
   'language': ?instance.language,
+  'global': ?instance.global,
 };
 
 const _$ChannelInputTypeEnumEnumMap = {

@@ -25,7 +25,7 @@ class ChannelsApi {
   const ChannelsApi(this._dio);
 
   /// Create a notification channel
-  /// Create a notification channel  **Scope:** &#x60;admin&#x60;.
+  /// Create a notification channel A signed-in user creating a personal channel is refused past their &#x60;maxChannels&#x60; quota (409 QUOTA_EXCEEDED, R2-026).  **Scope:** &#x60;admin&#x60;.  **v2.0 (per-user, R2-009):** a channel is **personal** (&#x60;ownerPrincipalId&#x60;, the owning user&#39;s principal) or **global** (&#x60;global: true&#x60;, no owner; every channel from before v2.0). A signed-in user reaches these operations with &#x60;self.channels&#x60; or &#x60;channels.global&#x60;: they see their own channels and the global ones, manage their own, and manage global channels only with &#x60;channels.global&#x60; (changing one without it is 403 PERMISSION_DENIED); another user&#39;s channel is 404, like an unknown one. A session holding &#x60;users.manage&#x60; and every API token see and manage all channels. On create, &#x60;global&#x60; picks the kind: absent, a user holding &#x60;self.channels&#x60; gets a personal channel and anyone else a global one; an API token always creates global channels. A user&#39;s alerts go to their own channels and to the global channels whose &#x60;ruleIds&#x60; name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive &#x60;ownerPrincipalId&#x60; and &#x60;global&#x60;.
   ///
   /// Parameters:
   /// * [channelInput] 
@@ -122,7 +122,7 @@ _responseData = rawData == null ? null : deserialize<Channel, Channel>(rawData, 
   }
 
   /// Delete a channel
-  /// Pending deliveries are marked failed (\&quot;channel deleted\&quot;).  **Scope:** &#x60;admin&#x60;.
+  /// Pending deliveries are marked failed (\&quot;channel deleted\&quot;).  **Scope:** &#x60;admin&#x60;.  **v2.0 (per-user, R2-009):** a channel is **personal** (&#x60;ownerPrincipalId&#x60;, the owning user&#39;s principal) or **global** (&#x60;global: true&#x60;, no owner; every channel from before v2.0). A signed-in user reaches these operations with &#x60;self.channels&#x60; or &#x60;channels.global&#x60;: they see their own channels and the global ones, manage their own, and manage global channels only with &#x60;channels.global&#x60; (changing one without it is 403 PERMISSION_DENIED); another user&#39;s channel is 404, like an unknown one. A session holding &#x60;users.manage&#x60; and every API token see and manage all channels. On create, &#x60;global&#x60; picks the kind: absent, a user holding &#x60;self.channels&#x60; gets a personal channel and anyone else a global one; an API token always creates global channels. A user&#39;s alerts go to their own channels and to the global channels whose &#x60;ruleIds&#x60; name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive &#x60;ownerPrincipalId&#x60; and &#x60;global&#x60;.
   ///
   /// Parameters:
   /// * [channelId] - Channel id
@@ -175,7 +175,7 @@ _responseData = rawData == null ? null : deserialize<Channel, Channel>(rawData, 
   }
 
   /// Get a channel
-  /// Get a channel  **Scope:** &#x60;admin&#x60;.
+  /// Get a channel  **Scope:** &#x60;admin&#x60;.  **v2.0 (per-user, R2-009):** a channel is **personal** (&#x60;ownerPrincipalId&#x60;, the owning user&#39;s principal) or **global** (&#x60;global: true&#x60;, no owner; every channel from before v2.0). A signed-in user reaches these operations with &#x60;self.channels&#x60; or &#x60;channels.global&#x60;: they see their own channels and the global ones, manage their own, and manage global channels only with &#x60;channels.global&#x60; (changing one without it is 403 PERMISSION_DENIED); another user&#39;s channel is 404, like an unknown one. A session holding &#x60;users.manage&#x60; and every API token see and manage all channels. On create, &#x60;global&#x60; picks the kind: absent, a user holding &#x60;self.channels&#x60; gets a personal channel and anyone else a global one; an API token always creates global channels. A user&#39;s alerts go to their own channels and to the global channels whose &#x60;ruleIds&#x60; name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive &#x60;ownerPrincipalId&#x60; and &#x60;global&#x60;.
   ///
   /// Parameters:
   /// * [channelId] - Channel id
@@ -576,7 +576,7 @@ _responseData = rawData == null ? null : deserialize<List<ChannelType>, ChannelT
   }
 
   /// List notification channels
-  /// Secrets are never returned.  **Scope:** &#x60;admin&#x60;.
+  /// Secrets are never returned.  **Scope:** &#x60;admin&#x60;.  **v2.0 (per-user, R2-009):** a channel is **personal** (&#x60;ownerPrincipalId&#x60;, the owning user&#39;s principal) or **global** (&#x60;global: true&#x60;, no owner; every channel from before v2.0). A signed-in user reaches these operations with &#x60;self.channels&#x60; or &#x60;channels.global&#x60;: they see their own channels and the global ones, manage their own, and manage global channels only with &#x60;channels.global&#x60; (changing one without it is 403 PERMISSION_DENIED); another user&#39;s channel is 404, like an unknown one. A session holding &#x60;users.manage&#x60; and every API token see and manage all channels. On create, &#x60;global&#x60; picks the kind: absent, a user holding &#x60;self.channels&#x60; gets a personal channel and anyone else a global one; an API token always creates global channels. A user&#39;s alerts go to their own channels and to the global channels whose &#x60;ruleIds&#x60; name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive &#x60;ownerPrincipalId&#x60; and &#x60;global&#x60;.
   ///
   /// Parameters:
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
@@ -783,7 +783,7 @@ _responseData = rawData == null ? null : deserialize<ChannelTestResult, ChannelT
   }
 
   /// Replace a channel
-  /// Omit &#x60;secrets&#x60; to keep existing secrets; a provided &#x60;secrets&#x60; object replaces them entirely.  **Scope:** &#x60;admin&#x60;.
+  /// Omit &#x60;secrets&#x60; to keep existing secrets; a provided &#x60;secrets&#x60; object replaces them entirely.  **Scope:** &#x60;admin&#x60;.  **v2.0 (per-user, R2-009):** a channel is **personal** (&#x60;ownerPrincipalId&#x60;, the owning user&#39;s principal) or **global** (&#x60;global: true&#x60;, no owner; every channel from before v2.0). A signed-in user reaches these operations with &#x60;self.channels&#x60; or &#x60;channels.global&#x60;: they see their own channels and the global ones, manage their own, and manage global channels only with &#x60;channels.global&#x60; (changing one without it is 403 PERMISSION_DENIED); another user&#39;s channel is 404, like an unknown one. A session holding &#x60;users.manage&#x60; and every API token see and manage all channels. On create, &#x60;global&#x60; picks the kind: absent, a user holding &#x60;self.channels&#x60; gets a personal channel and anyone else a global one; an API token always creates global channels. A user&#39;s alerts go to their own channels and to the global channels whose &#x60;ruleIds&#x60; name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive &#x60;ownerPrincipalId&#x60; and &#x60;global&#x60;.
   ///
   /// Parameters:
   /// * [channelId] - Channel id

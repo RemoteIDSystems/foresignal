@@ -22,7 +22,7 @@ class KinematicsApi {
   const KinematicsApi(this._dio);
 
   /// CPA of one subject against many
-  /// Evaluates one subject against up to 500 records from a filter (kinds, sources, bbox) and returns the top N by dcpa within maxDcpaM. Errors: &#x60;STATE_TOO_OLD&#x60; for the subject.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// Evaluates one subject against up to 500 records from a filter (kinds, sources, bbox) and returns the top N by dcpa within maxDcpaM. Errors: &#x60;STATE_TOO_OLD&#x60; for the subject.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).  **v2.0 (R2-013):** a signed-in user needs &#x60;data.read&#x60; (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (&#x60;User.dataRestriction&#x60;) and source view. API tokens keep their scope rules.
   ///
   /// Parameters:
   /// * [cpaBatchRequest] 

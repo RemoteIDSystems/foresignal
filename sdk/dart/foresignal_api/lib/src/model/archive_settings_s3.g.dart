@@ -17,6 +17,10 @@ abstract class _$ArchiveSettingsS3CWProxy {
 
   ArchiveSettingsS3 pathStyle(bool? pathStyle);
 
+  ArchiveSettingsS3 storageClass(
+    ArchiveSettingsS3StorageClassEnum? storageClass,
+  );
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `ArchiveSettingsS3(...).copyWith.fieldName(value)`.
@@ -31,6 +35,7 @@ abstract class _$ArchiveSettingsS3CWProxy {
     String? prefix,
     String? region,
     bool? pathStyle,
+    ArchiveSettingsS3StorageClassEnum? storageClass,
   });
 }
 
@@ -56,6 +61,11 @@ class _$ArchiveSettingsS3CWProxyImpl implements _$ArchiveSettingsS3CWProxy {
   @override
   ArchiveSettingsS3 pathStyle(bool? pathStyle) => call(pathStyle: pathStyle);
 
+  @override
+  ArchiveSettingsS3 storageClass(
+    ArchiveSettingsS3StorageClassEnum? storageClass,
+  ) => call(storageClass: storageClass);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `ArchiveSettingsS3(...).copyWith.fieldName(value)`.
@@ -71,6 +81,7 @@ class _$ArchiveSettingsS3CWProxyImpl implements _$ArchiveSettingsS3CWProxy {
     Object? prefix = const $CopyWithPlaceholder(),
     Object? region = const $CopyWithPlaceholder(),
     Object? pathStyle = const $CopyWithPlaceholder(),
+    Object? storageClass = const $CopyWithPlaceholder(),
   }) {
     return ArchiveSettingsS3(
       endpoint: endpoint == const $CopyWithPlaceholder() || endpoint == null
@@ -93,6 +104,10 @@ class _$ArchiveSettingsS3CWProxyImpl implements _$ArchiveSettingsS3CWProxy {
           ? _value.pathStyle
           // ignore: cast_nullable_to_non_nullable
           : pathStyle as bool?,
+      storageClass: storageClass == const $CopyWithPlaceholder()
+          ? _value.storageClass
+          // ignore: cast_nullable_to_non_nullable
+          : storageClass as ArchiveSettingsS3StorageClassEnum?,
     );
   }
 }
@@ -118,6 +133,13 @@ ArchiveSettingsS3 _$ArchiveSettingsS3FromJson(Map<String, dynamic> json) =>
         prefix: $checkedConvert('prefix', (v) => v as String?),
         region: $checkedConvert('region', (v) => v as String?),
         pathStyle: $checkedConvert('pathStyle', (v) => v as bool?),
+        storageClass: $checkedConvert(
+          'storageClass',
+          (v) => $enumDecodeNullable(
+            _$ArchiveSettingsS3StorageClassEnumEnumMap,
+            v,
+          ),
+        ),
       );
       return val;
     });
@@ -129,4 +151,17 @@ Map<String, dynamic> _$ArchiveSettingsS3ToJson(ArchiveSettingsS3 instance) =>
       'prefix': ?instance.prefix,
       'region': ?instance.region,
       'pathStyle': ?instance.pathStyle,
+      'storageClass':
+          ?_$ArchiveSettingsS3StorageClassEnumEnumMap[instance.storageClass],
     };
+
+const _$ArchiveSettingsS3StorageClassEnumEnumMap = {
+  ArchiveSettingsS3StorageClassEnum.STANDARD: 'STANDARD',
+  ArchiveSettingsS3StorageClassEnum.REDUCED_REDUNDANCY: 'REDUCED_REDUNDANCY',
+  ArchiveSettingsS3StorageClassEnum.STANDARD_IA: 'STANDARD_IA',
+  ArchiveSettingsS3StorageClassEnum.ONEZONE_IA: 'ONEZONE_IA',
+  ArchiveSettingsS3StorageClassEnum.INTELLIGENT_TIERING: 'INTELLIGENT_TIERING',
+  ArchiveSettingsS3StorageClassEnum.GLACIER_IR: 'GLACIER_IR',
+  ArchiveSettingsS3StorageClassEnum.GLACIER: 'GLACIER',
+  ArchiveSettingsS3StorageClassEnum.DEEP_ARCHIVE: 'DEEP_ARCHIVE',
+};

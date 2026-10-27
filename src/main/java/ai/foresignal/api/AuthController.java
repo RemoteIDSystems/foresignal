@@ -121,6 +121,18 @@ public class AuthController {
             out.put("permissions", List.of());
             return out;
         }
+        return sessionToken(login);
+    }
+
+    /**
+     * The {@code SessionToken} of a sign-in that issued a session ({@code login}, and {@code runSetup} for the first
+     * admin, R2-027).
+     *
+     * @param login the sign-in; its session must exist
+     * @return the {@code SessionToken} object
+     */
+    public static Map<String, Object> sessionToken(SessionService.Login login) {
+        Map<String, Object> out = new LinkedHashMap<>();
         out.put("token", login.token());
         out.put("tokenPrefix", login.session().getTokenPrefix());
         out.put("userId", login.user().getId().toString());

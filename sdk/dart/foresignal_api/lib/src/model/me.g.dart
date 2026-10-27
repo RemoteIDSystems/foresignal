@@ -21,6 +21,10 @@ abstract class _$MeCWProxy {
 
   Me defaultTlp(Tlp? defaultTlp);
 
+  Me user(User? user);
+
+  Me permissions(List<String>? permissions);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `Me(...).copyWith.fieldName(value)`.
@@ -36,6 +40,8 @@ abstract class _$MeCWProxy {
     List<MeGroupsInner> groups,
     List<NotificationPreference> notificationPreferences,
     Tlp? defaultTlp,
+    User? user,
+    List<String>? permissions,
   });
 }
 
@@ -66,6 +72,12 @@ class _$MeCWProxyImpl implements _$MeCWProxy {
   @override
   Me defaultTlp(Tlp? defaultTlp) => call(defaultTlp: defaultTlp);
 
+  @override
+  Me user(User? user) => call(user: user);
+
+  @override
+  Me permissions(List<String>? permissions) => call(permissions: permissions);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `Me(...).copyWith.fieldName(value)`.
@@ -82,6 +94,8 @@ class _$MeCWProxyImpl implements _$MeCWProxy {
     Object? groups = const $CopyWithPlaceholder(),
     Object? notificationPreferences = const $CopyWithPlaceholder(),
     Object? defaultTlp = const $CopyWithPlaceholder(),
+    Object? user = const $CopyWithPlaceholder(),
+    Object? permissions = const $CopyWithPlaceholder(),
   }) {
     return Me(
       principal: principal == const $CopyWithPlaceholder() || principal == null
@@ -110,6 +124,14 @@ class _$MeCWProxyImpl implements _$MeCWProxy {
           ? _value.defaultTlp
           // ignore: cast_nullable_to_non_nullable
           : defaultTlp as Tlp?,
+      user: user == const $CopyWithPlaceholder()
+          ? _value.user
+          // ignore: cast_nullable_to_non_nullable
+          : user as User?,
+      permissions: permissions == const $CopyWithPlaceholder()
+          ? _value.permissions
+          // ignore: cast_nullable_to_non_nullable
+          : permissions as List<String>?,
     );
   }
 }
@@ -171,6 +193,14 @@ Me _$MeFromJson(Map<String, dynamic> json) =>
           'defaultTlp',
           (v) => $enumDecodeNullable(_$TlpEnumMap, v),
         ),
+        user: $checkedConvert(
+          'user',
+          (v) => v == null ? null : User.fromJson(v as Map<String, dynamic>),
+        ),
+        permissions: $checkedConvert(
+          'permissions',
+          (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+        ),
       );
       return val;
     });
@@ -184,6 +214,8 @@ Map<String, dynamic> _$MeToJson(Me instance) => <String, dynamic>{
       .map((e) => e.toJson())
       .toList(),
   'defaultTlp': ?_$TlpEnumMap[instance.defaultTlp],
+  'user': ?instance.user?.toJson(),
+  'permissions': ?instance.permissions,
 };
 
 const _$MeScopesEnumEnumMap = {

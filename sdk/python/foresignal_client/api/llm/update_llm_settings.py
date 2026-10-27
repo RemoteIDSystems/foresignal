@@ -82,6 +82,10 @@ def sync_detailed(
 
     **Scope:** `admin`.
 
+    **v2.0 (shared and personal, R2-011):** this operation concerns the shared LLM configuration only
+    and needs `llm.shared.manage`; personal providers are managed through the provider operations with
+    `self.llm`, and the instance roles can be held only by shared providers.
+
     Args:
         body (LlmSettings):
 
@@ -117,6 +121,10 @@ def sync(
 
     **Scope:** `admin`.
 
+    **v2.0 (shared and personal, R2-011):** this operation concerns the shared LLM configuration only
+    and needs `llm.shared.manage`; personal providers are managed through the provider operations with
+    `self.llm`, and the instance roles can be held only by shared providers.
+
     Args:
         body (LlmSettings):
 
@@ -146,6 +154,10 @@ async def asyncio_detailed(
     accepted only as false until prompt 039.
 
     **Scope:** `admin`.
+
+    **v2.0 (shared and personal, R2-011):** this operation concerns the shared LLM configuration only
+    and needs `llm.shared.manage`; personal providers are managed through the provider operations with
+    `self.llm`, and the instance roles can be held only by shared providers.
 
     Args:
         body (LlmSettings):
@@ -179,6 +191,10 @@ async def asyncio(
     accepted only as false until prompt 039.
 
     **Scope:** `admin`.
+
+    **v2.0 (shared and personal, R2-011):** this operation concerns the shared LLM configuration only
+    and needs `llm.shared.manage`; personal providers are managed through the provider operations with
+    `self.llm`, and the instance roles can be held only by shared providers.
 
     Args:
         body (LlmSettings):

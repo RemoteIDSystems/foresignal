@@ -222,6 +222,103 @@ _responseData = rawData == null ? null : deserialize<FeedKeyCreated, FeedKeyCrea
     );
   }
 
+  /// Mint an API token
+  /// Mints an API token owned by the calling user, with the existing area/path/tile-key restrictions; its scope cannot exceed the caller&#39;s own permissions (D2/188). The secret is shown once. Any signed-in user; needs a session (an API token is 401), so a token never mints another (R2-025). The token is &#x60;createdVia: self&#x60; and owned by the caller&#39;s principal; &#x60;principalId&#x60; is refused (400). Its scope is at most &#x60;admin&#x60; for a user holding every permission, &#x60;agent&#x60; for one whose sessions are &#x60;agent&#x60; or &#x60;admin&#x60;, else &#x60;read&#x60;; &#x60;privateAccess&#x60; needs an admin-derived session; anything wider is 403 TOKEN_EXCEEDS_USER. On every request the token is capped again by its owner&#39;s current roles, narrowed by the owner&#39;s data restriction, refused (401) while the owner may not sign in, and audited as the owner (R2-025).  **Scope:** &#x60;read&#x60;.
+  ///
+  /// Parameters:
+  /// * [apiTokenInput] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [ApiTokenCreated] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<ApiTokenCreated>> createMyToken({ 
+    required ApiTokenInput apiTokenInput,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/me/tokens';
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(apiTokenInput);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    ApiTokenCreated? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<ApiTokenCreated, ApiTokenCreated>(rawData, 'ApiTokenCreated', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<ApiTokenCreated>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// Create a pairing code
   /// Creates a single-use code (8 Crockford base32 characters, &#x60;XXXX-XXXX&#x60;, stored hashed) that a phone or desktop app claims for a &#x60;read&#x60; or &#x60;agent&#x60; token without ever seeing an admin token. Returns the code and &#x60;qrPayload&#x60; once. &#x60;admin&#x60; scope is refused (400).  **Scope:** &#x60;admin&#x60;.
   ///
@@ -817,6 +914,82 @@ _responseData = rawData == null ? null : deserialize<List<FeedKey>, FeedKey>(raw
     );
   }
 
+  /// List my API tokens
+  /// Lists the API tokens owned by the calling user (user-attributable machine tokens, D2/188). An admin manages all tokens via /v1/tokens. Any signed-in user; needs a session (an API token is 401). Revoked tokens are listed with &#x60;revokedAt&#x60;; a value is never returned (R2-025).  **Scope:** &#x60;read&#x60;.
+  ///
+  /// Parameters:
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [List<ApiToken>] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<List<ApiToken>>> listMyTokens({ 
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/me/tokens';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    List<ApiToken>? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<List<ApiToken>, ApiToken>(rawData, 'List<ApiToken>', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<List<ApiToken>>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// List open pairing codes
   /// Unclaimed and unexpired codes; the code values are never returned.  **Scope:** &#x60;admin&#x60;.
   ///
@@ -1079,6 +1252,59 @@ _responseData = rawData == null ? null : deserialize<List<ApiToken>, ApiToken>(r
     ProgressCallback? onReceiveProgress,
   }) async {
     final _path = r'/v1/feed-keys/{feedKeyId}'.replaceAll('{' r'feedKeyId' '}', feedKeyId.toString());
+    final _options = Options(
+      method: r'DELETE',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    return _response;
+  }
+
+  /// Revoke one of my API tokens
+  /// Revokes an API token owned by the calling user. Any signed-in user; needs a session (an API token is 401). A token the caller does not own is 404, as if it did not exist; the revoked token stops authenticating at once (R2-025).  **Scope:** &#x60;read&#x60;.
+  ///
+  /// Parameters:
+  /// * [id] - Token id
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future]
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<void>> revokeMyToken({ 
+    required String id,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/me/tokens/{id}'.replaceAll('{' r'id' '}', id.toString());
     final _options = Options(
       method: r'DELETE',
       headers: <String, dynamic>{

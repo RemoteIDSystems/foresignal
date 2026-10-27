@@ -659,7 +659,7 @@ _responseData = rawData == null ? null : deserialize<TaxiiCollections, TaxiiColl
   }
 
   /// FDSN event query
-  /// fdsnws-event 1.2 over &#x60;earthquake&#x60; records: QuakeML 1.2 BED (&#x60;smi:foresignal/{source}/{externalId}&#x60; publicIDs) or the pipe-separated text format. &#x60;204&#x60; when no events match (FDSN convention; &#x60;nodata&#x3D;404&#x60; selects 404); errors use FDSN plain-text bodies. Long and short parameter names are accepted (&#x60;start&#x60;, &#x60;minlat&#x60;, &#x60;minmag&#x60;, …); unsupported parameters are a 400. Depth is in meters in QuakeML and in km in the text format.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// fdsnws-event 1.2 over &#x60;earthquake&#x60; records: QuakeML 1.2 BED (&#x60;smi:foresignal/{source}/{externalId}&#x60; publicIDs) or the pipe-separated text format. &#x60;204&#x60; when no events match (FDSN convention; &#x60;nodata&#x3D;404&#x60; selects 404); errors use FDSN plain-text bodies. Long and short parameter names are accepted (&#x60;start&#x60;, &#x60;minlat&#x60;, &#x60;minmag&#x60;, …); unsupported parameters are a 400. Depth is in meters in QuakeML and in km in the text format.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).  **v2.0 (R2-013):** a signed-in user needs &#x60;data.read&#x60; (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (&#x60;User.dataRestriction&#x60;) and source view. API tokens keep their scope rules.
   ///
   /// Parameters:
   /// * [starttime] - Origin time ≥

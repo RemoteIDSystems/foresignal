@@ -190,6 +190,7 @@ class ApiTokenCreated {
 
 
 
+      /// `self`: minted by a signed-in user with createMyToken and owned by that user's principal (R2-025)
   @JsonKey(
     
     name: r'createdVia',
@@ -336,13 +337,16 @@ String toString() => value;
 }
 
 
+/// `self`: minted by a signed-in user with createMyToken and owned by that user's principal (R2-025)
 enum ApiTokenCreatedCreatedViaEnum {
 @JsonValue(r'api')
 api(r'api'),
 @JsonValue(r'pairing')
 pairing(r'pairing'),
 @JsonValue(r'bootstrap')
-bootstrap(r'bootstrap');
+bootstrap(r'bootstrap'),
+@JsonValue(r'self')
+self(r'self');
 
 const ApiTokenCreatedCreatedViaEnum(this.value);
 

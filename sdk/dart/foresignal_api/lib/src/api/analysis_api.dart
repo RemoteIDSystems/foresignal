@@ -2325,7 +2325,7 @@ _responseData = rawData == null ? null : deserialize<ReferenceImportPage, Refere
   }
 
   /// Find region-period analogs
-  /// Builds a signature from a region&#39;s last 14 days (or the given period) of reference history and rollups and searches the same region class&#39;s history; for questions not tied to a situation.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// Builds a signature from a region&#39;s last 14 days (or the given period) of reference history and rollups and searches the same region class&#39;s history; for questions not tied to a situation.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).  **v2.0 (R2-013):** a signed-in user needs &#x60;intel.read&#x60; (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (&#x60;User.dataRestriction&#x60;) and source view. API tokens keep their scope rules.
   ///
   /// Parameters:
   /// * [analogQuery] 
@@ -2422,7 +2422,7 @@ _responseData = rawData == null ? null : deserialize<AnalogResult, AnalogResult>
   }
 
   /// Compute an ad-hoc base rate
-  /// Computes a base rate for a definition without storing it (cached 24 h); returns a stored rate when one matches the definition.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  /// Computes a base rate for a definition without storing it (cached 24 h); returns a stored rate when one matches the definition.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).  **v2.0 (R2-013):** a signed-in user needs &#x60;intel.read&#x60; (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (&#x60;User.dataRestriction&#x60;) and source view. API tokens keep their scope rules.
   ///
   /// Parameters:
   /// * [baseRateDefinition] 

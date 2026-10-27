@@ -53,6 +53,8 @@ abstract class _$SettingsBundleChannelsInnerCWProxy {
 
   SettingsBundleChannelsInner language(String? language);
 
+  SettingsBundleChannelsInner global(bool? global);
+
   SettingsBundleChannelsInner id(String id);
 
   /// Creates a new instance with the provided field values.
@@ -83,6 +85,7 @@ abstract class _$SettingsBundleChannelsInnerCWProxy {
     int? deferWhileActiveSeconds,
     bool? acceptExercise,
     String? language,
+    bool? global,
     String id,
   });
 }
@@ -174,6 +177,9 @@ class _$SettingsBundleChannelsInnerCWProxyImpl
       call(language: language);
 
   @override
+  SettingsBundleChannelsInner global(bool? global) => call(global: global);
+
+  @override
   SettingsBundleChannelsInner id(String id) => call(id: id);
 
   /// Creates a new instance with the provided field values.
@@ -205,6 +211,7 @@ class _$SettingsBundleChannelsInnerCWProxyImpl
     Object? deferWhileActiveSeconds = const $CopyWithPlaceholder(),
     Object? acceptExercise = const $CopyWithPlaceholder(),
     Object? language = const $CopyWithPlaceholder(),
+    Object? global = const $CopyWithPlaceholder(),
     Object? id = const $CopyWithPlaceholder(),
   }) {
     return SettingsBundleChannelsInner(
@@ -286,6 +293,10 @@ class _$SettingsBundleChannelsInnerCWProxyImpl
           ? _value.language
           // ignore: cast_nullable_to_non_nullable
           : language as String?,
+      global: global == const $CopyWithPlaceholder()
+          ? _value.global
+          // ignore: cast_nullable_to_non_nullable
+          : global as bool?,
       id: id == const $CopyWithPlaceholder() || id == null
           ? _value.id
           // ignore: cast_nullable_to_non_nullable
@@ -377,6 +388,7 @@ SettingsBundleChannelsInner _$SettingsBundleChannelsInnerFromJson(
       (v) => v as bool? ?? false,
     ),
     language: $checkedConvert('language', (v) => v as String?),
+    global: $checkedConvert('global', (v) => v as bool?),
     id: $checkedConvert('id', (v) => v as String),
   );
   return val;
@@ -408,6 +420,7 @@ Map<String, dynamic> _$SettingsBundleChannelsInnerToJson(
   'deferWhileActiveSeconds': ?instance.deferWhileActiveSeconds,
   'acceptExercise': ?instance.acceptExercise,
   'language': ?instance.language,
+  'global': ?instance.global,
   'id': instance.id,
 };
 

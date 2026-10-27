@@ -75,6 +75,11 @@ def sync_detailed(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (per-user):** a source's *enablement and display* are now the caller's own per-user view
+    (getMySources/updateMySources) over the shared collection; the instance collection set is managed
+    with `collection.manage` (getCollectionSources). The source descriptor and health stay global.
+    Request and response shapes are unchanged.
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
@@ -102,6 +107,11 @@ def sync(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (per-user):** a source's *enablement and display* are now the caller's own per-user view
+    (getMySources/updateMySources) over the shared collection; the instance collection set is managed
+    with `collection.manage` (getCollectionSources). The source descriptor and health stay global.
+    Request and response shapes are unchanged.
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
@@ -124,6 +134,11 @@ async def asyncio_detailed(
      Catalogue of every available adapter with its settings, live health status and today's budget use.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (per-user):** a source's *enablement and display* are now the caller's own per-user view
+    (getMySources/updateMySources) over the shared collection; the instance collection set is managed
+    with `collection.manage` (getCollectionSources). The source descriptor and health stay global.
+    Request and response shapes are unchanged.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -149,6 +164,11 @@ async def asyncio(
      Catalogue of every available adapter with its settings, live health status and today's budget use.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (per-user):** a source's *enablement and display* are now the caller's own per-user view
+    (getMySources/updateMySources) over the shared collection; the instance collection set is managed
+    with `collection.manage` (getCollectionSources). The source descriptor and health stay global.
+    Request and response shapes are unchanged.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

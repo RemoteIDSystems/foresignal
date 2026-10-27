@@ -53,6 +53,14 @@ class LlmProviderInput {
      this.dailyCapUsd,
 
      this.monthlyCapUsd,
+
+     this.shared,
+
+     this.perUserHourlyCapUsd,
+
+     this.perUserDailyCapUsd,
+
+     this.perUserMonthlyCapUsd,
   });
 
   @JsonKey(
@@ -264,6 +272,64 @@ class LlmProviderInput {
 
 
 
+      /// On create: true for a shared provider (needs `llm.shared.manage`), false for a personal one owned by the caller (needs `self.llm`). Absent, a user holding `self.llm` gets a personal provider and anyone else a shared one; an API token always creates shared providers. Ignored on replace, which keeps the kind (R2-011).
+  @JsonKey(
+    
+    name: r'shared',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final bool? shared;
+
+
+
+      /// The most each user may spend on this shared provider in the UTC clock hour (it resets at the top of the hour), in USD, at most 4 decimal places; null means no per-user cap (R2-011). It counts only that user's own calls, so one user cannot exhaust the shared budget while the others continue; the provider's own caps still bound the total. Needs `pricing`; refused for a personal provider, whose own caps are already its owner's. Once reached, that user's calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset.
+          // minimum: 0
+          // maximum: 10000000000
+  @JsonKey(
+    
+    name: r'perUserHourlyCapUsd',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final num? perUserHourlyCapUsd;
+
+
+
+      /// The most each user may spend on this shared provider in the UTC day (it resets at 00:00 UTC), in USD, at most 4 decimal places; null means no per-user cap (R2-011). It counts only that user's own calls, so one user cannot exhaust the shared budget while the others continue; the provider's own caps still bound the total. Needs `pricing`; refused for a personal provider, whose own caps are already its owner's. Once reached, that user's calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset.
+          // minimum: 0
+          // maximum: 10000000000
+  @JsonKey(
+    
+    name: r'perUserDailyCapUsd',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final num? perUserDailyCapUsd;
+
+
+
+      /// The most each user may spend on this shared provider in the UTC calendar month (it resets at 00:00 UTC on the 1st), in USD, at most 4 decimal places; null means no per-user cap (R2-011). It counts only that user's own calls, so one user cannot exhaust the shared budget while the others continue; the provider's own caps still bound the total. Needs `pricing`; refused for a personal provider, whose own caps are already its owner's. Once reached, that user's calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset.
+          // minimum: 0
+          // maximum: 10000000000
+  @JsonKey(
+    
+    name: r'perUserMonthlyCapUsd',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final num? perUserMonthlyCapUsd;
+
+
+
 
 
     @override
@@ -283,7 +349,11 @@ class LlmProviderInput {
       other.pricing == pricing &&
       other.hourlyCapUsd == hourlyCapUsd &&
       other.dailyCapUsd == dailyCapUsd &&
-      other.monthlyCapUsd == monthlyCapUsd;
+      other.monthlyCapUsd == monthlyCapUsd &&
+      other.shared == shared &&
+      other.perUserHourlyCapUsd == perUserHourlyCapUsd &&
+      other.perUserDailyCapUsd == perUserDailyCapUsd &&
+      other.perUserMonthlyCapUsd == perUserMonthlyCapUsd;
 
     @override
     int get hashCode =>
@@ -302,7 +372,11 @@ class LlmProviderInput {
         (pricing == null ? 0 : pricing.hashCode) +
         (hourlyCapUsd == null ? 0 : hourlyCapUsd.hashCode) +
         (dailyCapUsd == null ? 0 : dailyCapUsd.hashCode) +
-        (monthlyCapUsd == null ? 0 : monthlyCapUsd.hashCode);
+        (monthlyCapUsd == null ? 0 : monthlyCapUsd.hashCode) +
+        shared.hashCode +
+        (perUserHourlyCapUsd == null ? 0 : perUserHourlyCapUsd.hashCode) +
+        (perUserDailyCapUsd == null ? 0 : perUserDailyCapUsd.hashCode) +
+        (perUserMonthlyCapUsd == null ? 0 : perUserMonthlyCapUsd.hashCode);
 
   factory LlmProviderInput.fromJson(Map<String, dynamic> json) => _$LlmProviderInputFromJson(json);
 

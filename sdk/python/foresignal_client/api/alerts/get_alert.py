@@ -82,6 +82,11 @@ def sync_detailed(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user
+    sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left
+    out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API
+    token see all alerts; anonymous callers and feed keys see the shared ones.
+
     Args:
         alert_id (int):
 
@@ -116,6 +121,11 @@ def sync(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user
+    sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left
+    out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API
+    token see all alerts; anonymous callers and feed keys see the shared ones.
+
     Args:
         alert_id (int):
 
@@ -144,6 +154,11 @@ async def asyncio_detailed(
     version is gone. An alert of a private source is 404 for anonymous callers.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user
+    sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left
+    out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API
+    token see all alerts; anonymous callers and feed keys see the shared ones.
 
     Args:
         alert_id (int):
@@ -176,6 +191,11 @@ async def asyncio(
     version is gone. An alert of a private source is 404 for anonymous callers.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user
+    sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left
+    out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API
+    token see all alerts; anonymous callers and feed keys see the shared ones.
 
     Args:
         alert_id (int):

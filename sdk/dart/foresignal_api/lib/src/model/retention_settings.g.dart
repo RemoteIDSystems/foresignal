@@ -41,6 +41,14 @@ abstract class _$RetentionSettingsCWProxy {
 
   RetentionSettings social(RetentionSettingsSocial? social);
 
+  RetentionSettings capHistory(bool? capHistory);
+
+  RetentionSettings maxDays(int? maxDays);
+
+  RetentionSettings maxDbGb(num? maxDbGb);
+
+  RetentionSettings overwriteOldest(bool? overwriteOldest);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `RetentionSettings(...).copyWith.fieldName(value)`.
@@ -67,6 +75,10 @@ abstract class _$RetentionSettingsCWProxy {
     String? trackDownsampleInterval,
     String? entityLinks,
     RetentionSettingsSocial? social,
+    bool? capHistory,
+    int? maxDays,
+    num? maxDbGb,
+    bool? overwriteOldest,
   });
 }
 
@@ -136,6 +148,20 @@ class _$RetentionSettingsCWProxyImpl implements _$RetentionSettingsCWProxy {
   RetentionSettings social(RetentionSettingsSocial? social) =>
       call(social: social);
 
+  @override
+  RetentionSettings capHistory(bool? capHistory) =>
+      call(capHistory: capHistory);
+
+  @override
+  RetentionSettings maxDays(int? maxDays) => call(maxDays: maxDays);
+
+  @override
+  RetentionSettings maxDbGb(num? maxDbGb) => call(maxDbGb: maxDbGb);
+
+  @override
+  RetentionSettings overwriteOldest(bool? overwriteOldest) =>
+      call(overwriteOldest: overwriteOldest);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `RetentionSettings(...).copyWith.fieldName(value)`.
@@ -163,6 +189,10 @@ class _$RetentionSettingsCWProxyImpl implements _$RetentionSettingsCWProxy {
     Object? trackDownsampleInterval = const $CopyWithPlaceholder(),
     Object? entityLinks = const $CopyWithPlaceholder(),
     Object? social = const $CopyWithPlaceholder(),
+    Object? capHistory = const $CopyWithPlaceholder(),
+    Object? maxDays = const $CopyWithPlaceholder(),
+    Object? maxDbGb = const $CopyWithPlaceholder(),
+    Object? overwriteOldest = const $CopyWithPlaceholder(),
   }) {
     return RetentionSettings(
       default_: default_ == const $CopyWithPlaceholder() || default_ == null
@@ -234,6 +264,22 @@ class _$RetentionSettingsCWProxyImpl implements _$RetentionSettingsCWProxy {
           ? _value.social
           // ignore: cast_nullable_to_non_nullable
           : social as RetentionSettingsSocial?,
+      capHistory: capHistory == const $CopyWithPlaceholder()
+          ? _value.capHistory
+          // ignore: cast_nullable_to_non_nullable
+          : capHistory as bool?,
+      maxDays: maxDays == const $CopyWithPlaceholder()
+          ? _value.maxDays
+          // ignore: cast_nullable_to_non_nullable
+          : maxDays as int?,
+      maxDbGb: maxDbGb == const $CopyWithPlaceholder()
+          ? _value.maxDbGb
+          // ignore: cast_nullable_to_non_nullable
+          : maxDbGb as num?,
+      overwriteOldest: overwriteOldest == const $CopyWithPlaceholder()
+          ? _value.overwriteOldest
+          // ignore: cast_nullable_to_non_nullable
+          : overwriteOldest as bool?,
     );
   }
 }
@@ -296,6 +342,13 @@ RetentionSettings _$RetentionSettingsFromJson(
           ? null
           : RetentionSettingsSocial.fromJson(v as Map<String, dynamic>),
     ),
+    capHistory: $checkedConvert('capHistory', (v) => v as bool? ?? false),
+    maxDays: $checkedConvert('maxDays', (v) => (v as num?)?.toInt()),
+    maxDbGb: $checkedConvert('maxDbGb', (v) => v as num?),
+    overwriteOldest: $checkedConvert(
+      'overwriteOldest',
+      (v) => v as bool? ?? true,
+    ),
   );
   return val;
 }, fieldKeyMap: const {'default_': 'default'});
@@ -319,4 +372,8 @@ Map<String, dynamic> _$RetentionSettingsToJson(RetentionSettings instance) =>
       'trackDownsampleInterval': ?instance.trackDownsampleInterval,
       'entityLinks': ?instance.entityLinks,
       'social': ?instance.social?.toJson(),
+      'capHistory': ?instance.capHistory,
+      'maxDays': ?instance.maxDays,
+      'maxDbGb': ?instance.maxDbGb,
+      'overwriteOldest': ?instance.overwriteOldest,
     };

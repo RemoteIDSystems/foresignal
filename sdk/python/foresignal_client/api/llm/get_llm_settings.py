@@ -65,6 +65,10 @@ def sync_detailed(
 
     **Scope:** `admin`.
 
+    **v2.0 (shared and personal, R2-011):** this operation concerns the shared LLM configuration only
+    and needs `llm.shared.manage`; personal providers are managed through the provider operations with
+    `self.llm`, and the instance roles can be held only by shared providers.
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
@@ -92,6 +96,10 @@ def sync(
 
     **Scope:** `admin`.
 
+    **v2.0 (shared and personal, R2-011):** this operation concerns the shared LLM configuration only
+    and needs `llm.shared.manage`; personal providers are managed through the provider operations with
+    `self.llm`, and the instance roles can be held only by shared providers.
+
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
@@ -114,6 +122,10 @@ async def asyncio_detailed(
      Get LLM roles and options
 
     **Scope:** `admin`.
+
+    **v2.0 (shared and personal, R2-011):** this operation concerns the shared LLM configuration only
+    and needs `llm.shared.manage`; personal providers are managed through the provider operations with
+    `self.llm`, and the instance roles can be held only by shared providers.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -139,6 +151,10 @@ async def asyncio(
      Get LLM roles and options
 
     **Scope:** `admin`.
+
+    **v2.0 (shared and personal, R2-011):** this operation concerns the shared LLM configuration only
+    and needs `llm.shared.manage`; personal providers are managed through the provider operations with
+    `self.llm`, and the instance roles can be held only by shared providers.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

@@ -16,6 +16,8 @@ export interface paths {
          * @description Catalogue of every available adapter with its settings, live health status and today's budget use.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (per-user):** a source's *enablement and display* are now the caller's own per-user view (getMySources/updateMySources) over the shared collection; the instance collection set is managed with `collection.manage` (getCollectionSources). The source descriptor and health stay global. Request and response shapes are unchanged.
          */
         get: operations["listSources"];
         put?: never;
@@ -63,6 +65,8 @@ export interface paths {
          * @description Get a source
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (per-user):** a source's *enablement and display* are now the caller's own per-user view (getMySources/updateMySources) over the shared collection; the instance collection set is managed with `collection.manage` (getCollectionSources). The source descriptor and health stay global. Request and response shapes are unchanged.
          */
         get: operations["getSource"];
         /**
@@ -70,6 +74,8 @@ export interface paths {
          * @description Enable/disable (subscribe/unsubscribe), set interval, params, budget, retention and the ingest-policy override. Changes apply immediately; omitted fields are unchanged, an explicit `ingestPolicy: null` clears the override. Policy violations return 400 INGEST_POLICY_INVALID with every violation in `errors[]` (e.g. `ingestPolicy.keyframe`); retention on a TRACK source returns 400 RETENTION_TIER_FIXED (use `retention.trackWindow`). A parameter value allowed only on a private source (086: `local-remoteid`'s `keepOperatorPosition=true`) returns 400 PRIVATE_REQUIRED unless the source is effectively private (descriptor or `private: true`, in the same request or already set), and so does making such a source public.
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (per-user):** a source's *enablement and display* are now the caller's own per-user view (getMySources/updateMySources) over the shared collection; the instance collection set is managed with `collection.manage` (getCollectionSources). The source descriptor and health stay global. Request and response shapes are unchanged.
          */
         put: operations["updateSource"];
         post?: never;
@@ -408,14 +414,18 @@ export interface paths {
          * @description List trigger rules
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.
          */
         get: operations["listTriggers"];
         put?: never;
         /**
          * Create a trigger rule
-         * @description Creates a rule evaluated against persisted versions (HEARTBEAT excluded). Condition paths on volatile fields are rejected (TRIGGER_PATH_VOLATILE); line geofences need bufferMeters; `near.placeId` needs Places (PLACES_UNAVAILABLE).
+         * @description Creates a rule evaluated against persisted versions (HEARTBEAT excluded). Condition paths on volatile fields are rejected (TRIGGER_PATH_VOLATILE); line geofences need bufferMeters; `near.placeId` needs Places (PLACES_UNAVAILABLE). A signed-in user creating their own rule is refused past their `maxAlerts` quota (409 QUOTA_EXCEEDED, R2-026).
          *
          *     **Scope:** `agent`.
+         *
+         *     **v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.
          */
         post: operations["createTrigger"];
         delete?: never;
@@ -439,6 +449,8 @@ export interface paths {
          * @description Get a trigger rule
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.
          */
         get: operations["getTrigger"];
         /**
@@ -446,6 +458,8 @@ export interface paths {
          * @description Full replace; the persist gate re-converges each entity on its next observation.
          *
          *     **Scope:** `agent`.
+         *
+         *     **v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.
          */
         put: operations["updateTrigger"];
         post?: never;
@@ -454,6 +468,8 @@ export interface paths {
          * @description Existing alerts are kept (no cascade).
          *
          *     **Scope:** `agent`.
+         *
+         *     **v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.
          */
         delete: operations["deleteTrigger"];
         options?: never;
@@ -520,6 +536,8 @@ export interface paths {
          * @description Alerts newest first, keyset on id. Suppressed alerts are hidden unless includeSuppressed. Anonymous callers (security.openReads) never see alerts of private sources.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.
          */
         get: operations["listAlerts"];
         put?: never;
@@ -542,6 +560,8 @@ export interface paths {
          * @description Alert lifecycle as SSE: `alert` (fired), `alert.updated` and `alert.resolved`, data AlertEvent, `id:` = alert rev. Resume replays rows with rev > Last-Event-ID in their current state; clients upsert by alert id. A malformed Last-Event-ID is 400 INVALID_CURSOR. Anonymous callers never see alerts of private sources. `alert.enriched` (030, data Alert) is an update of the same alert with its enrichment summary; clients treat it as an upsert by alert id. A replay sends each alert once in its current state, summary included.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.
          */
         get: operations["streamAlerts"];
         put?: never;
@@ -567,6 +587,8 @@ export interface paths {
          * @description Alert with its lifecycle; `record` is loaded by seq and falls back to `recordSnapshot` once the version is gone. An alert of a private source is 404 for anonymous callers.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.
          */
         get: operations["getAlert"];
         put?: never;
@@ -1032,14 +1054,18 @@ export interface paths {
          * @description Secrets are never returned.
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in user reaches these operations with `self.channels` or `channels.global`: they see their own channels and the global ones, manage their own, and manage global channels only with `channels.global` (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all channels. On create, `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone else a global one; an API token always creates global channels. A user's alerts go to their own channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive `ownerPrincipalId` and `global`.
          */
         get: operations["listChannels"];
         put?: never;
         /**
          * Create a notification channel
-         * @description Create a notification channel
+         * @description Create a notification channel A signed-in user creating a personal channel is refused past their `maxChannels` quota (409 QUOTA_EXCEEDED, R2-026).
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in user reaches these operations with `self.channels` or `channels.global`: they see their own channels and the global ones, manage their own, and manage global channels only with `channels.global` (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all channels. On create, `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone else a global one; an API token always creates global channels. A user's alerts go to their own channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive `ownerPrincipalId` and `global`.
          */
         post: operations["createChannel"];
         delete?: never;
@@ -1063,6 +1089,8 @@ export interface paths {
          * @description Get a channel
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in user reaches these operations with `self.channels` or `channels.global`: they see their own channels and the global ones, manage their own, and manage global channels only with `channels.global` (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all channels. On create, `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone else a global one; an API token always creates global channels. A user's alerts go to their own channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive `ownerPrincipalId` and `global`.
          */
         get: operations["getChannel"];
         /**
@@ -1070,6 +1098,8 @@ export interface paths {
          * @description Omit `secrets` to keep existing secrets; a provided `secrets` object replaces them entirely.
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in user reaches these operations with `self.channels` or `channels.global`: they see their own channels and the global ones, manage their own, and manage global channels only with `channels.global` (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all channels. On create, `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone else a global one; an API token always creates global channels. A user's alerts go to their own channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive `ownerPrincipalId` and `global`.
          */
         put: operations["updateChannel"];
         post?: never;
@@ -1078,6 +1108,8 @@ export interface paths {
          * @description Pending deliveries are marked failed ("channel deleted").
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in user reaches these operations with `self.channels` or `channels.global`: they see their own channels and the global ones, manage their own, and manage global channels only with `channels.global` (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all channels. On create, `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone else a global one; an API token always creates global channels. A user's alerts go to their own channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive `ownerPrincipalId` and `global`.
          */
         delete: operations["deleteChannel"];
         options?: never;
@@ -1147,6 +1179,8 @@ export interface paths {
          * @description API keys are never returned.
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (shared and personal, R2-011):** a provider is **shared** (`shared: true`, no owner; every provider from before v2.0, managed with `llm.shared.manage`) or **personal** (`ownerPrincipalId`, the owning user's principal, managed by that user with `self.llm`). A signed-in user reaches the provider operations with either permission: they see their own providers and the shared ones; they change, delete and test their own, list its models and read its budget; on a shared provider those need `llm.shared.manage` (403 PERMISSION_DENIED otherwise), and another user's provider is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all providers. On create, `shared` picks the kind: absent, a user holding `self.llm` gets a personal provider and anyone else a shared one; an API token always creates shared providers; a replace keeps the kind. Only a shared provider can hold an instance role (getLlmSettings) or carry `perUser*CapUsd`, the caps on each user's own spend on it. A personal provider is never `local` for LLM egress. Calls made for a user are metered to that user as well (getMyLlmBudget). The shapes change only by the additive `shared`, `ownerPrincipalId` and `perUser*CapUsd`.
          */
         get: operations["listLlmProviders"];
         put?: never;
@@ -1155,6 +1189,8 @@ export interface paths {
          * @description Add an LLM provider. Defaults: `anthropic` → `baseUrl` https://api.anthropic.com, `chatModel` claude-opus-5-5, `options.effort` medium, `options.maxTokens` 16000, and `apiKey` is required; `ollama` → `baseUrl` http://ollama:11434; `openai-compatible` must name `baseUrl`. `baseUrl` must be http or https with a host and no user info or fragment; private-network URLs are allowed (035 adds OutboundUrlPolicy LAN_ALLOWED). The key is encrypted at rest and never returned (`apiKeySet`).
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (shared and personal, R2-011):** a provider is **shared** (`shared: true`, no owner; every provider from before v2.0, managed with `llm.shared.manage`) or **personal** (`ownerPrincipalId`, the owning user's principal, managed by that user with `self.llm`). A signed-in user reaches the provider operations with either permission: they see their own providers and the shared ones; they change, delete and test their own, list its models and read its budget; on a shared provider those need `llm.shared.manage` (403 PERMISSION_DENIED otherwise), and another user's provider is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all providers. On create, `shared` picks the kind: absent, a user holding `self.llm` gets a personal provider and anyone else a shared one; an API token always creates shared providers; a replace keeps the kind. Only a shared provider can hold an instance role (getLlmSettings) or carry `perUser*CapUsd`, the caps on each user's own spend on it. A personal provider is never `local` for LLM egress. Calls made for a user are metered to that user as well (getMyLlmBudget). The shapes change only by the additive `shared`, `ownerPrincipalId` and `perUser*CapUsd`.
          */
         post: operations["createLlmProvider"];
         delete?: never;
@@ -1178,6 +1214,8 @@ export interface paths {
          * @description Get an LLM provider
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (shared and personal, R2-011):** a provider is **shared** (`shared: true`, no owner; every provider from before v2.0, managed with `llm.shared.manage`) or **personal** (`ownerPrincipalId`, the owning user's principal, managed by that user with `self.llm`). A signed-in user reaches the provider operations with either permission: they see their own providers and the shared ones; they change, delete and test their own, list its models and read its budget; on a shared provider those need `llm.shared.manage` (403 PERMISSION_DENIED otherwise), and another user's provider is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all providers. On create, `shared` picks the kind: absent, a user holding `self.llm` gets a personal provider and anyone else a shared one; an API token always creates shared providers; a replace keeps the kind. Only a shared provider can hold an instance role (getLlmSettings) or carry `perUser*CapUsd`, the caps on each user's own spend on it. A personal provider is never `local` for LLM egress. Calls made for a user are metered to that user as well (getMyLlmBudget). The shapes change only by the additive `shared`, `ownerPrincipalId` and `perUser*CapUsd`.
          */
         get: operations["getLlmProvider"];
         /**
@@ -1185,6 +1223,8 @@ export interface paths {
          * @description Omit `apiKey` to keep the stored key. Changing model or dimensions of the active embedding provider (or reassigning `embeddingProvider`) publishes an embedding-model change and starts a zero-downtime reindex (027). `baseUrl` passes OutboundUrlPolicy LAN_ALLOWED (035). A body `id`, when present, must equal the path id. The change is refused (400) when it would leave a role the provider holds unserved (disabled, no chatModel, or no embedding model).
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (shared and personal, R2-011):** a provider is **shared** (`shared: true`, no owner; every provider from before v2.0, managed with `llm.shared.manage`) or **personal** (`ownerPrincipalId`, the owning user's principal, managed by that user with `self.llm`). A signed-in user reaches the provider operations with either permission: they see their own providers and the shared ones; they change, delete and test their own, list its models and read its budget; on a shared provider those need `llm.shared.manage` (403 PERMISSION_DENIED otherwise), and another user's provider is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all providers. On create, `shared` picks the kind: absent, a user holding `self.llm` gets a personal provider and anyone else a shared one; an API token always creates shared providers; a replace keeps the kind. Only a shared provider can hold an instance role (getLlmSettings) or carry `perUser*CapUsd`, the caps on each user's own spend on it. A personal provider is never `local` for LLM egress. Calls made for a user are metered to that user as well (getMyLlmBudget). The shapes change only by the additive `shared`, `ownerPrincipalId` and `perUser*CapUsd`.
          */
         put: operations["updateLlmProvider"];
         post?: never;
@@ -1193,6 +1233,8 @@ export interface paths {
          * @description Returns 409 while it is assigned to a role.
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (shared and personal, R2-011):** a provider is **shared** (`shared: true`, no owner; every provider from before v2.0, managed with `llm.shared.manage`) or **personal** (`ownerPrincipalId`, the owning user's principal, managed by that user with `self.llm`). A signed-in user reaches the provider operations with either permission: they see their own providers and the shared ones; they change, delete and test their own, list its models and read its budget; on a shared provider those need `llm.shared.manage` (403 PERMISSION_DENIED otherwise), and another user's provider is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all providers. On create, `shared` picks the kind: absent, a user holding `self.llm` gets a personal provider and anyone else a shared one; an API token always creates shared providers; a replace keeps the kind. Only a shared provider can hold an instance role (getLlmSettings) or carry `perUser*CapUsd`, the caps on each user's own spend on it. A personal provider is never `local` for LLM egress. Calls made for a user are metered to that user as well (getMyLlmBudget). The shapes change only by the additive `shared`, `ownerPrincipalId` and `perUser*CapUsd`.
          */
         delete: operations["deleteLlmProvider"];
         options?: never;
@@ -1217,6 +1259,8 @@ export interface paths {
          * @description Sends a tiny chat request ("Reply with the single word: ok", 16 output tokens, purpose `test`) and an embedding of "test" when the provider has an embedding model, and reports latency, model, token usage (cached tokens included) and the normalized stop reason. Consumes budget. A provider failure or refusal is reported in the result (`success: false`, `error`, `refusalCategory`); only a budget refusal is an error status. A destination refused by the outbound URL policy at send time answers `success: false` with an `error` containing URL_NOT_ALLOWED (035).
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (shared and personal, R2-011):** a provider is **shared** (`shared: true`, no owner; every provider from before v2.0, managed with `llm.shared.manage`) or **personal** (`ownerPrincipalId`, the owning user's principal, managed by that user with `self.llm`). A signed-in user reaches the provider operations with either permission: they see their own providers and the shared ones; they change, delete and test their own, list its models and read its budget; on a shared provider those need `llm.shared.manage` (403 PERMISSION_DENIED otherwise), and another user's provider is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all providers. On create, `shared` picks the kind: absent, a user holding `self.llm` gets a personal provider and anyone else a shared one; an API token always creates shared providers; a replace keeps the kind. Only a shared provider can hold an instance role (getLlmSettings) or carry `perUser*CapUsd`, the caps on each user's own spend on it. A personal provider is never `local` for LLM egress. Calls made for a user are metered to that user as well (getMyLlmBudget). The shapes change only by the additive `shared`, `ownerPrincipalId` and `perUser*CapUsd`.
          */
         post: operations["testLlmProvider"];
         delete?: never;
@@ -1240,6 +1284,8 @@ export interface paths {
          * @description Queries the provider's model list (Anthropic Models API, OpenAI-compatible /models, Ollama /api/tags).
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (shared and personal, R2-011):** a provider is **shared** (`shared: true`, no owner; every provider from before v2.0, managed with `llm.shared.manage`) or **personal** (`ownerPrincipalId`, the owning user's principal, managed by that user with `self.llm`). A signed-in user reaches the provider operations with either permission: they see their own providers and the shared ones; they change, delete and test their own, list its models and read its budget; on a shared provider those need `llm.shared.manage` (403 PERMISSION_DENIED otherwise), and another user's provider is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all providers. On create, `shared` picks the kind: absent, a user holding `self.llm` gets a personal provider and anyone else a shared one; an API token always creates shared providers; a replace keeps the kind. Only a shared provider can hold an instance role (getLlmSettings) or carry `perUser*CapUsd`, the caps on each user's own spend on it. A personal provider is never `local` for LLM egress. Calls made for a user are metered to that user as well (getMyLlmBudget). The shapes change only by the additive `shared`, `ownerPrincipalId` and `perUser*CapUsd`.
          */
         get: operations["listLlmProviderModels"];
         put?: never;
@@ -1264,6 +1310,8 @@ export interface paths {
          * @description Dry run for the provider editor: takes an LlmProviderInput that is not saved and, in one round trip, lists the provider's models and runs the testLlmProvider probes (a tiny chat when `chatModel` is set, an embedding when an embedding model and dimensions are). Without a model the model listing is the connection test. Nothing is persisted: no provider, no usage, no health, no budget; the `apiKey` is used for these requests and discarded. Without `apiKey`, the stored key of the saved provider named by `id` is used when there is one, so a saved provider can be tested with edits that are not saved yet. The body is validated as createLlmProvider validates it (400, and 400 URL_NOT_ALLOWED for a base URL the outbound URL policy refuses); the requests go through the same outbound URL policy and pinning as a saved provider's. A provider failure is reported in the result, never as an error status.
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (shared and personal, R2-011):** this operation concerns the shared LLM configuration only and needs `llm.shared.manage`; personal providers are managed through the provider operations with `self.llm`, and the instance roles can be held only by shared providers.
          */
         post: operations["probeLlmProvider"];
         delete?: never;
@@ -1287,6 +1335,8 @@ export interface paths {
          * @description Per window (the UTC hour, day and month) the USD spent, the estimated USD of calls in flight, the cap, what remains and when the window resets; the token and request limits; and, for providers whose API reports one to the same key, the provider-reported balance (DeepSeek, OpenRouter), shown for information and never enforced. Spend is Foresignal's own metered tokens at the provider's `pricing`.
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (shared and personal, R2-011):** a provider is **shared** (`shared: true`, no owner; every provider from before v2.0, managed with `llm.shared.manage`) or **personal** (`ownerPrincipalId`, the owning user's principal, managed by that user with `self.llm`). A signed-in user reaches the provider operations with either permission: they see their own providers and the shared ones; they change, delete and test their own, list its models and read its budget; on a shared provider those need `llm.shared.manage` (403 PERMISSION_DENIED otherwise), and another user's provider is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all providers. On create, `shared` picks the kind: absent, a user holding `self.llm` gets a personal provider and anyone else a shared one; an API token always creates shared providers; a replace keeps the kind. Only a shared provider can hold an instance role (getLlmSettings) or carry `perUser*CapUsd`, the caps on each user's own spend on it. A personal provider is never `local` for LLM egress. Calls made for a user are metered to that user as well (getMyLlmBudget). The shapes change only by the additive `shared`, `ownerPrincipalId` and `perUser*CapUsd`.
          */
         get: operations["getLlmProviderBudget"];
         put?: never;
@@ -1309,6 +1359,8 @@ export interface paths {
          * @description Get LLM roles and options
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (shared and personal, R2-011):** this operation concerns the shared LLM configuration only and needs `llm.shared.manage`; personal providers are managed through the provider operations with `self.llm`, and the instance roles can be held only by shared providers.
          */
         get: operations["getLlmSettings"];
         /**
@@ -1316,6 +1368,8 @@ export interface paths {
          * @description Replaces the LLM roles and options; omitted members take their defaults. Reassigning `embeddingProvider` publishes an embedding-model change (027 reindexes). `allowPrivateLocal` is accepted only as false until prompt 039.
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (shared and personal, R2-011):** this operation concerns the shared LLM configuration only and needs `llm.shared.manage`; personal providers are managed through the provider operations with `self.llm`, and the instance roles can be held only by shared providers.
          */
         put: operations["updateLlmSettings"];
         post?: never;
@@ -1337,6 +1391,8 @@ export interface paths {
          * @description LLM usage over time
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (shared and personal, R2-011):** this operation concerns the shared LLM configuration only and needs `llm.shared.manage`; personal providers are managed through the provider operations with `self.llm`, and the instance roles can be held only by shared providers.
          */
         get: operations["getLlmUsage"];
         put?: never;
@@ -1433,6 +1489,8 @@ export interface paths {
          * @description Answers from Foresignal's data with the chat provider and the read tool catalogue (tools mode, ≤ 12 iterations, 120 s) or, when the model lacks tools, retrieval-only mode. Every citation is verified against tool output down to the persisted seq (`[source:externalId@seq]`); dropped citations and uncited claims are returned in `warnings`. Write actions are only proposed unless `allowActions` is true and the token has agent scope. A model refusal is answered (200) with a warning. Errors: 409 LLM_NOT_CONFIGURED, 429 LLM_BUDGET_EXCEEDED.
          *
          *     **Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         post: operations["ask"];
         delete?: never;
@@ -1455,6 +1513,8 @@ export interface paths {
          * @description Server-Sent Events: `progress` (tool activity), `delta` (unverified answer text), `citation`, `warning`, `action`, `done` (the full verified AskResponse, identical to the persisted message), `error`. Heartbeats and per-token stream limits as in 015.
          *
          *     **Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         post: operations["askStream"];
         delete?: never;
@@ -2293,6 +2353,8 @@ export interface paths {
          * @description Newest first, keyset paging. Covers authenticated writes, 401/403 on write paths, pairing claims, token revocations, MCP tool calls, notification actions, private-data reads by non-admins, exports and purges. `detail` never contains secrets or request bodies. Retention key `audit` (default 90d).
          *
          *     **Scope:** `admin`.
+         *
+         *     **v2.0 (R2-013):** a signed-in user reaches the log with `audit.read` (the Auditor role) without admin scope; a session without it is 403 PERMISSION_DENIED. What a signed-in user does is attributed to the user: actor kind `user` with `userId` and `userEmail`, including sign-ins (successful and failed), sign-outs, session revocations, account activation and password resets, every user, role, settings, collection and LLM provider change, and reads refused with PERMISSION_DENIED (`detail.requiredPermission`). Filters: time, token, operation, status, actor kind, user and target. The log is append-only: the database refuses to change an entry; retention deletes entries older than the window.
          */
         get: operations["listAuditEvents"];
         put?: never;
@@ -3273,14 +3335,18 @@ export interface paths {
          * @description View definitions.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.
          */
         get: operations["listViews"];
         put?: never;
         /**
          * Create a saved view
-         * @description Compiles the view to one `RecordPredicate` shared with rules (SQL and in-memory evaluation agree on the operator truth table).
+         * @description Compiles the view to one `RecordPredicate` shared with rules (SQL and in-memory evaluation agree on the operator truth table). A signed-in user creating their own view is refused past their `maxSavedViews` quota (409 QUOTA_EXCEEDED, R2-026).
          *
          *     **Scope:** `agent`.
+         *
+         *     **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.
          */
         post: operations["createView"];
         delete?: never;
@@ -3304,6 +3370,8 @@ export interface paths {
          * @description 404 UNKNOWN_VIEW.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.
          */
         get: operations["getView"];
         /**
@@ -3311,6 +3379,8 @@ export interface paths {
          * @description Bumps `version` (tile cache keys include it).
          *
          *     **Scope:** `agent`.
+         *
+         *     **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.
          */
         put: operations["updateView"];
         post?: never;
@@ -3319,6 +3389,8 @@ export interface paths {
          * @description Removes the definition.
          *
          *     **Scope:** `agent`.
+         *
+         *     **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.
          */
         delete: operations["deleteView"];
         options?: never;
@@ -3341,6 +3413,8 @@ export interface paths {
          * @description Current records matching the view's predicate, in every 014 format, keyset-paged, with the `fields` projection applied. View data follows normal read rules unless the view references a place or watchlist, in which case a token is required (401).
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.
          */
         get: operations["getViewRecords"];
         put?: never;
@@ -3372,6 +3446,8 @@ export interface paths {
          * @description Mapbox Vector Tile of the view's current records (016 properties); the cache key includes the view `version`. View data follows normal read rules unless the view references a place or watchlist, in which case a token is required (401).
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.
          */
         get: operations["getViewTile"];
         put?: never;
@@ -3397,6 +3473,8 @@ export interface paths {
          * @description TileJSON 3.0.0 document whose tile template carries the view version. View data follows normal read rules unless the view references a place or watchlist, in which case a token is required (401).
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.
          */
         get: operations["getViewTileJson"];
         put?: never;
@@ -3422,6 +3500,8 @@ export interface paths {
          * @description 015 SSE semantics (replay from `Last-Event-ID`/`after`, live and touch lanes, resync and reset; `leftFilter` unchanged) filtered by the view's predicate. View data follows normal read rules unless the view references a place or watchlist, in which case a token is required (401).
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.
          */
         get: operations["streamView"];
         put?: never;
@@ -4735,6 +4815,8 @@ export interface paths {
          * @description Batch form of `GET /v1/sample` for up to 100 points (400 VALIDATION_FAILED beyond); results are in request order.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         post: operations["postSample"];
         delete?: never;
@@ -4785,6 +4867,8 @@ export interface paths {
          * @description min, max, mean, p95, coverage and the area above each threshold (spherical cell areas per grid type) over a geometry, place or bbox. Geometry ≤ 10,000 vertices and area ≤ 2,000,000 km² (400 VALIDATION_FAILED beyond). Thresholds are given in the requested unit system. A cell belongs to the area when its center lies inside; `coveragePct` is the share of those cells holding a value. A non-ok status (unavailable, no-coverage, stale) carries no statistics (`min`…`p95` null, `thresholds` empty).
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         post: operations["postProductStats"];
         delete?: never;
@@ -4808,6 +4892,8 @@ export interface paths {
          * @description The `place-weather` record (wx-places head) plus cached forecast series (GFS/HRRR, NWS from 053). Sections that are stale, failing or without coverage keep their previous values with a non-ok status; unknown is never clear.
          *
          *     **Scope:** `read` (always authenticated).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         get: operations["getPlaceWeather"];
         put?: never;
@@ -4968,6 +5054,8 @@ export interface paths {
          * @description RFC 4287 Atom feed of alerts with GeoRSS-Simple geometry (`georss:point`, or `georss:polygon` for single polygons ≤ 500 vertices, else the centroid). Entries are ordered newest first by last lifecycle change. Entry `id` is `tag:foresignal,2026:{installId}/alert/{id}`, title is `shortTitle` (else the title), the alternate link is the client deep link (else `publicBaseUrl/v1/alerts/{id}`), categories carry severity and rule tags. Content is markdown rendered with commonmark-java and sanitised by an allowlist (`p, br, strong, em, code, pre, ul, ol, li, blockquote, h3–h6, a[href]` http/https only). Private-source alerts are excluded unless the token or feed key passes the private gate and `EgressPolicy.allows(FEED)`. Conditional GET: ETag over (max lifecycle timestamp, max id, filters) plus `Last-Modified`. Feed readers without headers use a 035 feed key (`/v1/k/{key}/alerts/feed.atom`). RSS 2.0 and WebSub publishing are not offered.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.
          */
         get: operations["getAlertsAtom"];
         put?: never;
@@ -4990,6 +5078,8 @@ export interface paths {
          * @description JSON Feed 1.1 of alerts; each item carries the `_foresignal` extension `{severity, state, sourceId, externalId, geometry}`. Entries are ordered newest first by last lifecycle change. Entry `id` is `tag:foresignal,2026:{installId}/alert/{id}`, title is `shortTitle` (else the title), the alternate link is the client deep link (else `publicBaseUrl/v1/alerts/{id}`), categories carry severity and rule tags. Content is markdown rendered with commonmark-java and sanitised by an allowlist (`p, br, strong, em, code, pre, ul, ol, li, blockquote, h3–h6, a[href]` http/https only). Private-source alerts are excluded unless the token or feed key passes the private gate and `EgressPolicy.allows(FEED)`. Conditional GET: ETag over (max lifecycle timestamp, max id, filters) plus `Last-Modified`. Feed readers without headers use a 035 feed key (`/v1/k/{key}/alerts/feed.atom`). RSS 2.0 and WebSub publishing are not offered.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (per-user, R2-008):** an alert carries its rule's owner from when it fired. A signed-in user sees, and acts on, the alerts of their own rules and of shared rules; another user's alert is left out of lists, feeds and streams and is 404 by id. A session holding `users.manage` and every API token see all alerts; anonymous callers and feed keys see the shared ones.
          */
         get: operations["getAlertsJsonFeed"];
         put?: never;
@@ -6096,6 +6186,8 @@ export interface paths {
          * @description Facilities, places, watchlist entities, live traffic, optional population (GHSL pack) and infrastructure dependents inside a geometry, place or event area. Without a pack the population section is `not-installed`.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `intel.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         post: operations["computeExposure"];
         delete?: never;
@@ -6694,6 +6786,8 @@ export interface paths {
          * @description Seeds from an area, event or record and walks dependency edges (depth ≤ 3, label ≥ minLabel). Results ≤ 5,000 nodes (truncated by pathScore). An area > 2,000,000 km² without `types` is 400 INFRA_QUERY_TOO_LARGE.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         post: operations["computeAffectedInfrastructure"];
         delete?: never;
@@ -6788,6 +6882,8 @@ export interface paths {
          * @description Samples each point at its time using the nearest frame within `maxGap`, or forecast frames for future times with `run`. With `record`, points come from the 037 track simplification. Private sources and observer gating apply.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         post: operations["sampleTrack"];
         delete?: never;
@@ -7516,6 +7612,8 @@ export interface paths {
          * @description Attribution aggregate (one entry per source and licence, with record counts) for the current records matching `source` and `kind`, for SSE clients and map footers. Honours the licence policy and token restrictions.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         get: operations["getAttributions"];
         put?: never;
@@ -7927,6 +8025,8 @@ export interface paths {
          * @description When enabled, ArchiveStep writes TRACK leaves and STANDARD chunks as hive-partitioned GeoParquet before retention deletes them, verifies the row count, then uploads to S3 when configured (SigV4; endpoint checked by the outbound URL policy, URL_NOT_ALLOWED). Omitted secrets keep their stored values.
          *
          *     **Scope:** `admin`.
+         *
+         *     **R2-016:** also holds the cold-storage tier: target `glacier`, `s3.storageClass`, the archive-run `cutoff` (≥ 1d) and `schedule` (six-field cron); see runArchive.
          */
         put: operations["updateArchiveSettings"];
         post?: never;
@@ -8840,6 +8940,8 @@ export interface paths {
          * @description Evaluates one subject against up to 500 records from a filter (kinds, sources, bbox) and returns the top N by dcpa within maxDcpaM. Errors: `STATE_TOO_OLD` for the subject.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         post: operations["cpaBatch"];
         delete?: never;
@@ -10008,6 +10110,8 @@ export interface paths {
          * @description Computes a base rate for a definition without storing it (cached 24 h); returns a stored rate when one matches the definition.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `intel.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         post: operations["queryBaseRate"];
         delete?: never;
@@ -10102,6 +10206,8 @@ export interface paths {
          * @description Builds a signature from a region's last 14 days (or the given period) of reference history and rollups and searches the same region class's history; for questions not tied to a situation.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `intel.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         post: operations["queryAnalogs"];
         delete?: never;
@@ -11520,6 +11626,8 @@ export interface paths {
          * @description Returns the uniform envelope, `asOf`-aware, with `actions` the calling token may perform. Unknown types → 400 `OBJECT_REF_INVALID`; private or unshared objects are invisible (404).
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         get: operations["getObject"];
         put?: never;
@@ -11544,6 +11652,8 @@ export interface paths {
          * @description Resolves up to 500 refs; missing or invisible refs are listed, not errors.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         post: operations["resolveObjects"];
         delete?: never;
@@ -11564,6 +11674,8 @@ export interface paths {
          * @description The envelope plus bounded sections (overview, imagery, forecast, impacts, related, timeline, analysis), each with a `status`, in ≤ 64 KB. Forecasts carry their issuer and knowledge cutoff.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         get: operations["getObjectDossier"];
         put?: never;
@@ -11586,6 +11698,8 @@ export interface paths {
          * @description Neighbourhood through the relation graph, filtered by type, direction, validity at `asOf` and confidence.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         get: operations["listRelatedObjects"];
         put?: never;
@@ -11610,6 +11724,8 @@ export interface paths {
          * @description Layer counts (aggregated, never feature lists), a merged activity feed tagged by signal family, insights with issuer, base rate and knowledge cutoff, and top related objects, in ≤ 32 KB; cached per normalised context for 30 s.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         post: operations["summarizeContext"];
         delete?: never;
@@ -11632,6 +11748,8 @@ export interface paths {
          * @description Nodes (envelopes) and edges within `depth` ≤ 2 of up to 50 seed refs, limited to 2,000 edges, valid at `asOf`.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         post: operations["queryGraph"];
         delete?: never;
@@ -11654,6 +11772,8 @@ export interface paths {
          * @description Facilities and infrastructure that up to 20 objects share through `depends-on` and `located-in` paths (104), each with its weakest-edge label.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         post: operations["findCommonDependencies"];
         delete?: never;
@@ -11676,6 +11796,8 @@ export interface paths {
          * @description People and organizations reached from up to 50 seed entities through the ownership / affiliation edges (`owns`, `controls`, `officer-of`, `beneficial-owner`, `affiliated-with`), each with its strongest, shortest ownership chain (158). An entity reached from two or more seeds is a shared attribute — a common owner, officer, address or affiliate. Model and queries only; the external corporate / UBO / PEP / leak data that populates the edges is deferred (docs/Future-Roadmap.md).
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         post: operations["ownershipChain"];
         delete?: never;
@@ -11796,6 +11918,8 @@ export interface paths {
          * @description For findings (by detector), intel events (by recipe), situations (linker) and precursor-active findings: the share confirmed among verdicts with a Wilson interval and counts; `needs-review` counts as unlabeled.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         get: operations["getPrecision"];
         put?: never;
@@ -11818,6 +11942,8 @@ export interface paths {
          * @description Merged sensor envelopes: sources with 116 observability above 0.2 for the area, local receivers and SatDump stations in range, predicted satellite passes with curated capabilities, and STAC scenes and raster products in the window. Read-only; no tasking. `placeId` requires a token.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         get: operations["listSensors"];
         put?: never;
@@ -11840,14 +11966,18 @@ export interface paths {
          * @description Workspaces the caller owns or is a member of.
          *
          *     **Scope:** `read` (token required).
+         *
+         *     **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
          */
         get: operations["listWorkspaces"];
         put?: never;
         /**
          * Create a workspace
-         * @description Creates a workspace owned by the caller with an initial context (version 1) and optional opaque layout.
+         * @description Creates a workspace owned by the caller with an initial context (version 1) and optional opaque layout. The bytes it adds count against the `maxStorageBytes` quota of the workspace owner (409 QUOTA_EXCEEDED, R2-026).
          *
          *     **Scope:** `read` (token required).
+         *
+         *     **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
          */
         post: operations["createWorkspace"];
         delete?: never;
@@ -11868,6 +11998,8 @@ export interface paths {
          * @description The workspace with its context, `contextVersion` (also the ETag for context `If-Match`) and layout.
          *
          *     **Scope:** `read` (token required).
+         *
+         *     **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
          */
         get: operations["getWorkspace"];
         put?: never;
@@ -11877,6 +12009,8 @@ export interface paths {
          * @description Deletes the workspace (owner or admin).
          *
          *     **Scope:** `read` (token required).
+         *
+         *     **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
          */
         delete: operations["deleteWorkspace"];
         options?: never;
@@ -11886,6 +12020,8 @@ export interface paths {
          * @description JSON merge patch of name, members, saved views, investigation and `private`. Needs editor role with agent scope, or the owner's token.
          *
          *     **Scope:** `read` (token required).
+         *
+         *     **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
          */
         patch: operations["updateWorkspace"];
         trace?: never;
@@ -11900,9 +12036,11 @@ export interface paths {
         get?: never;
         /**
          * Replace a workspace's layout
-         * @description Stores opaque client layout JSON (≤ 64 KB); Foresignal never interprets it.
+         * @description Stores opaque client layout JSON (≤ 64 KB); Foresignal never interprets it. The bytes it adds count against the `maxStorageBytes` quota of the workspace owner (409 QUOTA_EXCEEDED, R2-026).
          *
          *     **Scope:** `read` (token required).
+         *
+         *     **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
          */
         put: operations["putWorkspaceLayout"];
         post?: never;
@@ -11927,9 +12065,11 @@ export interface paths {
         head?: never;
         /**
          * Patch a workspace's shared context
-         * @description JSON merge patch with `If-Match: <contextVersion>`; 412 `WORKSPACE_CONTEXT_STALE` on a stale version. The new version is broadcast as `workspace.context` with the sender's `originClientId`. Validated per Client-Contract §5 (well-formed refs, ordered time range, ≤ 200 selected refs).
+         * @description JSON merge patch with `If-Match: <contextVersion>`; 412 `WORKSPACE_CONTEXT_STALE` on a stale version. The new version is broadcast as `workspace.context` with the sender's `originClientId`. Validated per Client-Contract §5 (well-formed refs, ordered time range, ≤ 200 selected refs). The bytes it adds count against the `maxStorageBytes` quota of the workspace owner (409 QUOTA_EXCEEDED, R2-026).
          *
          *     **Scope:** `read` (token required).
+         *
+         *     **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
          */
         patch: operations["patchWorkspaceContext"];
         trace?: never;
@@ -11946,6 +12086,8 @@ export interface paths {
          * @description The context summary for the workspace's current viewport, time range, filters and layers.
          *
          *     **Scope:** `read` (token required).
+         *
+         *     **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
          */
         get: operations["getWorkspaceSummary"];
         put?: never;
@@ -11968,6 +12110,8 @@ export interface paths {
          * @description The Client-Contract §6 payload (version, workspace id, base64url context ≤ 2 KB) for `#fs=` fragments.
          *
          *     **Scope:** `read` (token required).
+         *
+         *     **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
          */
         get: operations["getWorkspaceContextLink"];
         put?: never;
@@ -12014,6 +12158,8 @@ export interface paths {
          * @description Issues a read-only 112 share link (`/v1/k/{key}/…`) to the workspace context; the key is shown once. A share link is public, so the workspace's TLP label must be CLEAR (130, `TLP_VIOLATION`).
          *
          *     **Scope:** `agent`.
+         *
+         *     **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
          */
         post: operations["shareWorkspace"];
         delete?: never;
@@ -12034,6 +12180,8 @@ export interface paths {
          * @description Returns the principal behind the calling token, its token, effective scopes, groups and notification preferences.
          *
          *     **Scope:** `read`.
+         *
+         *     **v2.0:** for a session principal this additionally reflects the authenticated user and their effective permissions (the union of the user's roles). Response shape is unchanged (additive).
          */
         get: operations["getMe"];
         put?: never;
@@ -12561,7 +12709,7 @@ export interface paths {
         put?: never;
         /**
          * Upload an attachment
-         * @description Multipart upload (≤ `collab.maxUploadMb`, default 50). Allowed: images (through 043 ImageGuard; EXIF stripped unless `collab.keepExif`), PDF, plain text, CSV, JSON, GeoJSON, KML, Markdown. Stored content-addressed (dedup by sha256); text is extracted for search. Files are data, never executed.
+         * @description Multipart upload (≤ `collab.maxUploadMb`, default 50). Allowed: images (through 043 ImageGuard; EXIF stripped unless `collab.keepExif`), PDF, plain text, CSV, JSON, GeoJSON, KML, Markdown. Stored content-addressed (dedup by sha256); text is extracted for search. Files are data, never executed. The bytes it adds count against the `maxStorageBytes` quota of the uploader (409 QUOTA_EXCEEDED, R2-026).
          *
          *     **Scope:** `read`.
          */
@@ -12758,6 +12906,8 @@ export interface paths {
          * @description Runs the saved search now (027 hybrid search plus structured filters over envelopes) and returns envelopes the caller can see.
          *
          *     **Scope:** `read`.
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         get: operations["runSavedSearch"];
         put?: never;
@@ -14444,6 +14594,8 @@ export interface paths {
          * @description fdsnws-event 1.2 over `earthquake` records: QuakeML 1.2 BED (`smi:foresignal/{source}/{externalId}` publicIDs) or the pipe-separated text format. `204` when no events match (FDSN convention; `nodata=404` selects 404); errors use FDSN plain-text bodies. Long and short parameter names are accepted (`start`, `minlat`, `minmag`, …); unsupported parameters are a 400. Depth is in meters in QuakeML and in km in the text format.
          *
          *     **Scope:** `read` (open while `security.openReads` is on).
+         *
+         *     **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API tokens keep their scope rules.
          */
         get: operations["queryFdsnEvents"];
         put?: never;
@@ -15812,6 +15964,1318 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log in with email and password
+         * @description Verifies the email + Argon2id password (and the MFA code when enrolled) and issues a session bearer (166). The session carries the user's effective permissions (the union of the user's roles). A suspended or disabled account is refused (403). Repeated failures from one address are rate-limited (429). When MFA is enrolled but no `mfaCode` is given, the response reports `mfaRequired` and issues no usable session (`token` empty, `expiresAt` null); a wrong `mfaCode` (TOTP or recovery code) is the same 401 INVALID_CREDENTIALS (R2-024). A session of a user holding the Admin or Operator role who has not enrolled MFA may read, enroll (enrollMfa, verifyMfa), set preferences, sign out and revoke its own sessions; every other write is 403 MFA_ENROLLMENT_REQUIRED until verifyMfa activates MFA (R2-024).
+         *
+         *     **Scope:** `open`.
+         */
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log out the current session
+         * @description Revokes the session bearer used for this request; its open SSE streams are closed. Idempotent.
+         *
+         *     **Scope:** `read`.
+         */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/password/reset-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request a password-reset email
+         * @description Sends a single-use, expiring reset link to the address when it belongs to an active account. Always returns 202 whether or not the address exists, so accounts cannot be enumerated; requires SMTP to be configured to actually deliver (170).
+         *
+         *     **Scope:** `open`.
+         */
+        post: operations["requestPasswordReset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/password/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset a password with a reset token
+         * @description Sets a new password from the single-use token emailed by requestPasswordReset, then revokes all of the user's existing sessions. The token is consumed on success.
+         *
+         *     **Scope:** `open`.
+         */
+        post: operations["resetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate an invited account
+         * @description Sets the first password for an invited user from the emailed activation token, moving the account from `invited` to `active`. The token is single-use.
+         *
+         *     **Scope:** `open`.
+         */
+        post: operations["activateAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my active sessions
+         * @description Lists the calling user's own active sessions, the current one marked. For revoking another user's sessions an admin uses the user-management API (D2).
+         *
+         *     **Scope:** `read`.
+         */
+        get: operations["listSessions"];
+        put?: never;
+        post?: never;
+        /**
+         * Revoke all my other sessions
+         * @description Revokes every session of the calling user except the one making the request. Use after a suspected compromise.
+         *
+         *     **Scope:** `read`.
+         */
+        delete: operations["revokeAllSessions"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke one of my sessions
+         * @description Revokes a single session by id. Revoking the current session logs the caller out.
+         *
+         *     **Scope:** `read`.
+         */
+        delete: operations["revokeSession"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List users
+         * @description Lists platform users with their roles and status. Requires `users.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["listUsers"];
+        put?: never;
+        /**
+         * Create (invite) a user
+         * @description Creates a user in `invited` status and, when SMTP is configured, emails an activation link (A6/170). Requires `users.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        post: operations["createUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a user
+         * @description Returns one user by id. Requires `users.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["getUser"];
+        /**
+         * Update a user
+         * @description Updates a user's profile fields and, with `dataRestriction`, what the user may read: a source and kind subset and an area (bbox, area, places), validated like a token's restriction (400 VALIDATION_FAILED for an unknown source, kind or place or a member that is not a data member). Null lifts the restriction; absent leaves it. The change applies to the user's next request. Requires `users.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        put: operations["updateUser"];
+        post?: never;
+        /**
+         * Delete a user
+         * @description Deletes a user. By default the user's owned config (triggers, channels, personal LLM providers, saved views) is reassigned to an admin rather than deleted; pass `reassign=false` to delete it instead (168). The last remaining admin cannot be deleted (409).
+         *
+         *     **Scope:** `admin`.
+         */
+        delete: operations["deleteUser"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/{id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set a user's roles
+         * @description Replaces the user's role set. Effective permissions are the union of the assigned roles. A role-changed email is sent when SMTP is configured. Requires `users.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        post: operations["setUserRoles"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend a user
+         * @description Moves the user to `suspended`, revoking all their sessions; their account and config are kept. Requires `users.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        post: operations["suspendUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/{id}/unsuspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unsuspend a user
+         * @description Returns a suspended user to `active`. Requires `users.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        post: operations["unsuspendUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/{id}/resend-invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend an activation invite
+         * @description Issues a fresh activation token and re-sends the welcome email to an `invited` user (170). Requires `users.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        post: operations["resendUserInvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/{id}/password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a user a password reset
+         * @description Triggers a password-reset email for the named user (the admin-initiated path of requestPasswordReset). Requires `users.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        post: operations["adminResetUserPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List roles
+         * @description Lists built-in and custom roles. Requires `roles.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["listRoles"];
+        put?: never;
+        /**
+         * Create a custom role
+         * @description Creates a custom role from a subset of the permission catalog. Requires `roles.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        post: operations["createRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a role
+         * @description Returns one role by id. Requires `roles.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["getRole"];
+        /**
+         * Update a custom role
+         * @description Replaces a custom role's name, description and permissions. A built-in role's permissions are fixed (409). Requires `roles.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        put: operations["updateRole"];
+        post?: never;
+        /**
+         * Delete a custom role
+         * @description Deletes a custom role. A built-in role, or one still assigned to a user, cannot be deleted (409). Requires `roles.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        delete: operations["deleteRole"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the permission catalog
+         * @description Returns the fixed permission catalog, grouped (identity, platform, self, data), for the role editor. Requires `roles.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["listPermissions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/settings/smtp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get SMTP settings
+         * @description Settings key `smtp`; secrets are never returned (only `secretsSet`). Requires `system.settings`.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["getSmtpSettings"];
+        /**
+         * Update SMTP settings
+         * @description Replaces SMTP settings; an omitted or null password keeps the stored one. Requires `system.settings`.
+         *
+         *     **Scope:** `admin`.
+         */
+        put: operations["updateSmtpSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/settings/smtp/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a test email
+         * @description Sends a test message with the saved (or supplied) SMTP settings and reports the outcome; nothing is persisted. Requires `system.settings`.
+         *
+         *     **Scope:** `admin`.
+         */
+        post: operations["testSmtpSettings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get my enabled-source view
+         * @description Returns the caller's own source view over the shared collection: one entry per source the caller may see, with `enabled` and the caller's display overrides. A view is opt-out: a source the caller never turned off is `enabled` with no overrides. The instance-wide collection set is getCollectionSources. A view belongs to a signed-in user, so an API token gets `401`. Requires `self.sources`.
+         *
+         *     **Scope:** `read`.
+         */
+        get: operations["getMySources"];
+        /**
+         * Update my enabled-source view
+         * @description Replaces the caller's source view; a source left out returns to the default (enabled, no overrides). A source may be listed whether or not the instance collects it; the preference takes effect while it is in the collection set. The collector pulls a source once while any active user's view keeps it, so a view never adds a second pull. Afterwards the caller's reads (records, changes, tiles, search, statistics) show only the sources in their view. An API token gets `401`. Requires `self.sources`.
+         *
+         *     **Scope:** `read`.
+         */
+        put: operations["updateMySources"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sources/collection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the instance collection set
+         * @description Returns the instance collection set: every registered source with `inCollection` (whether the instance may collect it) and `enabledByUsers` (how many active users' views keep it). The collector pulls a source once when it is in this set and some active user's view keeps it, or, while no user is active, whenever it is in this set. Requires `collection.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["getCollectionSources"];
+        /**
+         * Update the instance collection set
+         * @description Sets `inCollection` for every listed source, all or nothing; a source left out keeps its state and `enabledByUsers` is ignored. Each change applies the checks of updateSource, so collecting a source without its required credentials is `409 CREDENTIALS_REQUIRED`. A source taken out of the set is pulled for no one, regardless of per-user views. Requires `collection.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        put: operations["updateCollectionSources"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/llm/budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get my LLM budget and spend
+         * @description Returns the calling user's LLM spend this UTC month on every provider they can use: the enabled shared providers and their own personal ones, by id. `spentUsd` counts only calls made for this user (their own requests, and work done on their behalf such as enriching their alerts); calls made with an API token are the machine's and are not counted. On a shared provider `capUsd` is its `perUserMonthlyCapUsd`, the user's share; on a personal provider it is the provider's own `monthlyCapUsd`. `remainingUsd` is the cap minus the spend, never below zero, or null when uncapped. A budget belongs to a signed-in user, so an API token gets `401`. Requires `self.llm`.
+         *
+         *     **Scope:** `read`.
+         */
+        get: operations["getMyLlmBudget"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get my preferences
+         * @description Returns the calling user's preferences with the defaults filled in: an unset `timezone` reads as the server's (getServerSettings), an unset `theme` as `system`, an unset `locale` as the instance notification language (`notify.defaultLanguage`). `notifications` summarizes the caller's notification preferences (listMyNotificationPreferences): `emailEnabled` is false only when the caller has email channels and every one is off, `pushEnabled` likewise for push channels (ntfy, gotify, pushover, webpush), and `quietHours` is the window every preference shares, or null when they differ or have none. Needs a signed-in session (an API token is 401). Requires `self.preferences`.
+         *
+         *     **Scope:** `read`.
+         */
+        get: operations["getMyPreferences"];
+        /**
+         * Update my preferences
+         * @description Replaces the calling user's preferences. `timezone` (an IANA zone the server knows), `locale` (a BCP 47 tag naming an ISO 639 language) and `theme` (`system`, `light` or `dark`) are replaced; absent or null resets each to its default, and an invalid value is 400 VALIDATION_FAILED. `ui` is replaced whole (at most 64 KiB of JSON). The timezone is the user's own (`Principal.timezone`): the user's personal notification channels render their quiet hours in it, and the Ask assistant writes the user's local time in it; stored times stay UTC. `notifications` writes through to the caller's notification preferences rather than a second copy: `emailEnabled` and `pushEnabled` turn every email or push channel on or off, `quietHours` (`HH:MM-HH:MM`, or null to clear) sets the window on every preference; a member left out, or the whole object, leaves those preferences as they are. Needs a signed-in session (an API token is 401). Requires `self.preferences`.
+         *
+         *     **Scope:** `read`.
+         */
+        put: operations["updateMyPreferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/system/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get host resource status
+         * @description Live host disk free space, memory and database size with an overall ok/warn/critical status (177), rated against `GET /v1/settings/thresholds`. Readings are cached for up to 30 s. A `warn` or `critical` gauge also appears in `/v1/system.warnings` as `DISK_LOW`, `DISK_CRITICAL`, `MEMORY_LOW` or `MEMORY_CRITICAL`. Requires `storage.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["getResourceStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/settings/thresholds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get resource thresholds
+         * @description Settings key `thresholds`: the warn/critical disk and memory levels, the alert channels, and the source-storm and collector-backlog bounds; the defaults when never set. Requires `storage.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["getResourceThresholds"];
+        /**
+         * Update resource thresholds
+         * @description Replaces the thresholds; a breach raises /v1/system warnings and fires alerts through the channel system. Each alert is edge-triggered: entering `warn` or `critical` publishes one `system` notification (`system.disk_low`, `system.disk_critical`, `system.memory_low`, `system.memory_critical`, `system.source_storm`, `system.collector_backlog`, `system.user_rate_limited`) and returning to normal publishes one recovery (`system.disk_recovered`, `system.memory_recovered`, `system.source_storm_cleared`, `system.collector_backlog_cleared`, `system.user_rate_limit_cleared`). Requires `storage.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        put: operations["updateResourceThresholds"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/settings/retention/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview what retention would prune
+         * @description Dry run of the current retention policy: what the next run would prune per subsystem (records per kind, TRACK leaves, frames, media, stopped chronicles), with a size estimate and nothing deleted (B2/178). It uses the settings the next run applies, including a window the database-size cap has stepped down to; with `capHistory` off it shows today's per-subsystem windows. Frames pinned by a chronicle are not counted; quota eviction is not previewed. Requires `storage.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["previewRetention"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/archives": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List archive segments
+         * @description Lists cold-storage archive segments with sizes and status, newest first (B3/179). This is the archival-tier inventory (`archive_manifest`); the compliance cold-archive catalog of legal holds is getArchiveCatalog. Requires `storage.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-016:** an unknown `status` or a cursor this endpoint did not issue is 400 VALIDATION_FAILED.
+         */
+        get: operations["listArchives"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/archives/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run an archival pass
+         * @description Starts an archival pass now: select data older than the cutoff, export to the target with a verified checksum, mark archived, then purge from the hot store (B3/179). Returns the created segment. Requires `storage.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-016:** the pass plans a retention run with the archived sources' STANDARD windows capped to now − cutoff (no other source's window moves), writes exactly the rows that plan removes (and the rows of TRACK partitions about to be dropped) as one gzip NDJSON file per source, offloads each to the tier and verifies it there (SHA-256 read back on the external disk; ETag and size on S3/Glacier), records the manifest (`complete`), and only then runs the planned retention pass, so the purge goes through the existing delete, drop and head-purge paths. A failed export or verification purges nothing, marks the segment `failed` and raises the operational alert `system.archive_failed`. The pass holds the retention job's single-run guard: while retention or another archive pass runs, the answer is 409 ALREADY_RUNNING. 409 ARCHIVE_NOT_CONFIGURED when the archive is off, or an s3/glacier target lacks its settings or secrets.
+         */
+        post: operations["runArchive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/archives/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore an archive
+         * @description Pulls an archive segment back from cold storage into the hot store (B3/179). Requires `storage.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-016:** `confirm: true` is required (400 otherwise). Each file is pulled from its tier and its SHA-256 checked, then its rows are loaded into the restore area `record_version_restored` (keyed by the archive id), not back into record_version, whose partitions for those seqs are gone and whose retention would delete them again. A Glacier segment stays `restoring` while S3 thaws its objects (typically hours); the runner asks again each minute. A restore may be large and slow. 409 ALREADY_RESTORED, ALREADY_RUNNING (the segment or another restore is in progress), ARCHIVE_NOT_RESTORABLE (a failed segment) or ARCHIVE_NOT_CONFIGURED (s3/glacier settings missing).
+         */
+        post: operations["restoreArchive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/settings/backup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get backup settings
+         * @description Settings key `backup`; secrets are never returned (only `secretsSet`). Requires `storage.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["getBackupSettings"];
+        /**
+         * Update backup settings
+         * @description Replaces backup settings; an omitted secret keeps the stored one. Requires `storage.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-017:** every problem is one 400: `enabled` and `target` are required, `schedule` must be a six-field cron expression, `external` needs an absolute `root`, `s3` needs `s3.endpoint` and `s3.bucket`, `keepBackups` is 1 to 10000 or null. The S3 endpoint must pass the outbound URL policy (400 URL_NOT_ALLOWED). Secrets are stored encrypted and never returned.
+         */
+        put: operations["updateBackupSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List backups
+         * @description Lists backup artifacts with type, size and status (180). Requires `storage.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-017:** newest first; `type` filters to one type.
+         */
+        get: operations["listBackups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backups/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run a backup now
+         * @description Starts a DB (pg_dump/base) or config-export backup to the configured target (B4/180). Requires `storage.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-017:** returns the `pending` backup; a worker then runs `pg_dump --format=custom` of the application database (the password goes to it as `PGPASSWORD`, never on its command line) and/or writes the `exportSettings` bundle, stores each file on the target through the R2-016 archive tiers and verifies it there, marks the backup `complete`, and prunes complete backups of that type beyond `keepBackups`. A failure marks it `failed` with `error` and raises the operational alert `system.backup_failed`; when `pg_dump` is not on the server's PATH, a database backup fails with that reason and the server carries on. 409 BACKUP_NOT_CONFIGURED while backups are off, or an `s3` target lacks its bucket or secrets, or an `external` target its root; 409 ALREADY_RUNNING while another backup or restore runs.
+         */
+        post: operations["runBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backups/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore from a backup
+         * @description Restores the instance from a backup; destructive, so `confirm` must be true (180). Requires `storage.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-017:** a `config` backup is imported at once through `importSettings` (atomic: a 400 listing every error applies nothing); the answer is the `restored` backup with its `importReport`. A `database` or `full` backup is restored in the background (the answer is the `restoring` backup) with `pg_restore --clean --if-exists --single-transaction` into the live database: it replaces every table, the backup history included, then brings the schema forward with the server's migrations and marks the backup `restored`. **Operational caveat:** the restore takes locks on every table, so ingest and API writes wait on it, and anything written after the backup was taken is lost; pause collection first and restart the server afterwards so every cache is rebuilt. While it runs, no retention or archive pass starts. A failed restore puts the backup's previous status back with `error` and raises `system.backup_failed`. 409 ALREADY_RUNNING while a backup, restore, retention or archive pass runs; 409 BACKUP_NOT_RESTORABLE for a failed backup, or a config bundle whose stored copy is missing or does not match its checksum (the reason is kept in `error`); 409 BACKUP_NOT_CONFIGURED for an `s3` backup when the settings have no bucket or secrets.
+         */
+        post: operations["restoreBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/egress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List egress routes
+         * @description Lists the egress pool with per-route health and last observed exit IP (C1/181). Requires `network.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-018:** ordered by name; 400 for a cursor this server did not issue.
+         */
+        get: operations["listEgressRoutes"];
+        put?: never;
+        /**
+         * Create an egress route
+         * @description Adds a proxy, WireGuard profile or bound interface to the egress pool; credentials are stored encrypted, never returned. Requires `network.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-018:** `url` is `http://host:port` or `socks5://host:port` (no path, no credentials in it) for those types, and its host must pass the outbound URL policy's `LAN_ALLOWED` profile (400 URL_NOT_ALLOWED otherwise); `interface` takes `boundInterface` (an interface name or an address literal); names are unique ignoring case; `wireguard` takes `secrets.wireguardConfig` and is recorded but always unavailable, because the server cannot bring a tunnel up. Secrets are sealed with the instance key and never returned; `secretsSet` names those stored.
+         */
+        post: operations["createEgressRoute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/egress/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get an egress route
+         * @description Returns one egress route by id. Requires `network.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["getEgressRoute"];
+        /**
+         * Update an egress route
+         * @description Replaces an egress route; an omitted secret keeps the stored one. Requires `network.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-018:** the same validation as create; an omitted `secrets` member keeps the stored value, an empty string or null clears it, and a secret the new type cannot use is dropped.
+         */
+        put: operations["updateEgressRoute"];
+        post?: never;
+        /**
+         * Delete an egress route
+         * @description Removes an egress route. Sources pinned to it fall back to the default route. Requires `network.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-018:** sources pinned to the route lose the pin, and the default route is cleared when it was this one.
+         */
+        delete: operations["deleteEgressRoute"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/egress/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test an egress route
+         * @description Makes a probe call through the route and reports the observed public exit IP and latency; nothing is persisted beyond the route's health (C1/181). Requires `network.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-018:** one `GET` of the configured exit-IP service (`foresignal.egress.probe-url`, default `https://checkip.amazonaws.com/`, checked against the public-only outbound policy) through the route. Always 200: `ok` false with a `message` when the route is unavailable or the call fails. A passing test records `exitIp` on the route.
+         */
+        post: operations["testEgressRoute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/egress/{id}/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get egress route health
+         * @description Returns reachability, latency, exit IP and backoff state for one route. Requires `network.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-018:** health is held in memory and starts empty at restart; three consecutive failures mark the route unreachable, skip it in rotation and raise `system.egress_unhealthy`; a later success raises `system.egress_recovered`. `sources` lists the per-source holds on the route.
+         */
+        get: operations["getEgressRouteHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/settings/egress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get egress policy
+         * @description Settings key `egress`; the rotation policy and default route. Requires `network.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["getEgressSettings"];
+        /**
+         * Update egress policy
+         * @description Replaces the rotation policy and default route. Default is direct (no egress routing). Requires `network.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-018:** 400 for an unknown `rotation`, or a `defaultRoute` that names no route. With rotation on and no usable route for a source, its pull fails rather than going direct.
+         */
+        put: operations["updateEgressSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sources/{sourceId}/egress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Assign a source's egress
+         * @description Pins a source to an egress route, or excludes it from rotation (e.g. a geo-locked source to an in-region exit). Requires `network.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-018:** 404 UNKNOWN_SOURCE for a source this server does not have; 400 for a `routeId` that names no route.
+         */
+        put: operations["assignSourceEgress"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/aggregators": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List first-party aggregators
+         * @description Lists the first-party aggregators across RF/sensor domains with status and the public sources each supersedes (C3). Requires `network.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-019:** every domain is listed. adsb is implemented, ais since R2-020, datalink since R2-021, satellite since R2-022 and ground-sensors since R2-023, so every domain reads `implemented: true`; a domain whose backend a server does not have reads `implemented: false` and `status: unconfigured`.
+         */
+        get: operations["listAggregators"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/aggregators/{domain}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a domain aggregator
+         * @description Returns the aggregator for one domain (adsb, ais, datalink, satellite, ground-sensors). Requires `network.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-019:** 404 UNKNOWN_AGGREGATOR for any other domain.
+         */
+        get: operations["getAggregator"];
+        /**
+         * Configure a domain aggregator
+         * @description Enables and configures a domain's first-party aggregator and, by default, defaults the superseded public/mirror sources off (they stay in the catalog as opt-in fallbacks). Requires `network.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-019:** the configuration is replaced whole. adsb writes `endpoint` (and `config.band`) to the `local-adsb-aggregator` source and turns it on while the aggregator is live (enabled with an endpoint), off otherwise. While live with `disableSupersededSources`, every registered `adsblol-*`, `adsbfi-*` and `airplaneslive-*` source and `gpsjam-daily` that is on is turned off, and seeding and `enable-core`/`enable-free` leave them off; when the aggregator stops being live, or `disableSupersededSources` is false, the sources it turned off are turned back on. 400 for a bad member, an endpoint that is not an http(s) aircraft.json URL (adsb) or a tcp:// or udp:// NMEA endpoint (ais, R2-020; udp:// needs config.allowSenders) or a tcp://host decoder host with at least one decoder selected (datalink, R2-021) or an http(s) SatDump URL without config.location (satellite, R2-022) or any endpoint, an unknown sensor or member, or no sensor enabled (ground-sensors, R2-023, where a source's own parameter error is reported at the sensor's member) or does not resolve to a local address, or `enabled: true` on a domain this server has no backend for. A live aggregator whose source starts failing raises `system.aggregator_down` (and `system.aggregator_recovered` when it is healthy again).
+         *
+         *     **R2-023:** ground-sensors is live while enabled with a sensor enabled. Each enabled sensor's members are written into its local read, which is turned on while live; a read a previous configuration drove and this one does not is turned off, and one never driven is left alone. Only the enabled sensors' mirrors are superseded, and a configuration that supersedes less turns the rest back on.
+         */
+        put: operations["updateAggregator"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/aggregators/{domain}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test a domain aggregator
+         * @description Probes the aggregator's local endpoint and reports reachability and a sample object count; nothing is persisted. Requires `network.manage`.
+         *
+         *     **Scope:** `admin`.
+         *
+         *     **R2-019:** reads the stored endpoint once through the aggregator's source (its budget and pinning apply). Always 200; `ok` false with a `message` when nothing is configured, the endpoint cannot be reached, or the answer is not readsb aircraft.json. `sampleCount` is the number of aircraft in it.
+         *
+         *     **R2-020:** for ais, listens to the stored NMEA endpoint for 10 s through `local-ais-aggregator` and reports the vessel records decoded (at most 100); a live UDP listener, which cannot be bound twice, is reported from its statistics (distinct MMSIs in the last 10 minutes).
+         *
+         *     **R2-021:** for datalink, listens to every selected read (ACARS/VDLM2/HFDL and APRS) at once for 10 s and sums the messages decoded; `reachable` is false only when no selected read could be connected.
+         *
+         *     **R2-022:** for satellite, runs the satdump-aggregator station for 10 s (its /api read and inbox scan) and counts the records it produced: station state, passes and products.
+         *
+         *     **R2-023:** for ground-sensors, probes every enabled sensor's polling or streaming read at once for 10 s and sums the records; a push source (seismic, same, the MeshCore bridge) or a live local-sonde UDP listener is reachable once it has received data. A failing sensor is named in `message`; `reachable` is false only when every sensor fails.
+         */
+        post: operations["testAggregator"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/mfa/enroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Begin MFA enrollment
+         * @description Starts TOTP enrollment and returns the secret and provisioning URI; enrollment is not active until verifyMfa confirms a code. Any signed-in user (a session; an API token is 401), whatever their roles, so an Operator can enroll (R2-024).
+         *
+         *     **Scope:** `read`.
+         */
+        post: operations["enrollMfa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/mfa/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm MFA enrollment
+         * @description Confirms a pending TOTP enrollment with a current code, enabling MFA for the account; that answer carries the first recovery codes once (`recoveryCodes`). Once MFA is active it is the step-up check: a current TOTP or unused recovery code. A code is within one 30 s step of now and never accepted twice. 400 MFA_CODE_INVALID for a wrong, expired or reused code; at most 10 code checks a minute per user (429). Any signed-in user (a session; an API token is 401), whatever their roles, so an Operator can enroll (R2-024).
+         *
+         *     **Scope:** `read`.
+         */
+        post: operations["verifyMfa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/mfa/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disable MFA
+         * @description Disables MFA after re-authenticating with a code or the account password. A role that requires MFA (Admin, Operator) refuses this (409 MFA_REQUIRED; an administrator reset is the way out); 409 MFA_NOT_ENABLED with nothing to disable. A wrong code is 400 MFA_CODE_INVALID, a wrong password 400 VALIDATION_FAILED; at most 10 code checks a minute per user (429). Any signed-in user (a session; an API token is 401), whatever their roles, so an Operator can enroll (R2-024).
+         *
+         *     **Scope:** `read`.
+         */
+        post: operations["disableMfa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/mfa/recovery-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Generate MFA recovery codes
+         * @description Generates a fresh set of single-use recovery codes, invalidating any previous set; shown once. Each is accepted once wherever a TOTP code is (login, verifyMfa, disableMfa). Requires MFA to be enabled (409 MFA_NOT_ENABLED). Any signed-in user (a session; an API token is 401), whatever their roles, so an Operator can enroll (R2-024).
+         *
+         *     **Scope:** `read`.
+         */
+        get: operations["getMfaRecoveryCodes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my API tokens
+         * @description Lists the API tokens owned by the calling user (user-attributable machine tokens, D2/188). An admin manages all tokens via /v1/tokens. Any signed-in user; needs a session (an API token is 401). Revoked tokens are listed with `revokedAt`; a value is never returned (R2-025).
+         *
+         *     **Scope:** `read`.
+         */
+        get: operations["listMyTokens"];
+        put?: never;
+        /**
+         * Mint an API token
+         * @description Mints an API token owned by the calling user, with the existing area/path/tile-key restrictions; its scope cannot exceed the caller's own permissions (D2/188). The secret is shown once. Any signed-in user; needs a session (an API token is 401), so a token never mints another (R2-025). The token is `createdVia: self` and owned by the caller's principal; `principalId` is refused (400). Its scope is at most `admin` for a user holding every permission, `agent` for one whose sessions are `agent` or `admin`, else `read`; `privateAccess` needs an admin-derived session; anything wider is 403 TOKEN_EXCEEDS_USER. On every request the token is capped again by its owner's current roles, narrowed by the owner's data restriction, refused (401) while the owner may not sign in, and audited as the owner (R2-025).
+         *
+         *     **Scope:** `read`.
+         */
+        post: operations["createMyToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/tokens/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke one of my API tokens
+         * @description Revokes an API token owned by the calling user. Any signed-in user; needs a session (an API token is 401). A token the caller does not own is 404, as if it did not exist; the revoked token stops authenticating at once (R2-025).
+         *
+         *     **Scope:** `read`.
+         */
+        delete: operations["revokeMyToken"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/{id}/quota": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a user's quota
+         * @description Returns a user's own quota (D5/189, R2-026): the limits set for that user, null where the instance default applies. The effective quota is what `getMyQuota` reports to the user. Requires `users.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        get: operations["getUserQuota"];
+        /**
+         * Set a user's quota
+         * @description Replaces a user's own quota whole (R2-026): every member is a non-negative integer or null, and null (or absent) uses the instance default; an unknown member is 400. A quota with every member null removes the user's own limits. `0` allows nothing: no API requests, or no further alert rules, channels, views or stored bytes. `apiRateLimitPerMinute` limits the user's sessions and own API tokens together (429 RATE_LIMITED with Retry-After, `class: user`); when a user is refused in every minute for 5 minutes an operational alert `system.user_rate_limited` is raised, and `system.user_rate_limit_cleared` once a minute passes without a refusal. The count and storage limits apply when the user creates (409 QUOTA_EXCEEDED). Requires `users.manage`.
+         *
+         *     **Scope:** `admin`.
+         */
+        put: operations["updateUserQuota"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/quota": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get my quota and usage
+         * @description Returns the calling user's effective quota (their own limits over the instance default; null is unlimited) and current usage: `alerts`, `channels` and `savedViews` (the trigger rules, notification channels and saved views they own), `storageBytes` (their uploaded attachments plus the JSON of the workspaces they own) and `apiRequestsThisMinute` (requests in the current clock minute across their sessions and own API tokens) (D5/189, R2-026). A session or a user's own API token (R2-025); an API token with no user has no quota and gets 401.
+         *
+         *     **Scope:** `read`.
+         */
+        get: operations["getMyQuota"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/system/first-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check first-run status
+         * @description Reports whether the instance still needs first-run setup: `firstRun` while no user exists (C4/190, R2-027). Open, so the admin app can start the setup wizard before any account exists. `smtpConfigured` is true when account email is enabled with a host; `sourcesEnabled` counts the sources in the collection set; `apiVersion` is `info.version`.
+         *
+         *     **Scope:** `open`.
+         */
+        get: operations["getFirstRunStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run first-run setup
+         * @description Bootstraps a fresh instance (C4/190, R2-027). Only the bootstrap admin token printed at first start may call it (403 for any other token or a session) and only while no user exists (409 ALREADY_SETUP after). It creates the first admin, active at once with the built-in Admin role and the given password (checked against the password policy); moves what the v1 operator owned through the instance `owner` principal (their personal channels and workspaces, and any rule, view or LLM provider bound to it) to that admin, leaving every owner-less row (source, collector and server settings, global channels, shared LLM providers, existing rules and views) shared; optionally seeds SMTP (as `updateSmtpSettings`), enables `sources` in the collection set, and stores `thresholds` and `retention` (as their settings operations); and signs the admin in. All of it is one transaction: a body refused anywhere changes nothing. The session is gated to MFA enrollment until the admin enrolls (R2-024). API tokens are not touched.
+         *
+         *     **Scope:** `admin`.
+         */
+        post: operations["runSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export interface webhooks {
     notification: {
@@ -16905,6 +18369,8 @@ export interface components {
             readonly anchorStatus?: "active" | "stale" | null;
             /** @description Windowed rules only */
             windowStatus?: components["schemas"]["WindowStatus"] | null;
+            /** @description The principal of the user who owns the rule (R2-008); null for a shared rule managed by an admin. Ignored on input. */
+            readonly ownerPrincipalId?: string | null;
         };
         TriggerTestResult: {
             /** Format: uuid */
@@ -17172,6 +18638,26 @@ export interface components {
                     [key: string]: string;
                 };
             };
+            /**
+             * @description Cap history (R2-015): one bound over the data history (records, TRACK history, frames, media and stopped chronicles). Off (the default) keeps every window as configured. When on, `maxDays` clamps every window to at most that many days (it never lengthens one, and cutoffs still pass the consumer clamp) and `maxDbGb` keeps the database under that size. Needs `maxDays`, `maxDbGb` or both.
+             * @default false
+             */
+            capHistory: boolean;
+            /**
+             * @description With `capHistory`: keep at most this many days of data history. An upper bound over the per-kind, per-source and tier windows, never a replacement.
+             * @example 90
+             */
+            maxDays?: number | null;
+            /**
+             * @description With `capHistory`: keep the database (`pg_database_size`) under this many GB (1024³ bytes). When it is over and still growing, each run steps the history window down (halving, whole days, never below 1 day) oldest first; when that cannot reach the cap it raises `system.retention_cap_unmet` and shortens history no further. An entity reported within the window keeps its current record.
+             * @example 200
+             */
+            maxDbGb?: number | null;
+            /**
+             * @description With `maxDbGb`: step the history window down to stay under the cap (default true); false only reports the breach.
+             * @default true
+             */
+            overwriteOldest: boolean;
         };
         RetentionRunResult: {
             /** Format: date-time */
@@ -17214,6 +18700,33 @@ export interface components {
                     floorSeq?: number | null;
                 };
             };
+            /** @description The cap-history window this run applied, in days (R2-015); null when history is not capped by age */
+            capWindowDays?: number | null;
+            /** @description What the database-size cap did this run (R2-015); null when it is off */
+            dbCap?: {
+                /** Format: int64 */
+                capBytes?: number;
+                /**
+                 * Format: int64
+                 * @description Database size after the window pass
+                 */
+                sizeBeforeBytes?: number;
+                /** Format: int64 */
+                sizeAfterBytes?: number;
+                /**
+                 * Format: int64
+                 * @description How far the size fell during the cap steps. Deleted rows free space Postgres reuses; files shrink only on a partition drop or VACUUM FULL.
+                 */
+                bytesReclaimed?: number;
+                /** @description History window in force at the end, or null for the configured windows */
+                windowDays?: number | null;
+                steps?: number;
+                action?: string;
+                /** @description Rows deleted by the cap steps, by table */
+                deleted?: {
+                    [key: string]: number;
+                };
+            } | null;
         };
         CorsSettings: {
             readOrigins: string[];
@@ -17556,7 +19069,7 @@ export interface components {
             expiresAt?: string | null;
             /** @description Rejected on admin tokens (400 RESTRICTION_NOT_ALLOWED, 035) */
             restrictions?: components["schemas"]["ReadRestriction"] | null;
-            /** @description Owning principal (id or handle); default: a new principal named after the token */
+            /** @description Owning principal (id or handle); default: a new principal named after the token; not accepted by createMyToken, whose tokens are always the caller's (R2-025) */
             principalId?: string | null;
             /**
              * @description Grant visibility of private sources (039)
@@ -17586,8 +19099,11 @@ export interface components {
             /** @description Data and endpoint restrictions (data restrictions enforced from 035) */
             restrictions?: components["schemas"]["ReadRestriction"] | null;
             device?: components["schemas"]["DeviceInfo"] | null;
-            /** @enum {string} */
-            createdVia?: "api" | "pairing" | "bootstrap";
+            /**
+             * @description `self`: minted by a signed-in user with createMyToken and owned by that user's principal (R2-025)
+             * @enum {string}
+             */
+            createdVia?: "api" | "pairing" | "bootstrap" | "self";
             /** @description Owning principal (every token belongs to one principal) */
             principalId?: components["schemas"]["Ulid"];
             /** @description May see private sources (039) */
@@ -17850,6 +19366,8 @@ export interface components {
             acceptExercise: boolean;
             /** @description BCP 47 language for notifications on this channel (141), stored canonicalized (`pt-br` → `pt-BR`); null uses `notify.defaultLanguage`. When the primary language or script differs from it, title and body are translated through the 026 chat role (budget `translate`, low effort), code spans, URLs and placeholders untouched, cached 24 h; after 8 s, or on any failure, the original is sent with the title prefixed `[untranslated]`. */
             language?: string | null;
+            /** @description On create only (R2-009): true for a global channel (needs `channels.global`), false for a personal one (needs `self.channels`). Absent, a user holding `self.channels` gets a personal channel and anyone else a global one; an API token always creates global channels. Ignored on update. */
+            global?: boolean | null;
         };
         Channel: {
             /** Format: uuid */
@@ -17939,8 +19457,10 @@ export interface components {
             acceptExercise: boolean;
             /** @description BCP 47; when it differs from `notify.defaultLanguage` (primary language or script) title and body are translated (026 chat role, budget `translate`), cached 24 h, the original with an `[untranslated]` title marker after 8 s or on failure (141) */
             language?: string | null;
-            /** @description Set for principal-owned channels created through notification preferences (130) */
-            ownerPrincipalId?: components["schemas"]["Ulid"] | null;
+            /** @description The principal of the user who owns this personal channel (R2-009); null for a global channel. */
+            readonly ownerPrincipalId?: string | null;
+            /** @description True for a global (instance-wide) channel, managed with `channels.global` (R2-009). */
+            readonly global?: boolean;
         };
         ChannelTestResult: {
             success: boolean;
@@ -18055,6 +19575,14 @@ export interface components {
             dailyCapUsd?: number | null;
             /** @description The most this provider may spend in the UTC calendar month (it resets at 00:00 UTC on the 1st), in USD, at most 4 decimal places; null means no cap (162). Spend is the provider's self-metered tokens at its `pricing`, so a cap needs pricing. Once a window's spend, with the estimated cost of the calls in flight, reaches its cap, calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset. Applies on top of requestsPerMinute and tokensPerDay. */
             monthlyCapUsd?: number | null;
+            /** @description On create: true for a shared provider (needs `llm.shared.manage`), false for a personal one owned by the caller (needs `self.llm`). Absent, a user holding `self.llm` gets a personal provider and anyone else a shared one; an API token always creates shared providers. Ignored on replace, which keeps the kind (R2-011). */
+            shared?: boolean;
+            /** @description The most each user may spend on this shared provider in the UTC clock hour (it resets at the top of the hour), in USD, at most 4 decimal places; null means no per-user cap (R2-011). It counts only that user's own calls, so one user cannot exhaust the shared budget while the others continue; the provider's own caps still bound the total. Needs `pricing`; refused for a personal provider, whose own caps are already its owner's. Once reached, that user's calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset. */
+            perUserHourlyCapUsd?: number | null;
+            /** @description The most each user may spend on this shared provider in the UTC day (it resets at 00:00 UTC), in USD, at most 4 decimal places; null means no per-user cap (R2-011). It counts only that user's own calls, so one user cannot exhaust the shared budget while the others continue; the provider's own caps still bound the total. Needs `pricing`; refused for a personal provider, whose own caps are already its owner's. Once reached, that user's calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset. */
+            perUserDailyCapUsd?: number | null;
+            /** @description The most each user may spend on this shared provider in the UTC calendar month (it resets at 00:00 UTC on the 1st), in USD, at most 4 decimal places; null means no per-user cap (R2-011). It counts only that user's own calls, so one user cannot exhaust the shared budget while the others continue; the provider's own caps still bound the total. Needs `pricing`; refused for a personal provider, whose own caps are already its owner's. Once reached, that user's calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset. */
+            perUserMonthlyCapUsd?: number | null;
         };
         LlmProvider: {
             id: string;
@@ -18101,6 +19629,16 @@ export interface components {
             dailyCapUsd?: number | null;
             /** @description USD cap of the UTC calendar month (it resets at 00:00 UTC on the 1st), or null (162) */
             monthlyCapUsd?: number | null;
+            /** @description True for a shared provider (no owner, managed with `llm.shared.manage`); false for a user's personal provider (R2-011) */
+            shared?: boolean;
+            /** @description The owning user's principal for a personal provider; null for a shared one (R2-011) */
+            ownerPrincipalId?: string | null;
+            /** @description The most each user may spend on this shared provider in the UTC clock hour (it resets at the top of the hour), in USD, at most 4 decimal places; null means no per-user cap (R2-011). It counts only that user's own calls, so one user cannot exhaust the shared budget while the others continue; the provider's own caps still bound the total. Needs `pricing`; refused for a personal provider, whose own caps are already its owner's. Once reached, that user's calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset. */
+            perUserHourlyCapUsd?: number | null;
+            /** @description The most each user may spend on this shared provider in the UTC day (it resets at 00:00 UTC), in USD, at most 4 decimal places; null means no per-user cap (R2-011). It counts only that user's own calls, so one user cannot exhaust the shared budget while the others continue; the provider's own caps still bound the total. Needs `pricing`; refused for a personal provider, whose own caps are already its owner's. Once reached, that user's calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset. */
+            perUserDailyCapUsd?: number | null;
+            /** @description The most each user may spend on this shared provider in the UTC calendar month (it resets at 00:00 UTC on the 1st), in USD, at most 4 decimal places; null means no per-user cap (R2-011). It counts only that user's own calls, so one user cannot exhaust the shared budget while the others continue; the provider's own caps still bound the total. Needs `pricing`; refused for a personal provider, whose own caps are already its owner's. Once reached, that user's calls are refused 429 LLM_BUDGET_EXCEEDED with Retry-After at the window's reset. */
+            perUserMonthlyCapUsd?: number | null;
         };
         LlmSettings: {
             chatProvider?: string | null;
@@ -19760,10 +21298,10 @@ export interface components {
             /** Format: date-time */
             at: string;
             /**
-             * @description `action` = a notification action capability (033); `chat` = a command from an allowlisted chat of an interactive channel (061; `tokenName` is the chat principal `chat:{channelId}:{chatId}[:{userId}]`); `mesh` = an `#E ACK` from an allowlisted sender on a private mesh channel (084; `tokenName` is `mesh:{sender}`)
+             * @description `user` = a signed-in user (R2-013; `userId` and `userEmail` say who, `tokenId` is the session); `action` = a notification action capability (033); `chat` = a command from an allowlisted chat of an interactive channel (061; `tokenName` is the chat principal `chat:{channelId}:{chatId}[:{userId}]`); `mesh` = an `#E ACK` from an allowlisted sender on a private mesh channel (084; `tokenName` is `mesh:{sender}`)
              * @enum {string}
              */
-            actorKind: "token" | "ingest_key" | "pairing" | "system" | "action" | "chat" | "mesh";
+            actorKind: "token" | "user" | "ingest_key" | "pairing" | "system" | "action" | "chat" | "mesh";
             /** Format: uuid */
             tokenId?: string | null;
             tokenName?: string | null;
@@ -19783,6 +21321,13 @@ export interface components {
             detail?: {
                 [key: string]: unknown;
             };
+            /**
+             * Format: uuid
+             * @description The signed-in user who acted (actor kind `user`, R2-013), or null
+             */
+            userId?: string | null;
+            /** @description That user's email when the entry was written (kept after the user is renamed or deleted), or null */
+            userEmail?: string | null;
         };
         /** @description A page of audit events, newest first (023) */
         AuditEventPage: {
@@ -19802,6 +21347,16 @@ export interface components {
             pair: string;
             /** @description A share link opened in a client (112); placeholder {key}. No default: `?open=1` on a share-link URL redirects only when this is set. */
             share?: string | null;
+            /**
+             * @description The account activation link of the welcome email (R2-007); placeholders {publicBaseUrl} and {token}
+             * @default foresignal://activate?u={publicBaseUrl}&t={token}
+             */
+            activate: string;
+            /**
+             * @description The password reset link of the reset email (R2-007); placeholders {publicBaseUrl} and {token}
+             * @default foresignal://reset-password?u={publicBaseUrl}&t={token}
+             */
+            passwordReset: string;
         };
         /** @description A configuration warning (e.g. PUBLIC_BASE_URL_INSECURE, PUBLIC_BASE_URL_MISMATCH, ANONYMOUS_UNRESTRICTED) */
         SettingsWarning: {
@@ -21092,6 +22647,10 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** @description True for a shared view (no owner): managed by an admin, visible to every caller (R2-012) */
+            readonly shared?: boolean;
+            /** @description The owning user's principal, or null for a shared view (R2-012) */
+            readonly ownerPrincipalId?: string | null;
         };
         /** @description A page of saved views (036) */
         SavedViewPage: {
@@ -28087,7 +29646,7 @@ export interface components {
             /** @description Pass as `cursor` for the next page; null on the last page */
             nextCursor?: string | null;
         };
-        /** @description Cold archive settings (settings key `archive`); secrets are write-only (111) */
+        /** @description Cold archive settings (settings key `archive`); secrets are write-only (111). R2-016 adds the `glacier` target, `s3.storageClass`, and the archive-run `cutoff` and `schedule`; an explicit null or empty string clears either. */
         ArchiveSettings: {
             /**
              * @description Default false
@@ -28096,13 +29655,14 @@ export interface components {
             enabled: boolean;
             /** @description Allowlist; empty = all non-private STANDARD and TRACK sources */
             sources?: string[];
-            /** @description Default ${FORESIGNAL_DATA_DIR}/archive; an absolute path, or a path relative to the data directory */
+            /** @description Default ${FORESIGNAL_DATA_DIR}/archive; an absolute path, or a path relative to the data directory. For the `local` target, point it at a mounted external disk: archive segments are written under `segments/` there. */
             root?: string;
             /**
+             * @description Where archive segments go (R2-016): `local` is the external-disk tier (files under `root`, meant to be a mounted external disk), `s3` an S3-compatible bucket, `glacier` the same API with an archival storage class (objects are thawed before a restore). The prompt 111 GeoParquet copies upload only for `s3`.
              * @default local
              * @enum {string}
              */
-            target: "local" | "s3";
+            target: "local" | "s3" | "glacier";
             s3?: {
                 /** Format: uri */
                 endpoint: string;
@@ -28110,6 +29670,11 @@ export interface components {
                 prefix?: string;
                 region?: string;
                 pathStyle?: boolean;
+                /**
+                 * @description `x-amz-storage-class` of uploads (R2-016); null uses the bucket default. With target `glacier` it must be GLACIER (the default) or DEEP_ARCHIVE; with target `s3` it may not be either, since those objects cannot be read until thawed.
+                 * @enum {string|null}
+                 */
+                storageClass?: "STANDARD" | "REDUCED_REDUNDANCY" | "STANDARD_IA" | "ONEZONE_IA" | "INTELLIGENT_TIERING" | "GLACIER_IR" | "GLACIER" | "DEEP_ARCHIVE" | null;
             } | null;
             /** @description Write-only S3 credentials */
             secrets?: {
@@ -28123,6 +29688,16 @@ export interface components {
              * @default true
              */
             keepLocal: boolean;
+            /**
+             * @description Archive runs (R2-016) move STANDARD history of the archived sources older than this age (a duration of at least 1d, such as `365d`) to the cold tier, then purge it. Null: a run takes only what retention removes anyway. TRACK history is archived as its partitions reach `retention.trackWindow`.
+             * @example 365d
+             */
+            cutoff?: string | null;
+            /**
+             * @description Six-field cron expression (second minute hour day-of-month month day-of-week, UTC) of scheduled archive runs (R2-016), such as `0 0 3 * * SUN`. Null: archive runs happen only through runArchive or the retention size cap.
+             * @example 0 0 3 * * SUN
+             */
+            schedule?: string | null;
         };
         /** @description One hive partition of the cold archive with its files (111) */
         ArchivePartition: {
@@ -34631,6 +36206,10 @@ export interface components {
             }[];
             notificationPreferences: components["schemas"]["NotificationPreference"][];
             defaultTlp?: components["schemas"]["Tlp"];
+            /** @description The signed-in user, present only when the request carries a login session (R2-003) */
+            user?: components["schemas"]["User"];
+            /** @description Effective permission keys (union of the user's roles), present only for a login session (R2-003) */
+            permissions?: string[];
         };
         /** @description One item in the caller's personal inbox (mentions, shares, received reports, chronicle proposals, assessments, replies) */
         InboxItem: {
@@ -39458,6 +41037,967 @@ export interface components {
             /** @description The provider-reported balance, or null when the provider reports none */
             providerBalance: components["schemas"]["LlmProviderBalance"] | null;
         };
+        /** @description Email + password credentials, with an optional MFA code (D1) */
+        LoginRequest: {
+            /**
+             * Format: email
+             * @description The user's email (primary identity, normalized)
+             */
+            email: string;
+            password: string;
+            /** @description TOTP or recovery code when MFA is enrolled */
+            mfaCode?: string | null;
+        };
+        /** @description A newly issued session; the token is a bearer carried in the Authorization header on later requests (Argon2id-verified login, 166) */
+        SessionToken: {
+            /** @description The session bearer; shown once, stored hashed server-side. Empty while mfaRequired: no session was issued (R2-024) */
+            readonly token: string;
+            /** @description First characters, for display in a session list */
+            tokenPrefix?: string;
+            /** Format: uuid */
+            userId: string;
+            /** Format: date-time */
+            issuedAt?: string;
+            /**
+             * Format: date-time
+             * @description Absolute expiry; null while mfaRequired (no session was issued, R2-024)
+             */
+            expiresAt: string | null;
+            /**
+             * Format: date-time
+             * @description Idle expiry; refreshed on use
+             */
+            idleExpiresAt?: string | null;
+            /**
+             * @description True when MFA is enrolled and a code must still be supplied to complete login: no session was issued, and the client signs in again with mfaCode (R2-024)
+             * @default false
+             */
+            mfaRequired: boolean;
+            /** @description Effective coarse scopes the session carries */
+            scopes?: string[];
+            /** @description Effective permission keys (union of the user's roles) */
+            permissions?: string[];
+        };
+        /** @description Ask for a password-reset link by email; the response is always 202 so an address cannot be probed (165) */
+        PasswordResetRequest: {
+            /** Format: email */
+            email: string;
+        };
+        /** @description Complete a password reset with the single-use emailed token (user_token, 164/165) */
+        PasswordReset: {
+            token: string;
+            newPassword: string;
+        };
+        /** @description Activate an invited account: set the first password with the emailed activation token (165/170) */
+        AccountActivation: {
+            token: string;
+            password: string;
+        };
+        /** @description An active session of the calling user (user_session, 166) */
+        Session: {
+            /** Format: uuid */
+            id: string;
+            tokenPrefix?: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastSeenAt?: string | null;
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            idleExpiresAt?: string | null;
+            userAgent?: string | null;
+            /** @description Source IP at creation */
+            ipAddress?: string | null;
+            /** @description True for the session making this request */
+            current: boolean;
+        };
+        /** @description A page of sessions */
+        SessionPage: {
+            items: components["schemas"]["Session"][];
+            /** @description Pass as `cursor` for the next page; null on the last page */
+            nextCursor?: string | null;
+        };
+        /** @description A platform user (user table, 164) */
+        User: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: email
+             * @description Unique, normalized; the primary identity
+             */
+            email: string;
+            fullName: string;
+            status: string;
+            /** @description Assigned roles; effective permissions are their union */
+            roles: components["schemas"]["RoleRef"][];
+            /** @default false */
+            mfaEnabled: boolean;
+            /**
+             * Format: uuid
+             * @description Admin who created the account; null for the bootstrap first admin
+             */
+            createdBy?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: date-time */
+            lastLoginAt?: string | null;
+            /** @description Only on the `createUser` response: the activation link issued with the invite */
+            activation?: components["schemas"]["UserLinkIssued"];
+            /** @description The user's data restriction, or null when unrestricted (R2-013) */
+            dataRestriction?: components["schemas"]["UserDataRestriction"] | null;
+        };
+        /** @description A reference to a role */
+        RoleRef: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        /** @description Create (invite) a user; a welcome/activation email is sent when SMTP is configured (170) */
+        UserCreate: {
+            /** Format: email */
+            email: string;
+            fullName: string;
+            /** @description Role ids to assign on creation */
+            roles: string[];
+            /**
+             * @description Email an activation link; when false an admin retrieves the link
+             * @default true
+             */
+            sendInvite: boolean;
+        };
+        /** @description Update a user's profile fields (roles are set via setUserRoles; status via suspend/unsuspend) */
+        UserUpdate: {
+            fullName?: string | null;
+            /** Format: email */
+            email?: string | null;
+            /** @description Replaces the user's data restriction; null lifts it, absent leaves it (R2-013) */
+            dataRestriction?: components["schemas"]["UserDataRestriction"] | null;
+        };
+        /** @description A page of users */
+        UserPage: {
+            items: components["schemas"]["User"][];
+            /** @description Pass as `cursor` for the next page; null on the last page */
+            nextCursor?: string | null;
+        };
+        /** @description The complete set of role ids a user should hold (replaces the current set) */
+        RoleAssignment: {
+            roles: string[];
+        };
+        /** @description Outcome of deleting a user, including what became of the config they owned (168) */
+        UserDeleteResult: {
+            /** Format: uuid */
+            deletedUserId: string;
+            /** @description Default reassigns the user's owned triggers, channels, providers and views to an admin */
+            ownedConfigDisposition: string;
+            /** Format: uuid */
+            reassignedTo?: string | null;
+        };
+        /** @description A single permission in the fixed catalog (164) */
+        Permission: {
+            /** @description e.g. `users.manage`, `self.sources`, `data.read` */
+            key: string;
+            /** @description Catalog grouping */
+            group: string;
+            description?: string;
+        };
+        /** @description The complete permission catalog */
+        PermissionList: {
+            items: components["schemas"]["Permission"][];
+        };
+        /** @description A role: a named set of permissions (164) */
+        Role: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description?: string | null;
+            /** @description True for Admin/Operator/Editor/Viewer/Auditor; built-ins cannot be deleted and their permissions are fixed */
+            builtIn: boolean;
+            /** @description Permission keys granted by this role */
+            permissions: string[];
+            /** @description How many users hold this role */
+            readonly userCount?: number | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        /** @description Create or replace a custom role (a named subset of the permission catalog) */
+        RoleInput: {
+            name: string;
+            description?: string | null;
+            permissions: string[];
+        };
+        /** @description A page of roles */
+        RolePage: {
+            items: components["schemas"]["Role"][];
+            /** @description Pass as `cursor` for the next page; null on the last page */
+            nextCursor?: string | null;
+        };
+        /** @description Outbound transactional-email (SMTP) settings (settings key `smtp`); secrets are write-only (A6/170). While user accounts exist and SMTP is off or has no host, `/v1/system` warns SMTP_NOT_CONFIGURED and admins receive each activation or reset link in the user-management response instead (R2-007). */
+        SmtpSettings: {
+            /** @default false */
+            enabled: boolean;
+            host?: string | null;
+            /** @description Typically 587 (STARTTLS) or 465 (TLS) */
+            port?: number | null;
+            /** @default starttls */
+            security: string;
+            username?: string | null;
+            /**
+             * Format: email
+             * @description Default info@remoteidsystems.com
+             */
+            fromAddress?: string | null;
+            /** @description Display name on outbound mail */
+            fromName?: string | null;
+            /** @description Names of secrets that have a stored value */
+            readonly secretsSet?: string[];
+        };
+        /** @description SMTP settings with write-only credentials */
+        SmtpSettingsInput: {
+            enabled: boolean;
+            host?: string | null;
+            port?: number | null;
+            security?: string;
+            username?: string | null;
+            password?: string | null;
+            /** Format: email */
+            fromAddress?: string | null;
+            fromName?: string | null;
+        };
+        /** @description Send a test email to confirm SMTP settings */
+        SmtpTestRequest: {
+            /**
+             * Format: email
+             * @description Recipient of the test message
+             */
+            to: string;
+        };
+        /** @description Result of an SMTP send test */
+        SmtpTestResult: {
+            ok: boolean;
+            /** @description Server reply or failure reason */
+            message?: string | null;
+            /** Format: date-time */
+            sentAt?: string | null;
+        };
+        /** @description One source in a user's enabled-source view (user_source_pref, 173) */
+        UserSourcePref: {
+            sourceId: string;
+            /** @description Whether this source appears in the caller's views, alerts and maps */
+            enabled: boolean;
+            /** @description Optional per-user label override */
+            displayName?: string | null;
+            /** @description Optional per-user display color */
+            color?: string | null;
+        };
+        /** @description The caller's enabled-source view and display overrides over the shared collection (173) */
+        UserSourceView: {
+            sources: components["schemas"]["UserSourcePref"][];
+        };
+        /** @description Replace the caller's enabled-source view */
+        UserSourceViewUpdate: {
+            sources: components["schemas"]["UserSourcePref"][];
+        };
+        /** @description One source in the instance collection set (the union pulled by the paced collector, 173) */
+        CollectionSource: {
+            sourceId: string;
+            /** @description Whether the instance collects this source at all */
+            inCollection: boolean;
+            /** @description How many users enable it in their view */
+            readonly enabledByUsers?: number | null;
+        };
+        /** @description The instance collection set; a source is pulled once when it is in this set and any user's view enables it (173) */
+        CollectionSet: {
+            sources: components["schemas"]["CollectionSource"][];
+        };
+        /** @description Replace the instance collection set */
+        CollectionSetUpdate: {
+            sources: components["schemas"]["CollectionSource"][];
+        };
+        /** @description The caller's spend and budget on one provider (per-user-per-provider metering, 174) */
+        LlmBudgetProvider: {
+            /** @description The provider id (an `LlmProvider.id`) */
+            providerId: string;
+            name: string;
+            /** @description True for an admin-managed shared provider, false for the user's personal provider */
+            shared: boolean;
+            /** @description The caller's monthly USD cap, if set */
+            capUsd?: number | null;
+            /** @description Spent this UTC month */
+            spentUsd: number;
+            /** @description cap minus spend; null when uncapped */
+            remainingUsd?: number | null;
+        };
+        /** @description The calling user's LLM budget and spend across shared and personal providers (R2-011) */
+        MeLlmBudget: {
+            providers: components["schemas"]["LlmBudgetProvider"][];
+            /** @description Total spend this UTC month across all providers */
+            totalSpentUsd: number;
+            /** Format: date-time */
+            asOf?: string;
+        };
+        /** @description The calling user's preferences (timezone, UI and notification defaults, 175) */
+        UserPreferences: {
+            /** @description IANA zone; falls back to the server setting when null */
+            timezone?: string | null;
+            locale?: string | null;
+            theme?: string | null;
+            /** @description Per-user notification defaults */
+            notifications?: {
+                /** @default true */
+                emailEnabled: boolean;
+                /** @default true */
+                pushEnabled: boolean;
+                /** @description e.g. `22:00-07:00` in the user's timezone */
+                quietHours?: string | null;
+            };
+            /** @description Free-form UI preferences */
+            ui?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description A single resource reading */
+        ResourceGauge: {
+            /** Format: int64 */
+            totalBytes?: number | null;
+            /** Format: int64 */
+            usedBytes?: number | null;
+            /** Format: int64 */
+            freeBytes?: number | null;
+            usedPercent?: number | null;
+            status: string;
+        };
+        /** @description Live host disk, memory and database gauges with an overall status (177) */
+        ResourceStatus: {
+            /** @description Worst of the gauges */
+            status: string;
+            /** @description The most severe of the instance's data volumes (the data directory and the raster/media store, de-duplicated by file system). The Postgres data volume belongs to the database container and is gauged by `database.sizeBytes` instead. */
+            disk: components["schemas"]["ResourceGauge"];
+            /** @description Physical memory as the JVM sees it (inside a container, its limit), or the heap when that is unavailable */
+            memory?: components["schemas"]["ResourceGauge"];
+            database?: {
+                /** Format: int64 */
+                sizeBytes?: number | null;
+            } & {
+                [key: string]: unknown;
+            };
+            /** @description Human-readable breach messages */
+            warnings?: string[];
+            /**
+             * Format: date-time
+             * @description When the reading was taken; readings are reused for up to 30 s
+             */
+            checkedAt: string;
+        };
+        /** @description Warn/critical thresholds for one resource (free space or memory). A level is reached when the free share drops below its percent or the free amount below its bytes; a null level is off. Critical must be below warn. */
+        ResourceThreshold: {
+            /** @description Warn when free drops below this percent */
+            warnFreePercent?: number | null;
+            /**
+             * Format: int64
+             * @description Warn when free drops below this many bytes
+             */
+            warnFreeBytes?: number | null;
+            /** @description Critical when free drops below this percent */
+            criticalFreePercent?: number | null;
+            /**
+             * Format: int64
+             * @description Critical when free drops below this many bytes
+             */
+            criticalFreeBytes?: number | null;
+        };
+        /** @description Admin thresholds that raise /v1/system warnings and fire channel alerts when breached (B1/177). A PUT replaces the whole value: a missing member takes its default (disk 15 % warn / 5 % critical free, memory off, a storm at 5 failing sources, a backlog of 10,000 seq for 300 s) and an explicit null turns it off. */
+        ResourceThresholds: {
+            disk?: components["schemas"]["ResourceThreshold"];
+            memory?: components["schemas"]["ResourceThreshold"];
+            /** @description Channel ids notified on a breach, personal channels included, whatever their event filters. Empty uses every channel subscribed to `system` plus the personal channels of every active user with `audit.read`. An unknown id is a 400 that lists it. */
+            alertChannels?: string[];
+            /** @description Raises `system.source_storm` when at least this many sources are failing at once (R2-014) */
+            sourceStorm?: {
+                /** @description null turns the storm alert off */
+                failedSources?: number | null;
+            } | null;
+            /** @description Raises `system.collector_backlog` when the trigger lag or the fetches waiting for a pull permit stay above their bound for `sustainedSeconds` (R2-014) */
+            collectorBacklog?: {
+                /**
+                 * Format: int64
+                 * @description Trigger lag bound in sequence numbers; null is off
+                 */
+                triggerLagSeq?: number | null;
+                /** @description Waiting-fetch bound; null is off */
+                waitingPulls?: number | null;
+                /** @description How long a bound must be exceeded (default 300) */
+                sustainedSeconds?: number;
+            } | null;
+        };
+        /** @description What a retention policy would prune from one subsystem */
+        RetentionPreviewItem: {
+            /** @description `records` (STANDARD history, per kind), `track` (TRACK history leaves), `frames`, `media` or `chronicles` (stopped or archived chronicles whose history would be removed) */
+            subsystem: string;
+            /** @description The record kind of a `records` item; null for whole-source scopes and other subsystems */
+            kind?: string | null;
+            /**
+             * Format: date-time
+             * @description Oldest data kept (for a `records` kind, under its longest window); null when no single cutoff applies
+             */
+            cutoff?: string | null;
+            /** Format: int64 */
+            affectedCount: number;
+            /**
+             * Format: int64
+             * @description Estimated bytes: records from the average row size of record_version, TRACK leaves and frames from their sizes, media from its rows, chronicles from their bytesUsed
+             */
+            bytesEstimate?: number | null;
+        };
+        /** @description A dry run of what the next retention run would prune under the current policy, computed with the run's own plans and selects as counts only; nothing is deleted (B2/178, R2-015) */
+        RetentionPreview: {
+            items: components["schemas"]["RetentionPreviewItem"][];
+            /**
+             * Format: int64
+             * @description Sum of the items' counts
+             */
+            totalAffected: number;
+            /**
+             * Format: int64
+             * @description Sum of the items' byte estimates
+             */
+            totalBytesEstimate?: number | null;
+            /** Format: date-time */
+            generatedAt: string;
+            /** @description The database-size cap as the next run would find it; null when it is off */
+            dbCap?: {
+                /** Format: int64 */
+                capBytes?: number;
+                /** Format: int64 */
+                sizeBytes?: number;
+                exceeded?: boolean;
+                /** @description Window the cap has stepped down to, or null */
+                windowDays?: number | null;
+                overwriteOldest?: boolean;
+            } | null;
+        };
+        /** @description A cold-storage archive segment: data phased out of the hot DB, verified, then purged locally (B3/179). Restored rows go to the restore area `record_version_restored`, not back into record_version. */
+        Archive: {
+            id: string;
+            /** @description pending (accepted), running (exporting), verifying (offloading and checking each file on the tier), complete (verified and recorded), purged (and gone from the hot store), failed (nothing was purged), restoring, restored */
+            status: string;
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @description Data older than this was archived; null when the run took only what retention removed anyway
+             */
+            cutoff?: string | null;
+            /** @description Archive tier target */
+            target: string;
+            /** @description The segment's directory (`local`) or `s3://bucket/prefix/segments/{id}` */
+            location?: string | null;
+            /**
+             * Format: int64
+             * @description Compressed size of every file
+             */
+            sizeBytes?: number | null;
+            /**
+             * Format: int64
+             * @description Rows archived (for a dry run: rows that would be)
+             */
+            itemCount?: number | null;
+            /** @description SHA-256 over each file's `key:sha256` line, in key order; every file's own SHA-256 is in `files` */
+            checksum?: string | null;
+            /**
+             * @description True once the archived data was purged from the hot store
+             * @default false
+             */
+            purgedFromHot: boolean;
+            /** Format: date-time */
+            restoredAt?: string | null;
+            /** @description What started the run: runArchive, `archive.schedule`, or the retention size cap (R2-015) */
+            trigger?: string;
+            /** @description What was archived: `record_version` */
+            domain?: string;
+            /** @description Sources in the segment */
+            sources?: string[];
+            /** Format: int64 */
+            fromSeq?: number | null;
+            /** Format: int64 */
+            toSeq?: number | null;
+            /**
+             * Format: date-time
+             * @description Earliest ingested_at archived
+             */
+            fromTime?: string | null;
+            /**
+             * Format: date-time
+             * @description Latest ingested_at archived
+             */
+            toTime?: string | null;
+            /** @description One gzip-compressed NDJSON file per source, one record_version row per line */
+            files?: {
+                name?: string;
+                sourceId?: string;
+                /** @enum {string} */
+                tier?: "standard" | "track";
+                /** Format: int64 */
+                fromSeq?: number;
+                /** Format: int64 */
+                toSeq?: number;
+                /** Format: date-time */
+                fromTime?: string | null;
+                /** Format: date-time */
+                toTime?: string | null;
+                /** Format: int64 */
+                rows?: number;
+                /** Format: int64 */
+                bytes?: number;
+                sha256?: string;
+                location?: string | null;
+            }[];
+            /** @description Why it failed, or a note (rows the purge kept back, a pending Glacier thaw, rows restored) */
+            error?: string | null;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: date-time */
+            completedAt?: string | null;
+            /** Format: date-time */
+            purgedAt?: string | null;
+        };
+        /** @description A page of archive segments */
+        ArchivePage: {
+            items: components["schemas"]["Archive"][];
+            /** @description Pass as `cursor` for the next page; null on the last page */
+            nextCursor?: string | null;
+        };
+        /** @description Run an archival pass now */
+        ArchiveRunRequest: {
+            /**
+             * Format: date-time
+             * @description Override the configured cutoff; archive STANDARD data older than this (must be in the past)
+             */
+            cutoff?: string | null;
+            /** @description Restrict to these sources, each of which the archive must cover (400 otherwise); empty uses the configured allowlist */
+            sources?: string[];
+            /**
+             * @description Count what would be archived without exporting or purging; the answer is an Archive with status `pending` and `itemCount`, not stored
+             * @default false
+             */
+            dryRun: boolean;
+        };
+        /** @description Restore an archive back into the hot store */
+        ArchiveRestoreRequest: {
+            /** @description Must be true to restore (400 otherwise): a restore may be large and slow, and a Glacier segment waits hours for its thaw */
+            confirm: boolean;
+        };
+        /** @description Backup settings (settings key `backup`, prompt R2-017); secrets are write-only (B4/180). Backups land through the cold-archive tiers of R2-016: `local` and `external` on the external-disk tier (copied, fsynced, SHA-256 read back), `s3` on the S3 tier (ETag and size checked), each backup under `backups/{id}/`. */
+        BackupSettings: {
+            /**
+             * @description Master switch: off, `runBackup` is 409 BACKUP_NOT_CONFIGURED and the schedule does not fire
+             * @default false
+             */
+            enabled: boolean;
+            /** @description Cron expression for scheduled backups: six fields (second minute hour day month weekday), evaluated in UTC; null for backups only on request */
+            schedule?: string | null;
+            /**
+             * @description `local`: under `root`, or the data directory when `root` is empty; `external`: a mounted disk at the absolute `root`; `s3`: the `s3` bucket
+             * @default local
+             */
+            target: string;
+            /** @description Local/external backup directory; required and absolute for `external`; a relative `local` root is under the data directory */
+            root?: string | null;
+            s3?: components["schemas"]["S3Target"] | null;
+            /**
+             * @description How many complete backups of each type to retain; older ones are pruned with their files, and failed ones older than the oldest kept are dropped. Null keeps every backup. 1 to 10000
+             * @default 7
+             */
+            keepBackups: number | null;
+            /**
+             * @description A scheduled backup, and a `runBackup` that names no type, also writes the config bundle (type `full`); off, they are `database` only
+             * @default true
+             */
+            includeConfig: boolean;
+            /** @description Names of secrets that have a stored value */
+            readonly secretsSet?: string[];
+            /** Format: date-time */
+            readonly lastRunAt?: string | null;
+        };
+        /** @description S3-compatible target (SigV4; endpoint checked by the outbound URL policy) */
+        S3Target: {
+            /** Format: uri */
+            endpoint: string;
+            bucket: string;
+            prefix?: string;
+            region?: string;
+            pathStyle?: boolean;
+        };
+        /** @description Backup settings with write-only S3 credentials. Replaces the settings: an omitted member takes its default, except `secrets`, where an omitted member keeps the stored value and an empty string or null clears it. Unknown members are a 400; the read-only `secretsSet` and `lastRunAt` of a GET may be sent back and are ignored. */
+        BackupSettingsInput: {
+            enabled: boolean;
+            schedule?: string | null;
+            target: string;
+            root?: string | null;
+            s3?: components["schemas"]["S3Target"] | null;
+            keepBackups?: number | null;
+            /** @default true */
+            includeConfig: boolean;
+            /** @description Write-only S3 credentials */
+            secrets?: {
+                accessKey?: string;
+                secretKey?: string;
+            };
+        };
+        /** @description A single backup artifact (180; prompt R2-017): one `backup_run` row and its files on the target */
+        Backup: {
+            id: string;
+            /** @description `database`: a `pg_dump --format=custom` archive; `config`: the `exportSettings` bundle (no secrets); `full`: both */
+            type: string;
+            /** @description pending → running → complete or failed; a restore goes restoring → restored (a failed restore puts the previous status back with `error`) */
+            status: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int64 */
+            sizeBytes?: number | null;
+            target?: string;
+            /** @description The directory or `s3://` prefix holding the files */
+            location?: string | null;
+            /** @description SHA-256 of the one file, or of the `key:sha256` lines of both files sorted by key */
+            checksum?: string | null;
+            label?: string | null;
+            /** @description `manual` (runBackup) or `scheduled` (backup.schedule) */
+            trigger?: string;
+            /** @description The stored files */
+            files?: {
+                name: string;
+                /** @description Absolute path or `s3://` URL */
+                location: string;
+                /** Format: int64 */
+                bytes: number;
+                sha256: string;
+            }[];
+            /** @description Why the backup, or its last restore, failed */
+            error?: string | null;
+            /** Format: date-time */
+            startedAt?: string | null;
+            /** Format: date-time */
+            finishedAt?: string | null;
+            /**
+             * Format: date-time
+             * @description When it was last restored
+             */
+            restoredAt?: string | null;
+            /** @description Present on the answer of `restoreBackup` for a `config` backup: what the import applied */
+            importReport?: components["schemas"]["ImportReport"] | null;
+        };
+        /** @description A page of backups */
+        BackupPage: {
+            items: components["schemas"]["Backup"][];
+            /** @description Pass as `cursor` for the next page; null on the last page */
+            nextCursor?: string | null;
+        };
+        /** @description Run a backup now */
+        BackupRunRequest: {
+            /** @description Omitted: `full` when `includeConfig` is on, else `database` */
+            type?: string;
+            label?: string | null;
+        };
+        /** @description Restore from a backup (destructive; replaces current data) */
+        BackupRestoreRequest: {
+            /** @description Must be true to restore */
+            confirm: boolean;
+        };
+        /** @description An egress route: a proxy, VPN profile or bound interface the collector can present as an exit (C1/181); secrets are write-only */
+        EgressRoute: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            type: string;
+            /** @default true */
+            enabled: boolean;
+            /** @description Proxy URL (scheme://host:port); credentials are not shown here */
+            url?: string | null;
+            /** @description Host interface or source IP to bind (type interface) */
+            boundInterface?: string | null;
+            /** @description Last observed public exit IP from a test call */
+            readonly exitIp?: string | null;
+            readonly health?: components["schemas"]["EgressHealth"] | null;
+            /** @description Names of secrets that have a stored value */
+            readonly secretsSet?: string[];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** @description Whether the server can send through this route now: false for a wireguard route (the server cannot bring a tunnel up), a disabled route, an interface it cannot find, or secrets it cannot open (R2-018) */
+            readonly available?: boolean;
+            /** @description Why the route is unavailable; null when available */
+            readonly unavailableReason?: string | null;
+        };
+        /** @description Create or replace an egress route; credentials and WireGuard config are write-only and stored encrypted */
+        EgressRouteInput: {
+            name: string;
+            type: string;
+            /** @default true */
+            enabled: boolean;
+            url?: string | null;
+            boundInterface?: string | null;
+            /** @description Write-only proxy/VPN credentials and config */
+            secrets?: {
+                username?: string;
+                password?: string;
+                /** @description A WireGuard profile to import */
+                wireguardConfig?: string;
+            };
+        };
+        /** @description A page of egress routes */
+        EgressRoutePage: {
+            items: components["schemas"]["EgressRoute"][];
+            /** @description Pass as `cursor` for the next page; null on the last page */
+            nextCursor?: string | null;
+        };
+        /** @description Reachability and exit identity of an egress route (C1/181) */
+        EgressHealth: {
+            reachable: boolean;
+            /** @description Public IP the route presents */
+            exitIp?: string | null;
+            latencyMs?: number | null;
+            /** Format: date-time */
+            lastCheckedAt?: string | null;
+            /** @default 0 */
+            consecutiveFailures: number;
+            /**
+             * Format: date-time
+             * @description Skipped until this time after failures
+             */
+            backoffUntil?: string | null;
+            /** @description The last failure carrying a request through the route (R2-018) */
+            lastError?: string | null;
+            /** @description Only on getEgressRouteHealth: the sources held off this route by a 429 or Retry-After received through it (R2-018) */
+            sources?: {
+                sourceId: string;
+                /** Format: date-time */
+                backoffUntil: string;
+                consecutiveThrottles: number;
+            }[];
+        };
+        /** @description Result of an egress route test (reports the observed exit IP, C1/181) */
+        EgressTestResult: {
+            ok: boolean;
+            /** @description The public IP the route presented on the test call */
+            exitIp?: string | null;
+            latencyMs?: number | null;
+            message?: string | null;
+            /** Format: date-time */
+            checkedAt?: string;
+        };
+        /** @description Egress routing policy (settings key `egress`); default direct/off, opt-in (C1/181) */
+        EgressSettings: {
+            /**
+             * @description How outbound requests pick a route; direct means no egress routing at all: pins and the default route are ignored and every pull goes direct (R2-018)
+             * @default direct
+             */
+            rotation: string;
+            /**
+             * Format: uuid
+             * @description With rotation on, the route a source excluded from rotation uses (an excluded source with no default route goes direct); it must name an existing route (R2-018)
+             */
+            defaultRoute?: string | null;
+        };
+        /** @description Per-source egress assignment (C1/181) */
+        SourceEgressAssignment: {
+            /**
+             * Format: uuid
+             * @description Pin the source to this route (with rotation on); null uses the rotation. A pinned route that is unusable fails the pull rather than moving it (R2-018)
+             */
+            routeId?: string | null;
+            /**
+             * @description With rotation on and no pin, keep the source on the default route, or direct when there is none (R2-018)
+             * @default false
+             */
+            excludeFromRotation: boolean;
+        };
+        /** @description A first-party aggregator for one RF/sensor domain; reading the distributed network locally instead of a public mirror (C3/182-186) */
+        Aggregator: {
+            domain: string;
+            name: string;
+            /** @default false */
+            enabled: boolean;
+            /** @description Own receiver, aggregated feed, or both */
+            mode?: string | null;
+            /** @description Local endpoint the adapter reads. For adsb, the readsb aircraft.json, for example http://readsb/data/aircraft.json (R2-019) */
+            endpoint?: string | null;
+            /** @description ok when the aggregator's source is healthy, degraded when degraded or not yet run, down when failing, unconfigured when not enabled with an endpoint (R2-019) */
+            readonly status?: string;
+            /** @description Public/mirror source ids this aggregator supersedes under its current configuration; defaulted off when it is live (R2-022: for satellite, only the ABI imagery of the GOES named by config.goes) */
+            readonly supersededSources?: string[];
+            /**
+             * Format: date-time
+             * @description When the aggregator's source last brought data (R2-019)
+             */
+            readonly lastSeenAt?: string | null;
+            /** @description Domain-specific settings as stored (adsb: `band`, 1090 or 978) (R2-019) */
+            config?: {
+                [key: string]: unknown;
+            };
+            /** @description Whether the superseded sources are kept off while the aggregator is live (R2-019) */
+            disableSupersededSources?: boolean;
+            /** @description Whether this server has the domain's backend; a domain without one can be configured only disabled (R2-019) */
+            readonly implemented?: boolean;
+            /** @description Why the status is what it is: the health reason of the aggregator's source, or why it is unconfigured (R2-019) */
+            readonly statusReason?: string | null;
+            /** @description The first-party sources the aggregator drives; the first one's health is its status (adsb: local-adsb-aggregator) (R2-019) */
+            readonly sourceIds?: string[];
+        };
+        /** @description The first-party aggregators across domains */
+        AggregatorList: {
+            items: components["schemas"]["Aggregator"][];
+        };
+        /** @description Configure one domain's first-party aggregator */
+        AggregatorConfig: {
+            enabled: boolean;
+            mode?: string;
+            /** @description Required to enable, except for ground-sensors. adsb: an http or https URL of the readsb aircraft.json on this host or the LAN (it must resolve to a loopback, private or unique-local address, and is pinned); no credentials, query or fragment (R2-019). ais: the AIS decoder's NMEA feed, either tcp://host:port (its TCP server, for example AIS-catcher -S 5012; a loopback, private or unique-local address, pinned) or udp://bindHost:port (where this server listens for its datagrams, which needs config.allowSenders); the port is always explicit (R2-020). datalink: tcp://host, the host the decoders run on, with no port; each decoder's port is in config (R2-021). satellite: SatDump's web server, an http or https URL (any base path is kept; its /api is read), on this host or the LAN (R2-022). ground-sensors: not used; a value is a 400 — each sensor's address is in config (R2-023) */
+            endpoint?: string | null;
+            /** @description Domain-specific settings; an unknown member is a 400 (R2-019). adsb: `band`, 1090 or 978, default 1090. ais (R2-020): `allowSenders`, a list of IPs or CIDRs in private space whose datagrams are read, required with a udp:// endpoint; `stationName`, the observer of every record, default `local`. datalink (R2-021): the decoders `acars`, `vdlm2`, `hfdl` (acars_router's TCP servers) and `aprs` (the igate's KISS TCP port), each a port on the endpoint host or a whole tcp://host:port, at least one to enable; `stationId` (ACARS observer), `stationCallsign` (APRS observer), `includeMessages` (boolean). satellite (R2-022): `location` (required with an endpoint: lat,lon[,altM] or a place id), `inboxPath` (SatDump's output directory under FORESIGNAL_INBOX_DIR), `satdumpVersion` (1.2 or 2.0), `predictNorad` (NORAD numbers of the polar satellites to predict), `goes` (east or west: the GOES the dish receives, whose ABI imagery pull is superseded). ground-sensors (R2-023): one object per sensor, each with `enabled` and at least one enabled to enable: `seismic` and `same` (`source`, the custom push source the bridge posts to), `radiosonde` (`endpoint` udp://bindHost:port, `allowSenders`, `stationCallsign`; supersedes sondehub), `airq` (`deviceType` purpleair, airrohr or airgradient, `endpoint`, `lat`, `lon`, `indoor`, `name`; supersedes openaq and sensor-community), `pws` (`station` davis or ecowitt, `endpoint`, `lat`, `lon`), `mesh` (`meshtastic` mqtt:// broker with `root`, supersedes meshtastic-mqtt and meshtastic-map; `meshcore` tcp:// companion; `bridge` boolean) */
+            config?: {
+                [key: string]: unknown;
+            };
+            /**
+             * @description Default the public/mirror sources off once this aggregator is live (nothing is removed); the sources it turned off are turned back on when it stops being live or this is set to false (R2-019)
+             * @default true
+             */
+            disableSupersededSources: boolean;
+        };
+        /** @description Result of probing an aggregator's local endpoint */
+        AggregatorTestResult: {
+            ok: boolean;
+            reachable: boolean;
+            /** @description Objects seen in a sample read */
+            sampleCount?: number | null;
+            message?: string | null;
+            /** Format: date-time */
+            checkedAt?: string;
+        };
+        /** @description A pending TOTP enrollment; confirm with verifyMfa before it takes effect (D1/187) */
+        MfaEnrollment: {
+            /** @description Base32 TOTP secret (RFC 6238: HMAC-SHA1, 6 digits, 30 s); stored sealed with the instance key, shown only here */
+            readonly secret: string;
+            /** @description otpauth:// provisioning URI for an authenticator app: otpauth://totp/ForeSignal:<email>?secret=…&issuer=ForeSignal */
+            readonly otpauthUri: string;
+            /** @description Inline SVG QR of the provisioning URI */
+            readonly qrSvg?: string | null;
+        };
+        /** @description Confirm enrollment (or step-up) with a TOTP code */
+        MfaVerifyRequest: {
+            /** @description Current 6-digit TOTP code; once MFA is active, a recovery code is accepted too (consumed on use) */
+            code: string;
+        };
+        /** @description The caller's MFA state */
+        MfaStatus: {
+            enabled: boolean;
+            /** Format: date-time */
+            enrolledAt?: string | null;
+            /** @description True when a role the user holds (Admin/Operator) requires MFA */
+            required?: boolean;
+            /** @description Present only on the verifyMfa answer that activated MFA: the first single-use recovery codes, shown once (R2-024) */
+            readonly recoveryCodes?: components["schemas"]["MfaRecoveryCodes"];
+        };
+        /** @description Disable MFA, re-authenticating with a code or the account password */
+        MfaDisableRequest: {
+            /** @description A current TOTP or recovery code */
+            code?: string | null;
+            password?: string | null;
+        };
+        /** @description Single-use recovery codes, shown once at generation (D1/187) */
+        MfaRecoveryCodes: {
+            /** @description Ten single-use codes (xxxxx-xxxxx); stored hashed, accepted case-insensitively with or without the dash */
+            readonly codes: string[];
+            /** Format: date-time */
+            generatedAt: string;
+        };
+        /** @description Per-user limits so one user cannot exhaust the instance (D5/189, R2-026). In a user's quota a null member uses the instance default; unset there too it is unlimited. `0` allows nothing. */
+        Quota: {
+            /** @description Requests a minute across the user's sessions and own API tokens; over it is 429 RATE_LIMITED */
+            apiRateLimitPerMinute?: number | null;
+            /**
+             * Format: int64
+             * @description Bytes of uploaded attachments plus the JSON of owned workspaces
+             */
+            maxStorageBytes?: number | null;
+            /** @description Trigger rules the user owns */
+            maxAlerts?: number | null;
+            /** @description Notification channels the user owns */
+            maxChannels?: number | null;
+            /** @description Saved views the user owns */
+            maxSavedViews?: number | null;
+        };
+        /** @description The caller's effective quota (own limits over the instance default; null is unlimited) with current usage against each limit */
+        QuotaUsage: {
+            quota: components["schemas"]["Quota"];
+            /** @description Current usage: `alerts`, `channels`, `savedViews`, `storageBytes` and `apiRequestsThisMinute` */
+            usage: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description Whether the instance still needs first-run setup (C4/190) */
+        FirstRunStatus: {
+            /** @description True when no users exist yet */
+            firstRun: boolean;
+            hasUsers: boolean;
+            smtpConfigured?: boolean;
+            /** @description How many sources are in the collection set */
+            sourcesEnabled?: number;
+            apiVersion?: string;
+        };
+        /** @description First-run bootstrap: create the first admin and optionally seed SMTP, sources and thresholds (C4/190) */
+        SetupRequest: {
+            /** @description The first admin to create */
+            admin: {
+                /** Format: email */
+                email: string;
+                fullName: string;
+                password: string;
+            };
+            smtp?: components["schemas"]["SmtpSettingsInput"] | null;
+            /** @description Source ids to enable in the collection set; each must be a registered source */
+            sources?: string[];
+            thresholds?: components["schemas"]["ResourceThresholds"] | null;
+            /** @description Optional retention policy to seed */
+            retention?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** @description Result of first-run setup */
+        SetupResult: {
+            user: components["schemas"]["User"];
+            /** @description A session for the new admin; null only if the sign-in asked for a second factor */
+            session?: components["schemas"]["SessionToken"] | null;
+        };
+        /** @description A one-time activation or reset link issued for a user (R2-005). When the email was not sent (no SMTP, or `sendInvite: false`) the plaintext `token` is returned here once for the admin to pass on; when it was emailed, `token` is null. Only the token's hash is stored. */
+        UserLinkIssued: {
+            kind: string;
+            /** @description True when the email left; the token is then withheld */
+            emailed: boolean;
+            /** @description The one-time token (`fsv_…` activation, `fsw_…` reset), only when not emailed */
+            token?: string | null;
+            /** @description The token's first eight characters */
+            tokenPrefix: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        /** @description What a user may read (R2-013): the data members of a token's ReadRestriction, stored per user and set by an admin through updateUser. Null members mean any; a session's reads are intersected with it through the same clamp as a restricted token's. */
+        UserDataRestriction: {
+            /** @description Allowed source ids (must exist); null = any */
+            sources?: string[] | null;
+            /** @description Allowed kinds (must exist); null = any */
+            kinds?: string[] | null;
+            /** @description [minLon, minLat, maxLon, maxLat] (WGS84) */
+            bbox?: number[] | null;
+            /** @description MultiPolygon (WGS84, ≤ 2,000 vertices); combined with `bbox` when both are set */
+            area?: components["schemas"]["Geometry"] | null;
+            /** @description Places whose areas, unioned, bound what may be read; unknown places fail closed */
+            placeIds?: string[] | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -41116,7 +43656,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description geofenceRef needs reference data that is not loaded (REFERENCE_DATA_MISSING) */
+            /** @description geofenceRef needs reference data that is not loaded (REFERENCE_DATA_MISSING); or over the caller's quota (QUOTA_EXCEEDED, R2-026): the problem names the `limit` (`maxAlerts`) with its `quota` and current `usage` */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -43104,6 +45644,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Over the caller's quota (QUOTA_EXCEEDED, R2-026): the problem names the `limit` (`maxChannels`) with its `quota` and current `usage` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     getChannel: {
@@ -44323,6 +46872,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description threadId names no thread of this caller */
             404: {
                 headers: {
@@ -44393,6 +46951,15 @@ export interface operations {
             };
             /** @description Missing or invalid admin token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -46947,6 +49514,14 @@ export interface operations {
                 operationId?: string;
                 /** @description Only this HTTP status */
                 status?: number;
+                /** @description Only this actor kind (for example `user` or `token`, R2-013) */
+                actorKind?: string;
+                /** @description Only entries attributed to this user (R2-013) */
+                userId?: string;
+                /** @description Only this target type, for example `users` or `settings` (R2-013) */
+                targetType?: string;
+                /** @description Only this target id (R2-013) */
+                targetId?: string;
                 /** @description Opaque cursor from the previous page's `nextCursor` */
                 cursor?: string;
                 /** @description Page size */
@@ -50940,7 +53515,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description Slug already exists (VIEW_EXISTS) */
+            /** @description Slug already exists (VIEW_EXISTS); or over the caller's quota (QUOTA_EXCEEDED, R2-026): the problem names the `limit` (`maxSavedViews`) with its `quota` and current `usage` */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -60760,6 +63335,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Not found (UNKNOWN_EVENT, UNKNOWN_PLACE) */
             404: {
                 headers: {
@@ -62676,6 +65260,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Not found (UNKNOWN_EVENT, record not found) */
             404: {
                 headers: {
@@ -62925,6 +65518,15 @@ export interface operations {
             };
             /** @description Missing or invalid token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -65376,6 +67978,15 @@ export interface operations {
             };
             /** @description Missing or invalid token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -69412,6 +72023,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Subject not found */
             404: {
                 headers: {
@@ -73112,6 +75732,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Rate limited (RATE_LIMITED); honour Retry-After */
             429: {
                 headers: {
@@ -73380,6 +76009,15 @@ export interface operations {
             };
             /** @description Missing or invalid token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -77865,6 +80503,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Not found (UNKNOWN_OBJECT) */
             404: {
                 headers: {
@@ -77920,6 +80567,15 @@ export interface operations {
             };
             /** @description Missing or invalid token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -77991,6 +80647,15 @@ export interface operations {
             };
             /** @description Missing or invalid token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -78070,6 +80735,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Not found (UNKNOWN_OBJECT) */
             404: {
                 headers: {
@@ -78132,6 +80806,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Rate limited (RATE_LIMITED); honour Retry-After */
             429: {
                 headers: {
@@ -78178,6 +80861,15 @@ export interface operations {
             };
             /** @description Missing or invalid token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -78238,6 +80930,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Rate limited (RATE_LIMITED); honour Retry-After */
             429: {
                 headers: {
@@ -78284,6 +80985,15 @@ export interface operations {
             };
             /** @description Missing or invalid token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -78755,6 +81465,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Rate limited (RATE_LIMITED); honour Retry-After */
             429: {
                 headers: {
@@ -78810,6 +81529,15 @@ export interface operations {
             };
             /** @description Missing or invalid token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -78946,6 +81674,15 @@ export interface operations {
             };
             /** @description Token lacks the required scope */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Over the caller's quota (QUOTA_EXCEEDED, R2-026): the problem names the `limit` (`maxStorageBytes`) with its `quota` and current `usage` */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -79243,6 +81980,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Over the caller's quota (QUOTA_EXCEEDED, R2-026): the problem names the `limit` (`maxStorageBytes`) with its `quota` and current `usage` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Layout exceeds 64 KB */
             413: {
                 headers: {
@@ -79328,6 +82074,15 @@ export interface operations {
             };
             /** @description Not found (UNKNOWN_WORKSPACE) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Over the caller's quota (QUOTA_EXCEEDED, R2-026): the problem names the `limit` (`maxStorageBytes`) with its `quota` and current `usage` */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -81465,6 +84220,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Over the caller's quota (QUOTA_EXCEEDED, R2-026): the problem names the `limit` (`maxStorageBytes`) with its `quota` and current `usage` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description Upload too large (UPLOAD_TOO_LARGE) */
             413: {
                 headers: {
@@ -82259,6 +85023,15 @@ export interface operations {
             };
             /** @description Missing or invalid token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -87440,6 +90213,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description No matching events and `nodata=404` (FDSN plain-text body) */
             404: {
                 headers: {
@@ -91159,6 +93941,3737 @@ export interface operations {
             };
             /** @description Unknown source (UNKNOWN_EXTERNAL_SOURCE) or no held snapshot of that id (NOT_FOUND) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Session issued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionToken"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Invalid email or password (INVALID_CREDENTIALS) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Account suspended or disabled (ACCOUNT_DISABLED) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Logged out */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    requestPasswordReset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted (an email is sent only if the account exists) */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordReset"];
+            };
+        };
+        responses: {
+            /** @description Password reset */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token expired, used or unknown (RESET_TOKEN_GONE) */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    activateAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountActivation"];
+            };
+        };
+        responses: {
+            /** @description Account activated */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Token expired, used or unknown (ACTIVATION_TOKEN_GONE) */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listSessions: {
+        parameters: {
+            query?: {
+                /** @description Opaque pagination cursor */
+                cursor?: string;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of sessions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionPage"];
+                };
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    revokeAllSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Other sessions revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    revokeSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Session id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_SESSION) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listUsers: {
+        parameters: {
+            query?: {
+                /** @description Filter by status */
+                status?: string;
+                /** @description Match email or full name */
+                q?: string;
+                /** @description Opaque pagination cursor */
+                cursor?: string;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of users */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPage"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    createUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (EMAIL_TAKEN) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_USER) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_USER) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (EMAIL_TAKEN) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    deleteUser: {
+        parameters: {
+            query?: {
+                /** @description Reassign owned config to an admin (default true); false deletes it */
+                reassign?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description User id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserDeleteResult"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_USER) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (LAST_ADMIN) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    setUserRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleAssignment"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_USER) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (LAST_ADMIN) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    suspendUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Suspended */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_USER) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (LAST_ADMIN, USER_STATUS_CONFLICT) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    unsuspendUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Active */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_USER) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (USER_STATUS_CONFLICT) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    resendUserInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invite re-sent (or link returned when SMTP is not configured) */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserLinkIssued"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_USER) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (ALREADY_ACTIVE) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    adminResetUserPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reset email sent (or link returned when SMTP is not configured) */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserLinkIssued"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_USER) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listRoles: {
+        parameters: {
+            query?: {
+                /** @description Opaque pagination cursor */
+                cursor?: string;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of roles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RolePage"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    createRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Role"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (ROLE_NAME_TAKEN) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Role id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The role */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Role"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_ROLE) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Role id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleInput"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Role"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_ROLE) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (BUILTIN_ROLE_PROTECTED, ROLE_NAME_TAKEN, LAST_ADMIN) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    deleteRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Role id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_ROLE) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (ROLE_IN_USE, BUILTIN_ROLE_PROTECTED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listPermissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The catalog */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionList"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getSmtpSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SMTP settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmtpSettings"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateSmtpSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmtpSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmtpSettings"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    testSmtpSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmtpTestRequest"];
+            };
+        };
+        responses: {
+            /** @description Test result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmtpTestResult"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getMySources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's source view */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSourceView"];
+                };
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateMySources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserSourceViewUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSourceView"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getCollectionSources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The collection set */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionSet"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateCollectionSources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionSetUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionSet"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A listed source needs credentials that are not stored (CREDENTIALS_REQUIRED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getMyLlmBudget: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's LLM budget */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeLlmBudget"];
+                };
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getMyPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's preferences */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPreferences"];
+                };
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateMyPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserPreferences"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPreferences"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getResourceStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Resource status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResourceStatus"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getResourceThresholds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Thresholds */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResourceThresholds"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateResourceThresholds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourceThresholds"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResourceThresholds"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    previewRetention: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Retention preview */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetentionPreview"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listArchives: {
+        parameters: {
+            query?: {
+                /** @description Filter by status */
+                status?: string;
+                /** @description Opaque pagination cursor */
+                cursor?: string;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of archives */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchivePage"];
+                };
+            };
+            /** @description Invalid status, cursor or limit (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    runArchive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ArchiveRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Archival pass started */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Archive"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (ARCHIVE_NOT_CONFIGURED, ALREADY_RUNNING) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    restoreArchive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Archive segment id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ArchiveRestoreRequest"];
+            };
+        };
+        responses: {
+            /** @description Restore started */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Archive"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_ARCHIVE) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (ALREADY_RESTORED, ALREADY_RUNNING, ARCHIVE_NOT_RESTORABLE, ARCHIVE_NOT_CONFIGURED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getBackupSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Backup settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupSettings"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateBackupSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupSettings"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listBackups: {
+        parameters: {
+            query?: {
+                /** @description Filter by type */
+                type?: string;
+                /** @description Opaque pagination cursor */
+                cursor?: string;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of backups */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupPage"];
+                };
+            };
+            /** @description Invalid type, cursor or limit (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    runBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BackupRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Backup started */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Backup"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (BACKUP_NOT_CONFIGURED, ALREADY_RUNNING) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    restoreBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Backup id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupRestoreRequest"];
+            };
+        };
+        responses: {
+            /** @description Restore started */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Backup"];
+                };
+            };
+            /** @description `confirm` is not true, or the request or the stored config bundle is invalid (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_BACKUP) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (ALREADY_RUNNING, BACKUP_NOT_RESTORABLE, BACKUP_NOT_CONFIGURED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listEgressRoutes: {
+        parameters: {
+            query?: {
+                /** @description Opaque pagination cursor */
+                cursor?: string;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of egress routes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EgressRoutePage"];
+                };
+            };
+            /** @description Bad cursor or limit */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    createEgressRoute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EgressRouteInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EgressRoute"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getEgressRoute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Egress route id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The route */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EgressRoute"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_EGRESS) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateEgressRoute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Egress route id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EgressRouteInput"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EgressRoute"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_EGRESS) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    deleteEgressRoute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Egress route id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_EGRESS) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    testEgressRoute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Egress route id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Test result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EgressTestResult"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_EGRESS) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getEgressRouteHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Egress route id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Route health */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EgressHealth"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_EGRESS) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getEgressSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Egress policy */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EgressSettings"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateEgressSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EgressSettings"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EgressSettings"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    assignSourceEgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Source id */
+                sourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceEgressAssignment"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceEgressAssignment"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_SOURCE) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listAggregators: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The aggregators */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AggregatorList"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getAggregator: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Aggregator domain */
+                domain: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The aggregator */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Aggregator"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_AGGREGATOR) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateAggregator: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Aggregator domain */
+                domain: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AggregatorConfig"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Aggregator"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_AGGREGATOR) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    testAggregator: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Aggregator domain */
+                domain: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Test result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AggregatorTestResult"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_AGGREGATOR) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    enrollMfa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pending enrollment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaEnrollment"];
+                };
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (MFA_ALREADY_ENABLED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    verifyMfa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA enabled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaStatus"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (MFA_NOT_ENABLED: nothing pending or active) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    disableMfa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaDisableRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA disabled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaStatus"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (MFA_REQUIRED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getMfaRecoveryCodes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recovery codes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaRecoveryCodes"];
+                };
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict (MFA_NOT_ENABLED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listMyTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's tokens */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiToken"][];
+                };
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    createMyToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiTokenInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiTokenCreated"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission, or the token would reach further than the caller (TOKEN_EXCEEDS_USER, R2-025) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    revokeMyToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Token id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_TOKEN) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getUserQuota: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The quota */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Quota"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_USER) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateUserQuota: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Quota"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Quota"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not found (UNKNOWN_USER) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getMyQuota: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's quota and usage */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotaUsage"];
+                };
+            };
+            /** @description Missing or invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Caller lacks the required permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getFirstRunStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description First-run status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FirstRunStatus"];
+                };
+            };
+            /** @description Rate limited (RATE_LIMITED) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    runSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetupRequest"];
+            };
+        };
+        responses: {
+            /** @description Setup complete */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupResult"];
+                };
+            };
+            /** @description Invalid request body (VALIDATION_FAILED, PASSWORD_POLICY): a bad admin email, name or password, an unknown member or source id, or SMTP, threshold or retention settings the settings operations refuse */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Missing or invalid admin token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The caller is not the bootstrap admin token (FORBIDDEN) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Already set up: a user exists (ALREADY_SETUP); or a source in `sources` needs credentials first (CREDENTIALS_REQUIRED) */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

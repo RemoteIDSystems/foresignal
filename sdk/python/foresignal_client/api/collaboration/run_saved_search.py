@@ -50,6 +50,11 @@ def _parse_response(
 
         return response_401
 
+    if response.status_code == 403:
+        response_403 = Problem.from_dict(response.json())
+
+        return response_403
+
     if response.status_code == 404:
         response_404 = Problem.from_dict(response.json())
 
@@ -91,6 +96,10 @@ def sync_detailed(
 
     **Scope:** `read`.
 
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
+
     Args:
         saved_search_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
         cursor (str | Unset):
@@ -131,6 +140,10 @@ def sync(
 
     **Scope:** `read`.
 
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
+
     Args:
         saved_search_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
         cursor (str | Unset):
@@ -165,6 +178,10 @@ async def asyncio_detailed(
     envelopes the caller can see.
 
     **Scope:** `read`.
+
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         saved_search_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
@@ -203,6 +220,10 @@ async def asyncio(
     envelopes the caller can see.
 
     **Scope:** `read`.
+
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         saved_search_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.

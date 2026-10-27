@@ -60,6 +60,8 @@ class SettingsBundleChannelsInner {
 
      this.language,
 
+     this.global,
+
     required  this.id,
   });
 
@@ -309,6 +311,19 @@ class SettingsBundleChannelsInner {
 
 
 
+      /// On create only (R2-009): true for a global channel (needs `channels.global`), false for a personal one (needs `self.channels`). Absent, a user holding `self.channels` gets a personal channel and anyone else a global one; an API token always creates global channels. Ignored on update.
+  @JsonKey(
+    
+    name: r'global',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final bool? global;
+
+
+
       /// The channel id; import upserts by it
   @JsonKey(
     
@@ -345,6 +360,7 @@ class SettingsBundleChannelsInner {
       other.deferWhileActiveSeconds == deferWhileActiveSeconds &&
       other.acceptExercise == acceptExercise &&
       other.language == language &&
+      other.global == global &&
       other.id == id;
 
     @override
@@ -368,6 +384,7 @@ class SettingsBundleChannelsInner {
         deferWhileActiveSeconds.hashCode +
         acceptExercise.hashCode +
         (language == null ? 0 : language.hashCode) +
+        (global == null ? 0 : global.hashCode) +
         id.hashCode;
 
   factory SettingsBundleChannelsInner.fromJson(Map<String, dynamic> json) => _$SettingsBundleChannelsInnerFromJson(json);

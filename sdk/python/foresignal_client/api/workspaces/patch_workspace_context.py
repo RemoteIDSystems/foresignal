@@ -68,6 +68,11 @@ def _parse_response(
 
         return response_404
 
+    if response.status_code == 409:
+        response_409 = Problem.from_dict(response.json())
+
+        return response_409
+
     if response.status_code == 412:
         response_412 = Problem.from_dict(response.json())
 
@@ -112,9 +117,19 @@ def sync_detailed(
 
      JSON merge patch with `If-Match: <contextVersion>`; 412 `WORKSPACE_CONTEXT_STALE` on a stale
     version. The new version is broadcast as `workspace.context` with the sender's `originClientId`.
-    Validated per Client-Contract §5 (well-formed refs, ordered time range, ≤ 200 selected refs).
+    Validated per Client-Contract §5 (well-formed refs, ordered time range, ≤ 200 selected refs). The
+    bytes it adds count against the `maxStorageBytes` quota of the workspace owner (409 QUOTA_EXCEEDED,
+    R2-026).
 
     **Scope:** `read` (token required).
+
+    **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it,
+    which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-
+    in user reaches the workspace operations with `self.workspaces`; every operation except
+    createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces
+    can still open the ones shared with them. Who may read, edit, share and delete one workspace is
+    unchanged: ownership, membership and access-list grants decide. When a user is deleted their
+    workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
 
     Args:
         workspace_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
@@ -156,9 +171,19 @@ def sync(
 
      JSON merge patch with `If-Match: <contextVersion>`; 412 `WORKSPACE_CONTEXT_STALE` on a stale
     version. The new version is broadcast as `workspace.context` with the sender's `originClientId`.
-    Validated per Client-Contract §5 (well-formed refs, ordered time range, ≤ 200 selected refs).
+    Validated per Client-Contract §5 (well-formed refs, ordered time range, ≤ 200 selected refs). The
+    bytes it adds count against the `maxStorageBytes` quota of the workspace owner (409 QUOTA_EXCEEDED,
+    R2-026).
 
     **Scope:** `read` (token required).
+
+    **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it,
+    which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-
+    in user reaches the workspace operations with `self.workspaces`; every operation except
+    createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces
+    can still open the ones shared with them. Who may read, edit, share and delete one workspace is
+    unchanged: ownership, membership and access-list grants decide. When a user is deleted their
+    workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
 
     Args:
         workspace_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
@@ -195,9 +220,19 @@ async def asyncio_detailed(
 
      JSON merge patch with `If-Match: <contextVersion>`; 412 `WORKSPACE_CONTEXT_STALE` on a stale
     version. The new version is broadcast as `workspace.context` with the sender's `originClientId`.
-    Validated per Client-Contract §5 (well-formed refs, ordered time range, ≤ 200 selected refs).
+    Validated per Client-Contract §5 (well-formed refs, ordered time range, ≤ 200 selected refs). The
+    bytes it adds count against the `maxStorageBytes` quota of the workspace owner (409 QUOTA_EXCEEDED,
+    R2-026).
 
     **Scope:** `read` (token required).
+
+    **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it,
+    which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-
+    in user reaches the workspace operations with `self.workspaces`; every operation except
+    createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces
+    can still open the ones shared with them. Who may read, edit, share and delete one workspace is
+    unchanged: ownership, membership and access-list grants decide. When a user is deleted their
+    workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
 
     Args:
         workspace_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.
@@ -237,9 +272,19 @@ async def asyncio(
 
      JSON merge patch with `If-Match: <contextVersion>`; 412 `WORKSPACE_CONTEXT_STALE` on a stale
     version. The new version is broadcast as `workspace.context` with the sender's `originClientId`.
-    Validated per Client-Contract §5 (well-formed refs, ordered time range, ≤ 200 selected refs).
+    Validated per Client-Contract §5 (well-formed refs, ordered time range, ≤ 200 selected refs). The
+    bytes it adds count against the `maxStorageBytes` quota of the workspace owner (409 QUOTA_EXCEEDED,
+    R2-026).
 
     **Scope:** `read` (token required).
+
+    **v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it,
+    which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-
+    in user reaches the workspace operations with `self.workspaces`; every operation except
+    createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces
+    can still open the ones shared with them. Who may read, edit, share and delete one workspace is
+    unchanged: ownership, membership and access-list grants decide. When a user is deleted their
+    workspaces move to the receiving admin (deleteUser). The shapes are unchanged.
 
     Args:
         workspace_id (str): ULID identifier Example: 01JA8Q3V7S2K9W4T6Y1B5N0M3C.

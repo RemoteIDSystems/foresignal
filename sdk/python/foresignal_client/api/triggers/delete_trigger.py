@@ -75,6 +75,14 @@ def sync_detailed(
 
     **Scope:** `agent`.
 
+    **v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that
+    user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only
+    their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage`
+    and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules
+    that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see
+    shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the
+    shapes are unchanged except the additive, read-only `ownerPrincipalId`.
+
     Args:
         rule_id (UUID):
 
@@ -108,6 +116,14 @@ def sync(
 
     **Scope:** `agent`.
 
+    **v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that
+    user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only
+    their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage`
+    and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules
+    that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see
+    shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the
+    shapes are unchanged except the additive, read-only `ownerPrincipalId`.
+
     Args:
         rule_id (UUID):
 
@@ -135,6 +151,14 @@ async def asyncio_detailed(
      Existing alerts are kept (no cascade).
 
     **Scope:** `agent`.
+
+    **v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that
+    user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only
+    their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage`
+    and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules
+    that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see
+    shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the
+    shapes are unchanged except the additive, read-only `ownerPrincipalId`.
 
     Args:
         rule_id (UUID):
@@ -166,6 +190,14 @@ async def asyncio(
      Existing alerts are kept (no cascade).
 
     **Scope:** `agent`.
+
+    **v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that
+    user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only
+    their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage`
+    and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules
+    that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see
+    shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the
+    shapes are unchanged except the additive, read-only `ownerPrincipalId`.
 
     Args:
         rule_id (UUID):

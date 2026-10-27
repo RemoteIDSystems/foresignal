@@ -24,7 +24,7 @@ class AskApi {
   const AskApi(this._dio);
 
   /// Ask a question
-  /// Answers from Foresignal&#39;s data with the chat provider and the read tool catalogue (tools mode, ≤ 12 iterations, 120 s) or, when the model lacks tools, retrieval-only mode. Every citation is verified against tool output down to the persisted seq (&#x60;[source:externalId@seq]&#x60;); dropped citations and uncited claims are returned in &#x60;warnings&#x60;. Write actions are only proposed unless &#x60;allowActions&#x60; is true and the token has agent scope. A model refusal is answered (200) with a warning. Errors: 409 LLM_NOT_CONFIGURED, 429 LLM_BUDGET_EXCEEDED.  **Scope:** &#x60;read&#x60; (always authenticated: a token is required even when &#x60;security.openReads&#x60; is on).
+  /// Answers from Foresignal&#39;s data with the chat provider and the read tool catalogue (tools mode, ≤ 12 iterations, 120 s) or, when the model lacks tools, retrieval-only mode. Every citation is verified against tool output down to the persisted seq (&#x60;[source:externalId@seq]&#x60;); dropped citations and uncited claims are returned in &#x60;warnings&#x60;. Write actions are only proposed unless &#x60;allowActions&#x60; is true and the token has agent scope. A model refusal is answered (200) with a warning. Errors: 409 LLM_NOT_CONFIGURED, 429 LLM_BUDGET_EXCEEDED.  **Scope:** &#x60;read&#x60; (always authenticated: a token is required even when &#x60;security.openReads&#x60; is on).  **v2.0 (R2-013):** a signed-in user needs &#x60;data.read&#x60; (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (&#x60;User.dataRestriction&#x60;) and source view. API tokens keep their scope rules.
   ///
   /// Parameters:
   /// * [askRequest] 
@@ -132,7 +132,7 @@ _responseData = rawData == null ? null : deserialize<AskResponse, AskResponse>(r
   }
 
   /// Ask a question (streaming)
-  /// Server-Sent Events: &#x60;progress&#x60; (tool activity), &#x60;delta&#x60; (unverified answer text), &#x60;citation&#x60;, &#x60;warning&#x60;, &#x60;action&#x60;, &#x60;done&#x60; (the full verified AskResponse, identical to the persisted message), &#x60;error&#x60;. Heartbeats and per-token stream limits as in 015.  **Scope:** &#x60;read&#x60; (always authenticated: a token is required even when &#x60;security.openReads&#x60; is on).
+  /// Server-Sent Events: &#x60;progress&#x60; (tool activity), &#x60;delta&#x60; (unverified answer text), &#x60;citation&#x60;, &#x60;warning&#x60;, &#x60;action&#x60;, &#x60;done&#x60; (the full verified AskResponse, identical to the persisted message), &#x60;error&#x60;. Heartbeats and per-token stream limits as in 015.  **Scope:** &#x60;read&#x60; (always authenticated: a token is required even when &#x60;security.openReads&#x60; is on).  **v2.0 (R2-013):** a signed-in user needs &#x60;data.read&#x60; (403 PERMISSION_DENIED otherwise, audited); what they read is clamped to their data restriction (&#x60;User.dataRestriction&#x60;) and source view. API tokens keep their scope rules.
   ///
   /// Parameters:
   /// * [askRequest] 

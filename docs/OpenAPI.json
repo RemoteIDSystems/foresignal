@@ -89264,7 +89264,7 @@
           {}
         ],
         "x-foresignal-prompt": "R2-003",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/auth/logout": {
@@ -89298,7 +89298,7 @@
         ],
         "x-foresignal-prompt": "R2-003",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/auth/password/reset-request": {
@@ -89349,7 +89349,7 @@
           {}
         ],
         "x-foresignal-prompt": "R2-003",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/auth/password/reset": {
@@ -89400,7 +89400,7 @@
           {}
         ],
         "x-foresignal-prompt": "R2-003",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/auth/activate": {
@@ -89451,7 +89451,7 @@
           {}
         ],
         "x-foresignal-prompt": "R2-003",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/auth/sessions": {
@@ -89525,7 +89525,7 @@
         ],
         "x-foresignal-prompt": "R2-003",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "delete": {
         "tags": [
@@ -89557,7 +89557,7 @@
         ],
         "x-foresignal-prompt": "R2-003",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/auth/sessions/{id}": {
@@ -89613,7 +89613,7 @@
         ],
         "x-foresignal-prompt": "R2-003",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/users": {
@@ -89711,7 +89711,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-005",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "post": {
         "tags": [
@@ -89790,7 +89790,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-005",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/users/{id}": {
@@ -89863,7 +89863,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-005",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -89964,7 +89964,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-005",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "delete": {
         "tags": [
@@ -90055,7 +90055,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-005",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/users/{id}/roles": {
@@ -90158,7 +90158,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-005",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/users/{id}/suspend": {
@@ -90241,7 +90241,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-005",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/users/{id}/unsuspend": {
@@ -90324,7 +90324,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-005",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/users/{id}/resend-invite": {
@@ -90407,7 +90407,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-005",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/users/{id}/password-reset": {
@@ -90480,7 +90480,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-005",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/roles": {
@@ -90554,7 +90554,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-006",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "post": {
         "tags": [
@@ -90633,7 +90633,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-006",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/roles/{id}": {
@@ -90706,7 +90706,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-006",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -90807,7 +90807,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-006",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "delete": {
         "tags": [
@@ -90881,7 +90881,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-006",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/permissions": {
@@ -90932,7 +90932,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-006",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/settings/smtp": {
@@ -90983,7 +90983,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-007",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -91052,7 +91052,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-007",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/settings/smtp/test": {
@@ -91123,7 +91123,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-007",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/me/sources": {
@@ -91185,7 +91185,7 @@
         ],
         "x-foresignal-prompt": "R2-010",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -91265,7 +91265,7 @@
         ],
         "x-foresignal-prompt": "R2-010",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/sources/collection": {
@@ -91316,7 +91316,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-010",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -91395,7 +91395,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-010",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/me/llm/budget": {
@@ -91457,7 +91457,7 @@
         ],
         "x-foresignal-prompt": "R2-011",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/me/preferences": {
@@ -91519,7 +91519,7 @@
         ],
         "x-foresignal-prompt": "R2-012",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -91599,7 +91599,7 @@
         ],
         "x-foresignal-prompt": "R2-012",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/system/resources": {
@@ -91650,7 +91650,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-014",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/settings/thresholds": {
@@ -91701,7 +91701,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-014",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -91770,7 +91770,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-014",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/settings/retention/preview": {
@@ -91821,7 +91821,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-015",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/archives": {
@@ -91924,7 +91924,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-016",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/archives/run": {
@@ -92005,7 +92005,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-016",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/archives/{id}/restore": {
@@ -92107,7 +92107,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-016",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/settings/backup": {
@@ -92158,7 +92158,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-017",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -92227,7 +92227,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-017",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/backups": {
@@ -92325,7 +92325,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-017",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/backups/run": {
@@ -92406,7 +92406,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-017",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/backups/{id}/restore": {
@@ -92508,7 +92508,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-017",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/egress": {
@@ -92592,7 +92592,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-018",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "post": {
         "tags": [
@@ -92661,7 +92661,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-018",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/egress/{id}": {
@@ -92734,7 +92734,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-018",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -92825,7 +92825,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-018",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "delete": {
         "tags": [
@@ -92889,7 +92889,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-018",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/egress/{id}/test": {
@@ -92962,7 +92962,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-018",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/egress/{id}/health": {
@@ -93035,7 +93035,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-018",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/settings/egress": {
@@ -93086,7 +93086,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-018",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -93155,7 +93155,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-018",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/sources/{sourceId}/egress": {
@@ -93247,7 +93247,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-018",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/aggregators": {
@@ -93298,7 +93298,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-019",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/aggregators/{domain}": {
@@ -93377,7 +93377,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-019",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -93474,7 +93474,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-019",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/aggregators/{domain}/test": {
@@ -93553,7 +93553,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-019",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/me/mfa/enroll": {
@@ -93624,7 +93624,7 @@
         ],
         "x-foresignal-prompt": "R2-024",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/me/mfa/verify": {
@@ -93715,7 +93715,7 @@
         ],
         "x-foresignal-prompt": "R2-024",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/me/mfa/disable": {
@@ -93806,7 +93806,7 @@
         ],
         "x-foresignal-prompt": "R2-024",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/me/mfa/recovery-codes": {
@@ -93877,7 +93877,7 @@
         ],
         "x-foresignal-prompt": "R2-024",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/me/tokens": {
@@ -93941,7 +93941,7 @@
         ],
         "x-foresignal-prompt": "R2-025",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "post": {
         "tags": [
@@ -94020,7 +94020,7 @@
         ],
         "x-foresignal-prompt": "R2-025",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/me/tokens/{id}": {
@@ -94096,7 +94096,7 @@
         ],
         "x-foresignal-prompt": "R2-025",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/users/{id}/quota": {
@@ -94169,7 +94169,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-026",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -94260,7 +94260,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-026",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/me/quota": {
@@ -94321,7 +94321,7 @@
         ],
         "x-foresignal-prompt": "R2-026",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/system/first-run": {
@@ -94331,7 +94331,7 @@
         ],
         "operationId": "getFirstRunStatus",
         "summary": "Check first-run status",
-        "description": "Reports whether the instance still needs first-run setup (no users yet), readable before any account exists so the onboarding wizard can start (C4/190).\n\n**Scope:** `open`.",
+        "description": "Reports whether the instance still needs first-run setup: `firstRun` while no user exists (C4/190, R2-027). Open, so the admin app can start the setup wizard before any account exists. `smtpConfigured` is true when account email is enabled with a host; `sourcesEnabled` counts the sources in the collection set; `apiVersion` is `info.version`.\n\n**Scope:** `open`.",
         "responses": {
           "200": {
             "description": "First-run status",
@@ -94362,7 +94362,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-027",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/setup": {
@@ -94372,7 +94372,7 @@
         ],
         "operationId": "runSetup",
         "summary": "Run first-run setup",
-        "description": "Bootstraps a fresh instance: creates the first admin (authorized by the bootstrap admin token), migrates existing global config to shared/admin defaults, and seeds SMTP, sources and thresholds. Refused once setup is complete (409).\n\n**Scope:** `admin`.",
+        "description": "Bootstraps a fresh instance (C4/190, R2-027). Only the bootstrap admin token printed at first start may call it (403 for any other token or a session) and only while no user exists (409 ALREADY_SETUP after). It creates the first admin, active at once with the built-in Admin role and the given password (checked against the password policy); moves what the v1 operator owned through the instance `owner` principal (their personal channels and workspaces, and any rule, view or LLM provider bound to it) to that admin, leaving every owner-less row (source, collector and server settings, global channels, shared LLM providers, existing rules and views) shared; optionally seeds SMTP (as `updateSmtpSettings`), enables `sources` in the collection set, and stores `thresholds` and `retention` (as their settings operations); and signs the admin in. All of it is one transaction: a body refused anywhere changes nothing. The session is gated to MFA enrollment until the admin enrolls (R2-024). API tokens are not touched.\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -94395,7 +94395,7 @@
             }
           },
           "400": {
-            "description": "Invalid request body (VALIDATION_FAILED)",
+            "description": "Invalid request body (VALIDATION_FAILED, PASSWORD_POLICY): a bad admin email, name or password, an unknown member or source id, or SMTP, threshold or retention settings the settings operations refuse",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -94405,7 +94405,7 @@
             }
           },
           "409": {
-            "description": "Conflict (ALREADY_SET_UP)",
+            "description": "Already set up: a user exists (ALREADY_SETUP); or a source in `sources` needs credentials first (CREDENTIALS_REQUIRED)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -94425,7 +94425,7 @@
             }
           },
           "403": {
-            "description": "Caller lacks the required permission",
+            "description": "The caller is not the bootstrap admin token (FORBIDDEN)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -94443,7 +94443,7 @@
           }
         ],
         "x-foresignal-prompt": "R2-027",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     }
   },
@@ -179926,7 +179926,8 @@
               "email",
               "fullName",
               "password"
-            ]
+            ],
+            "additionalProperties": false
           },
           "smtp": {
             "oneOf": [
@@ -179943,7 +179944,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Source ids to enable in the collection set"
+            "description": "Source ids to enable in the collection set; each must be a registered source"
           },
           "thresholds": {
             "oneOf": [
@@ -179966,7 +179967,8 @@
         },
         "required": [
           "admin"
-        ]
+        ],
+        "additionalProperties": false
       },
       "SetupResult": {
         "type": "object",
@@ -179984,7 +179986,7 @@
                 "type": "null"
               }
             ],
-            "description": "A session for the new admin, when issued"
+            "description": "A session for the new admin; null only if the sign-in asked for a second factor"
           }
         },
         "required": [

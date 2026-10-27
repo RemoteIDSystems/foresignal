@@ -60,6 +60,11 @@ def _parse_response(
 
         return response_401
 
+    if response.status_code == 403:
+        response_403 = Problem.from_dict(response.json())
+
+        return response_403
+
     if response.status_code == 429:
         response_429 = Problem.from_dict(response.json())
 
@@ -95,6 +100,10 @@ def sync_detailed(
     counts as unlabeled.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         component (GetPrecisionComponent | Unset):
@@ -134,6 +143,10 @@ def sync(
 
     **Scope:** `read` (open while `security.openReads` is on).
 
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
+
     Args:
         component (GetPrecisionComponent | Unset):
         since (datetime.datetime | Unset):
@@ -166,6 +179,10 @@ async def asyncio_detailed(
     counts as unlabeled.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         component (GetPrecisionComponent | Unset):
@@ -202,6 +219,10 @@ async def asyncio(
     counts as unlabeled.
 
     **Scope:** `read` (open while `security.openReads` is on).
+
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         component (GetPrecisionComponent | Unset):

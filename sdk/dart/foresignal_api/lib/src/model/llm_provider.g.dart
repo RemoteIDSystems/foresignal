@@ -59,6 +59,16 @@ abstract class _$LlmProviderCWProxy {
 
   LlmProvider monthlyCapUsd(num? monthlyCapUsd);
 
+  LlmProvider shared(bool? shared);
+
+  LlmProvider ownerPrincipalId(String? ownerPrincipalId);
+
+  LlmProvider perUserHourlyCapUsd(num? perUserHourlyCapUsd);
+
+  LlmProvider perUserDailyCapUsd(num? perUserDailyCapUsd);
+
+  LlmProvider perUserMonthlyCapUsd(num? perUserMonthlyCapUsd);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `LlmProvider(...).copyWith.fieldName(value)`.
@@ -94,6 +104,11 @@ abstract class _$LlmProviderCWProxy {
     num? hourlyCapUsd,
     num? dailyCapUsd,
     num? monthlyCapUsd,
+    bool? shared,
+    String? ownerPrincipalId,
+    num? perUserHourlyCapUsd,
+    num? perUserDailyCapUsd,
+    num? perUserMonthlyCapUsd,
   });
 }
 
@@ -193,6 +208,25 @@ class _$LlmProviderCWProxyImpl implements _$LlmProviderCWProxy {
   LlmProvider monthlyCapUsd(num? monthlyCapUsd) =>
       call(monthlyCapUsd: monthlyCapUsd);
 
+  @override
+  LlmProvider shared(bool? shared) => call(shared: shared);
+
+  @override
+  LlmProvider ownerPrincipalId(String? ownerPrincipalId) =>
+      call(ownerPrincipalId: ownerPrincipalId);
+
+  @override
+  LlmProvider perUserHourlyCapUsd(num? perUserHourlyCapUsd) =>
+      call(perUserHourlyCapUsd: perUserHourlyCapUsd);
+
+  @override
+  LlmProvider perUserDailyCapUsd(num? perUserDailyCapUsd) =>
+      call(perUserDailyCapUsd: perUserDailyCapUsd);
+
+  @override
+  LlmProvider perUserMonthlyCapUsd(num? perUserMonthlyCapUsd) =>
+      call(perUserMonthlyCapUsd: perUserMonthlyCapUsd);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `LlmProvider(...).copyWith.fieldName(value)`.
@@ -229,6 +263,11 @@ class _$LlmProviderCWProxyImpl implements _$LlmProviderCWProxy {
     Object? hourlyCapUsd = const $CopyWithPlaceholder(),
     Object? dailyCapUsd = const $CopyWithPlaceholder(),
     Object? monthlyCapUsd = const $CopyWithPlaceholder(),
+    Object? shared = const $CopyWithPlaceholder(),
+    Object? ownerPrincipalId = const $CopyWithPlaceholder(),
+    Object? perUserHourlyCapUsd = const $CopyWithPlaceholder(),
+    Object? perUserDailyCapUsd = const $CopyWithPlaceholder(),
+    Object? perUserMonthlyCapUsd = const $CopyWithPlaceholder(),
   }) {
     return LlmProvider(
       id: id == const $CopyWithPlaceholder() || id == null
@@ -335,6 +374,26 @@ class _$LlmProviderCWProxyImpl implements _$LlmProviderCWProxy {
           ? _value.monthlyCapUsd
           // ignore: cast_nullable_to_non_nullable
           : monthlyCapUsd as num?,
+      shared: shared == const $CopyWithPlaceholder()
+          ? _value.shared
+          // ignore: cast_nullable_to_non_nullable
+          : shared as bool?,
+      ownerPrincipalId: ownerPrincipalId == const $CopyWithPlaceholder()
+          ? _value.ownerPrincipalId
+          // ignore: cast_nullable_to_non_nullable
+          : ownerPrincipalId as String?,
+      perUserHourlyCapUsd: perUserHourlyCapUsd == const $CopyWithPlaceholder()
+          ? _value.perUserHourlyCapUsd
+          // ignore: cast_nullable_to_non_nullable
+          : perUserHourlyCapUsd as num?,
+      perUserDailyCapUsd: perUserDailyCapUsd == const $CopyWithPlaceholder()
+          ? _value.perUserDailyCapUsd
+          // ignore: cast_nullable_to_non_nullable
+          : perUserDailyCapUsd as num?,
+      perUserMonthlyCapUsd: perUserMonthlyCapUsd == const $CopyWithPlaceholder()
+          ? _value.perUserMonthlyCapUsd
+          // ignore: cast_nullable_to_non_nullable
+          : perUserMonthlyCapUsd as num?,
     );
   }
 }
@@ -420,6 +479,17 @@ LlmProvider _$LlmProviderFromJson(
     hourlyCapUsd: $checkedConvert('hourlyCapUsd', (v) => v as num?),
     dailyCapUsd: $checkedConvert('dailyCapUsd', (v) => v as num?),
     monthlyCapUsd: $checkedConvert('monthlyCapUsd', (v) => v as num?),
+    shared: $checkedConvert('shared', (v) => v as bool?),
+    ownerPrincipalId: $checkedConvert('ownerPrincipalId', (v) => v as String?),
+    perUserHourlyCapUsd: $checkedConvert(
+      'perUserHourlyCapUsd',
+      (v) => v as num?,
+    ),
+    perUserDailyCapUsd: $checkedConvert('perUserDailyCapUsd', (v) => v as num?),
+    perUserMonthlyCapUsd: $checkedConvert(
+      'perUserMonthlyCapUsd',
+      (v) => v as num?,
+    ),
   );
   return val;
 });
@@ -454,6 +524,11 @@ Map<String, dynamic> _$LlmProviderToJson(LlmProvider instance) =>
       'hourlyCapUsd': ?instance.hourlyCapUsd,
       'dailyCapUsd': ?instance.dailyCapUsd,
       'monthlyCapUsd': ?instance.monthlyCapUsd,
+      'shared': ?instance.shared,
+      'ownerPrincipalId': ?instance.ownerPrincipalId,
+      'perUserHourlyCapUsd': ?instance.perUserHourlyCapUsd,
+      'perUserDailyCapUsd': ?instance.perUserDailyCapUsd,
+      'perUserMonthlyCapUsd': ?instance.perUserMonthlyCapUsd,
     };
 
 const _$LlmProviderTypeEnumEnumMap = {

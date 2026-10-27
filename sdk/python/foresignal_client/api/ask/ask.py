@@ -67,6 +67,11 @@ def _parse_response(
 
         return response_401
 
+    if response.status_code == 403:
+        response_403 = Problem.from_dict(response.json())
+
+        return response_403
+
     if response.status_code == 404:
         response_404 = Problem.from_dict(response.json())
 
@@ -117,6 +122,10 @@ def sync_detailed(
 
     **Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).
 
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
+
     Args:
         licence_policy (list[AskLicencePolicyItem] | Unset):
         foresignal_licence_policy (str | Unset):  Example: no-nc, no-sa.
@@ -161,6 +170,10 @@ def sync(
 
     **Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).
 
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
+
     Args:
         licence_policy (list[AskLicencePolicyItem] | Unset):
         foresignal_licence_policy (str | Unset):  Example: no-nc, no-sa.
@@ -199,6 +212,10 @@ async def asyncio_detailed(
     LLM_NOT_CONFIGURED, 429 LLM_BUDGET_EXCEEDED.
 
     **Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).
+
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         licence_policy (list[AskLicencePolicyItem] | Unset):
@@ -241,6 +258,10 @@ async def asyncio(
     LLM_NOT_CONFIGURED, 429 LLM_BUDGET_EXCEEDED.
 
     **Scope:** `read` (always authenticated: a token is required even when `security.openReads` is on).
+
+    **v2.0 (R2-013):** a signed-in user needs `data.read` (403 PERMISSION_DENIED otherwise, audited);
+    what they read is clamped to their data restriction (`User.dataRestriction`) and source view. API
+    tokens keep their scope rules.
 
     Args:
         licence_policy (list[AskLicencePolicyItem] | Unset):

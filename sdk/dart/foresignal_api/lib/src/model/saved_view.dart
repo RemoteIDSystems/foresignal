@@ -51,6 +51,10 @@ class SavedView {
     required  this.createdAt,
 
     required  this.updatedAt,
+
+     this.shared,
+
+     this.ownerPrincipalId,
   });
 
   @JsonKey(
@@ -236,6 +240,32 @@ class SavedView {
 
 
 
+      /// True for a shared view (no owner): managed by an admin, visible to every caller (R2-012)
+  @JsonKey(
+    
+    name: r'shared',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final bool? shared;
+
+
+
+      /// The owning user's principal, or null for a shared view (R2-012)
+  @JsonKey(
+    
+    name: r'ownerPrincipalId',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? ownerPrincipalId;
+
+
+
 
 
     @override
@@ -254,7 +284,9 @@ class SavedView {
       other.id == id &&
       other.version == version &&
       other.createdAt == createdAt &&
-      other.updatedAt == updatedAt;
+      other.updatedAt == updatedAt &&
+      other.shared == shared &&
+      other.ownerPrincipalId == ownerPrincipalId;
 
     @override
     int get hashCode =>
@@ -272,7 +304,9 @@ class SavedView {
         id.hashCode +
         version.hashCode +
         createdAt.hashCode +
-        updatedAt.hashCode;
+        updatedAt.hashCode +
+        shared.hashCode +
+        (ownerPrincipalId == null ? 0 : ownerPrincipalId.hashCode);
 
   factory SavedView.fromJson(Map<String, dynamic> json) => _$SavedViewFromJson(json);
 

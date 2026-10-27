@@ -23,6 +23,10 @@ abstract class _$ArchiveSettingsCWProxy {
 
   ArchiveSettings keepLocal(bool? keepLocal);
 
+  ArchiveSettings cutoff(String? cutoff);
+
+  ArchiveSettings schedule(String? schedule);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `ArchiveSettings(...).copyWith.fieldName(value)`.
@@ -40,6 +44,8 @@ abstract class _$ArchiveSettingsCWProxy {
     ArchiveSettingsSecrets? secrets,
     List<String>? secretsSet,
     bool? keepLocal,
+    String? cutoff,
+    String? schedule,
   });
 }
 
@@ -77,6 +83,12 @@ class _$ArchiveSettingsCWProxyImpl implements _$ArchiveSettingsCWProxy {
   @override
   ArchiveSettings keepLocal(bool? keepLocal) => call(keepLocal: keepLocal);
 
+  @override
+  ArchiveSettings cutoff(String? cutoff) => call(cutoff: cutoff);
+
+  @override
+  ArchiveSettings schedule(String? schedule) => call(schedule: schedule);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `ArchiveSettings(...).copyWith.fieldName(value)`.
@@ -95,6 +107,8 @@ class _$ArchiveSettingsCWProxyImpl implements _$ArchiveSettingsCWProxy {
     Object? secrets = const $CopyWithPlaceholder(),
     Object? secretsSet = const $CopyWithPlaceholder(),
     Object? keepLocal = const $CopyWithPlaceholder(),
+    Object? cutoff = const $CopyWithPlaceholder(),
+    Object? schedule = const $CopyWithPlaceholder(),
   }) {
     return ArchiveSettings(
       enabled: enabled == const $CopyWithPlaceholder() || enabled == null
@@ -129,6 +143,14 @@ class _$ArchiveSettingsCWProxyImpl implements _$ArchiveSettingsCWProxy {
           ? _value.keepLocal
           // ignore: cast_nullable_to_non_nullable
           : keepLocal as bool?,
+      cutoff: cutoff == const $CopyWithPlaceholder()
+          ? _value.cutoff
+          // ignore: cast_nullable_to_non_nullable
+          : cutoff as String?,
+      schedule: schedule == const $CopyWithPlaceholder()
+          ? _value.schedule
+          // ignore: cast_nullable_to_non_nullable
+          : schedule as String?,
     );
   }
 }
@@ -175,6 +197,8 @@ ArchiveSettings _$ArchiveSettingsFromJson(Map<String, dynamic> json) =>
           (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
         ),
         keepLocal: $checkedConvert('keepLocal', (v) => v as bool? ?? true),
+        cutoff: $checkedConvert('cutoff', (v) => v as String?),
+        schedule: $checkedConvert('schedule', (v) => v as String?),
       );
       return val;
     });
@@ -189,9 +213,12 @@ Map<String, dynamic> _$ArchiveSettingsToJson(ArchiveSettings instance) =>
       'secrets': ?instance.secrets?.toJson(),
       'secretsSet': ?instance.secretsSet,
       'keepLocal': ?instance.keepLocal,
+      'cutoff': ?instance.cutoff,
+      'schedule': ?instance.schedule,
     };
 
 const _$ArchiveSettingsTargetEnumEnumMap = {
   ArchiveSettingsTargetEnum.local: 'local',
   ArchiveSettingsTargetEnum.s3: 's3',
+  ArchiveSettingsTargetEnum.glacier: 'glacier',
 };
