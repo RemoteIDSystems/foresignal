@@ -11,10 +11,12 @@ import ai.foresignal.object.ObjectCaller;
 import ai.foresignal.object.ObjectTypes;
 import ai.foresignal.security.Tlp;
 import ai.foresignal.security.Ulids;
+import ai.foresignal.security.quota.QuotaService;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +35,18 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class AttachmentService {
+
+    private QuotaService quotas;
+
+    /**
+     * Wires the per-user quotas (prompt R2-026).
+     *
+     * @param quotas the quotas
+     */
+    @Autowired(required = false)
+    public void setQuotas(QuotaService quotas) {
+        this.quotas = quotas;
+    }
 
     private final AttachmentRepository attachments;
     private final EvidenceItemRepository evidence;
@@ -105,6 +119,9 @@ public class AttachmentService {
             imageMeta.put("exifStripped", strip);
         }
         shares.checkTlp(tlp, caller.principal(), java.util.List.of(), visibility);
+        if (quotas != null) {
+            quotas.checkStorage(caller.principal(), stored.length);
+        }
         String sha = AttachmentBlobStore.sha256(stored);
         String path = blobs.store(stored, sha, kind.extension());
         Instant now = clock.instant();

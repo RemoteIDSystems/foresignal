@@ -77,6 +77,14 @@ the admin token exactly as above.
   Operators and Editors, `read` otherwise, and the private grant only if your sessions see private sources
   (`403 TOKEN_EXCEEDS_USER`). Your current roles cap it again on every request, your data restriction narrows its
   reads, it stops working while your account is suspended, and the audit log shows what it did as you.
+- **Per-user quotas (R2-026):** an admin with `users.manage` sets a user's limits with
+  `PUT /v1/users/{id}/quota` (`apiRateLimitPerMinute`, `maxStorageBytes`, `maxAlerts`, `maxChannels`,
+  `maxSavedViews`; null uses the instance default, and unset there too it is unlimited) and reads them with
+  `GET /v1/users/{id}/quota`. Nothing is limited until a quota is set. The rate limit covers the user's sessions and
+  own API tokens together (`429 RATE_LIMITED`, `class: user`, with `Retry-After`); creating an alert rule, channel or
+  view past its limit, or uploading or saving workspace data past `maxStorageBytes`, is `409 QUOTA_EXCEEDED` naming
+  the `limit`. A user sees their limits and usage with `GET /v1/me/quota`. A user refused in every minute for five
+  minutes raises the operational alert `system.user_rate_limited`.
 
 ## Account email (SMTP)
 

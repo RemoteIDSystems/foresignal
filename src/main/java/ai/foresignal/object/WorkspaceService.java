@@ -6,6 +6,7 @@ import ai.foresignal.api.error.ForesignalException;
 import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.security.Ulids;
+import ai.foresignal.security.quota.QuotaService;
 import ai.foresignal.share.ShareLinkService;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -15,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -37,6 +39,18 @@ import tools.jackson.databind.node.ObjectNode;
  */
 @Service
 public class WorkspaceService {
+
+    private QuotaService quotas;
+
+    /**
+     * Wires the per-user quotas (prompt R2-026).
+     *
+     * @param quotas the quotas
+     */
+    @Autowired(required = false)
+    public void setQuotas(QuotaService quotas) {
+        this.quotas = quotas;
+    }
 
     /** Largest layout, in bytes. */
     public static final int MAX_LAYOUT_BYTES = 65_536;
@@ -68,6 +82,20 @@ public class WorkspaceService {
         this.json = json;
         this.clock = clock;
         this.tx = new TransactionTemplate(transactions);
+    }
+
+    /**
+     * Refuses a write that would take the workspace owner past {@code maxStorageBytes} (prompt R2-026). A workspace is
+     * measured as the JSON text of its context and layout, the measure {@code QuotaService} sums.
+     */
+    private void checkStorage(String owner, long addedBytes) {
+        if (quotas != null) {
+            quotas.checkStorage(owner, addedBytes);
+        }
+    }
+
+    private long jsonBytes(Map<String, Object> value) {
+        return value == null ? 0 : json.writeValueAsBytes(value).length;
     }
 
     // ------------------------------------------------------------------------- views
@@ -174,6 +202,7 @@ public class WorkspaceService {
         w.setSavedViewIds(strings(body.get("savedViewIds"), "savedViewIds"));
         w.setInvestigationId(optionalText(body.get("investigationId"), "investigationId"));
         w.setPrivateWorkspace(body.hasNonNull("private") && body.get("private").asBoolean(false));
+        checkStorage(w.getOwner(), jsonBytes(w.getContext()) + jsonBytes(w.getLayout()));
         return tx.execute(s -> workspaces.save(w));
     }
 
@@ -235,7 +264,9 @@ public class WorkspaceService {
             if (body == null || !body.isObject()) {
                 throw new ValidationException("The layout must be a JSON object.");
             }
+            long before = jsonBytes(w.getLayout());
             w.setLayout(layout(body));
+            checkStorage(w.getOwner(), jsonBytes(w.getLayout()) - before);
             w.setUpdatedAt(clock.instant());
             return workspaces.save(w);
         });
@@ -303,7 +334,9 @@ public class WorkspaceService {
             }
             JsonNode merged = JsonMergePatch.apply(json.valueToTree(w.getContext()), patch);
             WorkspaceContextValidator.validate(merged, "context");
+            long before = jsonBytes(w.getContext());
             w.setContext(json.convertValue(ContextLinks.stripNulls(merged), MAP));
+            checkStorage(w.getOwner(), jsonBytes(w.getContext()) - before);
             w.setContextVersion(w.getContextVersion() + 1);
             w.setUpdatedAt(clock.instant());
             return workspaces.save(w);

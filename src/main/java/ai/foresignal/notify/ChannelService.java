@@ -4,6 +4,8 @@ import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.security.CredentialCipher;
 import ai.foresignal.security.Encrypted;
 import ai.foresignal.security.InstallIdService;
+import ai.foresignal.security.quota.QuotaLimit;
+import ai.foresignal.security.quota.QuotaService;
 import ai.foresignal.settings.AppSettingService;
 import ai.foresignal.settings.ServerSettings;
 import ai.foresignal.settings.SettingKeys;
@@ -24,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -41,6 +44,18 @@ import tools.jackson.databind.JsonNode;
  */
 @Service
 public class ChannelService {
+
+    private QuotaService quotas;
+
+    /**
+     * Wires the per-user quotas (prompt R2-026).
+     *
+     * @param quotas the quotas
+     */
+    @Autowired(required = false)
+    public void setQuotas(QuotaService quotas) {
+        this.quotas = quotas;
+    }
 
     /** The fallback zone (a region id, so times print as {@code UTC} rather than {@code Z}). */
     static final ZoneId UTC = ZoneId.of("UTC");
@@ -176,6 +191,9 @@ public class ChannelService {
     @Transactional
     public View create(JsonNode body, String ownerPrincipalId) {
         ChannelInput input = parser.parse(body, null);
+        if (quotas != null) {
+            quotas.checkCount(ownerPrincipalId, QuotaLimit.CHANNELS);
+        }
         NotificationChannelEntity e = new NotificationChannelEntity(UUID.randomUUID(), input.name(), input.type());
         Instant now = clock.instant();
         e.setCreatedAt(now);

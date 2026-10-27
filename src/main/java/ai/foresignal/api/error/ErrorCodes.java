@@ -972,6 +972,13 @@ public final class ErrorCodes {
      */
     public static final String TOKEN_EXCEEDS_USER = "TOKEN_EXCEEDS_USER";
 
+    /**
+     * 409: the create would take the user past a quota (R2-026): {@code maxAlerts}, {@code maxChannels},
+     * {@code maxSavedViews} or {@code maxStorageBytes}; the problem names it as {@code limit} with the {@code quota} and
+     * current {@code usage}.
+     */
+    public static final String QUOTA_EXCEEDED = "QUOTA_EXCEEDED";
+
     /** 404: no session with that id belongs to the caller (R2-003, {@code revokeSession}). */
     public static final String UNKNOWN_SESSION = "UNKNOWN_SESSION";
 

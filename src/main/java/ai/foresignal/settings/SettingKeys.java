@@ -505,6 +505,12 @@ public final class SettingKeys {
     /** The ground-sensor first-party aggregator (prompt R2-019; its backend is prompt R2-023's). */
     public static final String AGGREGATOR_GROUND_SENSORS = "aggregator.ground-sensors";
 
+    /**
+     * The instance-default {@code Quota} (prompt R2-026, {@code ai.foresignal.security.quota.QuotaService}): the limits
+     * a user's own quota falls through to where it leaves a member null. Unset, nobody is limited.
+     */
+    public static final String QUOTA_DEFAULT = "quota.default";
+
     public static final List<String> ALL =
             List.of(RETENTION, CORS, TRIGGER_CURSOR, TRIGGERS, STREAM_LIMITS, SECURITY, SERVER, NOTIFICATIONS,
                     WATCHDOG, INSTALL_ID, LLM, SEARCH_INDEX, EMBEDDING_CURSOR, RATELIMITS, OUTBOUND, STATS_ROLLUP_CURSOR,
@@ -530,7 +536,7 @@ public final class SettingKeys {
                     SOCIAL_CUES, SOCIAL_TRACK_RECORD, EXTERNAL_BINDING_CURSOR, DOCTOR_AUTO_LLM,
                     DOCTOR_AUTO_COOLDOWN, MCP_AUTH, PLUGINS, PLUGINS_APPROVALS, COLLECTOR, SMTP,
                     THRESHOLDS, RETENTION_DB_CAP, BACKUP, EGRESS, AGGREGATOR_ADSB, AGGREGATOR_AIS,
-                    AGGREGATOR_DATALINK, AGGREGATOR_SATELLITE, AGGREGATOR_GROUND_SENSORS);
+                    AGGREGATOR_DATALINK, AGGREGATOR_SATELLITE, AGGREGATOR_GROUND_SENSORS, QUOTA_DEFAULT);
 
     private SettingKeys() {}
 }

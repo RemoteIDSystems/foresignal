@@ -8,6 +8,8 @@ import ai.foresignal.api.error.InvalidInputException;
 import ai.foresignal.api.error.ValidationException;
 import ai.foresignal.api.support.FieldSelector;
 import ai.foresignal.place.PlaceService;
+import ai.foresignal.security.quota.QuotaLimit;
+import ai.foresignal.security.quota.QuotaService;
 import ai.foresignal.security.restrict.ReadRestriction;
 import ai.foresignal.source.SourceRegistry;
 import ai.foresignal.source.formats.geojson.GeoJsonReader;
@@ -39,6 +41,7 @@ import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
@@ -60,6 +63,18 @@ import tools.jackson.databind.JsonNode;
  */
 @Service
 public class SavedViewService {
+
+    private QuotaService quotas;
+
+    /**
+     * Wires the per-user quotas (prompt R2-026).
+     *
+     * @param quotas the quotas
+     */
+    @Autowired(required = false)
+    public void setQuotas(QuotaService quotas) {
+        this.quotas = quotas;
+    }
 
     private static final Logger log = LoggerFactory.getLogger(SavedViewService.class);
 
@@ -194,6 +209,9 @@ public class SavedViewService {
         Input input = parse(body);
         if (views.findBySlug(input.slug()).isPresent()) {
             throw new ConflictException(ErrorCodes.VIEW_EXISTS, "A view with slug '" + input.slug() + "' already exists.");
+        }
+        if (quotas != null) {
+            quotas.checkCount(owner, QuotaLimit.SAVED_VIEWS);
         }
         Instant now = clock.instant();
         SavedViewEntity view = new SavedViewEntity(id);

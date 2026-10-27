@@ -2,6 +2,8 @@ package ai.foresignal.trigger;
 
 import ai.foresignal.api.error.NotFoundException;
 import ai.foresignal.api.error.ValidationException;
+import ai.foresignal.security.quota.QuotaLimit;
+import ai.foresignal.security.quota.QuotaService;
 import ai.foresignal.security.user.OwnerScope;
 import ai.foresignal.store.EscalationPolicyRepository;
 import ai.foresignal.store.TriggerRuleEntity;
@@ -15,6 +17,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
@@ -36,6 +39,18 @@ import tools.jackson.databind.JsonNode;
  */
 @Service
 public class TriggerRuleService {
+
+    private QuotaService quotas;
+
+    /**
+     * Wires the per-user quotas (prompt R2-026).
+     *
+     * @param quotas the quotas
+     */
+    @Autowired(required = false)
+    public void setQuotas(QuotaService quotas) {
+        this.quotas = quotas;
+    }
 
     private static final Logger log = LoggerFactory.getLogger(TriggerRuleService.class);
 
@@ -143,6 +158,9 @@ public class TriggerRuleService {
      */
     public RuleView create(JsonNode input, String ownerPrincipalId) {
         ValidatedRule valid = validator.validate(input);
+        if (quotas != null) {
+            quotas.checkCount(ownerPrincipalId, QuotaLimit.ALERTS);
+        }
         UUID policy = escalationPolicy(input, false);
         Instant now = clock.instant();
         TriggerRuleEntity rule = new TriggerRuleEntity(UUID.randomUUID(), valid.name());

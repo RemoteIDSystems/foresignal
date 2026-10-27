@@ -4782,7 +4782,7 @@
         ],
         "operationId": "createTrigger",
         "summary": "Create a trigger rule",
-        "description": "Creates a rule evaluated against persisted versions (HEARTBEAT excluded). Condition paths on volatile fields are rejected (TRIGGER_PATH_VOLATILE); line geofences need bufferMeters; `near.placeId` needs Places (PLACES_UNAVAILABLE).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.",
+        "description": "Creates a rule evaluated against persisted versions (HEARTBEAT excluded). Condition paths on volatile fields are rejected (TRIGGER_PATH_VOLATILE); line geofences need bufferMeters; `near.placeId` needs Places (PLACES_UNAVAILABLE). A signed-in user creating their own rule is refused past their `maxAlerts` quota (409 QUOTA_EXCEEDED, R2-026).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user, R2-008):** a rule is owned by the user who created it (`ownerPrincipalId`, that user's principal) and its alerts go to that user's channels. A signed-in user sees and manages only their own rules; another user's rule is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all rules, the shared ones (`ownerPrincipalId: null`, the rules that existed before v2.0) included; a rule an API token creates is shared. Anonymous callers see shared rules only. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive, read-only `ownerPrincipalId`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -4844,7 +4844,7 @@
             }
           },
           "409": {
-            "description": "geofenceRef needs reference data that is not loaded (REFERENCE_DATA_MISSING)",
+            "description": "geofenceRef needs reference data that is not loaded (REFERENCE_DATA_MISSING); or over the caller's quota (QUOTA_EXCEEDED, R2-026): the problem names the `limit` (`maxAlerts`) with its `quota` and current `usage`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8059,7 +8059,7 @@
         ],
         "operationId": "createChannel",
         "summary": "Create a notification channel",
-        "description": "Create a notification channel\n\n**Scope:** `admin`.\n\n**v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in user reaches these operations with `self.channels` or `channels.global`: they see their own channels and the global ones, manage their own, and manage global channels only with `channels.global` (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all channels. On create, `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone else a global one; an API token always creates global channels. A user's alerts go to their own channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive `ownerPrincipalId` and `global`.",
+        "description": "Create a notification channel A signed-in user creating a personal channel is refused past their `maxChannels` quota (409 QUOTA_EXCEEDED, R2-026).\n\n**Scope:** `admin`.\n\n**v2.0 (per-user, R2-009):** a channel is **personal** (`ownerPrincipalId`, the owning user's principal) or **global** (`global: true`, no owner; every channel from before v2.0). A signed-in user reaches these operations with `self.channels` or `channels.global`: they see their own channels and the global ones, manage their own, and manage global channels only with `channels.global` (changing one without it is 403 PERMISSION_DENIED); another user's channel is 404, like an unknown one. A session holding `users.manage` and every API token see and manage all channels. On create, `global` picks the kind: absent, a user holding `self.channels` gets a personal channel and anyone else a global one; an API token always creates global channels. A user's alerts go to their own channels and to the global channels whose `ruleIds` name the rule. This is a deliberate semantic change from the single-operator v1.x behavior; the shapes are unchanged except the additive `ownerPrincipalId` and `global`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -8112,6 +8112,16 @@
           },
           "403": {
             "description": "Token lacks the required scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Over the caller's quota (QUOTA_EXCEEDED, R2-026): the problem names the `limit` (`maxChannels`) with its `quota` and current `usage`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -21892,7 +21902,7 @@
         ],
         "operationId": "createView",
         "summary": "Create a saved view",
-        "description": "Compiles the view to one `RecordPredicate` shared with rules (SQL and in-memory evaluation agree on the operator truth table).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.",
+        "description": "Compiles the view to one `RecordPredicate` shared with rules (SQL and in-memory evaluation agree on the operator truth table). A signed-in user creating their own view is refused past their `maxSavedViews` quota (409 QUOTA_EXCEEDED, R2-026).\n\n**Scope:** `agent`.\n\n**v2.0 (per-user, R2-012):** a saved view is **shared** (`shared: true`, no owner; every view from before v2.0 and every view an API token creates) or **personal** (`ownerPrincipalId`, the owning user's principal). A signed-in user reaches the view operations with `self.views` (the reads also with `data.read`): they list and render their own views and the shared ones, and create, replace and delete their own; a view they create is theirs. Another user's view is 404 UNKNOWN_VIEW, like an unknown one; replacing or deleting a shared view needs `users.manage` (403 PERMISSION_DENIED otherwise). A session holding `users.manage` and every API token see and manage all views. Slugs stay unique across all views. The shapes change only by the additive read-only `shared` and `ownerPrincipalId`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -21925,7 +21935,7 @@
             }
           },
           "409": {
-            "description": "Slug already exists (VIEW_EXISTS)",
+            "description": "Slug already exists (VIEW_EXISTS); or over the caller's quota (QUOTA_EXCEEDED, R2-026): the problem names the `limit` (`maxSavedViews`) with its `quota` and current `usage`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -69360,7 +69370,7 @@
         ],
         "operationId": "createWorkspace",
         "summary": "Create a workspace",
-        "description": "Creates a workspace owned by the caller with an initial context (version 1) and optional opaque layout.\n\n**Scope:** `read` (token required).\n\n**v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.",
+        "description": "Creates a workspace owned by the caller with an initial context (version 1) and optional opaque layout. The bytes it adds count against the `maxStorageBytes` quota of the workspace owner (409 QUOTA_EXCEEDED, R2-026).\n\n**Scope:** `read` (token required).\n\n**v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.",
         "requestBody": {
           "required": true,
           "content": {
@@ -69440,6 +69450,16 @@
                 }
               }
             },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Over the caller's quota (QUOTA_EXCEEDED, R2-026): the problem names the `limit` (`maxStorageBytes`) with its `quota` and current `usage`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -69773,7 +69793,7 @@
         ],
         "operationId": "putWorkspaceLayout",
         "summary": "Replace a workspace's layout",
-        "description": "Stores opaque client layout JSON (≤ 64 KB); Foresignal never interprets it.\n\n**Scope:** `read` (token required).\n\n**v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.",
+        "description": "Stores opaque client layout JSON (≤ 64 KB); Foresignal never interprets it. The bytes it adds count against the `maxStorageBytes` quota of the workspace owner (409 QUOTA_EXCEEDED, R2-026).\n\n**Scope:** `read` (token required).\n\n**v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.",
         "parameters": [
           {
             "name": "workspaceId",
@@ -69874,6 +69894,16 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Over the caller's quota (QUOTA_EXCEEDED, R2-026): the problem names the `limit` (`maxStorageBytes`) with its `quota` and current `usage`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-foresignal-scope": "read",
@@ -69897,7 +69927,7 @@
         ],
         "operationId": "patchWorkspaceContext",
         "summary": "Patch a workspace's shared context",
-        "description": "JSON merge patch with `If-Match: <contextVersion>`; 412 `WORKSPACE_CONTEXT_STALE` on a stale version. The new version is broadcast as `workspace.context` with the sender's `originClientId`. Validated per Client-Contract §5 (well-formed refs, ordered time range, ≤ 200 selected refs).\n\n**Scope:** `read` (token required).\n\n**v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.",
+        "description": "JSON merge patch with `If-Match: <contextVersion>`; 412 `WORKSPACE_CONTEXT_STALE` on a stale version. The new version is broadcast as `workspace.context` with the sender's `originClientId`. Validated per Client-Contract §5 (well-formed refs, ordered time range, ≤ 200 selected refs). The bytes it adds count against the `maxStorageBytes` quota of the workspace owner (409 QUOTA_EXCEEDED, R2-026).\n\n**Scope:** `read` (token required).\n\n**v2.0 (per-user, R2-012):** a workspace's `owner` is the principal of the caller that created it, which for a signed-in user is the user's principal, so a user's workspaces are their own. A signed-in user reaches the workspace operations with `self.workspaces`; every operation except createWorkspace and shareWorkspace also accepts `data.read`, so a user who may not own workspaces can still open the ones shared with them. Who may read, edit, share and delete one workspace is unchanged: ownership, membership and access-list grants decide. When a user is deleted their workspaces move to the receiving admin (deleteUser). The shapes are unchanged.",
         "parameters": [
           {
             "name": "workspaceId",
@@ -70028,6 +70058,16 @@
                 }
               }
             },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Over the caller's quota (QUOTA_EXCEEDED, R2-026): the problem names the `limit` (`maxStorageBytes`) with its `quota` and current `usage`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -73286,7 +73326,7 @@
         ],
         "operationId": "uploadAttachment",
         "summary": "Upload an attachment",
-        "description": "Multipart upload (≤ `collab.maxUploadMb`, default 50). Allowed: images (through 043 ImageGuard; EXIF stripped unless `collab.keepExif`), PDF, plain text, CSV, JSON, GeoJSON, KML, Markdown. Stored content-addressed (dedup by sha256); text is extracted for search. Files are data, never executed.\n\n**Scope:** `read`.",
+        "description": "Multipart upload (≤ `collab.maxUploadMb`, default 50). Allowed: images (through 043 ImageGuard; EXIF stripped unless `collab.keepExif`), PDF, plain text, CSV, JSON, GeoJSON, KML, Markdown. Stored content-addressed (dedup by sha256); text is extracted for search. Files are data, never executed. The bytes it adds count against the `maxStorageBytes` quota of the uploader (409 QUOTA_EXCEEDED, R2-026).\n\n**Scope:** `read`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -73375,6 +73415,16 @@
                 }
               }
             },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Over the caller's quota (QUOTA_EXCEEDED, R2-026): the problem names the `limit` (`maxStorageBytes`) with its `quota` and current `usage`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -91659,7 +91709,7 @@
         ],
         "operationId": "updateResourceThresholds",
         "summary": "Update resource thresholds",
-        "description": "Replaces the thresholds; a breach raises /v1/system warnings and fires alerts through the channel system. Each alert is edge-triggered: entering `warn` or `critical` publishes one `system` notification (`system.disk_low`, `system.disk_critical`, `system.memory_low`, `system.memory_critical`, `system.source_storm`, `system.collector_backlog`) and returning to normal publishes one recovery (`system.disk_recovered`, `system.memory_recovered`, `system.source_storm_cleared`, `system.collector_backlog_cleared`). Requires `storage.manage`.\n\n**Scope:** `admin`.",
+        "description": "Replaces the thresholds; a breach raises /v1/system warnings and fires alerts through the channel system. Each alert is edge-triggered: entering `warn` or `critical` publishes one `system` notification (`system.disk_low`, `system.disk_critical`, `system.memory_low`, `system.memory_critical`, `system.source_storm`, `system.collector_backlog`, `system.user_rate_limited`) and returning to normal publishes one recovery (`system.disk_recovered`, `system.memory_recovered`, `system.source_storm_cleared`, `system.collector_backlog_cleared`, `system.user_rate_limit_cleared`). Requires `storage.manage`.\n\n**Scope:** `admin`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -94056,7 +94106,7 @@
         ],
         "operationId": "getUserQuota",
         "summary": "Get a user's quota",
-        "description": "Returns the per-user quota for a user (D5/189). Requires `users.manage`.\n\n**Scope:** `admin`.",
+        "description": "Returns a user's own quota (D5/189, R2-026): the limits set for that user, null where the instance default applies. The effective quota is what `getMyQuota` reports to the user. Requires `users.manage`.\n\n**Scope:** `admin`.",
         "parameters": [
           {
             "name": "id",
@@ -94127,7 +94177,7 @@
         ],
         "operationId": "updateUserQuota",
         "summary": "Set a user's quota",
-        "description": "Replaces a user's quota; a null limit uses the instance default. Requires `users.manage`.\n\n**Scope:** `admin`.",
+        "description": "Replaces a user's own quota whole (R2-026): every member is a non-negative integer or null, and null (or absent) uses the instance default; an unknown member is 400. A quota with every member null removes the user's own limits. `0` allows nothing: no API requests, or no further alert rules, channels, views or stored bytes. `apiRateLimitPerMinute` limits the user's sessions and own API tokens together (429 RATE_LIMITED with Retry-After, `class: user`); when a user is refused in every minute for 5 minutes an operational alert `system.user_rate_limited` is raised, and `system.user_rate_limit_cleared` once a minute passes without a refusal. The count and storage limits apply when the user creates (409 QUOTA_EXCEEDED). Requires `users.manage`.\n\n**Scope:** `admin`.",
         "parameters": [
           {
             "name": "id",
@@ -94220,7 +94270,7 @@
         ],
         "operationId": "getMyQuota",
         "summary": "Get my quota and usage",
-        "description": "Returns the calling user's quota and current usage against each limit (D5/189).\n\n**Scope:** `read`.",
+        "description": "Returns the calling user's effective quota (their own limits over the instance default; null is unlimited) and current usage: `alerts`, `channels` and `savedViews` (the trigger rules, notification channels and saved views they own), `storageBytes` (their uploaded attachments plus the JSON of the workspaces they own) and `apiRequestsThisMinute` (requests in the current clock minute across their sessions and own API tokens) (D5/189, R2-026). A session or a user's own API token (R2-025); an API token with no user has no quota and gets 401.\n\n**Scope:** `read`.",
         "responses": {
           "200": {
             "description": "The caller's quota and usage",
@@ -179761,51 +179811,62 @@
       },
       "Quota": {
         "type": "object",
-        "description": "Per-user limits so one user cannot exhaust the instance (D5/189); null leaves a limit unset (instance default)",
+        "description": "Per-user limits so one user cannot exhaust the instance (D5/189, R2-026). In a user's quota a null member uses the instance default; unset there too it is unlimited. `0` allows nothing.",
         "properties": {
           "apiRateLimitPerMinute": {
             "type": [
               "integer",
               "null"
-            ]
+            ],
+            "description": "Requests a minute across the user's sessions and own API tokens; over it is 429 RATE_LIMITED",
+            "minimum": 0
           },
           "maxStorageBytes": {
             "type": [
               "integer",
               "null"
             ],
-            "format": "int64"
+            "format": "int64",
+            "description": "Bytes of uploaded attachments plus the JSON of owned workspaces",
+            "minimum": 0
           },
           "maxAlerts": {
             "type": [
               "integer",
               "null"
-            ]
+            ],
+            "description": "Trigger rules the user owns",
+            "minimum": 0
           },
           "maxChannels": {
             "type": [
               "integer",
               "null"
-            ]
+            ],
+            "description": "Notification channels the user owns",
+            "minimum": 0
           },
           "maxSavedViews": {
             "type": [
               "integer",
               "null"
-            ]
+            ],
+            "description": "Saved views the user owns",
+            "minimum": 0
           }
-        }
+        },
+        "additionalProperties": false
       },
       "QuotaUsage": {
         "type": "object",
-        "description": "The caller's quota with current usage against each limit",
+        "description": "The caller's effective quota (own limits over the instance default; null is unlimited) with current usage against each limit",
         "properties": {
           "quota": {
             "$ref": "#/components/schemas/Quota"
           },
           "usage": {
             "type": "object",
-            "description": "Current counts/bytes used",
+            "description": "Current usage: `alerts`, `channels`, `savedViews`, `storageBytes` and `apiRequestsThisMinute`",
             "additionalProperties": true
           }
         },
