@@ -148,7 +148,19 @@ public class UserDataRestrictionService implements SessionReadNarrowing {
 
     @Override
     public ReadRestriction narrow(ReadRestriction restriction, AuthenticatedSession session) {
-        Optional<TokenRestrictions> stored = get(session.userId());
+        return narrow(restriction, session.userId());
+    }
+
+    /**
+     * The restriction narrowed by a user's stored data restriction; also applied to the API tokens the user owns
+     * (prompt R2-025).
+     *
+     * @param restriction the restriction so far
+     * @param userId the user
+     * @return the narrowed restriction, or {@code restriction} itself when the user has none
+     */
+    public ReadRestriction narrow(ReadRestriction restriction, UUID userId) {
+        Optional<TokenRestrictions> stored = get(userId);
         return stored.isEmpty() ? restriction : restriction.intersect(ReadRestriction.of(stored.get(), false));
     }
 

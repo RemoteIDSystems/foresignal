@@ -453,8 +453,24 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
                 return new CurrentToken(session.asToken(), false);
             });
         }
-        return tokens.authenticate(bearer).map(t -> new CurrentToken(t, false));
+        return tokens.authenticate(bearer).flatMap(t -> {
+            ai.foresignal.security.user.TokenOwnership ownership = tokenOwnership;
+            if (ownership == null) {
+                return Optional.of(new CurrentToken(t, false));
+            }
+            // R2-025: a user's own token is capped by the user now, and refused when the user may not sign in.
+            return ownership.check(t).map(checked -> {
+                if (checked.owner() != null) {
+                    request.setAttribute(ai.foresignal.security.user.TokenOwner.ATTRIBUTE, checked.owner());
+                }
+                return new CurrentToken(checked.token(), false);
+            });
+        });
     }
+
+    /** Caps user-owned API tokens by their owner (prompt R2-025); absent in slices without the user layer. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.security.user.TokenOwnership tokenOwnership;
 
     /** Verifies identity-provider access tokens on {@code /mcp} (prompt 141); absent in slices without it. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
@@ -646,6 +662,13 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
             for (ai.foresignal.security.user.SessionReadNarrowing n : narrowing) {
                 restriction = n.narrow(restriction, session);
             }
+        } else {
+            // R2-025: a user's own token reads no further than the user's data restriction allows.
+            ai.foresignal.security.user.TokenOwner owner = ai.foresignal.security.user.TokenOwner.of(request)
+                    .orElse(null);
+            if (owner != null && tokenOwnership != null) {
+                restriction = tokenOwnership.narrow(restriction, owner);
+            }
         }
         new RequestPrincipal(RequestPrincipal.Kind.TOKEN, t.id(), t.name(), t.scope(), restriction,
                 t.privateAccess()).bind(request);
@@ -783,6 +806,13 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
             detail.put("via", "session");
             detail.put("userId", session.userId().toString());
         }
+        ai.foresignal.security.user.TokenOwner owner = current == null || session != null ? null
+                : ai.foresignal.security.user.TokenOwner.of(request).orElse(null);
+        if (owner != null) {
+            // R2-025: a user's own token acts for the user.
+            detail.put("via", "user-token");
+            detail.put("userId", owner.userId().toString());
+        }
         AuditRecord entry = new AuditRecord(
                 clock.instant(),
                 AuditRecord.TOKEN,
@@ -798,7 +828,8 @@ public class TokenFilter extends OncePerRequestFilter implements Ordered {
                 segments.length > 3 ? segments[3] : null,
                 request.getRemoteAddr(),
                 detail);
-        audit.record(session == null ? entry : entry.asUser(session.userId(), session.email()));
+        audit.record(session != null ? entry.asUser(session.userId(), session.email())
+                : owner != null ? entry.asUser(owner.userId(), owner.email()) : entry);
     }
 
     /** True when the request was refused for a missing permission ({@code 403 PERMISSION_DENIED}, prompt R2-013). */

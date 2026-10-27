@@ -70,6 +70,13 @@ the admin token exactly as above.
 - **MFA is required for Admin and Operator.** Until such an account has enrolled, its session can read, enroll, set
   preferences and sign out; any other write is `403 MFA_ENROLLMENT_REQUIRED`. Such an account cannot disable MFA
   itself (`409 MFA_REQUIRED`). `FORESIGNAL_MFA_ENFORCE_ENROLLMENT=false` turns the enrollment gate off; leave it on.
+- **Your own API tokens (R2-025):** a signed-in user mints machine tokens for scripts and devices with
+  `POST /v1/me/tokens` (the same `ApiTokenInput` and restrictions as `/v1/tokens`; the value is shown once), lists them
+  with `GET /v1/me/tokens` and revokes one with `DELETE /v1/me/tokens/{id}`. They are `createdVia: self` and owned by
+  you. A token never reaches further than you: `admin` scope only if you hold every permission (Admin), `agent` for
+  Operators and Editors, `read` otherwise, and the private grant only if your sessions see private sources
+  (`403 TOKEN_EXCEEDS_USER`). Your current roles cap it again on every request, your data restriction narrows its
+  reads, it stops working while your account is suspended, and the audit log shows what it did as you.
 
 ## Account email (SMTP)
 

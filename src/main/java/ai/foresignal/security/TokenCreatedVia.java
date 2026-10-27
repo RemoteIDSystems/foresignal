@@ -7,7 +7,9 @@ public enum TokenCreatedVia {
     /** A claimed pairing code. */
     PAIRING,
     /** The first-start admin token. */
-    BOOTSTRAP;
+    BOOTSTRAP,
+    /** {@code POST /v1/me/tokens}: a signed-in user's own token, owned by their principal (prompt R2-025). */
+    SELF;
 
     /** The wire value. */
     public String wireValue() {

@@ -965,6 +965,13 @@ public final class ErrorCodes {
     /** 400: the TOTP or recovery code is wrong, expired or already used (R2-024). */
     public static final String MFA_CODE_INVALID = "MFA_CODE_INVALID";
 
+    /**
+     * 403: a token a user mints for themselves would reach further than the user: a scope above
+     * {@code TokenOwnership.maxScope} of their permissions, or the private grant without an admin-derived session
+     * (R2-025, {@code createMyToken}).
+     */
+    public static final String TOKEN_EXCEEDS_USER = "TOKEN_EXCEEDS_USER";
+
     /** 404: no session with that id belongs to the caller (R2-003, {@code revokeSession}). */
     public static final String UNKNOWN_SESSION = "UNKNOWN_SESSION";
 

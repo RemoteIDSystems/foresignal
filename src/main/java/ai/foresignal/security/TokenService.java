@@ -137,6 +137,20 @@ public class TokenService {
      */
     @Transactional
     public CreatedToken create(JsonNode body) {
+        return create(parse(body, TokenCreatedVia.API));
+    }
+
+    /**
+     * Parses and validates an {@code ApiTokenInput} body into a spec, without creating anything (prompt R2-025 reuses
+     * it for {@code createMyToken}).
+     *
+     * @param body the {@code ApiTokenInput}
+     * @param createdVia how the token is being created
+     * @return the validated spec
+     * @throws ValidationException listing every problem
+     */
+    @Transactional(readOnly = true)
+    public TokenSpec parse(JsonNode body, TokenCreatedVia createdVia) {
         if (body == null || !body.isObject()) {
             throw new ValidationException("The request body must be an ApiTokenInput object.");
         }
@@ -176,8 +190,8 @@ public class TokenService {
                     "Restrictions cannot be set on an admin token.",
                     List.of(new FieldError("restrictions", "is not allowed on an admin token")));
         }
-        return create(new TokenSpec(name, scope, expiresAt, parsed, null, TokenCreatedVia.API, principalId,
-                privateAccess && scope != Scope.ADMIN, licencePolicy));
+        return new TokenSpec(name, scope, expiresAt, parsed, null, createdVia, principalId,
+                privateAccess && scope != Scope.ADMIN, licencePolicy);
     }
 
     /** Creates a token from an already validated {@code spec}. */
@@ -235,6 +249,32 @@ public class TokenService {
     @Transactional(readOnly = true)
     public String principalHandle(String principalId) {
         return principals.find(principalId).map(PrincipalEntity::getHandle).orElse(null);
+    }
+
+    /**
+     * The tokens owned by one principal, newest first (prompt R2-025: a user's own tokens).
+     *
+     * @param principalId the owning principal
+     * @return its tokens, revoked ones included
+     */
+    @Transactional(readOnly = true)
+    public List<ApiTokenEntity> listOwned(String principalId) {
+        return tokens.findByPrincipalIdOrderByCreatedAtDesc(principalId).stream().filter(t -> !t.isPathKey())
+                .toList();
+    }
+
+    /**
+     * Revokes token {@code id} when {@code principalId} owns it (prompt R2-025).
+     *
+     * @param id the token
+     * @param principalId the caller's principal
+     * @throws NotFoundException when there is no such token or another principal owns it
+     */
+    @Transactional
+    public void revokeOwned(UUID id, String principalId) {
+        ApiTokenEntity entity = tokens.findById(id).filter(t -> !t.isPathKey() && !t.isBootstrap()
+                && principalId.equals(t.getPrincipalId())).orElseThrow(() -> NotFoundException.of("Token", id));
+        revoke(entity.getId());
     }
 
     // ------------------------------------------------------------------------- revoke

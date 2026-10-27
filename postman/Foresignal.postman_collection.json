@@ -53019,7 +53019,7 @@
               ],
               "query": []
             },
-            "description": "Lists the API tokens owned by the calling user (user-attributable machine tokens, D2/188). An admin manages all tokens via /v1/tokens. Requires `self.workspaces`.\n\n**Scope:** `read`.\n\noperationId: `listMyTokens`",
+            "description": "Lists the API tokens owned by the calling user (user-attributable machine tokens, D2/188). An admin manages all tokens via /v1/tokens. Any signed-in user; needs a session (an API token is 401). Revoked tokens are listed with `revokedAt`; a value is never returned (R2-025).\n\n**Scope:** `read`.\n\noperationId: `listMyTokens`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -53069,7 +53069,7 @@
               ],
               "query": []
             },
-            "description": "Mints an API token owned by the calling user, with the existing area/path/tile-key restrictions; its scope cannot exceed the caller's own permissions (D2/188). The secret is shown once. Requires `self.workspaces`.\n\n**Scope:** `read`.\n\noperationId: `createMyToken`",
+            "description": "Mints an API token owned by the calling user, with the existing area/path/tile-key restrictions; its scope cannot exceed the caller's own permissions (D2/188). The secret is shown once. Any signed-in user; needs a session (an API token is 401), so a token never mints another (R2-025). The token is `createdVia: self` and owned by the caller's principal; `principalId` is refused (400). Its scope is at most `admin` for a user holding every permission, `agent` for one whose sessions are `agent` or `admin`, else `read`; `privateAccess` needs an admin-derived session; anything wider is 403 TOKEN_EXCEEDS_USER. On every request the token is capped again by its owner's current roles, narrowed by the owner's data restriction, refused (401) while the owner may not sign in, and audited as the owner (R2-025).\n\n**Scope:** `read`.\n\noperationId: `createMyToken`",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -53120,7 +53120,7 @@
               ],
               "query": []
             },
-            "description": "Revokes an API token owned by the calling user. Requires `self.workspaces`.\n\n**Scope:** `read`.\n\noperationId: `revokeMyToken`",
+            "description": "Revokes an API token owned by the calling user. Any signed-in user; needs a session (an API token is 401). A token the caller does not own is 404, as if it did not exist; the revoked token stops authenticating at once (R2-025).\n\n**Scope:** `read`.\n\noperationId: `revokeMyToken`",
             "auth": {
               "type": "bearer",
               "bearer": [
