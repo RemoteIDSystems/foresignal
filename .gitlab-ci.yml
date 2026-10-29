@@ -13,7 +13,7 @@ pages:
   script:
     - echo "The site will be deployed to $CI_PAGES_URL"
   # GitLab 17.9 deprecated the old contract, in which a job merely NAMED `pages`
-  # with `artifacts:paths: public` was recognised as the Pages job. It no longer
+  # with `artifacts:paths: public` was recognized as the Pages job. It no longer
   # is: the deploy step now requires the job to declare its publish directory.
   #
   # [V] Without this, pipeline #2811010288 ran on 2026-09-01 with the `pages`
