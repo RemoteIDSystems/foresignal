@@ -1,0 +1,31 @@
+# This file is a template, and might need editing before it works on your project.
+# To contribute improvements to CI/CD templates, please follow the Development guide at:
+# https://docs.gitlab.com/development/cicd/templates/
+# This specific template is located at:
+# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Pages/HTML.gitlab-ci.yml
+
+# Full project: https://gitlab.com/pages/plain-html
+image: busybox
+
+pages:
+  stage: deploy
+  environment: production
+  script:
+    - echo "The site will be deployed to $CI_PAGES_URL"
+  # GitLab 17.9 deprecated the old contract, in which a job merely NAMED `pages`
+  # with `artifacts:paths: public` was recognised as the Pages job. It no longer
+  # is: the deploy step now requires the job to declare its publish directory.
+  #
+  # [V] Without this, pipeline #2811010288 ran on 2026-09-01 with the `pages`
+  # job PASSING -- it uploaded the artifact and printed the site URL -- while a
+  # separate `pages:deploy` job failed with "You need to either include a
+  # `public/` folder in your artifacts, or specify which one to use for Pages
+  # using `publish`". That job is not returned by the REST jobs API and is only
+  # visible over GraphQL, so the pipeline read as failed with every job green.
+  pages:
+    publish: public
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
