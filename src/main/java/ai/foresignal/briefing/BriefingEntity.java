@@ -23,7 +23,8 @@ import org.hibernate.type.SqlTypes;
  * one. {@code running_since} marks a run in progress (at most one per briefing, across instances);
  * a mark older than the stale-run limit is treated as abandoned. {@code owner_scope} is the scope of
  * the token that created or last replaced the briefing: an {@code admin}-owned briefing may list
- * records of private sources, any other lists them only as counts.
+ * records of private sources, any other lists them only as counts. {@code owner_user_id} (NP-003) makes the briefing
+ * a user's edition: only that user, or an instance credential, sees and runs it.
  *
  * <p>Updates write only changed columns ({@link DynamicUpdate}), so replacing a definition never
  * overwrites the run mark or last-run columns that a run in progress maintains with plain SQL.
@@ -94,6 +95,14 @@ public class BriefingEntity {
 
     @Column(name = "owner_scope", length = 16)
     private String ownerScope;
+
+    /** The v2.0 user who owns it as an edition (NP-003), or null for an instance briefing. */
+    @Column(name = "owner_user_id")
+    private UUID ownerUserId;
+
+    /** The BCP 47 language the edition is written and spoken in (NP-003), or null. */
+    @Column(name = "output_language", length = 35)
+    private String outputLanguage;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "restriction_snapshot", columnDefinition = "jsonb")
@@ -299,6 +308,26 @@ public class BriefingEntity {
     /** Sets the owner's scope. */
     public void setOwnerScope(String ownerScope) {
         this.ownerScope = ownerScope;
+    }
+
+    /** The user who owns it as an edition (NP-003), or null for an instance briefing. */
+    public UUID getOwnerUserId() {
+        return ownerUserId;
+    }
+
+    /** Sets the owning user (NP-003). */
+    public void setOwnerUserId(UUID ownerUserId) {
+        this.ownerUserId = ownerUserId;
+    }
+
+    /** The edition's output language as written (NP-003), or null. */
+    public String getOutputLanguage() {
+        return outputLanguage;
+    }
+
+    /** Sets the output language (NP-003). */
+    public void setOutputLanguage(String outputLanguage) {
+        this.outputLanguage = outputLanguage;
     }
 
     /** When created. */

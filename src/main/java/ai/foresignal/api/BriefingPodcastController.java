@@ -77,7 +77,8 @@ public class BriefingPodcastController {
             throw NotFoundException.of("Briefing", briefingId);
         }
         ReadCaller caller = callers.resolve(request);
-        briefings.requireVisible(id, caller.restriction());
+        briefings.requireVisible(id, caller.restriction(),
+                BriefingService.EditionViewer.of(request, caller.isAnonymous()));
         PublicUrls urls = PublicUrls.of(settings, request);
         String self = "/v1/briefings/" + id + "/podcast.rss";
         boolean seesPrivate = FeedsController.seesPrivate(caller);

@@ -30,6 +30,9 @@ public final class BriefingViews {
         out.put("channelIds", new ArrayList<>(entity.getChannelIds()));
         out.put("maxItemsPerKind", entity.getMaxItemsPerKind());
         out.put("audio", entity.getAudio() == null ? null : new LinkedHashMap<>(entity.getAudio()));
+        // NP-003: the owning user of an edition and its output language.
+        out.put("outputLanguage", entity.getOutputLanguage());
+        out.put("ownerUserId", entity.getOwnerUserId() == null ? null : entity.getOwnerUserId().toString());
         out.put("createdAt", entity.getCreatedAt() == null ? null : entity.getCreatedAt().toString());
         out.put("updatedAt", entity.getUpdatedAt() == null ? null : entity.getUpdatedAt().toString());
         out.put("nextRunAt", entity.getNextRunAt() == null ? null : entity.getNextRunAt().toString());
@@ -83,6 +86,29 @@ public final class BriefingViews {
         out.put("deliveries", 0);
         out.put("warnings", outcome.warnings());
         out.put("audio", null);
+        return out;
+    }
+
+    /**
+     * The {@code EditionSummary} of an owned briefing (prompt NP-003, {@code listMyEditions}). {@code siteUrl} is null
+     * until edition sites are hosted (NP-005).
+     *
+     * @param entity the edition
+     * @param latestRunId its latest completed run, or null
+     */
+    public static Map<String, Object> editionSummary(BriefingEntity entity, java.util.UUID latestRunId) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("briefingId", entity.getId().toString());
+        out.put("name", entity.getName());
+        out.put("enabled", entity.isEnabled());
+        out.put("outputLanguage", entity.getOutputLanguage());
+        out.put("schedule", entity.getSchedule());
+        out.put("timezone", entity.getTimezone());
+        out.put("nextRunAt", entity.getNextRunAt() == null ? null : entity.getNextRunAt().toString());
+        out.put("lastRunAt", entity.getLastRunAt() == null ? null : entity.getLastRunAt().toString());
+        out.put("lastRunStatus", entity.getLastRunStatus());
+        out.put("latestRunId", latestRunId == null ? null : latestRunId.toString());
+        out.put("siteUrl", null);
         return out;
     }
 }

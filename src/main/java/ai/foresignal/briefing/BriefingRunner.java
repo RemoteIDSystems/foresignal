@@ -44,6 +44,11 @@ import tools.jackson.databind.json.JsonMapper;
  * ({@link BriefingAudioService}) before delivery, so the notification carries {@code audio.mediaId} and channels
  * can attach it. The outcome is stored on the run ({@code audio}); a synthesis failure is recorded there and the
  * text is delivered as usual.
+ *
+ * <p>Prompt NP-003: a user-owned edition ({@link EditionContext}, from {@link EditionResolver}) also hides the sources
+ * its owner turned off, carries a "Top stories" section of the owner's news, is written in its language (the LLM writer
+ * is told to; a digest is translated after rendering, the English kept with a warning when that fails) and is spoken
+ * by a voice of that language ({@link EditionVoice}).
  */
 @Component
 public class BriefingRunner {
@@ -105,20 +110,29 @@ public class BriefingRunner {
      * recorded as {@code audio.status=failed} and never stops the run or its delivery.
      */
     BriefingRunEntity audio(BriefingInput input, BriefingRunEntity run) {
+        return audio(input, run, null);
+    }
+
+    /**
+     * {@link #audio(BriefingInput, BriefingRunEntity)} spoken in {@code language} (prompt NP-003): a voice of that
+     * language is picked ({@link EditionVoice#match}).
+     */
+    BriefingRunEntity audio(BriefingInput input, BriefingRunEntity run, String language) {
         if (input.audio() == null) {
             return run;
         }
+        BriefingInput.Audio spoken = EditionVoice.match(input.audio(), language);
         BriefingAudioService service = audioService == null ? null : audioService.getIfAvailable();
         Map<String, Object> outcome;
         if (service == null) {
-            outcome = BriefingAudioService.result(BriefingAudioService.SKIPPED, input.audio());
+            outcome = BriefingAudioService.result(BriefingAudioService.SKIPPED, spoken);
             outcome.put("error", "audio briefings are not available");
         } else {
             try {
-                outcome = service.synthesize(title(run), run.getContentMarkdown(), input.audio());
+                outcome = service.synthesize(title(run), run.getContentMarkdown(), spoken);
             } catch (RuntimeException e) {
                 log.warn("Audio of briefing run {} failed", run.getId(), e);
-                outcome = BriefingAudioService.result(BriefingAudioService.FAILED, input.audio());
+                outcome = BriefingAudioService.result(BriefingAudioService.FAILED, spoken);
                 outcome.put("error", e.getClass().getSimpleName() + ": " + e.getMessage());
             }
         }
@@ -173,18 +187,41 @@ public class BriefingRunner {
      * @param hiddenSources sources counted but never listed (private sources unless the owner is admin)
      * @param restriction the read restriction of the token that created the briefing (prompt 035):
      *     statistics, notable records, search hits and therefore citations stay inside it
+     * @param edition the edition context (prompt NP-003), or null for a plain briefing
      */
     public record Plan(String name, BriefingInput input, Instant periodFrom, Instant periodTo,
-            Set<String> hiddenSources, ai.foresignal.security.restrict.ReadRestriction restriction) {
+            Set<String> hiddenSources, ai.foresignal.security.restrict.ReadRestriction restriction,
+            EditionContext edition) {
 
         /** A null restriction becomes none. */
         public Plan {
             restriction = restriction == null ? ai.foresignal.security.restrict.ReadRestriction.NONE : restriction;
         }
 
+        /** A plan of a plain briefing (the shape before prompt NP-003). */
+        public Plan(String name, BriefingInput input, Instant periodFrom, Instant periodTo, Set<String> hiddenSources,
+                ai.foresignal.security.restrict.ReadRestriction restriction) {
+            this(name, input, periodFrom, periodTo, hiddenSources, restriction, null);
+        }
+
+        /** The edition's language, or null. */
+        public String language() {
+            return edition == null ? null : edition.language();
+        }
+
+        /** The hidden sources with the edition owner's own turned-off sources. */
+        public Set<String> allHidden() {
+            if (edition == null || edition.ownerHiddenSources().isEmpty()) {
+                return hiddenSources;
+            }
+            Set<String> all = new java.util.TreeSet<>(hiddenSources);
+            all.addAll(edition.ownerHiddenSources());
+            return all;
+        }
+
         /** An unrestricted plan (the shape before prompt 035). */
         public Plan(String name, BriefingInput input, Instant periodFrom, Instant periodTo, Set<String> hiddenSources) {
-            this(name, input, periodFrom, periodTo, hiddenSources, null);
+            this(name, input, periodFrom, periodTo, hiddenSources, null, null);
         }
     }
 
@@ -245,11 +282,13 @@ public class BriefingRunner {
         ZoneId zone = BriefingValidator.zone(input.timezone());
         DigestStats stats;
         ScopeResolver.Resolved scope;
+        Set<String> hidden = plan.allHidden();
         try {
             scope = scopes.resolve(input.scope());
             stats = statsService.compute(new DigestStatsService.Request(null, plan.periodFrom(), plan.periodTo(), null,
-                    scope, input.maxItemsPerKind(), plan.hiddenSources(), zone, input.scope(),
+                    scope, input.maxItemsPerKind(), hidden, zone, input.scope(),
                     scope.narrow(plan.restriction())));
+            stats = withTopStories(stats, plan, hidden);
         } catch (RuntimeException e) {
             log.warn("Briefing '{}' could not compute its statistics", plan.name(), e);
             return new Outcome(BriefingRunEntity.FAILED, input.mode(), started, clock.instant(), plan.periodFrom(),
@@ -262,13 +301,15 @@ public class BriefingRunner {
                 : plan.name() + " · " + String.join(", ", scope.placeNames());
         DigestRenderer.Rendered digest = renderer.render(heading, stats, zone, plan.periodFrom(), plan.periodTo());
         if (!BriefingInput.LLM.equals(input.mode())) {
+            List<String> warnings = new ArrayList<>();
+            String markdown = inLanguage(digest.markdown(), plan.language(), warnings);
             return new Outcome(BriefingRunEntity.SUCCEEDED, input.mode(), started, clock.instant(), plan.periodFrom(),
-                    plan.periodTo(), digest.markdown(), citations(digest.citations()), statsJson, List.of(), null, null);
+                    plan.periodTo(), markdown, citations(digest.citations()), statsJson, warnings, null, null);
         }
         try {
             LlmBriefingWriter.Result result = writer.write(new LlmBriefingWriter.Request(plan.name(),
-                    input.instructions(), stats, scope, plan.hiddenSources(), zone, plan.periodFrom(), plan.periodTo(),
-                    scope.narrow(plan.restriction())));
+                    input.instructions(), stats, scope, hidden, zone, plan.periodFrom(), plan.periodTo(),
+                    scope.narrow(plan.restriction()), plan.language()));
             return new Outcome(BriefingRunEntity.SUCCEEDED, input.mode(), started, clock.instant(), plan.periodFrom(),
                     plan.periodTo(), result.markdown(), citations(result.citations()), statsJson, result.warnings(),
                     result.usage(), null);
@@ -278,9 +319,67 @@ public class BriefingRunner {
             if (!(e instanceof LlmBriefingWriter.Fallback)) {
                 log.warn("LLM briefing '{}' failed; falling back to the digest", plan.name(), e);
             }
+            List<String> warnings = new ArrayList<>(List.of("LLM mode fell back to the digest: " + reason));
+            String markdown = inLanguage(digest.markdown(), plan.language(), warnings);
             return new Outcome(BriefingRunEntity.FALLBACK, input.mode(), started, clock.instant(), plan.periodFrom(),
-                    plan.periodTo(), digest.markdown(), citations(digest.citations()), statsJson,
-                    List.of("LLM mode fell back to the digest: " + reason), usage, reason);
+                    plan.periodTo(), markdown, citations(digest.citations()), statsJson, warnings, usage, reason);
+        }
+    }
+
+    /** Translates editions (prompt NP-003); resolved lazily, absent in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ObjectProvider<ai.foresignal.notify.NotificationTranslator> translator;
+
+    /** Resolves editions (prompt NP-003); resolved lazily, absent in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ObjectProvider<EditionResolver> editions;
+
+    /** {@code stats} with the edition's "Top stories" section appended, when it is an edition with news. */
+    DigestStats withTopStories(DigestStats stats, Plan plan, Set<String> hidden) {
+        EditionResolver resolver = editions == null ? null : editions.getIfAvailable();
+        if (resolver == null || plan.edition() == null) {
+            return stats;
+        }
+        try {
+            return resolver.topStories(plan.edition(), plan.periodFrom(), plan.periodTo(), hidden).map(section -> {
+                List<BriefingSection> sections = new ArrayList<>(stats.sections());
+                sections.add(section);
+                return stats.withSections(sections);
+            }).orElse(stats);
+        } catch (RuntimeException e) {
+            log.warn("The top stories of edition '{}' could not be read", plan.name(), e);
+            return stats;
+        }
+    }
+
+    /**
+     * The digest {@code markdown} in the edition's {@code language} (prompt NP-003): unchanged without a language or
+     * for English; the English kept, with a warning, when the translation is unavailable or fails.
+     */
+    String inLanguage(String markdown, String language, List<String> warnings) {
+        if (language == null || ai.foresignal.notify.NotificationTranslator.sameLanguage("en", language)) {
+            return markdown;
+        }
+        ai.foresignal.notify.NotificationTranslator t = translator == null ? null : translator.getIfAvailable();
+        String out = t == null ? null : t.translateMarkdown(markdown, language);
+        if (out == null) {
+            warnings.add("the edition could not be translated into " + language + "; it is in English");
+            return markdown;
+        }
+        return out;
+    }
+
+    /** The edition context of {@code briefing}, or null for a plain briefing or without a resolver. */
+    public EditionContext edition(BriefingEntity briefing) {
+        EditionResolver resolver = editions == null ? null : editions.getIfAvailable();
+        if (resolver == null) {
+            return null;
+        }
+        try {
+            return resolver.resolve(briefing);
+        } catch (RuntimeException e) {
+            log.warn("The edition context of briefing '{}' could not be resolved", briefing.getName(), e);
+            return null;
         }
     }
 
@@ -302,8 +401,9 @@ public class BriefingRunner {
                 input.timezone(), now, from, now);
         transactions.executeWithoutResult(status -> runs.saveAndFlush(running));
 
+        EditionContext edition = edition(briefing);
         Outcome outcome = render(new Plan(briefing.getName(), input, from, now, hiddenSources(briefing.getOwnerScope()),
-                ai.foresignal.security.restrict.ReadRestriction.of(briefing.getRestrictionSnapshot(), false)));
+                ai.foresignal.security.restrict.ReadRestriction.of(briefing.getRestrictionSnapshot(), false), edition));
         BriefingRunEntity done = transactions.execute(status -> {
             BriefingRunEntity row = runs.findById(runId).orElse(running);
             row.setStatus(outcome.status());
@@ -320,9 +420,12 @@ public class BriefingRunner {
         if (BriefingRunEntity.FAILED.equals(done.getStatus())) {
             return done;
         }
-        done = audio(input, done);
-        embed(done);
-        int delivered = deliver(briefing, input, done);
+        done = audio(input, done, edition == null ? null : edition.language());
+        if (edition == null || !edition.owned()) {
+            // NP-003: the search index is shared by every user, so an edition's runs stay out of it.
+            embed(done);
+        }
+        int delivered = deliver(briefing, input, done, edition);
         if (delivered > 0) {
             done = transactions.execute(status -> {
                 BriefingRunEntity row = runs.findById(runId).orElseThrow();
@@ -358,12 +461,28 @@ public class BriefingRunner {
      * @return the deliveries enqueued
      */
     int deliver(BriefingEntity briefing, BriefingInput input, BriefingRunEntity run) {
+        return deliver(briefing, input, run, null);
+    }
+
+    /**
+     * {@link #deliver(BriefingEntity, BriefingInput, BriefingRunEntity)} of an edition (prompt NP-003): an owned
+     * edition that lists no channels goes only to its owner's personal channels.
+     */
+    int deliver(BriefingEntity briefing, BriefingInput input, BriefingRunEntity run, EditionContext edition) {
         String title = title(run);
         String html = links.runHtml(run.getBriefingId(), run.getId());
         String body = run.getContentMarkdown().strip() + "\n\n[Read more](" + DigestRenderer.url(html) + ")";
         Set<UUID> channelIds = Set.copyOf(input.channelIds());
+        if (channelIds.isEmpty() && edition != null && edition.owned()) {
+            EditionResolver resolver = editions == null ? null : editions.getIfAvailable();
+            channelIds = resolver == null ? Set.of() : resolver.ownerChannels(edition.ownerUserId());
+            if (channelIds.isEmpty()) {
+                return 0;
+            }
+        }
+        Set<UUID> targets = channelIds;
         Predicate<ai.foresignal.notify.NotificationChannel> filter =
-                channelIds.isEmpty() ? c -> true : c -> channelIds.contains(c.id());
+                targets.isEmpty() ? c -> true : c -> targets.contains(c.id());
         try {
             NotificationMessage message = notifications.publish(NotificationMessage
                     .builder(NotificationMessage.BRIEFING, SUBTYPE, title, "info")

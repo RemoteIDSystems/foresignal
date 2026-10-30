@@ -193,6 +193,28 @@ public class NotificationTranslator implements IngestStateReset {
         }
     }
 
+    /**
+     * Markdown written in English (a digest briefing, NP-003) translated into {@code language}, through the same
+     * prompt, masking and checks as notifications but without the notification deadline (a briefing run is not on a
+     * delivery path). Returns {@code markdown} unchanged when {@code language} is English, and null when there is no
+     * chat provider or the translation failed or was rejected.
+     *
+     * @param markdown the English markdown
+     * @param language the target BCP 47 language
+     */
+    public String translateMarkdown(String markdown, String language) {
+        if (markdown == null || markdown.isBlank() || language == null || sameLanguage("en", language)) {
+            return markdown;
+        }
+        try {
+            Optional<LlmClient> client = llm.chatClient();
+            return client.isEmpty() ? null : text(client.get(), markdown, language);
+        } catch (RuntimeException e) {
+            log.warn("Translation of a briefing into {} failed: {}", language, e.getMessage());
+            return null;
+        }
+    }
+
     private static String await(Future<String> future, long deadlineNanos)
             throws InterruptedException, ExecutionException, TimeoutException {
         long left = deadlineNanos - System.nanoTime();

@@ -180,7 +180,8 @@ public class FeedsController {
         }
         int size = QueryParams.intInRange("limit", limit, 1, MAX_LIMIT, DEFAULT_LIMIT);
         ReadCaller caller = callers.resolve(request);
-        briefings.requireVisible(id, caller.restriction());
+        briefings.requireVisible(id, caller.restriction(),
+                ai.foresignal.briefing.BriefingService.EditionViewer.of(request, caller.isAnonymous()));
         PublicUrls urls = PublicUrls.of(settings, request);
         String self = "/v1/briefings/" + id + "/runs/feed." + (asAtom ? "atom" : "json");
         Feed feed = feeds.briefingRuns(id, size, viewer(caller).canSeePrivate(), urls, self);

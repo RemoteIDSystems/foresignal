@@ -49,6 +49,9 @@ import tools.jackson.databind.JsonNode;
  * with the strict {@link BriefingHtmlRenderer#CONTENT_SECURITY_POLICY} and a per-run ETag. Ids that
  * are not UUIDs are simply not found.
  *
+ * <p>Prompt NP-003: a user's edition answers only its owner and instance credentials; anyone else gets {@code 404}
+ * ({@link BriefingService#visibleTo(ai.foresignal.briefing.BriefingEntity, BriefingService.EditionViewer)}).
+ *
  * <p>Left out in edge mode (prompt 113: briefings).
  */
 @RestController
@@ -78,7 +81,8 @@ public class BriefingsController {
     @Operation(operationId = "listBriefings", tags = "Briefings")
     @RestrictedRead("only briefings made under a restriction within the caller's")
     public List<Map<String, Object>> listBriefings(HttpServletRequest request) {
-        return briefings.list(callers.resolve(request).restriction());
+        McpCaller caller = callers.resolve(request);
+        return briefings.list(caller.restriction(), briefings.viewer(caller));
     }
 
     /** {@code createBriefing}: 201 with {@code Location}; channel problems are {@code warnings}. */
@@ -103,7 +107,8 @@ public class BriefingsController {
     @Operation(operationId = "getBriefing", tags = "Briefings")
     @RestrictedRead("404 unless made under a restriction within the caller's")
     public Map<String, Object> getBriefing(@PathVariable String briefingId, HttpServletRequest request) {
-        briefings.requireVisible(id(briefingId), callers.resolve(request).restriction());
+        McpCaller caller = callers.resolve(request);
+        briefings.requireVisible(id(briefingId), caller.restriction(), briefings.viewer(caller));
         return briefings.get(id(briefingId));
     }
 
@@ -119,8 +124,8 @@ public class BriefingsController {
     @DeleteMapping("/{briefingId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(operationId = "deleteBriefing", tags = "Briefings")
-    public void deleteBriefing(@PathVariable String briefingId) {
-        briefings.delete(id(briefingId));
+    public void deleteBriefing(@PathVariable String briefingId, HttpServletRequest request) {
+        briefings.delete(id(briefingId), briefings.viewer(callers.resolve(request)));
     }
 
     /** {@code runBriefing}: synchronous up to 120 s; 409 {@code BRIEFING_RUNNING} while one runs. */
@@ -128,7 +133,8 @@ public class BriefingsController {
     @Operation(operationId = "runBriefing", tags = "Briefings")
     @RestrictedRead("runs under the creator's restriction; 404 unless within the caller's")
     public Map<String, Object> runBriefing(@PathVariable String briefingId, HttpServletRequest request) {
-        briefings.requireVisible(id(briefingId), callers.resolve(request).restriction());
+        McpCaller caller = callers.resolve(request);
+        briefings.requireVisible(id(briefingId), caller.restriction(), briefings.viewer(caller));
         return briefings.runNow(id(briefingId));
     }
 
@@ -142,7 +148,7 @@ public class BriefingsController {
         int size = QueryParams.intInRange("limit", limit, 1, BriefingService.MAX_RUN_PAGE,
                 BriefingService.DEFAULT_RUN_PAGE);
         McpCaller caller = callers.resolve(request);
-        briefings.requireVisible(id(briefingId), caller.restriction());
+        briefings.requireVisible(id(briefingId), caller.restriction(), briefings.viewer(caller));
         return briefings.runs(id(briefingId), cursor, size, seesPrivate(caller));
     }
 
@@ -156,7 +162,7 @@ public class BriefingsController {
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
             HttpServletRequest request) {
         McpCaller caller = callers.resolve(request);
-        briefings.requireVisible(id(briefingId), caller.restriction());
+        briefings.requireVisible(id(briefingId), caller.restriction(), briefings.viewer(caller));
         return respond(privateChecked(briefings.latest(id(briefingId)), caller), format, accept, ifNoneMatch, caller);
     }
 
@@ -176,7 +182,7 @@ public class BriefingsController {
             throw NotFoundException.of("Briefing run", runId);
         }
         McpCaller caller = callers.resolve(request);
-        briefings.requireVisible(id(briefingId), caller.restriction());
+        briefings.requireVisible(id(briefingId), caller.restriction(), briefings.viewer(caller));
         return respond(privateChecked(briefings.run(id(briefingId), run), caller), format, accept, ifNoneMatch, caller);
     }
 

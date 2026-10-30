@@ -46,6 +46,10 @@ import tools.jackson.databind.JsonNode;
  *       returns the run; a run still going then is returned {@code running} and completes in the
  *       background.
  *   <li><b>Previews</b> render without storing, delivering or touching the schedule.
+ *   <li><b>Editions</b> (prompt NP-003): a briefing created by a signed-in user, or a user's own API token, is that
+ *       user's edition ({@code owner_user_id}). Only its owner sees, runs, changes or deletes it, and an instance
+ *       (non-user) token as the operator's credential; any other user and an anonymous caller get {@code 404},
+ *       as for a briefing that does not exist ({@link #visibleTo(BriefingEntity, EditionViewer)}).
  * </ul>
  */
 @Service
@@ -89,6 +93,136 @@ public class BriefingService {
     @PreDestroy
     public void shutdown() {
         executor.shutdown();
+    }
+
+    /** Maps a caller's principal to its user (prompt NP-003); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.security.user.UserRepository users;
+
+    /**
+     * Who asks about an edition (prompt NP-003).
+     *
+     * @param userId the calling user (a session or the user's own API token), or null
+     * @param anonymous true for a caller without credentials (open reads)
+     */
+    public record EditionViewer(UUID userId, boolean anonymous) {
+
+        /** An instance (non-user) credential: the operator, which sees every briefing. */
+        public static final EditionViewer INSTANCE = new EditionViewer(null, false);
+
+        /** A caller without credentials. */
+        public static final EditionViewer ANONYMOUS = new EditionViewer(null, true);
+
+        /**
+         * The viewer of an HTTP request: its session's user, else its token's owner, else an instance credential or
+         * an anonymous caller.
+         *
+         * @param request the request
+         * @param anonymous true when the request carries no credentials
+         */
+        public static EditionViewer of(jakarta.servlet.http.HttpServletRequest request, boolean anonymous) {
+            UUID user = ai.foresignal.security.user.AuthenticatedSession.of(request)
+                    .map(ai.foresignal.security.user.AuthenticatedSession::userId)
+                    .or(() -> ai.foresignal.security.user.TokenOwner.of(request)
+                            .map(ai.foresignal.security.user.TokenOwner::userId))
+                    .orElse(null);
+            return user != null ? new EditionViewer(user, false) : anonymous ? ANONYMOUS : INSTANCE;
+        }
+    }
+
+    /**
+     * The viewer of an MCP or REST caller: the user whose principal the caller's token (or session) carries, else an
+     * instance credential, or anonymous without a token.
+     */
+    public EditionViewer viewer(McpCaller caller) {
+        if (caller == null || caller.anonymous()) {
+            return EditionViewer.ANONYMOUS;
+        }
+        String principal = caller.token().principalId();
+        if (users == null || principal == null || caller.token().bootstrap()) {
+            return EditionViewer.INSTANCE;
+        }
+        return users.findByPrincipalId(principal).map(u -> new EditionViewer(u.getId(), false))
+                .orElse(EditionViewer.INSTANCE);
+    }
+
+    /**
+     * True when {@code viewer} may see and act on {@code entity} (prompt NP-003): any viewer for a briefing no user
+     * owns; for an edition, its owner or an instance credential.
+     */
+    public static boolean visibleTo(BriefingEntity entity, EditionViewer viewer) {
+        UUID owner = entity.getOwnerUserId();
+        if (owner == null || viewer == null) {
+            return owner == null || viewer == null;
+        }
+        if (viewer.anonymous()) {
+            return false;
+        }
+        return viewer.userId() == null || viewer.userId().equals(owner);
+    }
+
+    /**
+     * Throws {@code 404} unless briefing {@code id} is visible under {@code restriction} (prompt 035) and to
+     * {@code viewer} (prompt NP-003).
+     */
+    public void requireVisible(UUID id, ai.foresignal.security.restrict.ReadRestriction restriction,
+            EditionViewer viewer) {
+        requireVisible(id, restriction);
+        Optional<BriefingEntity> entity = briefings.findById(id);
+        if (entity.isPresent() && !visibleTo(entity.get(), viewer)) {
+            throw NotFoundException.of("Briefing", id);
+        }
+    }
+
+    /** {@code listBriefings} for {@code viewer} under {@code restriction}: only the briefings visible to both. */
+    public List<Map<String, Object>> list(ai.foresignal.security.restrict.ReadRestriction restriction,
+            EditionViewer viewer) {
+        return briefings.findAllByOrderByCreatedAtAscIdAsc().stream()
+                .filter(b -> visibleTo(b, restriction) && visibleTo(b, viewer))
+                .map(this::view)
+                .toList();
+    }
+
+    /**
+     * {@code listMyEditions}: the editions {@code userId} owns, newest first.
+     *
+     * @param userId the calling user
+     * @param cursor the previous page's {@code nextCursor}, or null
+     * @param limit the page size
+     * @return {@code {items: EditionSummary[], nextCursor}}
+     */
+    public Map<String, Object> listMine(UUID userId, String cursor, int limit) {
+        StringBuilder sql = new StringBuilder("SELECT id, created_at FROM briefing WHERE owner_user_id = ?");
+        List<Object> args = new ArrayList<>();
+        args.add(userId);
+        if (cursor != null && !cursor.isBlank()) {
+            Position after = decode(cursor);
+            sql.append(" AND (created_at < ? OR (created_at = ? AND id < ?))");
+            args.add(Timestamp.from(after.startedAt()));
+            args.add(Timestamp.from(after.startedAt()));
+            args.add(after.id());
+        }
+        sql.append(" ORDER BY created_at DESC, id DESC LIMIT ?");
+        args.add(limit + 1);
+        List<UUID> ids = jdbc.query(sql.toString(), (rs, i) -> rs.getObject(1, UUID.class), args.toArray());
+        boolean more = ids.size() > limit;
+        List<UUID> page = more ? ids.subList(0, limit) : ids;
+        Map<UUID, BriefingEntity> loaded = new LinkedHashMap<>();
+        briefings.findAllById(page).forEach(b -> loaded.put(b.getId(), b));
+        List<Map<String, Object>> items = new ArrayList<>();
+        BriefingEntity last = null;
+        for (UUID id : page) {
+            BriefingEntity b = loaded.get(id);
+            if (b != null) {
+                last = b;
+                items.add(BriefingViews.editionSummary(b, runs.findFirstByBriefingIdAndStatusNotOrderByStartedAtDescIdDesc(
+                        id, BriefingRunEntity.RUNNING).map(BriefingRunEntity::getId).orElse(null)));
+            }
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("items", items);
+        out.put("nextCursor", more && last != null ? encode(last.getCreatedAt(), last.getId()) : null);
+        return out;
     }
 
     // ------------------------------------------------------------------------- definitions
@@ -157,6 +291,7 @@ public class BriefingService {
         entity.setCreatedAt(now);
         apply(entity, valid.input(), owner(caller), scope(caller), now);
         entity.setRestrictionSnapshot(caller.restriction().toStored());
+        entity.setOwnerUserId(viewer(caller).userId());
         BriefingEntity saved = briefings.saveAndFlush(entity);
         return BriefingViews.briefing(saved, valid.warnings());
     }
@@ -170,6 +305,9 @@ public class BriefingService {
      */
     public Map<String, Object> update(UUID id, JsonNode body, McpCaller caller) {
         BriefingEntity entity = load(id);
+        if (!visibleTo(entity, viewer(caller))) {
+            throw NotFoundException.of("Briefing", id);
+        }
         BriefingValidator.Validated valid = validator.validate(body, caller.excludedSources());
         apply(entity, valid.input(), owner(caller), scope(caller), clock.instant());
         entity.setRestrictionSnapshot(caller.restriction().toStored());
@@ -197,7 +335,15 @@ public class BriefingService {
 
     /** {@code deleteBriefing}: its runs are kept until retention removes them. */
     public void delete(UUID id) {
+        delete(id, EditionViewer.INSTANCE);
+    }
+
+    /** {@code deleteBriefing} by {@code viewer}: another user's edition is {@code 404} (prompt NP-003). */
+    public void delete(UUID id, EditionViewer viewer) {
         BriefingEntity entity = load(id);
+        if (!visibleTo(entity, viewer)) {
+            throw NotFoundException.of("Briefing", id);
+        }
         briefings.delete(entity);
         briefings.flush();
     }
@@ -317,9 +463,12 @@ public class BriefingService {
         BriefingValidator.Validated valid = validator.validate(body, caller.excludedSources());
         BriefingInput input = valid.input();
         Instant now = clock.instant();
+        BriefingEntity draft = new BriefingEntity(UUID.randomUUID());
+        input.applyTo(draft);
+        draft.setOwnerUserId(viewer(caller).userId());
         BriefingRunner.Outcome outcome = runner.render(new BriefingRunner.Plan(input.name(), input,
                 BriefingRunner.periodFrom(input, null, now), now, runner.hiddenSources(scope(caller)),
-                caller.restriction()));
+                caller.restriction(), runner.edition(draft)));
         Map<String, Object> out = BriefingViews.preview(outcome);
         if (!valid.warnings().isEmpty()) {
             List<String> warnings = new ArrayList<>(outcome.warnings());
@@ -471,8 +620,11 @@ public class BriefingService {
     private record Position(Instant startedAt, UUID id) {}
 
     private static String encode(BriefingRunEntity last) {
-        Instant at = last.getStartedAt();
-        String raw = at.getEpochSecond() + "." + at.getNano() + ":" + last.getId();
+        return encode(last.getStartedAt(), last.getId());
+    }
+
+    private static String encode(Instant at, UUID id) {
+        String raw = at.getEpochSecond() + "." + at.getNano() + ":" + id;
         return Base64.getUrlEncoder().withoutPadding().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
     }
 

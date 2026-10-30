@@ -106,19 +106,29 @@ public class LlmBriefingWriter {
      * @param zone the briefing's timezone
      * @param periodFrom the period start
      * @param periodTo the period end
+     * @param restriction the read restriction (prompt 035)
+     * @param language the edition's language (prompt NP-003), or null for the default
      */
     public record Request(String name, String instructions, DigestStats stats, ScopeResolver.Resolved scope,
-            Set<String> hiddenSources, ZoneId zone, Instant periodFrom, Instant periodTo, ai.foresignal.security.restrict.ReadRestriction restriction) {
+            Set<String> hiddenSources, ZoneId zone, Instant periodFrom, Instant periodTo,
+            ai.foresignal.security.restrict.ReadRestriction restriction, String language) {
 
         /** A null restriction becomes none. */
         public Request {
             restriction = restriction == null ? ai.foresignal.security.restrict.ReadRestriction.NONE : restriction;
         }
 
+        /** A request in the default language (the shape before prompt NP-003). */
+        public Request(String name, String instructions, DigestStats stats, ScopeResolver.Resolved scope,
+                Set<String> hiddenSources, ZoneId zone, Instant periodFrom, Instant periodTo,
+                ai.foresignal.security.restrict.ReadRestriction restriction) {
+            this(name, instructions, stats, scope, hiddenSources, zone, periodFrom, periodTo, restriction, null);
+        }
+
         /** An unrestricted request (the shape before prompt 035). */
         public Request(String name, String instructions, DigestStats stats, ScopeResolver.Resolved scope,
                 Set<String> hiddenSources, ZoneId zone, Instant periodFrom, Instant periodTo) {
-            this(name, instructions, stats, scope, hiddenSources, zone, periodFrom, periodTo, null);
+            this(name, instructions, stats, scope, hiddenSources, zone, periodFrom, periodTo, null, null);
         }
     }
 
@@ -189,7 +199,7 @@ public class LlmBriefingWriter {
         int maxTokens = Math.max(1, Math.min(config.effectiveMaxTokens(), MAX_OUTPUT_TOKENS));
         ChatRequest chat = new ChatRequest(BriefingPrompts.SYSTEM,
                 List.of(new ChatMessage.User(BriefingPrompts.userTurn(request.name(), request.instructions(),
-                        request.periodFrom(), request.periodTo(), request.zone(), dataText))),
+                        request.periodFrom(), request.periodTo(), request.zone(), dataText, request.language()))),
                 List.of(), maxTokens, Effort.MEDIUM, Purpose.BRIEFING, false, null);
         ChatResponse response;
         try {

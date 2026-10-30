@@ -83,7 +83,8 @@ public class RunBriefingTool implements ForesignalMcpTool {
 
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
-        briefings.requireVisible(McpArgs.requiredUuid(args, "briefingId"), context.restriction());
+        briefings.requireVisible(McpArgs.requiredUuid(args, "briefingId"), context.restriction(),
+                briefings.viewer(context.caller()));
         ObjectNode run = shaper.objectTree(briefings.runNow(McpArgs.requiredUuid(args, "briefingId")));
         run.remove("stats");
         return ToolResult.json(shaper.object(run, Detail.LONG));

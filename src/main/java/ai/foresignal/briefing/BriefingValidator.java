@@ -43,6 +43,8 @@ import tools.jackson.databind.JsonNode;
  *   <li>{@code audio} (prompt 141): null, or {@code {voice, format}} with a voice of 1–100 characters and
  *       {@code format} {@code mp3} (default) or {@code opus}; accepted without a {@code tts} provider (each run
  *       then records {@code audio.status=skipped}).
+ *   <li>{@code outputLanguage} (NP-003): null or a BCP 47 tag, stored canonical. The read-only {@code ownerUserId}
+ *       of a read briefing is accepted and ignored.
  * </ul>
  */
 @Component
@@ -71,11 +73,11 @@ public class BriefingValidator {
 
     /** Input members. */
     static final Set<String> MEMBERS = Set.of("name", "enabled", "schedule", "timezone", "scope", "lookback", "mode",
-            "instructions", "channelIds", "maxItemsPerKind", "audio");
+            "instructions", "channelIds", "maxItemsPerKind", "audio", "outputLanguage");
 
     /** Output-only {@code Briefing} members, accepted and ignored so a read briefing can be sent back. */
     static final Set<String> OUTPUT_ONLY = Set.of("id", "createdAt", "updatedAt", "nextRunAt", "lastRunAt",
-            "lastRunStatus", "warnings");
+            "lastRunStatus", "warnings", "ownerUserId");
 
     /** Scope members this prompt implements. */
     static final Set<String> SCOPE_MEMBERS = Set.of("sources", "kinds", "bbox", "ruleIds", "includeHealth", "placeIds",
@@ -247,13 +249,30 @@ public class BriefingValidator {
         }
 
         BriefingInput.Audio audio = audio(body.get("audio"), errors);
+        String outputLanguage = outputLanguage(body.get("outputLanguage"), errors);
 
         if (!errors.isEmpty()) {
             throw new ValidationException("The briefing is not valid.", errors);
         }
         BriefingInput input = new BriefingInput(name.strip(), enabled, schedule, timezone, scope, lookbackText, lookback,
-                mode, instructions, channelIds, maxItems, audio);
+                mode, instructions, channelIds, maxItems, audio, new BriefingInput.Edition(outputLanguage));
         return new Validated(input, channelWarnings(channelIds));
+    }
+
+    /**
+     * Parses {@code outputLanguage} (NP-003): null, or a BCP 47 tag, returned canonical ({@code pt-br} is
+     * {@code pt-BR}).
+     */
+    static String outputLanguage(JsonNode node, List<FieldError> errors) {
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        String canonical = node.isString() ? ai.foresignal.notify.NotificationTranslator.canonicalTag(node.asString())
+                : null;
+        if (canonical == null) {
+            errors.add(new FieldError("outputLanguage", "must be a BCP 47 language tag or null"));
+        }
+        return canonical;
     }
 
     /** The longest voice name (prompt 141). */

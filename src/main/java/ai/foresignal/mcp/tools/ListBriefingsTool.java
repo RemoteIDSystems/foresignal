@@ -69,7 +69,7 @@ public class ListBriefingsTool implements ForesignalMcpTool {
     @Override
     public ToolResult call(ToolContext context, JsonNode args) {
         Detail detail = Detail.of(args);
-        List<ObjectNode> items = briefings.list(context.restriction()).stream().map(shaper::objectTree).toList();
+        List<ObjectNode> items = briefings.list(context.restriction(), briefings.viewer(context.caller())).stream().map(shaper::objectTree).toList();
         return ToolResult.json(shaper.list(items, items.size(), false, detail, null));
     }
 }

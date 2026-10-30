@@ -81,7 +81,7 @@ public class GetBriefingRunTool implements ForesignalMcpTool {
         Detail detail = Detail.of(args);
         UUID briefingId = McpArgs.requiredUuid(args, "briefingId");
         UUID runId = McpArgs.uuid(args, "runId");
-        briefings.requireVisible(briefingId, context.restriction());
+        briefings.requireVisible(briefingId, context.restriction(), briefings.viewer(context.caller()));
         BriefingRunEntity run = runId == null ? briefings.latest(briefingId) : briefings.run(briefingId, runId);
         // A run that cites a private source is shown only to callers that can see private sources, and
         // never into an Ask loop whose provider may not receive them (its excluded set, prompt 039).
