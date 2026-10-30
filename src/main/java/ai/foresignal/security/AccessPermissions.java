@@ -852,6 +852,7 @@ final class AccessPermissions {
             rule("GET", "/v1/groups/*", null), // getGroup
             rule("PATCH", "/v1/groups/*", null), // updateGroup
             rule("POST", "/v1/ingest/*", null), // ingestRecords
+            rule("GET", "/v1/k/*/site", null), // openEditionSiteShareLink
             rule("DELETE", "/v1/places/*", null), // deletePlace
             rule("GET", "/v1/places/*", null), // getPlace
             rule("PUT", "/v1/places/*", null), // updatePlace

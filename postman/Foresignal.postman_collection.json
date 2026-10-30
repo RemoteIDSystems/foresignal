@@ -10336,6 +10336,52 @@
           }
         },
         {
+          "name": "Open a shared edition site",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect([200]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "If-None-Match",
+                "value": "",
+                "description": "A previous ETag",
+                "disabled": true
+              },
+              {
+                "key": "Accept",
+                "value": "text/html"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/k/{{key}}/site",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "k",
+                "{{key}}",
+                "site"
+              ],
+              "query": []
+            },
+            "description": "The hosted site of an edition (NP-005, `getEditionSite`) behind its share link: the latest successful run as a standalone HTML page, read-only. The share key grants this page only, never writes, other editions or records. A run citing private or non-redistributable sources is not served. `401` for an unknown key and `410 SHARE_EXPIRED` when the link is revoked, expired or exhausted; `404` when the link is to another target type, the edition was deleted, its site is off, or it has no successful run yet. Strong ETag and `Last-Modified`; 304 on a match.\n\n**Scope:** `open` (share key in the path; `/v1/k/{key}/\u2026`).\n\noperationId: `openEditionSiteShareLink`",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
           "name": "Briefing audio podcast feed",
           "event": [
             {

@@ -33,6 +33,8 @@ public final class BriefingViews {
         // NP-003: the owning user of an edition and its output language.
         out.put("outputLanguage", entity.getOutputLanguage());
         out.put("ownerUserId", entity.getOwnerUserId() == null ? null : entity.getOwnerUserId().toString());
+        // NP-005: the hosted site.
+        out.put("site", new BriefingInput.Site(entity.isSiteEnabled(), entity.isSiteShareable()).toMap());
         // NP-004: where each run goes.
         out.put("deliveryTargets", entity.getDeliveryTargets() == null ? List.of()
                 : BriefingInput.Edition.targets(entity.getDeliveryTargets()).stream().map(DeliveryTarget::toMap).toList());
@@ -95,13 +97,24 @@ public final class BriefingViews {
     }
 
     /**
-     * The {@code EditionSummary} of an owned briefing (prompt NP-003, {@code listMyEditions}). {@code siteUrl} is null
-     * until edition sites are hosted (NP-005).
+     * The {@code EditionSummary} of an owned briefing (prompt NP-003, {@code listMyEditions}) without a site URL.
      *
      * @param entity the edition
      * @param latestRunId its latest completed run, or null
      */
     public static Map<String, Object> editionSummary(BriefingEntity entity, java.util.UUID latestRunId) {
+        return editionSummary(entity, latestRunId, null);
+    }
+
+    /**
+     * The {@code EditionSummary} with its site URL (NP-005).
+     *
+     * @param entity the edition
+     * @param latestRunId its latest completed run, or null
+     * @param siteUrl the canonical site URL while the site is enabled, else null
+     */
+    public static Map<String, Object> editionSummary(BriefingEntity entity, java.util.UUID latestRunId,
+            String siteUrl) {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("briefingId", entity.getId().toString());
         out.put("name", entity.getName());
@@ -113,7 +126,7 @@ public final class BriefingViews {
         out.put("lastRunAt", entity.getLastRunAt() == null ? null : entity.getLastRunAt().toString());
         out.put("lastRunStatus", entity.getLastRunStatus());
         out.put("latestRunId", latestRunId == null ? null : latestRunId.toString());
-        out.put("siteUrl", null);
+        out.put("siteUrl", entity.isSiteEnabled() ? siteUrl : null);
         return out;
     }
 }

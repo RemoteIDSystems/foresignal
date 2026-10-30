@@ -48,6 +48,8 @@ import tools.jackson.databind.JsonNode;
  *   <li>{@code deliveryTargets} (NP-004): null or at most 20 {@code DeliveryTarget} objects; a {@code channel}
  *       target needs a {@code channelId} and {@code email}, {@code push} or {@code alert}; {@code website} takes
  *       {@code html} and {@code podcast} takes {@code audio}. A missing or disabled channel is a warning.
+ *   <li>{@code site} (NP-005): null or {@code {enabled, shareable}}; {@code shareable} without {@code enabled} is a
+ *       warning.
  * </ul>
  */
 @Component
@@ -76,7 +78,7 @@ public class BriefingValidator {
 
     /** Input members. */
     static final Set<String> MEMBERS = Set.of("name", "enabled", "schedule", "timezone", "scope", "lookback", "mode",
-            "instructions", "channelIds", "maxItemsPerKind", "audio", "outputLanguage", "deliveryTargets");
+            "instructions", "channelIds", "maxItemsPerKind", "audio", "outputLanguage", "deliveryTargets", "site");
 
     /** Output-only {@code Briefing} members, accepted and ignored so a read briefing can be sent back. */
     static final Set<String> OUTPUT_ONLY = Set.of("id", "createdAt", "updatedAt", "nextRunAt", "lastRunAt",
@@ -254,15 +256,54 @@ public class BriefingValidator {
         BriefingInput.Audio audio = audio(body.get("audio"), errors);
         String outputLanguage = outputLanguage(body.get("outputLanguage"), errors);
         List<DeliveryTarget> targets = deliveryTargets(body.get("deliveryTargets"), errors);
+        BriefingInput.Site site = site(body.get("site"), errors);
 
         if (!errors.isEmpty()) {
             throw new ValidationException("The briefing is not valid.", errors);
         }
         BriefingInput input = new BriefingInput(name.strip(), enabled, schedule, timezone, scope, lookbackText, lookback,
-                mode, instructions, channelIds, maxItems, audio, new BriefingInput.Edition(outputLanguage, targets));
+                mode, instructions, channelIds, maxItems, audio, new BriefingInput.Edition(outputLanguage, targets, site));
         List<String> warnings = new ArrayList<>(targets.isEmpty() ? channelWarnings(channelIds) : List.of());
         warnings.addAll(targetWarnings(targets));
+        if (site.shareable() && !site.enabled()) {
+            warnings.add("site.shareable has no effect while site.enabled is false");
+        }
         return new Validated(input, warnings);
+    }
+
+    /** Parses {@code site} (NP-005): null, or {@code {enabled, shareable}} with booleans (both default false). */
+    static BriefingInput.Site site(JsonNode node, List<FieldError> errors) {
+        if (node == null || node.isNull()) {
+            return BriefingInput.Site.OFF;
+        }
+        if (!node.isObject()) {
+            errors.add(new FieldError("site", "must be an object {enabled, shareable} or null"));
+            return BriefingInput.Site.OFF;
+        }
+        for (String member : node.propertyNames()) {
+            if (!"enabled".equals(member) && !"shareable".equals(member)) {
+                errors.add(new FieldError("site." + member, "is not a member of site (enabled, shareable)"));
+            }
+        }
+        boolean enabled = false;
+        boolean shareable = false;
+        JsonNode e = node.get("enabled");
+        if (e != null && !e.isNull()) {
+            if (!e.isBoolean()) {
+                errors.add(new FieldError("site.enabled", "must be a boolean"));
+            } else {
+                enabled = e.asBoolean();
+            }
+        }
+        JsonNode s = node.get("shareable");
+        if (s != null && !s.isNull()) {
+            if (!s.isBoolean()) {
+                errors.add(new FieldError("site.shareable", "must be a boolean"));
+            } else {
+                shareable = s.asBoolean();
+            }
+        }
+        return new BriefingInput.Site(enabled, shareable);
     }
 
     /** The most delivery targets of a briefing (NP-004). */

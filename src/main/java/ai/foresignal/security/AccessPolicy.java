@@ -408,6 +408,8 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/k/*/download", AccessRequirement.OPEN),
                 // 132: a report share key serves the published HTML; the fss_ key in the path is the credential.
                 rule(HttpMethod.GET, "/v1/k/*/report", AccessRequirement.OPEN),
+                // NP-005: an edition's site behind its share link; the fss_ key in the path is the credential.
+                rule(HttpMethod.GET, "/v1/k/*/site", AccessRequirement.OPEN),
                 // CAP output and calendars (112): reads; feed keys reach them under their prefixes.
                 rule(HttpMethod.GET, "/v1/cap/**", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/calendars/**", AccessRequirement.READ),

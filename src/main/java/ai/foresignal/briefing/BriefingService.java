@@ -95,6 +95,22 @@ public class BriefingService {
         executor.shutdown();
     }
 
+    /** Keeps edition sites' keys (prompt NP-005); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private org.springframework.beans.factory.ObjectProvider<EditionSiteService> editionSites;
+
+    /** Builds site URLs (prompt NP-005); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private BriefingLinks links;
+
+    /** Mints or revokes an edition's site keys after a save (NP-005). */
+    void syncSite(BriefingEntity saved) {
+        EditionSiteService sites = editionSites == null ? null : editionSites.getIfAvailable();
+        if (sites != null) {
+            sites.sync(saved);
+        }
+    }
+
     /** Maps a caller's principal to its user (prompt NP-003); null only in hand-built unit tests. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ai.foresignal.security.user.UserRepository users;
@@ -216,7 +232,8 @@ public class BriefingService {
             if (b != null) {
                 last = b;
                 items.add(BriefingViews.editionSummary(b, runs.findFirstByBriefingIdAndStatusNotOrderByStartedAtDescIdDesc(
-                        id, BriefingRunEntity.RUNNING).map(BriefingRunEntity::getId).orElse(null)));
+                        id, BriefingRunEntity.RUNNING).map(BriefingRunEntity::getId).orElse(null),
+                        links == null ? null : links.editionSite(id)));
             }
         }
         Map<String, Object> out = new LinkedHashMap<>();
@@ -293,6 +310,7 @@ public class BriefingService {
         entity.setRestrictionSnapshot(caller.restriction().toStored());
         entity.setOwnerUserId(viewer(caller).userId());
         BriefingEntity saved = briefings.saveAndFlush(entity);
+        syncSite(saved);
         return BriefingViews.briefing(saved, valid.warnings());
     }
 
@@ -312,6 +330,7 @@ public class BriefingService {
         apply(entity, valid.input(), owner(caller), scope(caller), clock.instant());
         entity.setRestrictionSnapshot(caller.restriction().toStored());
         BriefingEntity saved = briefings.saveAndFlush(entity);
+        syncSite(saved);
         return BriefingViews.briefing(saved, valid.warnings());
     }
 
@@ -330,7 +349,9 @@ public class BriefingService {
         });
         apply(entity, valid.input(), null, Scope.ADMIN.wireValue(), now);
         entity.setRestrictionSnapshot(null);
-        return BriefingViews.briefing(briefings.saveAndFlush(entity), valid.warnings());
+        BriefingEntity saved = briefings.saveAndFlush(entity);
+        syncSite(saved);
+        return BriefingViews.briefing(saved, valid.warnings());
     }
 
     /** {@code deleteBriefing}: its runs are kept until retention removes them. */
@@ -343,6 +364,11 @@ public class BriefingService {
         BriefingEntity entity = load(id);
         if (!visibleTo(entity, viewer)) {
             throw NotFoundException.of("Briefing", id);
+        }
+        EditionSiteService sites = editionSites == null ? null : editionSites.getIfAvailable();
+        if (sites != null) {
+            // NP-005: the site's feed key and share link must stop working with the edition.
+            sites.revokeAll(id);
         }
         briefings.delete(entity);
         briefings.flush();
@@ -405,6 +431,10 @@ public class BriefingService {
         try {
             BriefingRunEntity run = runner.run(briefing);
             status = run.getStatus();
+            if (briefing.isSiteEnabled()) {
+                // NP-005: renew the site's keys when they near expiry.
+                syncSite(briefing);
+            }
             return run;
         } catch (RuntimeException e) {
             log.error("Briefing '{}' ({}) failed", briefing.getName(), briefing.getId(), e);

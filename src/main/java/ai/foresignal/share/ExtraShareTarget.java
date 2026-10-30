@@ -28,4 +28,12 @@ public interface ExtraShareTarget {
      * @return what the link shows
      */
     ShareLinkService.Rendered render(ShareLinkEntity link);
+
+    /**
+     * The longest lifetime a link of this type may have; {@link ShareLinkService#MAX_TTL} unless the target serves
+     * something meant to stay at one address (NP-005: an edition site).
+     */
+    default java.time.Duration maxTtl() {
+        return ShareLinkService.MAX_TTL;
+    }
 }

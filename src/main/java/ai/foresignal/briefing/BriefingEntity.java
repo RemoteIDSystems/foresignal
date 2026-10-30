@@ -104,6 +104,14 @@ public class BriefingEntity {
     @Column(name = "output_language", length = 35)
     private String outputLanguage;
 
+    /** Whether the edition's site is served (NP-005 {@code site.enabled}). */
+    @Column(name = "site_enabled", nullable = false)
+    private boolean siteEnabled;
+
+    /** Whether the edition keeps a share link to its site (NP-005 {@code site.shareable}). */
+    @Column(name = "site_shareable", nullable = false)
+    private boolean siteShareable;
+
     /** The edition's delivery targets (NP-004), as stored {@code DeliveryTarget} objects; null for none. */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "delivery_targets", columnDefinition = "jsonb")
@@ -363,5 +371,25 @@ public class BriefingEntity {
     /** Sets the edition's delivery targets (NP-004); null or empty for none. */
     public void setDeliveryTargets(List<Map<String, Object>> deliveryTargets) {
         this.deliveryTargets = deliveryTargets;
+    }
+
+    /** Whether the edition's site is served (NP-005). */
+    public boolean isSiteEnabled() {
+        return siteEnabled;
+    }
+
+    /** Sets whether the edition's site is served (NP-005). */
+    public void setSiteEnabled(boolean siteEnabled) {
+        this.siteEnabled = siteEnabled;
+    }
+
+    /** Whether the edition keeps a share link to its site (NP-005). */
+    public boolean isSiteShareable() {
+        return siteShareable;
+    }
+
+    /** Sets whether the edition keeps a share link to its site (NP-005). */
+    public void setSiteShareable(boolean siteShareable) {
+        this.siteShareable = siteShareable;
     }
 }

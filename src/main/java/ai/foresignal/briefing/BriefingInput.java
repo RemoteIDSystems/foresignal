@@ -42,20 +42,27 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
      *     for the owner's {@code UserPreferences.locale}
      * @param deliveryTargets where each run goes (NP-004); empty to deliver as before ({@code channelIds}, else every
      *     channel subscribed to {@code briefing})
+     * @param site the hosted site (NP-005); {@link Site#OFF} for none
      */
-    public record Edition(String outputLanguage, List<DeliveryTarget> deliveryTargets) {
+    public record Edition(String outputLanguage, List<DeliveryTarget> deliveryTargets, Site site) {
 
         /** No edition options. */
         public static final Edition NONE = new Edition(null);
 
-        /** Copies the targets. */
+        /** Copies the targets; a null site is off. */
         public Edition {
             deliveryTargets = deliveryTargets == null ? List.of() : List.copyOf(deliveryTargets);
+            site = site == null ? Site.OFF : site;
         }
 
         /** Options with a language and no targets (the shape of NP-003). */
         public Edition(String outputLanguage) {
             this(outputLanguage, List.of());
+        }
+
+        /** Options without a site (the shape of NP-004). */
+        public Edition(String outputLanguage, List<DeliveryTarget> deliveryTargets) {
+            this(outputLanguage, deliveryTargets, Site.OFF);
         }
 
         /** The targets stored as {@code maps}, the unreadable ones left out. */
@@ -64,6 +71,26 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
                 return List.of();
             }
             return maps.stream().map(DeliveryTarget::fromMap).filter(Objects::nonNull).toList();
+        }
+    }
+
+    /**
+     * The hosted edition site (NP-005, OpenAPI {@code BriefingInput.site}).
+     *
+     * @param enabled serve the latest successful run at {@code getEditionSite}
+     * @param shareable keep a read-only, revocable share link to the site (effective only while enabled)
+     */
+    public record Site(boolean enabled, boolean shareable) {
+
+        /** No site. */
+        public static final Site OFF = new Site(false, false);
+
+        /** The wire form. */
+        public Map<String, Object> toMap() {
+            Map<String, Object> out = new java.util.LinkedHashMap<>();
+            out.put("enabled", enabled);
+            out.put("shareable", shareable);
+            return out;
         }
     }
 
@@ -150,7 +177,8 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
         return new BriefingInput(entity.getName(), entity.isEnabled(), entity.getSchedule(), entity.getTimezone(),
                 BriefingScope.fromMap(entity.getScope()), entity.getLookback(), lookback, entity.getMode(),
                 entity.getInstructions(), channels, entity.getMaxItemsPerKind(), Audio.fromMap(entity.getAudio()),
-                new Edition(entity.getOutputLanguage(), Edition.targets(entity.getDeliveryTargets())));
+                new Edition(entity.getOutputLanguage(), Edition.targets(entity.getDeliveryTargets()),
+                        new Site(entity.isSiteEnabled(), entity.isSiteShareable())));
     }
 
     /** Writes this input onto {@code entity} (schedule fields only; times and ownership are the caller's). */
@@ -167,6 +195,8 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
         entity.setMaxItemsPerKind(maxItemsPerKind);
         entity.setAudio(audio == null ? null : new java.util.LinkedHashMap<>(audio.toMap()));
         entity.setOutputLanguage(edition.outputLanguage());
+        entity.setSiteEnabled(edition.site().enabled());
+        entity.setSiteShareable(edition.site().shareable());
         entity.setDeliveryTargets(edition.deliveryTargets().isEmpty() ? null
                 : new java.util.ArrayList<>(edition.deliveryTargets().stream().map(DeliveryTarget::toMap).toList()));
     }

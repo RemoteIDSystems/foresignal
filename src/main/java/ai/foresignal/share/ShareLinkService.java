@@ -235,8 +235,12 @@ public class ShareLinkService {
             errors.add(new FieldError("targetRef", "must be a non-empty reference of at most 600 characters"));
         }
         Instant expiresAt = request.expiresAt() == null ? now.plus(DEFAULT_TTL) : request.expiresAt();
-        if (!expiresAt.isAfter(now) || expiresAt.isAfter(now.plus(MAX_TTL))) {
-            errors.add(new FieldError("expiresAt", "must be in the future and at most 30 days ahead"));
+        // NP-005: a contributed target may allow a longer life (an edition site keeps one address for a year).
+        ExtraShareTarget extra = request.targetType() == null ? null : extraTargets.get(request.targetType());
+        Duration maxTtl = extra == null ? MAX_TTL : extra.maxTtl();
+        if (!expiresAt.isAfter(now) || expiresAt.isAfter(now.plus(maxTtl))) {
+            errors.add(new FieldError("expiresAt", "must be in the future and at most " + maxTtl.toDays()
+                    + " days ahead"));
         }
         if (request.maxUses() != null && request.maxUses() < 1) {
             errors.add(new FieldError("maxUses", "must be at least 1"));

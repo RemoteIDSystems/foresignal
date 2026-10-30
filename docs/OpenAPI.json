@@ -80105,6 +80105,112 @@
         "x-foresignal-status": "implemented"
       }
     },
+    "/v1/k/{key}/site": {
+      "get": {
+        "tags": [
+          "Briefings"
+        ],
+        "operationId": "openEditionSiteShareLink",
+        "summary": "Open a shared edition site",
+        "description": "The hosted site of an edition (NP-005, `getEditionSite`) behind its share link: the latest successful run as a standalone HTML page, read-only. The share key grants this page only, never writes, other editions or records. A run citing private or non-redistributable sources is not served. `401` for an unknown key and `410 SHARE_EXPIRED` when the link is revoked, expired or exhausted; `404` when the link is to another target type, the edition was deleted, its site is off, or it has no successful run yet. Strong ETag and `Last-Modified`; 304 on a match.\n\n**Scope:** `open` (share key in the path; `/v1/k/{key}/…`).",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "description": "Share key (`fss_…`)",
+            "schema": {
+              "type": "string",
+              "pattern": "^fss_[A-Za-z0-9_-]+$"
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "description": "A previous ETag",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The site",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Strong validator",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Last-Modified": {
+                "description": "When the shown run finished",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified"
+          },
+          "401": {
+            "description": "Invalid key (INVALID_SHARE_KEY)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (NOT_FOUND)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Link expired or revoked (SHARE_EXPIRED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited (RATE_LIMITED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {}
+        ],
+        "x-foresignal-scope": "open",
+        "x-foresignal-prompt": "NP-005",
+        "x-foresignal-status": "planned"
+      }
+    },
     "/v1/exchange/packages": {
       "post": {
         "tags": [
@@ -137579,7 +137685,8 @@
               "briefing-run",
               "export",
               "workspace",
-              "report"
+              "report",
+              "edition-site"
             ]
           },
           "targetRef": {
