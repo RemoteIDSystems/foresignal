@@ -120,6 +120,8 @@ import 'package:foresignal_api/src/model/archive_settings_s3.dart';
 import 'package:foresignal_api/src/model/archive_settings_secrets.dart';
 import 'package:foresignal_api/src/model/ask_action.dart';
 import 'package:foresignal_api/src/model/ask_citation.dart';
+import 'package:foresignal_api/src/model/ask_citation_corroboration.dart';
+import 'package:foresignal_api/src/model/ask_citation_provenance.dart';
 import 'package:foresignal_api/src/model/ask_delta_event.dart';
 import 'package:foresignal_api/src/model/ask_message.dart';
 import 'package:foresignal_api/src/model/ask_progress_event.dart';
@@ -195,11 +197,15 @@ import 'package:foresignal_api/src/model/benchmark_run_page.dart';
 import 'package:foresignal_api/src/model/benchmark_status.dart';
 import 'package:foresignal_api/src/model/benchmark_status_components_inner.dart';
 import 'package:foresignal_api/src/model/benchmark_status_components_inner_gating.dart';
+import 'package:foresignal_api/src/model/breaking_news_config.dart';
 import 'package:foresignal_api/src/model/briefing.dart';
 import 'package:foresignal_api/src/model/briefing_input.dart';
 import 'package:foresignal_api/src/model/briefing_input_audio.dart';
+import 'package:foresignal_api/src/model/briefing_input_site.dart';
 import 'package:foresignal_api/src/model/briefing_run.dart';
 import 'package:foresignal_api/src/model/briefing_run_audio.dart';
+import 'package:foresignal_api/src/model/briefing_run_breaking.dart';
+import 'package:foresignal_api/src/model/briefing_run_delivery_results_inner.dart';
 import 'package:foresignal_api/src/model/briefing_run_page.dart';
 import 'package:foresignal_api/src/model/briefing_scope.dart';
 import 'package:foresignal_api/src/model/budget.dart';
@@ -401,6 +407,7 @@ import 'package:foresignal_api/src/model/declared_observability.dart';
 import 'package:foresignal_api/src/model/declared_observability_kinds_value.dart';
 import 'package:foresignal_api/src/model/declared_observability_kinds_value_area.dart';
 import 'package:foresignal_api/src/model/declared_observability_kinds_value_thresholds_inner.dart';
+import 'package:foresignal_api/src/model/delivery_target.dart';
 import 'package:foresignal_api/src/model/derived_evidence_ref.dart';
 import 'package:foresignal_api/src/model/derived_payload_common.dart';
 import 'package:foresignal_api/src/model/derived_payload_common_detector.dart';
@@ -449,6 +456,8 @@ import 'package:foresignal_api/src/model/dossier_sections_overview_links.dart';
 import 'package:foresignal_api/src/model/dossier_sections_related.dart';
 import 'package:foresignal_api/src/model/dossier_sections_timeline.dart';
 import 'package:foresignal_api/src/model/dossier_sections_timeline_items_inner.dart';
+import 'package:foresignal_api/src/model/edition_site.dart';
+import 'package:foresignal_api/src/model/edition_summary.dart';
 import 'package:foresignal_api/src/model/edp_analysis_request.dart';
 import 'package:foresignal_api/src/model/edp_batch.dart';
 import 'package:foresignal_api/src/model/edp_coverage.dart';
@@ -887,6 +896,7 @@ import 'package:foresignal_api/src/model/legend.dart';
 import 'package:foresignal_api/src/model/legend_tick.dart';
 import 'package:foresignal_api/src/model/licence_terms.dart';
 import 'package:foresignal_api/src/model/lightning_cluster_payload.dart';
+import 'package:foresignal_api/src/model/list_my_editions200_response.dart';
 import 'package:foresignal_api/src/model/list_records200_response.dart';
 import 'package:foresignal_api/src/model/live_event.dart';
 import 'package:foresignal_api/src/model/llm_budget_provider.dart';
@@ -1009,9 +1019,13 @@ import 'package:foresignal_api/src/model/network_salt_input.dart';
 import 'package:foresignal_api/src/model/network_salt_status.dart';
 import 'package:foresignal_api/src/model/news_article.dart';
 import 'package:foresignal_api/src/model/news_article_page.dart';
+import 'package:foresignal_api/src/model/news_article_translation_provenance.dart';
 import 'package:foresignal_api/src/model/news_story.dart';
 import 'package:foresignal_api/src/model/news_story_outlets_inner.dart';
 import 'package:foresignal_api/src/model/news_story_page.dart';
+import 'package:foresignal_api/src/model/news_subscription.dart';
+import 'package:foresignal_api/src/model/news_subscription_update.dart';
+import 'package:foresignal_api/src/model/news_subscription_view.dart';
 import 'package:foresignal_api/src/model/normalized_record_preview.dart';
 import 'package:foresignal_api/src/model/normalized_record_preview_geometry.dart';
 import 'package:foresignal_api/src/model/notification.dart';
@@ -1780,6 +1794,9 @@ import 'package:foresignal_api/src/model/track.dart';
 import 'package:foresignal_api/src/model/track_properties.dart';
 import 'package:foresignal_api/src/model/transit_catalog_entry.dart';
 import 'package:foresignal_api/src/model/transit_catalog_page.dart';
+import 'package:foresignal_api/src/model/translation_settings.dart';
+import 'package:foresignal_api/src/model/translation_settings_input.dart';
+import 'package:foresignal_api/src/model/translation_settings_input_budget.dart';
 import 'package:foresignal_api/src/model/trigger_mute_input.dart';
 import 'package:foresignal_api/src/model/trigger_mute_input_one_of.dart';
 import 'package:foresignal_api/src/model/trigger_mute_input_one_of1.dart';
@@ -2130,6 +2147,10 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return AskAction.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'AskCitation':
           return AskCitation.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'AskCitationCorroboration':
+          return AskCitationCorroboration.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'AskCitationProvenance':
+          return AskCitationProvenance.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'AskDeltaEvent':
           return AskDeltaEvent.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'AskMessage':
@@ -2280,16 +2301,24 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return BenchmarkStatusComponentsInner.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'BenchmarkStatusComponentsInnerGating':
           return BenchmarkStatusComponentsInnerGating.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'BreakingNewsConfig':
+          return BreakingNewsConfig.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'Briefing':
           return Briefing.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'BriefingInput':
           return BriefingInput.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'BriefingInputAudio':
           return BriefingInputAudio.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'BriefingInputSite':
+          return BriefingInputSite.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'BriefingRun':
           return BriefingRun.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'BriefingRunAudio':
           return BriefingRunAudio.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'BriefingRunBreaking':
+          return BriefingRunBreaking.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'BriefingRunDeliveryResultsInner':
+          return BriefingRunDeliveryResultsInner.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'BriefingRunPage':
           return BriefingRunPage.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'BriefingScope':
@@ -2695,6 +2724,8 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return DeclaredObservabilityKindsValueArea.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'DeclaredObservabilityKindsValueThresholdsInner':
           return DeclaredObservabilityKindsValueThresholdsInner.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'DeliveryTarget':
+          return DeliveryTarget.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'DerivedEvidenceRef':
           return DerivedEvidenceRef.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'DerivedPayloadCommon':
@@ -2791,6 +2822,10 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return DossierSectionsTimeline.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'DossierSectionsTimelineItemsInner':
           return DossierSectionsTimelineItemsInner.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'EditionSite':
+          return EditionSite.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'EditionSummary':
+          return EditionSummary.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'EdpAnalysisRequest':
           return EdpAnalysisRequest.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'EdpBatch':
@@ -3679,6 +3714,8 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return LicenceTerms.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'LightningClusterPayload':
           return LightningClusterPayload.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'ListMyEditions200Response':
+          return ListMyEditions200Response.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'ListRecords200Response':
           return ListRecords200Response.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'LiveEvent':
@@ -3923,12 +3960,20 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return NewsArticle.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'NewsArticlePage':
           return NewsArticlePage.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'NewsArticleTranslationProvenance':
+          return NewsArticleTranslationProvenance.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'NewsStory':
           return NewsStory.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'NewsStoryOutletsInner':
           return NewsStoryOutletsInner.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'NewsStoryPage':
           return NewsStoryPage.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'NewsSubscription':
+          return NewsSubscription.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'NewsSubscriptionUpdate':
+          return NewsSubscriptionUpdate.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'NewsSubscriptionView':
+          return NewsSubscriptionView.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'NormalizedRecordPreview':
           return NormalizedRecordPreview.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'NormalizedRecordPreviewGeometry':
@@ -5492,6 +5537,12 @@ final _regMap = RegExp(r'^Map<String,(.*)>$');
           return TransitCatalogEntry.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'TransitCatalogPage':
           return TransitCatalogPage.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'TranslationSettings':
+          return TranslationSettings.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'TranslationSettingsInput':
+          return TranslationSettingsInput.fromJson(value as Map<String, dynamic>) as ReturnType;
+        case 'TranslationSettingsInputBudget':
+          return TranslationSettingsInputBudget.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'TriggerMuteInput':
           return TriggerMuteInput.fromJson(value as Map<String, dynamic>) as ReturnType;
         case 'TriggerMuteInputOneOf':

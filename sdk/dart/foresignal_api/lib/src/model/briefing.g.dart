@@ -29,6 +29,18 @@ abstract class _$BriefingCWProxy {
 
   Briefing audio(BriefingInputAudio? audio);
 
+  Briefing outputLanguage(String? outputLanguage);
+
+  Briefing deliveryTargets(List<DeliveryTarget>? deliveryTargets);
+
+  Briefing site(BriefingInputSite? site);
+
+  Briefing breakingNews(BreakingNewsConfig? breakingNews);
+
+  Briefing includeProvenance(bool? includeProvenance);
+
+  Briefing includeCorroboration(bool? includeCorroboration);
+
   Briefing id(String id);
 
   Briefing createdAt(DateTime createdAt);
@@ -42,6 +54,8 @@ abstract class _$BriefingCWProxy {
   Briefing lastRunStatus(String? lastRunStatus);
 
   Briefing warnings(List<String>? warnings);
+
+  Briefing ownerUserId(String? ownerUserId);
 
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
@@ -63,6 +77,12 @@ abstract class _$BriefingCWProxy {
     List<String>? channelIds,
     int? maxItemsPerKind,
     BriefingInputAudio? audio,
+    String? outputLanguage,
+    List<DeliveryTarget>? deliveryTargets,
+    BriefingInputSite? site,
+    BreakingNewsConfig? breakingNews,
+    bool? includeProvenance,
+    bool? includeCorroboration,
     String id,
     DateTime createdAt,
     DateTime? updatedAt,
@@ -70,6 +90,7 @@ abstract class _$BriefingCWProxy {
     DateTime? lastRunAt,
     String? lastRunStatus,
     List<String>? warnings,
+    String? ownerUserId,
   });
 }
 
@@ -116,6 +137,29 @@ class _$BriefingCWProxyImpl implements _$BriefingCWProxy {
   Briefing audio(BriefingInputAudio? audio) => call(audio: audio);
 
   @override
+  Briefing outputLanguage(String? outputLanguage) =>
+      call(outputLanguage: outputLanguage);
+
+  @override
+  Briefing deliveryTargets(List<DeliveryTarget>? deliveryTargets) =>
+      call(deliveryTargets: deliveryTargets);
+
+  @override
+  Briefing site(BriefingInputSite? site) => call(site: site);
+
+  @override
+  Briefing breakingNews(BreakingNewsConfig? breakingNews) =>
+      call(breakingNews: breakingNews);
+
+  @override
+  Briefing includeProvenance(bool? includeProvenance) =>
+      call(includeProvenance: includeProvenance);
+
+  @override
+  Briefing includeCorroboration(bool? includeCorroboration) =>
+      call(includeCorroboration: includeCorroboration);
+
+  @override
   Briefing id(String id) => call(id: id);
 
   @override
@@ -136,6 +180,9 @@ class _$BriefingCWProxyImpl implements _$BriefingCWProxy {
 
   @override
   Briefing warnings(List<String>? warnings) => call(warnings: warnings);
+
+  @override
+  Briefing ownerUserId(String? ownerUserId) => call(ownerUserId: ownerUserId);
 
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
@@ -158,6 +205,12 @@ class _$BriefingCWProxyImpl implements _$BriefingCWProxy {
     Object? channelIds = const $CopyWithPlaceholder(),
     Object? maxItemsPerKind = const $CopyWithPlaceholder(),
     Object? audio = const $CopyWithPlaceholder(),
+    Object? outputLanguage = const $CopyWithPlaceholder(),
+    Object? deliveryTargets = const $CopyWithPlaceholder(),
+    Object? site = const $CopyWithPlaceholder(),
+    Object? breakingNews = const $CopyWithPlaceholder(),
+    Object? includeProvenance = const $CopyWithPlaceholder(),
+    Object? includeCorroboration = const $CopyWithPlaceholder(),
     Object? id = const $CopyWithPlaceholder(),
     Object? createdAt = const $CopyWithPlaceholder(),
     Object? updatedAt = const $CopyWithPlaceholder(),
@@ -165,6 +218,7 @@ class _$BriefingCWProxyImpl implements _$BriefingCWProxy {
     Object? lastRunAt = const $CopyWithPlaceholder(),
     Object? lastRunStatus = const $CopyWithPlaceholder(),
     Object? warnings = const $CopyWithPlaceholder(),
+    Object? ownerUserId = const $CopyWithPlaceholder(),
   }) {
     return Briefing(
       name: name == const $CopyWithPlaceholder() || name == null
@@ -211,6 +265,30 @@ class _$BriefingCWProxyImpl implements _$BriefingCWProxy {
           ? _value.audio
           // ignore: cast_nullable_to_non_nullable
           : audio as BriefingInputAudio?,
+      outputLanguage: outputLanguage == const $CopyWithPlaceholder()
+          ? _value.outputLanguage
+          // ignore: cast_nullable_to_non_nullable
+          : outputLanguage as String?,
+      deliveryTargets: deliveryTargets == const $CopyWithPlaceholder()
+          ? _value.deliveryTargets
+          // ignore: cast_nullable_to_non_nullable
+          : deliveryTargets as List<DeliveryTarget>?,
+      site: site == const $CopyWithPlaceholder()
+          ? _value.site
+          // ignore: cast_nullable_to_non_nullable
+          : site as BriefingInputSite?,
+      breakingNews: breakingNews == const $CopyWithPlaceholder()
+          ? _value.breakingNews
+          // ignore: cast_nullable_to_non_nullable
+          : breakingNews as BreakingNewsConfig?,
+      includeProvenance: includeProvenance == const $CopyWithPlaceholder()
+          ? _value.includeProvenance
+          // ignore: cast_nullable_to_non_nullable
+          : includeProvenance as bool?,
+      includeCorroboration: includeCorroboration == const $CopyWithPlaceholder()
+          ? _value.includeCorroboration
+          // ignore: cast_nullable_to_non_nullable
+          : includeCorroboration as bool?,
       id: id == const $CopyWithPlaceholder() || id == null
           ? _value.id
           // ignore: cast_nullable_to_non_nullable
@@ -239,6 +317,10 @@ class _$BriefingCWProxyImpl implements _$BriefingCWProxy {
           ? _value.warnings
           // ignore: cast_nullable_to_non_nullable
           : warnings as List<String>?,
+      ownerUserId: ownerUserId == const $CopyWithPlaceholder()
+          ? _value.ownerUserId
+          // ignore: cast_nullable_to_non_nullable
+          : ownerUserId as String?,
     );
   }
 }
@@ -288,6 +370,33 @@ Briefing _$BriefingFromJson(
           ? null
           : BriefingInputAudio.fromJson(v as Map<String, dynamic>),
     ),
+    outputLanguage: $checkedConvert('outputLanguage', (v) => v as String?),
+    deliveryTargets: $checkedConvert(
+      'deliveryTargets',
+      (v) => (v as List<dynamic>?)
+          ?.map((e) => DeliveryTarget.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    ),
+    site: $checkedConvert(
+      'site',
+      (v) => v == null
+          ? null
+          : BriefingInputSite.fromJson(v as Map<String, dynamic>),
+    ),
+    breakingNews: $checkedConvert(
+      'breakingNews',
+      (v) => v == null
+          ? null
+          : BreakingNewsConfig.fromJson(v as Map<String, dynamic>),
+    ),
+    includeProvenance: $checkedConvert(
+      'includeProvenance',
+      (v) => v as bool? ?? false,
+    ),
+    includeCorroboration: $checkedConvert(
+      'includeCorroboration',
+      (v) => v as bool? ?? false,
+    ),
     id: $checkedConvert('id', (v) => v as String),
     createdAt: $checkedConvert('createdAt', (v) => DateTime.parse(v as String)),
     updatedAt: $checkedConvert(
@@ -307,6 +416,7 @@ Briefing _$BriefingFromJson(
       'warnings',
       (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
     ),
+    ownerUserId: $checkedConvert('ownerUserId', (v) => v as String?),
   );
   return val;
 });
@@ -323,6 +433,12 @@ Map<String, dynamic> _$BriefingToJson(Briefing instance) => <String, dynamic>{
   'channelIds': ?instance.channelIds,
   'maxItemsPerKind': ?instance.maxItemsPerKind,
   'audio': ?instance.audio?.toJson(),
+  'outputLanguage': ?instance.outputLanguage,
+  'deliveryTargets': ?instance.deliveryTargets?.map((e) => e.toJson()).toList(),
+  'site': ?instance.site?.toJson(),
+  'breakingNews': ?instance.breakingNews?.toJson(),
+  'includeProvenance': ?instance.includeProvenance,
+  'includeCorroboration': ?instance.includeCorroboration,
   'id': instance.id,
   'createdAt': instance.createdAt.toIso8601String(),
   'updatedAt': ?instance.updatedAt?.toIso8601String(),
@@ -330,6 +446,7 @@ Map<String, dynamic> _$BriefingToJson(Briefing instance) => <String, dynamic>{
   'lastRunAt': ?instance.lastRunAt?.toIso8601String(),
   'lastRunStatus': ?instance.lastRunStatus,
   'warnings': ?instance.warnings,
+  'ownerUserId': ?instance.ownerUserId,
 };
 
 const _$BriefingModeEnumEnumMap = {

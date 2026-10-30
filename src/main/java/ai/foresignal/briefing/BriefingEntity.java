@@ -112,6 +112,14 @@ public class BriefingEntity {
     @Column(name = "site_shareable", nullable = false)
     private boolean siteShareable;
 
+    /** Whether each run's citations carry their provenance (NP-007 {@code includeProvenance}). */
+    @Column(name = "include_provenance", nullable = false)
+    private boolean includeProvenance;
+
+    /** Whether each run's citations carry their corroboration (NP-007 {@code includeCorroboration}). */
+    @Column(name = "include_corroboration", nullable = false)
+    private boolean includeCorroboration;
+
     /** The edition's breaking-news configuration (NP-006), as stored {@code BreakingNewsConfig}; null for none. */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "breaking_news", columnDefinition = "jsonb")
@@ -396,6 +404,26 @@ public class BriefingEntity {
     /** Sets whether the edition keeps a share link to its site (NP-005). */
     public void setSiteShareable(boolean siteShareable) {
         this.siteShareable = siteShareable;
+    }
+
+    /** Whether each run's citations carry their provenance (NP-007). */
+    public boolean isIncludeProvenance() {
+        return includeProvenance;
+    }
+
+    /** Sets whether each run's citations carry their provenance (NP-007). */
+    public void setIncludeProvenance(boolean includeProvenance) {
+        this.includeProvenance = includeProvenance;
+    }
+
+    /** Whether each run's citations carry their corroboration (NP-007). */
+    public boolean isIncludeCorroboration() {
+        return includeCorroboration;
+    }
+
+    /** Sets whether each run's citations carry their corroboration (NP-007). */
+    public void setIncludeCorroboration(boolean includeCorroboration) {
+        this.includeCorroboration = includeCorroboration;
     }
 
     /** The edition's breaking-news configuration (NP-006), or null. */

@@ -298,6 +298,7 @@ const _$ShareLinkTargetTypeEnumEnumMap = {
   ShareLinkTargetTypeEnum.export_: 'export',
   ShareLinkTargetTypeEnum.workspace: 'workspace',
   ShareLinkTargetTypeEnum.report: 'report',
+  ShareLinkTargetTypeEnum.editionSite: 'edition-site',
 };
 
 const _$ShareLinkStatusEnumEnumMap = {

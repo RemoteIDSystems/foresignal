@@ -41,6 +41,12 @@ abstract class _$BriefingRunCWProxy {
 
   BriefingRun audio(BriefingRunAudio? audio);
 
+  BriefingRun deliveryResults(
+    List<BriefingRunDeliveryResultsInner>? deliveryResults,
+  );
+
+  BriefingRun breaking(BriefingRunBreaking? breaking);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `BriefingRun(...).copyWith.fieldName(value)`.
@@ -67,6 +73,8 @@ abstract class _$BriefingRunCWProxy {
     List<String>? warnings,
     String? signature,
     BriefingRunAudio? audio,
+    List<BriefingRunDeliveryResultsInner>? deliveryResults,
+    BriefingRunBreaking? breaking,
   });
 }
 
@@ -130,6 +138,15 @@ class _$BriefingRunCWProxyImpl implements _$BriefingRunCWProxy {
   @override
   BriefingRun audio(BriefingRunAudio? audio) => call(audio: audio);
 
+  @override
+  BriefingRun deliveryResults(
+    List<BriefingRunDeliveryResultsInner>? deliveryResults,
+  ) => call(deliveryResults: deliveryResults);
+
+  @override
+  BriefingRun breaking(BriefingRunBreaking? breaking) =>
+      call(breaking: breaking);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `BriefingRun(...).copyWith.fieldName(value)`.
@@ -157,6 +174,8 @@ class _$BriefingRunCWProxyImpl implements _$BriefingRunCWProxy {
     Object? warnings = const $CopyWithPlaceholder(),
     Object? signature = const $CopyWithPlaceholder(),
     Object? audio = const $CopyWithPlaceholder(),
+    Object? deliveryResults = const $CopyWithPlaceholder(),
+    Object? breaking = const $CopyWithPlaceholder(),
   }) {
     return BriefingRun(
       id: id == const $CopyWithPlaceholder()
@@ -230,6 +249,14 @@ class _$BriefingRunCWProxyImpl implements _$BriefingRunCWProxy {
           ? _value.audio
           // ignore: cast_nullable_to_non_nullable
           : audio as BriefingRunAudio?,
+      deliveryResults: deliveryResults == const $CopyWithPlaceholder()
+          ? _value.deliveryResults
+          // ignore: cast_nullable_to_non_nullable
+          : deliveryResults as List<BriefingRunDeliveryResultsInner>?,
+      breaking: breaking == const $CopyWithPlaceholder()
+          ? _value.breaking
+          // ignore: cast_nullable_to_non_nullable
+          : breaking as BriefingRunBreaking?,
     );
   }
 }
@@ -308,30 +335,49 @@ BriefingRun _$BriefingRunFromJson(
           ? null
           : BriefingRunAudio.fromJson(v as Map<String, dynamic>),
     ),
+    deliveryResults: $checkedConvert(
+      'deliveryResults',
+      (v) => (v as List<dynamic>?)
+          ?.map(
+            (e) => BriefingRunDeliveryResultsInner.fromJson(
+              e as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
+    ),
+    breaking: $checkedConvert(
+      'breaking',
+      (v) => v == null
+          ? null
+          : BriefingRunBreaking.fromJson(v as Map<String, dynamic>),
+    ),
   );
   return val;
 });
 
-Map<String, dynamic> _$BriefingRunToJson(BriefingRun instance) =>
-    <String, dynamic>{
-      'id': ?instance.id,
-      'briefingId': ?instance.briefingId,
-      'status': _$BriefingRunStatusEnumEnumMap[instance.status]!,
-      'startedAt': instance.startedAt.toIso8601String(),
-      'finishedAt': ?instance.finishedAt?.toIso8601String(),
-      'periodFrom': instance.periodFrom.toIso8601String(),
-      'periodTo': instance.periodTo.toIso8601String(),
-      'mode': ?_$BriefingRunModeEnumEnumMap[instance.mode],
-      'contentMarkdown': instance.contentMarkdown,
-      'citations': ?instance.citations?.map((e) => e.toJson()).toList(),
-      'stats': ?instance.stats?.toJson(),
-      'error': ?instance.error,
-      'usage': ?instance.usage,
-      'deliveries': ?instance.deliveries,
-      'warnings': ?instance.warnings,
-      'signature': ?instance.signature,
-      'audio': ?instance.audio?.toJson(),
-    };
+Map<String, dynamic> _$BriefingRunToJson(
+  BriefingRun instance,
+) => <String, dynamic>{
+  'id': ?instance.id,
+  'briefingId': ?instance.briefingId,
+  'status': _$BriefingRunStatusEnumEnumMap[instance.status]!,
+  'startedAt': instance.startedAt.toIso8601String(),
+  'finishedAt': ?instance.finishedAt?.toIso8601String(),
+  'periodFrom': instance.periodFrom.toIso8601String(),
+  'periodTo': instance.periodTo.toIso8601String(),
+  'mode': ?_$BriefingRunModeEnumEnumMap[instance.mode],
+  'contentMarkdown': instance.contentMarkdown,
+  'citations': ?instance.citations?.map((e) => e.toJson()).toList(),
+  'stats': ?instance.stats?.toJson(),
+  'error': ?instance.error,
+  'usage': ?instance.usage,
+  'deliveries': ?instance.deliveries,
+  'warnings': ?instance.warnings,
+  'signature': ?instance.signature,
+  'audio': ?instance.audio?.toJson(),
+  'deliveryResults': ?instance.deliveryResults?.map((e) => e.toJson()).toList(),
+  'breaking': ?instance.breaking?.toJson(),
+};
 
 const _$BriefingRunStatusEnumEnumMap = {
   BriefingRunStatusEnum.running: 'running',

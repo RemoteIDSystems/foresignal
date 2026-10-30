@@ -3,6 +3,8 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:foresignal_api/src/model/ask_citation_corroboration.dart';
+import 'package:foresignal_api/src/model/ask_citation_provenance.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -39,6 +41,10 @@ class AskCitation {
      this.validTime,
 
      this.ageMinutes,
+
+     this.provenance,
+
+     this.corroboration,
   });
 
       /// <sourceId>:<externalId>, briefing:<id>, alert:<id>, or (056) wx:<productId>@<frameKey> for a weather frame and wx:<productId>@<run>/<step> for a forecast step (GFS and HRRR providers: wx:gfs@<run>/<step>, NWS: wx:nws@<updatedAt>/<hours>)
@@ -163,6 +169,30 @@ class AskCitation {
 
 
 
+  @JsonKey(
+    
+    name: r'provenance',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final AskCitationProvenance? provenance;
+
+
+
+  @JsonKey(
+    
+    name: r'corroboration',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final AskCitationCorroboration? corroboration;
+
+
+
 
 
     @override
@@ -176,7 +206,9 @@ class AskCitation {
       other.run == run &&
       other.step == step &&
       other.validTime == validTime &&
-      other.ageMinutes == ageMinutes;
+      other.ageMinutes == ageMinutes &&
+      other.provenance == provenance &&
+      other.corroboration == corroboration;
 
     @override
     int get hashCode =>
@@ -189,7 +221,9 @@ class AskCitation {
         (run == null ? 0 : run.hashCode) +
         (step == null ? 0 : step.hashCode) +
         (validTime == null ? 0 : validTime.hashCode) +
-        (ageMinutes == null ? 0 : ageMinutes.hashCode);
+        (ageMinutes == null ? 0 : ageMinutes.hashCode) +
+        (provenance == null ? 0 : provenance.hashCode) +
+        (corroboration == null ? 0 : corroboration.hashCode);
 
   factory AskCitation.fromJson(Map<String, dynamic> json) => _$AskCitationFromJson(json);
 

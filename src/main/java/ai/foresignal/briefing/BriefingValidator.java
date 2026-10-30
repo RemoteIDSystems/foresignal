@@ -52,6 +52,7 @@ import tools.jackson.databind.JsonNode;
  *       warning.
  *   <li>{@code breakingNews} (NP-006): null or a {@code BreakingNewsConfig}; enabled with no rule of its own and
  *       none in the scope is a warning.
+ *   <li>{@code includeProvenance}, {@code includeCorroboration} (NP-007): booleans, default false.
  * </ul>
  */
 @Component
@@ -80,7 +81,8 @@ public class BriefingValidator {
 
     /** Input members. */
     static final Set<String> MEMBERS = Set.of("name", "enabled", "schedule", "timezone", "scope", "lookback", "mode",
-            "instructions", "channelIds", "maxItemsPerKind", "audio", "outputLanguage", "deliveryTargets", "site", "breakingNews");
+            "instructions", "channelIds", "maxItemsPerKind", "audio", "outputLanguage", "deliveryTargets", "site", "breakingNews",
+            "includeProvenance", "includeCorroboration");
 
     /** Output-only {@code Briefing} members, accepted and ignored so a read briefing can be sent back. */
     static final Set<String> OUTPUT_ONLY = Set.of("id", "createdAt", "updatedAt", "nextRunAt", "lastRunAt",
@@ -260,12 +262,14 @@ public class BriefingValidator {
         List<DeliveryTarget> targets = deliveryTargets(body.get("deliveryTargets"), errors);
         BriefingInput.Site site = site(body.get("site"), errors);
         BriefingInput.BreakingNews breaking = breakingNews(body.get("breakingNews"), errors);
+        boolean provenance = flag(body, "includeProvenance", errors);
+        boolean corroboration = flag(body, "includeCorroboration", errors);
 
         if (!errors.isEmpty()) {
             throw new ValidationException("The briefing is not valid.", errors);
         }
         BriefingInput input = new BriefingInput(name.strip(), enabled, schedule, timezone, scope, lookbackText, lookback,
-                mode, instructions, channelIds, maxItems, audio, new BriefingInput.Edition(outputLanguage, targets, site, breaking));
+                mode, instructions, channelIds, maxItems, audio, new BriefingInput.Edition(outputLanguage, targets, site, breaking, provenance, corroboration));
         List<String> warnings = new ArrayList<>(targets.isEmpty() ? channelWarnings(channelIds) : List.of());
         warnings.addAll(targetWarnings(targets));
         if (site.shareable() && !site.enabled()) {
@@ -276,6 +280,19 @@ public class BriefingValidator {
             warnings.add("breakingNews names no rule and the scope has no ruleIds; no alert will fire a breaking run");
         }
         return new Validated(input, warnings);
+    }
+
+    /** Parses the optional boolean {@code member} (NP-007 flags): absent or null is false. */
+    static boolean flag(JsonNode body, String member, List<FieldError> errors) {
+        JsonNode node = body.get(member);
+        if (node == null || node.isNull()) {
+            return false;
+        }
+        if (!node.isBoolean()) {
+            errors.add(new FieldError(member, "must be a boolean"));
+            return false;
+        }
+        return node.asBoolean();
     }
 
     /** The most rules a breaking-news configuration names (NP-006). */

@@ -36,6 +36,9 @@ public final class BriefingViews {
         // NP-006: breaking-news special editions.
         out.put("breakingNews", entity.getBreakingNews() == null ? null
                 : BriefingInput.BreakingNews.fromMap(entity.getBreakingNews()).toMap());
+        // NP-007: provenance and corroboration on the run's citations.
+        out.put("includeProvenance", entity.isIncludeProvenance());
+        out.put("includeCorroboration", entity.isIncludeCorroboration());
         // NP-005: the hosted site.
         out.put("site", new BriefingInput.Site(entity.isSiteEnabled(), entity.isSiteShareable()).toMap());
         // NP-004: where each run goes.

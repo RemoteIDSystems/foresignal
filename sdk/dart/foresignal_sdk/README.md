@@ -60,5 +60,5 @@ await sync.updateWith((ctx) => {'focusRef': 'situation:01JA8…'});
 
 ## Versioning and publishing
 
-The package version is the API's `info.version` (`2.0.0`); dependency versions are pinned in
+The package version is the API's `info.version` (`2.1.0`); dependency versions are pinned in
 [`sdk/versions.properties`](../../versions.properties). Publishing is a separate release step (`publish_to: none`).

@@ -2,12 +2,18 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import Any, Self, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Self, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.news_article_translation_provenance_type_0 import (
+        NewsArticleTranslationProvenanceType0,
+    )
+
 
 T = TypeVar("T", bound="NewsArticle")
 
@@ -38,6 +44,12 @@ class NewsArticle:
         story_id (None | str | Unset):
         evidence_group_id (None | str | Unset):
         syndicated (bool | Unset): Reprint of a wire story
+        target_language (None | str | Unset): The language of the translated fields, or null when untranslated
+        translated_title (None | str | Unset): `title` in `targetLanguage`; the original fields are never overwritten
+            (NP-002)
+        translated_excerpt (None | str | Unset): The excerpt (an article's `summary`) in `targetLanguage`; the original
+            fields are never overwritten (NP-002)
+        translation_provenance (NewsArticleTranslationProvenanceType0 | None | Unset): How the translation was made
     """
 
     ref: str
@@ -58,9 +70,17 @@ class NewsArticle:
     story_id: None | str | Unset = UNSET
     evidence_group_id: None | str | Unset = UNSET
     syndicated: bool | Unset = UNSET
+    target_language: None | str | Unset = UNSET
+    translated_title: None | str | Unset = UNSET
+    translated_excerpt: None | str | Unset = UNSET
+    translation_provenance: NewsArticleTranslationProvenanceType0 | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.news_article_translation_provenance_type_0 import (
+            NewsArticleTranslationProvenanceType0,
+        )
+
         ref = self.ref
 
         external_id = self.external_id
@@ -137,6 +157,34 @@ class NewsArticle:
 
         syndicated = self.syndicated
 
+        target_language: None | str | Unset
+        if isinstance(self.target_language, Unset):
+            target_language = UNSET
+        else:
+            target_language = self.target_language
+
+        translated_title: None | str | Unset
+        if isinstance(self.translated_title, Unset):
+            translated_title = UNSET
+        else:
+            translated_title = self.translated_title
+
+        translated_excerpt: None | str | Unset
+        if isinstance(self.translated_excerpt, Unset):
+            translated_excerpt = UNSET
+        else:
+            translated_excerpt = self.translated_excerpt
+
+        translation_provenance: dict[str, Any] | None | Unset
+        if isinstance(self.translation_provenance, Unset):
+            translation_provenance = UNSET
+        elif isinstance(
+            self.translation_provenance, NewsArticleTranslationProvenanceType0
+        ):
+            translation_provenance = self.translation_provenance.to_dict()
+        else:
+            translation_provenance = self.translation_provenance
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -172,11 +220,23 @@ class NewsArticle:
             field_dict["evidenceGroupId"] = evidence_group_id
         if syndicated is not UNSET:
             field_dict["syndicated"] = syndicated
+        if target_language is not UNSET:
+            field_dict["targetLanguage"] = target_language
+        if translated_title is not UNSET:
+            field_dict["translatedTitle"] = translated_title
+        if translated_excerpt is not UNSET:
+            field_dict["translatedExcerpt"] = translated_excerpt
+        if translation_provenance is not UNSET:
+            field_dict["translationProvenance"] = translation_provenance
 
         return field_dict
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
+        from ..models.news_article_translation_provenance_type_0 import (
+            NewsArticleTranslationProvenanceType0,
+        )
+
         d = dict(src_dict)
         ref = d.pop("ref")
 
@@ -285,6 +345,58 @@ class NewsArticle:
 
         syndicated = d.pop("syndicated", UNSET)
 
+        def _parse_target_language(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        target_language = _parse_target_language(d.pop("targetLanguage", UNSET))
+
+        def _parse_translated_title(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        translated_title = _parse_translated_title(d.pop("translatedTitle", UNSET))
+
+        def _parse_translated_excerpt(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        translated_excerpt = _parse_translated_excerpt(
+            d.pop("translatedExcerpt", UNSET)
+        )
+
+        def _parse_translation_provenance(
+            data: object,
+        ) -> NewsArticleTranslationProvenanceType0 | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                translation_provenance_type_0 = (
+                    NewsArticleTranslationProvenanceType0.from_dict(data)
+                )
+
+                return translation_provenance_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(NewsArticleTranslationProvenanceType0 | None | Unset, data)
+
+        translation_provenance = _parse_translation_provenance(
+            d.pop("translationProvenance", UNSET)
+        )
+
         news_article = cls(
             ref=ref,
             external_id=external_id,
@@ -304,6 +416,10 @@ class NewsArticle:
             story_id=story_id,
             evidence_group_id=evidence_group_id,
             syndicated=syndicated,
+            target_language=target_language,
+            translated_title=translated_title,
+            translated_excerpt=translated_excerpt,
+            translation_provenance=translation_provenance,
         )
 
         news_article.additional_properties = d

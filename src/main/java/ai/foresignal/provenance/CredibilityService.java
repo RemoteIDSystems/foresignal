@@ -122,23 +122,36 @@ public class CredibilityService {
 
     /** The credibility of {@code row}, using a preloaded {@link Lookup}. */
     public int assess(RecordRow row, Lookup lookup) {
-        String key = memberKey(row.sourceId(), row.externalId());
+        return assess(row.sourceId(), row.externalId(), row.kind(), row.qaFlags(), lookup);
+    }
+
+    /**
+     * The credibility of record {@code sourceId}/{@code externalId} of {@code kind} with {@code qaFlags}, using a
+     * preloaded {@link Lookup} (the same rule as {@link #assess(RecordRow, Lookup)}, for callers without a row).
+     */
+    public int assess(String sourceId, String externalId, String kind, int qaFlags, Lookup lookup) {
+        String key = memberKey(sourceId, externalId);
         if (lookup != null && (lookup.deceptionEntities().contains(key)
-                || (ENTITY_KINDS.contains(row.kind()) && lookup.deceptionIds().contains(row.externalId())))) {
+                || (ENTITY_KINDS.contains(kind) && lookup.deceptionIds().contains(externalId)))) {
             return 5;
         }
-        Cluster cluster = lookup == null ? null : lookup.byMember().get(key);
+        Cluster cluster = clusterOf(sourceId, externalId, lookup);
         if (cluster != null) {
             if (cluster.independentSources() >= 3 && cluster.hasHighReliability()) {
                 return 1;
             }
             return cluster.credibility();
         }
-        String reliability = reliability(row.sourceId());
-        if (("A".equals(reliability) || "B".equals(reliability)) && hasNoQaFlags(row)) {
+        String reliability = reliability(sourceId);
+        if (("A".equals(reliability) || "B".equals(reliability)) && qaFlags == 0) {
             return 3;
         }
         return 6;
+    }
+
+    /** The corroboration cluster record {@code sourceId}/{@code externalId} is a member of, or null. */
+    public Cluster clusterOf(String sourceId, String externalId, Lookup lookup) {
+        return lookup == null ? null : lookup.byMember().get(memberKey(sourceId, externalId));
     }
 
     /** The reliability grade of a source (prompt 109): the operator override, else the descriptor; default {@code F}. */
@@ -161,10 +174,6 @@ public class CredibilityService {
     /** The composed grade, for example {@code B2}. */
     public String grade(String reliability, int credibility) {
         return reliability + credibility;
-    }
-
-    private static boolean hasNoQaFlags(RecordRow row) {
-        return row.qaFlags() == 0;
     }
 
     /**

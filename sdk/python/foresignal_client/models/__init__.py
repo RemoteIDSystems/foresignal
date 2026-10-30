@@ -305,6 +305,20 @@ from .ask_action_result_type_0 import AskActionResultType0
 from .ask_action_status import AskActionStatus
 from .ask_action_type import AskActionType
 from .ask_citation import AskCitation
+from .ask_citation_corroboration_type_0 import AskCitationCorroborationType0
+from .ask_citation_corroboration_type_0_evidence_quality import (
+    AskCitationCorroborationType0EvidenceQuality,
+)
+from .ask_citation_corroboration_type_0_reliability_type_1 import (
+    AskCitationCorroborationType0ReliabilityType1,
+)
+from .ask_citation_corroboration_type_0_reliability_type_2_type_1 import (
+    AskCitationCorroborationType0ReliabilityType2Type1,
+)
+from .ask_citation_corroboration_type_0_reliability_type_3_type_1 import (
+    AskCitationCorroborationType0ReliabilityType3Type1,
+)
+from .ask_citation_provenance_type_0 import AskCitationProvenanceType0
 from .ask_citation_type import AskCitationType
 from .ask_delta_event import AskDeltaEvent
 from .ask_licence_policy_item import AskLicencePolicyItem
@@ -520,11 +534,13 @@ from .benchmark_status_components_item_suite_type_3_type_1 import (
     BenchmarkStatusComponentsItemSuiteType3Type1,
 )
 from .benchmark_status_overall import BenchmarkStatusOverall
+from .breaking_news_config import BreakingNewsConfig
 from .briefing import Briefing
 from .briefing_input import BriefingInput
 from .briefing_input_audio_type_0 import BriefingInputAudioType0
 from .briefing_input_audio_type_0_format import BriefingInputAudioType0Format
 from .briefing_input_mode import BriefingInputMode
+from .briefing_input_site import BriefingInputSite
 from .briefing_run import BriefingRun
 from .briefing_run_audio_type_0 import BriefingRunAudioType0
 from .briefing_run_audio_type_0_content_type_type_1 import (
@@ -544,6 +560,20 @@ from .briefing_run_audio_type_0_format_type_3_type_1 import (
     BriefingRunAudioType0FormatType3Type1,
 )
 from .briefing_run_audio_type_0_status import BriefingRunAudioType0Status
+from .briefing_run_breaking_type_0 import BriefingRunBreakingType0
+from .briefing_run_breaking_type_0_severity import BriefingRunBreakingType0Severity
+from .briefing_run_delivery_results_type_0_item import (
+    BriefingRunDeliveryResultsType0Item,
+)
+from .briefing_run_delivery_results_type_0_item_format import (
+    BriefingRunDeliveryResultsType0ItemFormat,
+)
+from .briefing_run_delivery_results_type_0_item_kind import (
+    BriefingRunDeliveryResultsType0ItemKind,
+)
+from .briefing_run_delivery_results_type_0_item_status import (
+    BriefingRunDeliveryResultsType0ItemStatus,
+)
 from .briefing_run_mode import BriefingRunMode
 from .briefing_run_page import BriefingRunPage
 from .briefing_run_status import BriefingRunStatus
@@ -973,6 +1003,10 @@ from .declared_observability_kinds_additional_property_area_type import (
 from .declared_observability_kinds_additional_property_thresholds_item import (
     DeclaredObservabilityKindsAdditionalPropertyThresholdsItem,
 )
+from .delivery_target import DeliveryTarget
+from .delivery_target_format import DeliveryTargetFormat
+from .delivery_target_kind import DeliveryTargetKind
+from .delivery_target_options import DeliveryTargetOptions
 from .derived_evidence_ref import DerivedEvidenceRef
 from .derived_payload_common import DerivedPayloadCommon
 from .derived_payload_common_detector import DerivedPayloadCommonDetector
@@ -1123,6 +1157,8 @@ from .dossier_sections_timeline_items_item_kind import (
 from .dossier_sections_timeline_links_type_0 import DossierSectionsTimelineLinksType0
 from .dossier_sections_timeline_status import DossierSectionsTimelineStatus
 from .download_export_bundle import DownloadExportBundle
+from .edition_site import EditionSite
+from .edition_summary import EditionSummary
 from .edp_analysis_request import EdpAnalysisRequest
 from .edp_analysis_request_auth import EdpAnalysisRequestAuth
 from .edp_batch import EdpBatch
@@ -1584,6 +1620,7 @@ from .get_attributions_licence_policy_item import GetAttributionsLicencePolicyIt
 from .get_briefing_run_format import GetBriefingRunFormat
 from .get_calendar_feed import GetCalendarFeed
 from .get_chronicle_thread_types_item import GetChronicleThreadTypesItem
+from .get_edition_site_format import GetEditionSiteFormat
 from .get_edp_schema_name import GetEdpSchemaName
 from .get_edp_schema_response_200 import GetEdpSchemaResponse200
 from .get_forecast_question_history_step import GetForecastQuestionHistoryStep
@@ -2235,6 +2272,7 @@ from .list_investigations_scope import ListInvestigationsScope
 from .list_investigations_status import ListInvestigationsStatus
 from .list_media_outlets_bucket import ListMediaOutletsBucket
 from .list_media_outlets_type import ListMediaOutletsType
+from .list_my_editions_response_200 import ListMyEditionsResponse200
 from .list_narratives_state_item import ListNarrativesStateItem
 from .list_narratives_status_item import ListNarrativesStatusItem
 from .list_news_stories_blindspot import ListNewsStoriesBlindspot
@@ -2490,12 +2528,22 @@ from .network_salt_input import NetworkSaltInput
 from .network_salt_status import NetworkSaltStatus
 from .news_article import NewsArticle
 from .news_article_page import NewsArticlePage
+from .news_article_translation_provenance_type_0 import (
+    NewsArticleTranslationProvenanceType0,
+)
 from .news_story import NewsStory
 from .news_story_blindspot_type_1 import NewsStoryBlindspotType1
 from .news_story_blindspot_type_2_type_1 import NewsStoryBlindspotType2Type1
 from .news_story_blindspot_type_3_type_1 import NewsStoryBlindspotType3Type1
 from .news_story_outlets_item import NewsStoryOutletsItem
 from .news_story_page import NewsStoryPage
+from .news_story_translation_provenance_type_0 import (
+    NewsStoryTranslationProvenanceType0,
+)
+from .news_subscription import NewsSubscription
+from .news_subscription_type import NewsSubscriptionType
+from .news_subscription_update import NewsSubscriptionUpdate
+from .news_subscription_view import NewsSubscriptionView
 from .normalized_record_preview import NormalizedRecordPreview
 from .normalized_record_preview_geometry_type_0 import (
     NormalizedRecordPreviewGeometryType0,
@@ -4043,6 +4091,14 @@ from .track_properties_values import TrackPropertiesValues
 from .track_type import TrackType
 from .transit_catalog_entry import TransitCatalogEntry
 from .transit_catalog_page import TransitCatalogPage
+from .translation_settings import TranslationSettings
+from .translation_settings_budget import TranslationSettingsBudget
+from .translation_settings_budget_window import TranslationSettingsBudgetWindow
+from .translation_settings_input import TranslationSettingsInput
+from .translation_settings_input_budget import TranslationSettingsInputBudget
+from .translation_settings_input_budget_window import (
+    TranslationSettingsInputBudgetWindow,
+)
 from .trigger_mute_input_type_0 import TriggerMuteInputType0
 from .trigger_mute_input_type_1 import TriggerMuteInputType1
 from .trigger_rule import TriggerRule
@@ -4452,6 +4508,12 @@ __all__ = (
     "AskActionStatus",
     "AskActionType",
     "AskCitation",
+    "AskCitationCorroborationType0",
+    "AskCitationCorroborationType0EvidenceQuality",
+    "AskCitationCorroborationType0ReliabilityType1",
+    "AskCitationCorroborationType0ReliabilityType2Type1",
+    "AskCitationCorroborationType0ReliabilityType3Type1",
+    "AskCitationProvenanceType0",
     "AskCitationType",
     "AskDeltaEvent",
     "AskLicencePolicyItem",
@@ -4603,11 +4665,13 @@ __all__ = (
     "BenchmarkStatusComponentsItemSuiteType2Type1",
     "BenchmarkStatusComponentsItemSuiteType3Type1",
     "BenchmarkStatusOverall",
+    "BreakingNewsConfig",
     "Briefing",
     "BriefingInput",
     "BriefingInputAudioType0",
     "BriefingInputAudioType0Format",
     "BriefingInputMode",
+    "BriefingInputSite",
     "BriefingRun",
     "BriefingRunAudioType0",
     "BriefingRunAudioType0ContentTypeType1",
@@ -4617,6 +4681,12 @@ __all__ = (
     "BriefingRunAudioType0FormatType2Type1",
     "BriefingRunAudioType0FormatType3Type1",
     "BriefingRunAudioType0Status",
+    "BriefingRunBreakingType0",
+    "BriefingRunBreakingType0Severity",
+    "BriefingRunDeliveryResultsType0Item",
+    "BriefingRunDeliveryResultsType0ItemFormat",
+    "BriefingRunDeliveryResultsType0ItemKind",
+    "BriefingRunDeliveryResultsType0ItemStatus",
     "BriefingRunMode",
     "BriefingRunPage",
     "BriefingRunStatus",
@@ -4948,6 +5018,10 @@ __all__ = (
     "DeclaredObservabilityKindsAdditionalPropertyArea",
     "DeclaredObservabilityKindsAdditionalPropertyAreaType",
     "DeclaredObservabilityKindsAdditionalPropertyThresholdsItem",
+    "DeliveryTarget",
+    "DeliveryTargetFormat",
+    "DeliveryTargetKind",
+    "DeliveryTargetOptions",
     "DerivedEvidenceRef",
     "DerivedPayloadCommon",
     "DerivedPayloadCommonDetector",
@@ -5056,6 +5130,8 @@ __all__ = (
     "DossierSectionsTimelineLinksType0",
     "DossierSectionsTimelineStatus",
     "DownloadExportBundle",
+    "EditionSite",
+    "EditionSummary",
     "EdpAnalysisRequest",
     "EdpAnalysisRequestAuth",
     "EdpBatch",
@@ -5473,6 +5549,7 @@ __all__ = (
     "GetBriefingRunFormat",
     "GetCalendarFeed",
     "GetChronicleThreadTypesItem",
+    "GetEditionSiteFormat",
     "GetEdpSchemaName",
     "GetEdpSchemaResponse200",
     "GetForecastQuestionHistoryStep",
@@ -6028,6 +6105,7 @@ __all__ = (
     "ListInvestigationsStatus",
     "ListMediaOutletsBucket",
     "ListMediaOutletsType",
+    "ListMyEditionsResponse200",
     "ListNarrativesStateItem",
     "ListNarrativesStatusItem",
     "ListNewsStoriesBlindspot",
@@ -6257,12 +6335,18 @@ __all__ = (
     "NetworkSaltStatus",
     "NewsArticle",
     "NewsArticlePage",
+    "NewsArticleTranslationProvenanceType0",
     "NewsStory",
     "NewsStoryBlindspotType1",
     "NewsStoryBlindspotType2Type1",
     "NewsStoryBlindspotType3Type1",
     "NewsStoryOutletsItem",
     "NewsStoryPage",
+    "NewsStoryTranslationProvenanceType0",
+    "NewsSubscription",
+    "NewsSubscriptionType",
+    "NewsSubscriptionUpdate",
+    "NewsSubscriptionView",
     "NormalizedRecordPreview",
     "NormalizedRecordPreviewGeometryType0",
     "NormalizedRecordPreviewGeometryType0Type",
@@ -7564,6 +7648,12 @@ __all__ = (
     "TrackType",
     "TransitCatalogEntry",
     "TransitCatalogPage",
+    "TranslationSettings",
+    "TranslationSettingsBudget",
+    "TranslationSettingsBudgetWindow",
+    "TranslationSettingsInput",
+    "TranslationSettingsInputBudget",
+    "TranslationSettingsInputBudgetWindow",
     "TriggerMuteInputType0",
     "TriggerMuteInputType1",
     "TriggerRule",

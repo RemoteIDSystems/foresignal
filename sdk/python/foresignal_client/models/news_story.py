@@ -15,6 +15,9 @@ from ..types import UNSET, Unset
 if TYPE_CHECKING:
     from ..models.coverage_stats import CoverageStats
     from ..models.news_story_outlets_item import NewsStoryOutletsItem
+    from ..models.news_story_translation_provenance_type_0 import (
+        NewsStoryTranslationProvenanceType0,
+    )
     from ..models.object_envelope import ObjectEnvelope
 
 
@@ -49,6 +52,12 @@ class NewsStory:
         outlets (list[NewsStoryOutletsItem] | Unset):
         situations (list[ObjectEnvelope] | Unset): Detail view
         canonical_events (list[ObjectEnvelope] | Unset): Detail view
+        target_language (None | str | Unset): The language of the translated fields, or null when untranslated
+        translated_title (None | str | Unset): `title` in `targetLanguage`; the original fields are never overwritten
+            (NP-002)
+        translated_excerpt (None | str | Unset): The excerpt (an article's `summary`) in `targetLanguage`; the original
+            fields are never overwritten (NP-002)
+        translation_provenance (NewsStoryTranslationProvenanceType0 | None | Unset): How the translation was made
     """
 
     id: str
@@ -75,9 +84,17 @@ class NewsStory:
     outlets: list[NewsStoryOutletsItem] | Unset = UNSET
     situations: list[ObjectEnvelope] | Unset = UNSET
     canonical_events: list[ObjectEnvelope] | Unset = UNSET
+    target_language: None | str | Unset = UNSET
+    translated_title: None | str | Unset = UNSET
+    translated_excerpt: None | str | Unset = UNSET
+    translation_provenance: NewsStoryTranslationProvenanceType0 | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.news_story_translation_provenance_type_0 import (
+            NewsStoryTranslationProvenanceType0,
+        )
+
         id = self.id
 
         ref = self.ref
@@ -145,6 +162,34 @@ class NewsStory:
                 canonical_events_item = canonical_events_item_data.to_dict()
                 canonical_events.append(canonical_events_item)
 
+        target_language: None | str | Unset
+        if isinstance(self.target_language, Unset):
+            target_language = UNSET
+        else:
+            target_language = self.target_language
+
+        translated_title: None | str | Unset
+        if isinstance(self.translated_title, Unset):
+            translated_title = UNSET
+        else:
+            translated_title = self.translated_title
+
+        translated_excerpt: None | str | Unset
+        if isinstance(self.translated_excerpt, Unset):
+            translated_excerpt = UNSET
+        else:
+            translated_excerpt = self.translated_excerpt
+
+        translation_provenance: dict[str, Any] | None | Unset
+        if isinstance(self.translation_provenance, Unset):
+            translation_provenance = UNSET
+        elif isinstance(
+            self.translation_provenance, NewsStoryTranslationProvenanceType0
+        ):
+            translation_provenance = self.translation_provenance.to_dict()
+        else:
+            translation_provenance = self.translation_provenance
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -177,6 +222,14 @@ class NewsStory:
             field_dict["situations"] = situations
         if canonical_events is not UNSET:
             field_dict["canonicalEvents"] = canonical_events
+        if target_language is not UNSET:
+            field_dict["targetLanguage"] = target_language
+        if translated_title is not UNSET:
+            field_dict["translatedTitle"] = translated_title
+        if translated_excerpt is not UNSET:
+            field_dict["translatedExcerpt"] = translated_excerpt
+        if translation_provenance is not UNSET:
+            field_dict["translationProvenance"] = translation_provenance
 
         return field_dict
 
@@ -184,6 +237,9 @@ class NewsStory:
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.coverage_stats import CoverageStats
         from ..models.news_story_outlets_item import NewsStoryOutletsItem
+        from ..models.news_story_translation_provenance_type_0 import (
+            NewsStoryTranslationProvenanceType0,
+        )
         from ..models.object_envelope import ObjectEnvelope
 
         d = dict(src_dict)
@@ -292,6 +348,58 @@ class NewsStory:
 
                 canonical_events.append(canonical_events_item)
 
+        def _parse_target_language(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        target_language = _parse_target_language(d.pop("targetLanguage", UNSET))
+
+        def _parse_translated_title(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        translated_title = _parse_translated_title(d.pop("translatedTitle", UNSET))
+
+        def _parse_translated_excerpt(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        translated_excerpt = _parse_translated_excerpt(
+            d.pop("translatedExcerpt", UNSET)
+        )
+
+        def _parse_translation_provenance(
+            data: object,
+        ) -> NewsStoryTranslationProvenanceType0 | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                translation_provenance_type_0 = (
+                    NewsStoryTranslationProvenanceType0.from_dict(data)
+                )
+
+                return translation_provenance_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(NewsStoryTranslationProvenanceType0 | None | Unset, data)
+
+        translation_provenance = _parse_translation_provenance(
+            d.pop("translationProvenance", UNSET)
+        )
+
         news_story = cls(
             id=id,
             ref=ref,
@@ -311,6 +419,10 @@ class NewsStory:
             outlets=outlets,
             situations=situations,
             canonical_events=canonical_events,
+            target_language=target_language,
+            translated_title=translated_title,
+            translated_excerpt=translated_excerpt,
+            translation_provenance=translation_provenance,
         )
 
         news_story.additional_properties = d

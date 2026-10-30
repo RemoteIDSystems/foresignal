@@ -3,6 +3,8 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:foresignal_api/src/model/briefing_run_delivery_results_inner.dart';
+import 'package:foresignal_api/src/model/briefing_run_breaking.dart';
 import 'package:foresignal_api/src/model/briefing_run_audio.dart';
 import 'package:foresignal_api/src/model/ask_citation.dart';
 import 'package:foresignal_api/src/model/digest_stats.dart';
@@ -56,6 +58,10 @@ class BriefingRun {
      this.signature,
 
      this.audio,
+
+     this.deliveryResults,
+
+     this.breaking,
   });
 
       /// null for previews
@@ -266,6 +272,31 @@ class BriefingRun {
 
 
 
+      /// The outcome of each of the briefing's `deliveryTargets` for this run (NP-004), in target order; null for a briefing without targets, which delivers to its channels as before
+  @JsonKey(
+    
+    name: r'deliveryResults',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final List<BriefingRunDeliveryResultsInner>? deliveryResults;
+
+
+
+  @JsonKey(
+    
+    name: r'breaking',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final BriefingRunBreaking? breaking;
+
+
+
 
 
     @override
@@ -286,7 +317,9 @@ class BriefingRun {
       other.deliveries == deliveries &&
       other.warnings == warnings &&
       other.signature == signature &&
-      other.audio == audio;
+      other.audio == audio &&
+      other.deliveryResults == deliveryResults &&
+      other.breaking == breaking;
 
     @override
     int get hashCode =>
@@ -306,7 +339,9 @@ class BriefingRun {
         deliveries.hashCode +
         warnings.hashCode +
         (signature == null ? 0 : signature.hashCode) +
-        (audio == null ? 0 : audio.hashCode);
+        (audio == null ? 0 : audio.hashCode) +
+        (deliveryResults == null ? 0 : deliveryResults.hashCode) +
+        (breaking == null ? 0 : breaking.hashCode);
 
   factory BriefingRun.fromJson(Map<String, dynamic> json) => _$BriefingRunFromJson(json);
 

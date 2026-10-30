@@ -4,6 +4,7 @@ from enum import StrEnum
 class ShareLinkTargetType(StrEnum):
     ALERT = "alert"
     BRIEFING_RUN = "briefing-run"
+    EDITION_SITE = "edition-site"
     EXPORT = "export"
     RECORD = "record"
     REPORT = "report"

@@ -1,7 +1,7 @@
 # Hand-maintained (listed in .openapi-generator-ignore); the rest of this package is generated.
 # Versions: sdk/versions.properties. The package version is the API's info.version.
 name: foresignal_api
-version: 2.0.0
+version: 2.1.0
 description: Generated Dart client for the Foresignal HTTP API (openapi-generator dart-dio, json_serializable).
 publish_to: none
 

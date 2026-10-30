@@ -4,6 +4,9 @@
 
 // ignore_for_file: unused_element
 import 'package:foresignal_api/src/model/briefing_scope.dart';
+import 'package:foresignal_api/src/model/breaking_news_config.dart';
+import 'package:foresignal_api/src/model/briefing_input_site.dart';
+import 'package:foresignal_api/src/model/delivery_target.dart';
 import 'package:foresignal_api/src/model/briefing_input_audio.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -44,6 +47,18 @@ class Briefing {
 
      this.audio,
 
+     this.outputLanguage,
+
+     this.deliveryTargets,
+
+     this.site,
+
+     this.breakingNews,
+
+     this.includeProvenance = false,
+
+     this.includeCorroboration = false,
+
     required  this.id,
 
     required  this.createdAt,
@@ -57,6 +72,8 @@ class Briefing {
      this.lastRunStatus,
 
      this.warnings,
+
+     this.ownerUserId,
   });
 
   @JsonKey(
@@ -195,6 +212,83 @@ class Briefing {
 
 
 
+      /// BCP 47 language tag, for example `en`, `es` or `pt-BR`
+  @JsonKey(
+    
+    name: r'outputLanguage',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? outputLanguage;
+
+
+
+      /// Where each run goes (NP-004). Empty or absent: every channel in `channelIds`, as before
+  @JsonKey(
+    
+    name: r'deliveryTargets',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final List<DeliveryTarget>? deliveryTargets;
+
+
+
+  @JsonKey(
+    
+    name: r'site',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final BriefingInputSite? site;
+
+
+
+      /// Breaking-news special editions (NP-006); null for none
+  @JsonKey(
+    
+    name: r'breakingNews',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final BreakingNewsConfig? breakingNews;
+
+
+
+      /// Each item carries the cross-linked evidence that put it in the edition (`provenance` on the run's citations, NP-007)
+  @JsonKey(
+    defaultValue: false,
+    name: r'includeProvenance',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final bool? includeProvenance;
+
+
+
+      /// Each item carries its corroboration signal (`corroboration` on the run's citations, NP-007)
+  @JsonKey(
+    defaultValue: false,
+    name: r'includeCorroboration',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final bool? includeCorroboration;
+
+
+
   @JsonKey(
     
     name: r'id',
@@ -280,6 +374,19 @@ class Briefing {
 
 
 
+      /// The v2.0 user who owns the edition: the creating user for a signed-in session, null for a briefing created with an API token (NP-003)
+  @JsonKey(
+    
+    name: r'ownerUserId',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? ownerUserId;
+
+
+
 
 
     @override
@@ -295,13 +402,20 @@ class Briefing {
       other.channelIds == channelIds &&
       other.maxItemsPerKind == maxItemsPerKind &&
       other.audio == audio &&
+      other.outputLanguage == outputLanguage &&
+      other.deliveryTargets == deliveryTargets &&
+      other.site == site &&
+      other.breakingNews == breakingNews &&
+      other.includeProvenance == includeProvenance &&
+      other.includeCorroboration == includeCorroboration &&
       other.id == id &&
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt &&
       other.nextRunAt == nextRunAt &&
       other.lastRunAt == lastRunAt &&
       other.lastRunStatus == lastRunStatus &&
-      other.warnings == warnings;
+      other.warnings == warnings &&
+      other.ownerUserId == ownerUserId;
 
     @override
     int get hashCode =>
@@ -316,13 +430,20 @@ class Briefing {
         channelIds.hashCode +
         maxItemsPerKind.hashCode +
         (audio == null ? 0 : audio.hashCode) +
+        outputLanguage.hashCode +
+        deliveryTargets.hashCode +
+        site.hashCode +
+        (breakingNews == null ? 0 : breakingNews.hashCode) +
+        includeProvenance.hashCode +
+        includeCorroboration.hashCode +
         id.hashCode +
         createdAt.hashCode +
         updatedAt.hashCode +
         (nextRunAt == null ? 0 : nextRunAt.hashCode) +
         (lastRunAt == null ? 0 : lastRunAt.hashCode) +
         (lastRunStatus == null ? 0 : lastRunStatus.hashCode) +
-        warnings.hashCode;
+        warnings.hashCode +
+        (ownerUserId == null ? 0 : ownerUserId.hashCode);
 
   factory Briefing.fromJson(Map<String, dynamic> json) => _$BriefingFromJson(json);
 

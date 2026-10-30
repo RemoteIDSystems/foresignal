@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:foresignal_api/src/model/news_article_translation_provenance.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -55,6 +56,14 @@ class NewsArticle {
      this.syndicated,
 
     required  this.sourceId,
+
+     this.targetLanguage,
+
+     this.translatedTitle,
+
+     this.translatedExcerpt,
+
+     this.translationProvenance,
   });
 
       /// Canonical object reference `{type}:{id}` (docs/Client-Contract.md §2). Record refs are `record:{sourceId}/{externalId}[@{seq}]` with the external id percent-encoded. Remote refs (132) are `remote:{instanceId}/{type}:{id}`: read-only material received from another instance.
@@ -280,6 +289,57 @@ class NewsArticle {
 
 
 
+      /// BCP 47 language tag, for example `en`, `es` or `pt-BR`
+  @JsonKey(
+    
+    name: r'targetLanguage',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? targetLanguage;
+
+
+
+      /// `title` in `targetLanguage`; the original fields are never overwritten (NP-002)
+  @JsonKey(
+    
+    name: r'translatedTitle',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? translatedTitle;
+
+
+
+      /// The excerpt (an article's `summary`) in `targetLanguage`; the original fields are never overwritten (NP-002)
+  @JsonKey(
+    
+    name: r'translatedExcerpt',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? translatedExcerpt;
+
+
+
+  @JsonKey(
+    
+    name: r'translationProvenance',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final NewsArticleTranslationProvenance? translationProvenance;
+
+
+
 
 
     @override
@@ -301,7 +361,11 @@ class NewsArticle {
       other.storyId == storyId &&
       other.evidenceGroupId == evidenceGroupId &&
       other.syndicated == syndicated &&
-      other.sourceId == sourceId;
+      other.sourceId == sourceId &&
+      other.targetLanguage == targetLanguage &&
+      other.translatedTitle == translatedTitle &&
+      other.translatedExcerpt == translatedExcerpt &&
+      other.translationProvenance == translationProvenance;
 
     @override
     int get hashCode =>
@@ -322,7 +386,11 @@ class NewsArticle {
         (storyId == null ? 0 : storyId.hashCode) +
         (evidenceGroupId == null ? 0 : evidenceGroupId.hashCode) +
         syndicated.hashCode +
-        sourceId.hashCode;
+        sourceId.hashCode +
+        targetLanguage.hashCode +
+        (translatedTitle == null ? 0 : translatedTitle.hashCode) +
+        (translatedExcerpt == null ? 0 : translatedExcerpt.hashCode) +
+        (translationProvenance == null ? 0 : translationProvenance.hashCode);
 
   factory NewsArticle.fromJson(Map<String, dynamic> json) => _$NewsArticleFromJson(json);
 

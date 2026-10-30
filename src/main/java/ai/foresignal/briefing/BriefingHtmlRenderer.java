@@ -1,6 +1,7 @@
 package ai.foresignal.briefing;
 
 import java.util.List;
+import java.util.Map;
 import org.commonmark.Extension;
 import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.node.Node;
@@ -55,6 +56,10 @@ public class BriefingHtmlRenderer {
             code,pre{background:var(--code);border-radius:4px;font:.9em ui-monospace,SFMono-Regular,Menlo,monospace}code{padding:.1em .3em}pre{padding:.75rem;overflow-x:auto}
             blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--rule);color:var(--muted)}
             footer{max-width:52rem;margin:0 auto;padding:0 1rem 2rem;color:var(--muted);font-size:.85rem}
+            aside.sources{border-top:1px solid var(--rule);margin-top:2rem;padding-top:.5rem;font-size:.9rem}aside.sources ol{padding-left:1.25rem}aside.sources li{margin:.35rem 0}
+            .badge{display:inline-block;border:1px solid var(--rule);border-radius:999px;padding:0 .5rem;margin-left:.35rem;font-size:.78rem;color:var(--muted);white-space:nowrap}
+            .badge.strong{border-color:#2e7d32;color:#2e7d32}.badge.weak,.badge.insufficient{border-color:#b26a00;color:#b26a00}
+            .why{display:block;color:var(--muted);font-size:.82rem}
             """;
 
     private final List<Extension> extensions = List.of(TablesExtension.create());
@@ -88,6 +93,19 @@ public class BriefingHtmlRenderer {
      * @param language the page's BCP 47 {@code lang}; {@code en} when null or not a tag
      */
     public String page(String title, String markdown, String footer, String language) {
+        return page(title, markdown, footer, language, null);
+    }
+
+    /**
+     * A whole page in {@code language} with the run's provenance and corroboration (NP-007): when any of
+     * {@code citations} carries {@code provenance} or {@code corroboration}, a "Sources" aside lists each annotated
+     * item with compact badges (corroboration level, independent sources, the Admiralty grade) and its "why included"
+     * line. Without annotations the page is exactly {@link #page(String, String, String, String)}'s.
+     *
+     * @param citations the run's {@code AskCitation} maps, or null
+     */
+    public String page(String title, String markdown, String footer, String language,
+            List<Map<String, Object>> citations) {
         String lang = ai.foresignal.notify.NotificationTranslator.canonicalTag(language);
         StringBuilder out = new StringBuilder(4096);
         out.append("<!DOCTYPE html>\n<html lang=\"").append(lang == null ? "en" : HtmlUtils.htmlEscape(lang))
@@ -98,11 +116,47 @@ public class BriefingHtmlRenderer {
                 .append("<title>").append(HtmlUtils.htmlEscape(title == null ? "Briefing" : title)).append("</title>")
                 .append("<style>").append(STYLE).append("</style></head><body><main>")
                 .append(fragment(markdown))
+                .append(sources(citations))
                 .append("</main>");
         if (footer != null && !footer.isBlank()) {
             out.append("<footer>").append(HtmlUtils.htmlEscape(footer)).append("</footer>");
         }
         out.append("</body></html>\n");
         return out.toString();
+    }
+
+    /** The "Sources" aside of the annotated citations (NP-007), or empty when none is annotated. */
+    static String sources(List<Map<String, Object>> citations) {
+        if (citations == null) {
+            return "";
+        }
+        StringBuilder items = new StringBuilder();
+        for (Map<String, Object> citation : citations) {
+            Object provenance = citation.get("provenance");
+            Object corroboration = citation.get("corroboration");
+            if (!(provenance instanceof Map<?, ?>) && !(corroboration instanceof Map<?, ?>)) {
+                continue;
+            }
+            items.append("<li>").append(HtmlUtils.htmlEscape(String.valueOf(citation.getOrDefault("title", ""))));
+            if (corroboration instanceof Map<?, ?> c) {
+                String quality = String.valueOf(c.get("evidenceQuality"));
+                items.append("<span class=\"badge ").append(HtmlUtils.htmlEscape(quality)).append("\">")
+                        .append(HtmlUtils.htmlEscape(quality)).append("</span>");
+                if (c.get("independentSources") instanceof Number n) {
+                    items.append("<span class=\"badge\">").append(n.intValue())
+                            .append(n.intValue() == 1 ? " source" : " sources").append("</span>");
+                }
+                if (c.get("reliability") instanceof String r && c.get("credibility") instanceof Number g) {
+                    items.append("<span class=\"badge\">").append(HtmlUtils.htmlEscape(r)).append(g.intValue())
+                            .append("</span>");
+                }
+            }
+            if (provenance instanceof Map<?, ?> p && p.get("reason") instanceof String reason) {
+                items.append("<span class=\"why\">Why included: ").append(HtmlUtils.htmlEscape(reason))
+                        .append("</span>");
+            }
+            items.append("</li>");
+        }
+        return items.isEmpty() ? "" : "<aside class=\"sources\"><h2>Sources</h2><ol>" + items + "</ol></aside>";
     }
 }

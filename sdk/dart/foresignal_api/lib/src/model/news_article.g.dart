@@ -43,6 +43,16 @@ abstract class _$NewsArticleCWProxy {
 
   NewsArticle sourceId(String sourceId);
 
+  NewsArticle targetLanguage(String? targetLanguage);
+
+  NewsArticle translatedTitle(String? translatedTitle);
+
+  NewsArticle translatedExcerpt(String? translatedExcerpt);
+
+  NewsArticle translationProvenance(
+    NewsArticleTranslationProvenance? translationProvenance,
+  );
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `NewsArticle(...).copyWith.fieldName(value)`.
@@ -70,6 +80,10 @@ abstract class _$NewsArticleCWProxy {
     String? evidenceGroupId,
     bool? syndicated,
     String sourceId,
+    String? targetLanguage,
+    String? translatedTitle,
+    String? translatedExcerpt,
+    NewsArticleTranslationProvenance? translationProvenance,
   });
 }
 
@@ -137,6 +151,23 @@ class _$NewsArticleCWProxyImpl implements _$NewsArticleCWProxy {
   @override
   NewsArticle sourceId(String sourceId) => call(sourceId: sourceId);
 
+  @override
+  NewsArticle targetLanguage(String? targetLanguage) =>
+      call(targetLanguage: targetLanguage);
+
+  @override
+  NewsArticle translatedTitle(String? translatedTitle) =>
+      call(translatedTitle: translatedTitle);
+
+  @override
+  NewsArticle translatedExcerpt(String? translatedExcerpt) =>
+      call(translatedExcerpt: translatedExcerpt);
+
+  @override
+  NewsArticle translationProvenance(
+    NewsArticleTranslationProvenance? translationProvenance,
+  ) => call(translationProvenance: translationProvenance);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `NewsArticle(...).copyWith.fieldName(value)`.
@@ -165,6 +196,10 @@ class _$NewsArticleCWProxyImpl implements _$NewsArticleCWProxy {
     Object? evidenceGroupId = const $CopyWithPlaceholder(),
     Object? syndicated = const $CopyWithPlaceholder(),
     Object? sourceId = const $CopyWithPlaceholder(),
+    Object? targetLanguage = const $CopyWithPlaceholder(),
+    Object? translatedTitle = const $CopyWithPlaceholder(),
+    Object? translatedExcerpt = const $CopyWithPlaceholder(),
+    Object? translationProvenance = const $CopyWithPlaceholder(),
   }) {
     return NewsArticle(
       ref: ref == const $CopyWithPlaceholder() || ref == null
@@ -240,6 +275,23 @@ class _$NewsArticleCWProxyImpl implements _$NewsArticleCWProxy {
           ? _value.sourceId
           // ignore: cast_nullable_to_non_nullable
           : sourceId as String,
+      targetLanguage: targetLanguage == const $CopyWithPlaceholder()
+          ? _value.targetLanguage
+          // ignore: cast_nullable_to_non_nullable
+          : targetLanguage as String?,
+      translatedTitle: translatedTitle == const $CopyWithPlaceholder()
+          ? _value.translatedTitle
+          // ignore: cast_nullable_to_non_nullable
+          : translatedTitle as String?,
+      translatedExcerpt: translatedExcerpt == const $CopyWithPlaceholder()
+          ? _value.translatedExcerpt
+          // ignore: cast_nullable_to_non_nullable
+          : translatedExcerpt as String?,
+      translationProvenance:
+          translationProvenance == const $CopyWithPlaceholder()
+          ? _value.translationProvenance
+          // ignore: cast_nullable_to_non_nullable
+          : translationProvenance as NewsArticleTranslationProvenance?,
     );
   }
 }
@@ -296,6 +348,20 @@ NewsArticle _$NewsArticleFromJson(Map<String, dynamic> json) => $checkedCreate(
       evidenceGroupId: $checkedConvert('evidenceGroupId', (v) => v as String?),
       syndicated: $checkedConvert('syndicated', (v) => v as bool?),
       sourceId: $checkedConvert('sourceId', (v) => v as String),
+      targetLanguage: $checkedConvert('targetLanguage', (v) => v as String?),
+      translatedTitle: $checkedConvert('translatedTitle', (v) => v as String?),
+      translatedExcerpt: $checkedConvert(
+        'translatedExcerpt',
+        (v) => v as String?,
+      ),
+      translationProvenance: $checkedConvert(
+        'translationProvenance',
+        (v) => v == null
+            ? null
+            : NewsArticleTranslationProvenance.fromJson(
+                v as Map<String, dynamic>,
+              ),
+      ),
     );
     return val;
   },
@@ -321,4 +387,8 @@ Map<String, dynamic> _$NewsArticleToJson(NewsArticle instance) =>
       'evidenceGroupId': ?instance.evidenceGroupId,
       'syndicated': ?instance.syndicated,
       'sourceId': instance.sourceId,
+      'targetLanguage': ?instance.targetLanguage,
+      'translatedTitle': ?instance.translatedTitle,
+      'translatedExcerpt': ?instance.translatedExcerpt,
+      'translationProvenance': ?instance.translationProvenance?.toJson(),
     };

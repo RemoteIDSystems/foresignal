@@ -4,6 +4,9 @@
 
 // ignore_for_file: unused_element
 import 'package:foresignal_api/src/model/briefing_scope.dart';
+import 'package:foresignal_api/src/model/breaking_news_config.dart';
+import 'package:foresignal_api/src/model/briefing_input_site.dart';
+import 'package:foresignal_api/src/model/delivery_target.dart';
 import 'package:foresignal_api/src/model/briefing_input_audio.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -43,6 +46,18 @@ class BriefingInput {
      this.maxItemsPerKind = 5,
 
      this.audio,
+
+     this.outputLanguage,
+
+     this.deliveryTargets,
+
+     this.site,
+
+     this.breakingNews,
+
+     this.includeProvenance = false,
+
+     this.includeCorroboration = false,
   });
 
   @JsonKey(
@@ -181,6 +196,83 @@ class BriefingInput {
 
 
 
+      /// BCP 47 language tag, for example `en`, `es` or `pt-BR`
+  @JsonKey(
+    
+    name: r'outputLanguage',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? outputLanguage;
+
+
+
+      /// Where each run goes (NP-004). Empty or absent: every channel in `channelIds`, as before
+  @JsonKey(
+    
+    name: r'deliveryTargets',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final List<DeliveryTarget>? deliveryTargets;
+
+
+
+  @JsonKey(
+    
+    name: r'site',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final BriefingInputSite? site;
+
+
+
+      /// Breaking-news special editions (NP-006); null for none
+  @JsonKey(
+    
+    name: r'breakingNews',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final BreakingNewsConfig? breakingNews;
+
+
+
+      /// Each item carries the cross-linked evidence that put it in the edition (`provenance` on the run's citations, NP-007)
+  @JsonKey(
+    defaultValue: false,
+    name: r'includeProvenance',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final bool? includeProvenance;
+
+
+
+      /// Each item carries its corroboration signal (`corroboration` on the run's citations, NP-007)
+  @JsonKey(
+    defaultValue: false,
+    name: r'includeCorroboration',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final bool? includeCorroboration;
+
+
+
 
 
     @override
@@ -195,7 +287,13 @@ class BriefingInput {
       other.instructions == instructions &&
       other.channelIds == channelIds &&
       other.maxItemsPerKind == maxItemsPerKind &&
-      other.audio == audio;
+      other.audio == audio &&
+      other.outputLanguage == outputLanguage &&
+      other.deliveryTargets == deliveryTargets &&
+      other.site == site &&
+      other.breakingNews == breakingNews &&
+      other.includeProvenance == includeProvenance &&
+      other.includeCorroboration == includeCorroboration;
 
     @override
     int get hashCode =>
@@ -209,7 +307,13 @@ class BriefingInput {
         (instructions == null ? 0 : instructions.hashCode) +
         channelIds.hashCode +
         maxItemsPerKind.hashCode +
-        (audio == null ? 0 : audio.hashCode);
+        (audio == null ? 0 : audio.hashCode) +
+        outputLanguage.hashCode +
+        deliveryTargets.hashCode +
+        site.hashCode +
+        (breakingNews == null ? 0 : breakingNews.hashCode) +
+        includeProvenance.hashCode +
+        includeCorroboration.hashCode;
 
   factory BriefingInput.fromJson(Map<String, dynamic> json) => _$BriefingInputFromJson(json);
 

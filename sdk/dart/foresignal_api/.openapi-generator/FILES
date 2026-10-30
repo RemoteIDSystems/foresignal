@@ -219,6 +219,8 @@ lib/src/model/archive_settings_s3.dart
 lib/src/model/archive_settings_secrets.dart
 lib/src/model/ask_action.dart
 lib/src/model/ask_citation.dart
+lib/src/model/ask_citation_corroboration.dart
+lib/src/model/ask_citation_provenance.dart
 lib/src/model/ask_delta_event.dart
 lib/src/model/ask_message.dart
 lib/src/model/ask_progress_event.dart
@@ -294,11 +296,15 @@ lib/src/model/benchmark_run_page.dart
 lib/src/model/benchmark_status.dart
 lib/src/model/benchmark_status_components_inner.dart
 lib/src/model/benchmark_status_components_inner_gating.dart
+lib/src/model/breaking_news_config.dart
 lib/src/model/briefing.dart
 lib/src/model/briefing_input.dart
 lib/src/model/briefing_input_audio.dart
+lib/src/model/briefing_input_site.dart
 lib/src/model/briefing_run.dart
 lib/src/model/briefing_run_audio.dart
+lib/src/model/briefing_run_breaking.dart
+lib/src/model/briefing_run_delivery_results_inner.dart
 lib/src/model/briefing_run_page.dart
 lib/src/model/briefing_scope.dart
 lib/src/model/budget.dart
@@ -501,6 +507,7 @@ lib/src/model/declared_observability.dart
 lib/src/model/declared_observability_kinds_value.dart
 lib/src/model/declared_observability_kinds_value_area.dart
 lib/src/model/declared_observability_kinds_value_thresholds_inner.dart
+lib/src/model/delivery_target.dart
 lib/src/model/derived_evidence_ref.dart
 lib/src/model/derived_payload_common.dart
 lib/src/model/derived_payload_common_detector.dart
@@ -549,6 +556,8 @@ lib/src/model/dossier_sections_overview_links.dart
 lib/src/model/dossier_sections_related.dart
 lib/src/model/dossier_sections_timeline.dart
 lib/src/model/dossier_sections_timeline_items_inner.dart
+lib/src/model/edition_site.dart
+lib/src/model/edition_summary.dart
 lib/src/model/edp_analysis_request.dart
 lib/src/model/edp_batch.dart
 lib/src/model/edp_coverage.dart
@@ -991,6 +1000,7 @@ lib/src/model/legend.dart
 lib/src/model/legend_tick.dart
 lib/src/model/licence_terms.dart
 lib/src/model/lightning_cluster_payload.dart
+lib/src/model/list_my_editions200_response.dart
 lib/src/model/list_records200_response.dart
 lib/src/model/live_event.dart
 lib/src/model/llm_budget_provider.dart
@@ -1113,9 +1123,13 @@ lib/src/model/network_salt_input.dart
 lib/src/model/network_salt_status.dart
 lib/src/model/news_article.dart
 lib/src/model/news_article_page.dart
+lib/src/model/news_article_translation_provenance.dart
 lib/src/model/news_story.dart
 lib/src/model/news_story_outlets_inner.dart
 lib/src/model/news_story_page.dart
+lib/src/model/news_subscription.dart
+lib/src/model/news_subscription_update.dart
+lib/src/model/news_subscription_view.dart
 lib/src/model/normalized_record_preview.dart
 lib/src/model/normalized_record_preview_geometry.dart
 lib/src/model/notification.dart
@@ -1893,6 +1907,9 @@ lib/src/model/track.dart
 lib/src/model/track_properties.dart
 lib/src/model/transit_catalog_entry.dart
 lib/src/model/transit_catalog_page.dart
+lib/src/model/translation_settings.dart
+lib/src/model/translation_settings_input.dart
+lib/src/model/translation_settings_input_budget.dart
 lib/src/model/trigger_mute_input.dart
 lib/src/model/trigger_mute_input_one_of.dart
 lib/src/model/trigger_mute_input_one_of1.dart

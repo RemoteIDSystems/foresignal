@@ -6,6 +6,7 @@
 import 'package:foresignal_api/src/model/news_story_outlets_inner.dart';
 import 'package:foresignal_api/src/model/object_envelope.dart';
 import 'package:foresignal_api/src/model/coverage_stats.dart';
+import 'package:foresignal_api/src/model/news_article_translation_provenance.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -58,6 +59,14 @@ class NewsStory {
      this.situations,
 
      this.canonicalEvents,
+
+     this.targetLanguage,
+
+     this.translatedTitle,
+
+     this.translatedExcerpt,
+
+     this.translationProvenance,
   });
 
       /// ULID identifier
@@ -282,6 +291,57 @@ class NewsStory {
 
 
 
+      /// BCP 47 language tag, for example `en`, `es` or `pt-BR`
+  @JsonKey(
+    
+    name: r'targetLanguage',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? targetLanguage;
+
+
+
+      /// `title` in `targetLanguage`; the original fields are never overwritten (NP-002)
+  @JsonKey(
+    
+    name: r'translatedTitle',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? translatedTitle;
+
+
+
+      /// The excerpt (an article's `summary`) in `targetLanguage`; the original fields are never overwritten (NP-002)
+  @JsonKey(
+    
+    name: r'translatedExcerpt',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? translatedExcerpt;
+
+
+
+  @JsonKey(
+    
+    name: r'translationProvenance',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final NewsArticleTranslationProvenance? translationProvenance;
+
+
+
 
 
     @override
@@ -303,7 +363,11 @@ class NewsStory {
       other.situationIds == situationIds &&
       other.outlets == outlets &&
       other.situations == situations &&
-      other.canonicalEvents == canonicalEvents;
+      other.canonicalEvents == canonicalEvents &&
+      other.targetLanguage == targetLanguage &&
+      other.translatedTitle == translatedTitle &&
+      other.translatedExcerpt == translatedExcerpt &&
+      other.translationProvenance == translationProvenance;
 
     @override
     int get hashCode =>
@@ -324,7 +388,11 @@ class NewsStory {
         situationIds.hashCode +
         outlets.hashCode +
         situations.hashCode +
-        canonicalEvents.hashCode;
+        canonicalEvents.hashCode +
+        targetLanguage.hashCode +
+        (translatedTitle == null ? 0 : translatedTitle.hashCode) +
+        (translatedExcerpt == null ? 0 : translatedExcerpt.hashCode) +
+        (translationProvenance == null ? 0 : translationProvenance.hashCode);
 
   factory NewsStory.fromJson(Map<String, dynamic> json) => _$NewsStoryFromJson(json);
 

@@ -12,7 +12,9 @@ import 'package:foresignal_api/src/model/ask_citation.dart';
 import 'package:foresignal_api/src/model/ask_progress_event.dart';
 import 'package:foresignal_api/src/model/ask_warning_event.dart';
 import 'package:foresignal_api/src/model/problem.dart';
+import 'package:foresignal_api/src/model/ask_citation_corroboration.dart';
 import 'package:foresignal_api/src/model/ask_response.dart';
+import 'package:foresignal_api/src/model/ask_citation_provenance.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -57,6 +59,10 @@ class AskStream200Response {
      this.validTime,
 
      this.ageMinutes,
+
+     this.provenance,
+
+     this.corroboration,
 
     required  this.message,
 
@@ -284,6 +290,30 @@ class AskStream200Response {
 
 
   final num? ageMinutes;
+
+
+
+  @JsonKey(
+    
+    name: r'provenance',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final AskCitationProvenance? provenance;
+
+
+
+  @JsonKey(
+    
+    name: r'corroboration',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final AskCitationCorroboration? corroboration;
 
 
 
@@ -678,6 +708,8 @@ class AskStream200Response {
       other.step == step &&
       other.validTime == validTime &&
       other.ageMinutes == ageMinutes &&
+      other.provenance == provenance &&
+      other.corroboration == corroboration &&
       other.message == message &&
       other.description == description &&
       other.payload == payload &&
@@ -725,6 +757,8 @@ class AskStream200Response {
         (step == null ? 0 : step.hashCode) +
         (validTime == null ? 0 : validTime.hashCode) +
         (ageMinutes == null ? 0 : ageMinutes.hashCode) +
+        (provenance == null ? 0 : provenance.hashCode) +
+        (corroboration == null ? 0 : corroboration.hashCode) +
         message.hashCode +
         description.hashCode +
         payload.hashCode +

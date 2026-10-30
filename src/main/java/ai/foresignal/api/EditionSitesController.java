@@ -188,7 +188,7 @@ public class EditionSitesController {
             return ResponseEntity.status(HttpStatus.NOT_MODIFIED).headers(headers).build();
         }
         String footer = entity.getName() + " · Foresignal edition · " + finished;
-        String body = html.page(entity.getName(), run.getContentMarkdown(), footer, language);
+        String body = html.page(entity.getName(), run.getContentMarkdown(), footer, language, run.getCitations());
         return ResponseEntity.ok().headers(headers)
                 .contentType(new MediaType(MediaType.TEXT_HTML, StandardCharsets.UTF_8)).body(body);
     }

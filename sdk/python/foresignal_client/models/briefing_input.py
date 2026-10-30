@@ -11,8 +11,11 @@ from ..models.briefing_input_mode import BriefingInputMode
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
+    from ..models.breaking_news_config import BreakingNewsConfig
     from ..models.briefing_input_audio_type_0 import BriefingInputAudioType0
+    from ..models.briefing_input_site import BriefingInputSite
     from ..models.briefing_scope import BriefingScope
+    from ..models.delivery_target import DeliveryTarget
 
 
 T = TypeVar("T", bound="BriefingInput")
@@ -33,6 +36,16 @@ class BriefingInput:
         channel_ids (list[UUID] | Unset):
         max_items_per_kind (int | Unset):  Default: 5.
         audio (BriefingInputAudioType0 | None | Unset):
+        output_language (None | str | Unset): The language the edition is written and spoken in (NP-003); null for the
+            owner's `UserPreferences.locale`, or the source language for a briefing without an owner
+        delivery_targets (list[DeliveryTarget] | Unset): Where each run goes (NP-004). Empty or absent: every channel in
+            `channelIds`, as before
+        site (BriefingInputSite | Unset): The hosted edition site (NP-005)
+        breaking_news (BreakingNewsConfig | None | Unset): Breaking-news special editions (NP-006); null for none
+        include_provenance (bool | Unset): Each item carries the cross-linked evidence that put it in the edition
+            (`provenance` on the run's citations, NP-007) Default: False.
+        include_corroboration (bool | Unset): Each item carries its corroboration signal (`corroboration` on the run's
+            citations, NP-007) Default: False.
     """
 
     name: str
@@ -46,9 +59,16 @@ class BriefingInput:
     channel_ids: list[UUID] | Unset = UNSET
     max_items_per_kind: int | Unset = 5
     audio: BriefingInputAudioType0 | None | Unset = UNSET
+    output_language: None | str | Unset = UNSET
+    delivery_targets: list[DeliveryTarget] | Unset = UNSET
+    site: BriefingInputSite | Unset = UNSET
+    breaking_news: BreakingNewsConfig | None | Unset = UNSET
+    include_provenance: bool | Unset = False
+    include_corroboration: bool | Unset = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.breaking_news_config import BreakingNewsConfig
         from ..models.briefing_input_audio_type_0 import BriefingInputAudioType0
 
         name = self.name
@@ -96,6 +116,35 @@ class BriefingInput:
         else:
             audio = self.audio
 
+        output_language: None | str | Unset
+        if isinstance(self.output_language, Unset):
+            output_language = UNSET
+        else:
+            output_language = self.output_language
+
+        delivery_targets: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.delivery_targets, Unset):
+            delivery_targets = []
+            for delivery_targets_item_data in self.delivery_targets:
+                delivery_targets_item = delivery_targets_item_data.to_dict()
+                delivery_targets.append(delivery_targets_item)
+
+        site: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.site, Unset):
+            site = self.site.to_dict()
+
+        breaking_news: dict[str, Any] | None | Unset
+        if isinstance(self.breaking_news, Unset):
+            breaking_news = UNSET
+        elif isinstance(self.breaking_news, BreakingNewsConfig):
+            breaking_news = self.breaking_news.to_dict()
+        else:
+            breaking_news = self.breaking_news
+
+        include_provenance = self.include_provenance
+
+        include_corroboration = self.include_corroboration
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -122,13 +171,28 @@ class BriefingInput:
             field_dict["maxItemsPerKind"] = max_items_per_kind
         if audio is not UNSET:
             field_dict["audio"] = audio
+        if output_language is not UNSET:
+            field_dict["outputLanguage"] = output_language
+        if delivery_targets is not UNSET:
+            field_dict["deliveryTargets"] = delivery_targets
+        if site is not UNSET:
+            field_dict["site"] = site
+        if breaking_news is not UNSET:
+            field_dict["breakingNews"] = breaking_news
+        if include_provenance is not UNSET:
+            field_dict["includeProvenance"] = include_provenance
+        if include_corroboration is not UNSET:
+            field_dict["includeCorroboration"] = include_corroboration
 
         return field_dict
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
+        from ..models.breaking_news_config import BreakingNewsConfig
         from ..models.briefing_input_audio_type_0 import BriefingInputAudioType0
+        from ..models.briefing_input_site import BriefingInputSite
         from ..models.briefing_scope import BriefingScope
+        from ..models.delivery_target import DeliveryTarget
 
         d = dict(src_dict)
         name = d.pop("name")
@@ -199,6 +263,54 @@ class BriefingInput:
 
         audio = _parse_audio(d.pop("audio", UNSET))
 
+        def _parse_output_language(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        output_language = _parse_output_language(d.pop("outputLanguage", UNSET))
+
+        _delivery_targets = d.pop("deliveryTargets", UNSET)
+        delivery_targets: list[DeliveryTarget] | Unset = UNSET
+        if _delivery_targets is not UNSET:
+            delivery_targets = []
+            for delivery_targets_item_data in _delivery_targets:
+                delivery_targets_item = DeliveryTarget.from_dict(
+                    delivery_targets_item_data
+                )
+
+                delivery_targets.append(delivery_targets_item)
+
+        _site = d.pop("site", UNSET)
+        site: BriefingInputSite | Unset
+        if isinstance(_site, Unset):
+            site = UNSET
+        else:
+            site = BriefingInputSite.from_dict(_site)
+
+        def _parse_breaking_news(data: object) -> BreakingNewsConfig | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                breaking_news_type_0 = BreakingNewsConfig.from_dict(data)
+
+                return breaking_news_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(BreakingNewsConfig | None | Unset, data)
+
+        breaking_news = _parse_breaking_news(d.pop("breakingNews", UNSET))
+
+        include_provenance = d.pop("includeProvenance", UNSET)
+
+        include_corroboration = d.pop("includeCorroboration", UNSET)
+
         briefing_input = cls(
             name=name,
             schedule=schedule,
@@ -211,6 +323,12 @@ class BriefingInput:
             channel_ids=channel_ids,
             max_items_per_kind=max_items_per_kind,
             audio=audio,
+            output_language=output_language,
+            delivery_targets=delivery_targets,
+            site=site,
+            breaking_news=breaking_news,
+            include_provenance=include_provenance,
+            include_corroboration=include_corroboration,
         )
 
         briefing_input.additional_properties = d

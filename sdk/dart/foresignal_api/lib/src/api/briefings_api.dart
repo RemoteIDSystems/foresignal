@@ -14,6 +14,8 @@ import 'package:foresignal_api/src/model/briefing_input.dart';
 import 'package:foresignal_api/src/model/briefing_run.dart';
 import 'package:foresignal_api/src/model/briefing_run_page.dart';
 import 'package:foresignal_api/src/model/digest.dart';
+import 'package:foresignal_api/src/model/edition_site.dart';
+import 'package:foresignal_api/src/model/list_my_editions200_response.dart';
 import 'package:foresignal_api/src/model/problem.dart';
 
 class BriefingsApi {
@@ -525,6 +527,94 @@ _responseData = rawData == null ? null : deserialize<Digest, Digest>(rawData, 'D
     );
   }
 
+  /// Edition site
+  /// The edition&#39;s latest successful run as a complete, standalone HTML page (NP-005): a stable, always-current newspaper site. &#x60;Accept: application/json&#x60; or &#x60;?format&#x3D;json&#x60; returns the &#x60;EditionSite&#x60; (canonical, feed-key and share URLs) instead. Feed keys work through &#x60;/v1/k/{key}/editions/{briefingId}/site&#x60;, with asset URLs carrying the same key; a share link to the site grants it and its assets only, read-only and revocable. Same visibility as the podcast feed: 404 unless the edition is visible to the caller (its owner, its feed key or its share link for an owned edition), runs citing private sources only behind the private gate, and 404 while the site is off or before the first successful run. Strong ETag and &#x60;Last-Modified&#x60;; 304 on a match.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
+  ///
+  /// Parameters:
+  /// * [briefingId] - Briefing id
+  /// * [format] - Alternative to the Accept header
+  /// * [ifNoneMatch] - ETag from a previous response; 304 when unchanged
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [String] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<String>> getEditionSite({ 
+    required String briefingId,
+    String? format,
+    String? ifNoneMatch,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/editions/{briefingId}/site'.replaceAll('{' r'briefingId' '}', briefingId.toString());
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        if (ifNoneMatch != null) r'If-None-Match': ifNoneMatch,
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _queryParameters = <String, dynamic>{
+      if (format != null) r'format': format,
+    };
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      queryParameters: _queryParameters,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    String? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<String, String>(rawData, 'String', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<String>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// Get the latest run of a briefing
   /// The most recent completed run (not one still &#x60;running&#x60;), as JSON or sanitized HTML (&#x60;Accept: text/html&#x60; or &#x60;?format&#x3D;html&#x60;), with the same CSP and ETag rules as &#x60;getBriefingRun&#x60;. 404 when the briefing has no runs yet.  **Scope:** &#x60;read&#x60; (open while &#x60;security.openReads&#x60; is on).
   ///
@@ -766,6 +856,167 @@ _responseData = rawData == null ? null : deserialize<List<Briefing>, Briefing>(r
     }
 
     return Response<List<Briefing>>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// List my editions
+  /// The caller&#39;s editions: the briefings the calling user owns (&#x60;Briefing.ownerUserId&#x60;, NP-003), newest first. An edition is created, changed, run and deleted through the briefing operations. Any signed-in user; an API token gets &#x60;401&#x60;.  **Scope:** &#x60;read&#x60;.
+  ///
+  /// Parameters:
+  /// * [cursor] - Opaque pagination cursor from a previous response's nextCursor
+  /// * [limit] - Page size
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [ListMyEditions200Response] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<ListMyEditions200Response>> listMyEditions({ 
+    String? cursor,
+    int? limit = 50,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/me/editions';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _queryParameters = <String, dynamic>{
+      if (cursor != null) r'cursor': cursor,
+      if (limit != null) r'limit': limit,
+    };
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      queryParameters: _queryParameters,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    ListMyEditions200Response? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<ListMyEditions200Response, ListMyEditions200Response>(rawData, 'ListMyEditions200Response', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<ListMyEditions200Response>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Open a shared edition site
+  /// The hosted site of an edition (NP-005, &#x60;getEditionSite&#x60;) behind its share link: the latest successful run as a standalone HTML page, read-only. The share key grants this page only, never writes, other editions or records. A run citing private or non-redistributable sources is not served. &#x60;401&#x60; for an unknown key and &#x60;410 SHARE_EXPIRED&#x60; when the link is revoked, expired or exhausted; &#x60;404&#x60; when the link is to another target type, the edition was deleted, its site is off, or it has no successful run yet. Strong ETag and &#x60;Last-Modified&#x60;; 304 on a match.  **Scope:** &#x60;open&#x60; (share key in the path; &#x60;/v1/k/{key}/…&#x60;).
+  ///
+  /// Parameters:
+  /// * [key] - Share key (`fss_…`)
+  /// * [ifNoneMatch] - A previous ETag
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [String] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<String>> openEditionSiteShareLink({ 
+    required String key,
+    String? ifNoneMatch,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/k/{key}/site'.replaceAll('{' r'key' '}', key.toString());
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{
+        if (ifNoneMatch != null) r'If-None-Match': ifNoneMatch,
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    String? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<String, String>(rawData, 'String', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<String>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

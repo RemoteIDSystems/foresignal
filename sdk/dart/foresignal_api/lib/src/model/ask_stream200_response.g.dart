@@ -35,6 +35,10 @@ abstract class _$AskStream200ResponseCWProxy {
 
   AskStream200Response ageMinutes(num? ageMinutes);
 
+  AskStream200Response provenance(AskCitationProvenance? provenance);
+
+  AskStream200Response corroboration(AskCitationCorroboration? corroboration);
+
   AskStream200Response message(String message);
 
   AskStream200Response description(String description);
@@ -122,6 +126,8 @@ abstract class _$AskStream200ResponseCWProxy {
     int? step,
     DateTime? validTime,
     num? ageMinutes,
+    AskCitationProvenance? provenance,
+    AskCitationCorroboration? corroboration,
     String message,
     String description,
     Map<String, Object>? payload,
@@ -207,6 +213,14 @@ class _$AskStream200ResponseCWProxyImpl
   @override
   AskStream200Response ageMinutes(num? ageMinutes) =>
       call(ageMinutes: ageMinutes);
+
+  @override
+  AskStream200Response provenance(AskCitationProvenance? provenance) =>
+      call(provenance: provenance);
+
+  @override
+  AskStream200Response corroboration(AskCitationCorroboration? corroboration) =>
+      call(corroboration: corroboration);
 
   @override
   AskStream200Response message(String message) => call(message: message);
@@ -343,6 +357,8 @@ class _$AskStream200ResponseCWProxyImpl
     Object? step = const $CopyWithPlaceholder(),
     Object? validTime = const $CopyWithPlaceholder(),
     Object? ageMinutes = const $CopyWithPlaceholder(),
+    Object? provenance = const $CopyWithPlaceholder(),
+    Object? corroboration = const $CopyWithPlaceholder(),
     Object? message = const $CopyWithPlaceholder(),
     Object? description = const $CopyWithPlaceholder(),
     Object? payload = const $CopyWithPlaceholder(),
@@ -431,6 +447,14 @@ class _$AskStream200ResponseCWProxyImpl
           ? _value.ageMinutes
           // ignore: cast_nullable_to_non_nullable
           : ageMinutes as num?,
+      provenance: provenance == const $CopyWithPlaceholder()
+          ? _value.provenance
+          // ignore: cast_nullable_to_non_nullable
+          : provenance as AskCitationProvenance?,
+      corroboration: corroboration == const $CopyWithPlaceholder()
+          ? _value.corroboration
+          // ignore: cast_nullable_to_non_nullable
+          : corroboration as AskCitationCorroboration?,
       message: message == const $CopyWithPlaceholder() || message == null
           ? _value.message
           // ignore: cast_nullable_to_non_nullable
@@ -608,6 +632,18 @@ AskStream200Response _$AskStream200ResponseFromJson(
       (v) => v == null ? null : DateTime.parse(v as String),
     ),
     ageMinutes: $checkedConvert('ageMinutes', (v) => v as num?),
+    provenance: $checkedConvert(
+      'provenance',
+      (v) => v == null
+          ? null
+          : AskCitationProvenance.fromJson(v as Map<String, dynamic>),
+    ),
+    corroboration: $checkedConvert(
+      'corroboration',
+      (v) => v == null
+          ? null
+          : AskCitationCorroboration.fromJson(v as Map<String, dynamic>),
+    ),
     message: $checkedConvert('message', (v) => v as String),
     description: $checkedConvert('description', (v) => v as String),
     payload: $checkedConvert(
@@ -723,6 +759,8 @@ Map<String, dynamic> _$AskStream200ResponseToJson(
   'step': ?instance.step,
   'validTime': ?instance.validTime?.toIso8601String(),
   'ageMinutes': ?instance.ageMinutes,
+  'provenance': ?instance.provenance?.toJson(),
+  'corroboration': ?instance.corroboration?.toJson(),
   'message': instance.message,
   'description': instance.description,
   'payload': ?instance.payload,

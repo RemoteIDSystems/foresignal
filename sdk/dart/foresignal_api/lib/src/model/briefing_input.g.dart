@@ -29,6 +29,18 @@ abstract class _$BriefingInputCWProxy {
 
   BriefingInput audio(BriefingInputAudio? audio);
 
+  BriefingInput outputLanguage(String? outputLanguage);
+
+  BriefingInput deliveryTargets(List<DeliveryTarget>? deliveryTargets);
+
+  BriefingInput site(BriefingInputSite? site);
+
+  BriefingInput breakingNews(BreakingNewsConfig? breakingNews);
+
+  BriefingInput includeProvenance(bool? includeProvenance);
+
+  BriefingInput includeCorroboration(bool? includeCorroboration);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `BriefingInput(...).copyWith.fieldName(value)`.
@@ -49,6 +61,12 @@ abstract class _$BriefingInputCWProxy {
     List<String>? channelIds,
     int? maxItemsPerKind,
     BriefingInputAudio? audio,
+    String? outputLanguage,
+    List<DeliveryTarget>? deliveryTargets,
+    BriefingInputSite? site,
+    BreakingNewsConfig? breakingNews,
+    bool? includeProvenance,
+    bool? includeCorroboration,
   });
 }
 
@@ -95,6 +113,29 @@ class _$BriefingInputCWProxyImpl implements _$BriefingInputCWProxy {
   @override
   BriefingInput audio(BriefingInputAudio? audio) => call(audio: audio);
 
+  @override
+  BriefingInput outputLanguage(String? outputLanguage) =>
+      call(outputLanguage: outputLanguage);
+
+  @override
+  BriefingInput deliveryTargets(List<DeliveryTarget>? deliveryTargets) =>
+      call(deliveryTargets: deliveryTargets);
+
+  @override
+  BriefingInput site(BriefingInputSite? site) => call(site: site);
+
+  @override
+  BriefingInput breakingNews(BreakingNewsConfig? breakingNews) =>
+      call(breakingNews: breakingNews);
+
+  @override
+  BriefingInput includeProvenance(bool? includeProvenance) =>
+      call(includeProvenance: includeProvenance);
+
+  @override
+  BriefingInput includeCorroboration(bool? includeCorroboration) =>
+      call(includeCorroboration: includeCorroboration);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `BriefingInput(...).copyWith.fieldName(value)`.
@@ -116,6 +157,12 @@ class _$BriefingInputCWProxyImpl implements _$BriefingInputCWProxy {
     Object? channelIds = const $CopyWithPlaceholder(),
     Object? maxItemsPerKind = const $CopyWithPlaceholder(),
     Object? audio = const $CopyWithPlaceholder(),
+    Object? outputLanguage = const $CopyWithPlaceholder(),
+    Object? deliveryTargets = const $CopyWithPlaceholder(),
+    Object? site = const $CopyWithPlaceholder(),
+    Object? breakingNews = const $CopyWithPlaceholder(),
+    Object? includeProvenance = const $CopyWithPlaceholder(),
+    Object? includeCorroboration = const $CopyWithPlaceholder(),
   }) {
     return BriefingInput(
       name: name == const $CopyWithPlaceholder() || name == null
@@ -162,6 +209,30 @@ class _$BriefingInputCWProxyImpl implements _$BriefingInputCWProxy {
           ? _value.audio
           // ignore: cast_nullable_to_non_nullable
           : audio as BriefingInputAudio?,
+      outputLanguage: outputLanguage == const $CopyWithPlaceholder()
+          ? _value.outputLanguage
+          // ignore: cast_nullable_to_non_nullable
+          : outputLanguage as String?,
+      deliveryTargets: deliveryTargets == const $CopyWithPlaceholder()
+          ? _value.deliveryTargets
+          // ignore: cast_nullable_to_non_nullable
+          : deliveryTargets as List<DeliveryTarget>?,
+      site: site == const $CopyWithPlaceholder()
+          ? _value.site
+          // ignore: cast_nullable_to_non_nullable
+          : site as BriefingInputSite?,
+      breakingNews: breakingNews == const $CopyWithPlaceholder()
+          ? _value.breakingNews
+          // ignore: cast_nullable_to_non_nullable
+          : breakingNews as BreakingNewsConfig?,
+      includeProvenance: includeProvenance == const $CopyWithPlaceholder()
+          ? _value.includeProvenance
+          // ignore: cast_nullable_to_non_nullable
+          : includeProvenance as bool?,
+      includeCorroboration: includeCorroboration == const $CopyWithPlaceholder()
+          ? _value.includeCorroboration
+          // ignore: cast_nullable_to_non_nullable
+          : includeCorroboration as bool?,
     );
   }
 }
@@ -211,24 +282,58 @@ BriefingInput _$BriefingInputFromJson(Map<String, dynamic> json) =>
               ? null
               : BriefingInputAudio.fromJson(v as Map<String, dynamic>),
         ),
+        outputLanguage: $checkedConvert('outputLanguage', (v) => v as String?),
+        deliveryTargets: $checkedConvert(
+          'deliveryTargets',
+          (v) => (v as List<dynamic>?)
+              ?.map((e) => DeliveryTarget.fromJson(e as Map<String, dynamic>))
+              .toList(),
+        ),
+        site: $checkedConvert(
+          'site',
+          (v) => v == null
+              ? null
+              : BriefingInputSite.fromJson(v as Map<String, dynamic>),
+        ),
+        breakingNews: $checkedConvert(
+          'breakingNews',
+          (v) => v == null
+              ? null
+              : BreakingNewsConfig.fromJson(v as Map<String, dynamic>),
+        ),
+        includeProvenance: $checkedConvert(
+          'includeProvenance',
+          (v) => v as bool? ?? false,
+        ),
+        includeCorroboration: $checkedConvert(
+          'includeCorroboration',
+          (v) => v as bool? ?? false,
+        ),
       );
       return val;
     });
 
-Map<String, dynamic> _$BriefingInputToJson(BriefingInput instance) =>
-    <String, dynamic>{
-      'name': instance.name,
-      'enabled': ?instance.enabled,
-      'schedule': instance.schedule,
-      'timezone': ?instance.timezone,
-      'scope': ?instance.scope?.toJson(),
-      'lookback': ?instance.lookback,
-      'mode': ?_$BriefingInputModeEnumEnumMap[instance.mode],
-      'instructions': ?instance.instructions,
-      'channelIds': ?instance.channelIds,
-      'maxItemsPerKind': ?instance.maxItemsPerKind,
-      'audio': ?instance.audio?.toJson(),
-    };
+Map<String, dynamic> _$BriefingInputToJson(
+  BriefingInput instance,
+) => <String, dynamic>{
+  'name': instance.name,
+  'enabled': ?instance.enabled,
+  'schedule': instance.schedule,
+  'timezone': ?instance.timezone,
+  'scope': ?instance.scope?.toJson(),
+  'lookback': ?instance.lookback,
+  'mode': ?_$BriefingInputModeEnumEnumMap[instance.mode],
+  'instructions': ?instance.instructions,
+  'channelIds': ?instance.channelIds,
+  'maxItemsPerKind': ?instance.maxItemsPerKind,
+  'audio': ?instance.audio?.toJson(),
+  'outputLanguage': ?instance.outputLanguage,
+  'deliveryTargets': ?instance.deliveryTargets?.map((e) => e.toJson()).toList(),
+  'site': ?instance.site?.toJson(),
+  'breakingNews': ?instance.breakingNews?.toJson(),
+  'includeProvenance': ?instance.includeProvenance,
+  'includeCorroboration': ?instance.includeCorroboration,
+};
 
 const _$BriefingInputModeEnumEnumMap = {
   BriefingInputModeEnum.digest: 'digest',

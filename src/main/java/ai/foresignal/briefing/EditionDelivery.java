@@ -212,7 +212,7 @@ public class EditionDelivery {
         String markdown = run.getContentMarkdown().strip() + "\n\n[Read online](" + DigestRenderer.url(site) + ")";
         Map<String, Object> data = new LinkedHashMap<>(runView);
         data.put(EmailChannel.EDITION_HTML, html.page(title, markdown, "Foresignal edition " + run.getId(),
-                edition == null ? null : edition.language()));
+                edition == null ? null : edition.language(), run.getCitations()));
         data.put("siteUrl", site);
         return NotificationMessage.builder(NotificationMessage.BRIEFING, BriefingRunner.SUBTYPE, title,
                         BriefingRunner.severity(run))

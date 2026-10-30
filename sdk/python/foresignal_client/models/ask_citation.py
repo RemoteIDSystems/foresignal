@@ -2,13 +2,18 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import Any, Self, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Self, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
 from ..models.ask_citation_type import AskCitationType
 from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.ask_citation_corroboration_type_0 import AskCitationCorroborationType0
+    from ..models.ask_citation_provenance_type_0 import AskCitationProvenanceType0
+
 
 T = TypeVar("T", bound="AskCitation")
 
@@ -30,6 +35,11 @@ class AskCitation:
         step (int | None | Unset):
         valid_time (datetime.datetime | None | Unset):
         age_minutes (float | None | Unset):
+        provenance (AskCitationProvenanceType0 | None | Unset): Briefing-run citations of a briefing with
+            `includeProvenance` only: why the item is in the edition (NP-007); absent elsewhere
+        corroboration (AskCitationCorroborationType0 | None | Unset): Briefing-run citations of a briefing with
+            `includeCorroboration` only: how well-supported the item is (NP-007), from the 154 corroboration policy; absent
+            elsewhere
     """
 
     id: str
@@ -42,9 +52,16 @@ class AskCitation:
     step: int | None | Unset = UNSET
     valid_time: datetime.datetime | None | Unset = UNSET
     age_minutes: float | None | Unset = UNSET
+    provenance: AskCitationProvenanceType0 | None | Unset = UNSET
+    corroboration: AskCitationCorroborationType0 | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.ask_citation_corroboration_type_0 import (
+            AskCitationCorroborationType0,
+        )
+        from ..models.ask_citation_provenance_type_0 import AskCitationProvenanceType0
+
         id = self.id
 
         title = self.title
@@ -97,6 +114,22 @@ class AskCitation:
         else:
             age_minutes = self.age_minutes
 
+        provenance: dict[str, Any] | None | Unset
+        if isinstance(self.provenance, Unset):
+            provenance = UNSET
+        elif isinstance(self.provenance, AskCitationProvenanceType0):
+            provenance = self.provenance.to_dict()
+        else:
+            provenance = self.provenance
+
+        corroboration: dict[str, Any] | None | Unset
+        if isinstance(self.corroboration, Unset):
+            corroboration = UNSET
+        elif isinstance(self.corroboration, AskCitationCorroborationType0):
+            corroboration = self.corroboration.to_dict()
+        else:
+            corroboration = self.corroboration
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -121,11 +154,20 @@ class AskCitation:
             field_dict["validTime"] = valid_time
         if age_minutes is not UNSET:
             field_dict["ageMinutes"] = age_minutes
+        if provenance is not UNSET:
+            field_dict["provenance"] = provenance
+        if corroboration is not UNSET:
+            field_dict["corroboration"] = corroboration
 
         return field_dict
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
+        from ..models.ask_citation_corroboration_type_0 import (
+            AskCitationCorroborationType0,
+        )
+        from ..models.ask_citation_provenance_type_0 import AskCitationProvenanceType0
+
         d = dict(src_dict)
         id = d.pop("id")
 
@@ -209,6 +251,44 @@ class AskCitation:
 
         age_minutes = _parse_age_minutes(d.pop("ageMinutes", UNSET))
 
+        def _parse_provenance(
+            data: object,
+        ) -> AskCitationProvenanceType0 | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                provenance_type_0 = AskCitationProvenanceType0.from_dict(data)
+
+                return provenance_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(AskCitationProvenanceType0 | None | Unset, data)
+
+        provenance = _parse_provenance(d.pop("provenance", UNSET))
+
+        def _parse_corroboration(
+            data: object,
+        ) -> AskCitationCorroborationType0 | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                corroboration_type_0 = AskCitationCorroborationType0.from_dict(data)
+
+                return corroboration_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(AskCitationCorroborationType0 | None | Unset, data)
+
+        corroboration = _parse_corroboration(d.pop("corroboration", UNSET))
+
         ask_citation = cls(
             id=id,
             title=title,
@@ -220,6 +300,8 @@ class AskCitation:
             step=step,
             valid_time=valid_time,
             age_minutes=age_minutes,
+            provenance=provenance,
+            corroboration=corroboration,
         )
 
         ask_citation.additional_properties = d

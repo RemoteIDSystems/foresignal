@@ -27,6 +27,10 @@ abstract class _$AskCitationCWProxy {
 
   AskCitation ageMinutes(num? ageMinutes);
 
+  AskCitation provenance(AskCitationProvenance? provenance);
+
+  AskCitation corroboration(AskCitationCorroboration? corroboration);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `AskCitation(...).copyWith.fieldName(value)`.
@@ -46,6 +50,8 @@ abstract class _$AskCitationCWProxy {
     int? step,
     DateTime? validTime,
     num? ageMinutes,
+    AskCitationProvenance? provenance,
+    AskCitationCorroboration? corroboration,
   });
 }
 
@@ -86,6 +92,14 @@ class _$AskCitationCWProxyImpl implements _$AskCitationCWProxy {
   @override
   AskCitation ageMinutes(num? ageMinutes) => call(ageMinutes: ageMinutes);
 
+  @override
+  AskCitation provenance(AskCitationProvenance? provenance) =>
+      call(provenance: provenance);
+
+  @override
+  AskCitation corroboration(AskCitationCorroboration? corroboration) =>
+      call(corroboration: corroboration);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `AskCitation(...).copyWith.fieldName(value)`.
@@ -106,6 +120,8 @@ class _$AskCitationCWProxyImpl implements _$AskCitationCWProxy {
     Object? step = const $CopyWithPlaceholder(),
     Object? validTime = const $CopyWithPlaceholder(),
     Object? ageMinutes = const $CopyWithPlaceholder(),
+    Object? provenance = const $CopyWithPlaceholder(),
+    Object? corroboration = const $CopyWithPlaceholder(),
   }) {
     return AskCitation(
       id: id == const $CopyWithPlaceholder() || id == null
@@ -148,6 +164,14 @@ class _$AskCitationCWProxyImpl implements _$AskCitationCWProxy {
           ? _value.ageMinutes
           // ignore: cast_nullable_to_non_nullable
           : ageMinutes as num?,
+      provenance: provenance == const $CopyWithPlaceholder()
+          ? _value.provenance
+          // ignore: cast_nullable_to_non_nullable
+          : provenance as AskCitationProvenance?,
+      corroboration: corroboration == const $CopyWithPlaceholder()
+          ? _value.corroboration
+          // ignore: cast_nullable_to_non_nullable
+          : corroboration as AskCitationCorroboration?,
     );
   }
 }
@@ -183,6 +207,18 @@ AskCitation _$AskCitationFromJson(Map<String, dynamic> json) =>
           (v) => v == null ? null : DateTime.parse(v as String),
         ),
         ageMinutes: $checkedConvert('ageMinutes', (v) => v as num?),
+        provenance: $checkedConvert(
+          'provenance',
+          (v) => v == null
+              ? null
+              : AskCitationProvenance.fromJson(v as Map<String, dynamic>),
+        ),
+        corroboration: $checkedConvert(
+          'corroboration',
+          (v) => v == null
+              ? null
+              : AskCitationCorroboration.fromJson(v as Map<String, dynamic>),
+        ),
       );
       return val;
     });
@@ -199,6 +235,8 @@ Map<String, dynamic> _$AskCitationToJson(AskCitation instance) =>
       'step': ?instance.step,
       'validTime': ?instance.validTime?.toIso8601String(),
       'ageMinutes': ?instance.ageMinutes,
+      'provenance': ?instance.provenance?.toJson(),
+      'corroboration': ?instance.corroboration?.toJson(),
     };
 
 const _$AskCitationTypeEnumEnumMap = {

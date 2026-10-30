@@ -15,6 +15,10 @@ from ..types import UNSET, Unset
 if TYPE_CHECKING:
     from ..models.ask_citation import AskCitation
     from ..models.briefing_run_audio_type_0 import BriefingRunAudioType0
+    from ..models.briefing_run_breaking_type_0 import BriefingRunBreakingType0
+    from ..models.briefing_run_delivery_results_type_0_item import (
+        BriefingRunDeliveryResultsType0Item,
+    )
     from ..models.briefing_run_usage_type_0 import BriefingRunUsageType0
     from ..models.digest_stats import DigestStats
 
@@ -45,6 +49,12 @@ class BriefingRun:
         signature (None | str | Unset): Detached JWS (`header..signature`, Ed25519, b64:false) over the stored markdown
             bytes; verify against /.well-known/jwks.json
         audio (BriefingRunAudioType0 | None | Unset):
+        delivery_results (list[BriefingRunDeliveryResultsType0Item] | None | Unset): The outcome of each of the
+            briefing's `deliveryTargets` for this run (NP-004), in target order; null for a briefing without targets, which
+            delivers to its channels as before
+        breaking (BriefingRunBreakingType0 | None | Unset): The alert that fired this run as a breaking-news special
+            edition (NP-006); null for a scheduled, manual or preview run. A breaking run is otherwise an ordinary run of
+            the edition: same scope, output, delivery targets and site
     """
 
     status: BriefingRunStatus
@@ -64,10 +74,13 @@ class BriefingRun:
     warnings: list[str] | Unset = UNSET
     signature: None | str | Unset = UNSET
     audio: BriefingRunAudioType0 | None | Unset = UNSET
+    delivery_results: list[BriefingRunDeliveryResultsType0Item] | None | Unset = UNSET
+    breaking: BriefingRunBreakingType0 | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.briefing_run_audio_type_0 import BriefingRunAudioType0
+        from ..models.briefing_run_breaking_type_0 import BriefingRunBreakingType0
         from ..models.briefing_run_usage_type_0 import BriefingRunUsageType0
 
         status = self.status.value
@@ -153,6 +166,28 @@ class BriefingRun:
         else:
             audio = self.audio
 
+        delivery_results: list[dict[str, Any]] | None | Unset
+        if isinstance(self.delivery_results, Unset):
+            delivery_results = UNSET
+        elif isinstance(self.delivery_results, list):
+            delivery_results = []
+            for delivery_results_type_0_item_data in self.delivery_results:
+                delivery_results_type_0_item = (
+                    delivery_results_type_0_item_data.to_dict()
+                )
+                delivery_results.append(delivery_results_type_0_item)
+
+        else:
+            delivery_results = self.delivery_results
+
+        breaking: dict[str, Any] | None | Unset
+        if isinstance(self.breaking, Unset):
+            breaking = UNSET
+        elif isinstance(self.breaking, BriefingRunBreakingType0):
+            breaking = self.breaking.to_dict()
+        else:
+            breaking = self.breaking
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -188,6 +223,10 @@ class BriefingRun:
             field_dict["signature"] = signature
         if audio is not UNSET:
             field_dict["audio"] = audio
+        if delivery_results is not UNSET:
+            field_dict["deliveryResults"] = delivery_results
+        if breaking is not UNSET:
+            field_dict["breaking"] = breaking
 
         return field_dict
 
@@ -195,6 +234,10 @@ class BriefingRun:
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
         from ..models.ask_citation import AskCitation
         from ..models.briefing_run_audio_type_0 import BriefingRunAudioType0
+        from ..models.briefing_run_breaking_type_0 import BriefingRunBreakingType0
+        from ..models.briefing_run_delivery_results_type_0_item import (
+            BriefingRunDeliveryResultsType0Item,
+        )
         from ..models.briefing_run_usage_type_0 import BriefingRunUsageType0
         from ..models.digest_stats import DigestStats
 
@@ -339,6 +382,51 @@ class BriefingRun:
 
         audio = _parse_audio(d.pop("audio", UNSET))
 
+        def _parse_delivery_results(
+            data: object,
+        ) -> list[BriefingRunDeliveryResultsType0Item] | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, list):
+                    raise TypeError()
+                delivery_results_type_0 = []
+                _delivery_results_type_0 = data
+                for delivery_results_type_0_item_data in _delivery_results_type_0:
+                    delivery_results_type_0_item = (
+                        BriefingRunDeliveryResultsType0Item.from_dict(
+                            delivery_results_type_0_item_data
+                        )
+                    )
+
+                    delivery_results_type_0.append(delivery_results_type_0_item)
+
+                return delivery_results_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(list[BriefingRunDeliveryResultsType0Item] | None | Unset, data)
+
+        delivery_results = _parse_delivery_results(d.pop("deliveryResults", UNSET))
+
+        def _parse_breaking(data: object) -> BriefingRunBreakingType0 | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                breaking_type_0 = BriefingRunBreakingType0.from_dict(data)
+
+                return breaking_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(BriefingRunBreakingType0 | None | Unset, data)
+
+        breaking = _parse_breaking(d.pop("breaking", UNSET))
+
         briefing_run = cls(
             status=status,
             started_at=started_at,
@@ -357,6 +445,8 @@ class BriefingRun:
             warnings=warnings,
             signature=signature,
             audio=audio,
+            delivery_results=delivery_results,
+            breaking=breaking,
         )
 
         briefing_run.additional_properties = d

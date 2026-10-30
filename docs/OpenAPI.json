@@ -723,7 +723,7 @@
       {
         "version": "2.1.0",
         "date": "2026-10-29",
-        "note": "API 2.1.0 (Automated Newspaper contract, authored before implementation; every new operation is x-foresignal-status `planned` with x-foresignal-prompt `NP-001`, the prompt that authored it; NP-002 to NP-006 implement them and NP-007 activates them). Extends the briefing engine into per-user editions rather than adding a parallel subsystem. New operations: news translation settings (getTranslationSettings, updateTranslationSettings: GET/PUT /v1/settings/translation, admin); the caller's news subscriptions (getMyNewsSubscriptions, updateMyNewsSubscriptions: GET/PUT /v1/me/news-subscriptions, read, self.sources); the caller's editions (listMyEditions: GET /v1/me/editions, read); and the hosted edition site (getEditionSite: GET /v1/editions/{briefingId}/site, read, open while openReads is on, reachable by feed key and share link). New schemas: TranslationSettings, TranslationSettingsInput, NewsSubscription, NewsSubscriptionView, NewsSubscriptionUpdate, EditionSummary, EditionSite, DeliveryTarget, BreakingNewsConfig. Additive, optional fields: BriefingInput gains outputLanguage (NP-003), deliveryTargets (NP-004), site (NP-005), breakingNews (NP-006), includeProvenance and includeCorroboration (NP-007); Briefing gains the read-only ownerUserId (NP-003); AskCitation gains provenance and corroboration, set only on briefing-run citations of a briefing with the matching flag (NP-007); NewsArticle and NewsStory gain targetLanguage, translatedTitle, translatedExcerpt and translationProvenance beside the untouched originals (NP-002). No operation or schema was renamed or removed; a 2.0.0 client stays valid."
+        "note": "API 2.1.0 (Automated Newspaper). The contract was authored by NP-001 with every new operation x-foresignal-status `planned`; NP-002 to NP-006 implemented them and NP-007 activated them, so every operation of the feature is now `implemented`. Extends the briefing engine into per-user editions rather than adding a parallel subsystem. New operations: news translation settings (getTranslationSettings, updateTranslationSettings: GET/PUT /v1/settings/translation, admin); the caller's news subscriptions (getMyNewsSubscriptions, updateMyNewsSubscriptions: GET/PUT /v1/me/news-subscriptions, read, self.sources); the caller's editions (listMyEditions: GET /v1/me/editions, read); and the hosted edition site (getEditionSite: GET /v1/editions/{briefingId}/site, read, open while openReads is on, reachable by feed key and share link). Added while implementing (NP-004 to NP-006): BriefingRun.deliveryResults, the read-only outcome of each delivery target (NP-004); openEditionSiteShareLink (GET /v1/k/{key}/site, open: the hosted edition site through its share link) and the share-link target type `edition-site` (NP-005); and BriefingRun.breaking, the read-only alert that fired a breaking-news run (NP-006). New schemas: TranslationSettings, TranslationSettingsInput, NewsSubscription, NewsSubscriptionView, NewsSubscriptionUpdate, EditionSummary, EditionSite, DeliveryTarget, BreakingNewsConfig. Additive, optional fields: BriefingInput gains outputLanguage (NP-003), deliveryTargets (NP-004), site (NP-005), breakingNews (NP-006), includeProvenance and includeCorroboration (NP-007); Briefing gains the read-only ownerUserId (NP-003); AskCitation gains provenance and corroboration, set only on briefing-run citations of a briefing with the matching flag (NP-007); NewsArticle and NewsStory gain targetLanguage, translatedTitle, translatedExcerpt and translationProvenance beside the untouched originals (NP-002). No operation or schema was renamed or removed; a 2.0.0 client stays valid."
       }
     ]
   },
@@ -80208,7 +80208,7 @@
         ],
         "x-foresignal-scope": "open",
         "x-foresignal-prompt": "NP-005",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/exchange/packages": {
@@ -94605,7 +94605,7 @@
           }
         ],
         "x-foresignal-prompt": "NP-001",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -94674,7 +94674,7 @@
           }
         ],
         "x-foresignal-prompt": "NP-001",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/me/news-subscriptions": {
@@ -94736,7 +94736,7 @@
         ],
         "x-foresignal-prompt": "NP-001",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "put": {
         "tags": [
@@ -94816,7 +94816,7 @@
         ],
         "x-foresignal-prompt": "NP-001",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/me/editions": {
@@ -94927,7 +94927,7 @@
         ],
         "x-foresignal-prompt": "NP-001",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/editions/{briefingId}/site": {
@@ -95079,7 +95079,7 @@
           }
         ],
         "x-foresignal-prompt": "NP-001",
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     }
   },

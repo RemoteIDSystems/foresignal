@@ -44,9 +44,11 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
      *     channel subscribed to {@code briefing})
      * @param site the hosted site (NP-005); {@link Site#OFF} for none
      * @param breakingNews the breaking-news configuration (NP-006), or null for none
+     * @param includeProvenance each run's citations carry why the item is in the edition (NP-007)
+     * @param includeCorroboration each run's citations carry how well-supported the item is (NP-007)
      */
     public record Edition(String outputLanguage, List<DeliveryTarget> deliveryTargets, Site site,
-            BreakingNews breakingNews) {
+            BreakingNews breakingNews, boolean includeProvenance, boolean includeCorroboration) {
 
         /** No edition options. */
         public static final Edition NONE = new Edition(null);
@@ -70,6 +72,12 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
         /** Options without breaking news (the shape of NP-005). */
         public Edition(String outputLanguage, List<DeliveryTarget> deliveryTargets, Site site) {
             this(outputLanguage, deliveryTargets, site, null);
+        }
+
+        /** Options without provenance or corroboration (the shape of NP-006). */
+        public Edition(String outputLanguage, List<DeliveryTarget> deliveryTargets, Site site,
+                BreakingNews breakingNews) {
+            this(outputLanguage, deliveryTargets, site, breakingNews, false, false);
         }
 
         /** The targets stored as {@code maps}, the unreadable ones left out. */
@@ -241,7 +249,8 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
                 entity.getInstructions(), channels, entity.getMaxItemsPerKind(), Audio.fromMap(entity.getAudio()),
                 new Edition(entity.getOutputLanguage(), Edition.targets(entity.getDeliveryTargets()),
                         new Site(entity.isSiteEnabled(), entity.isSiteShareable()),
-                        BreakingNews.fromMap(entity.getBreakingNews())));
+                        BreakingNews.fromMap(entity.getBreakingNews()), entity.isIncludeProvenance(),
+                        entity.isIncludeCorroboration()));
     }
 
     /** Writes this input onto {@code entity} (schedule fields only; times and ownership are the caller's). */
@@ -260,6 +269,8 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
         entity.setOutputLanguage(edition.outputLanguage());
         entity.setBreakingNews(edition.breakingNews() == null ? null
                 : new java.util.LinkedHashMap<>(edition.breakingNews().toMap()));
+        entity.setIncludeProvenance(edition.includeProvenance());
+        entity.setIncludeCorroboration(edition.includeCorroboration());
         entity.setSiteEnabled(edition.site().enabled());
         entity.setSiteShareable(edition.site().shareable());
         entity.setDeliveryTargets(edition.deliveryTargets().isEmpty() ? null

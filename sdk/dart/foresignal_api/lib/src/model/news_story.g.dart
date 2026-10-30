@@ -43,6 +43,16 @@ abstract class _$NewsStoryCWProxy {
 
   NewsStory canonicalEvents(List<ObjectEnvelope>? canonicalEvents);
 
+  NewsStory targetLanguage(String? targetLanguage);
+
+  NewsStory translatedTitle(String? translatedTitle);
+
+  NewsStory translatedExcerpt(String? translatedExcerpt);
+
+  NewsStory translationProvenance(
+    NewsArticleTranslationProvenance? translationProvenance,
+  );
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `NewsStory(...).copyWith.fieldName(value)`.
@@ -70,6 +80,10 @@ abstract class _$NewsStoryCWProxy {
     List<NewsStoryOutletsInner>? outlets,
     List<ObjectEnvelope>? situations,
     List<ObjectEnvelope>? canonicalEvents,
+    String? targetLanguage,
+    String? translatedTitle,
+    String? translatedExcerpt,
+    NewsArticleTranslationProvenance? translationProvenance,
   });
 }
 
@@ -142,6 +156,23 @@ class _$NewsStoryCWProxyImpl implements _$NewsStoryCWProxy {
   NewsStory canonicalEvents(List<ObjectEnvelope>? canonicalEvents) =>
       call(canonicalEvents: canonicalEvents);
 
+  @override
+  NewsStory targetLanguage(String? targetLanguage) =>
+      call(targetLanguage: targetLanguage);
+
+  @override
+  NewsStory translatedTitle(String? translatedTitle) =>
+      call(translatedTitle: translatedTitle);
+
+  @override
+  NewsStory translatedExcerpt(String? translatedExcerpt) =>
+      call(translatedExcerpt: translatedExcerpt);
+
+  @override
+  NewsStory translationProvenance(
+    NewsArticleTranslationProvenance? translationProvenance,
+  ) => call(translationProvenance: translationProvenance);
+
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `NewsStory(...).copyWith.fieldName(value)`.
@@ -170,6 +201,10 @@ class _$NewsStoryCWProxyImpl implements _$NewsStoryCWProxy {
     Object? outlets = const $CopyWithPlaceholder(),
     Object? situations = const $CopyWithPlaceholder(),
     Object? canonicalEvents = const $CopyWithPlaceholder(),
+    Object? targetLanguage = const $CopyWithPlaceholder(),
+    Object? translatedTitle = const $CopyWithPlaceholder(),
+    Object? translatedExcerpt = const $CopyWithPlaceholder(),
+    Object? translationProvenance = const $CopyWithPlaceholder(),
   }) {
     return NewsStory(
       id: id == const $CopyWithPlaceholder() || id == null
@@ -252,6 +287,23 @@ class _$NewsStoryCWProxyImpl implements _$NewsStoryCWProxy {
           ? _value.canonicalEvents
           // ignore: cast_nullable_to_non_nullable
           : canonicalEvents as List<ObjectEnvelope>?,
+      targetLanguage: targetLanguage == const $CopyWithPlaceholder()
+          ? _value.targetLanguage
+          // ignore: cast_nullable_to_non_nullable
+          : targetLanguage as String?,
+      translatedTitle: translatedTitle == const $CopyWithPlaceholder()
+          ? _value.translatedTitle
+          // ignore: cast_nullable_to_non_nullable
+          : translatedTitle as String?,
+      translatedExcerpt: translatedExcerpt == const $CopyWithPlaceholder()
+          ? _value.translatedExcerpt
+          // ignore: cast_nullable_to_non_nullable
+          : translatedExcerpt as String?,
+      translationProvenance:
+          translationProvenance == const $CopyWithPlaceholder()
+          ? _value.translationProvenance
+          // ignore: cast_nullable_to_non_nullable
+          : translationProvenance as NewsArticleTranslationProvenance?,
     );
   }
 }
@@ -346,6 +398,20 @@ NewsStory _$NewsStoryFromJson(Map<String, dynamic> json) => $checkedCreate(
             ?.map((e) => ObjectEnvelope.fromJson(e as Map<String, dynamic>))
             .toList(),
       ),
+      targetLanguage: $checkedConvert('targetLanguage', (v) => v as String?),
+      translatedTitle: $checkedConvert('translatedTitle', (v) => v as String?),
+      translatedExcerpt: $checkedConvert(
+        'translatedExcerpt',
+        (v) => v as String?,
+      ),
+      translationProvenance: $checkedConvert(
+        'translationProvenance',
+        (v) => v == null
+            ? null
+            : NewsArticleTranslationProvenance.fromJson(
+                v as Map<String, dynamic>,
+              ),
+      ),
     );
     return val;
   },
@@ -370,6 +436,10 @@ Map<String, dynamic> _$NewsStoryToJson(NewsStory instance) => <String, dynamic>{
   'outlets': ?instance.outlets?.map((e) => e.toJson()).toList(),
   'situations': ?instance.situations?.map((e) => e.toJson()).toList(),
   'canonicalEvents': ?instance.canonicalEvents?.map((e) => e.toJson()).toList(),
+  'targetLanguage': ?instance.targetLanguage,
+  'translatedTitle': ?instance.translatedTitle,
+  'translatedExcerpt': ?instance.translatedExcerpt,
+  'translationProvenance': ?instance.translationProvenance?.toJson(),
 };
 
 const _$NewsStoryBlindspotEnumEnumMap = {

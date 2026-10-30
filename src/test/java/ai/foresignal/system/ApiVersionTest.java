@@ -19,6 +19,9 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p>NP-001 moves the release to 2.1.0 (Automated Newspaper) and adds the check that the spec's changelog ends with an
  * entry for the release, so a version bump cannot land without saying what it added.
+ *
+ * <p>NP-007 activates the Automated Newspaper: every operation an {@code NP-} prompt authored is {@code implemented}
+ * (none is left {@code planned}), and the 2.1.0 changelog entry names each of them.
  */
 class ApiVersionTest {
 
@@ -62,6 +65,42 @@ class ApiVersionTest {
                 .get("info").get("x-foresignal-changelog");
         assertThat(changelog.isArray() && !changelog.isEmpty()).as("a non-empty changelog").isTrue();
         assertThat(changelog.get(changelog.size() - 1).get("version").asString()).isEqualTo(RELEASE);
+    }
+
+    @Test
+    @DisplayName("2.1.0 is active: no NP- operation is planned, and the 2.1.0 changelog names every one of them")
+    void newspaperOperationsAreActive() throws IOException {
+        JsonNode spec = JSON.readTree(Files.readString(Path.of("docs", "OpenAPI.json")));
+        java.util.List<String> planned = new java.util.ArrayList<>();
+        java.util.List<String> unnamed = new java.util.ArrayList<>();
+        String note = "";
+        for (JsonNode entry : spec.get("info").get("x-foresignal-changelog")) {
+            if (RELEASE.equals(entry.get("version").asString())) {
+                note += entry.get("note").asString();
+            }
+        }
+        int count = 0;
+        for (String path : spec.get("paths").propertyNames()) {
+            JsonNode item = spec.get("paths").get(path);
+            for (String method : item.propertyNames()) {
+                JsonNode op = item.get(method);
+                JsonNode prompt = op.isObject() ? op.get("x-foresignal-prompt") : null;
+                if (prompt == null || !prompt.asString().startsWith("NP-")) {
+                    continue;
+                }
+                count++;
+                String id = op.get("operationId").asString();
+                if (!"implemented".equals(op.get("x-foresignal-status").asString())) {
+                    planned.add(id);
+                }
+                if (!note.contains(id)) {
+                    unnamed.add(id);
+                }
+            }
+        }
+        assertThat(count).as("the newspaper operations").isGreaterThanOrEqualTo(7);
+        assertThat(planned).as("NP- operations still planned").isEmpty();
+        assertThat(unnamed).as("NP- operations the 2.1.0 changelog does not name").isEmpty();
     }
 
     private static String infoVersion(Path spec) throws IOException {

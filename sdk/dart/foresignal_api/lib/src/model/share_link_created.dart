@@ -332,7 +332,9 @@ export_(r'export'),
 @JsonValue(r'workspace')
 workspace(r'workspace'),
 @JsonValue(r'report')
-report(r'report');
+report(r'report'),
+@JsonValue(r'edition-site')
+editionSite(r'edition-site');
 
 const ShareLinkCreatedTargetTypeEnum(this.value);
 

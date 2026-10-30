@@ -138,7 +138,7 @@ public class BriefingRunner {
             outcome.put("error", "audio briefings are not available");
         } else {
             try {
-                outcome = service.synthesize(title(run), run.getContentMarkdown(), spoken);
+                outcome = service.synthesize(title(run), spokenText(input, run), spoken);
             } catch (RuntimeException e) {
                 log.warn("Audio of briefing run {} failed", run.getId(), e);
                 outcome = BriefingAudioService.result(BriefingAudioService.FAILED, spoken);
@@ -157,6 +157,20 @@ public class BriefingRunner {
             run.setAudio(new java.util.LinkedHashMap<>(stored));
             return run;
         }
+    }
+
+    /**
+     * The text of a run's audio: its markdown, followed, when the briefing has {@code includeCorroboration} (NP-007)
+     * and some cited item rests on a single source, by a one-sentence note on sourcing
+     * ({@link EditionProvenance#spokenNote}).
+     */
+    static String spokenText(BriefingInput input, BriefingRunEntity run) {
+        String markdown = run.getContentMarkdown();
+        if (!input.edition().includeCorroboration()) {
+            return markdown;
+        }
+        String note = EditionProvenance.spokenNote(run.getCitations());
+        return note == null ? markdown : (markdown == null ? "" : markdown.strip()) + "\n\n" + note;
     }
 
     /** The notification title of a run, which is also the spoken title of its audio. */
@@ -338,14 +352,14 @@ public class BriefingRunner {
             List<String> warnings = new ArrayList<>();
             String markdown = inLanguage(withLead(digest.markdown(), plan.breaking()), plan.language(), warnings);
             return new Outcome(BriefingRunEntity.SUCCEEDED, input.mode(), started, clock.instant(), plan.periodFrom(),
-                    plan.periodTo(), markdown, citations(digest.citations()), statsJson, warnings, null, null);
+                    plan.periodTo(), markdown, citations(digest.citations(), input), statsJson, warnings, null, null);
         }
         try {
             LlmBriefingWriter.Result result = writer.write(new LlmBriefingWriter.Request(plan.heading(),
                     plan.instructions(), stats, scope, hidden, zone, plan.periodFrom(), plan.periodTo(),
                     scope.narrow(plan.restriction()), plan.language()));
             return new Outcome(BriefingRunEntity.SUCCEEDED, input.mode(), started, clock.instant(), plan.periodFrom(),
-                    plan.periodTo(), result.markdown(), citations(result.citations()), statsJson, result.warnings(),
+                    plan.periodTo(), result.markdown(), citations(result.citations(), input), statsJson, result.warnings(),
                     result.usage(), null);
         } catch (RuntimeException e) {
             String reason = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
@@ -356,7 +370,7 @@ public class BriefingRunner {
             List<String> warnings = new ArrayList<>(List.of("LLM mode fell back to the digest: " + reason));
             String markdown = inLanguage(withLead(digest.markdown(), plan.breaking()), plan.language(), warnings);
             return new Outcome(BriefingRunEntity.FALLBACK, input.mode(), started, clock.instant(), plan.periodFrom(),
-                    plan.periodTo(), markdown, citations(digest.citations()), statsJson, warnings, usage, reason);
+                    plan.periodTo(), markdown, citations(digest.citations(), input), statsJson, warnings, usage, reason);
         }
     }
 
@@ -597,6 +611,24 @@ public class BriefingRunner {
 
     private static List<Map<String, Object>> citations(List<AskCitation> citations) {
         return citations.stream().map(AskCitation::toMap).toList();
+    }
+
+    /** Annotates citations with provenance and corroboration (prompt NP-007); resolved lazily. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ObjectProvider<EditionProvenance> provenance;
+
+    /**
+     * {@code citations} as {@code AskCitation} maps, with {@code provenance} and {@code corroboration} when the
+     * briefing's {@code includeProvenance} and {@code includeCorroboration} ask for them (NP-007).
+     */
+    List<Map<String, Object>> citations(List<AskCitation> citations, BriefingInput input) {
+        List<Map<String, Object>> maps = citations(citations);
+        BriefingInput.Edition edition = input.edition();
+        EditionProvenance annotator = provenance == null ? null : provenance.getIfAvailable();
+        if (annotator == null || (!edition.includeProvenance() && !edition.includeCorroboration())) {
+            return maps;
+        }
+        return annotator.annotate(maps, edition.includeProvenance(), edition.includeCorroboration());
     }
 
     /** {@code value} as plain JSON maps, lists, strings, numbers and booleans. */
