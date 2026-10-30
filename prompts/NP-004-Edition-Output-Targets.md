@@ -1,17 +1,17 @@
-# R2-031 — Edition output targets (email, push, alerts)
+# NP-004 — Edition output targets (email, push, alerts)
 
-**Context.** Automated-newspaper feature, after **R2-030**. The `notify/` layer already delivers
+**Context.** Automated-newspaper feature, after **NP-003**. The `notify/` layer already delivers
 to email, webpush, webhook, telegram, discord, ntfy, pushover, matrix, mqtt and slack — and
-briefings already deliver through it, **including synthesized audio** (prompt 141). `R2-028` authored
+briefings already deliver through it, **including synthesized audio** (prompt 141). `NP-001` authored
 `DeliveryTarget` on the edition.
 
 **Goal.** Deliver an edition run to each of its configured `deliveryTargets` in the right format —
 **email**, **push**, and **alert** channels — reusing the existing notify channels and renders. (The
-`website` target is R2-032; `podcast` already exists.)
+`website` target is NP-005; `podcast` already exists.)
 
 ## Operations
 
-No new HTTP ops — delivery is driven by the edition's `deliveryTargets` (R2-028) at run time.
+No new HTTP ops — delivery is driven by the edition's `deliveryTargets` (NP-001) at run time.
 
 ## Read first
 
@@ -23,7 +23,7 @@ No new HTTP ops — delivery is driven by the edition's `deliveryTargets` (R2-02
 
 1. In the run/delivery path, resolve each `DeliveryTarget` to a `notify` send:
    - **email** → the edition as an HTML body (`BriefingHtmlRenderer`) with the audio as an attachment
-     and a link to the hosted site (R2-032);
+     and a link to the hosted site (NP-005);
    - **push**/webpush → a headline + summary + deep link to the hosted edition (not the full body);
    - **alert** → the configured channel, same payload shape as an alert notification.
 2. Reuse the existing audio attachment handling (prompt 141) for channels that carry audio. Respect
@@ -52,9 +52,9 @@ unchanged; compile and `checkUsEnglish` green.
 ## Do not touch
 
 `CLAUDE.md`/`CONVENTIONS.md`; frozen v1.0.0 spec; `x-foresignal` changelog; `.gitlab-ci.yml`; other
-prompts' files. Leave R2-028 ops `planned`. **Stage only this prompt's files.**
+prompts' files. Leave NP-001 ops `planned`. **Stage only this prompt's files.**
 
 ## Commit
 
-`R2-031: Edition output targets`, then `completion-reports/R2-031-CR-Edition-Output-Targets.md` with
+`NP-004: Edition output targets`, then `completion-reports/NP-004-CR-Edition-Output-Targets.md` with
 the 40-character implementation hash.

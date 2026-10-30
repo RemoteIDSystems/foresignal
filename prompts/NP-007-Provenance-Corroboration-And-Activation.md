@@ -1,8 +1,8 @@
-# R2-034 — Edition provenance & corroboration, then activation
+# NP-007 — Edition provenance & corroboration, then activation
 
-**Context.** Final prompt of the automated-newspaper feature, after **R2-033**. Evidence cross-links
+**Context.** Final prompt of the automated-newspaper feature, after **NP-006**. Evidence cross-links
 already exist (`evidence/FactsExtractor`, `EvidenceResolver`, `news/NewsStoryObjectResolver`); so do
-intel corroboration and calibration (`getIntelCorroboration`, the calibration signal). `R2-028`
+intel corroboration and calibration (`getIntelCorroboration`, the calibration signal). `NP-001`
 authored `includeProvenance`/`includeCorroboration` on the edition and per-item `provenance`/
 `corroboration` fields. This prompt also **activates** the whole set, as R2-027 did at cutover.
 
@@ -12,7 +12,7 @@ extra. Then flip the feature's ops to active and regenerate the SDKs + Postman.
 
 ## Operations
 
-No new ops. Activate the six R2-028 ops (`planned` → active).
+No new ops. Activate the six NP-001 ops (`planned` → active).
 
 ## Read first
 
@@ -30,7 +30,7 @@ No new ops. Activate the six R2-028 ops (`planned` → active).
 2. `BriefingHtmlRenderer` renders these as compact **badges/asides** (source count, corroboration
    level, a "why included" line); `BriefingAudioService`'s script mentions corroboration briefly
    where it matters. Both are omitted cleanly when the flags are off.
-3. **Activate.** Flip `x-foresignal-status` from `planned` to active for the R2-028..R2-034 ops in
+3. **Activate.** Flip `x-foresignal-status` from `planned` to active for the NP-001..NP-007 ops in
    `docs/OpenAPI.json`, then regenerate the SDKs and Postman (`python3 scripts/generate-postman.py`
    and the SDK generation R2-027 used). Keep the `2.1.0` version agreement (the guard) green.
 
@@ -48,9 +48,9 @@ do not run. US English. (SDK/Postman regeneration is generation, not the test su
 
 ## Done when
 
-Edition items show provenance + corroboration badges when enabled; the R2-028 ops are active; SDKs +
+Edition items show provenance + corroboration badges when enabled; the NP-001 ops are active; SDKs +
 Postman are regenerated; the 2.1.0 version agreement holds; compile and `checkUsEnglish` green. This
-completes the automated-newspaper backend; the admin console (admin `R2-012+`) and a client edition
+completes the automated-newspaper backend; the admin console (admin `NP-001+`) and a client edition
 view follow.
 
 ## Do not touch
@@ -60,6 +60,6 @@ only this prompt's files** (plus the regenerated SDK/Postman artifacts this prom
 
 ## Commit
 
-`R2-034: Edition provenance & corroboration, then activation`, then
-`completion-reports/R2-034-CR-Provenance-Corroboration-Activation.md` with the 40-character hash and
+`NP-007: Edition provenance & corroboration, then activation`, then
+`completion-reports/NP-007-CR-Provenance-Corroboration-Activation.md` with the 40-character hash and
 a note that the newspaper feature is active at API 2.1.0.

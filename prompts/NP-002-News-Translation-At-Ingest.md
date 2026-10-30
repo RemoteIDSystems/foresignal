@@ -1,6 +1,6 @@
-# R2-029 — News translation at ingest
+# NP-002 — News translation at ingest
 
-**Context.** Automated-newspaper feature, after the **R2-028** contract. News is already ingested
+**Context.** Automated-newspaper feature, after the **NP-001** contract. News is already ingested
 worldwide and cross-linked (`ai.foresignal.news`: `NewsArticleEntity` with a `language` column,
 `NewsStoryStore`, `NewsStoryRecordPublisher`; GDELT adapters) — but there is **no machine
 translation** today (verified: the only "translate" code is geometry/NAT64/transit-variant
@@ -13,7 +13,7 @@ with provenance. Operator-configurable, budget-governed.
 
 ## Operations
 
-Implement the two authored in R2-028: `getTranslationSettings` / `updateTranslationSettings`
+Implement the two authored in NP-001: `getTranslationSettings` / `updateTranslationSettings`
 (`/v1/settings/translation`, `system.settings`) over `AppSettingService` + a new `SettingKeys`
 entry, shaped as `TranslationSettings` (target languages, which fields to translate, engine,
 per-window budget cap, min source-language confidence).
@@ -64,9 +64,9 @@ original with provenance, budget-governed and idempotent; the settings endpoints
 ## Do not touch
 
 `CLAUDE.md`/`CONVENTIONS.md`; the frozen v1.0.0 spec; the `x-foresignal` changelog; `.gitlab-ci.yml`;
-other prompts' files. Leave the R2-028 ops `planned`. **Stage only this prompt's files.**
+other prompts' files. Leave the NP-001 ops `planned`. **Stage only this prompt's files.**
 
 ## Commit
 
-`R2-029: News translation at ingest`, then `completion-reports/R2-029-CR-News-Translation.md` with
+`NP-002: News translation at ingest`, then `completion-reports/NP-002-CR-News-Translation.md` with
 the 40-character implementation hash.

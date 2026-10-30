@@ -1,9 +1,9 @@
-# R2-032 — Hosted + shareable edition site
+# NP-005 — Hosted + shareable edition site
 
-**Context.** Automated-newspaper feature, after **R2-031**. The backend already serves a briefing run
+**Context.** Automated-newspaper feature, after **NP-004**. The backend already serves a briefing run
 as sanitized HTML (`BriefingsController`, `?format=html`, `getLatestBriefingRun`), a podcast RSS
 (`BriefingPodcastController`) and media, reachable unauthenticated via 035 **feed keys**
-(`/v1/k/{key}/…`); revocable read-only **share links** exist (`ShareLinkService`). `R2-028` authored
+(`/v1/k/{key}/…`); revocable read-only **share links** exist (`ShareLinkService`). `NP-001` authored
 `getEditionSite` + `EditionSite`.
 
 **Goal.** A stable, always-current **per-user newspaper website** — the user's latest edition as a
@@ -33,7 +33,7 @@ successful run rendered as a complete standalone HTML page (`BriefingHtmlRendere
 2. Make the edition shareable: a **read-only, revocable** share link (reuse `ShareLinkService`) that
    grants exactly `getEditionSite` (and its assets) for that edition — never writes, never other
    data. `EditionSite` returns the canonical, feed-key and share URLs.
-3. Respect the edition's owner/visibility (R2-030): a private edition's site is only reachable with
+3. Respect the edition's owner/visibility (NP-003): a private edition's site is only reachable with
    the owner's credential, its feed key, or its share link.
 
 ## Tests to write (do not run)
@@ -55,9 +55,9 @@ read-only link, with the same caching and visibility guarantees as the podcast f
 ## Do not touch
 
 `CLAUDE.md`/`CONVENTIONS.md`; frozen v1.0.0 spec; `x-foresignal` changelog; `.gitlab-ci.yml`; other
-prompts' files. Leave R2-028 ops `planned`. **Stage only this prompt's files.**
+prompts' files. Leave NP-001 ops `planned`. **Stage only this prompt's files.**
 
 ## Commit
 
-`R2-032: Hosted + shareable edition site`, then
-`completion-reports/R2-032-CR-Hosted-Shareable-Edition-Site.md` with the 40-character hash.
+`NP-005: Hosted + shareable edition site`, then
+`completion-reports/NP-005-CR-Hosted-Shareable-Edition-Site.md` with the 40-character hash.

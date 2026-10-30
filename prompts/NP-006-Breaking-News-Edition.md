@@ -1,7 +1,7 @@
-# R2-033 — Breaking-news special edition
+# NP-006 — Breaking-news special edition
 
-**Context.** Automated-newspaper feature, after **R2-032**. Editions run on a cron
-(`BriefingScheduler`, `BriefingInput.schedule` + timezone). `R2-028` authored `BreakingNewsConfig`
+**Context.** Automated-newspaper feature, after **NP-005**. Editions run on a cron
+(`BriefingScheduler`, `BriefingInput.schedule` + timezone). `NP-001` authored `BreakingNewsConfig`
 (`enabled`, `ruleIds`, `minSeverity`, `cooldownMinutes`) on the edition. The alert/trigger pipeline
 already evaluates rules and fires alerts.
 
@@ -28,7 +28,7 @@ No new HTTP op — breaking-news runs are driven by the edition's `breakingNews`
    breaking run within the window; coalesce a burst into one).
 2. Mark the run as a breaking-news edition (a flag on the run) so the heading/render and delivery can
    say "Breaking" and so it is distinguishable from the scheduled edition. Deliver to the edition's
-   configured targets (R2-031) and refresh the hosted site (R2-032).
+   configured targets (NP-004) and refresh the hosted site (NP-005).
 3. The same scheduler-claim discipline (no double-run across instances/ticks) applies to breaking
    runs.
 
@@ -54,9 +54,9 @@ the same runner and claim discipline; compile and `checkUsEnglish` green.
 ## Do not touch
 
 `CLAUDE.md`/`CONVENTIONS.md`; frozen v1.0.0 spec; `x-foresignal` changelog; `.gitlab-ci.yml`; other
-prompts' files. Leave R2-028 ops `planned`. **Stage only this prompt's files.**
+prompts' files. Leave NP-001 ops `planned`. **Stage only this prompt's files.**
 
 ## Commit
 
-`R2-033: Breaking-news special edition`, then
-`completion-reports/R2-033-CR-Breaking-News-Edition.md` with the 40-character hash.
+`NP-006: Breaking-news special edition`, then
+`completion-reports/NP-006-CR-Breaking-News-Edition.md` with the 40-character hash.

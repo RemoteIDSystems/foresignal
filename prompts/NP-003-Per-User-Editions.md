@@ -1,6 +1,6 @@
-# R2-030 — Per-user editions (written & spoken in the user's language)
+# NP-003 — Per-user editions (written & spoken in the user's language)
 
-**Context.** Automated-newspaper feature, after **R2-028** (contract) and **R2-029** (translation).
+**Context.** Automated-newspaper feature, after **NP-001** (contract) and **NP-002** (translation).
 Editions are **user-owned briefings**: the briefing engine already writes (`LlmBriefingWriter`),
 speaks (`BriefingAudioService`/`TtsService`), schedules (`BriefingScheduler`, cron) and sections
 (`BriefingSection`). Today a briefing is owned by a token + scope (`BriefingEntity.owner_token_id`/
@@ -27,9 +27,9 @@ the existing briefing endpoints under user ownership (note any gap as an owner q
 1. `BriefingEntity` gains `owner_user_id` (beside the existing owner token/scope). `BriefingService`
    resolves a user-owned edition's effective `BriefingScope` from the user's saved view + per-user
    source view + region/preferences, so "my edition" follows "my data" automatically.
-2. `outputLanguage` (R2-028 field; default the user's `UserPreferences.locale`): `LlmBriefingWriter`/
+2. `outputLanguage` (NP-001 field; default the user's `UserPreferences.locale`): `LlmBriefingWriter`/
    `BriefingPrompts` write the edition in that language, and `BriefingAudioService`/`TtsService`
-   synthesize in it (pick a matching voice). Where source items were translated (R2-029), the edition
+   synthesize in it (pick a matching voice). Where source items were translated (NP-002), the edition
    consumes the translated text so a foreign story reads natively.
 3. `listMyEditions` returns only the caller's editions; ownership is enforced in `AccessPolicy`/the
    service (a user sees and runs only their own).
@@ -57,9 +57,9 @@ A user owns editions scoped to their own data, written and spoken in their langu
 ## Do not touch
 
 `CLAUDE.md`/`CONVENTIONS.md`; frozen v1.0.0 spec; `x-foresignal` changelog; `.gitlab-ci.yml`; other
-prompts' files. Leave R2-028 ops `planned`. **Stage only this prompt's files.**
+prompts' files. Leave NP-001 ops `planned`. **Stage only this prompt's files.**
 
 ## Commit
 
-`R2-030: Per-user editions`, then `completion-reports/R2-030-CR-Per-User-Editions.md` with the
+`NP-003: Per-user editions`, then `completion-reports/NP-003-CR-Per-User-Editions.md` with the
 40-character implementation hash.
