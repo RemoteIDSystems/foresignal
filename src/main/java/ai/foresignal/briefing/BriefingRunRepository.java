@@ -15,6 +15,13 @@ public interface BriefingRunRepository extends JpaRepository<BriefingRunEntity, 
     Optional<BriefingRunEntity> findFirstByBriefingIdAndStatusInOrderByStartedAtDescIdDesc(UUID briefingId,
             java.util.Collection<String> statuses);
 
+    /**
+     * The most recent run of a briefing with one of the completed statuses that is not a breaking-news run (NP-006):
+     * a scheduled edition's period starts where the previous scheduled edition ended.
+     */
+    Optional<BriefingRunEntity> findFirstByBriefingIdAndStatusInAndBreakingIsNullOrderByStartedAtDescIdDesc(
+            UUID briefingId, java.util.Collection<String> statuses);
+
     /** The most recent run of a briefing, whatever its status. */
     Optional<BriefingRunEntity> findFirstByBriefingIdOrderByStartedAtDescIdDesc(UUID briefingId);
 

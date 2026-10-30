@@ -50,6 +50,8 @@ import tools.jackson.databind.JsonNode;
  *       {@code html} and {@code podcast} takes {@code audio}. A missing or disabled channel is a warning.
  *   <li>{@code site} (NP-005): null or {@code {enabled, shareable}}; {@code shareable} without {@code enabled} is a
  *       warning.
+ *   <li>{@code breakingNews} (NP-006): null or a {@code BreakingNewsConfig}; enabled with no rule of its own and
+ *       none in the scope is a warning.
  * </ul>
  */
 @Component
@@ -78,7 +80,7 @@ public class BriefingValidator {
 
     /** Input members. */
     static final Set<String> MEMBERS = Set.of("name", "enabled", "schedule", "timezone", "scope", "lookback", "mode",
-            "instructions", "channelIds", "maxItemsPerKind", "audio", "outputLanguage", "deliveryTargets", "site");
+            "instructions", "channelIds", "maxItemsPerKind", "audio", "outputLanguage", "deliveryTargets", "site", "breakingNews");
 
     /** Output-only {@code Briefing} members, accepted and ignored so a read briefing can be sent back. */
     static final Set<String> OUTPUT_ONLY = Set.of("id", "createdAt", "updatedAt", "nextRunAt", "lastRunAt",
@@ -257,18 +259,93 @@ public class BriefingValidator {
         String outputLanguage = outputLanguage(body.get("outputLanguage"), errors);
         List<DeliveryTarget> targets = deliveryTargets(body.get("deliveryTargets"), errors);
         BriefingInput.Site site = site(body.get("site"), errors);
+        BriefingInput.BreakingNews breaking = breakingNews(body.get("breakingNews"), errors);
 
         if (!errors.isEmpty()) {
             throw new ValidationException("The briefing is not valid.", errors);
         }
         BriefingInput input = new BriefingInput(name.strip(), enabled, schedule, timezone, scope, lookbackText, lookback,
-                mode, instructions, channelIds, maxItems, audio, new BriefingInput.Edition(outputLanguage, targets, site));
+                mode, instructions, channelIds, maxItems, audio, new BriefingInput.Edition(outputLanguage, targets, site, breaking));
         List<String> warnings = new ArrayList<>(targets.isEmpty() ? channelWarnings(channelIds) : List.of());
         warnings.addAll(targetWarnings(targets));
         if (site.shareable() && !site.enabled()) {
             warnings.add("site.shareable has no effect while site.enabled is false");
         }
+        if (breaking != null && breaking.enabled() && breaking.ruleIds().isEmpty()
+                && (scope.ruleIds() == null || scope.ruleIds().isEmpty())) {
+            warnings.add("breakingNews names no rule and the scope has no ruleIds; no alert will fire a breaking run");
+        }
         return new Validated(input, warnings);
+    }
+
+    /** The most rules a breaking-news configuration names (NP-006). */
+    static final int MAX_BREAKING_RULES = 100;
+
+    /**
+     * Parses {@code breakingNews} (NP-006): null, or a {@code BreakingNewsConfig} with the required {@code enabled},
+     * {@code ruleIds} (at most {@value #MAX_BREAKING_RULES} rule ids), {@code minSeverity} ({@code info},
+     * {@code warning} or {@code critical}; default {@code info}) and {@code cooldownMinutes} (1–10080, default 60).
+     */
+    static BriefingInput.BreakingNews breakingNews(JsonNode node, List<FieldError> errors) {
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        if (!node.isObject()) {
+            errors.add(new FieldError("breakingNews", "must be a BreakingNewsConfig object or null"));
+            return null;
+        }
+        int before = errors.size();
+        for (String member : node.propertyNames()) {
+            if (!Set.of("enabled", "ruleIds", "minSeverity", "cooldownMinutes").contains(member)) {
+                errors.add(new FieldError("breakingNews." + member, "is not a BreakingNewsConfig member"));
+            }
+        }
+        JsonNode enabled = node.get("enabled");
+        if (enabled == null || !enabled.isBoolean()) {
+            errors.add(new FieldError("breakingNews.enabled", "is required and must be a boolean"));
+        }
+        List<UUID> rules = new ArrayList<>();
+        JsonNode ruleNode = node.get("ruleIds");
+        if (ruleNode != null && !ruleNode.isNull()) {
+            if (!ruleNode.isArray() || ruleNode.size() > MAX_BREAKING_RULES) {
+                errors.add(new FieldError("breakingNews.ruleIds", "must be an array of at most "
+                        + MAX_BREAKING_RULES + " rule ids"));
+            } else {
+                for (int i = 0; i < ruleNode.size(); i++) {
+                    UUID id = uuid(ruleNode.get(i));
+                    if (id == null) {
+                        errors.add(new FieldError("breakingNews.ruleIds[" + i + "]", "must be a rule id (UUID)"));
+                    } else if (!rules.contains(id)) {
+                        rules.add(id);
+                    }
+                }
+            }
+        }
+        String severity = "info";
+        JsonNode severityNode = node.get("minSeverity");
+        if (severityNode != null && !severityNode.isNull()) {
+            if (!severityNode.isString()
+                    || !ai.foresignal.trigger.Severity.WIRE_VALUES.contains(severityNode.asString())) {
+                errors.add(new FieldError("breakingNews.minSeverity", "must be info, warning or critical"));
+            } else {
+                severity = severityNode.asString();
+            }
+        }
+        int cooldown = BriefingInput.BreakingNews.DEFAULT_COOLDOWN;
+        JsonNode cooldownNode = node.get("cooldownMinutes");
+        if (cooldownNode != null && !cooldownNode.isNull()) {
+            if (!cooldownNode.isIntegralNumber() || cooldownNode.asLong() < 1
+                    || cooldownNode.asLong() > BriefingInput.BreakingNews.MAX_COOLDOWN) {
+                errors.add(new FieldError("breakingNews.cooldownMinutes", "must be an integer from 1 to "
+                        + BriefingInput.BreakingNews.MAX_COOLDOWN));
+            } else {
+                cooldown = cooldownNode.asInt();
+            }
+        }
+        if (errors.size() > before) {
+            return null;
+        }
+        return new BriefingInput.BreakingNews(enabled.asBoolean(), rules, severity, cooldown);
     }
 
     /** Parses {@code site} (NP-005): null, or {@code {enabled, shareable}} with booleans (both default false). */

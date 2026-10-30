@@ -108010,6 +108010,58 @@
                 "status"
               ]
             }
+          },
+          "breaking": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "readOnly": true,
+            "description": "The alert that fired this run as a breaking-news special edition (NP-006); null for a scheduled, manual or preview run. A breaking run is otherwise an ordinary run of the edition: same scope, output, delivery targets and site",
+            "properties": {
+              "alertId": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "ruleId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid"
+              },
+              "ruleName": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "info",
+                  "warning",
+                  "critical"
+                ]
+              },
+              "firedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "alertId",
+              "severity"
+            ]
           }
         },
         "required": [
@@ -108023,7 +108075,8 @@
           "029",
           "109",
           "141",
-          "NP-004"
+          "NP-004",
+          "NP-006"
         ]
       },
       "BriefingRunPage": {

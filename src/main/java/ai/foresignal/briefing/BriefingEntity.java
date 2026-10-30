@@ -112,6 +112,11 @@ public class BriefingEntity {
     @Column(name = "site_shareable", nullable = false)
     private boolean siteShareable;
 
+    /** The edition's breaking-news configuration (NP-006), as stored {@code BreakingNewsConfig}; null for none. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "breaking_news", columnDefinition = "jsonb")
+    private Map<String, Object> breakingNews;
+
     /** The edition's delivery targets (NP-004), as stored {@code DeliveryTarget} objects; null for none. */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "delivery_targets", columnDefinition = "jsonb")
@@ -391,5 +396,15 @@ public class BriefingEntity {
     /** Sets whether the edition keeps a share link to its site (NP-005). */
     public void setSiteShareable(boolean siteShareable) {
         this.siteShareable = siteShareable;
+    }
+
+    /** The edition's breaking-news configuration (NP-006), or null. */
+    public Map<String, Object> getBreakingNews() {
+        return breakingNews;
+    }
+
+    /** Sets the edition's breaking-news configuration (NP-006); null for none. */
+    public void setBreakingNews(Map<String, Object> breakingNews) {
+        this.breakingNews = breakingNews;
     }
 }

@@ -35,7 +35,8 @@ import org.springframework.stereotype.Component;
  *       {@value #SUMMARY_CHARS} characters and the link to the site; never the whole body, the audio, the citations
  *       or the statistics.
  *   <li><b>alert:</b> an {@code alert} notification, subtype {@value #ALERT_SUBTYPE}, in the alert shape: severity
- *       ({@code options.severity}: {@code info}, {@code warning} or {@code critical}; default {@code info}),
+ *       ({@code options.severity}: {@code info}, {@code warning} or {@code critical}; default the alert's severity
+ *       for a breaking run, NP-006, else {@code info}),
  *       headline, summary and link. It is neither an alert lifecycle update nor an {@code alert.fired}, so no
  *       enrichment wait or rule grouping applies.
  *   <li><b>website</b> and <b>podcast</b> are pulled, not pushed: their result records the URL where the run is
@@ -213,7 +214,8 @@ public class EditionDelivery {
         data.put(EmailChannel.EDITION_HTML, html.page(title, markdown, "Foresignal edition " + run.getId(),
                 edition == null ? null : edition.language()));
         data.put("siteUrl", site);
-        return NotificationMessage.builder(NotificationMessage.BRIEFING, BriefingRunner.SUBTYPE, title, "info")
+        return NotificationMessage.builder(NotificationMessage.BRIEFING, BriefingRunner.SUBTYPE, title,
+                        BriefingRunner.severity(run))
                 .shortTitle(run.getBriefingName())
                 .body(markdown)
                 .url(site)
@@ -226,7 +228,8 @@ public class EditionDelivery {
 
     /** The headline, a short summary and the link: never the body, audio, citations or statistics. */
     NotificationMessage push(String title, BriefingRunEntity run, Map<String, Object> runView, String site) {
-        return NotificationMessage.builder(NotificationMessage.BRIEFING, BriefingRunner.SUBTYPE, title, "info")
+        return NotificationMessage.builder(NotificationMessage.BRIEFING, BriefingRunner.SUBTYPE, title,
+                        BriefingRunner.severity(run))
                 .shortTitle(run.getBriefingName())
                 .body(summary(run.getContentMarkdown()))
                 .url(site)
@@ -240,7 +243,8 @@ public class EditionDelivery {
     /** The alert shape: severity, headline, summary and link. */
     NotificationMessage alert(String title, BriefingRunEntity run, Map<String, Object> runView, String site,
             Map<String, Object> options) {
-        String severity = options.get("severity") instanceof String s && SEVERITIES.contains(s) ? s : "info";
+        String severity = options.get("severity") instanceof String s && SEVERITIES.contains(s) ? s
+                : BriefingRunner.severity(run);
         return NotificationMessage.builder(NotificationMessage.ALERT, ALERT_SUBTYPE, title, severity)
                 .shortTitle(run.getBriefingName())
                 .body(summary(run.getContentMarkdown()) + "\n\n[Read the edition](" + DigestRenderer.url(site) + ")")

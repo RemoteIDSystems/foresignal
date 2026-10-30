@@ -111,8 +111,28 @@ public class BriefingRunEntity {
     @Column(name = "delivery_results", columnDefinition = "jsonb")
     private List<Map<String, Object>> deliveryResults;
 
+    /** The alert that fired a breaking run (NP-006, OpenAPI {@code BriefingRun.breaking}); null otherwise. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "breaking", columnDefinition = "jsonb")
+    private Map<String, Object> breaking;
+
     /** For JPA. */
     protected BriefingRunEntity() {}
+
+    /** The alert that fired this breaking run (NP-006), or null for a scheduled or manual run. */
+    public Map<String, Object> getBreaking() {
+        return breaking;
+    }
+
+    /** Marks the run as a breaking edition fired by {@code breaking} (NP-006). */
+    public void setBreaking(Map<String, Object> breaking) {
+        this.breaking = breaking;
+    }
+
+    /** True for a breaking-news run (NP-006). */
+    public boolean isBreaking() {
+        return breaking != null;
+    }
 
     /** The outcome of each delivery target (NP-004), or null for a briefing without targets. */
     public List<Map<String, Object>> getDeliveryResults() {

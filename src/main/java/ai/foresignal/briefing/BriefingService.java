@@ -426,10 +426,18 @@ public class BriefingService {
      * on the briefing (status, start, next fire time after now).
      */
     BriefingRunEntity execute(BriefingEntity briefing) {
+        return execute(briefing, null);
+    }
+
+    /**
+     * {@link #execute(BriefingEntity)} as a breaking-news edition fired by {@code breaking} (NP-006), or a scheduled
+     * run when it is null.
+     */
+    BriefingRunEntity execute(BriefingEntity briefing, BreakingTrigger breaking) {
         Instant started = clock.instant();
         String status = BriefingRunEntity.FAILED;
         try {
-            BriefingRunEntity run = runner.run(briefing);
+            BriefingRunEntity run = runner.run(briefing, breaking);
             status = run.getStatus();
             if (briefing.isSiteEnabled()) {
                 // NP-005: renew the site's keys when they near expiry.
@@ -635,6 +643,60 @@ public class BriefingService {
                 .orElseThrow(() -> briefings.existsById(briefingId)
                         ? new NotFoundException("Briefing '" + briefingId + "' has no runs yet.")
                         : NotFoundException.of("Briefing", briefingId));
+    }
+
+    // ------------------------------------------------------------------------- breaking news
+
+    /** How often a breaking run waits for a run in progress to finish (NP-006). */
+    static final java.time.Duration BREAKING_RETRY = java.time.Duration.ofSeconds(15);
+
+    /** How many times a breaking run waits before it gives up (5 minutes). */
+    static final int BREAKING_ATTEMPTS = 20;
+
+    /**
+     * Claims the breaking-news cooldown of edition {@code id} at {@code now} (NP-006): true when no breaking run was
+     * claimed within the last {@code cooldown}, in which case {@code last_breaking_at} is now {@code now}. One
+     * conditional update, so two alerts (or two instances) never both pass; a burst coalesces into one run.
+     */
+    boolean claimCooldown(UUID id, Instant now, java.time.Duration cooldown) {
+        return jdbc.update("UPDATE briefing SET last_breaking_at = ? WHERE id = ?"
+                + " AND (last_breaking_at IS NULL OR last_breaking_at <= ?)", Timestamp.from(now), id,
+                Timestamp.from(now.minus(cooldown))) == 1;
+    }
+
+    /**
+     * Starts a breaking-news run of edition {@code id} fired by {@code breaking} (NP-006), off schedule, through the
+     * same runner and the same run claim as the scheduler ({@code running_since}): the cooldown is claimed first; while
+     * another run of the edition is in progress the breaking run waits for it ({@value #BREAKING_ATTEMPTS} tries,
+     * {@link #BREAKING_RETRY} apart) and is dropped, with a warning, when it never finishes.
+     *
+     * @param id the edition
+     * @param breaking the alert
+     * @param cooldown the edition's cooldown
+     * @return the run in progress, or empty when the cooldown suppressed it
+     */
+    public Optional<Future<BriefingRunEntity>> runBreaking(UUID id, BreakingTrigger breaking,
+            java.time.Duration cooldown) {
+        Instant now = clock.instant();
+        if (!claimCooldown(id, now, cooldown)) {
+            log.debug("Breaking run of briefing {} for alert {} suppressed by its cooldown", id, breaking.alertId());
+            return Optional.empty();
+        }
+        return Optional.of(executor.submit(() -> {
+            for (int attempt = 0; attempt < BREAKING_ATTEMPTS; attempt++) {
+                BriefingEntity briefing = briefings.findById(id).orElse(null);
+                if (briefing == null) {
+                    return null;
+                }
+                if (claim(id, clock.instant())) {
+                    return execute(briefing, breaking);
+                }
+                Thread.sleep(BREAKING_RETRY.toMillis());
+            }
+            log.warn("Breaking run of briefing {} for alert {} dropped: another run never finished", id,
+                    breaking.alertId());
+            return null;
+        }));
     }
 
     // ------------------------------------------------------------------------- helpers

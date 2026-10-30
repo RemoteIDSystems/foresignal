@@ -33,6 +33,9 @@ public final class BriefingViews {
         // NP-003: the owning user of an edition and its output language.
         out.put("outputLanguage", entity.getOutputLanguage());
         out.put("ownerUserId", entity.getOwnerUserId() == null ? null : entity.getOwnerUserId().toString());
+        // NP-006: breaking-news special editions.
+        out.put("breakingNews", entity.getBreakingNews() == null ? null
+                : BriefingInput.BreakingNews.fromMap(entity.getBreakingNews()).toMap());
         // NP-005: the hosted site.
         out.put("site", new BriefingInput.Site(entity.isSiteEnabled(), entity.isSiteShareable()).toMap());
         // NP-004: where each run goes.
@@ -69,6 +72,8 @@ public final class BriefingViews {
         out.put("signature", run.getSignature());
         // Prompt 141: the synthesized audio (status, mediaId, format, voice, characters, truncated, error, signature).
         out.put("audio", run.getAudio() == null ? null : new LinkedHashMap<>(run.getAudio()));
+        // NP-006: the alert that fired a breaking run, or null.
+        out.put("breaking", run.getBreaking() == null ? null : new LinkedHashMap<>(run.getBreaking()));
         // NP-004: the outcome of each delivery target, or null for a briefing without targets.
         out.put("deliveryResults", run.getDeliveryResults() == null ? null : new ArrayList<>(run.getDeliveryResults()));
         return out;

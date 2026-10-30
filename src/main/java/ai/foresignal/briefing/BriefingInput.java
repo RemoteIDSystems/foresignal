@@ -43,8 +43,10 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
      * @param deliveryTargets where each run goes (NP-004); empty to deliver as before ({@code channelIds}, else every
      *     channel subscribed to {@code briefing})
      * @param site the hosted site (NP-005); {@link Site#OFF} for none
+     * @param breakingNews the breaking-news configuration (NP-006), or null for none
      */
-    public record Edition(String outputLanguage, List<DeliveryTarget> deliveryTargets, Site site) {
+    public record Edition(String outputLanguage, List<DeliveryTarget> deliveryTargets, Site site,
+            BreakingNews breakingNews) {
 
         /** No edition options. */
         public static final Edition NONE = new Edition(null);
@@ -63,6 +65,11 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
         /** Options without a site (the shape of NP-004). */
         public Edition(String outputLanguage, List<DeliveryTarget> deliveryTargets) {
             this(outputLanguage, deliveryTargets, Site.OFF);
+        }
+
+        /** Options without breaking news (the shape of NP-005). */
+        public Edition(String outputLanguage, List<DeliveryTarget> deliveryTargets, Site site) {
+            this(outputLanguage, deliveryTargets, site, null);
         }
 
         /** The targets stored as {@code maps}, the unreadable ones left out. */
@@ -91,6 +98,61 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
             out.put("enabled", enabled);
             out.put("shareable", shareable);
             return out;
+        }
+    }
+
+    /**
+     * Breaking-news special editions (NP-006, OpenAPI {@code BreakingNewsConfig}): an alert of one of {@code ruleIds}
+     * (or, when empty, of the scope's {@code ruleIds}) at or above {@code minSeverity} runs the edition at once, at
+     * most once per {@code cooldownMinutes}.
+     *
+     * @param enabled whether alerts fire breaking runs
+     * @param ruleIds the trigger rules whose alerts fire one; empty for the scope's rules
+     * @param minSeverity the least severity, {@code info}, {@code warning} or {@code critical}
+     * @param cooldownMinutes the least time between two breaking runs (1–10080)
+     */
+    public record BreakingNews(boolean enabled, List<UUID> ruleIds, String minSeverity, int cooldownMinutes) {
+
+        /** The default cooldown. */
+        public static final int DEFAULT_COOLDOWN = 60;
+
+        /** The longest cooldown (7 days). */
+        public static final int MAX_COOLDOWN = 10_080;
+
+        /** Copies the rules; the severity defaults to {@code info} (any alert). */
+        public BreakingNews {
+            ruleIds = ruleIds == null ? List.of() : List.copyOf(ruleIds);
+            minSeverity = minSeverity == null ? "info" : minSeverity;
+        }
+
+        /** The stored and wire form. */
+        public Map<String, Object> toMap() {
+            Map<String, Object> out = new java.util.LinkedHashMap<>();
+            out.put("enabled", enabled);
+            out.put("ruleIds", new java.util.ArrayList<>(ruleIds.stream().map(UUID::toString).toList()));
+            out.put("minSeverity", minSeverity);
+            out.put("cooldownMinutes", cooldownMinutes);
+            return out;
+        }
+
+        /** The configuration stored as {@code map}, or null when absent or unreadable. */
+        public static BreakingNews fromMap(Map<String, Object> map) {
+            if (map == null) {
+                return null;
+            }
+            List<UUID> rules = new java.util.ArrayList<>();
+            if (map.get("ruleIds") instanceof List<?> list) {
+                for (Object o : list) {
+                    try {
+                        rules.add(UUID.fromString(String.valueOf(o)));
+                    } catch (IllegalArgumentException e) {
+                        // An unreadable id is left out.
+                    }
+                }
+            }
+            int cooldown = map.get("cooldownMinutes") instanceof Number n ? n.intValue() : DEFAULT_COOLDOWN;
+            return new BreakingNews(Boolean.TRUE.equals(map.get("enabled")), rules,
+                    map.get("minSeverity") instanceof String s ? s : null, cooldown);
         }
     }
 
@@ -178,7 +240,8 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
                 BriefingScope.fromMap(entity.getScope()), entity.getLookback(), lookback, entity.getMode(),
                 entity.getInstructions(), channels, entity.getMaxItemsPerKind(), Audio.fromMap(entity.getAudio()),
                 new Edition(entity.getOutputLanguage(), Edition.targets(entity.getDeliveryTargets()),
-                        new Site(entity.isSiteEnabled(), entity.isSiteShareable())));
+                        new Site(entity.isSiteEnabled(), entity.isSiteShareable()),
+                        BreakingNews.fromMap(entity.getBreakingNews())));
     }
 
     /** Writes this input onto {@code entity} (schedule fields only; times and ownership are the caller's). */
@@ -195,6 +258,8 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
         entity.setMaxItemsPerKind(maxItemsPerKind);
         entity.setAudio(audio == null ? null : new java.util.LinkedHashMap<>(audio.toMap()));
         entity.setOutputLanguage(edition.outputLanguage());
+        entity.setBreakingNews(edition.breakingNews() == null ? null
+                : new java.util.LinkedHashMap<>(edition.breakingNews().toMap()));
         entity.setSiteEnabled(edition.site().enabled());
         entity.setSiteShareable(edition.site().shareable());
         entity.setDeliveryTargets(edition.deliveryTargets().isEmpty() ? null

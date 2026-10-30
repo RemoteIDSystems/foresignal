@@ -53,6 +53,11 @@ import tools.jackson.databind.json.JsonMapper;
  * <p>Prompt NP-004: a briefing with {@code deliveryTargets} is delivered by {@link EditionDelivery}, each target in its
  * own shape, and the outcome of each is stored on the run ({@code deliveryResults}); without targets it delivers
  * exactly as before.
+ *
+ * <p>Prompt NP-006: {@link #run(BriefingEntity, BreakingTrigger)} runs a breaking-news edition off schedule. The run
+ * stores its alert ({@code breaking}); its heading and title say "Breaking", its markdown leads with the alert, the LLM
+ * is told to lead with it, and its notifications carry the alert's severity. Its period is since the previous run of
+ * any kind; a scheduled run's period ignores breaking runs.
  */
 @Component
 public class BriefingRunner {
@@ -157,7 +162,8 @@ public class BriefingRunner {
     /** The notification title of a run, which is also the spoken title of its audio. */
     static String title(BriefingRunEntity run) {
         ZoneId zone = BriefingValidator.zone(run.getTimezone());
-        return run.getBriefingName() + " — " + DATE.format(run.getPeriodTo().atZone(zone));
+        return (run.isBreaking() ? "Breaking: " : "") + run.getBriefingName() + " — "
+                + DATE.format(run.getPeriodTo().atZone(zone));
     }
 
     /** Signs stored runs (prompt 109); resolved lazily, absent in hand-built unit tests. */
@@ -192,10 +198,11 @@ public class BriefingRunner {
      * @param restriction the read restriction of the token that created the briefing (prompt 035):
      *     statistics, notable records, search hits and therefore citations stay inside it
      * @param edition the edition context (prompt NP-003), or null for a plain briefing
+     * @param breaking the alert of a breaking-news run (prompt NP-006), or null
      */
     public record Plan(String name, BriefingInput input, Instant periodFrom, Instant periodTo,
             Set<String> hiddenSources, ai.foresignal.security.restrict.ReadRestriction restriction,
-            EditionContext edition) {
+            EditionContext edition, BreakingTrigger breaking) {
 
         /** A null restriction becomes none. */
         public Plan {
@@ -205,7 +212,30 @@ public class BriefingRunner {
         /** A plan of a plain briefing (the shape before prompt NP-003). */
         public Plan(String name, BriefingInput input, Instant periodFrom, Instant periodTo, Set<String> hiddenSources,
                 ai.foresignal.security.restrict.ReadRestriction restriction) {
-            this(name, input, periodFrom, periodTo, hiddenSources, restriction, null);
+            this(name, input, periodFrom, periodTo, hiddenSources, restriction, null, null);
+        }
+
+        /** A scheduled plan (the shape before prompt NP-006). */
+        public Plan(String name, BriefingInput input, Instant periodFrom, Instant periodTo, Set<String> hiddenSources,
+                ai.foresignal.security.restrict.ReadRestriction restriction, EditionContext edition) {
+            this(name, input, periodFrom, periodTo, hiddenSources, restriction, edition, null);
+        }
+
+        /** The heading name: {@code Breaking: <name>} for a breaking run (NP-006). */
+        public String heading() {
+            return breaking == null ? name : "Breaking: " + name;
+        }
+
+        /** The LLM instructions, told to lead with the alert of a breaking run (NP-006). */
+        public String instructions() {
+            if (breaking == null) {
+                return input.instructions();
+            }
+            String lead = "This is a breaking-news edition fired by an alert of rule '" + breaking.ruleName()
+                    + "' (alert " + breaking.alertId() + ", severity " + breaking.severity()
+                    + "). Lead with that alert and what it means, then the rest.";
+            return input.instructions() == null || input.instructions().isBlank() ? lead
+                    : lead + "\n\n" + input.instructions();
         }
 
         /** The edition's language, or null. */
@@ -225,7 +255,7 @@ public class BriefingRunner {
 
         /** An unrestricted plan (the shape before prompt 035). */
         public Plan(String name, BriefingInput input, Instant periodFrom, Instant periodTo, Set<String> hiddenSources) {
-            this(name, input, periodFrom, periodTo, hiddenSources, null, null);
+            this(name, input, periodFrom, periodTo, hiddenSources, null, null, null);
         }
     }
 
@@ -301,18 +331,18 @@ public class BriefingRunner {
         }
         Map<String, Object> statsJson = plain(stats.toMap());
         // Prompt 036: the digest heading names the scope's places ({place}), never their coordinates.
-        String heading = scope.placeNames().isEmpty() ? plan.name()
-                : plan.name() + " · " + String.join(", ", scope.placeNames());
+        String heading = scope.placeNames().isEmpty() ? plan.heading()
+                : plan.heading() + " · " + String.join(", ", scope.placeNames());
         DigestRenderer.Rendered digest = renderer.render(heading, stats, zone, plan.periodFrom(), plan.periodTo());
         if (!BriefingInput.LLM.equals(input.mode())) {
             List<String> warnings = new ArrayList<>();
-            String markdown = inLanguage(digest.markdown(), plan.language(), warnings);
+            String markdown = inLanguage(withLead(digest.markdown(), plan.breaking()), plan.language(), warnings);
             return new Outcome(BriefingRunEntity.SUCCEEDED, input.mode(), started, clock.instant(), plan.periodFrom(),
                     plan.periodTo(), markdown, citations(digest.citations()), statsJson, warnings, null, null);
         }
         try {
-            LlmBriefingWriter.Result result = writer.write(new LlmBriefingWriter.Request(plan.name(),
-                    input.instructions(), stats, scope, hidden, zone, plan.periodFrom(), plan.periodTo(),
+            LlmBriefingWriter.Result result = writer.write(new LlmBriefingWriter.Request(plan.heading(),
+                    plan.instructions(), stats, scope, hidden, zone, plan.periodFrom(), plan.periodTo(),
                     scope.narrow(plan.restriction()), plan.language()));
             return new Outcome(BriefingRunEntity.SUCCEEDED, input.mode(), started, clock.instant(), plan.periodFrom(),
                     plan.periodTo(), result.markdown(), citations(result.citations()), statsJson, result.warnings(),
@@ -324,10 +354,34 @@ public class BriefingRunner {
                 log.warn("LLM briefing '{}' failed; falling back to the digest", plan.name(), e);
             }
             List<String> warnings = new ArrayList<>(List.of("LLM mode fell back to the digest: " + reason));
-            String markdown = inLanguage(digest.markdown(), plan.language(), warnings);
+            String markdown = inLanguage(withLead(digest.markdown(), plan.breaking()), plan.language(), warnings);
             return new Outcome(BriefingRunEntity.FALLBACK, input.mode(), started, clock.instant(), plan.periodFrom(),
                     plan.periodTo(), markdown, citations(digest.citations()), statsJson, warnings, usage, reason);
         }
+    }
+
+    /**
+     * {@code markdown} with the lead line of a breaking run (NP-006) after its heading line, or unchanged for any other
+     * run.
+     */
+    static String withLead(String markdown, BreakingTrigger breaking) {
+        if (breaking == null) {
+            return markdown;
+        }
+        String text = markdown == null ? "" : markdown;
+        if (text.startsWith("#")) {
+            int end = text.indexOf('\n');
+            String first = end < 0 ? text : text.substring(0, end);
+            String rest = end < 0 ? "" : text.substring(end + 1).stripLeading();
+            return first + "\n\n" + breaking.lead() + "\n\n" + rest;
+        }
+        return breaking.lead() + "\n\n" + text;
+    }
+
+    /** The notification severity of a run: the alert's for a breaking run (NP-006), else {@code info}. */
+    static String severity(BriefingRunEntity run) {
+        Object s = run.getBreaking() == null ? null : run.getBreaking().get("severity");
+        return s instanceof String v && ai.foresignal.trigger.Severity.WIRE_VALUES.contains(v) ? v : "info";
     }
 
     /** Delivers to an edition's targets (prompt NP-004); resolved lazily, absent in hand-built unit tests. */
@@ -398,20 +452,39 @@ public class BriefingRunner {
      * @return the completed run
      */
     public BriefingRunEntity run(BriefingEntity briefing) {
+        return run(briefing, null);
+    }
+
+    /**
+     * Runs {@code briefing} now as a breaking-news edition fired by {@code breaking} (NP-006), or as a scheduled or
+     * manual run when it is null.
+     *
+     * @param briefing a snapshot of the definition
+     * @param breaking the alert, or null
+     * @return the completed run
+     */
+    public BriefingRunEntity run(BriefingEntity briefing, BreakingTrigger breaking) {
         Instant now = clock.instant();
         BriefingInput input = BriefingInput.of(briefing);
-        Instant previousTo = runs.findFirstByBriefingIdAndStatusInOrderByStartedAtDescIdDesc(briefing.getId(),
-                List.of(BriefingRunEntity.SUCCEEDED, BriefingRunEntity.FALLBACK))
+        List<String> completed = List.of(BriefingRunEntity.SUCCEEDED, BriefingRunEntity.FALLBACK);
+        Instant previousTo = (breaking == null
+                ? runs.findFirstByBriefingIdAndStatusInAndBreakingIsNullOrderByStartedAtDescIdDesc(briefing.getId(),
+                        completed)
+                : runs.findFirstByBriefingIdAndStatusInOrderByStartedAtDescIdDesc(briefing.getId(), completed))
                 .map(BriefingRunEntity::getPeriodTo).orElse(null);
         Instant from = periodFrom(input, previousTo, now);
         UUID runId = UUID.randomUUID();
         BriefingRunEntity running = new BriefingRunEntity(runId, briefing.getId(), briefing.getName(), input.mode(),
                 input.timezone(), now, from, now);
+        if (breaking != null) {
+            running.setBreaking(new java.util.LinkedHashMap<>(breaking.toMap()));
+        }
         transactions.executeWithoutResult(status -> runs.saveAndFlush(running));
 
         EditionContext edition = edition(briefing);
         Outcome outcome = render(new Plan(briefing.getName(), input, from, now, hiddenSources(briefing.getOwnerScope()),
-                ai.foresignal.security.restrict.ReadRestriction.of(briefing.getRestrictionSnapshot(), false), edition));
+                ai.foresignal.security.restrict.ReadRestriction.of(briefing.getRestrictionSnapshot(), false), edition,
+                breaking));
         BriefingRunEntity done = transactions.execute(status -> {
             BriefingRunEntity row = runs.findById(runId).orElse(running);
             row.setStatus(outcome.status());
@@ -506,7 +579,7 @@ public class BriefingRunner {
                 targets.isEmpty() ? c -> true : c -> targets.contains(c.id());
         try {
             NotificationMessage message = notifications.publish(NotificationMessage
-                    .builder(NotificationMessage.BRIEFING, SUBTYPE, title, "info")
+                    .builder(NotificationMessage.BRIEFING, SUBTYPE, title, severity(run))
                     .shortTitle(run.getBriefingName())
                     .body(body)
                     .url(html)
