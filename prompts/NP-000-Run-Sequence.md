@@ -26,6 +26,7 @@ marker so the run proceeds, then hand this session `NP-000`; it runs `NP-001` fi
 | NP-005 | Hosted + shareable edition site | Stable always-current HTML edition URL + revocable read-only share link |
 | NP-006 | Breaking-news special edition | A matching alert fires an off-schedule edition (cooldown-guarded) |
 | NP-007 | Provenance & corroboration, then activation | Per-item provenance + corroboration badges; flip ops `planned`→active, regenerate SDKs/Postman |
+| NP-008 | Edition ownership & self-service | Writable owner (operator assign) + self-service `/v1/me/editions`; API 2.1.1 (contract authored first) |
 
 `NP-001` is spec-first; everything compiles against it. `NP-007` activates the feature and is the
 mini-cutover (as R2-027 was for the RBAC release).
