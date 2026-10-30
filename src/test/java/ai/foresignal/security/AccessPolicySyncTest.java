@@ -27,6 +27,9 @@ import tools.jackson.databind.JsonNode;
  * authored with. Webhooks are excluded: they are requests Foresignal sends, so no inbound scope
  * applies. {@code peer} routes (federation, 113) require a peer ingest key
  * ({@link AccessRequirement#PEER}).
+ *
+ * <p>NP-001 adds a named check for the Automated Newspaper operations (API 2.1.0): each is in the contract and the
+ * policy grants exactly what it was authored with, so the six cannot fall to the admin default unnoticed.
  */
 class AccessPolicySyncTest {
 
@@ -131,6 +134,29 @@ class AccessPolicySyncTest {
             }
         }
         assertThat(problems).isEmpty();
+    }
+
+    @Test
+    @DisplayName("each Automated Newspaper operation (NP-001) is a route the policy grants exactly as authored")
+    void newspaperOperationsHavePolicyEntries() {
+        List<String> ids = List.of("getTranslationSettings", "updateTranslationSettings", "getMyNewsSubscriptions",
+                "updateMyNewsSubscriptions", "listMyEditions", "getEditionSite");
+        for (String id : ids) {
+            SpecOperation op = OpenApiSpec.routes().stream()
+                    .filter(candidate -> id.equals(candidate.operationId()))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError(id + " is not a route of docs/OpenAPI.json"));
+            HttpMethod method = HttpMethod.valueOf(op.method().toUpperCase());
+            String path = op.path().replaceAll("\\{[^/}]+}", "sample");
+            assertThat(policy.requirementFor(method, path)).as(op.label()).isEqualTo(expected(op));
+            JsonNode node = op.node().get("x-foresignal-permission");
+            assertThat(policy.permissionFor(method, path)).as(op.label())
+                    .isEqualTo(node == null ? Optional.empty() : Optional.of(node.asString()));
+        }
+        assertThat(policy.requirementFor(HttpMethod.GET, "/v1/editions/sample/site")).isEqualTo(AccessRequirement.READ);
+        assertThat(policy.requirementFor(HttpMethod.GET, "/v1/me/editions"))
+                .isEqualTo(AccessRequirement.READ_ALWAYS_AUTHENTICATED);
+        assertThat(policy.requirementFor(HttpMethod.PUT, "/v1/settings/translation")).isEqualTo(AccessRequirement.ADMIN);
     }
 
     @Test

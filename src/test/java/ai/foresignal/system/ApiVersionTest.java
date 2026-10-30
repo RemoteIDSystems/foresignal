@@ -9,17 +9,21 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
  * The release version agrees everywhere (prompt 144): {@code info.version} of {@code docs/OpenAPI.json}, the frozen
  * v1.0.0 contract the API-compatibility gate compares against, {@code GET /v1/system}'s {@code apiVersion} (read by
  * {@link ApiVersion} from the copy on the classpath) and the Gradle project version are all {@value #RELEASE}.
+ *
+ * <p>NP-001 moves the release to 2.1.0 (Automated Newspaper) and adds the check that the spec's changelog ends with an
+ * entry for the release, so a version bump cannot land without saying what it added.
  */
 class ApiVersionTest {
 
     /** The release this build is. */
-    static final String RELEASE = "2.0.0";
+    static final String RELEASE = "2.1.0";
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
@@ -49,6 +53,15 @@ class ApiVersionTest {
         Matcher matcher = GRADLE_VERSION.matcher(Files.readString(Path.of("build.gradle.kts")));
         assertThat(matcher.find()).as("a version = \"...\" line in build.gradle.kts").isTrue();
         assertThat(matcher.group(1)).isEqualTo(RELEASE);
+    }
+
+    @Test
+    @DisplayName("the newest info.x-foresignal-changelog entry of docs/OpenAPI.json is the release version")
+    void changelogEndsWithTheRelease() throws IOException {
+        JsonNode changelog = JSON.readTree(Files.readString(Path.of("docs", "OpenAPI.json")))
+                .get("info").get("x-foresignal-changelog");
+        assertThat(changelog.isArray() && !changelog.isEmpty()).as("a non-empty changelog").isTrue();
+        assertThat(changelog.get(changelog.size() - 1).get("version").asString()).isEqualTo(RELEASE);
     }
 
     private static String infoVersion(Path spec) throws IOException {

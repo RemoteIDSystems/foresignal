@@ -80,6 +80,8 @@ final class AccessPermissions {
             rule("POST", "/v1/graph/ownership-chain", "data.read"), // ownershipChain
             rule("POST", "/v1/hypotheses/sets/draft", null), // draftHypothesisSet
             rule("GET", "/v1/me/mfa/recovery-codes", null), // getMfaRecoveryCodes
+            rule("GET", "/v1/me/news-subscriptions", "self.sources"), // getMyNewsSubscriptions
+            rule("PUT", "/v1/me/news-subscriptions", "self.sources"), // updateMyNewsSubscriptions
             rule("GET", "/v1/precursors/candidates", null), // listPrecursorCandidates
             rule("POST", "/v1/precursors/candidates", null), // createPrecursorCandidate
             rule("GET", "/v1/push/vapid-public-key", null), // getVapidPublicKey
@@ -90,6 +92,8 @@ final class AccessPermissions {
             rule("GET", "/v1/notifications/stream", null), // streamNotifications
             rule("GET", "/v1/settings/infra-rules", "system.settings"), // getInfraRules
             rule("PUT", "/v1/settings/infra-rules", "system.settings"), // updateInfraRules
+            rule("GET", "/v1/settings/translation", "system.settings"), // getTranslationSettings
+            rule("PUT", "/v1/settings/translation", "system.settings"), // updateTranslationSettings
             rule("POST", "/v1/stats/rollup/rebuild", "system.settings"), // rebuildStatsRollup
             rule("GET", "/fdsnws/event/1/version", null), // getFdsnEventVersion
             rule("GET", "/v1/analytics/precision", "data.read"), // getPrecision
@@ -319,6 +323,7 @@ final class AccessPermissions {
             rule("GET", "/v1/infra/nodes", "intel.read"), // listInfraNodes
             rule("GET", "/v1/intel/board", "intel.read"), // getIntelBoard
             rule("GET", "/v1/maps/static", "data.read"), // getStaticMap
+            rule("GET", "/v1/me/editions", null), // listMyEditions
             rule("GET", "/v1/permissions", "roles.manage"), // listPermissions
             rule("GET", "/v1/share-links", null), // listShareLinks
             rule("POST", "/v1/share-links", null), // createShareLink
@@ -710,6 +715,7 @@ final class AccessPermissions {
             rule("POST", "/v1/briefings/*/run", null), // runBriefing
             rule("GET", "/v1/calendars/*.ics", "data.read"), // getCalendar
             rule("POST", "/v1/channels/*/test", "self.channels", "channels.global"), // testChannel
+            rule("GET", "/v1/editions/*/site", "intel.read"), // getEditionSite
             rule("GET", "/v1/egress/*/health", "network.manage"), // getEgressRouteHealth
             rule("POST", "/v1/entities/*/keys", "system.settings"), // addEntityKey
             rule("PUT", "/v1/intel/recipes/*", "system.settings"), // updateRecipe

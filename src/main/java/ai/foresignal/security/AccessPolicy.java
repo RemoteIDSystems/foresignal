@@ -121,6 +121,13 @@ import org.springframework.util.AntPathMatcher;
  * {@code scripts/generate-access-permissions.py}. It is a parallel lookup rather than a field on
  * {@link AccessRequirement.RequiresScope}, so the scope requirement, and with it every machine token's access, stays
  * exactly what it was; {@link TokenFilter} applies the permission only to a signed-in user's session.
+ *
+ * <p>Prompt NP-001 (Automated Newspaper, API 2.1.0) adds the caller's news subscriptions
+ * ({@code GET}/{@code PUT /v1/me/news-subscriptions}) and editions ({@code GET /v1/me/editions}) as {@code read},
+ * always authenticated like every other {@code /v1/me} rule, and the edition site
+ * ({@code GET /v1/editions/{id}/site}) as {@code read}, open while {@code security.openReads} is on and reachable by
+ * feed key and share link like the podcast. {@code /v1/settings/translation} is {@code admin} under
+ * {@code /v1/settings/**}.
  */
 @Component
 public class AccessPolicy {
@@ -556,6 +563,8 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/briefings/*/runs/feed.*", AccessRequirement.READ),
                 // Prompt 141: the briefing podcast (RSS 2.0 with audio enclosures), a read like the run feeds.
                 rule(HttpMethod.GET, "/v1/briefings/*/podcast.rss", AccessRequirement.READ),
+                // NP-001: the hosted edition site, a read like the podcast (feed keys and share links reach it).
+                rule(HttpMethod.GET, "/v1/editions/*/site", AccessRequirement.READ),
                 rule(HttpMethod.GET, "/v1/triggers/*.kml", AccessRequirement.READ),
 
                 // ---- Triggers: read to list, agent to change ----
@@ -796,6 +805,10 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/me/quota", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/me/notification-preferences", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.PUT, "/v1/me/notification-preferences", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                // Automated Newspaper (NP-001): the caller's news subscriptions and editions.
+                rule(HttpMethod.GET, "/v1/me/news-subscriptions", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PUT, "/v1/me/news-subscriptions", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/me/editions", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/inbox", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/principals", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.POST, "/v1/principals", AccessRequirement.ADMIN),
