@@ -47,16 +47,51 @@ public class NewsViews {
     private final JdbcTemplate jdbc;
     private final ObjectProvider<ObjectService> objects;
     private final ObjectProvider<EgressPolicy> egress;
+    private final ObjectProvider<NewsTranslationStore> translations;
+    private final ObjectProvider<TranslationSettingsService> translationSettings;
 
     /** Creates the views. */
     public NewsViews(NewsStoryStore store, OutletRegistry outlets, NewsCoverageService coverage, JdbcTemplate jdbc,
-            ObjectProvider<ObjectService> objects, ObjectProvider<EgressPolicy> egress) {
+            ObjectProvider<ObjectService> objects, ObjectProvider<EgressPolicy> egress,
+            ObjectProvider<NewsTranslationStore> translations,
+            ObjectProvider<TranslationSettingsService> translationSettings) {
         this.store = store;
         this.outlets = outlets;
         this.coverage = coverage;
         this.jdbc = jdbc;
         this.objects = objects;
         this.egress = egress;
+        this.translations = translations;
+        this.translationSettings = translationSettings;
+    }
+
+    /**
+     * Adds the translation fields of NP-002 ({@code targetLanguage}, {@code translatedTitle},
+     * {@code translatedExcerpt}, {@code translationProvenance}) to each view whose object has a served translation, in
+     * the first configured target language that has one. Views without one, and every view while translation is off, are
+     * left as they are, so a client sees the original fields only.
+     *
+     * @param type {@link NewsTranslationStore#ARTICLE} or {@link NewsTranslationStore#STORY}
+     * @param views object id to its view
+     */
+    void addTranslations(String type, Map<String, Map<String, Object>> views) {
+        NewsTranslationStore store = translations.getIfAvailable();
+        TranslationSettingsService settings = translationSettings.getIfAvailable();
+        if (store == null || settings == null || views.isEmpty()) {
+            return;
+        }
+        TranslationSettings current = settings.get();
+        List<String> languages = current.targetLanguages();
+        if (!current.active()) {
+            return;
+        }
+        Map<String, NewsTranslationStore.Translation> served = store.served(type, views.keySet(), languages);
+        for (Map.Entry<String, NewsTranslationStore.Translation> e : served.entrySet()) {
+            Map<String, Object> view = views.get(e.getKey());
+            if (view != null) {
+                view.putAll(e.getValue().wire());
+            }
+        }
     }
 
     /**
@@ -174,12 +209,16 @@ public class NewsViews {
         }
         Map<String, NewsStoryStore.Story> stories = store.stories(ids);
         List<Map<String, Object>> items = new ArrayList<>();
+        Map<String, Map<String, Object>> byId = new LinkedHashMap<>();
         for (String id : ids) {
             NewsStoryStore.Story s = stories.get(id);
             if (s != null) {
-                items.add(story(s));
+                Map<String, Object> view = story(s);
+                items.add(view);
+                byId.put(s.id(), view);
             }
         }
+        addTranslations(NewsTranslationStore.STORY, byId);
         return new Page(items, next);
     }
 
@@ -215,6 +254,7 @@ public class NewsViews {
         NewsStoryStore.Story s = store.story(id).orElseThrow(() -> new NotFoundException(ErrorCodes.UNKNOWN_STORY,
                 "No news story '" + id + "'."));
         Map<String, Object> out = story(s);
+        addTranslations(NewsTranslationStore.STORY, Map.of(s.id(), out));
         boolean local = localAllowed(path);
         List<NewsStoryStore.Article> articles = new ArrayList<>();
         for (NewsStoryStore.Article a : store.articles(s.id())) {
@@ -240,6 +280,7 @@ public class NewsViews {
             byOutlet.computeIfAbsent(o == null ? "domain:" + a.domain() : o.id(), k -> new ArrayList<>()).add(a);
         }
         List<Map<String, Object>> groups = new ArrayList<>();
+        Map<String, Map<String, Object>> articleViews = new LinkedHashMap<>();
         for (Map.Entry<String, List<NewsStoryStore.Article>> e : byOutlet.entrySet()) {
             NewsStoryStore.Article first = e.getValue().get(0);
             OutletRegistry.Outlet o = first.outletId() == null ? null : byId.get(first.outletId());
@@ -248,12 +289,15 @@ public class NewsViews {
                     consensus.getOrDefault(o.id(), Map.of()), local));
             List<Map<String, Object>> list = new ArrayList<>();
             for (NewsStoryStore.Article a : e.getValue()) {
-                list.add(article(a, o));
+                Map<String, Object> view = article(a, o);
+                list.add(view);
+                articleViews.put(a.id(), view);
             }
             g.put("articles", list);
             g.put("evidenceGroupId", first.evidenceGroupId());
             groups.add(g);
         }
+        addTranslations(NewsTranslationStore.ARTICLE, articleViews);
         out.put("outlets", groups);
         List<ObjectEnvelope> situations = new ArrayList<>();
         List<ObjectEnvelope> events = new ArrayList<>();
@@ -362,12 +406,16 @@ public class NewsViews {
         }
         Map<String, OutletRegistry.Outlet> byId = outlets.byIds(outletIds);
         List<Map<String, Object>> items = new ArrayList<>();
+        Map<String, Map<String, Object>> views = new LinkedHashMap<>();
         for (String id : ids) {
             NewsStoryStore.Article a = byKey.get(id);
             if (a != null) {
-                items.add(article(a, a.outletId() == null ? null : byId.get(a.outletId())));
+                Map<String, Object> view = article(a, a.outletId() == null ? null : byId.get(a.outletId()));
+                items.add(view);
+                views.put(a.id(), view);
             }
         }
+        addTranslations(NewsTranslationStore.ARTICLE, views);
         return new Page(items, next);
     }
 

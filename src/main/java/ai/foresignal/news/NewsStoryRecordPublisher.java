@@ -23,7 +23,8 @@ import org.springframework.stereotype.Component;
  * <p>Payload: {@code title}, {@code canonicalEventId}, {@code topicIds}, {@code regionCodes}, {@code articleCount},
  * {@code outletCount}, {@code evidenceGroupCount}, {@code coverageBalance}, {@code blindspot},
  * {@code stateAffiliatedShare}, {@code corroborated}, {@code firstSeenAt}, {@code lastSeenAt}, {@code private: false}
- * and {@code automated: true}: derived counts and shares only, never a provider's rating. A record is emitted only when
+ * and {@code automated: true}; and, once NP-002 has translated the story's title, {@code translatedTitles} (target
+ * language to title) beside the untouched {@code title}: derived counts and shares only, never a provider's rating. A record is emitted only when
  * its payload changed; a story idle for longer than the {@code intel} retention class is tombstoned.
  */
 @Component
@@ -43,13 +44,15 @@ public class NewsStoryRecordPublisher {
 
     private final NewsStoryStore store;
     private final JdbcTemplate jdbc;
+    private final NewsTranslationStore translations;
     private final Map<String, Integer> published = new HashMap<>();
     private Instant watermark;
 
     /** Creates the publisher. */
-    public NewsStoryRecordPublisher(NewsStoryStore store, JdbcTemplate jdbc) {
+    public NewsStoryRecordPublisher(NewsStoryStore store, JdbcTemplate jdbc, NewsTranslationStore translations) {
         this.store = store;
         this.jdbc = jdbc;
+        this.translations = translations;
     }
 
     /** Rebuilds the published set from the source's own live heads; the next tick is a full pass. */
@@ -95,7 +98,13 @@ public class NewsStoryRecordPublisher {
         boolean live = s.articleCount() > 0 && s.lastSeenAt() != null
                 && s.lastSeenAt().plus(Duration.ofDays(RETENTION_DAYS)).isAfter(now);
         if (live) {
-            Map<String, Object> payload = payload(s);
+            Map<String, String> titles = new LinkedHashMap<>();
+            translations.servedAll(NewsTranslationStore.STORY, s.id()).forEach((language, t) -> {
+                if (t.translatedTitle() != null) {
+                    titles.put(language, t.translatedTitle());
+                }
+            });
+            Map<String, Object> payload = payload(s, titles);
             int hash = payload.hashCode();
             Integer last = published.get(s.id());
             if (last == null || last != hash) {
@@ -109,8 +118,12 @@ public class NewsStoryRecordPublisher {
         }
     }
 
-    /** The record payload of a story. */
-    static Map<String, Object> payload(NewsStoryStore.Story s) {
+    /**
+     * The record payload of a story.
+     *
+     * @param translatedTitles target language to translated title (NP-002); empty for none
+     */
+    static Map<String, Object> payload(NewsStoryStore.Story s, Map<String, String> translatedTitles) {
         Map<String, Object> p = new LinkedHashMap<>();
         p.put("title", s.title());
         p.put("canonicalEventId", s.id());
@@ -127,6 +140,9 @@ public class NewsStoryRecordPublisher {
         p.put("lastSeenAt", s.lastSeenAt() == null ? null : s.lastSeenAt().toString());
         p.put("private", false);
         p.put("automated", true);
+        if (translatedTitles != null && !translatedTitles.isEmpty()) {
+            p.put("translatedTitles", new LinkedHashMap<>(translatedTitles));
+        }
         return p;
     }
 

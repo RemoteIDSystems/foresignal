@@ -242,20 +242,23 @@ public class NotificationTranslator implements IngestStateReset {
         return restored;
     }
 
-    /** The user turn: the target language, then the content between the delimiters (which it cannot close). */
-    static String userTurn(String maskedText, String language) {
+    /**
+     * The user turn: the target language, then the content between the delimiters (which it cannot close). Public for
+     * the news translation of NP-002, which sends its content the same way.
+     */
+    public static String userTurn(String maskedText, String language) {
         String safe = maskedText.replace(BEGIN, "<<< TEXT").replace(END, "TEXT >>>");
         return "Target language (BCP 47): " + language + " (" + displayName(language) + ")\n" + BEGIN + "\n" + safe
                 + "\n" + END;
     }
 
     /** The longest acceptable output for an input of {@code inputChars}: 1.5 times, never under input + 16. */
-    static int maxOutputChars(int inputChars) {
+    public static int maxOutputChars(int inputChars) {
         return Math.max((int) Math.ceil(inputChars * MAX_GROWTH), inputChars + SHORT_SLACK);
     }
 
     /** The model's answer as plain text: trimmed, with an echoed delimiter or wrapping quotes removed. */
-    static String clean(String content) {
+    public static String clean(String content) {
         if (content == null) {
             return null;
         }
