@@ -49,6 +49,10 @@ import tools.jackson.databind.json.JsonMapper;
  * its owner turned off, carries a "Top stories" section of the owner's news, is written in its language (the LLM writer
  * is told to; a digest is translated after rendering, the English kept with a warning when that fails) and is spoken
  * by a voice of that language ({@link EditionVoice}).
+ *
+ * <p>Prompt NP-004: a briefing with {@code deliveryTargets} is delivered by {@link EditionDelivery}, each target in its
+ * own shape, and the outcome of each is stored on the run ({@code deliveryResults}); without targets it delivers
+ * exactly as before.
  */
 @Component
 public class BriefingRunner {
@@ -326,6 +330,10 @@ public class BriefingRunner {
         }
     }
 
+    /** Delivers to an edition's targets (prompt NP-004); resolved lazily, absent in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ObjectProvider<EditionDelivery> editionDelivery;
+
     /** Translates editions (prompt NP-003); resolved lazily, absent in hand-built unit tests. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private ObjectProvider<ai.foresignal.notify.NotificationTranslator> translator;
@@ -425,11 +433,24 @@ public class BriefingRunner {
             // NP-003: the search index is shared by every user, so an edition's runs stay out of it.
             embed(done);
         }
-        int delivered = deliver(briefing, input, done, edition);
-        if (delivered > 0) {
+        EditionDelivery targets = editionDelivery == null ? null : editionDelivery.getIfAvailable();
+        List<Map<String, Object>> results;
+        int delivered;
+        if (!input.edition().deliveryTargets().isEmpty() && targets != null) {
+            // NP-004: an edition with delivery targets goes to each of them in its own shape, instead of channelIds.
+            EditionDelivery.Outcome sent = targets.deliver(title(done), input, done, edition,
+                    plain(BriefingViews.run(done)));
+            results = sent.results();
+            delivered = sent.deliveries();
+        } else {
+            results = null;
+            delivered = deliver(briefing, input, done, edition);
+        }
+        if (delivered > 0 || results != null) {
             done = transactions.execute(status -> {
                 BriefingRunEntity row = runs.findById(runId).orElseThrow();
                 row.setDeliveries(delivered);
+                row.setDeliveryResults(results == null ? null : new ArrayList<>(results));
                 return runs.saveAndFlush(row);
             });
         }

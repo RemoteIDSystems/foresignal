@@ -45,6 +45,9 @@ import tools.jackson.databind.JsonNode;
  *       then records {@code audio.status=skipped}).
  *   <li>{@code outputLanguage} (NP-003): null or a BCP 47 tag, stored canonical. The read-only {@code ownerUserId}
  *       of a read briefing is accepted and ignored.
+ *   <li>{@code deliveryTargets} (NP-004): null or at most 20 {@code DeliveryTarget} objects; a {@code channel}
+ *       target needs a {@code channelId} and {@code email}, {@code push} or {@code alert}; {@code website} takes
+ *       {@code html} and {@code podcast} takes {@code audio}. A missing or disabled channel is a warning.
  * </ul>
  */
 @Component
@@ -73,7 +76,7 @@ public class BriefingValidator {
 
     /** Input members. */
     static final Set<String> MEMBERS = Set.of("name", "enabled", "schedule", "timezone", "scope", "lookback", "mode",
-            "instructions", "channelIds", "maxItemsPerKind", "audio", "outputLanguage");
+            "instructions", "channelIds", "maxItemsPerKind", "audio", "outputLanguage", "deliveryTargets");
 
     /** Output-only {@code Briefing} members, accepted and ignored so a read briefing can be sent back. */
     static final Set<String> OUTPUT_ONLY = Set.of("id", "createdAt", "updatedAt", "nextRunAt", "lastRunAt",
@@ -250,13 +253,118 @@ public class BriefingValidator {
 
         BriefingInput.Audio audio = audio(body.get("audio"), errors);
         String outputLanguage = outputLanguage(body.get("outputLanguage"), errors);
+        List<DeliveryTarget> targets = deliveryTargets(body.get("deliveryTargets"), errors);
 
         if (!errors.isEmpty()) {
             throw new ValidationException("The briefing is not valid.", errors);
         }
         BriefingInput input = new BriefingInput(name.strip(), enabled, schedule, timezone, scope, lookbackText, lookback,
-                mode, instructions, channelIds, maxItems, audio, new BriefingInput.Edition(outputLanguage));
-        return new Validated(input, channelWarnings(channelIds));
+                mode, instructions, channelIds, maxItems, audio, new BriefingInput.Edition(outputLanguage, targets));
+        List<String> warnings = new ArrayList<>(targets.isEmpty() ? channelWarnings(channelIds) : List.of());
+        warnings.addAll(targetWarnings(targets));
+        return new Validated(input, warnings);
+    }
+
+    /** The most delivery targets of a briefing (NP-004). */
+    static final int MAX_TARGETS = 20;
+
+    /**
+     * Parses {@code deliveryTargets} (NP-004): null or an array of at most {@value #MAX_TARGETS} {@code DeliveryTarget}
+     * objects. A {@code channel} target needs a {@code channelId} and the format {@code email}, {@code push} or
+     * {@code alert}; {@code website} takes {@code html} and {@code podcast} takes {@code audio}, neither with a
+     * channel. Duplicates are dropped.
+     */
+    @SuppressWarnings("unchecked")
+    static List<DeliveryTarget> deliveryTargets(JsonNode node, List<FieldError> errors) {
+        if (node == null || node.isNull()) {
+            return List.of();
+        }
+        if (!node.isArray()) {
+            errors.add(new FieldError("deliveryTargets", "must be an array of delivery targets or null"));
+            return List.of();
+        }
+        if (node.size() > MAX_TARGETS) {
+            errors.add(new FieldError("deliveryTargets", "may hold at most " + MAX_TARGETS + " targets"));
+            return List.of();
+        }
+        Set<DeliveryTarget> out = new LinkedHashSet<>();
+        for (int i = 0; i < node.size(); i++) {
+            String at = "deliveryTargets[" + i + "]";
+            JsonNode entry = node.get(i);
+            if (!entry.isObject()) {
+                errors.add(new FieldError(at, "must be an object {kind, channelId, format, options}"));
+                continue;
+            }
+            boolean ok = true;
+            for (String member : entry.propertyNames()) {
+                if (!Set.of("kind", "channelId", "format", "options").contains(member)) {
+                    errors.add(new FieldError(at + "." + member, "is not a DeliveryTarget member"));
+                    ok = false;
+                }
+            }
+            String kind = entry.path("kind").isString() ? entry.get("kind").asString() : null;
+            String format = entry.path("format").isString() ? entry.get("format").asString() : null;
+            JsonNode channelNode = entry.get("channelId");
+            UUID channel = channelNode == null || channelNode.isNull() ? null : uuid(channelNode);
+            if (kind == null || !DeliveryTarget.KINDS.contains(kind)) {
+                errors.add(new FieldError(at + ".kind", "must be channel, website or podcast"));
+                continue;
+            }
+            if (DeliveryTarget.CHANNEL.equals(kind)) {
+                if (channel == null) {
+                    errors.add(new FieldError(at + ".channelId", "must be a channel id (UUID) for a channel target"));
+                    ok = false;
+                }
+                if (format == null || !DeliveryTarget.CHANNEL_FORMATS.contains(format)) {
+                    errors.add(new FieldError(at + ".format", "must be email, push or alert for a channel target"));
+                    ok = false;
+                }
+            } else {
+                if (channelNode != null && !channelNode.isNull()) {
+                    errors.add(new FieldError(at + ".channelId", "must be null for a " + kind + " target"));
+                    ok = false;
+                }
+                String required = DeliveryTarget.requiredFormat(kind);
+                if (!required.equals(format)) {
+                    errors.add(new FieldError(at + ".format", "must be " + required + " for a " + kind + " target"));
+                    ok = false;
+                }
+            }
+            JsonNode optionsNode = entry.get("options");
+            java.util.Map<String, Object> options = java.util.Map.of();
+            if (optionsNode != null && !optionsNode.isNull()) {
+                if (!optionsNode.isObject()) {
+                    errors.add(new FieldError(at + ".options", "must be an object"));
+                    ok = false;
+                } else {
+                    options = OPTIONS_JSON.convertValue(optionsNode, java.util.LinkedHashMap.class);
+                }
+            }
+            if (ok) {
+                out.add(new DeliveryTarget(kind, channel, format, options));
+            }
+        }
+        return List.copyOf(out);
+    }
+
+    private static final tools.jackson.databind.json.JsonMapper OPTIONS_JSON =
+            tools.jackson.databind.json.JsonMapper.builder().build();
+
+    /** The warnings of channel targets: a channel that does not exist or is disabled (NP-004). */
+    public List<String> targetWarnings(List<DeliveryTarget> targets) {
+        List<String> warnings = new ArrayList<>();
+        for (DeliveryTarget target : targets) {
+            if (target.channelId() == null) {
+                continue;
+            }
+            Optional<NotificationChannelEntity> channel = channels.findById(target.channelId());
+            if (channel.isEmpty()) {
+                warnings.add("channel " + target.channelId() + " does not exist; runs will not be delivered to it");
+            } else if (!channel.get().isEnabled()) {
+                warnings.add("channel " + target.channelId() + " (" + channel.get().getName() + ") is disabled");
+            }
+        }
+        return warnings;
     }
 
     /**

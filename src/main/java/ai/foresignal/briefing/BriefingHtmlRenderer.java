@@ -76,8 +76,22 @@ public class BriefingHtmlRenderer {
      * @param footer a plain-text footer line (escaped here), or null
      */
     public String page(String title, String markdown, String footer) {
+        return page(title, markdown, footer, "en");
+    }
+
+    /**
+     * A whole page in {@code language} (NP-004: an edition in its output language).
+     *
+     * @param title the page title (escaped here)
+     * @param markdown the run's markdown
+     * @param footer a plain-text footer line (escaped here), or null
+     * @param language the page's BCP 47 {@code lang}; {@code en} when null or not a tag
+     */
+    public String page(String title, String markdown, String footer, String language) {
+        String lang = ai.foresignal.notify.NotificationTranslator.canonicalTag(language);
         StringBuilder out = new StringBuilder(4096);
-        out.append("<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">")
+        out.append("<!DOCTYPE html>\n<html lang=\"").append(lang == null ? "en" : HtmlUtils.htmlEscape(lang))
+                .append("\"><head><meta charset=\"utf-8\">")
                 .append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">")
                 .append("<meta name=\"color-scheme\" content=\"light dark\">")
                 .append("<meta name=\"referrer\" content=\"no-referrer\">")

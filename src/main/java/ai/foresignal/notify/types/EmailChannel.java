@@ -107,7 +107,10 @@ public class EmailChannel extends AbstractChannelType {
         }
         text.append("-- \nForesignal · ").append(m.severity()).append(" · ").append(displayTime(m, s)).append('\n');
         String html = null;
-        if (!s.flag("plainTextOnly", false)) {
+        if (!s.flag("plainTextOnly", false) && editionHtml(m) != null) {
+            // NP-004: an edition sent in the email format carries its whole sanitized page (BriefingHtmlRenderer).
+            html = editionHtml(m);
+        } else if (!s.flag("plainTextOnly", false)) {
             StringBuilder h = new StringBuilder("<html><body><h2>")
                     .append(MarkdownRenderer.escape(m.title(), MarkdownRenderer.Format.EMAIL_HTML)).append("</h2>");
             String body = MarkdownRenderer.render(m.bodyMarkdown(), MarkdownRenderer.Format.EMAIL_HTML);
@@ -137,5 +140,16 @@ public class EmailChannel extends AbstractChannelType {
                 m.audio() == null ? List.of() : List.of(new PreparedRequest.FileAttachment(m.audio().filename(),
                         m.audio().contentType(), m.audio().bytes())));
         return new PreparedRequest("SMTP", "smtp://" + host + ":" + port, Map.of(), mail);
+    }
+
+    /** The data key of an edition's whole HTML page (NP-004). */
+    public static final String EDITION_HTML = "editionHtml";
+
+    /** The sanitized page of an edition sent in the email format (NP-004), or null for any other message. */
+    static String editionHtml(NotificationMessage m) {
+        if (!NotificationMessage.BRIEFING.equals(m.event()) || m.data() == null) {
+            return null;
+        }
+        return m.data().get(EDITION_HTML) instanceof String page && !page.isBlank() ? page : null;
     }
 }

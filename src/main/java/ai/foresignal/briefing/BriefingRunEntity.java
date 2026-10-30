@@ -106,8 +106,23 @@ public class BriefingRunEntity {
     @Column(name = "audio", columnDefinition = "jsonb")
     private Map<String, Object> audio;
 
+    /** The outcome of each delivery target (NP-004, OpenAPI {@code BriefingRun.deliveryResults}), or null. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "delivery_results", columnDefinition = "jsonb")
+    private List<Map<String, Object>> deliveryResults;
+
     /** For JPA. */
     protected BriefingRunEntity() {}
+
+    /** The outcome of each delivery target (NP-004), or null for a briefing without targets. */
+    public List<Map<String, Object>> getDeliveryResults() {
+        return deliveryResults;
+    }
+
+    /** Sets the outcome of each delivery target (NP-004). */
+    public void setDeliveryResults(List<Map<String, Object>> deliveryResults) {
+        this.deliveryResults = deliveryResults;
+    }
 
     /** The synthesized audio of the run (prompt 141), or null when the briefing has no audio option. */
     public Map<String, Object> getAudio() {

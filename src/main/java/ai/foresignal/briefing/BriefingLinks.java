@@ -48,6 +48,16 @@ public class BriefingLinks {
         return baseUrl() + "/v1/briefings/" + briefingId + "/runs/" + runId;
     }
 
+    /** The hosted edition site (NP-005 {@code getEditionSite}): {@code <base>/v1/editions/{id}/site}. */
+    public String editionSite(UUID briefingId) {
+        return baseUrl() + "/v1/editions/" + briefingId + "/site";
+    }
+
+    /** The briefing's podcast feed (141 {@code getBriefingPodcast}). */
+    public String podcast(UUID briefingId) {
+        return baseUrl() + "/v1/briefings/" + briefingId + "/podcast.rss";
+    }
+
     private static String segment(String value) {
         return UriUtils.encodePathSegment(value == null ? "" : value, StandardCharsets.UTF_8);
     }

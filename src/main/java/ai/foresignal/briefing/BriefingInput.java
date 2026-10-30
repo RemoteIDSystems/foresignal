@@ -2,6 +2,7 @@ package ai.foresignal.briefing;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -39,11 +40,31 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
      *
      * @param outputLanguage the canonical BCP 47 language the edition is written and spoken in (NP-003), or null
      *     for the owner's {@code UserPreferences.locale}
+     * @param deliveryTargets where each run goes (NP-004); empty to deliver as before ({@code channelIds}, else every
+     *     channel subscribed to {@code briefing})
      */
-    public record Edition(String outputLanguage) {
+    public record Edition(String outputLanguage, List<DeliveryTarget> deliveryTargets) {
 
         /** No edition options. */
         public static final Edition NONE = new Edition(null);
+
+        /** Copies the targets. */
+        public Edition {
+            deliveryTargets = deliveryTargets == null ? List.of() : List.copyOf(deliveryTargets);
+        }
+
+        /** Options with a language and no targets (the shape of NP-003). */
+        public Edition(String outputLanguage) {
+            this(outputLanguage, List.of());
+        }
+
+        /** The targets stored as {@code maps}, the unreadable ones left out. */
+        static List<DeliveryTarget> targets(List<Map<String, Object>> maps) {
+            if (maps == null) {
+                return List.of();
+            }
+            return maps.stream().map(DeliveryTarget::fromMap).filter(Objects::nonNull).toList();
+        }
     }
 
     /** An input without audio (the shape before prompt 141). */
@@ -129,7 +150,7 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
         return new BriefingInput(entity.getName(), entity.isEnabled(), entity.getSchedule(), entity.getTimezone(),
                 BriefingScope.fromMap(entity.getScope()), entity.getLookback(), lookback, entity.getMode(),
                 entity.getInstructions(), channels, entity.getMaxItemsPerKind(), Audio.fromMap(entity.getAudio()),
-                new Edition(entity.getOutputLanguage()));
+                new Edition(entity.getOutputLanguage(), Edition.targets(entity.getDeliveryTargets())));
     }
 
     /** Writes this input onto {@code entity} (schedule fields only; times and ownership are the caller's). */
@@ -146,5 +167,7 @@ public record BriefingInput(String name, boolean enabled, String schedule, Strin
         entity.setMaxItemsPerKind(maxItemsPerKind);
         entity.setAudio(audio == null ? null : new java.util.LinkedHashMap<>(audio.toMap()));
         entity.setOutputLanguage(edition.outputLanguage());
+        entity.setDeliveryTargets(edition.deliveryTargets().isEmpty() ? null
+                : new java.util.ArrayList<>(edition.deliveryTargets().stream().map(DeliveryTarget::toMap).toList()));
     }
 }

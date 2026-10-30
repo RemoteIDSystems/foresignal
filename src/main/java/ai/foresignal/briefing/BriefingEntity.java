@@ -104,6 +104,11 @@ public class BriefingEntity {
     @Column(name = "output_language", length = 35)
     private String outputLanguage;
 
+    /** The edition's delivery targets (NP-004), as stored {@code DeliveryTarget} objects; null for none. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "delivery_targets", columnDefinition = "jsonb")
+    private List<Map<String, Object>> deliveryTargets;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "restriction_snapshot", columnDefinition = "jsonb")
     private ai.foresignal.security.TokenRestrictions restrictionSnapshot;
@@ -348,5 +353,15 @@ public class BriefingEntity {
     /** Sets when last changed. */
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    /** The edition's delivery targets (NP-004), or null when it has none. */
+    public List<Map<String, Object>> getDeliveryTargets() {
+        return deliveryTargets;
+    }
+
+    /** Sets the edition's delivery targets (NP-004); null or empty for none. */
+    public void setDeliveryTargets(List<Map<String, Object>> deliveryTargets) {
+        this.deliveryTargets = deliveryTargets;
     }
 }

@@ -107829,6 +107829,81 @@
                 "type": "null"
               }
             ]
+          },
+          "deliveryResults": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "readOnly": true,
+            "description": "The outcome of each of the briefing's `deliveryTargets` for this run (NP-004), in target order; null for a briefing without targets, which delivers to its channels as before",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "channel",
+                    "website",
+                    "podcast"
+                  ]
+                },
+                "channelId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid"
+                },
+                "format": {
+                  "type": "string",
+                  "enum": [
+                    "email",
+                    "push",
+                    "alert",
+                    "html",
+                    "audio"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "queued",
+                    "available",
+                    "skipped",
+                    "failed"
+                  ],
+                  "description": "`queued` handed to the channel (its own delivery is in the notification's deliveries); `available` a pulled target (`website`, `podcast`) the run can be read at; `skipped` not attempted (`error` says why: a missing, disabled or foreign channel, no audio); `failed` the send failed (`error`). One target's failure never stops the others"
+                },
+                "notificationId": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "format": "int64",
+                  "description": "The notification published to the channel"
+                },
+                "url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uri",
+                  "description": "Where a pulled target is available"
+                },
+                "error": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "kind",
+                "format",
+                "status"
+              ]
+            }
           }
         },
         "required": [
@@ -107841,7 +107916,8 @@
         "x-foresignal-extended-by": [
           "029",
           "109",
-          "141"
+          "141",
+          "NP-004"
         ]
       },
       "BriefingRunPage": {
