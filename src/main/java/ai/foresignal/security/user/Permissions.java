@@ -31,6 +31,7 @@ public enum Permissions {
     SELF_VIEWS("self.views", PermissionGroup.SELF, "Own saved views"),
     SELF_PREFERENCES("self.preferences", PermissionGroup.SELF, "Change one's own preferences"),
     SELF_WORKSPACES("self.workspaces", PermissionGroup.SELF, "Own workspaces"),
+    SELF_EDITIONS("self.editions", PermissionGroup.SELF, "Own newspaper editions"),
 
     DATA_READ("data.read", PermissionGroup.DATA, "Read collected records"),
     DATA_EXPORT("data.export", PermissionGroup.DATA, "Export collected records"),

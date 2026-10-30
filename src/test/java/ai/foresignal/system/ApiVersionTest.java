@@ -21,12 +21,16 @@ import tools.jackson.databind.json.JsonMapper;
  * entry for the release, so a version bump cannot land without saying what it added.
  *
  * <p>NP-007 activates the Automated Newspaper: every operation an {@code NP-} prompt authored is {@code implemented}
- * (none is left {@code planned}), and the 2.1.0 changelog entry names each of them.
+ * (none is left {@code planned}), and a {@code 2.1.x} changelog entry names each of them.
+ *
+ * <p>NP-008 moves the release to 2.1.1 (newspaper editions: ownership and self-service) and adds four more
+ * {@code NP-} operations. Because those are named in the 2.1.1 changelog note while the first seven are named only in
+ * the 2.1.0 note, the activation check concatenates every {@code 2.1.x} note, not just the release's.
  */
 class ApiVersionTest {
 
     /** The release this build is. */
-    static final String RELEASE = "2.1.0";
+    static final String RELEASE = "2.1.1";
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
@@ -68,14 +72,16 @@ class ApiVersionTest {
     }
 
     @Test
-    @DisplayName("2.1.0 is active: no NP- operation is planned, and the 2.1.0 changelog names every one of them")
+    @DisplayName("2.1.x is active: no NP- operation is planned, and a 2.1.x changelog note names every one of them")
     void newspaperOperationsAreActive() throws IOException {
         JsonNode spec = JSON.readTree(Files.readString(Path.of("docs", "OpenAPI.json")));
         java.util.List<String> planned = new java.util.ArrayList<>();
         java.util.List<String> unnamed = new java.util.ArrayList<>();
         String note = "";
         for (JsonNode entry : spec.get("info").get("x-foresignal-changelog")) {
-            if (RELEASE.equals(entry.get("version").asString())) {
+            // Every 2.1.x note, not just the release's: the 2.1.0 operations are named only in the 2.1.0 note, the
+            // 2.1.1 operations only in the 2.1.1 note, and all eleven must validate at the 2.1.1 release.
+            if (entry.get("version").asString().startsWith("2.1.")) {
                 note += entry.get("note").asString();
             }
         }
@@ -98,9 +104,9 @@ class ApiVersionTest {
                 }
             }
         }
-        assertThat(count).as("the newspaper operations").isGreaterThanOrEqualTo(7);
+        assertThat(count).as("the newspaper operations").isGreaterThanOrEqualTo(11);
         assertThat(planned).as("NP- operations still planned").isEmpty();
-        assertThat(unnamed).as("NP- operations the 2.1.0 changelog does not name").isEmpty();
+        assertThat(unnamed).as("NP- operations no 2.1.x changelog note names").isEmpty();
     }
 
     private static String infoVersion(Path spec) throws IOException {

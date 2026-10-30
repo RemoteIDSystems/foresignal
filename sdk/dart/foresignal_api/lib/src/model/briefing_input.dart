@@ -25,6 +25,8 @@ class BriefingInput {
   /// Returns a new [BriefingInput] instance.
   BriefingInput({
 
+     this.ownerUserId,
+
     required  this.name,
 
      this.enabled = true,
@@ -59,6 +61,19 @@ class BriefingInput {
 
      this.includeCorroboration = false,
   });
+
+      /// The v2.0 user who owns the edition (2.1.1). On the self-service `/v1/me/editions` operations it is ignored and forced to the caller. On `createBriefing`/`updateBriefing` it defaults to the creating user; only a caller holding `users.manage` may set it to another user, to assign an edition on their behalf. Null for a briefing created with an API token.
+  @JsonKey(
+    
+    name: r'ownerUserId',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? ownerUserId;
+
+
 
   @JsonKey(
     
@@ -277,6 +292,7 @@ class BriefingInput {
 
     @override
     bool operator ==(Object other) => identical(this, other) || other is BriefingInput &&
+      other.ownerUserId == ownerUserId &&
       other.name == name &&
       other.enabled == enabled &&
       other.schedule == schedule &&
@@ -297,6 +313,7 @@ class BriefingInput {
 
     @override
     int get hashCode =>
+        (ownerUserId == null ? 0 : ownerUserId.hashCode) +
         name.hashCode +
         enabled.hashCode +
         schedule.hashCode +

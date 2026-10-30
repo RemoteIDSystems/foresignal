@@ -7,6 +7,8 @@ part of 'briefing_input.dart';
 // **************************************************************************
 
 abstract class _$BriefingInputCWProxy {
+  BriefingInput ownerUserId(String? ownerUserId);
+
   BriefingInput name(String name);
 
   BriefingInput enabled(bool? enabled);
@@ -50,6 +52,7 @@ abstract class _$BriefingInputCWProxy {
   /// BriefingInput(...).copyWith(id: 12, name: "My name")
   /// ```
   BriefingInput call({
+    String? ownerUserId,
     String name,
     bool? enabled,
     String schedule,
@@ -76,6 +79,10 @@ class _$BriefingInputCWProxyImpl implements _$BriefingInputCWProxy {
   const _$BriefingInputCWProxyImpl(this._value);
 
   final BriefingInput _value;
+
+  @override
+  BriefingInput ownerUserId(String? ownerUserId) =>
+      call(ownerUserId: ownerUserId);
 
   @override
   BriefingInput name(String name) => call(name: name);
@@ -146,6 +153,7 @@ class _$BriefingInputCWProxyImpl implements _$BriefingInputCWProxy {
   /// ```
   @override
   BriefingInput call({
+    Object? ownerUserId = const $CopyWithPlaceholder(),
     Object? name = const $CopyWithPlaceholder(),
     Object? enabled = const $CopyWithPlaceholder(),
     Object? schedule = const $CopyWithPlaceholder(),
@@ -165,6 +173,10 @@ class _$BriefingInputCWProxyImpl implements _$BriefingInputCWProxy {
     Object? includeCorroboration = const $CopyWithPlaceholder(),
   }) {
     return BriefingInput(
+      ownerUserId: ownerUserId == const $CopyWithPlaceholder()
+          ? _value.ownerUserId
+          // ignore: cast_nullable_to_non_nullable
+          : ownerUserId as String?,
       name: name == const $CopyWithPlaceholder() || name == null
           ? _value.name
           // ignore: cast_nullable_to_non_nullable
@@ -252,6 +264,7 @@ BriefingInput _$BriefingInputFromJson(Map<String, dynamic> json) =>
     $checkedCreate('BriefingInput', json, ($checkedConvert) {
       $checkKeys(json, requiredKeys: const ['name', 'schedule']);
       final val = BriefingInput(
+        ownerUserId: $checkedConvert('ownerUserId', (v) => v as String?),
         name: $checkedConvert('name', (v) => v as String),
         enabled: $checkedConvert('enabled', (v) => v as bool? ?? true),
         schedule: $checkedConvert('schedule', (v) => v as String),
@@ -316,6 +329,7 @@ BriefingInput _$BriefingInputFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$BriefingInputToJson(
   BriefingInput instance,
 ) => <String, dynamic>{
+  'ownerUserId': ?instance.ownerUserId,
   'name': instance.name,
   'enabled': ?instance.enabled,
   'schedule': instance.schedule,

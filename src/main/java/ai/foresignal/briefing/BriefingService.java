@@ -50,6 +50,11 @@ import tools.jackson.databind.JsonNode;
  *       user's edition ({@code owner_user_id}). Only its owner sees, runs, changes or deletes it, and an instance
  *       (non-user) token as the operator's credential; any other user and an anonymous caller get {@code 404},
  *       as for a briefing that does not exist ({@link #visibleTo(BriefingEntity, EditionViewer)}).
+ *   <li><b>Ownership &amp; self-service</b> (prompt NP-008): on {@code createBriefing}/{@code updateBriefing} a caller
+ *       holding {@code users.manage} may assign {@code ownerUserId} to stand an edition up for a user
+ *       ({@link #create(JsonNode, McpCaller, boolean)}, {@link #update(UUID, JsonNode, McpCaller, boolean)});
+ *       otherwise the owner is the creating user (create) or unchanged (update). The self-service
+ *       {@code /v1/me/editions} operations reuse these, forcing the owner to the caller.
  * </ul>
  */
 @Service
@@ -295,43 +300,111 @@ public class BriefingService {
     }
 
     /**
-     * {@code createBriefing}.
+     * {@code createBriefing} without owner assignment: the edition is owned by the creating user (an API token leaves
+     * it unowned). Equivalent to {@link #create(JsonNode, McpCaller, boolean) create(body, caller, false)}.
      *
      * @param body the {@code BriefingInput}
      * @param caller who creates it (becomes the owner)
      * @return the {@code Briefing} with its warnings
      */
     public Map<String, Object> create(JsonNode body, McpCaller caller) {
+        return create(body, caller, false);
+    }
+
+    /**
+     * {@code createBriefing} (NP-008 adds the writable owner).
+     *
+     * @param body the {@code BriefingInput}
+     * @param caller who creates it (the creating user owns it by default; an API token leaves it unowned)
+     * @param mayAssign true when the caller holds {@code users.manage} and so may assign {@code ownerUserId} to
+     *     another user, to stand an edition up on their behalf
+     * @return the {@code Briefing} with its warnings
+     * @throws ValidationException 400 when an assigned {@code ownerUserId} is not an active user
+     */
+    public Map<String, Object> create(JsonNode body, McpCaller caller, boolean mayAssign) {
         BriefingValidator.Validated valid = validator.validate(body, caller.excludedSources());
         BriefingEntity entity = new BriefingEntity(UUID.randomUUID());
         Instant now = clock.instant();
         entity.setCreatedAt(now);
         apply(entity, valid.input(), owner(caller), scope(caller), now);
         entity.setRestrictionSnapshot(caller.restriction().toStored());
-        entity.setOwnerUserId(viewer(caller).userId());
+        entity.setOwnerUserId(resolveOwner(body, viewer(caller).userId(), mayAssign));
         BriefingEntity saved = briefings.saveAndFlush(entity);
         syncSite(saved);
         return BriefingViews.briefing(saved, valid.warnings());
     }
 
     /**
-     * {@code updateBriefing}: replaces the definition whole; past runs are kept.
+     * {@code updateBriefing} without owner assignment: the edition's owner is unchanged. Equivalent to
+     * {@link #update(UUID, JsonNode, McpCaller, boolean) update(id, body, caller, false)}.
      *
      * @param id the briefing
      * @param body the {@code BriefingInput}
-     * @param caller who replaces it (becomes the owner)
+     * @param caller who replaces it
      */
     public Map<String, Object> update(UUID id, JsonNode body, McpCaller caller) {
+        return update(id, body, caller, false);
+    }
+
+    /**
+     * {@code updateBriefing}: replaces the definition whole; past runs are kept (NP-008 adds the writable owner).
+     *
+     * <p>A caller who may not assign reaches only an edition visible to them (another user's is {@code 404}) and the
+     * owner is unchanged; a caller holding {@code users.manage} may reach any edition and reassign it through
+     * {@code ownerUserId}, or leave its owner as it is by omitting the field.
+     *
+     * @param id the briefing
+     * @param body the {@code BriefingInput}
+     * @param caller who replaces it
+     * @param mayAssign true when the caller holds {@code users.manage}
+     * @throws ValidationException 400 when an assigned {@code ownerUserId} is not an active user
+     */
+    public Map<String, Object> update(UUID id, JsonNode body, McpCaller caller, boolean mayAssign) {
         BriefingEntity entity = load(id);
-        if (!visibleTo(entity, viewer(caller))) {
+        if (!mayAssign && !visibleTo(entity, viewer(caller))) {
             throw NotFoundException.of("Briefing", id);
         }
         BriefingValidator.Validated valid = validator.validate(body, caller.excludedSources());
         apply(entity, valid.input(), owner(caller), scope(caller), clock.instant());
         entity.setRestrictionSnapshot(caller.restriction().toStored());
+        entity.setOwnerUserId(resolveOwner(body, entity.getOwnerUserId(), mayAssign));
         BriefingEntity saved = briefings.saveAndFlush(entity);
         syncSite(saved);
         return BriefingViews.briefing(saved, valid.warnings());
+    }
+
+    /**
+     * The user to own an edition on a write (NP-008): the body's {@code ownerUserId} when the caller may assign it and
+     * it names an active user, else {@code fallback} — the creating user on {@code createBriefing}, the edition's
+     * current owner on {@code updateBriefing}. A caller that may not assign, and the self-service
+     * {@code /v1/me/editions} operations (which never pass {@code mayAssign}), take the fallback and ignore the body.
+     *
+     * @param body the request body, which may carry {@code ownerUserId}
+     * @param fallback the owner to use when the body assigns none
+     * @param mayAssign whether the caller holds {@code users.manage}
+     * @return the user id to store as the owner
+     * @throws ValidationException 400 when an assigned {@code ownerUserId} is not an existing active user
+     */
+    private UUID resolveOwner(JsonNode body, UUID fallback, boolean mayAssign) {
+        if (!mayAssign || body == null || !body.has("ownerUserId") || body.get("ownerUserId").isNull()) {
+            return fallback;
+        }
+        UUID target;
+        try {
+            target = UUID.fromString(body.get("ownerUserId").asString());
+        } catch (RuntimeException e) {
+            throw ownerProblem();
+        }
+        if (users == null || users.findById(target)
+                .filter(u -> u.getStatus() == ai.foresignal.security.user.UserStatus.ACTIVE).isEmpty()) {
+            throw ownerProblem();
+        }
+        return target;
+    }
+
+    private static ValidationException ownerProblem() {
+        return new ValidationException(ErrorCodes.VALIDATION_FAILED, "ownerUserId must be an existing active user.",
+                List.of(new FieldError("ownerUserId", "is not an existing active user")));
     }
 
     /**

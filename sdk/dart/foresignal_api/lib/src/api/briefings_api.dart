@@ -121,6 +121,103 @@ _responseData = rawData == null ? null : deserialize<Briefing, Briefing>(rawData
     );
   }
 
+  /// Create my edition
+  /// Creates an edition the calling user owns, without needing agent scope (2.1.1). The body is a &#x60;BriefingInput&#x60;; &#x60;ownerUserId&#x60; is ignored and forced to the caller. The edition is then listed by &#x60;listMyEditions&#x60; and managed through the other &#x60;/v1/me/editions&#x60; operations. Any signed-in user holding &#x60;self.editions&#x60;; an API token is 401.  **Scope:** &#x60;read&#x60;.
+  ///
+  /// Parameters:
+  /// * [briefingInput] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [Briefing] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<Briefing>> createMyEdition({ 
+    required BriefingInput briefingInput,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/me/editions';
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(briefingInput);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    Briefing? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<Briefing, Briefing>(rawData, 'Briefing', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<Briefing>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// Delete a briefing
   /// Past runs are kept until retention removes them.  **Scope:** &#x60;agent&#x60; or &#x60;admin&#x60;.
   ///
@@ -145,6 +242,59 @@ _responseData = rawData == null ? null : deserialize<Briefing, Briefing>(rawData
     ProgressCallback? onReceiveProgress,
   }) async {
     final _path = r'/v1/briefings/{briefingId}'.replaceAll('{' r'briefingId' '}', briefingId.toString());
+    final _options = Options(
+      method: r'DELETE',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    return _response;
+  }
+
+  /// Delete my edition
+  /// Deletes an edition the calling user owns (2.1.1). 404 unless the edition exists and the caller owns it. Any signed-in user holding &#x60;self.editions&#x60;.  **Scope:** &#x60;read&#x60;.
+  ///
+  /// Parameters:
+  /// * [briefingId] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future]
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<void>> deleteMyEdition({ 
+    required String briefingId,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/me/editions/{briefingId}'.replaceAll('{' r'briefingId' '}', briefingId.toString());
     final _options = Options(
       method: r'DELETE',
       headers: <String, dynamic>{
@@ -1203,6 +1353,84 @@ _responseData = rawData == null ? null : deserialize<BriefingRun, BriefingRun>(r
     );
   }
 
+  /// Run my edition now
+  /// Runs an edition the calling user owns on demand (2.1.1), producing a run delivered to the edition&#39;s targets. 404 unless the edition exists and the caller owns it. Any signed-in user holding &#x60;self.editions&#x60;.  **Scope:** &#x60;read&#x60;.
+  ///
+  /// Parameters:
+  /// * [briefingId] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [BriefingRun] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<BriefingRun>> runMyEdition({ 
+    required String briefingId,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/me/editions/{briefingId}/run'.replaceAll('{' r'briefingId' '}', briefingId.toString());
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    BriefingRun? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<BriefingRun, BriefingRun>(rawData, 'BriefingRun', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<BriefingRun>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// Replace a briefing
   /// Replace a briefing whole (validated as &#x60;createBriefing&#x60;; output-only &#x60;Briefing&#x60; members are ignored, so a read briefing can be sent back). &#x60;next_run_at&#x60; is recomputed; past runs are kept. The replacing token becomes the owner.  **Scope:** &#x60;agent&#x60; or &#x60;admin&#x60;.
   ///
@@ -1229,6 +1457,105 @@ _responseData = rawData == null ? null : deserialize<BriefingRun, BriefingRun>(r
     ProgressCallback? onReceiveProgress,
   }) async {
     final _path = r'/v1/briefings/{briefingId}'.replaceAll('{' r'briefingId' '}', briefingId.toString());
+    final _options = Options(
+      method: r'PUT',
+      headers: <String, dynamic>{
+        ...?headers,
+      },
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {
+            'type': 'http',
+            'scheme': 'bearer',
+            'name': 'bearerToken',
+          },
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(briefingInput);
+
+    } catch(error, stackTrace) {
+      throw DioException(
+         requestOptions: _options.compose(
+          _dio.options,
+          _path,
+        ),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    Briefing? _responseData;
+
+    try {
+final rawData = _response.data;
+_responseData = rawData == null ? null : deserialize<Briefing, Briefing>(rawData, 'Briefing', growable: true);
+
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<Briefing>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// Update my edition
+  /// Updates an edition the calling user owns (2.1.1). The body is a &#x60;BriefingInput&#x60;; &#x60;ownerUserId&#x60; is forced to the caller. 404 unless the edition exists and the caller owns it. Any signed-in user holding &#x60;self.editions&#x60;.  **Scope:** &#x60;read&#x60;.
+  ///
+  /// Parameters:
+  /// * [briefingId] 
+  /// * [briefingInput] 
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [Briefing] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<Briefing>> updateMyEdition({ 
+    required String briefingId,
+    required BriefingInput briefingInput,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/v1/me/editions/{briefingId}'.replaceAll('{' r'briefingId' '}', briefingId.toString());
     final _options = Options(
       method: r'PUT',
       headers: <String, dynamic>{

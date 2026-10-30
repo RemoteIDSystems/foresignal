@@ -85,12 +85,15 @@ public class BriefingsController {
         return briefings.list(caller.restriction(), briefings.viewer(caller));
     }
 
-    /** {@code createBriefing}: 201 with {@code Location}; channel problems are {@code warnings}. */
+    /**
+     * {@code createBriefing}: 201 with {@code Location}; channel problems are {@code warnings}. A caller holding
+     * {@code users.manage} may set {@code ownerUserId} to stand an edition up for another user (NP-008).
+     */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(operationId = "createBriefing", tags = "Briefings")
     public ResponseEntity<Map<String, Object>> createBriefing(@RequestBody JsonNode body, HttpServletRequest request) {
-        Map<String, Object> created = briefings.create(body, callers.resolve(request));
+        Map<String, Object> created = briefings.create(body, callers.resolve(request), mayAssignOwner(request));
         return ResponseEntity.created(URI.create("/v1/briefings/" + created.get("id"))).body(created);
     }
 
@@ -112,12 +115,23 @@ public class BriefingsController {
         return briefings.get(id(briefingId));
     }
 
-    /** {@code updateBriefing}: a full replace. */
+    /**
+     * {@code updateBriefing}: a full replace. A caller holding {@code users.manage} may reach any edition and
+     * reassign it through {@code ownerUserId} (NP-008); any other caller reaches only its own and leaves the owner.
+     */
     @PutMapping("/{briefingId}")
     @Operation(operationId = "updateBriefing", tags = "Briefings")
     public Map<String, Object> updateBriefing(@PathVariable String briefingId, @RequestBody JsonNode body,
             HttpServletRequest request) {
-        return briefings.update(id(briefingId), body, callers.resolve(request));
+        return briefings.update(id(briefingId), body, callers.resolve(request), mayAssignOwner(request));
+    }
+
+    /** True when the request is a session holding {@code users.manage}, so it may assign an edition's owner (NP-008). */
+    private static boolean mayAssignOwner(HttpServletRequest request) {
+        return ai.foresignal.security.user.AuthenticatedSession.of(request)
+                .map(session -> session.permissions().keys()
+                        .contains(ai.foresignal.security.user.Permissions.USERS_MANAGE.key()))
+                .orElse(false);
     }
 
     /** {@code deleteBriefing}: 204; past runs are kept until retention removes them. */

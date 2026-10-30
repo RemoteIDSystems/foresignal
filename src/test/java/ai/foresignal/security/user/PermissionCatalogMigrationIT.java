@@ -7,6 +7,7 @@ import ai.foresignal.test.schema.ScratchDatabase;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -23,14 +24,19 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * {@code V14__identity_model.sql} (prompt R2-001) on a scratch database migrated to V13: it applies cleanly, creates
- * the six identity tables, and seeds a catalog and a built-in role matrix identical to {@link Permissions} and
- * {@link BuiltInRole}. This is the guard that keeps the Java catalog and the seeded rows from drifting apart.
+ * {@code V14__identity_model.sql} (prompt R2-001) on a scratch database migrated to V13: it applies cleanly and creates
+ * the six identity tables. The seeded catalog and built-in role matrix are then checked against {@link Permissions}
+ * and {@link BuiltInRole} across the full migration set, because the catalog grows by additive migration: NP-008's
+ * {@code V33__self_editions.sql} adds {@code self.editions} and its grants. This is the guard that keeps the Java
+ * catalog and the seeded rows from drifting apart.
  */
 @IntegrationTest
 class PermissionCatalogMigrationIT {
 
     static final String MIGRATION = "db/migration/V14__identity_model.sql";
+
+    /** The additive migration that completes the catalog after V14 (NP-008). */
+    static final String MIGRATION_SELF_EDITIONS = "db/migration/V33__self_editions.sql";
 
     @Autowired JdbcTemplate admin;
 
@@ -55,6 +61,13 @@ class PermissionCatalogMigrationIT {
         return scratch.jdbc();
     }
 
+    /** A scratch database migrated through every migration, so the catalog includes the additive {@code self.editions}. */
+    private JdbcTemplate migratedToLatest() {
+        scratch = ScratchDatabase.recreate(admin, "identity_model_it");
+        Flyway.configure().dataSource(scratch.dataSource()).locations("classpath:db/migration").load().migrate();
+        return scratch.jdbc();
+    }
+
     private static Map<UUID, Set<String>> grants(JdbcTemplate db) {
         return db.queryForList("select role_id, permission_key from role_permission").stream()
                 .collect(Collectors.groupingBy(row -> (UUID) row.get("role_id"),
@@ -75,7 +88,7 @@ class PermissionCatalogMigrationIT {
     @Test
     @DisplayName("the seeded catalog equals Permissions: same keys, groups and descriptions")
     void catalogMatchesJava() {
-        JdbcTemplate db = migratedTo14();
+        JdbcTemplate db = migratedToLatest();
         Set<String> seeded = new HashSet<>(db.queryForList(
                 "select key || '|' || \"group\" || '|' || description from permission", String.class));
         Set<String> java = Arrays.stream(Permissions.values())
@@ -86,7 +99,7 @@ class PermissionCatalogMigrationIT {
     @Test
     @DisplayName("the five built-in roles are seeded with their stable ids and exactly BuiltInRole's permissions")
     void rolesMatchJava() {
-        JdbcTemplate db = migratedTo14();
+        JdbcTemplate db = migratedToLatest();
         assertThat(db.queryForList("select id || '|' || name || '|' || built_in from role", String.class))
                 .containsExactlyInAnyOrderElementsOf(Arrays.stream(BuiltInRole.values())
                         .map(r -> r.id() + "|" + r.roleName() + "|true").toList());
@@ -105,7 +118,7 @@ class PermissionCatalogMigrationIT {
     @Test
     @DisplayName("re-running the seed against a partially seeded database restores it without duplicates")
     void seedIsRerunnable() throws IOException {
-        JdbcTemplate db = migratedTo14();
+        JdbcTemplate db = migratedToLatest();
         Map<UUID, Set<String>> before = grants(db);
         db.update("delete from role_permission where role_id = ?", BuiltInRole.EDITOR.id());
         for (String insert : seedStatements()) {
@@ -163,14 +176,18 @@ class PermissionCatalogMigrationIT {
         }
     }
 
-    /** The {@code insert} statements of V14, each ending at its {@code on conflict do nothing;}. */
+    /** The {@code insert} statements of V14 and V33 (the catalog seed), each ending at its {@code on conflict do nothing;}. */
     static List<String> seedStatements() throws IOException {
-        String sql;
-        try (InputStream in = new ClassPathResource(MIGRATION).getInputStream()) {
-            sql = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        List<String> statements = new ArrayList<>();
+        for (String migration : List.of(MIGRATION, MIGRATION_SELF_EDITIONS)) {
+            String sql;
+            try (InputStream in = new ClassPathResource(migration).getInputStream()) {
+                sql = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            }
+            Arrays.stream(sql.split(";"))
+                    .map(s -> s.lines().filter(l -> !l.startsWith("--")).collect(Collectors.joining("\n")).strip())
+                    .filter(s -> s.startsWith("insert into")).forEach(statements::add);
         }
-        return Arrays.stream(sql.split(";"))
-                .map(s -> s.lines().filter(l -> !l.startsWith("--")).collect(Collectors.joining("\n")).strip())
-                .filter(s -> s.startsWith("insert into")).toList();
+        return statements;
     }
 }

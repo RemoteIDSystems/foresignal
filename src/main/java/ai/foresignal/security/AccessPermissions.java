@@ -324,6 +324,7 @@ final class AccessPermissions {
             rule("GET", "/v1/intel/board", "intel.read"), // getIntelBoard
             rule("GET", "/v1/maps/static", "data.read"), // getStaticMap
             rule("GET", "/v1/me/editions", null), // listMyEditions
+            rule("POST", "/v1/me/editions", "self.editions"), // createMyEdition
             rule("GET", "/v1/permissions", "roles.manage"), // listPermissions
             rule("GET", "/v1/share-links", null), // listShareLinks
             rule("POST", "/v1/share-links", null), // createShareLink
@@ -659,6 +660,7 @@ final class AccessPermissions {
             rule("GET", "/v1/hypotheses/sets/*", "intel.read"), // getHypothesisSet
             rule("PATCH", "/v1/hypotheses/sets/*", null), // updateHypothesisSet
             rule("POST", "/v1/indices/*/weights", null), // applyRegionalIndexWeights
+            rule("POST", "/v1/me/editions/*/run", "self.editions"), // runMyEdition
             rule("GET", "/v1/media/*/thumbnail", "data.read"), // getMediaThumbnail
             rule("GET", "/v1/media/providers/*", "system.settings"), // getMediaProvider
             rule("PUT", "/v1/media/providers/*", "system.settings"), // updateMediaProvider
@@ -769,6 +771,8 @@ final class AccessPermissions {
             rule("POST", "/v1/indices/*/fit", null), // fitRegionalIndex
             rule("GET", "/v1/infra/nodes/*", "intel.read"), // getInfraNode
             rule("GET", "/v1/map/sprites/*", "data.read"), // getMapSprite
+            rule("DELETE", "/v1/me/editions/*", "self.editions"), // deleteMyEdition
+            rule("PUT", "/v1/me/editions/*", "self.editions"), // updateMyEdition
             rule("GET", "/v1/objects/*/acl", null), // getObjectAcl
             rule("PUT", "/v1/objects/*/acl", null), // replaceObjectAcl
             rule("POST", "/v1/places/*/pack", "data.export"), // createPlacePack

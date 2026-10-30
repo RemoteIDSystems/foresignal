@@ -95012,7 +95012,7 @@
         "x-foresignal-permission": "self.editions",
         "x-foresignal-prompt": "NP-008",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/me/editions/{briefingId}": {
@@ -95115,7 +95115,7 @@
         "x-foresignal-permission": "self.editions",
         "x-foresignal-prompt": "NP-008",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       },
       "delete": {
         "tags": [
@@ -95189,7 +95189,7 @@
         "x-foresignal-permission": "self.editions",
         "x-foresignal-prompt": "NP-008",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/me/editions/{briefingId}/run": {
@@ -95272,7 +95272,7 @@
         "x-foresignal-permission": "self.editions",
         "x-foresignal-prompt": "NP-008",
         "x-foresignal-always-authenticated": true,
-        "x-foresignal-status": "planned"
+        "x-foresignal-status": "implemented"
       }
     },
     "/v1/editions/{briefingId}/site": {

@@ -30,6 +30,8 @@ class Briefing:
         schedule (str): 5-field cron Example: 0 7 * * *.
         id (UUID):
         created_at (datetime.datetime):
+        owner_user_id (None | Unset | UUID): The v2.0 user who owns the edition: the creating user for a signed-in
+            session, null for a briefing created with an API token (NP-003)
         enabled (bool | Unset):  Default: True.
         timezone (str | Unset):  Default: 'UTC'. Example: America/Chicago.
         scope (BriefingScope | Unset):
@@ -54,14 +56,13 @@ class Briefing:
         last_run_at (datetime.datetime | None | Unset):
         last_run_status (None | str | Unset):
         warnings (list[str] | Unset): Non-fatal validation warnings, e.g. a channel not subscribed to `briefing`
-        owner_user_id (None | Unset | UUID): The v2.0 user who owns the edition: the creating user for a signed-in
-            session, null for a briefing created with an API token (NP-003)
     """
 
     name: str
     schedule: str
     id: UUID
     created_at: datetime.datetime
+    owner_user_id: None | Unset | UUID = UNSET
     enabled: bool | Unset = True
     timezone: str | Unset = "UTC"
     scope: BriefingScope | Unset = UNSET
@@ -82,7 +83,6 @@ class Briefing:
     last_run_at: datetime.datetime | None | Unset = UNSET
     last_run_status: None | str | Unset = UNSET
     warnings: list[str] | Unset = UNSET
-    owner_user_id: None | Unset | UUID = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -96,6 +96,14 @@ class Briefing:
         id = str(self.id)
 
         created_at = self.created_at.isoformat()
+
+        owner_user_id: None | str | Unset
+        if isinstance(self.owner_user_id, Unset):
+            owner_user_id = UNSET
+        elif isinstance(self.owner_user_id, UUID):
+            owner_user_id = str(self.owner_user_id)
+        else:
+            owner_user_id = self.owner_user_id
 
         enabled = self.enabled
 
@@ -197,14 +205,6 @@ class Briefing:
         if not isinstance(self.warnings, Unset):
             warnings = self.warnings
 
-        owner_user_id: None | str | Unset
-        if isinstance(self.owner_user_id, Unset):
-            owner_user_id = UNSET
-        elif isinstance(self.owner_user_id, UUID):
-            owner_user_id = str(self.owner_user_id)
-        else:
-            owner_user_id = self.owner_user_id
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -215,6 +215,8 @@ class Briefing:
                 "createdAt": created_at,
             }
         )
+        if owner_user_id is not UNSET:
+            field_dict["ownerUserId"] = owner_user_id
         if enabled is not UNSET:
             field_dict["enabled"] = enabled
         if timezone is not UNSET:
@@ -255,8 +257,6 @@ class Briefing:
             field_dict["lastRunStatus"] = last_run_status
         if warnings is not UNSET:
             field_dict["warnings"] = warnings
-        if owner_user_id is not UNSET:
-            field_dict["ownerUserId"] = owner_user_id
 
         return field_dict
 
@@ -276,6 +276,23 @@ class Briefing:
         id = UUID(d.pop("id"))
 
         created_at = datetime.datetime.fromisoformat(d.pop("createdAt"))
+
+        def _parse_owner_user_id(data: object) -> None | Unset | UUID:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                owner_user_id_type_0 = UUID(data)
+
+                return owner_user_id_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(None | Unset | UUID, data)
+
+        owner_user_id = _parse_owner_user_id(d.pop("ownerUserId", UNSET))
 
         enabled = d.pop("enabled", UNSET)
 
@@ -441,28 +458,12 @@ class Briefing:
 
         warnings = cast(list[str], d.pop("warnings", UNSET))
 
-        def _parse_owner_user_id(data: object) -> None | Unset | UUID:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                owner_user_id_type_0 = UUID(data)
-
-                return owner_user_id_type_0
-            except (TypeError, ValueError, AttributeError, KeyError):
-                pass
-            return cast(None | Unset | UUID, data)
-
-        owner_user_id = _parse_owner_user_id(d.pop("ownerUserId", UNSET))
-
         briefing = cls(
             name=name,
             schedule=schedule,
             id=id,
             created_at=created_at,
+            owner_user_id=owner_user_id,
             enabled=enabled,
             timezone=timezone,
             scope=scope,
@@ -483,7 +484,6 @@ class Briefing:
             last_run_at=last_run_at,
             last_run_status=last_run_status,
             warnings=warnings,
-            owner_user_id=owner_user_id,
         )
 
         briefing.additional_properties = d

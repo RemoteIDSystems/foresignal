@@ -27,6 +27,10 @@ class BriefingInput:
     Attributes:
         name (str):
         schedule (str): 5-field cron Example: 0 7 * * *.
+        owner_user_id (None | Unset | UUID): The v2.0 user who owns the edition (2.1.1). On the self-service
+            `/v1/me/editions` operations it is ignored and forced to the caller. On `createBriefing`/`updateBriefing` it
+            defaults to the creating user; only a caller holding `users.manage` may set it to another user, to assign an
+            edition on their behalf. Null for a briefing created with an API token.
         enabled (bool | Unset):  Default: True.
         timezone (str | Unset):  Default: 'UTC'. Example: America/Chicago.
         scope (BriefingScope | Unset):
@@ -50,6 +54,7 @@ class BriefingInput:
 
     name: str
     schedule: str
+    owner_user_id: None | Unset | UUID = UNSET
     enabled: bool | Unset = True
     timezone: str | Unset = "UTC"
     scope: BriefingScope | Unset = UNSET
@@ -74,6 +79,14 @@ class BriefingInput:
         name = self.name
 
         schedule = self.schedule
+
+        owner_user_id: None | str | Unset
+        if isinstance(self.owner_user_id, Unset):
+            owner_user_id = UNSET
+        elif isinstance(self.owner_user_id, UUID):
+            owner_user_id = str(self.owner_user_id)
+        else:
+            owner_user_id = self.owner_user_id
 
         enabled = self.enabled
 
@@ -153,6 +166,8 @@ class BriefingInput:
                 "schedule": schedule,
             }
         )
+        if owner_user_id is not UNSET:
+            field_dict["ownerUserId"] = owner_user_id
         if enabled is not UNSET:
             field_dict["enabled"] = enabled
         if timezone is not UNSET:
@@ -198,6 +213,23 @@ class BriefingInput:
         name = d.pop("name")
 
         schedule = d.pop("schedule")
+
+        def _parse_owner_user_id(data: object) -> None | Unset | UUID:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                owner_user_id_type_0 = UUID(data)
+
+                return owner_user_id_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(None | Unset | UUID, data)
+
+        owner_user_id = _parse_owner_user_id(d.pop("ownerUserId", UNSET))
 
         enabled = d.pop("enabled", UNSET)
 
@@ -314,6 +346,7 @@ class BriefingInput:
         briefing_input = cls(
             name=name,
             schedule=schedule,
+            owner_user_id=owner_user_id,
             enabled=enabled,
             timezone=timezone,
             scope=scope,

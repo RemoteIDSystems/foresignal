@@ -25,6 +25,8 @@ class Briefing {
   /// Returns a new [Briefing] instance.
   Briefing({
 
+     this.ownerUserId,
+
     required  this.name,
 
      this.enabled = true,
@@ -72,9 +74,20 @@ class Briefing {
      this.lastRunStatus,
 
      this.warnings,
-
-     this.ownerUserId,
   });
+
+      /// The v2.0 user who owns the edition: the creating user for a signed-in session, null for a briefing created with an API token (NP-003)
+  @JsonKey(
+    
+    name: r'ownerUserId',
+    required: false,
+    includeIfNull: false,
+  )
+
+
+  final String? ownerUserId;
+
+
 
   @JsonKey(
     
@@ -374,23 +387,11 @@ class Briefing {
 
 
 
-      /// The v2.0 user who owns the edition: the creating user for a signed-in session, null for a briefing created with an API token (NP-003)
-  @JsonKey(
-    
-    name: r'ownerUserId',
-    required: false,
-    includeIfNull: false,
-  )
-
-
-  final String? ownerUserId;
-
-
-
 
 
     @override
     bool operator ==(Object other) => identical(this, other) || other is Briefing &&
+      other.ownerUserId == ownerUserId &&
       other.name == name &&
       other.enabled == enabled &&
       other.schedule == schedule &&
@@ -414,11 +415,11 @@ class Briefing {
       other.nextRunAt == nextRunAt &&
       other.lastRunAt == lastRunAt &&
       other.lastRunStatus == lastRunStatus &&
-      other.warnings == warnings &&
-      other.ownerUserId == ownerUserId;
+      other.warnings == warnings;
 
     @override
     int get hashCode =>
+        (ownerUserId == null ? 0 : ownerUserId.hashCode) +
         name.hashCode +
         enabled.hashCode +
         schedule.hashCode +
@@ -442,8 +443,7 @@ class Briefing {
         (nextRunAt == null ? 0 : nextRunAt.hashCode) +
         (lastRunAt == null ? 0 : lastRunAt.hashCode) +
         (lastRunStatus == null ? 0 : lastRunStatus.hashCode) +
-        warnings.hashCode +
-        (ownerUserId == null ? 0 : ownerUserId.hashCode);
+        warnings.hashCode;
 
   factory Briefing.fromJson(Map<String, dynamic> json) => _$BriefingFromJson(json);
 

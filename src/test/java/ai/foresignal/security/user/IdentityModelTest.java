@@ -22,16 +22,17 @@ class IdentityModelTest {
     }
 
     @Test
-    @DisplayName("the catalog has exactly the 21 keys of the four groups, each unique")
+    @DisplayName("the catalog has exactly the 22 keys of the four groups, each unique")
     void catalogKeys() {
-        assertThat(Arrays.stream(Permissions.values()).map(Permissions::key)).doesNotHaveDuplicates().hasSize(21);
+        assertThat(Arrays.stream(Permissions.values()).map(Permissions::key)).doesNotHaveDuplicates().hasSize(22);
         assertThat(keys(Permissions.inGroup(PermissionGroup.IDENTITY))).containsExactlyInAnyOrder("users.manage",
                 "roles.manage");
         assertThat(keys(Permissions.inGroup(PermissionGroup.PLATFORM))).containsExactlyInAnyOrder("system.settings",
                 "collection.manage", "collector.settings", "llm.shared.manage", "channels.global", "storage.manage",
                 "network.manage", "audit.read");
         assertThat(keys(Permissions.inGroup(PermissionGroup.SELF))).containsExactlyInAnyOrder("self.sources",
-                "self.alerts", "self.channels", "self.llm", "self.views", "self.preferences", "self.workspaces");
+                "self.alerts", "self.channels", "self.llm", "self.views", "self.preferences", "self.workspaces",
+                "self.editions");
         assertThat(keys(Permissions.inGroup(PermissionGroup.DATA))).containsExactlyInAnyOrder("data.read",
                 "data.export", "intel.read", "forecast.read");
         assertThat(Arrays.stream(Permissions.values())).allMatch(p -> !p.description().isBlank());

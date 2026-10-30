@@ -280,7 +280,7 @@ class DatabaseCleanerIT {
 
         assertThat(cleaner.foresignalTables()).doesNotContainAnyElementsOf(DatabaseCleaner.SEEDED_CATALOG_TABLES)
                 .contains("\"user\"", "user_role", "user_token");
-        assertThat(jdbc.queryForObject("select count(*) from permission", Long.class)).isEqualTo(21L);
+        assertThat(jdbc.queryForObject("select count(*) from permission", Long.class)).isEqualTo(22L);
         assertThat(jdbc.queryForList("select name from role order by name", String.class))
                 .containsExactly("Admin", "Auditor", "Editor", "Operator", "Viewer");
         assertThat(jdbc.queryForObject("select count(*) from role_permission where role_id = ?", Long.class, custom))

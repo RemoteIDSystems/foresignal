@@ -811,6 +811,11 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/me/news-subscriptions", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.PUT, "/v1/me/news-subscriptions", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/me/editions", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                // NP-008: self-service editions, gated on the self.editions permission rather than agent scope.
+                rule(HttpMethod.POST, "/v1/me/editions", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/me/editions/*/run", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PUT, "/v1/me/editions/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.DELETE, "/v1/me/editions/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/inbox", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/principals", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.POST, "/v1/principals", AccessRequirement.ADMIN),

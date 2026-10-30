@@ -7,6 +7,8 @@ part of 'briefing.dart';
 // **************************************************************************
 
 abstract class _$BriefingCWProxy {
+  Briefing ownerUserId(String? ownerUserId);
+
   Briefing name(String name);
 
   Briefing enabled(bool? enabled);
@@ -55,8 +57,6 @@ abstract class _$BriefingCWProxy {
 
   Briefing warnings(List<String>? warnings);
 
-  Briefing ownerUserId(String? ownerUserId);
-
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `Briefing(...).copyWith.fieldName(value)`.
@@ -66,6 +66,7 @@ abstract class _$BriefingCWProxy {
   /// Briefing(...).copyWith(id: 12, name: "My name")
   /// ```
   Briefing call({
+    String? ownerUserId,
     String name,
     bool? enabled,
     String schedule,
@@ -90,7 +91,6 @@ abstract class _$BriefingCWProxy {
     DateTime? lastRunAt,
     String? lastRunStatus,
     List<String>? warnings,
-    String? ownerUserId,
   });
 }
 
@@ -100,6 +100,9 @@ class _$BriefingCWProxyImpl implements _$BriefingCWProxy {
   const _$BriefingCWProxyImpl(this._value);
 
   final Briefing _value;
+
+  @override
+  Briefing ownerUserId(String? ownerUserId) => call(ownerUserId: ownerUserId);
 
   @override
   Briefing name(String name) => call(name: name);
@@ -181,9 +184,6 @@ class _$BriefingCWProxyImpl implements _$BriefingCWProxy {
   @override
   Briefing warnings(List<String>? warnings) => call(warnings: warnings);
 
-  @override
-  Briefing ownerUserId(String? ownerUserId) => call(ownerUserId: ownerUserId);
-
   /// Creates a new instance with the provided field values.
   /// Omitted fields keep their values; explicit `null` clears nullable fields.
   /// The public API rejects `null` for non-nullable fields. To update a single field use `Briefing(...).copyWith.fieldName(value)`.
@@ -194,6 +194,7 @@ class _$BriefingCWProxyImpl implements _$BriefingCWProxy {
   /// ```
   @override
   Briefing call({
+    Object? ownerUserId = const $CopyWithPlaceholder(),
     Object? name = const $CopyWithPlaceholder(),
     Object? enabled = const $CopyWithPlaceholder(),
     Object? schedule = const $CopyWithPlaceholder(),
@@ -218,9 +219,12 @@ class _$BriefingCWProxyImpl implements _$BriefingCWProxy {
     Object? lastRunAt = const $CopyWithPlaceholder(),
     Object? lastRunStatus = const $CopyWithPlaceholder(),
     Object? warnings = const $CopyWithPlaceholder(),
-    Object? ownerUserId = const $CopyWithPlaceholder(),
   }) {
     return Briefing(
+      ownerUserId: ownerUserId == const $CopyWithPlaceholder()
+          ? _value.ownerUserId
+          // ignore: cast_nullable_to_non_nullable
+          : ownerUserId as String?,
       name: name == const $CopyWithPlaceholder() || name == null
           ? _value.name
           // ignore: cast_nullable_to_non_nullable
@@ -317,10 +321,6 @@ class _$BriefingCWProxyImpl implements _$BriefingCWProxy {
           ? _value.warnings
           // ignore: cast_nullable_to_non_nullable
           : warnings as List<String>?,
-      ownerUserId: ownerUserId == const $CopyWithPlaceholder()
-          ? _value.ownerUserId
-          // ignore: cast_nullable_to_non_nullable
-          : ownerUserId as String?,
     );
   }
 }
@@ -341,6 +341,7 @@ Briefing _$BriefingFromJson(
 ) => $checkedCreate('Briefing', json, ($checkedConvert) {
   $checkKeys(json, requiredKeys: const ['name', 'schedule', 'id', 'createdAt']);
   final val = Briefing(
+    ownerUserId: $checkedConvert('ownerUserId', (v) => v as String?),
     name: $checkedConvert('name', (v) => v as String),
     enabled: $checkedConvert('enabled', (v) => v as bool? ?? true),
     schedule: $checkedConvert('schedule', (v) => v as String),
@@ -416,12 +417,12 @@ Briefing _$BriefingFromJson(
       'warnings',
       (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
     ),
-    ownerUserId: $checkedConvert('ownerUserId', (v) => v as String?),
   );
   return val;
 });
 
 Map<String, dynamic> _$BriefingToJson(Briefing instance) => <String, dynamic>{
+  'ownerUserId': ?instance.ownerUserId,
   'name': instance.name,
   'enabled': ?instance.enabled,
   'schedule': instance.schedule,
@@ -446,7 +447,6 @@ Map<String, dynamic> _$BriefingToJson(Briefing instance) => <String, dynamic>{
   'lastRunAt': ?instance.lastRunAt?.toIso8601String(),
   'lastRunStatus': ?instance.lastRunStatus,
   'warnings': ?instance.warnings,
-  'ownerUserId': ?instance.ownerUserId,
 };
 
 const _$BriefingModeEnumEnumMap = {
