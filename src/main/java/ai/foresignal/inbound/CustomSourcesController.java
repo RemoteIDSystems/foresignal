@@ -65,7 +65,15 @@ public class CustomSourcesController {
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(operationId = "createCustomSource", tags = "Ingest")
     public Map<String, Object> createCustomSource(@RequestBody JsonNode body, HttpServletRequest request) {
-        CustomSourceService.Created created = service.create(body);
+        return createdResponse(service.create(body), request);
+    }
+
+    /**
+     * The {@code CustomSourceCreated} response: the {@link #view(CustomSourceEntity)} plus the one-time {@code
+     * ingestKey} and, for a preset source, the device {@code setup}. Shared with the self-service create (prompt
+     * SG-001) so the created-source shape is identical on both surfaces.
+     */
+    Map<String, Object> createdResponse(CustomSourceService.Created created, HttpServletRequest request) {
         Map<String, Object> out = view(created.source());
         out.put("ingestKey", created.ingestKey());
         String preset = created.source().getPreset();

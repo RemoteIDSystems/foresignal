@@ -88,6 +88,8 @@ final class AccessPermissions {
             rule("PUT", "/v1/tokens/current/device", null), // updateCurrentTokenDevice
             rule("GET", "/compat/celestrak/gp.php", "data.read"), // getCelestrakGp
             rule("POST", "/v1/kinematics/cpa/batch", "data.read"), // cpaBatch
+            rule("GET", "/v1/me/source-thresholds", "self.alerts"), // getMySourceThresholds
+            rule("PUT", "/v1/me/source-thresholds", "self.alerts"), // updateMySourceThresholds
             rule("POST", "/v1/media/ratings/import", "system.settings"), // importMediaRatings
             rule("GET", "/v1/notifications/stream", null), // streamNotifications
             rule("GET", "/v1/settings/infra-rules", "system.settings"), // getInfraRules
@@ -153,6 +155,8 @@ final class AccessPermissions {
             rule("GET", "/v1/federation/stream", null), // streamFederation
             rule("GET", "/v1/forecasts/compare", "forecast.read"), // compareForecasters
             rule("GET", "/v1/intel/calibration", "intel.read"), // getIntelCalibration
+            rule("GET", "/v1/me/custom-sources", "self.sources"), // listMyCustomSources
+            rule("POST", "/v1/me/custom-sources", "self.sources"), // createMyCustomSource
             rule("POST", "/v1/precursors/retest", null), // retestPrecursors
             rule("GET", "/v1/products/loop.gif", "data.read"), // getProductLoopGif
             rule("GET", "/v1/products/timeline", "data.read"), // getProductTimeline
@@ -188,6 +192,8 @@ final class AccessPermissions {
             rule("GET", "/v1/mappings/presets", "system.settings"), // listMappingPresets
             rule("POST", "/v1/mappings/preview", "system.settings"), // previewMapping
             rule("POST", "/v1/mappings/suggest", "system.settings"), // suggestMapping
+            rule("GET", "/v1/me/source-groups", "self.sources"), // listMySourceGroups
+            rule("POST", "/v1/me/source-groups", "self.sources"), // createMySourceGroup
             rule("GET", "/v1/prompt-templates", null), // listPromptTemplates
             rule("GET", "/v1/settings/archive", "storage.manage"), // getArchiveSettings
             rule("PUT", "/v1/settings/archive", "storage.manage"), // updateArchiveSettings
@@ -450,6 +456,7 @@ final class AccessPermissions {
             rule("POST", "/v1/chronicle-network/links/*/request-access", null), // requestChronicleAccess
             rule("GET", "/taxii2/foresignal/collections/*/objects/", null), // getTaxiiCollectionObjects
             rule("GET", "/v1/chronicle-network/clusters/*/timeline", "intel.read"), // getChronicleClusterTimeline
+            rule("POST", "/v1/me/custom-sources/*/ingest-key/rotate", "self.sources"), // rotateMyCustomSourceIngestKey
             rule("POST", "/v1/chronicle-network/requests/*/decline", null), // declineChronicleAccessRequest
             rule("GET", "/v1/hypotheses/sets/*/information-value", "intel.read"), // getInformationValue
             rule("GET", "/compat/celestrak/NORAD/elements/*.txt", "data.read"), // getCelestrakGroupTle
@@ -459,6 +466,7 @@ final class AccessPermissions {
             rule("GET", "/v1/external/sources/*/question-links", null), // listExternalQuestionLinks
             rule("POST", "/v1/external/sources/*/question-links", null), // createExternalQuestionLink
             rule("GET", "/v1/ground-stations/*/polarplot.jpeg", "data.read"), // getGroundStationPolarplot
+            rule("POST", "/v1/me/custom-sources/*/mapping/test", "self.sources"), // testMyCustomSourceMapping
             rule("POST", "/v1/exchange/received/*/acknowledge", null), // acknowledgeReceivedPackage
             rule("GET", "/v1/forecasts/questions/*/forecasts", "forecast.read"), // listForecasts
             rule("POST", "/v1/forecasts/questions/*/forecasts", null), // submitForecast
@@ -487,6 +495,7 @@ final class AccessPermissions {
             rule("PUT", "/v1/external/sources/*/manifest", null), // updateExternalSourceManifest
             rule("POST", "/v1/forecasts/questions/*/annul", null), // annulForecastQuestion
             rule("GET", "/v1/hypotheses/sets/*/revisions", "intel.read"), // listHypothesisRevisions
+            rule("GET", "/v1/me/custom-sources/*/samples", "self.sources"), // listMyCustomSourceSamples
             rule("GET", "/v1/ogc/collections/*/instances", "data.read"), // edrInstances
             rule("GET", "/v1/ogc/collections/*/map/tiles", "data.read"), // ogcCollectionTilesets
             rule("POST", "/v1/push/subscriptions/*/verify", null), // verifyPushSubscription
@@ -602,6 +611,9 @@ final class AccessPermissions {
             rule("PUT", "/v1/external/bindings/*", "collection.manage"), // updateExternalBinding
             rule("POST", "/v1/federation/ingest/*", null), // federationIngest
             rule("GET", "/v1/intel/calibration/*", "intel.read"), // getIntelCalibrationScope
+            rule("DELETE", "/v1/me/custom-sources/*", "self.sources"), // deleteMyCustomSource
+            rule("GET", "/v1/me/custom-sources/*", "self.sources"), // getMyCustomSource
+            rule("PUT", "/v1/me/custom-sources/*", "self.sources"), // updateMyCustomSource
             rule("POST", "/v1/principals/*/tokens", "users.manage"), // createPrincipalToken
             rule("GET", "/v1/products/*/tilejson", "data.read"), // getProductTileJson
             rule("POST", "/v1/push/devices/*/test", null), // testPushDevice
@@ -635,6 +647,9 @@ final class AccessPermissions {
             rule("DELETE", "/v1/external/sources/*", "collection.manage"), // deleteExternalSource
             rule("GET", "/v1/external/sources/*", "collection.manage"), // getExternalSource
             rule("POST", "/v1/manifests/*/replay", null), // replayManifest
+            rule("DELETE", "/v1/me/source-groups/*", "self.sources"), // deleteMySourceGroup
+            rule("GET", "/v1/me/source-groups/*", "self.sources"), // getMySourceGroup
+            rule("PUT", "/v1/me/source-groups/*", "self.sources"), // updateMySourceGroup
             rule("POST", "/v1/peers/*/ingest-key", "network.manage"), // rotatePeerIngestKey
             rule("POST", "/v1/products/*/exports", "data.export"), // createProductExport
             rule("GET", "/v1/prompt-templates/*", null), // getPromptTemplate

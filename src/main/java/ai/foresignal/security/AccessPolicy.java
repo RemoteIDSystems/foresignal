@@ -816,6 +816,18 @@ public class AccessPolicy {
                 rule(HttpMethod.POST, "/v1/me/editions/*/run", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.PUT, "/v1/me/editions/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.DELETE, "/v1/me/editions/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                // SG-001: self-service custom sources, gated on the self.sources permission rather than agent scope.
+                // Specific sub-paths precede the single-segment /v1/me/custom-sources/* rule.
+                rule(HttpMethod.POST, "/v1/me/custom-sources/*/ingest-key/rotate",
+                        AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/me/custom-sources/*/mapping/test",
+                        AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/me/custom-sources/*/samples", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/me/custom-sources", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/me/custom-sources", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/me/custom-sources/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PUT, "/v1/me/custom-sources/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.DELETE, "/v1/me/custom-sources/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/inbox", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/principals", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.POST, "/v1/principals", AccessRequirement.ADMIN),

@@ -127,6 +127,25 @@ public class CustomSourceService {
         return id == null ? Optional.empty() : repository.findById(id);
     }
 
+    /** Every custom source owned by {@code ownerUserId}, ordered by id (prompt SG-001). */
+    @Transactional(readOnly = true)
+    public List<CustomSourceEntity> listOwned(java.util.UUID ownerUserId) {
+        return repository.findByOwnerUserIdOrderBySourceId(ownerUserId);
+    }
+
+    /**
+     * One custom source the caller owns (prompt SG-001). An unknown id, a source owned by someone else, and an
+     * operator-created or external source are all {@code 404} — identical to missing, never another user's data.
+     *
+     * @throws NotFoundException when {@code ownerUserId} does not own a custom source with this id
+     */
+    @Transactional(readOnly = true)
+    public CustomSourceEntity getOwned(String id, java.util.UUID ownerUserId) {
+        return repository.findBySourceIdAndOwnerUserId(id, ownerUserId)
+                .filter(row -> !row.isExternal())
+                .orElseThrow(() -> NotFoundException.of("Custom source", id));
+    }
+
     /** The verifier configuration of {@code row} per format. */
     public Map<String, VerifierConfig> verifierConfigs(CustomSourceEntity row) {
         return verifiers.configs(row);
@@ -148,12 +167,26 @@ public class CustomSourceService {
      */
     @Transactional
     public Created create(JsonNode body) {
+        return create(body, null);
+    }
+
+    /**
+     * Creates a custom source owned by {@code ownerUserId} (prompt SG-001): the self-service path, identical to the
+     * operator {@link #create(JsonNode)} except that the row carries an owner, so only that user's self-service surface
+     * sees it. A null owner is the operator path.
+     *
+     * @throws ValidationException on invalid input or descriptor
+     * @throws ConflictException {@code SOURCE_EXISTS} when the id is taken by any source
+     */
+    @Transactional
+    public Created create(JsonNode body, java.util.UUID ownerUserId) {
         CustomSourceDefinition definition = reader.read(withPreset(body), null, Set.of());
         if (registry.contains(definition.id()) || repository.existsById(definition.id())) {
             throw new ConflictException(ErrorCodes.SOURCE_EXISTS,
                     "A source with id '" + definition.id() + "' already exists.");
         }
         CustomSourceEntity row = new CustomSourceEntity(definition.id());
+        row.setOwnerUserId(ownerUserId);
         apply(row, definition);
         row.setPreset(definition.preset());
         row.setDefaultFormat(definition.defaultFormat());
@@ -257,6 +290,19 @@ public class CustomSourceService {
     }
 
     /**
+     * Replaces a custom source the caller owns (prompt SG-001): the ownership check ({@code 404} for a source the
+     * caller does not own, or an unknown id) then the operator {@link #update(String, JsonNode)} path — the owner is
+     * preserved. Keeps the operator 409s ({@code KIND_IN_USE}, {@code OBSERVED_AT_MODE_LOCKED}).
+     *
+     * @throws NotFoundException when {@code ownerUserId} does not own a custom source with this id
+     */
+    @Transactional
+    public CustomSourceEntity update(String id, JsonNode body, java.util.UUID ownerUserId) {
+        getOwned(id, ownerUserId);
+        return update(id, body);
+    }
+
+    /**
      * Redefines a registered external provider after a manifest change (prompt 024).
      *
      * @throws NotFoundException when the source is not registered
@@ -291,6 +337,19 @@ public class CustomSourceService {
     }
 
     /**
+     * Rotates the ingest key of a custom source the caller owns (prompt SG-001); {@code 404} for a source the caller
+     * does not own.
+     *
+     * @return the new key, shown once
+     * @throws NotFoundException when {@code ownerUserId} does not own a custom source with this id
+     */
+    @Transactional
+    public String rotateKey(String id, java.util.UUID ownerUserId) {
+        getOwned(id, ownerUserId);
+        return rotateKey(id);
+    }
+
+    /**
      * Deletes a custom source or external provider: unregisters it and deletes its row, settings
      * and credentials. Records age out through retention.
      *
@@ -306,6 +365,17 @@ public class CustomSourceService {
             registry.unregisterDynamic(id);
         }
         log.info("Deleted {} source {}", row.getOrigin(), id);
+    }
+
+    /**
+     * Deletes a custom source the caller owns (prompt SG-001); {@code 404} for a source the caller does not own.
+     *
+     * @throws NotFoundException when {@code ownerUserId} does not own a custom source with this id
+     */
+    @Transactional
+    public void delete(String id, java.util.UUID ownerUserId) {
+        getOwned(id, ownerUserId);
+        delete(id);
     }
 
     /** Records a successful push's time on the row (best effort, outside the request transaction). */

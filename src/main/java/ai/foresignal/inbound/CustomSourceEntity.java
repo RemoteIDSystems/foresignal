@@ -8,6 +8,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -37,6 +38,10 @@ public class CustomSourceEntity {
 
     @Column(name = "origin", length = 16, nullable = false)
     private String origin = ORIGIN_CUSTOM;
+
+    /** The v2.0 user who owns this source (prompt SG-001); null for an operator-created or external source. */
+    @Column(name = "owner_user_id")
+    private UUID ownerUserId;
 
     @Column(name = "name", length = 200, nullable = false)
     private String name;
@@ -201,6 +206,16 @@ public class CustomSourceEntity {
     /** True for an external (EDP) provider. */
     public boolean isExternal() {
         return ORIGIN_EXTERNAL.equals(origin);
+    }
+
+    /** The owning user (prompt SG-001), or null for an operator-created or external source. */
+    public UUID getOwnerUserId() {
+        return ownerUserId;
+    }
+
+    /** Sets the owning user; null for an operator-created or external source. */
+    public void setOwnerUserId(UUID ownerUserId) {
+        this.ownerUserId = ownerUserId;
     }
 
     /** The display name. */
