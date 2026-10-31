@@ -19,8 +19,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class RuleSpecs {
 
+    /** A source id no record has, used to fail a dangling source group closed (prompt SG-002). */
+    public static final String NO_SOURCE_SENTINEL = "sg:no-members";
+
     private final OperatorRegistry operators;
     private final RegionFences fences;
+
+    /** Expands a rule's {@code sourceGroupId} into its member sources (prompt SG-002); null in unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.source.group.SourceGroupLookup sourceGroups;
 
     /** Creates a compiler without region presets (a rule with a {@code geofenceRef} is then broken). */
     public RuleSpecs(OperatorRegistry operators) {
@@ -88,7 +95,7 @@ public class RuleSpecs {
                 rule.getId(),
                 rule.getName(),
                 rule.isEnabled(),
-                new LinkedHashSet<>(rule.getSources()),
+                sources(rule),
                 new LinkedHashSet<>(rule.getKinds()),
                 rule.getTags(),
                 conditions,
@@ -117,5 +124,28 @@ public class RuleSpecs {
                 sensitive,
                 ref,
                 approaches);
+    }
+
+    /**
+     * The rule's watched source set (prompt SG-002): its own sources, unioned with the member sources of its
+     * {@code sourceGroupId}. A dangling or empty group fails the rule closed — the set becomes a single source id no
+     * record has ({@link #NO_SOURCE_SENTINEL}) rather than the empty "match any" set — so a deleted group never widens
+     * the rule to every source. Without a {@code sourceGroupId} the set is just the rule's sources.
+     */
+    private LinkedHashSet<String> sources(TriggerRuleEntity rule) {
+        LinkedHashSet<String> sources = new LinkedHashSet<>(rule.getSources());
+        String groupId = rule.getSourceGroupId();
+        if (groupId == null) {
+            return sources;
+        }
+        List<String> members = sourceGroups == null ? List.of()
+                : sourceGroups.memberSourcesForPrincipal(groupId, rule.getOwnerPrincipalId()).orElse(List.of());
+        if (members.isEmpty()) {
+            LinkedHashSet<String> closed = new LinkedHashSet<>();
+            closed.add(NO_SOURCE_SENTINEL);
+            return closed;
+        }
+        sources.addAll(members);
+        return sources;
     }
 }

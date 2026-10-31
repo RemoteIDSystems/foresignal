@@ -828,6 +828,12 @@ public class AccessPolicy {
                 rule(HttpMethod.GET, "/v1/me/custom-sources/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.PUT, "/v1/me/custom-sources/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.DELETE, "/v1/me/custom-sources/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                // SG-002: self-service source groups, gated on the self.sources permission rather than agent scope.
+                rule(HttpMethod.GET, "/v1/me/source-groups", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.POST, "/v1/me/source-groups", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.GET, "/v1/me/source-groups/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.PUT, "/v1/me/source-groups/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
+                rule(HttpMethod.DELETE, "/v1/me/source-groups/*", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/inbox", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.GET, "/v1/principals", AccessRequirement.READ_ALWAYS_AUTHENTICATED),
                 rule(HttpMethod.POST, "/v1/principals", AccessRequirement.ADMIN),

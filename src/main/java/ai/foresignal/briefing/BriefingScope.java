@@ -29,10 +29,20 @@ import java.util.UUID;
  * @param places places of the "Weather at places" section (prompt 056); empty for none
  * @param weatherProducts products of that section (prompt 056); empty for the default set
  * @param includeAlertQuality whether the weekly alert-quality section is included (prompt 115; default false)
+ * @param sourceGroupIds source group ids (prompt SG-002) whose member sources bound the scope; empty for none
  */
 public record BriefingScope(List<String> sources, List<String> kinds, String bbox, List<UUID> ruleIds,
         boolean includeHealth, List<String> placeIds, String viewId, List<String> country, List<String> admin1,
-        List<String> county, List<String> places, List<String> weatherProducts, boolean includeAlertQuality) {
+        List<String> county, List<String> places, List<String> weatherProducts, boolean includeAlertQuality,
+        List<String> sourceGroupIds) {
+
+    /** A scope without source groups (the shape before prompt SG-002). */
+    public BriefingScope(List<String> sources, List<String> kinds, String bbox, List<UUID> ruleIds,
+            boolean includeHealth, List<String> placeIds, String viewId, List<String> country, List<String> admin1,
+            List<String> county, List<String> places, List<String> weatherProducts, boolean includeAlertQuality) {
+        this(sources, kinds, bbox, ruleIds, includeHealth, placeIds, viewId, country, admin1, county, places,
+                weatherProducts, includeAlertQuality, List.of());
+    }
 
     /** A scope without the alert-quality section (the shape before prompt 115). */
     public BriefingScope(List<String> sources, List<String> kinds, String bbox, List<UUID> ruleIds,
@@ -75,6 +85,7 @@ public record BriefingScope(List<String> sources, List<String> kinds, String bbo
         county = county == null ? List.of() : List.copyOf(county);
         places = places == null ? List.of() : List.copyOf(places);
         weatherProducts = weatherProducts == null ? List.of() : List.copyOf(weatherProducts);
+        sourceGroupIds = sourceGroupIds == null ? List.of() : List.copyOf(sourceGroupIds);
     }
 
     /** The scope's region filters (prompt 040), or null when it has none. */
@@ -103,6 +114,7 @@ public record BriefingScope(List<String> sources, List<String> kinds, String bbo
         out.put("places", places);
         out.put("weatherProducts", weatherProducts);
         out.put("includeAlertQuality", includeAlertQuality);
+        out.put("sourceGroupIds", sourceGroupIds);
         return out;
     }
 
@@ -126,7 +138,8 @@ public record BriefingScope(List<String> sources, List<String> kinds, String bbo
                 bbox == null ? null : bbox.toString(), rules, !(health instanceof Boolean b) || b,
                 strings(map.get("placeIds")), view == null ? null : view.toString(), strings(map.get("country")),
                 strings(map.get("admin1")), strings(map.get("county")), strings(map.get("places")),
-                strings(map.get("weatherProducts")), Boolean.TRUE.equals(map.get("includeAlertQuality")));
+                strings(map.get("weatherProducts")), Boolean.TRUE.equals(map.get("includeAlertQuality")),
+                strings(map.get("sourceGroupIds")));
     }
 
     private static List<String> strings(Object value) {

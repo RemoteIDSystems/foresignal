@@ -232,6 +232,10 @@ public class TriggerRuleEntity {
     @Column(name = "owner_principal_id", length = 64)
     private String ownerPrincipalId;
 
+    /** The source group (prompt SG-002) whose member sources scope the rule, or null; ANDed with sources/kinds. */
+    @Column(name = "source_group_id", length = 64)
+    private String sourceGroupId;
+
     /** Matches the storm cap dropped. */
     @Column(name = "suppressed_count", nullable = false, columnDefinition = "bigint default 0")
     private long suppressedCount;
@@ -713,6 +717,16 @@ public class TriggerRuleEntity {
     /** Sets the owning user's principal; null makes the rule shared. */
     public void setOwnerPrincipalId(String ownerPrincipalId) {
         this.ownerPrincipalId = ownerPrincipalId;
+    }
+
+    /** The source group (prompt SG-002) scoping the rule, or null. */
+    public String getSourceGroupId() {
+        return sourceGroupId;
+    }
+
+    /** Sets the source group scoping the rule; null for none. */
+    public void setSourceGroupId(String sourceGroupId) {
+        this.sourceGroupId = sourceGroupId;
     }
 
     /** The rule type (prompt 100): {@code record}, {@code count}, {@code absence} or {@code anomaly}. */

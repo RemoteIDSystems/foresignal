@@ -157,7 +157,7 @@ public class TriggerRuleService {
      * @throws ai.foresignal.api.error.ValidationException when the input is not valid
      */
     public RuleView create(JsonNode input, String ownerPrincipalId) {
-        ValidatedRule valid = validator.validate(input);
+        ValidatedRule valid = validator.validate(input, ownerPrincipalId);
         if (quotas != null) {
             quotas.checkCount(ownerPrincipalId, QuotaLimit.ALERTS);
         }
@@ -209,7 +209,8 @@ public class TriggerRuleService {
 
     private RuleView replace(UUID id, JsonNode input, boolean importing) {
         TriggerRuleEntity rule = load(id);
-        ValidatedRule valid = validator.validate(input);
+        // SG-002: a replace keeps the rule's owner, so a sourceGroupId is validated against that owner's groups.
+        ValidatedRule valid = validator.validate(input, rule.getOwnerPrincipalId());
         UUID policy = escalationPolicy(input, importing);
         valid.applyTo(rule);
         applyWindow(rule, input);

@@ -114,6 +114,10 @@ public class RuleValidator {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private RegionFences regionFences;
 
+    /** Resolves a {@code sourceGroupId} to the rule owner's group (prompt SG-002); null in unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.source.group.SourceGroupLookup sourceGroups;
+
     /** Creates the validator. */
     public RuleValidator(
             SourceRegistry registry,
@@ -135,10 +139,23 @@ public class RuleValidator {
      * @throws ValidationException {@code 400} with the code and field errors described above
      */
     public ValidatedRule validate(JsonNode body) {
+        return validate(body, null);
+    }
+
+    /**
+     * Validates {@code body} for a rule owned by {@code ownerPrincipalId} (prompt SG-002): a {@code sourceGroupId}
+     * must name a source group that user owns.
+     *
+     * @param body the rule
+     * @param ownerPrincipalId the owning user's principal, or null for a shared rule (which owns no group)
+     * @return the normalized rule
+     * @throws ValidationException {@code 400} with the code and field errors described above
+     */
+    public ValidatedRule validate(JsonNode body, String ownerPrincipalId) {
         if (body == null || !body.isObject()) {
             throw new ValidationException("The rule must be a JSON object.");
         }
-        Run run = new Run(body);
+        Run run = new Run(body, ownerPrincipalId);
         return run.validate();
     }
 
@@ -200,12 +217,18 @@ public class RuleValidator {
     private final class Run {
 
         private final JsonNode body;
+        private final String ownerPrincipalId;
         private final List<FieldError> errors = new ArrayList<>();
         private final List<String> warnings = new ArrayList<>();
         private ValidationException special;
 
         Run(JsonNode body) {
+            this(body, null);
+        }
+
+        Run(JsonNode body, String ownerPrincipalId) {
             this.body = body;
+            this.ownerPrincipalId = ownerPrincipalId;
         }
 
         ValidatedRule validate() {
@@ -213,6 +236,7 @@ public class RuleValidator {
             boolean enabled = bool("enabled", true);
             List<String> sources = filter("sources", "source", true);
             List<String> kinds = filter("kinds", "kind", false);
+            String sourceGroupId = sourceGroupId();
             List<String> tags = tags();
             List<TriggerCondition> conditions = conditions();
             checkVolatile(sources, kinds, conditions);
@@ -240,8 +264,9 @@ public class RuleValidator {
             if (mode != TriggerMode.MATCH && !fenced && conditions.isEmpty()) {
                 error("mode", "enter and exit need a geofence, near or at least one condition");
             }
-            if (sources.isEmpty() && kinds.isEmpty() && conditions.isEmpty() && !fenced) {
-                error("sources", "a rule needs at least one of sources, kinds, conditions, geofence or near");
+            if (sources.isEmpty() && kinds.isEmpty() && conditions.isEmpty() && !fenced && sourceGroupId == null) {
+                error("sources", "a rule needs at least one of sources, kinds, conditions, geofence, near or"
+                        + " sourceGroupId");
             }
 
             boolean onlyNew = bool("onlyNew", false);
@@ -326,7 +351,27 @@ public class RuleValidator {
                     fence.bufferMeters(), hysteresis > 0 ? hysteresis : 0, inner, outer, fence.near(), mode, onlyNew,
                     reappearAsEnter, cooldown, cooldownScope, severity, enrich, enrichRadiusKm, enrichWindow,
                     autoResolve, maxAlertsPerHour, autoDisableOnStorm, activeFrom, activeUntil, activeWindow,
-                    forecastHorizon, template, warnings, geofenceRef, weatherContext);
+                    forecastHorizon, template, warnings, geofenceRef, weatherContext, sourceGroupId);
+        }
+
+        /**
+         * {@code sourceGroupId} (prompt SG-002): null when absent; otherwise it must name a source group the rule's
+         * owner owns, else {@code 400}. ANDed with sources/kinds, and alone satisfies the "≥1 selector" rule.
+         */
+        private String sourceGroupId() {
+            JsonNode node = body.get("sourceGroupId");
+            if (node == null || node.isNull()) {
+                return null;
+            }
+            if (!node.isString() || node.asString().isBlank()) {
+                error("sourceGroupId", "must be a source group id");
+                return null;
+            }
+            String id = node.asString().strip();
+            if (sourceGroups == null || !sourceGroups.existsForPrincipal(id, ownerPrincipalId)) {
+                error("sourceGroupId", "names no source group you own");
+            }
+            return id;
         }
 
         /** {@code weatherContext} (prompt 056): {@code auto} (default) or {@code off}. */

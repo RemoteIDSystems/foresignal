@@ -689,9 +689,13 @@ public class BriefingValidator {
         }
         // Prompt 115: the optional weekly alert-quality section, off by default.
         boolean includeAlertQuality = bool(node, "includeAlertQuality", false, errors, "scope.");
+        // Prompt SG-002: source groups whose member sources bound the scope. The ids are carried as given; the scope
+        // resolver resolves each against the edition owner's groups and fails closed for an unknown or foreign group,
+        // so an id that names no group of the owner widens nothing.
+        List<String> sourceGroupIds = strings(node, "sourceGroupIds", errors);
         return new BriefingScope(dedupe(sources), dedupe(kinds), bbox, ruleIds, includeHealth, dedupe(placeIds), viewId,
                 dedupe(country), dedupe(admin1), dedupe(county), dedupe(places), dedupe(weatherProducts),
-                includeAlertQuality);
+                includeAlertQuality, dedupe(sourceGroupIds));
     }
 
     private static List<String> upper(List<String> values) {

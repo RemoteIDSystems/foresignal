@@ -7,6 +7,7 @@ import ai.foresignal.place.PlaceService;
 import ai.foresignal.place.PlaceView;
 import ai.foresignal.security.restrict.RecordFilter;
 import ai.foresignal.security.restrict.RecordFilters;
+import ai.foresignal.source.group.SourceGroupLookup;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -20,6 +21,11 @@ import org.springframework.stereotype.Component;
  * digest heading) and {@code viewId} (the view's predicate; its sources and kinds become the scope's
  * when the scope names none). A deleted place or view matches nothing (fail closed). The LLM sees
  * place names only, never coordinates.
+ *
+ * <p>Prompt SG-002 adds {@code sourceGroupIds}: each group's member sources are unioned into the scope's sources (the
+ * group bounds the scope), resolved by id through {@link SourceGroupLookup}. A group that is unknown, deleted or
+ * resolves to no members makes the scope match nothing (fail closed), exactly like a deleted place or view, so a
+ * dangling group never widens the scope to every source.
  */
 @Component
 @Primary
@@ -28,12 +34,15 @@ public class PlaceBriefingScopeResolver implements ScopeResolver {
     private final PlaceService places;
     private final SavedViewService views;
     private final RecordScopes scopes;
+    private final SourceGroupLookup sourceGroups;
 
     /** Creates the resolver. */
-    public PlaceBriefingScopeResolver(PlaceService places, SavedViewService views, RecordScopes scopes) {
+    public PlaceBriefingScopeResolver(PlaceService places, SavedViewService views, RecordScopes scopes,
+            SourceGroupLookup sourceGroups) {
         this.places = places;
         this.views = views;
         this.scopes = scopes;
+        this.sourceGroups = sourceGroups;
     }
 
     @Override
@@ -67,6 +76,26 @@ public class PlaceBriefingScopeResolver implements ScopeResolver {
                 }
             } else {
                 filter = nothing("view:deleted");
+            }
+        }
+        if (!s.sourceGroupIds().isEmpty()) {
+            LinkedHashSet<String> members = new LinkedHashSet<>();
+            boolean resolved = true;
+            for (String groupId : s.sourceGroupIds()) {
+                Optional<List<String>> group = sourceGroups.memberSources(groupId);
+                if (group.isEmpty()) {
+                    resolved = false;
+                    break;
+                }
+                members.addAll(group.get());
+            }
+            if (!resolved || members.isEmpty()) {
+                // Fail closed: a dangling or empty group matches nothing, it never widens the scope to every source.
+                filter = filter == null ? nothing("group:deleted") : RecordFilters.and(filter, nothing("group:deleted"));
+            } else {
+                LinkedHashSet<String> union = new LinkedHashSet<>(sources);
+                union.addAll(members);
+                sources = new ArrayList<>(union);
             }
         }
         return new Resolved(sources, kinds, BboxParser.parse(s.bbox()), new LinkedHashSet<>(s.ruleIds()),
