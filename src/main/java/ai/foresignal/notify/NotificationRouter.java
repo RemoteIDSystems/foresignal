@@ -101,6 +101,10 @@ public class NotificationRouter implements AlertListener {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private AlertMapService alertMaps;
 
+    /** Per-source notification thresholds (prompt SG-003); null only in hand-built unit tests. */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ai.foresignal.notify.threshold.SourceThresholdService sourceThresholds;
+
     /** Creates the router. */
     public NotificationRouter(AlertBus bus, NotificationService service, NotificationStore store,
             ChannelService channels, TriggerRuleRepository rules, EnrichmentDeliveries enrichment, JsonMapper json,
@@ -185,16 +189,28 @@ public class NotificationRouter implements AlertListener {
         // A muted rule's alerts are recorded and kept in the inbox, but not routed (prompt 033).
         boolean muted = alert.ruleId() != null
                 && rules.findById(alert.ruleId()).map(r -> r.mutedAt(clock.instant())).orElse(false);
+        // Prompt SG-003: the owner's per-source threshold (per-source entry > covering group threshold > default).
+        // An alert below the minimum severity, from a muted source, or within cooldown is kept in the inbox but not
+        // routed, exactly like the rule-mute above. Only a user-owned alert has a per-source threshold.
+        boolean sourceSuppressed = sourceThresholds != null && alert.ownerPrincipalId() != null
+                && !sourceThresholds.shouldNotify(alert.ownerPrincipalId(), alert.sourceId(), alert.severity(),
+                        clock.instant());
         // Prompt 125: an indicator's watch rule (tag origin-hypothesis) routes to no channel by default; only a
         // channel that names the rule in its ruleIds receives its alerts. They stay in the inbox and on the streams.
         // Prompt 127: the impact-family rules (tag origin-impact) that resolve impact questions are routed the same way.
         boolean indicatorWatch = alert.tags().contains(ai.foresignal.hypothesis.IndicatorWatchService.ORIGIN_TAG)
                 || alert.tags().contains(ai.foresignal.impact.ImpactRules.ORIGIN_TAG);
-        java.util.function.Predicate<ai.foresignal.notify.NotificationChannel> filter = muted ? c -> false
+        java.util.function.Predicate<ai.foresignal.notify.NotificationChannel> filter = muted || sourceSuppressed
+                ? c -> false
                 : indicatorWatch ? c -> c.ruleIds() != null && c.ruleIds().contains(alert.ruleId()) : null;
         // R2-008: a user's rule delivers to that user's channels only; a shared rule to the instance channels.
         NotificationMessage persisted = alert.ownerPrincipalId() == null ? service.publish(message, filter)
                 : service.publishOwned(message, alert.ownerPrincipalId(), filter);
+        // Prompt SG-003: a notification that passed the per-source threshold stamps the source's last-notified time,
+        // so the cooldown measures from when a notification actually went out.
+        if (!muted && !sourceSuppressed && sourceThresholds != null && alert.ownerPrincipalId() != null) {
+            sourceThresholds.recordNotified(alert.ownerPrincipalId(), alert.sourceId(), clock.instant());
+        }
         if (!muted && alertMaps != null) {
             // Prompt 055: start the alert's map now, concurrently with the enrichment wait.
             alertMaps.prepare(alert, persisted);
