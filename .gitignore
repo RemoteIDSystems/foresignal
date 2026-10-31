@@ -30,3 +30,8 @@ Thumbs.db
 
 # Claude Code local worktrees and config (never part of the repo)
 .claude/
+
+# Separately built web client, copied into deploy/web and served by the Caddy web
+# profile. Built elsewhere and never committed (docker-compose.yml: "empty by default").
+/deploy/web/*
+!/deploy/web/.gitkeep
