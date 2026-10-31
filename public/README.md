@@ -11,6 +11,7 @@ A standalone, responsive, multi-page marketing website concept for the Foresigna
 | Admin | `admin.html` | Native operator control plane and supplied Admin interface mockups |
 | Client showcase | `clients.html` | The optional reference web client, with filterable designs and full-size previews |
 | Intelligence | `intelligence.html` | Correlation, rolling hypotheses, optional AI, forecasting and accountability |
+| Automated Newspaper | `newspaper.html` | Personalized, cited written and spoken editions, news translation and delivery |
 | Developers | `developers.html` | Three-repo separation, API surfaces and a development quickstart |
 
 ## Run it locally
@@ -80,3 +81,9 @@ foresignal-website/
 ## Suggested launch review
 
 Before public launch, confirm the two remaining repo URLs, add any production documentation links, verify current feature/release claims, and test in a normal browser at desktop and mobile widths. No contact form, authentication, or analytics service has been invented for this static concept.
+
+## Automated Newspaper (new page)
+
+`newspaper.html` is a static marketing design for the capabilities described in the supplied `Automated-Newspaper.md` (backend API version 2.1.1). Its illustrated newspaper is **a mockup, not a live edition**, and contains no real news headlines or invented performance numbers.
+
+This is a capability of the existing `foresignal` backend, configured in `foresignal-admin`, and consumable by any client. It is **not a fourth repository or independently deployed service**. The source docs specify metadata-only news articles (titles and excerpts, not full bodies), a deterministic digest fallback when LLM writing fails, citation verification and optional provenance/corroboration. Operator configuration and user-owned edition self-service have distinct permissions.
