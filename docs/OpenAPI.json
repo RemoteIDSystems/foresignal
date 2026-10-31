@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Foresignal API",
-    "version": "2.1.1",
+    "version": "2.2.0",
     "summary": "Headless intelligence broker: ingest, version and re-serve public telemetry.",
     "description": "All configuration is done through this API. The MCP server is at `/mcp` (MCP streamable HTTP, protocol versions 2024-11-05 to 2025-11-25) and is not an OpenAPI operation; it exposes the same data, the alert lifecycle and watch management as MCP tools, resources (`foresignal://sources`, `foresignal://kinds`) and the `situation-report` prompt (025, docs/Agent-Guide.md), plus the cost-bearing `search` tool (027) and the briefing tools `list_briefings`, `get_briefing_run`, `get_digest` (read), `create_briefing` and the cost-bearing `run_briefing` (agent) (029). It takes the same bearer tokens: `/mcp/**` needs `read` (open while `openReads` is on), tools are listed by the caller's scope and each checks its own (`read` tools; `agent` for writes such as `create_watch` and `set_alert_status`; cost-bearing tools always need a token), a session is bound to the token that opened it, and every tool call is audited (argument names only). The older HTTP+SSE transport (protocol 2024-11-05) is served at `/mcp/sse` with messages at `/mcp/message` only when `foresignal.mcp.legacy-sse.enabled=true`, for older clients. `GET /v1/system` reports its state under `mcp`. Reads of data are open on the local network; all writes and settings reads require the admin bearer token printed on first start. Errors are RFC 9457 problem+json. Timestamps are ISO-8601 UTC. `/v1` is additive-only once released.\n\n**Key-in-path carriers.** Header-less clients use keys in the path: feed keys (`fsf_`, 035) as `/v1/k/{key}/<any allowed GET/HEAD path>`, tile keys (`fsk_`, 050) as `/v1/k/{key}/products/...`, `/v1/k/{key}/tiles/...`, `/v1/k/{key}/map/...` and `/v1/k/{key}/changes/stream` for map clients (MapLibre, maplibre_gl, Cesium, `EventSource`), share links (`fss_`, 112) as `/v1/k/{key}`. These are transports for the documented operations, not separate operations. A feed key reaches only `GET`/`HEAD` of `read` operations that are not always-authenticated, under the key's path prefixes, with the key's mandatory read restriction (unknown key 401 INVALID_FEED_KEY, expired or revoked 410 FEED_KEY_GONE, another method 405, a path outside the prefixes 403 RESTRICTED). A tile key reaches the same operations under its prefixes (a subset of `/v1/products/`, `/v1/styles`, `/v1/media/`, `/v1/tiles/`, `/v1/maps/static`, `/v1/sample`, `/v1/ground-stations/`, `/v1/changes/stream`, `/v1/events/stream`, `/v1/map/`), with its optional restriction and never private sources (unknown, expired or revoked key 401 INVALID_TILE_KEY, another method 405, a path outside the prefixes 403 INSUFFICIENT_SCOPE). Responses carry `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`; `Cache-Control` defaults to `private`, and a tile-key response takes the canonical path's own rule (`public` only while `openReads` covers it). Logs show only the key's first eight characters; the key is never echoed except by `createFeedKey` and `createTileKey`, and in the follow-up URLs of documents requested through it (058: the MapLibre style's sources and sprite, KML NetworkLink and icon hrefs, a feed's own `rel=\"self\"` / `feed_url`), which are then always `Cache-Control: private`. CORS exposes `Foresignal-Frame-Time`, `Foresignal-Image-Bounds`, `Foresignal-Frame-Expired`, `Retry-After`, `Link` and `ETag`, allows `Authorization`, `If-None-Match` and `Foresignal-Prefetch`, and caches preflights for a day; `?prefetch=1` marks a render prefetch without the preflight the header causes.\n\n**Restrictions and limits (035).** Restricted tokens, feed keys and the anonymous profile (`security.anonymous`, applied to tokenless reads while `openReads` is on) see only records and alerts inside their `ReadRestriction` on every read path (records, history, versions, changes, kinds, tiles, streams, search, alerts, the inbox, the digest, briefings, MCP tools and Ask): request filters are intersected with the restriction, and a single record or alert outside it is 404. Every client is rate-limited per class (`RateLimitSettings`); over a limit, or after repeated failed credentials from one address, the answer is 429 RATE_LIMITED with `Retry-After`. Device ingest URLs (039) and signed action links (033) use their own documented paths.\n\n**Permissions (R2-004).** An operation a signed-in user needs a permission for carries `x-foresignal-permission`, a key of the `GET /v1/permissions` catalog (`users.manage`, `data.read`, `audit.read`…). A session bearer (`fss_`) is gated by that permission alone, in place of the scope: a user whose roles lack it gets 403 PERMISSION_DENIED with `requiredPermission`. An operation may list `x-foresignal-permission-alternatives`, further keys any one of which satisfies it as well (R2-009: the channel operations take `self.channels` or `channels.global`). An operation without one is gated on the session's derived scope. API tokens are gated by `x-foresignal-scope` only, as before: machines are not permission-scoped, so an `admin` token satisfies every permission and a lower token gets 403 INSUFFICIENT_SCOPE.\n\n**Status annotations.** Every operation has `x-foresignal-prompt` (the build prompt that implements it), optional `x-foresignal-extended-by`, and `x-foresignal-status` (`planned` until implemented). Clients can mock the whole API from this document and filter by status.\n\n**Outside this document:** the MCP server (`/mcp`, plus the legacy SSE transport when enabled), Actuator endpoints (`/actuator/**`), and sink listeners on their own ports (110).",
     "license": {
@@ -729,6 +729,11 @@
         "version": "2.1.1",
         "date": "2026-10-30",
         "note": "API 2.1.1 (newspaper editions: ownership + self-service). Additive. BriefingInput gains the writable ownerUserId: on createBriefing/updateBriefing it defaults to the creating user and only a caller holding users.manage may set it to another user, to assign an edition on their behalf; Briefing.ownerUserId stays read-only in responses. New self-service edition operations under /v1/me/editions let a signed-in user holding the new self.editions permission own and manage an edition without agent scope: createMyEdition (POST /v1/me/editions), updateMyEdition (PUT /v1/me/editions/{briefingId}), deleteMyEdition (DELETE /v1/me/editions/{briefingId}) and runMyEdition (POST /v1/me/editions/{briefingId}/run); ownerUserId is forced to the caller on these. No operation or schema was renamed or removed; a 2.1.0 client stays valid. Authored contract-first; implemented and activated by NP-008."
+      },
+      {
+        "version": "2.2.0",
+        "date": "2026-10-30",
+        "note": "API 2.2.0 (self-service sources & source groups for the personal newspaper). Authored contract-first; every new operation is x-foresignal-status `planned` and tagged with its SG- implementation prompt (SG-001..SG-003). Additive; no existing operation changes. A signed-in user can define their own custom sources (/v1/me/custom-sources, self.sources) — for example an air-quality or earthquake feed — which flow into analysis, editions, triggers and events like any other source; group sources into named source groups with their own correlation settings and notification threshold (/v1/me/source-groups, self.sources); and set per-source severity thresholds for notifications (/v1/me/source-thresholds, self.alerts). BriefingScope gains sourceGroupIds and TriggerRuleInput gains sourceGroupId so an edition or a trigger can be scoped to a source group."
       }
     ]
   },
@@ -95426,6 +95431,1081 @@
         "x-foresignal-prompt": "NP-001",
         "x-foresignal-status": "implemented"
       }
+    },
+    "/v1/me/custom-sources": {
+      "get": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "listMyCustomSources",
+        "summary": "List my custom sources",
+        "description": "Lists the custom sources the calling user owns (2.2.0). A signed-in user may define their own sources (for example an air-quality or earthquake feed) without operator scope; data is pushed to each source through `/v1/ingest/{sourceId}` with its ingest key. Any signed-in user holding `self.sources`.\n\n**Scope:** `read`.",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque pagination cursor from a previous response's nextCursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomSource"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.sources",
+        "x-foresignal-prompt": "SG-001",
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-status": "planned"
+      },
+      "post": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "createMyCustomSource",
+        "summary": "Create my custom source",
+        "description": "Creates a custom source the calling user owns (2.2.0). The body is a `CustomSourceInput`; the owner is forced to the caller and `private` is forced on, and operator-only fields (ingest CIDRs, rate caps, egress) are ignored. The source then produces records that flow into analysis, editions, triggers and events like any other source. Any signed-in user holding `self.sources`.\n\n**Scope:** `read`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomSourceInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomSourceCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request (VALIDATION_FAILED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.sources",
+        "x-foresignal-prompt": "SG-001",
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-status": "planned"
+      }
+    },
+    "/v1/me/custom-sources/{sourceId}": {
+      "get": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "getMyCustomSource",
+        "summary": "Get my custom source",
+        "description": "Returns one custom source the calling user owns (2.2.0). `self.sources`.\n\n**Scope:** `read`.",
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "The custom source id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomSource"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.sources",
+        "x-foresignal-prompt": "SG-001",
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-status": "planned"
+      },
+      "put": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "updateMyCustomSource",
+        "summary": "Update my custom source",
+        "description": "Replaces one custom source the calling user owns (2.2.0). Body is a `CustomSourceInput`; owner and `private` are preserved. `self.sources`.\n\n**Scope:** `read`.",
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "The custom source id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomSourceInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomSource"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request (VALIDATION_FAILED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.sources",
+        "x-foresignal-prompt": "SG-001",
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-status": "planned"
+      },
+      "delete": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "deleteMyCustomSource",
+        "summary": "Delete my custom source",
+        "description": "Deletes one custom source the calling user owns and its records (2.2.0). `self.sources`.\n\n**Scope:** `read`.",
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "The custom source id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.sources",
+        "x-foresignal-prompt": "SG-001",
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-status": "planned"
+      }
+    },
+    "/v1/me/custom-sources/{sourceId}/ingest-key/rotate": {
+      "post": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "rotateMyCustomSourceIngestKey",
+        "summary": "Rotate my custom source ingest key",
+        "description": "Rotates the ingest key of a custom source the calling user owns, returning the new key once (2.2.0). `self.sources`.\n\n**Scope:** `read`.",
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "The custom source id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ingestKey": {
+                      "type": "string",
+                      "description": "The new ingest key, returned once"
+                    }
+                  },
+                  "required": [
+                    "ingestKey"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.sources",
+        "x-foresignal-prompt": "SG-001",
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-status": "planned"
+      }
+    },
+    "/v1/me/custom-sources/{sourceId}/mapping/test": {
+      "post": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "testMyCustomSourceMapping",
+        "summary": "Test my custom source mapping",
+        "description": "Dry-runs the source's field mapping against a sample payload and returns the records it would produce, without storing anything (2.2.0). `self.sources`.\n\n**Scope:** `read`.",
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "The custom source id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "A sample upstream payload to map"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "The mapped records and any mapping diagnostics",
+                  "properties": {
+                    "records": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request (VALIDATION_FAILED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.sources",
+        "x-foresignal-prompt": "SG-001",
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-status": "planned"
+      }
+    },
+    "/v1/me/custom-sources/{sourceId}/samples": {
+      "get": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "listMyCustomSourceSamples",
+        "summary": "List my custom source samples",
+        "description": "Lists captured sample payloads for a custom source the calling user owns, to help build its mapping (2.2.0). `self.sources`.\n\n**Scope:** `read`.",
+        "parameters": [
+          {
+            "name": "sourceId",
+            "in": "path",
+            "required": true,
+            "description": "The custom source id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.sources",
+        "x-foresignal-prompt": "SG-001",
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-status": "planned"
+      }
+    },
+    "/v1/me/source-groups": {
+      "get": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "listMySourceGroups",
+        "summary": "List my source groups",
+        "description": "Lists the source groups the calling user owns (2.2.0). A source group is a named set of sources (custom or catalog) with its own correlation settings and notification threshold; an edition or a trigger can be scoped to it. `self.sources`.\n\n**Scope:** `read`.",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque pagination cursor from a previous response's nextCursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceGroupPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.sources",
+        "x-foresignal-prompt": "SG-002",
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-status": "planned"
+      },
+      "post": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "createMySourceGroup",
+        "summary": "Create my source group",
+        "description": "Creates a source group the calling user owns (2.2.0). The body is a `SourceGroupInput` naming the member sources and how they are correlated; the owner is forced to the caller. Scope an edition to it with `BriefingScope.sourceGroupIds` and a trigger with `TriggerRuleInput.sourceGroupId`. `self.sources`.\n\n**Scope:** `read`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceGroupInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceGroup"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request (VALIDATION_FAILED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.sources",
+        "x-foresignal-prompt": "SG-002",
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-status": "planned"
+      }
+    },
+    "/v1/me/source-groups/{groupId}": {
+      "get": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "getMySourceGroup",
+        "summary": "Get my source group",
+        "description": "Returns one source group the calling user owns (2.2.0). `self.sources`.\n\n**Scope:** `read`.",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "description": "The source group id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceGroup"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.sources",
+        "x-foresignal-prompt": "SG-002",
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-status": "planned"
+      },
+      "put": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "updateMySourceGroup",
+        "summary": "Update my source group",
+        "description": "Replaces one source group the calling user owns (2.2.0). Body is a `SourceGroupInput`; owner is preserved. `self.sources`.\n\n**Scope:** `read`.",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "description": "The source group id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceGroupInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceGroup"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request (VALIDATION_FAILED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.sources",
+        "x-foresignal-prompt": "SG-002",
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-status": "planned"
+      },
+      "delete": {
+        "tags": [
+          "Sources"
+        ],
+        "operationId": "deleteMySourceGroup",
+        "summary": "Delete my source group",
+        "description": "Deletes one source group the calling user owns (2.2.0); the member sources are not deleted. Editions or triggers that referenced it keep working on their other scope. `self.sources`.\n\n**Scope:** `read`.",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "description": "The source group id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.sources",
+        "x-foresignal-prompt": "SG-002",
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-status": "planned"
+      }
+    },
+    "/v1/me/source-thresholds": {
+      "get": {
+        "tags": [
+          "Alerts"
+        ],
+        "operationId": "getMySourceThresholds",
+        "summary": "Get my source thresholds",
+        "description": "Returns the calling user's per-source severity thresholds for notifications (2.2.0): for each source, the minimum alert severity that notifies, whether it is muted, and a per-source cooldown. Applies to every source, custom or catalog. Full conditional rules still use `createTrigger`. `self.alerts`.\n\n**Scope:** `read`.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceThresholds"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.alerts",
+        "x-foresignal-prompt": "SG-003",
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-status": "planned"
+      },
+      "put": {
+        "tags": [
+          "Alerts"
+        ],
+        "operationId": "updateMySourceThresholds",
+        "summary": "Update my source thresholds",
+        "description": "Replaces the calling user's per-source severity thresholds for notifications (2.2.0). Body is a `SourceThresholds`. `self.alerts`.\n\n**Scope:** `read`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceThresholds"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceThresholds"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request (VALIDATION_FAILED)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permission",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-foresignal-scope": "read",
+        "x-foresignal-permission": "self.alerts",
+        "x-foresignal-prompt": "SG-003",
+        "x-foresignal-always-authenticated": true,
+        "x-foresignal-status": "planned"
+      }
     }
   },
   "components": {
@@ -102821,6 +103901,13 @@
               }
             ],
             "description": "Window spec for count, absence and anomaly rules; the rule `type` selects the variant"
+          },
+          "sourceGroupId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Scope the rule to a source group's member sources (2.2.0); ANDed with sources/kinds"
           }
         },
         "description": "All conditions are ANDed. At least one of sources, kinds, conditions, geofence or near is required. Unknown sources → 400; unknown kinds warn.",
@@ -107828,6 +108915,13 @@
             "default": false,
             "description": "Include the weekly alert-quality section: lowest precision (at least 10 labeled), noisiest rules by alerts per day, rules with open tuning suggestions (115)",
             "x-foresignal-prompt": "115"
+          },
+          "sourceGroupIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Source group ids (2.2.0) whose member sources bound the scope; empty for none"
           }
         },
         "x-foresignal-extended-by": [
@@ -181973,6 +183067,241 @@
           "briefingId",
           "url"
         ]
+      },
+      "GroupCorrelation": {
+        "type": "object",
+        "description": "How a source group's data is correlated and written (2.2.0), mirroring the AI-analysis controls of an edition.",
+        "properties": {
+          "correlationLevel": {
+            "type": "string",
+            "enum": [
+              "conservative",
+              "balanced",
+              "aggressive"
+            ],
+            "default": "balanced",
+            "description": "How aggressively related records are merged into one story/event"
+          },
+          "analysisStyle": {
+            "type": "string",
+            "enum": [
+              "objective",
+              "analytical",
+              "in-depth"
+            ],
+            "default": "analytical"
+          },
+          "storyLength": {
+            "type": "string",
+            "enum": [
+              "short",
+              "medium",
+              "long"
+            ],
+            "default": "medium"
+          }
+        }
+      },
+      "GroupThreshold": {
+        "type": "object",
+        "description": "A source group's notification threshold (2.2.0): the minimum alert severity that notifies for the group's sources, applied unless a per-source threshold overrides it.",
+        "properties": {
+          "minSeverity": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning",
+              "critical"
+            ],
+            "default": "warning"
+          },
+          "mute": {
+            "type": "boolean",
+            "default": false
+          },
+          "cooldown": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO-8601 duration or shorthand (P7D, 15m, 12h) between notifications; null for none"
+          }
+        }
+      },
+      "SourceGroupInput": {
+        "type": "object",
+        "description": "Create or replace a source group (2.2.0): a named set of sources with its own correlation and notification threshold.",
+        "required": [
+          "name",
+          "sourceIds"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sourceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Member source ids (custom or catalog); unknown ids → 400"
+          },
+          "kinds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Optional record-kind filter within the member sources; empty for all"
+          },
+          "correlation": {
+            "$ref": "#/components/schemas/GroupCorrelation"
+          },
+          "notificationThreshold": {
+            "$ref": "#/components/schemas/GroupThreshold"
+          }
+        }
+      },
+      "SourceGroup": {
+        "type": "object",
+        "description": "A source group the user owns (2.2.0).",
+        "required": [
+          "id",
+          "name",
+          "sourceIds"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sourceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kinds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "correlation": {
+            "$ref": "#/components/schemas/GroupCorrelation"
+          },
+          "notificationThreshold": {
+            "$ref": "#/components/schemas/GroupThreshold"
+          },
+          "ownerUserId": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true,
+            "description": "The user who owns the group"
+          },
+          "editionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "readOnly": true,
+            "description": "The edition generated for this group (scope sourceGroupIds), or null"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          }
+        }
+      },
+      "SourceGroupPage": {
+        "type": "object",
+        "description": "A page of source groups (2.2.0).",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceGroup"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass as cursor to fetch the next page, or null at the end"
+          }
+        }
+      },
+      "SourceThresholdEntry": {
+        "type": "object",
+        "description": "A per-source notification threshold (2.2.0).",
+        "required": [
+          "sourceId"
+        ],
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "minSeverity": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning",
+              "critical"
+            ],
+            "default": "warning",
+            "description": "The minimum alert severity from this source that notifies"
+          },
+          "mute": {
+            "type": "boolean",
+            "default": false,
+            "description": "Suppress all notifications from this source"
+          },
+          "cooldown": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO-8601 duration or shorthand between notifications from this source; null for none"
+          }
+        }
+      },
+      "SourceThresholds": {
+        "type": "object",
+        "description": "The user's per-source severity thresholds for notifications (2.2.0). Applies to every source; a source with no entry notifies at the default severity.",
+        "required": [
+          "entries"
+        ],
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceThresholdEntry"
+            }
+          }
+        }
       }
     },
     "securitySchemes": {
